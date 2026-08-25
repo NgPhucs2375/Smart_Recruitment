@@ -1,0 +1,85 @@
+﻿using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Application.DTOs.Account;
+using Application.Exceptions;
+using Application.Interfaces;
+using Infrastructure.Identity.Features.Users.Queries.GetMeByToken;
+using Microsoft.AspNetCore.Hosting;
+
+namespace WebApp.Server.Controllers
+{
+    [Route("api/account")]
+    [ApiController]
+    public class AccountController : BaseApiController
+    {
+        private readonly IAccountService _accountService;
+
+        public AccountController(IAccountService accountService, IWebHostEnvironment webEnvironment) : base(webEnvironment)
+        {
+            _accountService = accountService;
+        }
+
+        // Đăng nhập (Trả về JWT + Refresh Token)
+        [HttpPost("authenticate")]
+        public async Task<IActionResult> AuthenticateAsync([FromBody] AuthenticationRequest request)
+        {
+            return Ok(await _accountService.AuthenticateAsync(request, GenerateIPAddress()));
+        }
+
+        // Đăng ký tài khoản
+        [HttpPost("register")]
+        public async Task<IActionResult> RegisterAsync([FromBody] YeuCauDangKy request)
+        {
+            var origin = Request.Headers["origin"].ToString();
+            return Ok(await _accountService.RegisterAsync(request, origin));
+        }
+
+        // Xác thực email qua link kích hoạt
+        [HttpGet("confirm-email")]
+        public async Task<IActionResult> ConfirmEmailAsync([FromQuery] string userId, [FromQuery] string code)
+        {
+            return Ok(await _accountService.ConfirmEmailAsync(userId, code));
+        }
+
+        // Yêu cầu gửi email quên mật khẩu
+        [HttpPost("forgot-password")]
+        public async Task<IActionResult> ForgotPassword([FromBody] YeuCauQuenMatKhau model)
+        {
+            await _accountService.ForgotPassword(model, Request.Headers["origin"].ToString());
+            return Ok();
+        }
+
+        // Đặt lại mật khẩu
+        [HttpPost("reset-password")]
+        public async Task<IActionResult> ResetPassword([FromBody] YeuCauGuiLaiXacMinh model)
+        {
+            return Ok(await _accountService.ResetPassword(model));
+        }
+
+        // Lấy thông tin tài khoản hiện tại từ JWT
+        [Authorize]
+        [HttpGet("me")]
+        public async Task<IActionResult> GetCurrentUserAsync()
+        {
+            if (HttpContext.User.Identity is ClaimsIdentity identity)
+            {
+                return Ok(await Mediator.Send(new GetMeByTokenQuery { Identity = identity }));
+            }
+            else
+            {
+                throw new ApiException("Không tìm thấy người dùng!", 404);
+            }
+        }
+
+        private string GenerateIPAddress()
+        {
+           if (Request.Headers.TryGetValue("X-Forwarded-For", out var forwardedFor))
+    {
+        return forwardedFor.ToString();
+    }
+
+    return HttpContext.Connection.RemoteIpAddress?.MapToIPv4().ToString() ?? "127.0.0.1";
+        }
+    }
+}
