@@ -9,12 +9,15 @@
 
 
 
-# sổ cây thư muvj
+# Sổ cây thư mục
 tree ..\..
 
+# Lệnh chạy docker-compose 
+docker compose up -d --build 
+ 
+Tắt thì: docker compose down
 
-
-# Tìm đường dẫn tuyệt đoois
+# Tìm đường dẫn tuyệt đối
 dir ..\.. /s /b /ad 
 
 # tìm đúng cproj
