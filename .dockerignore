@@ -28,3 +28,19 @@ README.md
 !.git/config
 !.git/packed-refs
 !.git/refs/heads/**
+
+# Bỏ qua rác của Node.js (Frontend)
+node_modules
+npm-debug.log
+.next
+out
+build
+dist
+
+# Bỏ qua rác của .NET (Backend & Agent)
+bin
+obj
+.vs
+
+# Bỏ qua git và các file nhạy cảm
+.env

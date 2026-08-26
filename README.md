@@ -22,3 +22,6 @@ dir ..\.. /s /b /ad
 
 # tìm đúng cproj
 dir /s /b *.csproj
+
+# Sau khi chạy docker muốn test xem có lên chưa thì có thể vào
+http://localhost:5000/swagger/index.html

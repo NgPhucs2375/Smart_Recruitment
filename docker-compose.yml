@@ -46,7 +46,7 @@ services:
       - RedisSettings__ConnectionString=redis:6379
       - RabbitMqSettings__HostName=rabbitmq
       - SmartAgent__Url=http://smart_agent:8080
-      - GROQ_API_KEY=Sau_co_env_t_cau_hinh_lai
+      - GROQ_API_KEY=${GROQ_API_KEY}
     ports:
       - "5000:8080"
     depends_on:
@@ -60,9 +60,11 @@ services:
     build:
       context: ./smart/agent
       dockerfile: Dockerfile
-    container_name: smart_recruitment_ai_agent
+    container_name: ai_agent
+    environment:
+      - GROQ_API_KEY=${GROQ_API_KEY}
     ports:
-      - "5001:8080"
+      - "8000:8000"
     networks:
       - kltn_network
 
