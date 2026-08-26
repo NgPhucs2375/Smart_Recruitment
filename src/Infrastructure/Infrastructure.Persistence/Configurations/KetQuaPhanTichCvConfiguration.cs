@@ -4,16 +4,16 @@ using Domain.Entities;
 
 namespace Infrastructure.Persistence.Configurations
 {
-    public class KetQuaPhanTichCvConfiguration : IEntityTypeConfiguration<ketQuaPhanTichCv>
+    public class KetQuaPhanTichCvConfiguration : IEntityTypeConfiguration<KetQuaPhanTichCv>
     {
-        public void Configure(EntityTypeBuilder<ketQuaPhanTichCv> builder)
+        public void Configure(EntityTypeBuilder<KetQuaPhanTichCv> builder)
         {
-            builder.ToTable("ketQuaPhanTichCv");
+            builder.ToTable("KetQuaPhanTichCv");
             builder.HasKey(x => x.Id);
 
-            builder.HasOne(x => x.cvUngViens)
-                   .WithMany(x => x.ketQuaPhanTichCvs)
-                   .HasForeignKey(x => x.cvUngVienId)
+            builder.HasOne(x => x.CVUngVien)
+                   .WithMany(x => x.KetQuaPhanTichCvs)
+                   .HasForeignKey(x => x.CVUngVienId)
                    .OnDelete(DeleteBehavior.Cascade);
         }
     }

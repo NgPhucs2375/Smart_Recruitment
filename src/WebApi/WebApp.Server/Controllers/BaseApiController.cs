@@ -18,11 +18,10 @@ namespace WebApp.Server.Controllers
         protected readonly Enforcer _enforcer;
         protected readonly string _webRootPath;
 
-        [Obsolete]
-        public BaseApiController(Microsoft.AspNetCore.Hosting.IWebHostEnvironment webEnvironment)
+        public BaseApiController(Microsoft.AspNetCore.Hosting.IWebHostEnvironment webEnvironment, Enforcer enforcer)
         {
             _webRootPath = webEnvironment.WebRootPath;
-            _enforcer = new Enforcer(Path.Combine(_webRootPath, "model.conf"), Path.Combine(_webRootPath, "policy.csv"));
+            _enforcer = enforcer;
         }
 
         protected async Task<IActionResult> EnforcePermissionAndExecute(string resource, string action, Func<Task<IActionResult>> func)

@@ -9,17 +9,17 @@ namespace Domain.Entities
     /// <summary>
     /// 
     /// </summary>
-    public class kinhNghiemLamViec : AuditableBaseEntity
+    public class KinhNghiemLamViec : AuditableBaseEntity
     {
-        public int hoSoUngVienId { get; set; }
-        public string tenCongTy { get; set; }
-        public string diaChi { get; set; }
-        public DateTime? tuNgay { get; set; }
-        public DateTime? denNgay { get; set; }
-        public string moTa { get; set; }
+        public int HoSoUngVienId { get; set; }
+        public string TenCongTy { get; set; }
+        public string DiaChi { get; set; }
+        public DateTime? TuNgay { get; set; }
+        public DateTime? DenNgay { get; set; }
+        public string MoTa { get; set; }
         public bool IsHienTai { get; set; }
 
         // ===   === //
-        public hoSoUngVien hoSoUngViens { get; set; }
+        public HoSoUngVien HoSoUngVien { get; set; }
     }
 }

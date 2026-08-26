@@ -4,7 +4,10 @@ using Infrastructure.Identity.Features.Role.Commands.UpdateRole;
 using Infrastructure.Identity.Features.Role.Queries.GetPagingRole;
 using Infrastructure.Identity.Features.Role.Queries.GetRoleById;
 using Microsoft.AspNetCore.Mvc;
- 
+using Casbin;
+using Infrastructure.Identity.Features.Role.Commands.AssignRole;
+using Infrastructure.Identity.Features.Role.Commands.RemoveRole;
+
 namespace WebApp.Server.Controllers.Identity
 {
     [Route("api/roles")]
@@ -12,7 +15,7 @@ namespace WebApp.Server.Controllers.Identity
     public class RolesController : BaseApiController
     {
      
-        public RolesController(Microsoft.AspNetCore.Hosting.IWebHostEnvironment webEnvironment) : base(webEnvironment)
+        public RolesController(Microsoft.AspNetCore.Hosting.IWebHostEnvironment webEnvironment,Enforcer enforcer) : base(webEnvironment,enforcer)
         {
         }
         //GET: api/roles?_start=0&_end=10&_order=asc&_sort=Id
@@ -74,6 +77,26 @@ namespace WebApp.Server.Controllers.Identity
             return await EnforcePermissionAndExecute("roles", "delete", async () =>
             {
                 return Ok(await Mediator.Send(new DeleteRoleByIdCommand { Id = id }));
+            });
+        }
+
+        // POST: api/roles/assign
+        [HttpPost("assign")]
+        public async Task<IActionResult> AssignRoleToUser([FromBody] AssignRoleCommand command)
+        {
+            return await EnforcePermissionAndExecute("roles", "assign", async () =>
+            {
+                return Ok(await Mediator.Send(command));
+            });
+        }
+
+        // POST: api/roles/remove
+        [HttpPost("remove")]
+        public async Task<IActionResult> RemoveRoleFromUser([FromBody] RemoveRoleCommand command)
+        {
+            return await EnforcePermissionAndExecute("roles", "remove", async () =>
+            {
+                return Ok(await Mediator.Send(command));
             });
         }
     }

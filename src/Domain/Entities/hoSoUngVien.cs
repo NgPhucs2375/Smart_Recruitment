@@ -9,20 +9,22 @@ namespace Domain.Entities
     /// <summary>
     /// Thông tin hồ sơ cá nhân ứng viên.
     /// </summary>
-    public class hoSoUngVien : AuditableBaseEntity
+    public class HoSoUngVien : AuditableBaseEntity
     {
-        public int nguoiDungId { get; set; }
-        public string hoTen { get; set; }
+        public int NguoiDungId { get; set; }
+        public string HoTen { get; set; }
         public string SDT { get; set; }
-        public DateTime? ngaySinh { get; set; }
-        public string gioiTinh { get; set; }
-        public string diaChi { get; set; }
-        public string gioiThieu { get; set; }
+        public DateTime? NgaySinh { get; set; }
+        public string GioiTinh { get; set; }
+        public string DiaChi { get; set; }
+        public string GioiThieu { get; set; }
 
         // ===   === //
-        public nguoiDung nguoiDungs { get; set; }
-        public ICollection<kyNangUngVien> kyNangUngViens { get; set; }
-        public ICollection<cvUngVien> cvUngViens { get; set; }
-        public ICollection<donUngTuyen> donUngTuyens { get; set; }
+        public NguoiDung NguoiDung { get; set; }
+        public ICollection<KyNangUngVien> KyNangUngViens { get; set; }
+        public ICollection<CVUngVien> CVUngViens { get; set; }
+        public ICollection<DonUngTuyen> DonUngTuyens { get; set; }
+        public ICollection<KinhNghiemLamViec> KinhNghiemLamViecs { get; set; }
+        public ICollection<KetQuaPhuHop> KetQuaPhuHops { get; set; }
     }
 }

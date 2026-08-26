@@ -16,3 +16,6 @@ tree ..\..
 
 # Tìm đường dẫn tuyệt đoois
 dir ..\.. /s /b /ad 
+
+# tìm đúng cproj
+dir /s /b *.csproj

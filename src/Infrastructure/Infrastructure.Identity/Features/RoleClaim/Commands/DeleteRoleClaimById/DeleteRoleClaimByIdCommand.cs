@@ -21,14 +21,15 @@ namespace Infrastructure.Identity.Features.RoleClaim.Commands.DeleteRoleClaimByI
             private readonly string _webRootPath;
             private readonly IdentityContext _context;
 
-            [Obsolete]
+      
             public DeleteRoleClaimByIdCommandHandler(
                 IdentityContext context,
-                IHostingEnvironment hostingEnvironment)
+                IWebHostEnvironment hostingEnvironment,
+                Enforcer enforcer)
             {
                 _webRootPath = hostingEnvironment.WebRootPath;
                 _context = context;
-                _enforcer = new Enforcer(Path.Combine(_webRootPath, "model.conf"), Path.Combine(_webRootPath, "policy.csv"));
+                _enforcer = enforcer;
             }
             public async Task<Response<IdentityRoleClaim<string>>> Handle(DeleteRoleClaimByIdCommand request, CancellationToken cancellationToken)
             {

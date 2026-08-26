@@ -29,7 +29,7 @@ namespace Infrastructure.Identity.Contexts
                     if (string.IsNullOrEmpty(conn))
                     {
                         throw new InvalidOperationException(
-                            $"Connection string 'PostgresConnection' not found. Searched base directory: {baseDir}");
+                            $"Không tìm thấy chuỗi kết nối 'PostgresConnection'. Đã tìm trong thư mục gốc: {baseDir}");
                     }
 
                     // 2. Dựng options UseNpgsql bằng tay

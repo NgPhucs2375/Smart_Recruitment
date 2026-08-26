@@ -4,21 +4,21 @@ using Domain.Entities;
 
 namespace Infrastructure.Persistence.Configurations
 {
-    public class KyNangUngVienConfiguration : IEntityTypeConfiguration<kyNangUngVien>
+    public class KyNangUngVienConfiguration : IEntityTypeConfiguration<KyNangUngVien>
     {
-        public void Configure(EntityTypeBuilder<kyNangUngVien> builder)
+        public void Configure(EntityTypeBuilder<KyNangUngVien> builder)
         {
-            builder.ToTable("kyNangUngVien");
+            builder.ToTable("KyNangUngVien");
             builder.HasKey(x => x.Id);
 
-            builder.HasOne(x => x.hoSoUngViens)
-                   .WithMany(x => x.kyNangUngViens)
-                   .HasForeignKey(x => x.hoSoUngVienId)
+            builder.HasOne(x => x.HoSoUngVien)
+                   .WithMany(x => x.KyNangUngViens)
+                   .HasForeignKey(x => x.HoSoUngVienId)
                    .OnDelete(DeleteBehavior.Cascade);
 
-            builder.HasOne(x => x.kyNangs)
-                   .WithMany(x => x.kyNangUngViens)
-                   .HasForeignKey(x => x.kyNangId)
+            builder.HasOne(x => x.KyNang)
+                   .WithMany(x => x.KyNangUngViens)
+                   .HasForeignKey(x => x.KyNangId)
                    .OnDelete(DeleteBehavior.Restrict);
         }
     }

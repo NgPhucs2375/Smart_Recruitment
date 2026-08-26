@@ -1,20 +1,17 @@
-﻿// using AutoMapper;
-// using Application.Features.Products.Commands.CreateProduct;
-// using Application.Features.Products.Queries.GetAllProducts;
-// using Domain.Entities;
-// using System;
-// using System.Collections.Generic;
-// using System.Text;
+﻿using AutoMapper;
+using Application.Features.HoSoUngVien.Commads.CreateHoSoUngVien;
+using Application.Features.HoSoUngVien.Queries.GetAllHoSoUngViens;
+using Domain.Entities;
 
-// namespace Application.Mappings
-// {
-//     public class GeneralProfile : Profile
-//     {
-//         public GeneralProfile()
-//         {
-//             CreateMap<Product, GetAllProductsViewModel>().ReverseMap();
-//             CreateMap<CreateProductCommand, Product>();
-//             CreateMap<GetAllProductsQuery, GetAllProductsParameter>();
-//         }
-//     }
-// }
+namespace Application.Mappings
+{
+    public class GeneralProfile : Profile
+    {
+        public GeneralProfile()
+        {
+            CreateMap<HoSoUngVien, GetAllHoSoUngViensViewModel>().ReverseMap();
+            CreateMap<CreateHoSoUngVienCommand, HoSoUngVien>();
+            CreateMap<GetAllHoSoUngViensQuery, GetAllHoSoUngViensParameter>();
+        }
+    }
+}

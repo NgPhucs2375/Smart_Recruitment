@@ -1,5 +1,5 @@
 ﻿using Microsoft.AspNetCore.Identity;
-using Application.Enums;
+using Domain.Enums;
 using Infrastructure.Identity.Models;
 using System;
 using System.Collections.Generic;
@@ -13,9 +13,9 @@ namespace Infrastructure.Identity.Seeds
         public static async Task SeedAsync(UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager)
         {
             //Seed Roles
-            await roleManager.CreateAsync(new IdentityRole(Roles.QuanTriVien.ToString()));
-            await roleManager.CreateAsync(new IdentityRole(Roles.NhaTuyenDung.ToString()));
-            await roleManager.CreateAsync(new IdentityRole(Roles.UngVien.ToString()));
+            await roleManager.CreateAsync(new IdentityRole(VaiTroNguoiDung.QUAN_TRI_VIEN.ToString()));
+            await roleManager.CreateAsync(new IdentityRole(VaiTroNguoiDung.NHA_TUYEN_DUNG.ToString()));
+            await roleManager.CreateAsync(new IdentityRole(VaiTroNguoiDung.UNG_VIEN.ToString()));
         }
     }
 }

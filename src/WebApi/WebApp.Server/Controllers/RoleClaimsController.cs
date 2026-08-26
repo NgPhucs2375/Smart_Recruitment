@@ -6,6 +6,7 @@ using Infrastructure.Identity.Features.RoleClaim.Queries.GetPagingRoleClaim;
 using Infrastructure.Identity.Features.RoleClaim.Queries.GetRoleClaimById;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Hosting;
+using Casbin;
 
 namespace WebApp.Server.Controllers.Identity;
 
@@ -14,7 +15,7 @@ namespace WebApp.Server.Controllers.Identity;
 public class RoleClaimsController : BaseApiController
 {
  
-    public RoleClaimsController(IWebHostEnvironment webEnvironment) : base(webEnvironment)
+    public RoleClaimsController(IWebHostEnvironment webEnvironment, Enforcer enforcer) : base(webEnvironment, enforcer)
     {
     }
     // GET: api/roleclaims?_sort=Id&_order=asc&_start=0&_end=10

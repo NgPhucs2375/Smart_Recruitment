@@ -23,23 +23,23 @@ namespace Infrastructure.Persistence.Contexts
             _dateTime = dateTime;
             _authenticatedUser = authenticatedUser;
         }
-        public DbSet<nguoiDung> nguoiDungs { get; set; }
-        public DbSet<thongBao> thongBaos { get; set; }
-        public DbSet<tinTuyenDung> tinTuyenDungs { get; set; }
-        public DbSet<lichPhongVan> lichPhongVans { get; set; }
-        public DbSet<kyNang> kyNangs { get; set; }
-        public DbSet<kyNangUngVien> kyNangUngViens { get; set; }
-        public DbSet<kyNangTinTuyenDung> kyNangTinTuyenDungs { get; set; }
-        public DbSet<ketQuaPhanTichCv> ketQuaPhanTichCvs { get; set; }
-        public DbSet<ketQuaPhuHop> ketQuaPhuHops { get; set; }
-        public DbSet<hoSoUngVien> hoSoUngViens { get; set; }
-        public DbSet<hoSoNhaTuyenDung> hoSoNhaTuyenDungs { get; set; }
-        public DbSet<donUngTuyen> donUngTuyens { get; set; }
-        public DbSet<doanhNghiep> doanhNghieps { get; set; }
-        public DbSet<danhMucNghe> danhMucNghes { get; set; }
-        public DbSet<cvUngVien> cvUngViens { get; set; }
-        public DbSet<kinhNghiemLamViec> kinhNghiemLamViecs { get; set; }
-        public DbSet<danhGia> danhGias {get; set;}
+        public DbSet<NguoiDung> NguoiDungs { get; set; }
+        public DbSet<ThongBao> ThongBaos { get; set; }
+        public DbSet<TinTuyenDung> TinTuyenDungs { get; set; }
+        public DbSet<LichPhongVan> LichPhongVans { get; set; }
+        public DbSet<KyNang> KyNangs { get; set; }
+        public DbSet<KyNangUngVien> KyNangUngViens { get; set; }
+        public DbSet<KyNangTinTuyenDung> KyNangTinTuyenDungs { get; set; }
+        public DbSet<KetQuaPhanTichCv> KetQuaPhanTichCvs { get; set; }
+        public DbSet<KetQuaPhuHop> KetQuaPhuHops { get; set; }
+        public DbSet<HoSoUngVien> HoSoUngViens { get; set; }
+        public DbSet<HoSoNhaTuyenDung> HoSoNhaTuyenDungs { get; set; }
+        public DbSet<DonUngTuyen> DonUngTuyens { get; set; }
+        public DbSet<DoanhNghiep> DoanhNghieps { get; set; }
+        public DbSet<DanhMucNghe> DanhMucNghes { get; set; }
+        public DbSet<CVUngVien> CVUngViens { get; set; }
+        public DbSet<KinhNghiemLamViec> KinhNghiemLamViecs { get; set; }
+        public DbSet<DanhGia> DanhGias {get; set;}
 
         public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = new CancellationToken())
         {

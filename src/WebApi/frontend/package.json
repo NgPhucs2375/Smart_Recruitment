@@ -9,14 +9,24 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@ag-ui/client": "0.0.58",
     "@copilotkit/react-core": "^1.69.0",
     "@copilotkit/react-ui": "^1.69.0",
     "@copilotkit/runtime": "^1.68.3",
     "@copilotkit/shared": "^1.68.3",
+    "@hookform/resolvers": "^5.9.1",
+    "axios": "^1.19.0",
     "next": "16.3.1",
     "react": "19.2.8",
     "react-dom": "19.2.8",
+    "react-hook-form": "^7.86.0",
     "zod": "^4.4.3"
+  },
+  "overrides": {
+    "@ag-ui/client": "0.0.58",
+    "@ag-ui/core": "0.0.58",
+    "@ag-ui/encoder": "0.0.58",
+    "@ag-ui/proto": "0.0.58"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

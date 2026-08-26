@@ -4,16 +4,16 @@ using Domain.Entities;
 
 namespace Infrastructure.Persistence.Configurations
 {
-    public class KyNangConfiguration : IEntityTypeConfiguration<kyNang>
+    public class KyNangConfiguration : IEntityTypeConfiguration<KyNang>
     {
-        public void Configure(EntityTypeBuilder<kyNang> builder)
+        public void Configure(EntityTypeBuilder<KyNang> builder)
         {
-            builder.ToTable("kyNang");
+            builder.ToTable("KyNang");
             builder.HasKey(x => x.Id);
 
-            builder.Property(x => x.tenKyNang).IsRequired().HasMaxLength(255);
-            builder.HasIndex(x => x.tenKyNang).IsUnique();
-            builder.Property(x => x.moTa).HasMaxLength(500);
+            builder.Property(x => x.TenKyNang).IsRequired().HasMaxLength(255);
+            builder.HasIndex(x => x.TenKyNang).IsUnique();
+            builder.Property(x => x.MoTa).HasMaxLength(500);
         }
     }
 }

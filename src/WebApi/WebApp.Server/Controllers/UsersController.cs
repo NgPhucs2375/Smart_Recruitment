@@ -4,6 +4,7 @@ using Infrastructure.Identity.Features.Users.Queries.GetPagingUser;
 using Infrastructure.Identity.Features.Users.Queries.GetUserById;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
+using Casbin;
 
 namespace WebApp.Server.Controllers.Identity
 {
@@ -13,7 +14,7 @@ namespace WebApp.Server.Controllers.Identity
     public class UsersController : BaseApiController
     {
         
-        public UsersController(Microsoft.AspNetCore.Hosting.IWebHostEnvironment webEnvironment) : base(webEnvironment)
+        public UsersController(Microsoft.AspNetCore.Hosting.IWebHostEnvironment webEnvironment, Enforcer enforcer) : base(webEnvironment, enforcer)
         {
         }
         // GET: api/users?_start=0&_end=10&_order=asc&_sort=Id

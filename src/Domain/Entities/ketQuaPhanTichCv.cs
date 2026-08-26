@@ -9,15 +9,15 @@ namespace Domain.Entities
     /// <summary>
     /// Lưu kết quả bóc tách dữ liệu CV từ module NLP.
     /// </summary>
-    public class ketQuaPhanTichCv : AuditableBaseEntity
+    public class KetQuaPhanTichCv : AuditableBaseEntity
     {
-        public int cvUngVienId { get; set; }
-        public string noiDungTrichXuat { get; set; }
-        public string kyNangTrichXuat { get; set; }
-        public string kinhNghiemTrichXuat { get; set; }
-        public DateTime? ngayPhanTich { get; set; }
+        public int CVUngVienId { get; set; }
+        public string NoiDungTrichXuat { get; set; }
+        public string KyNangTrichXuat { get; set; }
+        public string KinhNghiemTrichXuat { get; set; }
+        public DateTime? NgayPhanTich { get; set; }
 
         // ===   === //
-        public cvUngVien cvUngViens { get; set; }
+        public CVUngVien CVUngVien { get; set; }
     }
 }

@@ -22,14 +22,15 @@ namespace Infrastructure.Identity.Features.RoleClaim.Commands.CreateRoleClaim
             private readonly string _webRootPath;
             private readonly IdentityContext _context;
 
-            [System.Obsolete]
+     
             public CreateRoleClaimCommandHandler(
-                IHostingEnvironment hostingEnvironment,
-                IdentityContext context)
+                IWebHostEnvironment hostingEnvironment,
+                IdentityContext context,
+                Enforcer enforcer)
             {
                 _webRootPath = hostingEnvironment.WebRootPath;
                 _context = context;
-                _enforcer = new Enforcer(Path.Combine(_webRootPath, "model.conf"), Path.Combine(_webRootPath, "policy.csv"));
+                _enforcer = enforcer;
             }
 
             public async Task<Response<IdentityRoleClaim<string>>> Handle(CreateRoleClaimCommand request, CancellationToken cancellationToken)

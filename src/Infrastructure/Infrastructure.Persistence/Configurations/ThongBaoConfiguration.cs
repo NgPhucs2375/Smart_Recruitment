@@ -4,20 +4,20 @@ using Domain.Entities;
 
 namespace Infrastructure.Persistence.Configurations
 {
-    public class ThongBaoConfiguration : IEntityTypeConfiguration<thongBao>
+    public class ThongBaoConfiguration : IEntityTypeConfiguration<ThongBao>
     {
-        public void Configure(EntityTypeBuilder<thongBao> builder)
+        public void Configure(EntityTypeBuilder<ThongBao> builder)
         {
-            builder.ToTable("thongBao");
+            builder.ToTable("ThongBao");
             builder.HasKey(x => x.Id);
 
-            builder.Property(x => x.tieuDe).IsRequired().HasMaxLength(255);
-            builder.Property(x => x.noiDung).IsRequired();
-            builder.Property(x => x.loaiThongBao).IsRequired().HasConversion<string>().HasMaxLength(50);
+            builder.Property(x => x.TieuDe).IsRequired().HasMaxLength(255);
+            builder.Property(x => x.NoiDung).IsRequired();
+            builder.Property(x => x.LoaiThongBao).IsRequired().HasConversion<string>().HasMaxLength(50);
 
-            builder.HasOne(x => x.nguoiDungs)
+            builder.HasOne(x => x.NguoiDung)
                    .WithMany()
-                   .HasForeignKey(x => x.nguoiDungId)
+                   .HasForeignKey(x => x.NguoiDungId)
                    .OnDelete(DeleteBehavior.Cascade);
         }
     }

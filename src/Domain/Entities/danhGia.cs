@@ -9,12 +9,14 @@ namespace Domain.Entities
     /// <summary>
     /// .
     /// </summary>
-    public class danhGia : AuditableBaseEntity
+    public class DanhGia : AuditableBaseEntity
     {
-        public int donUngTuyenId { get; set; }
-        public string noiDungPhanHoi { get; set; }
-        public string ketLuan { get; set; }
-        public DateTime? ngayPhanHoi { get; set; }
+        public int DonUngTuyenId { get; set; }
+        public string NoiDungPhanHoi { get; set; }
+        public string KetLuan { get; set; }
+        public DateTime? NgayPhanHoi { get; set; }
+
+        public DonUngTuyen DonUngTuyen { get; set; }
 
     }
 }

@@ -1,5 +1,4 @@
 ﻿using Microsoft.AspNetCore.Identity;
-using Application.Enums;
 using Application.Interfaces;
 using Domain.Entities;
 using Domain.Enums;
@@ -29,9 +28,9 @@ namespace Infrastructure.Identity.Seeds
                 if (user == null)
                 {
                     await userManager.CreateAsync(defaultUser, "123Pa$$word!");
-                    await userManager.AddToRoleAsync(defaultUser, Roles.QuanTriVien.ToString());
+                    await userManager.AddToRoleAsync(defaultUser, VaiTroNguoiDung.QUAN_TRI_VIEN.ToString());
 
-                    var role = await roleManager.FindByNameAsync(Roles.QuanTriVien.ToString());
+                    var role = await roleManager.FindByNameAsync(VaiTroNguoiDung.QUAN_TRI_VIEN.ToString());
 
                     var claim = new System.Security.Claims.Claim("roleclaims", "list#create#edit#delete");
                     await roleManager.AddClaimAsync(role, claim);
@@ -40,13 +39,13 @@ namespace Infrastructure.Identity.Seeds
                     var rolec = new System.Security.Claims.Claim("roles", "list#create#edit#delete");
                     await roleManager.AddClaimAsync(role, rolec);
 
-                    if (!appContext.nguoiDungs.Any(n => n.ApplicationUserId == defaultUser.Id))
+                    if (!appContext.NguoiDungs.Any(n => n.ApplicationUserId == defaultUser.Id))
                     {
-                        await appContext.nguoiDungs.AddAsync(new nguoiDung
+                        await appContext.NguoiDungs.AddAsync(new NguoiDung
                         {
                             ApplicationUserId = defaultUser.Id,
-                            vaiTro = VaiTroNguoiDung.QUAN_TRI_VIEN,
-                            Is_Active = true
+                            VaiTro = VaiTroNguoiDung.QUAN_TRI_VIEN,
+                            IsActive = true
                         });
                         await appContext.SaveChangesAsync();
                     }

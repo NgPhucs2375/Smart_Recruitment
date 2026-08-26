@@ -41,6 +41,7 @@ namespace Infrastructure.Persistence
             #region Repositories
             services.AddTransient(typeof(IGenericRepositoryAsync<>), typeof(GenericRepositoryAsync<>));
             services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<ApplicationDbContext>());
+            // services.AddScoped<IHoSoUngVienRepositoryAsync, HoSoUngVienRepositoryAsync>();
             #endregion
         }
     }

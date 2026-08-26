@@ -4,23 +4,23 @@ using Domain.Entities;
 
 namespace Infrastructure.Persistence.Configurations
 {
-    public class KetQuaPhuHopConfiguration : IEntityTypeConfiguration<ketQuaPhuHop>
+    public class KetQuaPhuHopConfiguration : IEntityTypeConfiguration<KetQuaPhuHop>
     {
-        public void Configure(EntityTypeBuilder<ketQuaPhuHop> builder)
+        public void Configure(EntityTypeBuilder<KetQuaPhuHop> builder)
         {
-            builder.ToTable("ketQuaPhuHop");
+            builder.ToTable("KetQuaPhuHop");
             builder.HasKey(x => x.Id);
 
-            builder.Property(x => x.phanLoai).HasConversion<string>().HasMaxLength(50);
+            builder.Property(x => x.PhanLoai).HasConversion<string>().HasMaxLength(50);
 
-            builder.HasOne(x => x.hoSoUngViens)
+            builder.HasOne(x => x.HoSoUngVien)
                    .WithMany()
-                   .HasForeignKey(x => x.hoSoUngVienId)
+                   .HasForeignKey(x => x.HoSoUngVienId)
                    .OnDelete(DeleteBehavior.Cascade);
 
-            builder.HasOne(x => x.tinTuyenDungs)
+            builder.HasOne(x => x.TinTuyenDung)
                    .WithMany()
-                   .HasForeignKey(x => x.tinTuyenDungId)
+                   .HasForeignKey(x => x.TinTuyenDungId)
                    .OnDelete(DeleteBehavior.Cascade);
         }
     }

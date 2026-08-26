@@ -16,5 +16,6 @@ namespace Application.Interfaces
         Task ForgotPassword(YeuCauQuenMatKhau model, string origin);
         Task<Response<string>> ResetPassword(YeuCauGuiLaiXacMinh model);
         // Task ResendVerificationEmailAsync(string email, string origin);
+        Task<Response<AuthenticationResponse>> RefreshTokenAsync(string token, string ipAddress);
     }
 }
