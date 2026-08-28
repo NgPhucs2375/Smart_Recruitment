@@ -69,6 +69,7 @@ _services.AddControllers().AddJsonOptions(opts =>
 _services.AddApiVersioningExtension();
 _services.AddHealthChecks();
 _services.AddScoped<IAuthenticatedUserService, AuthenticatedUserService>();
+_services.AddScoped<ICurrentNguoiDungService,CurrentNguoiDungService>();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 _services.AddEndpointsApiExplorer();
 

@@ -15,7 +15,7 @@ namespace Domain.Entities
         public string NoiDungTrichXuat { get; set; }
         public string KyNangTrichXuat { get; set; }
         public string KinhNghiemTrichXuat { get; set; }
-        public DateTime? NgayPhanTich { get; set; }
+        public string HocVanTrichXuat { get; set; }
 
         // ===   === //
         public CVUngVien CVUngVien { get; set; }

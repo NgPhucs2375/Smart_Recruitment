@@ -13,7 +13,7 @@ namespace Domain.Entities
     {
         public int TinTuyenDungId { get; set; }
         public int KyNangId { get; set; }
-        public string MucDoYeuCau { get; set; }
+        public MucDoYC MucDoYeuCau { get; set; }
 
         // ===   === //
         public TinTuyenDung TinTuyenDung { get; set; }

@@ -18,6 +18,7 @@ namespace Application.Interfaces
         DbSet<KetQuaPhuHop> KetQuaPhuHops { get; set; }
         DbSet<HoSoUngVien> HoSoUngViens { get; set; }
         DbSet<HoSoNhaTuyenDung> HoSoNhaTuyenDungs { get; set; }
+        DbSet<LoiMoiNhanSu> LoiMoiNhanSus { get; set; }
         DbSet<DonUngTuyen> DonUngTuyens { get; set; }
         DbSet<DoanhNghiep> DoanhNghieps { get; set; }
         DbSet<DanhMucNghe> DanhMucNghes { get; set; }

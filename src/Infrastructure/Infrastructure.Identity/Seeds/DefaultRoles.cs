@@ -14,7 +14,8 @@ namespace Infrastructure.Identity.Seeds
         {
             //Seed Roles
             await roleManager.CreateAsync(new IdentityRole(VaiTroNguoiDung.QUAN_TRI_VIEN.ToString()));
-            await roleManager.CreateAsync(new IdentityRole(VaiTroNguoiDung.NHA_TUYEN_DUNG.ToString()));
+            await roleManager.CreateAsync(new IdentityRole(VaiTroNguoiDung.NGUOI_DAI_DIEN.ToString()));
+            await roleManager.CreateAsync(new IdentityRole(VaiTroNguoiDung.NHAN_SU.ToString()));
             await roleManager.CreateAsync(new IdentityRole(VaiTroNguoiDung.UNG_VIEN.ToString()));
         }
     }

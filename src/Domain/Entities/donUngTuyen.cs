@@ -14,6 +14,8 @@ namespace Domain.Entities
         public int HoSoUngVienId { get; set; }
         public int TinTuyenDungId { get; set; }
         public int CVUngVienId { get; set; }
+        public int NguoiXuLyId { get; set; } // HR noaf laf nguoi duyet don
+        public string GhiChu { get; set; } // lis docuye choi 
         public TrangThaiDonUngTuyen TrangThai { get; set; }
         public DateTime? NgayUngTuyen { get; set; }
 

@@ -3,6 +3,8 @@ using FluentValidation;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
 using Application.Behaviours;
+using Application.Interfaces;
+using Application.Services.StateMachineDonUngTuyen;
 using System.Reflection;
 
 namespace Application
@@ -16,6 +18,9 @@ namespace Application
             services.AddAutoMapper(cfg => cfg.AddMaps(Assembly.GetExecutingAssembly()));
             services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
 
+            #region State Machine DonUngTuyen
+            services.AddScoped<IDonUngTuyenWorkflowService, DonUngTuyenWorkflowService>();
+            #endregion
         }
     }
 }

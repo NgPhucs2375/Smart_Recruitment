@@ -17,6 +17,8 @@ namespace Domain.Entities
 
         public HoSoUngVien HoSoUngVien { get; set; }
         public HoSoNhaTuyenDung HoSoNhaTuyenDung { get; set; }
+        public ICollection<LoiMoiNhanSu> LoiMoiNhanSus { get; set; }
+        public ICollection<TinTuyenDung> TinTuyenDungs { get; set; }
 
     }
 }

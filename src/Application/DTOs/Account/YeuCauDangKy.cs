@@ -5,7 +5,7 @@ namespace Application.DTOs.Account
     public class YeuCauDangKy
     {
         [Required]
-        public string Role { get; set; } // UngVien | NhaTuyenDung
+        public string Role { get; set; } // UngVien | NguoiDaiDien
 
         [Required]
         [EmailAddress]
@@ -35,5 +35,11 @@ namespace Application.DTOs.Account
         public string MoTaDoanhNghiep { get; set; }
         public string Website { get; set; }
         public string LogoUrl { get; set; }
+        public string MaSoThue { get; set; }
+        public string LinhVucHoatDong { get; set; }
+        public string QuyMoNhanSu { get; set; }
+
+        // Dành riêng cho đăng ký bằng lời mời (NhanSu)
+        public string InviteToken { get; set; }
     }
 }

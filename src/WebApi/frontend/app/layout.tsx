@@ -1,4 +1,5 @@
-import { CopilotProvider } from "./providers/CopilotProvider";
+import { Suspense } from "react";
+import { Providers } from "@/components/providers";
 
 export default function RootLayout({
   children,
@@ -6,9 +7,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body>
-        <CopilotProvider>{children}</CopilotProvider>
+        <Suspense fallback={null}>
+          <Providers>{children}</Providers>
+        </Suspense>
       </body>
     </html>
   );

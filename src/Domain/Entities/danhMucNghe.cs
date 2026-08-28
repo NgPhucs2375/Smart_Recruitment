@@ -13,6 +13,7 @@ namespace Domain.Entities
     {
         public string TenNghe { get; set; }
         public string MoTa { get; set; }
+        public bool IsActive { get; set; } = true;
 
         // ===   === //
         public ICollection<TinTuyenDung> TinTuyenDungs { get; set;}

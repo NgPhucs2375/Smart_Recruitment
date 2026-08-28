@@ -13,6 +13,7 @@ namespace Application.Interfaces
         Task<Response<AuthenticationResponse>> AuthenticateAsync(AuthenticationRequest request, string ipAddress);
         Task<Response<string>> RegisterAsync(YeuCauDangKy request, string origin);
         Task<Response<string>> ConfirmEmailAsync(string userId, string code);
+        Task<Response<string>> AcceptInviteAsync(string token);
         Task ForgotPassword(YeuCauQuenMatKhau model, string origin);
         Task<Response<string>> ResetPassword(YeuCauGuiLaiXacMinh model);
         // Task ResendVerificationEmailAsync(string email, string origin);

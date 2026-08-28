@@ -19,12 +19,10 @@ namespace Domain.Entities
         public string MaSoThue {get; set;}
         public string LinhVucHoatDong { get; set; }
         public string QuyMoNhanSu { get; set; }
-        public string NguoiDaiDien {get;set;}
-        
-        
 
         public ICollection<HoSoNhaTuyenDung> HoSoNhaTuyenDungs { get; set; }
         public ICollection<TinTuyenDung> TinTuyenDungs { get; set; }
+        public ICollection<LoiMoiNhanSu> LoiMoiNhanSus { get; set; }
 
     }
 }

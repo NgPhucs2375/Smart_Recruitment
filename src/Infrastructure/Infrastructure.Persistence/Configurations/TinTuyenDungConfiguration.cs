@@ -28,6 +28,19 @@ namespace Infrastructure.Persistence.Configurations
                    .WithMany(x => x.TinTuyenDungs)
                    .HasForeignKey(x => x.DanhMucNgheId)
                    .OnDelete(DeleteBehavior.Restrict);
+
+            // Quan hệ với NguoiDung (người đăng tin)
+            builder.HasOne(x => x.NguoiDangTin)
+                   .WithMany(x => x.TinTuyenDungs)
+                   .HasForeignKey(x => x.NguoiDangTinId)
+                   .OnDelete(DeleteBehavior.Restrict);
+
+            builder.HasOne(x => x.NguoiDangTin)
+                .WithMany(x => x.TinTuyenDungs)
+                .HasForeignKey(x => x.NguoiDangTinId)
+                .OnDelete(DeleteBehavior.Restrict);
+
         }
+
     }
 }

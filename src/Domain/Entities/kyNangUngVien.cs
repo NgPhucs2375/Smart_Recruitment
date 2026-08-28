@@ -14,6 +14,7 @@ namespace Domain.Entities
         public int HoSoUngVienId { get; set; }
         public int KyNangId { get; set; }
         public float? SoNamKinhNghiem { get; set; }
+        public MucDo MucDoThongThao {get; set;}
 
         // ===   === //
         public HoSoUngVien HoSoUngVien { get; set; }

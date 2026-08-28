@@ -36,6 +36,7 @@ namespace Infrastructure.Identity.Services
         private readonly IDateTimeService _dateTimeService;
         private readonly IdentityContext _context;
         private readonly IApplicationDbContext _appContext;
+        private readonly IAuthenticatedUserService _authenticatedUserService;
         public AccountService(
             IdentityContext context,
             IApplicationDbContext appContext,
@@ -44,7 +45,8 @@ namespace Infrastructure.Identity.Services
             IOptions<JWTSettings> jwtSettings,
             IDateTimeService dateTimeService,
             SignInManager<ApplicationUser> signInManager,
-            IEmailService emailService)
+            IEmailService emailService,
+            IAuthenticatedUserService authenticatedUserService)
         {
             _context = context;
             _appContext = appContext;
@@ -54,6 +56,7 @@ namespace Infrastructure.Identity.Services
             _dateTimeService = dateTimeService;
             _signInManager = signInManager;
             this._emailService = emailService;
+            _authenticatedUserService = authenticatedUserService;
         }
 
         internal sealed record RolePermission
@@ -126,22 +129,29 @@ namespace Infrastructure.Identity.Services
         {
             // 1. Kiểm tra tính hợp lệ của vai trò
             string ungVienRole = VaiTroNguoiDung.UNG_VIEN.ToString();
-            string nhaTuyenDungRole = VaiTroNguoiDung.NHA_TUYEN_DUNG.ToString();
+            string daidienRole = VaiTroNguoiDung.NGUOI_DAI_DIEN.ToString();
 
-            if (request.Role != ungVienRole && request.Role != nhaTuyenDungRole)
+            if (string.IsNullOrWhiteSpace(request.InviteToken))
             {
-                throw new ApiException("Vai trò không hợp lệ. Chỉ hỗ trợ: UngVien, NhaTuyenDung");
-            }
+                if (request.Role != ungVienRole && request.Role != daidienRole)
+                {
+                    throw new ApiException("Vai trò không hợp lệ. Chỉ hỗ trợ: UngVien, NguoiDaiDien");
+                }
+                if (request.Role == VaiTroNguoiDung.NHAN_SU.ToString())
+                {
+                    throw new ApiException("Vai trò Nhân sự chỉ được tạo thông qua lời mời từ người đại diện doanh nghiệp.");
+                }
 
-            // 2. Kiểm tra dữ liệu bổ sung cho Nhà tuyển dụng
-            if (request.Role == nhaTuyenDungRole)
-            {
-                if (string.IsNullOrWhiteSpace(request.TenDoanhNghiep))
-                    throw new ApiException("Tên doanh nghiệp là bắt buộc.");
-                if (string.IsNullOrWhiteSpace(request.DiaChiDoanhNghiep))
-                    throw new ApiException("Địa chỉ doanh nghiệp là bắt buộc.");
-                if (string.IsNullOrWhiteSpace(request.ChucVu))
-                    throw new ApiException("Chức vụ là bắt buộc.");
+                // 2. Kiểm tra dữ liệu bổ sung cho Nhà tuyển dụng
+                if (request.Role == daidienRole)
+                {
+                    if (string.IsNullOrWhiteSpace(request.TenDoanhNghiep))
+                        throw new ApiException("Tên doanh nghiệp là bắt buộc.");
+                    if (string.IsNullOrWhiteSpace(request.DiaChiDoanhNghiep))
+                        throw new ApiException("Địa chỉ doanh nghiệp là bắt buộc.");
+                    if (string.IsNullOrWhiteSpace(request.ChucVu))
+                        throw new ApiException("Chức vụ là bắt buộc.");
+                }
             }
 
             // 3. Khởi tạo UserName nếu chưa có
@@ -181,7 +191,11 @@ namespace Infrastructure.Identity.Services
             }
 
             // 7. Phân luồng đăng ký hồ sơ theo vai trò
-            if (request.Role == ungVienRole)
+            if (!string.IsNullOrWhiteSpace(request.InviteToken))
+            {
+                await RegisterInvitedNhanSuAsync(user, request).ConfigureAwait(false);
+            }
+            else if (request.Role == ungVienRole)
             {
                 await RegisterCandidateAsync(user).ConfigureAwait(false);
             }
@@ -234,8 +248,8 @@ namespace Infrastructure.Identity.Services
         /// </summary>
         private async Task RegisterEmployerAsync(ApplicationUser user, YeuCauDangKy request)
         {
-            // 1. Gán vai trò Nhà tuyển dụng trong Identity Context
-            await _userManager.AddToRoleAsync(user, VaiTroNguoiDung.NHA_TUYEN_DUNG.ToString()).ConfigureAwait(false);
+            // 1. Gán vai trò Người đại diện trong Identity Context
+            await _userManager.AddToRoleAsync(user, VaiTroNguoiDung.NGUOI_DAI_DIEN.ToString()).ConfigureAwait(false);
 
             // 2. Khởi tạo thực thể Doanh nghiệp
             var dn = new DoanhNghiep
@@ -244,18 +258,21 @@ namespace Infrastructure.Identity.Services
                 DiaChi = request.DiaChiDoanhNghiep,
                 MoTa = request.MoTaDoanhNghiep,
                 Website = request.Website,
-                LogoUrl = request.LogoUrl
+                LogoUrl = request.LogoUrl,
+                MaSoThue = request.MaSoThue,
+                LinhVucHoatDong = request.LinhVucHoatDong,
+                QuyMoNhanSu = request.QuyMoNhanSu
             };
 
             // 3. Khởi tạo thực thể Người dùng (Domain Context)
             var nd = new NguoiDung
             {
                 ApplicationUserId = user.Id,
-                VaiTro = VaiTroNguoiDung.NHA_TUYEN_DUNG,
+                VaiTro = VaiTroNguoiDung.NGUOI_DAI_DIEN,
                 IsActive = true
             };
 
-            // 4. Khởi tạo Hồ sơ Nhà tuyển dụng và liên kết thông qua Navigation Properties
+            // 4. Khởi tạo Hồ sơ Người đại diện và liên kết thông qua Navigation Properties
             var hs = new HoSoNhaTuyenDung
             {
                 NguoiDung = nd,
@@ -268,6 +285,97 @@ namespace Infrastructure.Identity.Services
             // 5. Thêm thực thể gốc vào DbContext và lưu tất cả trong một Transaction duy nhất
             await _appContext.HoSoNhaTuyenDungs.AddAsync(hs).ConfigureAwait(false);
             await _appContext.SaveChangesAsync().ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Khởi tạo thực thể nguoiDung với vai trò NHAN_SU thông qua lời mời
+        /// Chức năng: người được mời đăng ký tài khoản mới kèm token lời mời,
+        ///            hệ thống tạo NguoiDung(NHAN_SU) + HoSoNhaTuyenDung liên kết DoanhNghiep, thêm role.
+        /// </summary>
+        private async Task RegisterInvitedNhanSuAsync(ApplicationUser user, YeuCauDangKy request)
+        {
+            var invitation = await _appContext.LoiMoiNhanSus.FirstOrDefaultAsync(l => l.Token == request.InviteToken).ConfigureAwait(false);
+            if (invitation == null)
+                throw new ApiException("Lời mời không hợp lệ.");
+            if (invitation.LoiMoi != TrangThaiLoiMoi.ChoXacNhan)
+                throw new ApiException("Lời mời đã được xử lý.");
+            if (invitation.NgayHetHan < DateTime.UtcNow)
+                throw new ApiException("Lời mời đã hết hạn.");
+            if (!string.Equals(invitation.Email, request.Email, StringComparison.OrdinalIgnoreCase))
+                throw new ApiException("Email đăng ký không khớp với lời mời.");
+
+            var nd = new NguoiDung
+            {
+                ApplicationUserId = user.Id,
+                VaiTro = VaiTroNguoiDung.NHAN_SU,
+                IsActive = true
+            };
+
+            var hs = new HoSoNhaTuyenDung
+            {
+                NguoiDung = nd,
+                DoanhNghiepId = invitation.DoanhNghiepId,
+                HoTen = request.HoTen,
+                SDT = request.SoDienThoai,
+                ChucVu = invitation.ChucVu
+            };
+
+            await _userManager.AddToRoleAsync(user, VaiTroNguoiDung.NHAN_SU.ToString()).ConfigureAwait(false);
+            await _appContext.HoSoNhaTuyenDungs.AddAsync(hs).ConfigureAwait(false);
+            await _appContext.SaveChangesAsync().ConfigureAwait(false);
+
+            invitation.LoiMoi = TrangThaiLoiMoi.DaChapNhan;
+            await _appContext.SaveChangesAsync().ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Người dùng đã có tài khoản chấp nhận lời mời -> trở thành NHAN_SU của doanh nghiệp.
+        /// </summary>
+        public async Task<Response<string>> AcceptInviteAsync(string token)
+        {
+            var invitation = await _appContext.LoiMoiNhanSus.FirstOrDefaultAsync(l => l.Token == token).ConfigureAwait(false);
+            if (invitation == null)
+                throw new ApiException("Lời mời không hợp lệ.");
+            if (invitation.LoiMoi != TrangThaiLoiMoi.ChoXacNhan)
+                throw new ApiException("Lời mời đã được xử lý.");
+            if (invitation.NgayHetHan < DateTime.UtcNow)
+                throw new ApiException("Lời mời đã hết hạn.");
+
+            var user = await _userManager.FindByIdAsync(_authenticatedUserService.UserId).ConfigureAwait(false);
+            if (user == null)
+                throw new ApiException("Không xác định được tài khoản.");
+            if (!string.Equals(user.Email, invitation.Email, StringComparison.OrdinalIgnoreCase))
+                throw new ApiException("Email tài khoản không khớp với lời mời.");
+
+            var nd = await _appContext.NguoiDungs.FirstOrDefaultAsync(n => n.ApplicationUserId == user.Id).ConfigureAwait(false);
+            if (nd == null)
+            {
+                nd = new NguoiDung { ApplicationUserId = user.Id, IsActive = true };
+                await _appContext.NguoiDungs.AddAsync(nd).ConfigureAwait(false);
+            }
+            nd.VaiTro = VaiTroNguoiDung.NHAN_SU;
+
+            var existing = await _appContext.HoSoNhaTuyenDungs.FirstOrDefaultAsync(h => h.NguoiDungId == nd.Id).ConfigureAwait(false);
+            if (existing != null)
+                throw new ApiException("Bạn đã thuộc một doanh nghiệp.");
+
+            var hs = new HoSoNhaTuyenDung
+            {
+                NguoiDung = nd,
+                DoanhNghiepId = invitation.DoanhNghiepId,
+                HoTen = invitation.HoTen ?? user.UserName,
+                SDT = string.Empty,
+                ChucVu = invitation.ChucVu
+            };
+
+            await _appContext.HoSoNhaTuyenDungs.AddAsync(hs).ConfigureAwait(false);
+            if (!await _userManager.IsInRoleAsync(user, VaiTroNguoiDung.NHAN_SU.ToString()).ConfigureAwait(false))
+                await _userManager.AddToRoleAsync(user, VaiTroNguoiDung.NHAN_SU.ToString()).ConfigureAwait(false);
+
+            invitation.LoiMoi = TrangThaiLoiMoi.DaChapNhan;
+            await _appContext.SaveChangesAsync().ConfigureAwait(false);
+
+            return new Response<string>(user.Id, "Đã chấp nhận lời mời. Bạn hiện là Nhân sự của doanh nghiệp.");
         }
         
         /// <summary>
@@ -354,6 +462,11 @@ namespace Infrastructure.Identity.Services
 
             claims.AddRange(userClaims);
             claims.AddRange(roleClaims);
+
+            foreach (var role in roles)
+            {
+                claims.Add(new Claim(ClaimTypes.Role, role));
+            }
 
             // 5. Thiết lập chữ ký điện tử
             var symmetricSecurityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.Key));
