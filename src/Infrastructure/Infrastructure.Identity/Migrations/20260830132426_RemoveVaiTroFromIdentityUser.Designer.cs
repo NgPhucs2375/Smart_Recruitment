@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Infrastructure.Identity.Migrations
 {
     [DbContext(typeof(IdentityContext))]
-    [Migration("20260821073657_UpdateIdentityContext_Migration")]
-    partial class UpdateIdentityContext_Migration
+    [Migration("20260830132426_RemoveVaiTroFromIdentityUser")]
+    partial class RemoveVaiTroFromIdentityUser
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -122,9 +122,6 @@ namespace Infrastructure.Identity.Migrations
                     b.Property<string>("UserName")
                         .HasMaxLength(256)
                         .HasColumnType("character varying(256)");
-
-                    b.Property<int>("vaiTro")
-                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 

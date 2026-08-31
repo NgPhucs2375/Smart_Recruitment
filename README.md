@@ -4,7 +4,7 @@
 
 # Access https://localhost:5173/ on browser
 
-# Login with username:superadmin@gmail.com and password:123Pa$$word!
+Login with username:superadmin@gmail.com and password:123Pa$$word!
 
 
 
