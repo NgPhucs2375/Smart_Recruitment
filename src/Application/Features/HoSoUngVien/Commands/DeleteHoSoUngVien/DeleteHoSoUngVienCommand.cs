@@ -4,7 +4,7 @@ using MediatR;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Application.Features.HoSoUngVien.Commads.DeleteHoSoUngVien
+namespace Application.Features.HoSoUngVien.Commands.DeleteHoSoUngVien
 {
     public class DeleteHoSoUngVienByIdCommand : IRequest<Response<int>>
     {

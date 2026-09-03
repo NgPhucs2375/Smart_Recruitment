@@ -5,7 +5,7 @@ services:
     container_name: postgres
     restart: unless-stopped
     environment:
-      POSTGRES_DB: smart_recruitment_db
+      POSTGRES_DB: KLTN
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: SuperStrongPassword123!
     ports:
@@ -42,7 +42,8 @@ services:
     container_name: backend
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
-      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=KLTN;Username=postgres;Password=SuperStrongPassword123!
+      - ConnectionStrings__PostgresConnection=Host=postgres;Port=5432;Database=KLTN;Username=postgres;Password=SuperStrongPassword123!
+      - ConnectionStrings__IdentityConnection=Host=postgres;Port=5432;Database=KLTN;Username=postgres;Password=SuperStrongPassword123!
       - RedisSettings__ConnectionString=redis:6379
       - RabbitMqSettings__HostName=rabbitmq
       - SmartAgent__Url=http://smart_agent:8080

@@ -6,7 +6,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Application.Features.HoSoUngVien.Commads.CreateHoSoUngVien
+namespace Application.Features.HoSoUngVien.Commands.CreateHoSoUngVien
 {
     public class CreateHoSoUngVienCommand : IRequest<Response<int>>
     {

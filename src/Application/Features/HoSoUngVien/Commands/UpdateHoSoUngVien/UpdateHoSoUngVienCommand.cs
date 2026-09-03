@@ -5,7 +5,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Application.Features.HoSoUngVien.Commads.UpdateHoSoUngVien
+namespace Application.Features.HoSoUngVien.Commands.UpdateHoSoUngVien
 {
     public class UpdateHoSoUngVienCommand : IRequest<Response<int>>
     {
