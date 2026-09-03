@@ -11,7 +11,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace WebApp.Server.Controllers.v1
 {
     [Authorize]
-    [Route("api/nguoidung")]
+    [Route("api/nguoidungs")]
     public class NguoiDungController : BaseApiController
     {
         public NguoiDungController(

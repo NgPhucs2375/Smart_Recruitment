@@ -10,7 +10,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace WebApp.Server.Controllers.v1
 {
     [Authorize]
-    [Route("api/tintuyendung")]
+    [Route("api/tintuyendungs")]
     public class TinTuyenDungController : BaseApiController
     {
         public TinTuyenDungController(

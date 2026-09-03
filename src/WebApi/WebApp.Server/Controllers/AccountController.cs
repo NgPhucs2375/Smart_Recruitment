@@ -79,8 +79,28 @@ namespace WebApp.Server.Controllers
             return Ok(await _accountService.RefreshTokenAsync(request.Token, GenerateIPAddress()));
         }
 
+        [HttpPost("external-login")]
+        public async Task<IActionResult> ExternalLoginAsync([FromBody] ExternalAuthRequest request)
+        {
+            return Ok(await _accountService.ExternalLoginAsync(request,GenerateIPAddress()));
+        }
 
+        [HttpPost("request-magic-link")]
+        public async Task<IActionResult> RequestMagicLinkAsync([FromBody] YeuCauMagicLink request)
+        {
+            var origin = Request.Headers["origin"].ToString();
+            if (string.IsNullOrWhiteSpace(origin))
+            {
+                origin = $"{Request.Scheme}://{Request.Host}";
+            }
+            return Ok(await _accountService.RequestMagicLinkAsync(request, origin));
+        }
 
+        [HttpPost("magic-login")]
+        public async Task<IActionResult> MagicLoginAsync([FromBody] DoiMagicLink request)
+        {
+            return Ok(await _accountService.MagicLoginAsync(request, GenerateIPAddress()));
+        }
         private string GenerateIPAddress()
         {
            if (Request.Headers.TryGetValue("X-Forwarded-For", out var forwardedFor))

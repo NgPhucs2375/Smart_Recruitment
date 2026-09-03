@@ -17,6 +17,7 @@
     "@copilotkit/shared": "^1.68.3",
     "@hookform/resolvers": "^5.9.1",
     "@microsoft/signalr": "^10.0.11",
+    "@react-oauth/google": "^0.13.5",
     "@refinedev/core": "^5.0.12",
     "@refinedev/nextjs-router": "^7.0.5",
     "axios": "^1.19.0",

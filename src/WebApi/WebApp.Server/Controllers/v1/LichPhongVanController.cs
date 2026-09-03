@@ -10,7 +10,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace WebApp.Server.Controllers.v1
 {
     [Authorize]
-    [Route("api/lichphongvan")]
+    [Route("api/lichphongvans")]
     public class LichPhongVanController : BaseApiController
     {
         public LichPhongVanController(

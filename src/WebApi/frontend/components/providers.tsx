@@ -8,6 +8,7 @@ import { authProvider } from "@/lib/auth-provider";
 import { accessControlProvider } from "@/lib/access-control-provider";
 import { ThemeProvider } from "@/components/theme-provider";
 import { CopilotProvider } from "@/app/providers/CopilotProvider";
+import {GoogleOAuthProvider} from "@react-oauth/google";
 import {
   LayoutDashboard,
   FileText,
@@ -19,6 +20,7 @@ import {
 } from "lucide-react";
 
 const dataProvider = createDataProvider("/api/dotnet");
+const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? "";
 
 const resources = [
   { name: "dashboard", list: "/", meta: { label: "Dashboard", icon: <LayoutDashboard />, requiredResource: "dashboard" } },
@@ -41,7 +43,11 @@ export function Providers({ children }: { children: React.ReactNode }) {
         resources={resources}
         options={{ syncWithLocation: true, title: { text: "CV Copilot" } }}
       >
+        <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+          
         <CopilotProvider>{children}</CopilotProvider>
+
+        </GoogleOAuthProvider>
       </Refine>
     </ThemeProvider>
   );

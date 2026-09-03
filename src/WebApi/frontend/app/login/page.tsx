@@ -1,4 +1,3 @@
-// form Sign In (useLogin)
 "use client";
 
 import { useLogin } from "@refinedev/core";
@@ -12,39 +11,8 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectSeparator,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-
-const SYSTEM_USERS = [
-  { email: "administrator@localhost", label: "Administrator", badge: "",                  badgeColor: "" },
-  { email: "creator@localhost",       label: "Creator",       badge: "",                  badgeColor: "" },
-  { email: "approver@localhost",      label: "Approver",      badge: "",                  badgeColor: "" },
-] as const;
-
-const INVOICE_USERS = [
-  { email: "accounting@localhost",  label: "Accounting",  badge: "≤ $1,000",       badgeColor: "text-purple-600" },
-  { email: "finance@localhost",     label: "Finance",     badge: "$1,001–$10,000", badgeColor: "text-purple-600" },
-  { email: "executives@localhost",  label: "Executives",  badge: "> $10,000",      badgeColor: "text-purple-600" },
-  { email: "it@localhost",          label: "IT Dept",     badge: "Software/HW",    badgeColor: "text-purple-600" },
-] as const;
-
-const REGULATORY_USERS = [
-  { email: "reg.reviewer@localhost",   label: "Reg Reviewer",   badge: "Start · Review · Info", badgeColor: "text-blue-600" },
-  { email: "reg.manager@localhost",    label: "Reg Manager",    badge: "Mgr Approval",          badgeColor: "text-blue-600" },
-  { email: "reg.senior@localhost",     label: "Reg Senior",     badge: "Senior · Final",        badgeColor: "text-blue-600" },
-  { email: "reg.compliance@localhost", label: "Reg Compliance", badge: "Compliance",            badgeColor: "text-blue-600" },
-  { email: "reg.admin@localhost",      label: "Reg Admin",      badge: "All Reg perms",         badgeColor: "text-emerald-600" },
-] as const;
-
-const DEFAULT_PASSWORD = "123456aA@";
+import Link from "next/link";
+import { requestMagicLink } from "@/lib/auth-provider"; 
 
 const SAVED_KEY = "saved_credentials";
 
@@ -67,6 +35,16 @@ function clearSaved() {
 }
 
 export default function LoginPage() {
+  // Trạng thái cho hệ thống Tabs
+  const [tab, setTab] = useState<"password" | "magic">("password");
+
+  // Trạng thái cho luồng Magic Link
+  const [magicEmail, setMagicEmail] = useState("");
+  const [magicSent, setMagicSent] = useState(false);
+  const [magicLoading, setMagicLoading] = useState(false);
+  const [magicError, setMagicError] = useState<string | null>(null);
+
+  // Form đăng nhập mật khẩu
   const {
     register,
     handleSubmit: rhfSubmit,
@@ -76,27 +54,21 @@ export default function LoginPage() {
     formState: { errors },
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
-    defaultValues: { email: "", password: DEFAULT_PASSWORD, remember: false },
+    defaultValues: { email: "", password: "", remember: false },
   });
 
   useEffect(() => {
     const saved = loadSaved();
     if (saved) reset({ email: saved.email, password: saved.password, remember: true });
-    else reset({ email: "", password: DEFAULT_PASSWORD, remember: false });
   }, [reset]);
 
   const [submitError, setSubmitError] = useState<string | null>(null);
-
   const { mutateAsync: login, isPending } = useLogin<LoginFormData>();
-
   const remember = useWatch({ control, name: "remember" });
 
   async function onSubmit(data: LoginFormData) {
-    if (data.remember) {
-      saveSaved(data.email, data.password);
-    } else {
-      clearSaved();
-    }
+    if (data.remember) saveSaved(data.email, data.password);
+    else clearSaved();
 
     try {
       const result = await login(data);
@@ -108,133 +80,151 @@ export default function LoginPage() {
     }
   }
 
+  // Xử lý gửi Magic Link
+  async function handleMagic(e: React.FormEvent) {
+    e.preventDefault();
+    if (!magicEmail) return;
+    
+    setMagicLoading(true);
+    setMagicError(null);
+    
+    try {
+      const res = await requestMagicLink({ email: magicEmail, purpose: "Login" });
+      if (res.success) {
+        setMagicSent(true);
+      } else {
+        setMagicError(res.message || "Gửi liên kết thất bại");
+      }
+    } catch (err) {
+      setMagicError(err instanceof Error ? err.message : "Lỗi kết nối");
+    } finally {
+      setMagicLoading(false);
+    }
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-linear-to-br from-slate-100 to-slate-200 flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
-        {/* Logo / Header */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-indigo-600 mb-4 shadow-lg">
-            <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
-            </svg>
-          </div>
-          <h1 className="text-2xl font-bold text-slate-800">Camunda CopilotKit</h1>
-          <p className="text-sm text-slate-500 mt-1">Đăng nhập vào hệ thống</p>
+        <div className="text-center mb-6">
+          <h1 className="text-2xl font-bold text-slate-800">Đăng nhập hệ thống</h1>
+          {tab === "password" && <p className="text-sm text-slate-500 mt-1">Gợi ý: admin@localhost / 123456aA@</p>}
         </div>
 
         <Card>
           <CardContent className="p-8">
-            <form onSubmit={rhfSubmit(onSubmit)} noValidate className="space-y-5">
-              {submitError && (
-                <Alert variant="destructive">
-                  <AlertDescription>{submitError}</AlertDescription>
-                </Alert>
-              )}
-
-              <div>
-                <Label htmlFor="email">Email</Label>
-                <Select
-                  onValueChange={(val) => setValue("email", val as string, { shouldValidate: true })}
-                  disabled={isPending}
-                >
-                  <SelectTrigger id="email" className="w-full">
-                    <SelectValue placeholder="Chọn tài khoản…" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      <SelectLabel className="text-xs text-muted-foreground">Hệ thống</SelectLabel>
-                      {SYSTEM_USERS.map((u) => (
-                        <SelectItem key={u.email} value={u.email}>
-                          <span className="font-medium">{u.label}</span>
-                          <span className="ml-2 text-xs text-muted-foreground">{u.email}</span>
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-
-                    <SelectSeparator />
-
-                    <SelectGroup>
-                      <SelectLabel className="text-xs text-muted-foreground">Invoice Approvers</SelectLabel>
-                      {INVOICE_USERS.map((u) => (
-                        <SelectItem key={u.email} value={u.email}>
-                          <span className="font-medium">{u.label}</span>
-                          {u.badge && (
-                            <span className={`ml-1 text-xs font-mono ${u.badgeColor}`}>{u.badge}</span>
-                          )}
-                          <span className="ml-2 text-xs text-muted-foreground">{u.email}</span>
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-
-                    <SelectSeparator />
-
-                    <SelectGroup>
-                      <SelectLabel className="text-xs text-muted-foreground">Regulatory Approval</SelectLabel>
-                      {REGULATORY_USERS.map((u) => (
-                        <SelectItem key={u.email} value={u.email}>
-                          <span className="font-medium">{u.label}</span>
-                          {u.badge && (
-                            <span className={`ml-1 text-xs font-mono ${u.badgeColor}`}>{u.badge}</span>
-                          )}
-                          <span className="ml-2 text-xs text-muted-foreground">{u.email}</span>
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
-                {errors.email && (
-                  <p className="text-sm text-destructive mt-1">{errors.email.message}</p>
-                )}
-              </div>
-
-              <div>
-                <Label htmlFor="password">Mật khẩu</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  autoComplete="current-password"
-                  placeholder="••••••••"
-                  {...register("password")}
-                  disabled={isPending}
-                />
-                {errors.password && (
-                  <p className="text-sm text-destructive mt-1">{errors.password.message}</p>
-                )}
-              </div>
-
-              <div className="flex items-center gap-2">
-                <Checkbox
-                  id="remember"
-                  checked={remember}
-                  onCheckedChange={(checked) => setValue("remember", checked ?? false)}
-                  disabled={isPending}
-                />
-                <Label htmlFor="remember" className="cursor-pointer">
-                  Ghi nhớ đăng nhập
-                </Label>
-              </div>
-
-              <Button type="submit" disabled={isPending} className="w-full">
-                {isPending ? (
-                  <>
-                    <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-                    </svg>
-                    Đang đăng nhập…
-                  </>
-                ) : (
-                  "Đăng nhập"
-                )}
+            {/* Hệ thống chuyển đổi Tab */}
+            <div className="flex space-x-2 mb-6">
+              <Button 
+                type="button" 
+                variant={tab === "password" ? "default" : "outline"} 
+                onClick={() => setTab("password")} 
+                className="w-1/2"
+              >
+                Mật khẩu
               </Button>
-            </form>
+              <Button 
+                type="button" 
+                variant={tab === "magic" ? "default" : "outline"} 
+                onClick={() => setTab("magic")} 
+                className="w-1/2"
+              >
+                Magic Link
+              </Button>
+            </div>
+
+            {/* Nội dung Tab Đăng nhập bằng mật khẩu */}
+            {tab === "password" ? (
+              <form onSubmit={rhfSubmit(onSubmit)} noValidate className="space-y-5">
+                {submitError && (
+                  <Alert variant="destructive">
+                    <AlertDescription>{submitError}</AlertDescription>
+                  </Alert>
+                )}
+
+                <div>
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="name@example.com"
+                    {...register("email")}
+                    disabled={isPending}
+                  />
+                  {errors.email && (
+                    <p className="text-sm text-destructive mt-1">{errors.email.message}</p>
+                  )}
+                </div>
+
+                <div>
+                  <Label htmlFor="password">Mật khẩu</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    placeholder="••••••••"
+                    {...register("password")}
+                    disabled={isPending}
+                  />
+                  {errors.password && (
+                    <p className="text-sm text-destructive mt-1">{errors.password.message}</p>
+                  )}
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      id="remember"
+                      checked={remember}
+                      onCheckedChange={(checked) => setValue("remember", checked ?? false)}
+                      disabled={isPending}
+                    />
+                    <Label htmlFor="remember" className="cursor-pointer">Ghi nhớ</Label>
+                  </div>
+                  <Link href="/register" className="text-sm text-indigo-600 hover:underline">
+                    Tạo tài khoản mới
+                  </Link>
+                </div>
+
+                <Button type="submit" disabled={isPending} className="w-full">
+                  {isPending ? "Đang xử lý..." : "Đăng nhập"}
+                </Button>
+              </form>
+            ) : (
+              /* Nội dung Tab Đăng nhập bằng Magic Link */
+              <form onSubmit={handleMagic} className="space-y-5">
+                {magicSent ? (
+                  <Alert>
+                    <AlertDescription>
+                      Hãy mở email <b>{magicEmail}</b> và kiểm tra cả hộp thư rác (Spam) để lấy liên kết đăng nhập.
+                    </AlertDescription>
+                  </Alert>
+                ) : (
+                  <>
+                    {magicError && (
+                      <Alert variant="destructive">
+                        <AlertDescription>{magicError}</AlertDescription>
+                      </Alert>
+                    )}
+                    <div>
+                      <Label htmlFor="magic-email">Email</Label>
+                      <Input
+                        id="magic-email"
+                        type="email"
+                        placeholder="name@example.com"
+                        value={magicEmail}
+                        onChange={(e) => setMagicEmail(e.target.value)}
+                        disabled={magicLoading}
+                        required
+                      />
+                    </div>
+                    <Button type="submit" disabled={magicLoading} className="w-full">
+                      {magicLoading ? "Đang xử lý..." : "Gửi link đăng nhập"}
+                    </Button>
+                  </>
+                )}
+              </form>
+            )}
           </CardContent>
         </Card>
-
-        <p className="text-center text-xs text-slate-400 mt-6">
-          Clean Architecture · CopilotKit · Camunda BPMN
-        </p>
       </div>
     </div>
   );

@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace WebApp.Server.Controllers.v1
 {
     [Authorize]
-    [Route("api/donungtuyen")]
+    [Route("api/donungtuyens")]
     public class DonUngTuyenController : BaseApiController
     {
         public DonUngTuyenController(

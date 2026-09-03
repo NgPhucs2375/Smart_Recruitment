@@ -12,7 +12,7 @@ using System.Threading.Tasks;
 namespace WebApp.Server.Controllers.v1
 {
     [Authorize]
-    [Route("api/NhanSu")]
+    [Route("api/nhansus")]
     public class NhanSuController : BaseApiController
     {
         private readonly IAccountService _accountService;

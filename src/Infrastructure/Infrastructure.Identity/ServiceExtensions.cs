@@ -60,6 +60,7 @@ namespace Infrastructure.Identity
             services.AddScoped<IUserEmailResolver, UserEmailResolver>();
             #endregion
             services.Configure<JWTSettings>(configuration.GetSection("JWTSettings"));
+            services.Configure<GoogleSettings>(configuration.GetSection("GoogleSettings"));
             services.AddAuthentication(options =>
             {
                 options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;

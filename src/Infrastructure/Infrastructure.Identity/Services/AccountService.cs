@@ -23,6 +23,7 @@ using System.Threading.Tasks;
 using Domain.Enums;
 using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
+using Google.Apis.Auth;
 
 namespace Infrastructure.Identity.Services
 {
@@ -37,6 +38,7 @@ namespace Infrastructure.Identity.Services
         private readonly IdentityContext _context;
         private readonly IApplicationDbContext _appContext;
         private readonly IAuthenticatedUserService _authenticatedUserService;
+        private readonly IOptions<GoogleSettings> _googleSettings;
         public AccountService(
             IdentityContext context,
             IApplicationDbContext appContext,
@@ -46,7 +48,8 @@ namespace Infrastructure.Identity.Services
             IDateTimeService dateTimeService,
             SignInManager<ApplicationUser> signInManager,
             IEmailService emailService,
-            IAuthenticatedUserService authenticatedUserService)
+            IAuthenticatedUserService authenticatedUserService,
+            IOptions<GoogleSettings> googleSettings)
         {
             _context = context;
             _appContext = appContext;
@@ -57,6 +60,7 @@ namespace Infrastructure.Identity.Services
             _signInManager = signInManager;
             this._emailService = emailService;
             _authenticatedUserService = authenticatedUserService;
+            _googleSettings = googleSettings;
         }
 
         internal sealed record RolePermission
@@ -697,6 +701,234 @@ namespace Infrastructure.Identity.Services
             };
 
             return new Response<AuthenticationResponse>(response, "Làm mới Token thành công.");
+        }
+
+        public async Task<Response<AuthenticationResponse>> ExternalLoginAsync(ExternalAuthRequest request, string ipAddress)
+        {
+            // 1. Xác thực token từ nhà cung cấp bên ngoài (Google): trong thu vien Api.Auth.Google
+            GoogleJsonWebSignature.Payload payload;
+            try
+            {
+                var validationSettings = new GoogleJsonWebSignature.ValidationSettings
+                {
+                    Audience = new[] { _googleSettings.Value.ClientId }
+                };
+                payload = await GoogleJsonWebSignature.ValidateAsync(request.IdToken, validationSettings).ConfigureAwait(false);
+            }
+            catch (Exception)
+            {
+                throw new ApiException("Xác thực bên ngoài không thành công. Token không hợp lệ.");
+            }
+
+            if (payload == null)
+            {
+                throw new ApiException("Dữ liệu xác thực bên ngoài bị trống.");
+            }
+
+            // 2. Kiểm tra xem người dùng đã tồn tại trong hệ thống chưa[cite: 3]
+            var user = await _userManager.FindByEmailAsync(payload.Email).ConfigureAwait(false);
+            
+            if (user == null)
+            {
+                // Khởi tạo tài khoản Identity mới nếu chưa tồn tại
+                user = new ApplicationUser
+                {
+                    Email = payload.Email,
+                    UserName = payload.Email,
+                    FirstName = payload.GivenName,
+                    LastName = payload.FamilyName,
+                    EmailConfirmed = true // Xác nhận email ngay lập tức vì đã xác thực từ Google
+                };
+
+                var result = await _userManager.CreateAsync(user).ConfigureAwait(false);
+                if (!result.Succeeded)
+                {
+                    var errors = string.Join(", ", result.Errors.Select(e => e.Description));
+                    throw new ApiException($"Tạo tài khoản không thành công: {errors}");
+                }
+
+                // Tái sử dụng luồng tạo thực thể NguoiDung và gán vai trò UNG_VIEN[cite: 3]
+                await RegisterCandidateAsync(user).ConfigureAwait(false);
+            }
+
+            // 3. Sinh Access Token và Refresh Token[cite: 3]
+            JwtSecurityToken jwtSecurityToken = await GenerateJWToken(user).ConfigureAwait(false);
+            var refreshToken = GenerateRefreshToken(ipAddress);
+
+            user.RefreshTokens ??= new List<RefreshToken>();
+            user.RefreshTokens.RemoveAll(t => !t.IsActive && t.Created.AddDays(30) <= DateTime.UtcNow);
+            user.RefreshTokens.Add(refreshToken);
+
+            await _userManager.UpdateAsync(user).ConfigureAwait(false);
+
+            var rolesList = await _userManager.GetRolesAsync(user).ConfigureAwait(false);
+
+            var response = new AuthenticationResponse
+            {
+                Id = user.Id,
+                JWToken = new JwtSecurityTokenHandler().WriteToken(jwtSecurityToken),
+                Email = user.Email,
+                UserName = user.UserName,
+                Roles = rolesList.ToList(),
+                IsVerified = user.EmailConfirmed,
+                RefreshToken = refreshToken.Token
+            };
+
+            return new Response<AuthenticationResponse>(response, $"Đã xác thực {user.UserName} thông qua {request.Provider}.");
+        }
+
+        // Helper: Khởi tạo URL xác thực Magic Link
+        private string BuildMagicLink(string token, string email, string origin)
+        {
+            var route = "magic-login";
+            var endpointUri = new Uri(string.Concat($"{origin.TrimEnd('/')}/", route));
+            
+            var verificationUri = QueryHelpers.AddQueryString(endpointUri.ToString(), "token", token);
+            verificationUri = QueryHelpers.AddQueryString(verificationUri, "email", email);
+            verificationUri = QueryHelpers.AddQueryString(verificationUri, "mode", "magic");
+            
+            return verificationUri;
+        }
+
+        public async Task<Response<string>> RequestMagicLinkAsync(YeuCauMagicLink request, string origin)
+        {
+            // 1. Chuẩn hóa Email
+            string email = request.Email.Trim().ToLowerInvariant();
+
+            // 2. Vô hiệu hóa tất cả token cũ đang kích hoạt
+            var oldTokens = await _context.MagicLinkTokens
+                .Where(m => m.Email == email && !m.Used && m.ExpiresAt > DateTime.UtcNow)
+                .ToListAsync();
+
+            foreach (var oldToken in oldTokens)
+            {
+                oldToken.Used = true;
+            }
+
+            // 3. Khởi tạo Token mới
+            string token = Guid.NewGuid().ToString("N");
+            var magicToken = new MagicLinkToken
+            {
+                Email = email,
+                Token = token,
+                Purpose = MagicLinkPurpose.PasswordLessLogin, // Gắn cứng theo nghiệp vụ đăng nhập[cite: 16]
+                Role = request.Role, 
+                ExpiresAt = DateTime.UtcNow.AddMinutes(15),
+                Used = false
+            };
+
+            // 4. Lưu CSDL
+            await _context.MagicLinkTokens.AddAsync(magicToken);
+            await _context.SaveChangesAsync();
+
+            // 5. Build Link và Gửi Email
+            string link = BuildMagicLink(token, email, origin);
+
+            await _emailService.SendAsync(new EmailRequest
+            {
+                To = email,
+                Subject = "Liên kết đăng nhập",
+                Body = $"Nhấn <a href='{link}'>đăng nhập</a> (hết hạn trong 15 phút)"
+            });
+
+            // 7. Response chuẩn (Luôn trả về 200 để tránh rò rỉ thông tin tài khoản)
+            return new Response<string>(null, "Nếu email tồn tại, liên kết đã được gửi. Vui lòng kiểm tra hộp thư.");
+        }
+
+        public async Task<Response<AuthenticationResponse>> MagicLoginAsync(DoiMagicLink request, string ipAddress)
+        {
+            // 1. Chuẩn hóa và truy vấn Token
+            string email = request.Email.Trim().ToLowerInvariant();
+            var magicToken = await _context.MagicLinkTokens
+                .SingleOrDefaultAsync(m => m.Email == email && m.Token == request.Token);
+
+            // 2. Kiểm tra tính hợp lệ
+            if (magicToken == null || magicToken.Used || magicToken.IsExpired)
+            {
+                throw new ApiException("Liên kết không hợp lệ, đã hết hạn hoặc đã được sử dụng.");
+            }
+
+            // 3. Kiểm tra Người dùng
+            var user = await _userManager.FindByEmailAsync(email);
+
+            // 4. Khởi tạo User nếu chưa tồn tại
+            if (user == null)
+            {
+                if (magicToken.Purpose == MagicLinkPurpose.PasswordLessLogin)
+                {
+                    string userName = $"{email.Split('@')[0]}_{Guid.NewGuid().ToString("N")[..6]}";
+                    
+                    user = new ApplicationUser
+                    {
+                        Email = email,
+                        UserName = userName,
+                        FirstName = userName, // Fallback do MagicLinkToken không lưu HoTen[cite: 15]
+                        LastName = "User",
+                        EmailConfirmed = true 
+                    };
+
+                    string randomPwd = Guid.NewGuid().ToString("N") + "!Aa1";
+                    var createResult = await _userManager.CreateAsync(user, randomPwd);
+                    
+                    if (!createResult.Succeeded)
+                    {
+                        var errors = string.Join(", ", createResult.Errors.Select(e => e.Description));
+                        throw new ApiException($"Tạo tài khoản không thành công: {errors}");
+                    }
+
+                    // Phân nhánh tái sử dụng logic đăng ký[cite: 13]
+                    if (magicToken.Role == VaiTroNguoiDung.UNG_VIEN.ToString())
+                    {
+                        await RegisterCandidateAsync(user);
+                    }
+                    else if (magicToken.Role == VaiTroNguoiDung.NGUOI_DAI_DIEN.ToString())
+                    {
+                        // Truyền mock request do MagicLinkToken không lưu thông tin doanh nghiệp[cite: 15]
+                        var mockRequest = new YeuCauDangKy 
+                        { 
+                            TenDoanhNghiep = "Doanh nghiệp chưa cập nhật", 
+                            DiaChiDoanhNghiep = "Chưa cập nhật", 
+                            ChucVu = "Chưa cập nhật" 
+                        };
+                        await RegisterEmployerAsync(user, mockRequest);
+                    }
+                }
+                else
+                {
+                    throw new ApiException("Tài khoản chưa tồn tại, vui lòng đăng ký.");
+                }
+            }
+
+            // 5. Cấp phát Token
+            var jwtSecurityToken = await GenerateJWToken(user);
+            var refreshToken = GenerateRefreshToken(ipAddress);
+
+            user.RefreshTokens ??= new List<RefreshToken>();
+            user.RefreshTokens.RemoveAll(t => !t.IsActive && t.Created.AddDays(30) <= DateTime.UtcNow);
+            user.RefreshTokens.Add(refreshToken);
+            
+            await _userManager.UpdateAsync(user);
+
+            // 6. Hủy Token xác thực
+            magicToken.Used = true;
+            magicToken.UsedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+
+            var rolesList = await _userManager.GetRolesAsync(user);
+
+            // 7. Đóng gói AuthenticationResponse[cite: 13]
+            var response = new AuthenticationResponse
+            {
+                Id = user.Id,
+                JWToken = new JwtSecurityTokenHandler().WriteToken(jwtSecurityToken),
+                Email = user.Email,
+                UserName = user.UserName,
+                Roles = rolesList.ToList(),
+                IsVerified = user.EmailConfirmed,
+                RefreshToken = refreshToken.Token
+            };
+
+            return new Response<AuthenticationResponse>(response, "Đăng nhập thành công.");
         }
     }
 

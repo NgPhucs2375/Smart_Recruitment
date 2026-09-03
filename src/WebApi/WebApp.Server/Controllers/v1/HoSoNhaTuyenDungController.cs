@@ -10,7 +10,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace WebApp.Server.Controllers.v1
 {
     [Authorize]
-    [Route("api/hosonhatuyendung")]
+    [Route("api/hosonhatuyendungs")]
     public class HoSoNhaTuyenDungController : BaseApiController
     {
         public HoSoNhaTuyenDungController(

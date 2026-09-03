@@ -18,5 +18,8 @@ namespace Application.Interfaces
         Task<Response<string>> ResetPassword(YeuCauGuiLaiXacMinh model);
         // Task ResendVerificationEmailAsync(string email, string origin);
         Task<Response<AuthenticationResponse>> RefreshTokenAsync(string token, string ipAddress);
+        Task<Response<AuthenticationResponse>> ExternalLoginAsync(ExternalAuthRequest request, string ipAddress);
+        Task<Response<string>> RequestMagicLinkAsync(YeuCauMagicLink request, string origin);
+        Task<Response<AuthenticationResponse>> MagicLoginAsync(DoiMagicLink request, string ipAddress);
     }
 }
