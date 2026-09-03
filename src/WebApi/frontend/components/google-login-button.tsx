@@ -17,7 +17,7 @@ export function GoogleLoginButton({ onSuccess, disabled,text = "Đăng nhập v�
                     }
                 }}
                 onError={() => console.error("Đăng nhập Google thất bại")}
-                useOneTap
+                useOneTap={false}
             />
         </div>
     );

@@ -34,6 +34,7 @@ namespace Infrastructure.Persistence
                     }));
                 }
             }
+            sp.Dispose();
         }
 
         public static void AddPersistenceRepositories(this IServiceCollection services)

@@ -32,7 +32,6 @@ namespace Infrastructure.Identity
 
         public static void AddNpgSqlIdentityInfrastructure(this IServiceCollection services)
         {
-            // Build the intermediate service provider
             var sp = services.BuildServiceProvider();
             using (var scope = sp.CreateScope())
             {
@@ -50,13 +49,14 @@ namespace Infrastructure.Identity
                     }));
                 }
             }
+            sp.Dispose();
         }
 
         public static void AddIdentityRepositories(this IServiceCollection services, IConfiguration configuration)
         {
             services.AddIdentity<ApplicationUser, IdentityRole>().AddEntityFrameworkStores<IdentityContext>().AddDefaultTokenProviders();
             #region Services
-            services.AddTransient<IAccountService, AccountService>();
+            services.AddScoped<IAccountService, AccountService>();
             services.AddScoped<IUserEmailResolver, UserEmailResolver>();
             #endregion
             services.Configure<JWTSettings>(configuration.GetSection("JWTSettings"));
@@ -79,7 +79,7 @@ namespace Infrastructure.Identity
                         ClockSkew = TimeSpan.Zero,
                         ValidIssuer = configuration["JWTSettings:Issuer"],
                         ValidAudience = configuration["JWTSettings:Audience"],
-                        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration["JWTSettings:Key"]))
+                        IssuerSigningKey = new SymmetricSecurityKey(Convert.FromBase64String(configuration["JWTSettings:Key"]))
                     };
                     o.Events = new JwtBearerEvents()
                     {

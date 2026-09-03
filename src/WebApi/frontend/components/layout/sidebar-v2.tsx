@@ -97,7 +97,13 @@ const navigation = [
   },
 ];
 
-function filterNavigation(items: typeof navigation, permissions: Permission[]) {
+const fallbackNavigation = [
+  { title: "Dashboard", href: "/", icon: LayoutDashboard },
+  { title: "CV Builder", href: "/cv", icon: FileText },
+];
+
+function filterNavigation(items: typeof navigation, permissions: Permission[] | undefined | null) {
+  if (!permissions || !Array.isArray(permissions)) return items;
   return items.filter((item) =>
     hasPermission(permissions, item.permission.resource, item.permission.action)
   );
@@ -117,8 +123,17 @@ const navIcons: Record<string, React.ElementType> = {
 export function AppSidebarV2() {
   const { open } = useSidebar();
   const pathname = usePathname();
-  const identity = loadIdentity();
-  const visibleItems = identity ? filterNavigation(navigation, identity.permissions) : [];
+  const [identity, setIdentity] = React.useState<ReturnType<typeof loadIdentity>>(null);
+  const [mounted, setMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setIdentity(loadIdentity());
+    setMounted(true);
+  }, []);
+
+  const visibleItems = mounted && identity
+    ? filterNavigation(navigation, identity.permissions)
+    : navigation;
 
   return (
     <Sidebar collapsible="icon" className="bg-sidebar border-r border-border transition-all duration-300">
@@ -185,7 +200,12 @@ interface AppSidebarFooterProps {
 }
 
 function AppSidebarFooter({ open }: AppSidebarFooterProps) {
-  const identity = loadIdentity();
+  const [identity, setIdentity] = React.useState<ReturnType<typeof loadIdentity>>(null);
+
+  React.useEffect(() => {
+    setIdentity(loadIdentity());
+  }, []);
+
   const initials = identity?.name
     ? identity.name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
     : "U";

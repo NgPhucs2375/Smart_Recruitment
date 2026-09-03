@@ -9,9 +9,10 @@ export interface Permission {
 }
 
 export function hasPermission(
-  permissions: Permission[],
+  permissions: Permission[] | undefined | null,
   resource: string,
   action: string,
 ): boolean {
+  if (!permissions || !Array.isArray(permissions)) return false;
   return permissions.some(p => p.resource === resource && p.action === action);
 }

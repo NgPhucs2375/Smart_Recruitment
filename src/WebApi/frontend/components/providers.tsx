@@ -7,7 +7,6 @@ import { createDataProvider } from "@/lib/data-provider";
 import { authProvider } from "@/lib/auth-provider";
 import { accessControlProvider } from "@/lib/access-control-provider";
 import { ThemeProvider } from "@/components/theme-provider";
-import { CopilotProvider } from "@/app/providers/CopilotProvider";
 import {GoogleOAuthProvider} from "@react-oauth/google";
 import {
   LayoutDashboard,
@@ -23,7 +22,7 @@ const dataProvider = createDataProvider("/api/dotnet");
 const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? "";
 
 const resources = [
-  { name: "dashboard", list: "/", meta: { label: "Dashboard", icon: <LayoutDashboard />, requiredResource: "dashboard" } },
+  { name: "dashboard", list: "/dashboard", meta: { label: "Dashboard", icon: <LayoutDashboard />, requiredResource: "dashboard" } },
   { name: "cv", list: "/CV", meta: { label: "CV", icon: <FileText />, requiredResource: "cv" } },
   { name: "invoices", list: "/invoices", meta: { label: "Invoices", icon: <Receipt />, requiredResource: "invoices" } },
   { name: "reports", list: "/reports", meta: { label: "Reports", icon: <BarChart3 />, requiredResource: "reports" } },
@@ -44,9 +43,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
         options={{ syncWithLocation: true, title: { text: "CV Copilot" } }}
       >
         <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
-          
-        <CopilotProvider>{children}</CopilotProvider>
-
+          {children}
         </GoogleOAuthProvider>
       </Refine>
     </ThemeProvider>

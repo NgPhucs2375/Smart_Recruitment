@@ -141,7 +141,7 @@ export const authProvider: AuthProvider = {
         await fetchAndSaveMe(jwToken);
       }
       
-      return { success: true, redirectTo: "/" };
+      return { success: true, redirectTo: "/dashboard" };
     } catch (err) {
       return {
         success: false,

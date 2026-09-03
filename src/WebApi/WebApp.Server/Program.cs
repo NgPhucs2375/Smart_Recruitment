@@ -68,6 +68,7 @@ _services.AddControllers().AddJsonOptions(opts =>
 });
 _services.AddApiVersioningExtension();
 _services.AddHealthChecks();
+_services.AddSignalR();
 _services.AddScoped<IAuthenticatedUserService, AuthenticatedUserService>();
 _services.AddScoped<ICurrentNguoiDungService,CurrentNguoiDungService>();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
@@ -106,6 +107,8 @@ app.UseErrorHandlingMiddleware();
 app.UseHealthChecks("/health");
 // Map Controllers nghiệp vụ
 app.MapControllers();
+
+app.MapHub<WebApp.Server.Hubs.NotificationsHub>("/api/hubs/notifications").RequireCors("AllowFrontend");
 
 app.MapAGUIServer("/api/copilotkit", AIAgentExtension.CreateSmartAgent(jsonOptions.Value.SerializerOptions)).RequireCors("AllowFrontend");
 

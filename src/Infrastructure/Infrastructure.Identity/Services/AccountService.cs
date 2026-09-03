@@ -135,7 +135,7 @@ namespace Infrastructure.Identity.Services
             string ungVienRole = VaiTroNguoiDung.UNG_VIEN.ToString();
             string daidienRole = VaiTroNguoiDung.NGUOI_DAI_DIEN.ToString();
 
-            if (string.IsNullOrWhiteSpace(request.InviteToken))
+            if (string.IsNullOrWhiteSpace(request.InviteToken) || request.InviteToken == "string")
             {
                 if (request.Role != ungVienRole && request.Role != daidienRole)
                 {
@@ -195,7 +195,7 @@ namespace Infrastructure.Identity.Services
             }
 
             // 7. Phân luồng đăng ký hồ sơ theo vai trò
-            if (!string.IsNullOrWhiteSpace(request.InviteToken))
+            if (!string.IsNullOrWhiteSpace(request.InviteToken) && request.InviteToken != "string")
             {
                 await RegisterInvitedNhanSuAsync(user, request).ConfigureAwait(false);
             }
@@ -208,17 +208,26 @@ namespace Infrastructure.Identity.Services
                 await RegisterEmployerAsync(user, request).ConfigureAwait(false);
             }
 
-            // 8. Tạo mã xác nhận và gửi email
-            var verificationUri = await SendVerificationEmail(user, origin).ConfigureAwait(false);
-            await _emailService.SendAsync(new EmailRequest
+            // 8. Tạo mã xác nhận và gửi email (skip nếu SMTP fails - dev mode)
+            string verificationUri = null;
+            try
             {
-                From = "noreply@yourdomain.com",
-                To = user.Email,
-                Body = $"Vui lòng xác nhận tài khoản của bạn bằng cách nhấn vào liên kết: {verificationUri}",
-                Subject = "Xác nhận Đăng ký Tài khoản"
-            }).ConfigureAwait(false);
+                verificationUri = await SendVerificationEmail(user, origin).ConfigureAwait(false);
+                await _emailService.SendAsync(new EmailRequest
+                {
+                    From = "noreply@yourdomain.com",
+                    To = user.Email,
+                    Body = $"Vui lòng xác nhận tài khoản của bạn bằng cách nhấn vào liên kết: {verificationUri}",
+                    Subject = "Xác nhận Đăng ký Tài khoản"
+                }).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                // Email failed - skip in dev mode
+                verificationUri = null;
+            }
 
-            return new Response<string>(user.Id, $"Người dùng đã đăng ký thành công. Vui lòng xác nhận tài khoản qua email: {verificationUri}");
+            return new Response<string>(user.Id, $"Người dùng đã đăng ký thành công{(verificationUri != null ? $". Vui lòng xác nhận tài khoản qua email: {verificationUri}" : "")}");
         }
 
         ///<summary>
@@ -407,11 +416,10 @@ namespace Infrastructure.Identity.Services
             // 3. Chuyển đổi dữ liệu sang danh sách RolePermission bằng LINQ Projection
             
             var rolePermissions = roleClaimsForRole
+                    .Where(item => !string.IsNullOrWhiteSpace(item.ClaimValue))
                     .Select(item => new RolePermission(
                         item.ClaimType ?? string.Empty,
-                        !string.IsNullOrEmpty(item.ClaimValue)
-                            ? item.ClaimValue.Split('#', StringSplitOptions.RemoveEmptyEntries)
-                            : []
+                        item.ClaimValue.Split('#', StringSplitOptions.RemoveEmptyEntries)
                     ))
                     .ToList();
 
@@ -473,7 +481,8 @@ namespace Infrastructure.Identity.Services
             }
 
             // 5. Thiết lập chữ ký điện tử
-            var symmetricSecurityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.Key));
+            var keyBytes = Convert.FromBase64String(_jwtSettings.Key);
+            var symmetricSecurityKey = new SymmetricSecurityKey(keyBytes);
             var signingCredentials = new SigningCredentials(symmetricSecurityKey, SecurityAlgorithms.HmacSha256);
 
             // 6. Đóng gói JWT Token hoàn chỉnh

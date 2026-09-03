@@ -43,7 +43,7 @@ function MagicLoginContent() {
           
           // Trì hoãn 800ms để người dùng kịp đọc thông báo trước khi chuyển trang
           setTimeout(() => {
-            router.replace("/");
+            router.replace("/dashboard");
           }, 800);
         } else {
           setStatus("error");

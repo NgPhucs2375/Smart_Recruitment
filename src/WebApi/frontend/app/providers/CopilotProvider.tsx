@@ -3,10 +3,14 @@
 import { CopilotKit } from "@copilotkit/react-core/v2";
 import { CopilotSidebar } from "@copilotkit/react-core/v2";
 import "@copilotkit/react-core/v2/styles.css";
-import React from "react";
+import React, { useState, useEffect } from "react";
 
 export function CopilotProvider({ children }: { children: React.ReactNode }) {
-  const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
+  const [token, setToken] = useState<string | null>(null);
+
+  useEffect(() => {
+    setToken(localStorage.getItem("accessToken"));
+  }, []);
 
   return (
     <CopilotKit

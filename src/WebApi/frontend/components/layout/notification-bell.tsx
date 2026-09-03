@@ -70,12 +70,14 @@ function NotificationBellInner({
     url:    `${apiUrl}/Notifications`,
     method: "get",
     config: { query: { unreadOnly: false } },
+    errorNotification: false,
   });
 
   const { mutate: markRead } = useCustomMutation();
 
   const notifications = result?.data?.notifications ?? [];
   const unreadCount   = result?.data?.unreadCount   ?? 0;
+  const is404 = query?.error?.statusCode === 404;
 
   // Stable refetch reference — avoids infinite-loop dependency on the full query object
   const refetch = query?.refetch;
@@ -108,6 +110,10 @@ function NotificationBellInner({
             console.warn(`[SignalR] ${message}`);
             return;
           }
+          // Suppress 404 when SignalR hub not deployed — fallback to polling handles it
+          if (/not found|404/i.test(message) && level >= signalR.LogLevel.Error) {
+            return;
+          }
           if (level >= signalR.LogLevel.Error) console.error(`[SignalR] ${message}`);
           else if (level >= signalR.LogLevel.Warning) console.warn(`[SignalR] ${message}`);
         },
@@ -121,7 +127,9 @@ function NotificationBellInner({
     connection.start().catch((err: unknown) => {
       if (!active) return; // StrictMode fake-unmount stopped the connection — ignore silently
       console.warn("[NotificationBell] SignalR failed, falling back to 30s polling:", err);
-      pollingId = setInterval(() => void refetchRef.current?.(), 30_000);
+      pollingId = setInterval(() => {
+        if (refetchRef.current) void refetchRef.current();
+      }, 30_000);
     });
 
     return () => {
