@@ -74,7 +74,7 @@ export function CVEditor() {
             </button>
           </div>
           <div className="flex flex-wrap gap-2">
-            {cvData.skills.map((skill) => (
+            {cvData.skills?.map((skill) => (
               <span
                 key={skill}
                 className="inline-flex items-center gap-1 bg-gray-100 rounded-full px-3 py-1 text-sm"

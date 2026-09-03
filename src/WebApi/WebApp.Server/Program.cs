@@ -76,8 +76,6 @@ _services.AddEndpointsApiExplorer();
 // trước Build() dùng Add sau dùng Use
 var app = builder.Build();
 var jsonOptions = app.Services.GetRequiredService<IOptions<JsonOptions>>();
-var agentFactory = new SmartAgentFactory(jsonOptions.Value.SerializerOptions);
-
 using (var scope = app.Services.CreateScope())
 {
     var initializer = new ApplicationInitializer(scope.ServiceProvider);
@@ -109,7 +107,7 @@ app.UseHealthChecks("/health");
 // Map Controllers nghiệp vụ
 app.MapControllers();
 
-app.MapAGUIServer("/api/copilotkit", agentFactory.CreateSmartAgent()).RequireCors("AllowFrontend");
+app.MapAGUIServer("/api/copilotkit", AIAgentExtension.CreateSmartAgent(jsonOptions.Value.SerializerOptions)).RequireCors("AllowFrontend");
 
 
 

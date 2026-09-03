@@ -1,12 +1,12 @@
 // Trang chính (Dashboard) "/"
 "use client";
 
-import { CVEditor } from "@/components/cv-editor";
+import { CVEditorV2 } from "@/components/cv-editor-v2";
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-gray-50">
-      <CVEditor />
+    <div className="min-h-screen bg-background">
+      <CVEditorV2 />
     </div>
   );
 }

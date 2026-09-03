@@ -1,7 +1,7 @@
 "use client";
 
-import { useAgent } from "@copilotkit/react-core/v2";
-import { useCallback, useMemo } from "react";
+import { useCopilotAction, useCopilotReadable } from "@copilotkit/react-core";
+import { useCallback, useMemo, useState } from "react";
 
 export interface CVData {
   fullName: string;
@@ -17,63 +17,64 @@ export const initialCVData: CVData = {
   skills: [],
 };
 
-export function useCVData(agentName: string = "smart-agent") {
-  const { agent, isReady } = useAgent({ agentId: agentName });
+export function useCVData() {
+  const [cvData, setCvData] = useState<CVData>(initialCVData);
+  const [isReady, setIsReady] = useState(true);
 
-  const cvData = useMemo(
-    () => (agent.state as CVData | undefined) ?? initialCVData,
-    [agent.state],
-  );
+  useCopilotReadable({
+    description: "Dữ liệu CV hiện tại của người dùng",
+    value: cvData,
+  });
 
   const setCVData = useCallback(
     (updater: CVData | ((prev: CVData) => CVData)) => {
-      if (typeof updater === "function") {
-        const next = updater(cvData);
-        agent.setState(next);
-      } else {
-        agent.setState(updater);
-      }
+      setCvData((prev) => {
+        const next = typeof updater === "function" ? updater(prev) : updater;
+        return next;
+      });
     },
-    [agent, cvData],
+    []
   );
 
   const updateField = useCallback(
     <K extends keyof CVData>(field: K, value: CVData[K]) => {
-      agent.setState({
-        ...cvData,
+      setCvData((prev) => ({
+        ...prev,
         [field]: value,
-      });
+      }));
     },
-    [agent, cvData],
+    []
   );
 
   const addSkill = useCallback(
     (skill: string) => {
       const trimmedSkill = skill.trim();
       if (!trimmedSkill) return;
-      if (cvData.skills.includes(trimmedSkill)) return;
 
-      agent.setState({
-        ...cvData,
-        skills: [...cvData.skills, trimmedSkill],
+      setCvData((prev) => {
+        if (prev.skills.includes(trimmedSkill)) return prev;
+        return {
+          ...prev,
+          skills: [...prev.skills, trimmedSkill],
+        };
       });
     },
-    [agent, cvData],
+    []
   );
 
   const removeSkill = useCallback(
     (skillToRemove: string) => {
-      agent.setState({
-        ...cvData,
-        skills: cvData.skills.filter((s) => s !== skillToRemove),
-      });
+      setCvData((prev) => ({
+        ...prev,
+        skills: prev.skills.filter((s) => s !== skillToRemove),
+      }));
     },
-    [agent, cvData],
+    []
   );
 
   const resetCV = useCallback(() => {
-    agent.setState(initialCVData);
-  }, [agent]);
+    setCvData(initialCVData);
+  }, []);
 
   return {
     cvData,

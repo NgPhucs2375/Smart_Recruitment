@@ -1,3 +1,3 @@
-import { CVEditor } from "@/components/cv-editor";
+import { CVEditorV2 } from "@/components/cv-editor-v2";
 
-export default CVEditor;
+export default CVEditorV2;
