@@ -319,30 +319,24 @@ namespace Infrastructure.Identity.Services
         /// </summary>
         private async Task<JwtSecurityToken> GenerateJWToken(ApplicationUser user)
         {
-            // 1. Lấy dữ liệu Claims và Roles bất đồng bộ
-            var userClaimsTask = _userManager.GetClaimsAsync(user);
-            var rolesTask = _userManager.GetRolesAsync(user);
+            // 1. IdentityContext không hỗ trợ các truy vấn đồng thời trên cùng DbContext.
+            var userClaims = await _userManager.GetClaimsAsync(user).ConfigureAwait(false);
+            var roles = await _userManager.GetRolesAsync(user).ConfigureAwait(false);
 
-            await Task.WhenAll(userClaimsTask, rolesTask).ConfigureAwait(false);
-
-            var userClaims = await userClaimsTask.ConfigureAwait(false);
-            var roles = await rolesTask.ConfigureAwait(false);
-
-            // 2. Lấy quyền của tất cả các vai trò một cách đồng thời (Concurrent Processing)
-            var rolePermissionTasks = roles.Select(async role =>
+            // 2. Lấy quyền tuần tự để tránh dùng đồng thời cùng IdentityContext.
+            var roleClaims = new List<Claim>();
+            foreach (var role in roles)
             {
                 var permissionJson = await GetPermissionOfRole(role).ConfigureAwait(false);
-                return new Claim("roles", permissionJson);
-            });
-
-            var roleClaims = await Task.WhenAll(rolePermissionTasks).ConfigureAwait(false);
+                roleClaims.Add(new Claim("roles", permissionJson));
+            }
 
             // 3. Lấy địa chỉ IP an toàn
             string ipAddress = IpHelper.GetIpAddress() ?? "N/A";
             string primaryPermission = roles.FirstOrDefault() ?? string.Empty;
 
             // 4. Khởi tạo danh sách Claims tối ưu hóa bộ nhớ
-            var claims = new List<Claim>(6 + userClaims.Count + roleClaims.Length)
+            var claims = new List<Claim>(6 + userClaims.Count + roleClaims.Count)
             {
                 new Claim(JwtRegisteredClaimNames.Sub, user.UserName ?? string.Empty),
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
