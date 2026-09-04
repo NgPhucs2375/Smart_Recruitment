@@ -7,11 +7,13 @@ using Microsoft.AspNetCore.Mvc;
 using Casbin;
 using Infrastructure.Identity.Features.Role.Commands.AssignRole;
 using Infrastructure.Identity.Features.Role.Commands.RemoveRole;
+using Microsoft.AspNetCore.Authorization;
 
 namespace WebApp.Server.Controllers.Identity
 {
     [Route("api/roles")]
     [ApiController]
+    [Authorize]
     public class RolesController : BaseApiController
     {
      

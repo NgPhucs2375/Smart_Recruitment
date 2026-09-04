@@ -114,6 +114,11 @@ function NotificationBellInner({
           if (/not found|404/i.test(message) && level >= signalR.LogLevel.Error) {
             return;
           }
+          // Server closed connection due to missing NguoiDung or restart — now handled with fallback group, downgrade to warn
+          if (/Connection (closed|disconnected) with an error/i.test(message)) {
+            console.warn(`[SignalR] ${message} — falling back to polling`);
+            return;
+          }
           if (level >= signalR.LogLevel.Error) console.error(`[SignalR] ${message}`);
           else if (level >= signalR.LogLevel.Warning) console.warn(`[SignalR] ${message}`);
         },

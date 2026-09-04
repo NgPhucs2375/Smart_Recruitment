@@ -17,6 +17,42 @@ interface MeResponse {
   permissions: { resource: string; action: string }[];
 }
 
+function normalizeMeResponse(value: unknown): MeResponse | null {
+  if (!value || typeof value !== "object") return null;
+  const raw = value as Record<string, unknown>;
+  const roles = raw.roles ?? raw.Roles;
+  const permissions = raw.permissions ?? raw.Permissions;
+  const id = raw.id ?? raw.Id;
+  const email = raw.email ?? raw.Email;
+  const userName = raw.userName ?? raw.UserName;
+
+  if (
+    typeof id !== "string" ||
+    typeof email !== "string" ||
+    typeof userName !== "string" ||
+    !Array.isArray(roles) ||
+    !Array.isArray(permissions)
+  ) {
+    return null;
+  }
+
+  return {
+    id,
+    email,
+    userName,
+    roles: roles.filter((role): role is string => typeof role === "string"),
+    permissions: permissions.flatMap((permission) => {
+      if (!permission || typeof permission !== "object") return [];
+      const item = permission as Record<string, unknown>;
+      const resource = item.resource ?? item.Resource;
+      const action = item.action ?? item.Action;
+      return typeof resource === "string" && typeof action === "string"
+        ? [{ resource, action }]
+        : [];
+    }),
+  };
+}
+
 // ─── Token storage helpers ────────────────────────────────────────────────────
 
 function getToken(): string | null {
@@ -50,7 +86,10 @@ async function fetchAndSaveMe(token: string): Promise<MeResponse | null> {
       headers: { Authorization: `Bearer ${token}` },
     });
     if (!res.ok) return null;
-    const me = (await res.json()) as MeResponse;
+    const body = (await res.json()) as Record<string, unknown>;
+    const wrapped = body.Data ?? body.data;
+    const me = normalizeMeResponse(wrapped ?? body);
+    if (!me) return null;
     saveIdentity(buildIdentity(me));
     return me;
   } catch {

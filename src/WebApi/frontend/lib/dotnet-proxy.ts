@@ -37,6 +37,8 @@ export async function proxyDotnet(
   };
   const authorization = req.headers.get("Authorization");
   if (authorization) headers["Authorization"] = authorization;
+  const origin = req.headers.get("Origin");
+  if (origin) headers["Origin"] = origin;
 
   let bodyStr: string | undefined;
   if (opts.body !== undefined && opts.body !== null) {

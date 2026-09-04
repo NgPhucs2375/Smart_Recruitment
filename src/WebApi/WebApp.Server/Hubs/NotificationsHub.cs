@@ -20,15 +20,34 @@ namespace WebApp.Server.Hubs
 
         public override async Task OnConnectedAsync()
         {
-            var ctx = await _currentNguoiDung.ResolveAsync();
-            await Groups.AddToGroupAsync(Context.ConnectionId, $"user_{ctx.Id}");
+            try
+            {
+                var ctx = await _currentNguoiDung.ResolveAsync();
+                await Groups.AddToGroupAsync(Context.ConnectionId, $"user_{ctx.Id}");
+            }
+            catch
+            {
+                // Fallback: NguoiDung chưa tồn tại (user mới) — dùng uid làm group để không đóng connection
+                var uid = _auth.UserId;
+                if (!string.IsNullOrWhiteSpace(uid))
+                    await Groups.AddToGroupAsync(Context.ConnectionId, $"user_{uid}");
+            }
             await base.OnConnectedAsync();
         }
 
         public override async Task OnDisconnectedAsync(Exception? exception)
         {
-            var ctx = await _currentNguoiDung.ResolveAsync();
-            await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"user_{ctx.Id}");
+            try
+            {
+                var ctx = await _currentNguoiDung.ResolveAsync();
+                await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"user_{ctx.Id}");
+            }
+            catch
+            {
+                var uid = _auth.UserId;
+                if (!string.IsNullOrWhiteSpace(uid))
+                    await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"user_{uid}");
+            }
             await base.OnDisconnectedAsync(exception);
         }
     }

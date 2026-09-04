@@ -4,6 +4,7 @@ using Domain.Entities;
 using Domain.Enums;
 using Infrastructure.Identity.Models;
 using System.Linq;
+using System;
 using System.Threading.Tasks;
 
 namespace Infrastructure.Identity.Seeds
@@ -22,35 +23,37 @@ namespace Infrastructure.Identity.Seeds
                 EmailConfirmed = true,
                 PhoneNumberConfirmed = true
             };
-            if (userManager.Users.All(u => u.Id != defaultUser.Id))
+            var user = await userManager.FindByEmailAsync(defaultUser.Email);
+            if (user == null)
             {
-                var user = await userManager.FindByEmailAsync(defaultUser.Email);
-                if (user == null)
+                var createResult = await userManager.CreateAsync(defaultUser, "123Pa$$word!");
+                if (!createResult.Succeeded)
                 {
-                    await userManager.CreateAsync(defaultUser, "123Pa$$word!");
-                    await userManager.AddToRoleAsync(defaultUser, VaiTroNguoiDung.QUAN_TRI_VIEN.ToString());
-
-                    var role = await roleManager.FindByNameAsync(VaiTroNguoiDung.QUAN_TRI_VIEN.ToString());
-
-                    var claim = new System.Security.Claims.Claim("roleclaims", "list#create#edit#delete");
-                    await roleManager.AddClaimAsync(role, claim);
-                    var userClaims = new System.Security.Claims.Claim("users", "list#create");
-                    await roleManager.AddClaimAsync(role, userClaims);
-                    var rolec = new System.Security.Claims.Claim("roles", "list#create#edit#delete");
-                    await roleManager.AddClaimAsync(role, rolec);
-
-                    if (!appContext.NguoiDungs.Any(n => n.ApplicationUserId == defaultUser.Id))
-                    {
-                        await appContext.NguoiDungs.AddAsync(new NguoiDung
-                        {
-                            ApplicationUserId = defaultUser.Id,
-                            VaiTro = VaiTroNguoiDung.QUAN_TRI_VIEN,
-                            IsActive = true
-                        });
-                        await appContext.SaveChangesAsync();
-                    }
+                    throw new InvalidOperationException(
+                        $"Không thể tạo tài khoản superadmin: {string.Join("; ", createResult.Errors.Select(error => error.Description))}");
                 }
+            }
 
+            var adminRole = VaiTroNguoiDung.QUAN_TRI_VIEN.ToString();
+            if (!await userManager.IsInRoleAsync(user, adminRole))
+                await userManager.AddToRoleAsync(user, adminRole);
+
+            var profile = appContext.NguoiDungs.FirstOrDefault(n => n.ApplicationUserId == user.Id);
+            if (profile == null)
+            {
+                await appContext.NguoiDungs.AddAsync(new NguoiDung
+                {
+                    ApplicationUserId = user.Id,
+                    VaiTro = VaiTroNguoiDung.QUAN_TRI_VIEN,
+                    IsActive = true
+                });
+                await appContext.SaveChangesAsync();
+            }
+            else if (profile.VaiTro != VaiTroNguoiDung.QUAN_TRI_VIEN || !profile.IsActive)
+            {
+                profile.VaiTro = VaiTroNguoiDung.QUAN_TRI_VIEN;
+                profile.IsActive = true;
+                await appContext.SaveChangesAsync();
             }
         }
     }

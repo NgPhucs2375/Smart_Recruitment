@@ -94,7 +94,7 @@ export default function LandingPage() {
         <div className="relative mx-auto max-w-7xl px-6 pb-20 pt-6 sm:px-10 lg:px-16">
           <header className="flex items-center justify-between border-b border-white/15 pb-5">
             <Link href="/" className="text-lg font-semibold tracking-[-0.04em]">
-              HIRE<span className="text-white">//AI</span>
+              HIRE<span className="text-white">AI</span>
             </Link>
             <nav className="hidden items-center gap-8 text-sm text-white/65 md:flex">
               <Link className="transition hover:text-white" href="#candidates">Ứng viên</Link>
@@ -122,13 +122,13 @@ export default function LandingPage() {
                   </a>
                 ))}
               </div>
-              <span className="hidden font-mono text-[10px] uppercase tracking-[0.2em] text-white/35 md:block">Scroll to explore</span>
+              <span className="hidden font-mono text-[10px] uppercase tracking-[0.2em] text-white/35 md:block">TExt</span>
             </div>
           </nav>
 
           <div id="overview" className="scroll-mt-24 grid gap-14 pb-10 pt-20 lg:grid-cols-[1.1fr_.9fr] lg:items-end lg:pt-28">
             <div className="animate-slide-in">
-              <p className="mb-6 text-xs uppercase tracking-[0.28em] text-white/70">01 — Intelligent recruitment</p>
+              <p className="mb-6 text-xs uppercase tracking-[0.28em] text-white/70">Tuyển dụng thông minh</p>
               <h1 className="max-w-3xl text-5xl font-medium leading-[0.98] tracking-[-0.065em] sm:text-7xl">
                 Đúng người.
                 <br />
@@ -202,6 +202,7 @@ export default function LandingPage() {
                     <Lock className="absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-white/40" />
                     <input
                       type="password"
+                      autoComplete="current-password"
                       required
                       value={loginPassword}
                       onChange={(event) => setLoginPassword(event.target.value)}
@@ -225,7 +226,7 @@ export default function LandingPage() {
         <div className="mx-auto max-w-7xl">
           <div className="flex flex-col justify-between gap-5 md:flex-row md:items-end">
             <div>
-              <p className="text-xs uppercase tracking-[0.25em] text-[#65756d]">01 / Tech opportunities</p>
+              <p className="text-xs uppercase tracking-[0.25em] text-[#65756d]">Cơ hội công nghệ</p>
               <h2 className="mt-5 max-w-2xl text-4xl font-medium leading-[1.05] tracking-[-0.06em] sm:text-6xl">Cơ hội tốt cho người làm công nghệ.</h2>
             </div>
             <p className="max-w-xs text-sm leading-6 text-[#65756d]">Chỉ tập trung vào các vai trò và kỹ năng đang tạo nên sản phẩm số.</p>
@@ -263,7 +264,7 @@ export default function LandingPage() {
         <div className="mx-auto max-w-7xl">
           <div className="flex flex-col justify-between gap-5 border-b border-[#151515]/15 pb-10 md:flex-row md:items-end">
             <div>
-              <p className="text-xs uppercase tracking-[0.25em] text-[#65756d]">02 / Tech tracks</p>
+              <p className="text-xs uppercase tracking-[0.25em] text-[#65756d]">Theo dõi công nghệ</p>
               <h2 className="mt-5 max-w-3xl text-4xl font-medium leading-[1.05] tracking-[-0.06em] sm:text-6xl">Chọn đúng hướng đi trong ngành IT.</h2>
             </div>
             <p className="max-w-xs text-sm leading-6 text-[#65756d]">Khám phá cơ hội theo chuyên môn thay vì những danh mục nghề nghiệp chung chung.</p>
@@ -287,7 +288,7 @@ export default function LandingPage() {
         <div className="mx-auto max-w-7xl">
           <div className="flex flex-col justify-between gap-5 md:flex-row md:items-end">
             <div>
-              <p className="text-xs uppercase tracking-[0.25em] text-[#65756d]">03 / Hiring companies</p>
+              <p className="text-xs uppercase tracking-[0.25em] text-[#65756d]">Các công ty đang tuyển dụng ...</p>
               <h2 className="mt-5 text-4xl font-medium tracking-[-0.06em] sm:text-6xl">Nơi những sản phẩm mới được tạo ra.</h2>
             </div>
             <Link href="/register" className="inline-flex items-center gap-2 text-sm font-medium underline underline-offset-4">Xem tất cả công ty <ArrowUpRight className="size-4" /></Link>
@@ -310,7 +311,7 @@ export default function LandingPage() {
           <h2 className="max-w-2xl text-4xl font-medium leading-[1.05] tracking-[-0.06em] sm:text-6xl">
             Một nền tảng, hai hành trình trong thế giới công nghệ.
           </h2>
-          <p className="text-xs uppercase tracking-[0.25em] text-[#65756d]">05 / Platform</p>
+          <p className="text-xs uppercase tracking-[0.25em] text-[#65756d]">Nền tảng</p>
         </div>
         <div className="grid gap-px overflow-hidden border border-[#151515]/15 bg-[#151515]/15 shadow-[0_20px_70px_rgba(21,21,21,.08)] md:grid-cols-2">
           <div id="candidates" className="scroll-mt-24 bg-[#f5f5f3] p-8 sm:p-12">
@@ -375,7 +376,7 @@ export default function LandingPage() {
       <section id="workflow" className="mx-auto max-w-7xl scroll-mt-24 px-6 py-24 sm:px-10 lg:px-16 lg:py-32">
         <div className="grid gap-12 lg:grid-cols-[.8fr_1.2fr]">
           <div>
-            <p className="text-xs uppercase tracking-[0.25em] text-[#65756d]">06 — One data flow</p>
+            <p className="text-xs uppercase tracking-[0.25em] text-[#65756d]">Một luồng dữ liệu</p>
             <h2 className="mt-6 max-w-xl text-4xl font-medium leading-[1.05] tracking-[-0.06em] sm:text-6xl">Từ web đến mobile, mọi tín hiệu tuyển dụng luôn đồng bộ.</h2>
           </div>
           <div className="grid gap-3 sm:grid-cols-3 lg:pt-16">

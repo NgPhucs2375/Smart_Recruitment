@@ -25,3 +25,6 @@ taskill /PID  17928 /F
 
 
 
+# kill all PID và Server
+taskkill /F /IM dotnet.exe /T
+taskkill /F /IM WebApp.Server.exe /T

@@ -1,3 +1,11 @@
+"use client";
+
 import { CVEditorV2 } from "@/components/cv-editor-v2";
 
-export default CVEditorV2;
+export default function CVPage() {
+  return (
+    <div className="min-h-screen bg-background">
+      <CVEditorV2 />
+    </div>
+  );
+}

@@ -13,9 +13,10 @@ export const registerSchema = z.object({
   password:z.string().min(6,"Mật khẩu phải tối thiểu 6 ký tự"),
   confirmPassword:z.string().min(1,"Vui lòng xác nhận lại mật khẩu"),
   role:z.enum(["UNG_VIEN","NGUOI_DAI_DIEN"]),
+  hoTen:z.string().min(1,"Vui lòng nhập họ tên"),
+  soDienThoai:z.string().min(1,"Vui lòng nhập số điện thoại"),
   companyName:z.string().optional(),
 }).superRefine((data,ctx) => {
-  // Kiểm tra xác nhận mật khẩu
   if (data.password !== data.confirmPassword) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
@@ -24,7 +25,6 @@ export const registerSchema = z.object({
     });
   }
 
-  // Kiểm tra tên doanh nghiệp đối với Người đại diện
   if (data.role === "NGUOI_DAI_DIEN" && (!data.companyName || data.companyName.trim() === "")) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,

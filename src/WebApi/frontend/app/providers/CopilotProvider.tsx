@@ -1,7 +1,7 @@
 "use client";
 
 import { CopilotKit } from "@copilotkit/react-core/v2";
-import { CopilotSidebar } from "@copilotkit/react-core/v2";
+import { CopilotPopup } from "@copilotkit/react-core/v2";
 import "@copilotkit/react-core/v2/styles.css";
 import React, { useState, useEffect } from "react";
 
@@ -23,12 +23,24 @@ export function CopilotProvider({ children }: { children: React.ReactNode }) {
       }}
     >
       {children}
-      <CopilotSidebar
-        defaultOpen={true}
+      <CopilotPopup
+        defaultOpen={false}
+        width="min(92vw, 420px)"
+        height="min(72vh, 650px)"
+        clickOutsideToClose
+        toggleButton={{
+          className: "adam-chat-toggle",
+        }}
+        header={{
+          className: "adam-chat-header",
+        }}
         instructions="Bạn là trợ lý phỏng vấn và hoàn thiện CV. Hãy đồng hành cùng người dùng qua từng câu hỏi để hoàn thành hồ sơ chuyên nghiệp."
         labels={{
-          title: "CV Consultant AI",
-          initial: "Xin chào! Tôi sẽ đồng hành cùng bạn xây dựng một bộ CV chuẩn doanh nghiệp. Để bắt đầu, bạn có thể cho tôi biết họ tên và vị trí công việc bạn đang hướng tới không?.",
+          modalHeaderTitle: "Adam - Trợ lý nghề nghiệp",
+          chatToggleOpenLabel: "Mở Adam",
+          chatToggleCloseLabel: "Đóng Adam",
+          welcomeMessageText: "Xin chào, tôi là Adam. Tôi có thể giúp bạn hoàn thiện CV, tìm việc phù hợp và luyện phỏng vấn.",
+          chatInputPlaceholder: "Nhắn cho Adam...",
         }}
       />
     </CopilotKit>

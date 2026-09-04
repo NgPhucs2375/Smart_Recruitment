@@ -5,7 +5,7 @@ import { hasPermission, type Permission } from "./permissions";
 
 const IDENTITY_KEY = "user_identity";
 
-interface StoredIdentity {
+export interface StoredIdentity {
   id: string;
   email: string;
   name: string;
@@ -16,6 +16,7 @@ interface StoredIdentity {
 export function saveIdentity(identity: StoredIdentity): void {
   if (typeof window === "undefined") return;
   localStorage.setItem(IDENTITY_KEY, JSON.stringify(identity));
+  window.dispatchEvent(new Event("hireai:identity-changed"));
 }
 
 export function loadIdentity(): StoredIdentity | null {
@@ -31,6 +32,7 @@ export function loadIdentity(): StoredIdentity | null {
 export function clearIdentity(): void {
   if (typeof window === "undefined") return;
   localStorage.removeItem(IDENTITY_KEY);
+  window.dispatchEvent(new Event("hireai:identity-changed"));
 }
 
 /** Build a StoredIdentity from the /me API response using server-returned permissions. */

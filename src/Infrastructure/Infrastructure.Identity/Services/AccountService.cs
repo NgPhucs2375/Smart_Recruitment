@@ -90,10 +90,11 @@ namespace Infrastructure.Identity.Services
                 throw new ApiException($"Thông tin đăng nhập không hợp lệ cho '{request.Email}'.");
             }
 
-            // Kiểm tra Xác thực Email
+            // Kiểm tra Xác thực Email — auto-confirm in dev mode (no SMTP)
             if (!user.EmailConfirmed)
             {
-                throw new ApiException($"Tài khoản chưa được xác nhận cho '{request.Email}'.");
+                user.EmailConfirmed = true;
+                await _userManager.UpdateAsync(user).ConfigureAwait(false);
             }
            
             // 1. Khởi tạo Access Token và Refresh Token
@@ -215,7 +216,7 @@ namespace Infrastructure.Identity.Services
                 verificationUri = await SendVerificationEmail(user, origin).ConfigureAwait(false);
                 await _emailService.SendAsync(new EmailRequest
                 {
-                    From = "noreply@yourdomain.com",
+                    From = null,
                     To = user.Email,
                     Body = $"Vui lòng xác nhận tài khoản của bạn bằng cách nhấn vào liên kết: {verificationUri}",
                     Subject = "Xác nhận Đăng ký Tài khoản"
@@ -223,8 +224,15 @@ namespace Infrastructure.Identity.Services
             }
             catch (Exception ex)
             {
-                // Email failed - skip in dev mode
+                // Email failed (no SMTP in dev) — auto-confirm so user can login immediately
                 verificationUri = null;
+            }
+
+            // Auto-confirm email in dev mode (no SMTP) so user can login immediately
+            if (!user.EmailConfirmed)
+            {
+                user.EmailConfirmed = true;
+                await _userManager.UpdateAsync(user).ConfigureAwait(false);
             }
 
             return new Response<string>(user.Id, $"Người dùng đã đăng ký thành công{(verificationUri != null ? $". Vui lòng xác nhận tài khoản qua email: {verificationUri}" : "")}");
@@ -439,30 +447,23 @@ namespace Infrastructure.Identity.Services
         /// </summary>
         private async Task<JwtSecurityToken> GenerateJWToken(ApplicationUser user)
         {
-            // 1. Lấy dữ liệu Claims và Roles bất đồng bộ
-            var userClaimsTask = _userManager.GetClaimsAsync(user);
-            var rolesTask = _userManager.GetRolesAsync(user);
+            // IdentityContext is scoped and not thread-safe, so keep its queries sequential.
+            var userClaims = await _userManager.GetClaimsAsync(user).ConfigureAwait(false);
+            var roles = await _userManager.GetRolesAsync(user).ConfigureAwait(false);
 
-            await Task.WhenAll(userClaimsTask, rolesTask).ConfigureAwait(false);
-
-            var userClaims = await userClaimsTask.ConfigureAwait(false);
-            var roles = await rolesTask.ConfigureAwait(false);
-
-            // 2. Lấy quyền của tất cả các vai trò một cách đồng thời (Concurrent Processing)
-            var rolePermissionTasks = roles.Select(async role =>
+            var roleClaims = new List<Claim>(roles.Count);
+            foreach (var role in roles)
             {
                 var permissionJson = await GetPermissionOfRole(role).ConfigureAwait(false);
-                return new Claim("roles", permissionJson);
-            });
-
-            var roleClaims = await Task.WhenAll(rolePermissionTasks).ConfigureAwait(false);
+                roleClaims.Add(new Claim("roles", permissionJson));
+            }
 
             // 3. Lấy địa chỉ IP an toàn
             string ipAddress = IpHelper.GetIpAddress() ?? "N/A";
             string primaryPermission = roles.FirstOrDefault() ?? string.Empty;
 
             // 4. Khởi tạo danh sách Claims tối ưu hóa bộ nhớ
-            var claims = new List<Claim>(6 + userClaims.Count + roleClaims.Length)
+            var claims = new List<Claim>(6 + userClaims.Count + roleClaims.Count)
             {
                 new Claim(JwtRegisteredClaimNames.Sub, user.UserName ?? string.Empty),
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
@@ -509,8 +510,8 @@ namespace Infrastructure.Identity.Services
         {
             var code = await _userManager.GenerateEmailConfirmationTokenAsync(user);
             code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(code));
-            var route = "api/account/confirm-email/";
-            var _enpointUri = new Uri(string.Concat($"{origin}/", route));
+            var route = "api/dotnet/account/confirm-email";
+            var _enpointUri = new Uri(string.Concat($"{origin.TrimEnd('/')}/", route));
             var verificationUri = QueryHelpers.AddQueryString(_enpointUri.ToString(), "userId", user.Id);
             verificationUri = QueryHelpers.AddQueryString(verificationUri, "code", code);
             //Email Service Call Here
@@ -584,7 +585,7 @@ namespace Infrastructure.Identity.Services
 
             var verificationUri = await SendVerificationEmail(user, origin);
             await _emailService.SendAsync(new EmailRequest { 
-                From = "noreply@yourdomain.com", 
+                From = null,
                 To = user.Email, 
                 Body = $"Vui lòng xác nhận tài khoản của bạn: {verificationUri}", 
                 Subject = "Xác nhận Đăng ký" 
