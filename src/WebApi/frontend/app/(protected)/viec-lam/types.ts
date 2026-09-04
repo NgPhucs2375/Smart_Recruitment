@@ -2,6 +2,8 @@ export type JobLevel = "Intern" | "Fresher" | "Junior" | "Mid" | "Senior" | "Lea
 
 export type EmploymentType = "Full-time" | "Part-time" | "Contract" | "Freelance";
 
+export type WorkMode = "Remote" | "Hybrid" | "Onsite";
+
 export type Job = {
   id: string;
   title: string;
@@ -9,6 +11,7 @@ export type Job = {
   logo: string;
   salary: string;
   location: string;
+  workMode: WorkMode;
   level: JobLevel;
   employmentType: EmploymentType;
   skills: string[];

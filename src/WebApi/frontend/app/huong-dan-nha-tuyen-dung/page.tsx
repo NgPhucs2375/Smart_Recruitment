@@ -1,0 +1,2 @@
+import Link from "next/link";
+export default function HdntdPage(){ return <main className="min-h-screen bg-[#f5f5f3] p-10 text-center"><h1 className="text-2xl font-semibold">Hướng dẫn nhà tuyển dụng</h1><p className="mt-2 text-[#65756d]">Đăng tin, AI matching, quản lý pipeline — liên hệ <Link href="/lien-he" className="underline">/lien-he</Link></p><Link href="/" className="mt-6 inline-block underline">Về trang chủ</Link></main>;}

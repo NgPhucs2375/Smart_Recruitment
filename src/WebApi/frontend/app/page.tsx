@@ -1,9 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
 import { useLogin } from "@refinedev/core";
-import { ArrowUpRight, Check, ChevronRight, Code2, Loader2, Lock, Mail, Search, Sparkles } from "lucide-react";
+import { ArrowUpRight, Bookmark, Building2, Check, ChevronRight, Clock, Code2, FileText, Flame, Home, Laptop, Layers, Loader2, Lock, Mail, MapPin, Phone, Search, Shield, Sparkles, Users, X } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useBookmarks } from "@/hooks/use-bookmarks";
+import { toast } from "sonner";
 
 const capabilities = [
   {
@@ -48,12 +52,115 @@ const sections = [
   { id: "workflow", label: "Quy trình" },
 ];
 
+const popularTechTags = [".NET Core", "React", "Python", "AWS", "Node.js", "Next.js", "Java", "Golang", "TypeScript", "Docker", "Kubernetes", "AI/ML"];
+
+const landingLocations = ["Hà Nội", "Hồ Chí Minh", "Đà Nẵng", "Remote"] as const;
+const landingLevels = ["Fresher", "Junior", "Mid", "Senior", "Lead", "Manager"] as const;
+
+const workModeMeta: Record<string, { label: string; icon: typeof Building2 }> = {
+  Remote: { label: "Remote", icon: Home },
+  Hybrid: { label: "Hybrid", icon: Laptop },
+  Onsite: { label: "Onsite", icon: Building2 },
+};
+
+const landingFeaturedJobs = [
+  {
+    id: "1",
+    title: "Senior Frontend Engineer",
+    company: "NEXORA Technologies",
+    logo: "NX",
+    salary: "25 - 40 triệu",
+    location: "Hà Nội",
+    workMode: "Hybrid" as const,
+    level: "Senior",
+    skills: ["React", "TypeScript", "Next.js"],
+    postedAt: "2 ngày trước",
+    applicants: 24,
+    isHot: true,
+  },
+  {
+    id: "5",
+    title: "DevOps Engineer",
+    company: "CLOUDLY Infrastructure",
+    logo: "CL",
+    salary: "30 - 50 triệu",
+    location: "Remote",
+    workMode: "Remote" as const,
+    level: "Senior",
+    skills: ["Kubernetes", "Terraform", "Azure"],
+    postedAt: "1 ngày trước",
+    applicants: 12,
+    isHot: true,
+  },
+  {
+    id: "2",
+    title: "Backend Engineer (Node.js)",
+    company: "CLOUDLY Infrastructure",
+    logo: "CL",
+    salary: "20 - 35 triệu",
+    location: "Hồ Chí Minh",
+    workMode: "Onsite" as const,
+    level: "Mid",
+    skills: ["Node.js", "PostgreSQL", "AWS"],
+    postedAt: "1 ngày trước",
+    applicants: 18,
+    isHot: true,
+  },
+  {
+    id: "10",
+    title: "AI/ML Engineer",
+    company: "DATANEST AI",
+    logo: "DN",
+    salary: "35 - 60 triệu",
+    location: "Hà Nội",
+    workMode: "Onsite" as const,
+    level: "Senior",
+    skills: ["Python", "TensorFlow", "MLOps"],
+    postedAt: "1 ngày trước",
+    applicants: 8,
+    isHot: true,
+  },
+  {
+    id: "3",
+    title: "Junior React Developer",
+    company: "PIXELFORGE Studio",
+    logo: "PF",
+    salary: "12 - 18 triệu",
+    location: "Đà Nẵng",
+    workMode: "Hybrid" as const,
+    level: "Junior",
+    skills: ["React", "JavaScript", "CSS"],
+    postedAt: "3 ngày trước",
+    applicants: 42,
+    isHot: false,
+  },
+  {
+    id: "12",
+    title: "Full-stack Developer",
+    company: "PIXELFORGE Studio",
+    logo: "PF",
+    salary: "20 - 35 triệu",
+    location: "Đà Nẵng",
+    workMode: "Hybrid" as const,
+    level: "Mid",
+    skills: ["React", "Node.js", "MongoDB"],
+    postedAt: "2 ngày trước",
+    applicants: 33,
+    isHot: false,
+  },
+];
+
 export default function LandingPage() {
+  const router = useRouter();
   const [activeSection, setActiveSection] = useState("overview");
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
   const [loginError, setLoginError] = useState<string | null>(null);
   const { mutateAsync: login, isPending: loginPending } = useLogin();
+  const [searchKeyword, setSearchKeyword] = useState("");
+  const [searchLocation, setSearchLocation] = useState("");
+  const [searchLevel, setSearchLevel] = useState("");
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -72,6 +179,52 @@ export default function LandingPage() {
     });
     return () => observer.disconnect();
   }, []);
+
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "/" && !(e.target instanceof HTMLInputElement) && !(e.target instanceof HTMLTextAreaElement)) {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+        document.getElementById("jobs")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
+
+  function handleJobSearch(e?: FormEvent) {
+    e?.preventDefault();
+    const params = new URLSearchParams();
+    if (searchKeyword.trim()) params.set("keyword", searchKeyword.trim());
+    if (searchLocation) params.set("location", searchLocation);
+    if (searchLevel) params.set("level", searchLevel);
+    const qs = params.toString();
+    router.push(qs ? `/viec-lam?${qs}` : "/viec-lam");
+  }
+
+  function handleTagClick(tag: string) {
+    setSearchKeyword(tag);
+    searchInputRef.current?.focus();
+  }
+
+  function clearAllFilters() {
+    setSearchKeyword("");
+    setSearchLocation("");
+    setSearchLevel("");
+  }
+
+  const hasActiveSearch = searchKeyword.trim() !== "" || searchLocation !== "" || searchLevel !== "";
+
+  const { isBookmarked, toggle: toggleBookmark, count: bookmarkCount } = useBookmarks();
+
+  function handleToggleBookmark(e: React.MouseEvent, job: (typeof landingFeaturedJobs)[number]) {
+    e.preventDefault();
+    e.stopPropagation();
+    const was = isBookmarked(job.id);
+    toggleBookmark(job.id);
+    if (was) toast.success("Đã bỏ lưu", { description: job.title });
+    else toast.success("Đã lưu việc làm", { description: `${job.title} • Xem lại ở Việc làm đã lưu` });
+  }
 
   async function handleLandingLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -231,31 +384,358 @@ export default function LandingPage() {
             </div>
             <p className="max-w-xs text-sm leading-6 text-[#65756d]">Chỉ tập trung vào các vai trò và kỹ năng đang tạo nên sản phẩm số.</p>
           </div>
-          <div className="mt-10 flex flex-col gap-3 rounded-2xl border border-[#151515]/15 bg-[#f5f5f3] p-3 shadow-[0_18px_50px_rgba(21,21,21,.06)] sm:flex-row">
-            <label className="relative flex-1">
-              <Search className="absolute left-4 top-1/2 size-4 -translate-y-1/2 text-[#65756d]" />
-              <input className="h-12 w-full rounded-xl border border-[#151515]/10 bg-white pl-11 pr-4 text-sm outline-none transition focus:border-[#151515]/50" placeholder="Tìm vị trí: Frontend, Data Engineer..." />
-            </label>
-            <button type="button" className="h-12 rounded-xl bg-[#151515] px-6 text-sm font-medium text-white transition hover:bg-black">Tìm việc IT</button>
+          {/* === #1.2 Thanh tìm kiếm đa chiều === */}
+          <form
+            onSubmit={handleJobSearch}
+            className="mt-10 rounded-[1.75rem] border border-[#151515]/15 bg-[#f5f5f3] p-3 shadow-[0_18px_50px_rgba(21,21,21,.06)]"
+          >
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+              {/* Từ khóa / Tech Stack */}
+              <label className="relative flex flex-1 items-center">
+                <Search className="pointer-events-none absolute left-4 size-4 text-[#65756d]" />
+                <input
+                  ref={searchInputRef}
+                  value={searchKeyword}
+                  onChange={(e) => setSearchKeyword(e.target.value)}
+                  placeholder="Từ khóa / Tech Stack: React, .NET Core, Python..."
+                  className="h-12 w-full rounded-xl border border-[#151515]/10 bg-white py-2 pl-11 pr-10 text-sm outline-none transition placeholder:text-[#65756d]/70 focus:border-[#151515]/50 focus:ring-2 focus:ring-[#151515]/10"
+                />
+                {searchKeyword && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchKeyword("")}
+                    className="absolute right-2 flex size-7 items-center justify-center rounded-full bg-[#151515]/5 text-[#65756d] transition hover:bg-[#151515]/10 hover:text-[#151515]"
+                    aria-label="Xóa từ khóa"
+                  >
+                    <X className="size-3.5" />
+                  </button>
+                )}
+              </label>
+
+              <div className="hidden h-8 w-px shrink-0 bg-[#151515]/10 lg:block" />
+
+              {/* Địa điểm */}
+              <div className="flex gap-3 lg:w-[340px]">
+                <div className="relative flex-1">
+                  <Select value={searchLocation} onValueChange={(v) => setSearchLocation(!v || v === "__ALL__" ? "" : v)}>
+                    <SelectTrigger className="h-12 w-full justify-between rounded-xl border-[#151515]/10 bg-white px-3 py-2 text-sm font-normal shadow-none focus:ring-2 focus:ring-[#151515]/10 data-[placeholder]:text-[#65756d]/70 [&_svg]:text-[#65756d]">
+                      <span className="flex items-center gap-2 truncate">
+                        <MapPin className="size-4 shrink-0 text-[#65756d]" />
+                        <SelectValue placeholder="Địa điểm" />
+                      </span>
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__ALL__">Tất cả địa điểm</SelectItem>
+                      {landingLocations.map((loc) => (
+                        <SelectItem key={loc} value={loc}>
+                          {loc}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Cấp bậc */}
+                <div className="relative flex-1">
+                  <Select value={searchLevel} onValueChange={(v) => setSearchLevel(!v || v === "__ALL__" ? "" : v)}>
+                    <SelectTrigger className="h-12 w-full justify-between rounded-xl border-[#151515]/10 bg-white px-3 py-2 text-sm font-normal shadow-none focus:ring-2 focus:ring-[#151515]/10 data-[placeholder]:text-[#65756d]/70 [&_svg]:text-[#65756d]">
+                      <span className="flex items-center gap-2 truncate">
+                        <Layers className="size-4 shrink-0 text-[#65756d]" />
+                        <SelectValue placeholder="Cấp bậc" />
+                      </span>
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__ALL__">Tất cả cấp bậc</SelectItem>
+                      {landingLevels.map((level) => (
+                        <SelectItem key={level} value={level}>
+                          {level}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                className="inline-flex h-12 shrink-0 items-center justify-center gap-2 rounded-xl bg-[#151515] px-7 text-sm font-medium text-white shadow-[0_8px_24px_rgba(21,21,21,.18)] transition hover:bg-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#151515]/30"
+              >
+                <Search className="size-4" />
+                Tìm việc IT
+              </button>
+            </div>
+
+            {/* Dòng phụ: hint + active filters */}
+            <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <p className="flex items-center gap-2 text-xs text-[#65756d]">
+                <span className="hidden sm:inline-flex items-center gap-1.5 rounded-full border border-[#151515]/10 bg-white px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.12em]">
+                  <span className="flex size-4 items-center justify-center rounded bg-[#151515] text-[10px] font-bold text-white">/</span> để tìm nhanh
+                </span>
+                <span className="hidden sm:inline text-[#151515]/20">•</span>
+                <span>1.200+ việc làm đang mở</span>
+              </p>
+              {hasActiveSearch && (
+                <div className="flex items-center gap-2">
+                  <span className="hidden text-xs text-[#65756d] sm:inline">
+                    {[
+                      searchKeyword ? `"${searchKeyword}"` : null,
+                      searchLocation,
+                      searchLevel,
+                    ]
+                      .filter(Boolean)
+                      .join(" • ")}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={clearAllFilters}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-[#151515]/10 bg-white px-3 py-1.5 text-xs font-medium text-[#39443f] transition hover:border-[#151515]/20 hover:bg-[#151515] hover:text-white"
+                  >
+                    <X className="size-3" /> Xóa lọc
+                  </button>
+                </div>
+              )}
+            </div>
+          </form>
+
+          {/* Bộ sưu tập Tag phổ biến — 1-click */}
+          <div className="mt-5 flex flex-wrap items-center gap-2">
+            <span className="mr-1 text-xs font-medium uppercase tracking-[0.14em] text-[#65756d]">Hot:</span>
+            {popularTechTags.map((tag) => {
+              const active = searchKeyword.toLowerCase() === tag.toLowerCase();
+              return (
+                <button
+                  key={tag}
+                  type="button"
+                  onClick={() => handleTagClick(tag)}
+                  className={`rounded-full border px-3.5 py-1.5 text-xs font-medium transition ${
+                    active
+                      ? "border-[#151515] bg-[#151515] text-white shadow-sm"
+                      : "border-[#151515]/15 bg-white text-[#39443f] hover:border-[#151515]/40 hover:bg-[#f5f5f3]"
+                  }`}
+                  aria-pressed={active}
+                >
+                  {tag}
+                </button>
+              );
+            })}
           </div>
-          <div className="mt-8 flex flex-wrap gap-2">
-            {["Frontend Developer", "Backend Engineer", "Mobile Developer", "Data & AI", "DevOps / Cloud", "QA Engineer", "Product Tech"].map((role) => (
-              <span key={role} className="rounded-full border border-[#151515]/15 bg-white px-4 py-2 text-sm text-[#39443f] transition hover:border-[#151515]/50 hover:bg-[#f5f5f3]">{role}</span>
-            ))}
+
+          {/* Danh mục nghề nghiệp chuyên sâu — pills vai trò */}
+          <div className="mt-3 flex flex-wrap gap-2">
+            {["Frontend Developer", "Backend Engineer", "Mobile Developer", "Data & AI", "DevOps / Cloud", "QA Engineer", "Product Tech"].map((role) => {
+              const active = searchKeyword.toLowerCase() === role.toLowerCase();
+              return (
+                <button
+                  key={role}
+                  type="button"
+                  onClick={() => handleTagClick(role)}
+                  className={`rounded-full border px-4 py-2 text-sm transition ${
+                    active
+                      ? "border-[#151515] bg-[#151515] text-white"
+                      : "border-[#151515]/15 bg-white text-[#39443f] hover:border-[#151515]/50 hover:bg-[#f5f5f3]"
+                  }`}
+                >
+                  {role}
+                </button>
+              );
+            })}
           </div>
-          <div className="mt-12 grid gap-3 md:grid-cols-3">
-            {[
-              ["Senior Frontend Engineer", "React · TypeScript", "Hà Nội / Hybrid"],
-              ["Machine Learning Engineer", "Python · MLOps", "Hồ Chí Minh / Remote"],
-              ["Cloud & DevOps Engineer", "Azure · Kubernetes", "Remote / Việt Nam"],
-            ].map(([title, skills, location], index) => (
-              <article key={title} className="group rounded-2xl border border-[#151515]/15 bg-[#f5f5f3] p-5 transition duration-300 hover:-translate-y-1 hover:bg-[#151515] hover:text-white">
-                <div className="flex items-center justify-between text-[#65756d] group-hover:text-white/60"><Code2 className="size-5" /><span className="font-mono text-xs">0{index + 1}</span></div>
-                <h3 className="mt-12 text-lg font-medium">{title}</h3>
-                <p className="mt-2 text-sm text-[#65756d] group-hover:text-white/60">{skills}</p>
-                <div className="mt-5 flex items-center justify-between border-t border-[#151515]/10 pt-4 text-xs text-[#65756d] group-hover:border-white/15 group-hover:text-white/60"><span>{location}</span><ArrowUpRight className="size-4" /></div>
-              </article>
-            ))}
+          {/* === #1.5 Danh sách công việc nổi bật — Job Card tiêu chuẩn + Bookmark === */}
+          <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {landingFeaturedJobs.map((job) => {
+              const bookmarked = isBookmarked(job.id);
+              const wm = workModeMeta[job.workMode];
+              const WIcon = wm.icon;
+              return (
+                <article
+                  key={job.id}
+                  onClick={() => router.push(`/viec-lam?${new URLSearchParams({ keyword: job.title }).toString()}`)}
+                  className="group relative flex cursor-pointer flex-col rounded-2xl border border-[#151515]/15 bg-[#f5f5f3] p-5 text-left transition duration-300 hover:-translate-y-1 hover:border-[#151515]/30 hover:bg-white hover:shadow-[0_18px_45px_rgba(21,21,21,.10)]"
+                >
+                  {job.isHot && (
+                    <span className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full bg-[#ff3b30] px-2 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-white shadow-sm">
+                      <Flame className="size-3" /> Hot
+                    </span>
+                  )}
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex min-w-0 flex-1 gap-3">
+                      <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-[#151515] font-mono text-xs font-bold text-white shadow-sm">
+                        {job.logo}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-[11px] font-semibold uppercase tracking-[0.14em] text-[#65756d]">{job.company}</p>
+                        <h3 className="mt-1 line-clamp-2 text-[15px] font-semibold leading-snug tracking-[-0.02em] text-[#151515] transition group-hover:text-black">
+                          {job.title}
+                        </h3>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={(e) => handleToggleBookmark(e, job)}
+                      aria-label={bookmarked ? "Bỏ lưu việc làm" : "Lưu việc làm"}
+                      aria-pressed={bookmarked}
+                      className={`relative z-10 flex size-8 shrink-0 items-center justify-center rounded-full border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#151515]/20 ${
+                        bookmarked
+                          ? "border-[#151515] bg-[#151515] text-white shadow-md"
+                          : "border-[#151515]/15 bg-white text-[#65756d] hover:border-[#151515]/30 hover:text-[#151515]"
+                      } ${job.isHot ? "mt-6" : ""}`}
+                      title={bookmarked ? "Đã lưu — bấm để bỏ lưu" : "Lưu việc làm để xem lại sau"}
+                    >
+                      <Bookmark className={`size-4 ${bookmarked ? "fill-white" : ""}`} />
+                    </button>
+                  </div>
+
+                  <div className="mt-4 flex flex-wrap items-center gap-1.5 text-xs">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-600 px-2.5 py-1 text-xs font-bold text-white shadow-sm">
+                      {job.salary}
+                    </span>
+                    <span className="flex items-center gap-1 text-[#65756d]">
+                      <MapPin className="size-3" /> {job.location}
+                    </span>
+                    <span className="text-[#151515]/20">•</span>
+                    <span className="inline-flex items-center gap-1 rounded-full border border-[#151515]/10 bg-white px-2 py-1 text-[11px] font-medium text-[#39443f]">
+                      <WIcon className="size-3" /> {wm.label}
+                    </span>
+                  </div>
+
+                  <div className="mt-3 flex flex-wrap gap-1.5">
+                    <span className="rounded-full bg-[#151515] px-2.5 py-1 text-[11px] font-medium text-white">{job.level}</span>
+                    {job.skills.map((skill) => (
+                      <span key={skill} className="rounded-full border border-[#151515]/12 bg-white px-2.5 py-1 text-[11px] font-medium text-[#39443f]">
+                        {skill}
+                      </span>
+                    ))}
+                  </div>
+
+                  <div className="mt-4 flex items-center justify-between border-t border-[#151515]/10 pt-3 text-xs text-[#65756d]">
+                    <span className="flex items-center gap-1">
+                      <Clock className="size-3" /> {job.postedAt}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Users className="size-3" /> {job.applicants} ứng viên
+                    </span>
+                  </div>
+
+                  <div className="pointer-events-none mt-3 flex items-center gap-1 text-xs font-medium text-[#151515]/70 opacity-0 transition group-hover:opacity-100">
+                    Xem chi tiết <ArrowUpRight className="size-3" />
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+          <div className="mt-8 flex flex-col items-center justify-between gap-4 sm:flex-row">
+            <p className="text-xs text-[#65756d]">
+              Hiển thị <span className="font-semibold text-[#151515]">6</span> việc nổi bật •{" "}
+              {bookmarkCount > 0 ? (
+                <span className="font-medium text-[#151515]">
+                  Đã lưu {bookmarkCount} việc <Bookmark className="mb-0.5 inline size-3 fill-[#151515]" />
+                </span>
+              ) : (
+                <span>Bấm bookmark để lưu mà không cần mở chi tiết</span>
+              )}
+            </p>
+            <Link
+              href="/viec-lam"
+              className="inline-flex items-center gap-2 rounded-full border border-[#151515]/15 bg-white px-5 py-2.5 text-sm font-medium text-[#151515] transition hover:border-[#151515] hover:bg-[#151515] hover:text-white"
+            >
+              Xem tất cả việc làm <ArrowUpRight className="size-4" />
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* === #1.4 Trust Bar monochrome + #1.8 Social Proof === */}
+      <section aria-label="Đối tác và số liệu tin cậy" className="border-y border-[#151515]/10 bg-[#f5f5f3]">
+        <div className="mx-auto max-w-7xl px-6 sm:px-10 lg:px-16">
+          {/* Logo strip monochrome */}
+          <div className="flex flex-col gap-4 border-b border-[#151515]/10 py-6 md:flex-row md:items-center md:justify-between">
+            <p className="shrink-0 text-xs font-medium uppercase tracking-[0.18em] text-[#65756d]">
+              Được tin tưởng bởi <span className="font-bold text-[#151515]">500+</span> công ty công nghệ
+            </p>
+            <div className="hidden items-center gap-1.5 text-xs text-[#65756d]/60 md:flex">
+              <span className="size-1.5 animate-pulse rounded-full bg-emerald-500" /> Dữ liệu thực • Cập nhật 04/09/2026
+            </div>
+          </div>
+
+          <div className="relative overflow-hidden py-6">
+            {/* Marquee monochrome logos — 7 unique x2 for seamless loop */}
+            <div className="flex w-max animate-[marquee_28s_linear_infinite] items-center gap-10 whitespace-nowrap will-change-transform hover:[animation-play-state:paused] sm:gap-14">
+              {[
+                "NEXORA",
+                "CLOUDLY",
+                "DATANEST",
+                "PIXELFORGE",
+                "FPT SOFTWARE",
+                "VNG",
+                "TIKI",
+                "BE GROUP",
+                "MOMO",
+                "VNPAY",
+                "NEXORA",
+                "CLOUDLY",
+                "DATANEST",
+                "PIXELFORGE",
+                "FPT SOFTWARE",
+                "VNG",
+                "TIKI",
+                "BE GROUP",
+                "MOMO",
+                "VNPAY",
+              ].map((name, i) => (
+                <span
+                  key={`${name}-${i}`}
+                  className="font-mono text-sm font-bold tracking-[0.18em] text-[#151515]/35 grayscale transition hover:text-[#151515]/70 sm:text-base"
+                  style={{ fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace" }}
+                >
+                  {name}
+                </span>
+              ))}
+            </div>
+            {/* Fade edges */}
+            <div className="pointer-events-none absolute inset-y-0 left-0 w-20 bg-gradient-to-r from-[#f5f5f3] to-transparent" />
+            <div className="pointer-events-none absolute inset-y-0 right-0 w-20 bg-gradient-to-l from-[#f5f5f3] to-transparent" />
+          </div>
+
+          {/* Social proof stats */}
+          <div className="grid grid-cols-2 gap-6 border-t border-[#151515]/10 py-8 md:grid-cols-4">
+            <div className="space-y-1">
+              <p className="font-mono text-3xl font-medium tracking-[-0.04em] text-[#151515] sm:text-4xl">
+                1.200<span className="text-[#65756d]">+</span>
+              </p>
+              <p className="text-xs font-medium uppercase tracking-[0.12em] text-[#65756d]">Việc làm đang mở</p>
+              <p className="text-xs text-[#65756d]/70">Cập nhật mỗi giờ</p>
+            </div>
+            <div className="space-y-1 border-l border-[#151515]/10 pl-6">
+              <p className="font-mono text-3xl font-medium tracking-[-0.04em] text-[#151515] sm:text-4xl">
+                8.500<span className="text-[#65756d]">+</span>
+              </p>
+              <p className="text-xs font-medium uppercase tracking-[0.12em] text-[#65756d]">Kết nối thành công</p>
+              <p className="text-xs text-emerald-600">↑ 18% tháng này</p>
+            </div>
+            <div className="space-y-1 border-l border-[#151515]/10 pl-6">
+              <p className="font-mono text-3xl font-medium tracking-[-0.04em] text-[#151515] sm:text-4xl">
+                &lt;48<span className="text-lg text-[#65756d]">h</span>
+              </p>
+              <p className="text-xs font-medium uppercase tracking-[0.12em] text-[#65756d]">Phản hồi trung bình</p>
+              <p className="text-xs text-[#65756d]/70">Từ nhà tuyển dụng</p>
+            </div>
+            <div className="space-y-1 border-l border-[#151515]/10 pl-6">
+              <p className="font-mono text-3xl font-medium tracking-[-0.04em] text-[#151515] sm:text-4xl">
+                92<span className="text-lg text-[#65756d]">%</span>
+              </p>
+              <p className="text-xs font-medium uppercase tracking-[0.12em] text-[#65756d]">Độ khớp AI trung bình</p>
+              <p className="text-xs text-emerald-600">Đo trên 12k CV thực</p>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-3 border-t border-[#151515]/10 py-4 text-xs text-[#65756d]/60 sm:flex-row sm:items-center sm:justify-between">
+            <p className="flex items-center gap-2">
+              <span className="rounded-full border border-[#151515]/10 bg-white px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.12em]">Đã kiểm duyệt</span>
+              Mọi tin tuyển dụng được xác thực trước khi hiển thị
+            </p>
+            <Link href="/quy-che" className="inline-flex items-center gap-1 font-medium text-[#151515]/70 underline decoration-[#151515]/20 underline-offset-4 transition hover:text-[#151515]">
+              Xem quy chế kiểm duyệt <ArrowUpRight className="size-3" />
+            </Link>
           </div>
         </div>
       </section>
@@ -391,13 +871,155 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <footer className="bg-[#151515] px-6 py-20 text-[#f5f5f3] sm:px-10 lg:px-16">
-        <div className="mx-auto flex max-w-7xl flex-col gap-10 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <h2 className="max-w-2xl text-4xl font-medium leading-[1.05] tracking-[-0.06em] sm:text-6xl">Tuyển dụng có dữ liệu. Quyết định có niềm tin.</h2>
-            <Link href="/register" className="mt-8 inline-flex items-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-medium text-[#151515] transition hover:bg-[#dededb]">Bắt đầu cùng HIRE//AI <ArrowUpRight className="size-4" /></Link>
+      {/* === #1.6 Footer & Compliance — Chuẩn sàn giao dịch việc làm === */}
+      <footer className="bg-[#0a0a0a] text-[#f5f5f3]">
+        {/* CTA band giữ lại */}
+        <div className="border-b border-white/10 px-6 py-14 sm:px-10 lg:px-16">
+          <div className="mx-auto flex max-w-7xl flex-col gap-8 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="text-xs uppercase tracking-[0.28em] text-white/40">Sàn giao dịch việc làm công nghệ</p>
+              <h2 className="mt-4 max-w-2xl text-4xl font-medium leading-[1.05] tracking-[-0.06em] sm:text-5xl">Tuyển dụng có dữ liệu.<br />Quyết định có niềm tin.</h2>
+            </div>
+            <div className="flex shrink-0 flex-col gap-3 sm:items-end">
+              <Link href="/register" className="inline-flex items-center gap-2 rounded-full bg-white px-6 py-3 text-sm font-medium text-[#0a0a0a] transition hover:bg-[#dededb]">
+                Bắt đầu cùng HIRE//AI <ArrowUpRight className="size-4" />
+              </Link>
+              <p className="text-xs text-white/35">Miễn phí cho ứng viên • Không spam • Ẩn danh khi cần</p>
+            </div>
           </div>
-          <div className="text-sm text-white/50 sm:text-right"><p>HIRE//AI © 2026</p><p className="mt-2">Data-led matching</p></div>
+        </div>
+
+        {/* Main footer grid */}
+        <div className="px-6 py-12 sm:px-10 lg:px-16">
+          <div className="mx-auto max-w-7xl">
+            <div className="grid gap-10 lg:grid-cols-[1.4fr_1fr_1fr_1.2fr]">
+              {/* Brand */}
+              <div>
+                <Link href="/" className="text-lg font-semibold tracking-[-0.04em]">
+                  HIRE<span className="text-white">AI</span>
+                </Link>
+                <p className="mt-4 max-w-sm text-sm leading-6 text-white/55">
+                  Nền tảng tuyển dụng chuyên sâu cho ngành IT — kết nối đúng kỹ năng, đúng đội ngũ và đúng cơ hội phát triển bằng AI matching.
+                </p>
+                <div className="mt-6 flex gap-2">
+                  <a href="https://github.com" target="_blank" rel="noopener noreferrer" aria-label="GitHub" className="flex size-9 items-center justify-center rounded-full border border-white/15 bg-white/[0.04] text-white/60 transition hover:border-white/30 hover:bg-white hover:text-[#0a0a0a]">
+                    <svg viewBox="0 0 24 24" className="size-4 fill-current"><path d="M12 2.5a9.5 9.5 0 0 0-3 18.5c.47.09.64-.2.64-.45v-1.6c-2.6.57-3.15-1.1-3.15-1.1-.43-1.08-1.05-1.37-1.05-1.37-.86-.58.06-.57.06-.57.95.07 1.45.98 1.45.98.84 1.44 2.2 1.02 2.74.78.08-.6.33-1.02.6-1.26-2.1-.24-4.3-1.05-4.3-4.67 0-1.03.37-1.87.98-2.53-.1-.24-.42-1.2.09-2.5 0 0 .8-.26 2.62.97a9 9 0 0 1 4.77 0c1.82-1.23 2.62-.97 2.62-.97.51 1.3.19 2.26.09 2.5.61.66.98 1.5.98 2.53 0 3.63-2.2 4.43-4.3 4.67.34.29.65.86.65 1.73v2.57c0 .25.17.54.64.45A9.5 9.5 0 0 0 12 2.5Z" /></svg>
+                  </a>
+                  <a href="https://linkedin.com" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn" className="flex size-9 items-center justify-center rounded-full border border-white/15 bg-white/[0.04] text-white/60 transition hover:border-white/30 hover:bg-white hover:text-[#0a0a0a]">
+                    <svg viewBox="0 0 24 24" className="size-4 fill-current"><path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14Zm-9 14V10H7v7h3Zm1.5-9a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3ZM17 17v-4c0-1.1-.9-2-2-2s-2 .9-2 2v4h-3V10h3v1c.6-1 1.5-1.5 2.7-1.5 2 0 3.3 1.3 3.3 3.8V17h-2Z" /></svg>
+                  </a>
+                  <a href="mailto:support@hireai.vn" aria-label="Email" className="flex size-9 items-center justify-center rounded-full border border-white/15 bg-white/[0.04] text-white/60 transition hover:border-white/30 hover:bg-white hover:text-[#0a0a0a]">
+                    <Mail className="size-4" />
+                  </a>
+                </div>
+                <div className="mt-6 inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1.5 text-xs font-medium text-emerald-300">
+                  <span className="size-1.5 animate-pulse rounded-full bg-emerald-400" /> Hệ thống vận hành 24/7 • Dữ liệu mã hóa
+                </div>
+              </div>
+
+              {/* Nền tảng */}
+              <div>
+                <h3 className="text-xs font-semibold uppercase tracking-[0.18em] text-white/90">Nền tảng</h3>
+                <ul className="mt-4 space-y-2.5 text-sm text-white/55">
+                  <li><Link href="/viec-lam" className="transition hover:text-white">Việc làm IT</Link></li>
+                  <li><Link href="/#tracks" className="transition hover:text-white">Lĩnh vực công nghệ</Link></li>
+                  <li><Link href="/#companies" className="transition hover:text-white">Công ty IT</Link></li>
+                  <li><Link href="/tao-cv" className="transition hover:text-white">Tạo CV & Hồ sơ</Link></li>
+                  <li><Link href="/#intelligence" className="transition hover:text-white">AI Matching</Link></li>
+                  <li><Link href="/dashboard" className="transition hover:text-white">Dành cho doanh nghiệp</Link></li>
+                </ul>
+              </div>
+
+              {/* Hỗ trợ */}
+              <div>
+                <h3 className="text-xs font-semibold uppercase tracking-[0.18em] text-white/90">Hỗ trợ</h3>
+                <ul className="mt-4 space-y-2.5 text-sm text-white/55">
+                  <li><Link href="/lien-he" className="transition hover:text-white">Liên hệ</Link></li>
+                  <li><Link href="/ho-tro" className="transition hover:text-white">Trung tâm hỗ trợ</Link></li>
+                  <li><Link href="/huong-dan" className="transition hover:text-white">Hướng dẫn ứng viên</Link></li>
+                  <li><Link href="/huong-dan-nha-tuyen-dung" className="transition hover:text-white">Hướng dẫn nhà tuyển dụng</Link></li>
+                  <li><Link href="/cau-hoi-thuong-gap" className="transition hover:text-white">Câu hỏi thường gặp</Link></li>
+                  <li><a href="mailto:support@hireai.vn" className="transition hover:text-white">support@hireai.vn</a></li>
+                </ul>
+              </div>
+
+              {/* Pháp lý — trọng tâm #1.6 */}
+              <div>
+                <h3 className="text-xs font-semibold uppercase tracking-[0.18em] text-white">Pháp lý & Tuân thủ</h3>
+                <ul className="mt-4 space-y-2.5 text-sm">
+                  <li><Link href="/dieu-khoan" className="inline-flex items-center gap-1.5 text-white/70 transition hover:text-white"><span className="size-1 rounded-full bg-white/40" /> Điều khoản dịch vụ</Link></li>
+                  <li><Link href="/bao-mat" className="inline-flex items-center gap-1.5 text-white/70 transition hover:text-white"><span className="size-1 rounded-full bg-white/40" /> Chính sách bảo mật</Link></li>
+                  <li><Link href="/bao-mat#du-lieu-ca-nhan" className="inline-flex items-center gap-1.5 font-medium text-emerald-300 transition hover:text-emerald-200"><span className="size-1 rounded-full bg-emerald-400" /> Bảo vệ dữ liệu cá nhân (NĐ 13/2023)</Link></li>
+                  <li><Link href="/quy-che" className="inline-flex items-center gap-1.5 text-white/70 transition hover:text-white"><span className="size-1 rounded-full bg-white/40" /> Quy chế hoạt động sàn</Link></li>
+                  <li><Link href="/quy-che#co-che-giai-quyet" className="inline-flex items-center gap-1.5 text-white/55 transition hover:text-white">Cơ chế giải quyết tranh chấp</Link></li>
+                  <li><Link href="/bao-mat#cookies" className="inline-flex items-center gap-1.5 text-white/55 transition hover:text-white">Chính sách Cookie</Link></li>
+                </ul>
+                <div className="mt-5 rounded-xl border border-white/10 bg-white/[0.04] p-3">
+                  <p className="flex items-center gap-1.5 text-xs font-medium text-white/80"><Shield className="size-3.5 text-emerald-400" /> Cam kết tuân thủ</p>
+                  <p className="mt-1 text-xs leading-5 text-white/45">Tuân thủ Nghị định 52/2013, 13/2023/NĐ-CP &amp; Thông tư 59/2015 về TMĐT. Dữ liệu mã hóa TLS 1.3, lưu trữ tại Việt Nam.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Contact & Company info bar */}
+        <div className="border-y border-white/10 bg-white/[0.02] px-6 py-6 sm:px-10 lg:px-16">
+          <div className="mx-auto max-w-7xl">
+            <div className="grid gap-6 text-xs leading-5 text-white/50 md:grid-cols-3">
+              <div className="flex gap-3">
+                <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-white/10 text-white/70"><MapPin className="size-3.5" /></span>
+                <div>
+                  <p className="font-medium text-white/80">Công ty TNHH HIREAI Việt Nam</p>
+                  <p>Tầng 8, Tòa Innovation, 123 Nguyễn Huệ, Q.1, TP.HCM</p>
+                  <p>MST: 0312345678 • Cấp ngày 15/03/2024 • Sở KH&ĐT TP.HCM</p>
+                </div>
+              </div>
+              <div className="flex gap-3">
+                <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-white/10 text-white/70"><Phone className="size-3.5" /></span>
+                <div>
+                  <p className="font-medium text-white/80">Liên hệ</p>
+                  <p><a href="tel:1900636890" className="transition hover:text-white">1900 636 890</a> (8:00–18:00 T2–T6)</p>
+                  <p><a href="mailto:support@hireai.vn" className="transition hover:text-white">support@hireai.vn</a> • <a href="mailto:legal@hireai.vn" className="transition hover:text-white">legal@hireai.vn</a></p>
+                </div>
+              </div>
+              <div className="flex gap-3">
+                <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-white/10 text-white/70"><FileText className="size-3.5" /></span>
+                <div>
+                  <p className="font-medium text-white/80">Giấy phép &amp; Chứng nhận</p>
+                  <p>Đã đăng ký Bộ Công Thương • DMCA Protected</p>
+                  <p className="mt-1 inline-flex items-center gap-1.5">Đã thông báo <span className="rounded bg-[#ff3b30] px-1.5 py-0.5 text-[10px] font-bold text-white">BỘ CÔNG THƯƠNG</span></p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Bottom bar */}
+        <div className="px-6 py-6 sm:px-10 lg:px-16">
+          <div className="mx-auto flex max-w-7xl flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div className="flex flex-wrap items-center gap-3 text-xs text-white/35">
+              <span>© 2026 HIRE//AI. Bảo lưu mọi quyền.</span>
+              <span className="hidden sm:inline text-white/15">•</span>
+              <span className="inline-flex items-center gap-1.5">Vận hành bởi <span className="font-medium text-white/60">HIREAI</span> <span className="rounded-full border border-white/15 px-2 py-0.5 font-mono text-[10px] leading-none">v2.4 • SOC 2</span></span>
+            </div>
+            <div className="flex flex-wrap items-center gap-4 text-xs">
+              <div className="flex items-center gap-2 text-white/40">
+                <span className="hidden sm:inline">Ngôn ngữ:</span>
+                <span className="font-medium text-white">Tiếng Việt</span>
+                <span className="text-white/20">|</span>
+                <a href="#" className="transition hover:text-white">English</a>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="rounded border border-white/10 bg-white/5 px-2 py-1 font-mono text-[10px] tracking-[0.12em] text-white/40">TLS 1.3</span>
+                <span className="rounded border border-white/10 bg-white/5 px-2 py-1 font-mono text-[10px] tracking-[0.12em] text-white/40">ISO 27001</span>
+                <span className="rounded border border-emerald-500/20 bg-emerald-500/10 px-2 py-1 font-mono text-[10px] tracking-[0.12em] text-emerald-300">NĐ 13/2023</span>
+              </div>
+            </div>
+          </div>
+          <p className="mx-auto mt-6 max-w-7xl border-t border-white/5 pt-6 text-[11px] leading-5 text-white/30">
+            HIREAI là sàn giao dịch TMĐT việc làm chuyên ngành IT. Mọi tin tuyển dụng được kiểm duyệt; ứng viên tự chịu trách nhiệm về tính chính xác của hồ sơ. Tranh chấp được giải quyết theo <Link href="/quy-che#co-che-giai-quyet" className="underline decoration-white/20 underline-offset-4 hover:text-white/60">Quy chế hoạt động</Link> và pháp luật Việt Nam. Không thu phí ứng viên; nhà tuyển dụng chịu phí theo bảng giá công khai.
+          </p>
         </div>
       </footer>
     </main>

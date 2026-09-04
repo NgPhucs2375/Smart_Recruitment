@@ -8,6 +8,7 @@ import { authProvider } from "@/lib/auth-provider";
 import { accessControlProvider } from "@/lib/access-control-provider";
 import { ThemeProvider } from "@/components/theme-provider";
 import {GoogleOAuthProvider} from "@react-oauth/google";
+import { Toaster } from "@/components/ui/sonner";
 import {
   LayoutDashboard,
   FileText,
@@ -44,6 +45,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
       >
         <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
           {children}
+          <Toaster position="top-right" richColors closeButton />
         </GoogleOAuthProvider>
       </Refine>
     </ThemeProvider>
