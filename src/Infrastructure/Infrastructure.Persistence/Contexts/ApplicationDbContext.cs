@@ -26,7 +26,6 @@ namespace Infrastructure.Persistence.Contexts
         public DbSet<NguoiDung> NguoiDungs { get; set; }
         public DbSet<ThongBao> ThongBaos { get; set; }
         public DbSet<TinTuyenDung> TinTuyenDungs { get; set; }
-        public DbSet<LichPhongVan> LichPhongVans { get; set; }
         public DbSet<KyNang> KyNangs { get; set; }
         public DbSet<KyNangUngVien> KyNangUngViens { get; set; }
         public DbSet<KyNangTinTuyenDung> KyNangTinTuyenDungs { get; set; }

@@ -7,8 +7,6 @@ using Application.Features.HoSoNhaTuyenDung.Queries.GetAllHoSoNhaTuyenDungs;
 using Application.Features.HoSoNhaTuyenDung.Commands.CreateHoSoNhaTuyenDung;
 using Application.Features.ThongBao.Queries.GetAllThongBaos;
 using Application.Features.ThongBao.Commands.CreateThongBao;
-using Application.Features.LichPhongVan.Queries.GetAllLichPhongVans;
-using Application.Features.LichPhongVan.Commands.CreateLichPhongVan;
 using Domain.Entities;
 
 namespace Application.Mappings
@@ -36,11 +34,6 @@ namespace Application.Mappings
             CreateMap<ThongBao, GetAllThongBaosViewModel>().ReverseMap();
             CreateMap<CreateThongBaoCommand, ThongBao>();
             CreateMap<GetAllThongBaosQuery, GetAllThongBaosParameter>();
-
-            // LichPhongVan
-            CreateMap<LichPhongVan, GetAllLichPhongVansViewModel>().ReverseMap();
-            CreateMap<CreateLichPhongVanCommand, LichPhongVan>();
-            CreateMap<GetAllLichPhongVansQuery, GetAllLichPhongVansParameter>();
         }
     }
 }

@@ -2,14 +2,10 @@ using Application.DTOs.Email;
 using Application.Interfaces;
 using Domain.Entities;
 using Domain.Enums;
-using Microsoft.EntityFrameworkCore;
-using System;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
 using DonUngTuyen = Domain.Entities.DonUngTuyen;
-using LichPhongVan = Domain.Entities.LichPhongVan;
 using ThongBao = Domain.Entities.ThongBao;
 
 namespace Application.Services.StateMachineDonUngTuyen
@@ -17,8 +13,7 @@ namespace Application.Services.StateMachineDonUngTuyen
     /// <summary>
     /// 1. Tạo thông báo cho ứng viên 
     /// 2. Email cho ứng viên khi có kết quả (trúng tuyển / từ chối)
-    /// 3. Tạo lịch phỏng vấn (trạng thái Chờ xác nhận) khi HR hẹn lịch
-    /// 4. Hủy lịch phỏng vấn tùy trường hợp khi ứng viên rút đơn ở bước đã có lịch
+    /// Dự án không làm tới phỏng vấn: đã loại bỏ logic LichPhongVan.
     /// </summary>
     public class DonUngTuyenWorkflowService : IDonUngTuyenWorkflowService
     {
@@ -80,28 +75,6 @@ namespace Application.Services.StateMachineDonUngTuyen
                             : $"Rất tiếc hồ sơ của bạn cho vị trí {TieuDeTin} chưa phù hợp đợt này."
                     });
                 }
-            }
-
-            // 3) Tạo lịch phỏng vấn (trạng thái Chờ xác nhận) khi HR hẹn lịch
-            if (trigger == TriggerDonUngTuyen.TaoLichPhongVan)
-            {
-                _context.LichPhongVans.Add(new LichPhongVan
-                {
-                    DonUngTuyenId = entity.Id,
-                    HinhThuc = HinhThucPhongVan.Online,
-                    TrangThai = TrangThaiLichPhongVan.ChoXacNhan
-                });
-            }
-
-            // 4) Hủy lịch phỏng vấn liên đới khi ứng viên rút đơn ở bước đã có lịch
-            if (trigger == TriggerDonUngTuyen.RutDonSauPhongVan)
-            {
-                var lichActive = await _context.LichPhongVans
-                    .Where(l => l.DonUngTuyenId == entity.Id
-                                && l.TrangThai != TrangThaiLichPhongVan.DaHuy)
-                    .ToListAsync(ct);
-                foreach (var l in lichActive)
-                    l.TrangThai = TrangThaiLichPhongVan.DaHuy;
             }
         }
 

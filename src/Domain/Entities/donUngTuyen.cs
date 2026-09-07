@@ -24,6 +24,5 @@ namespace Domain.Entities
         public TinTuyenDung TinTuyenDung { get; set; }
         public CVUngVien CVUngVien { get; set; }
         public ICollection<DanhGia> DanhGias { get; set; }
-        public ICollection<LichPhongVan> LichPhongVans { get; set; }
     }
 }
