@@ -1,0 +1,5 @@
+{
+  "buildCommand": "cd src/WebApi/frontend && npm run build",
+  "outputDirectory": "src/WebApi/frontend/.next",
+  "installCommand": "cd src/WebApi/frontend && npm install --legacy-peer-deps"
+}
