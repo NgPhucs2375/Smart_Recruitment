@@ -7,6 +7,11 @@ using Application.Features.HoSoNhaTuyenDung.Queries.GetAllHoSoNhaTuyenDungs;
 using Application.Features.HoSoNhaTuyenDung.Commands.CreateHoSoNhaTuyenDung;
 using Application.Features.ThongBao.Queries.GetAllThongBaos;
 using Application.Features.ThongBao.Commands.CreateThongBao;
+using Application.Features.KyNang.Queries.GetAllKyNangs;
+using Application.Features.KyNangUngVien.Queries.GetAllKyNangUngViens;
+using Application.Features.KyNangTinTuyenDung.Queries.GetAllKyNangTinTuyenDungs;
+using Application.Features.KinhNghiemLamViec.Queries.GetAllKinhNghiemLamViecs;
+using Application.Features.KetQuaPhuHop.Queries.GetAllKetQuaPhuHops;
 using Domain.Entities;
 
 namespace Application.Mappings
@@ -19,6 +24,7 @@ namespace Application.Mappings
             CreateMap<HoSoUngVien, GetAllHoSoUngViensViewModel>().ReverseMap();
             CreateMap<CreateHoSoUngVienCommand, HoSoUngVien>();
             CreateMap<GetAllHoSoUngViensQuery, GetAllHoSoUngViensParameter>();
+
 
             // NguoiDung
             CreateMap<NguoiDung, GetAllNguoiDungsViewModel>().ReverseMap();
@@ -34,6 +40,21 @@ namespace Application.Mappings
             CreateMap<ThongBao, GetAllThongBaosViewModel>().ReverseMap();
             CreateMap<CreateThongBaoCommand, ThongBao>();
             CreateMap<GetAllThongBaosQuery, GetAllThongBaosParameter>();
+
+            // KyNang
+            CreateMap<KyNang,GetAllKyNangsViewModel>().ReverseMap();
+
+            // KyNangUngVien
+            CreateMap<KyNangUngVien,GetAllKyNangUngViensViewModel>().ReverseMap();
+
+            // KyNangTinTuyenDung
+            CreateMap<KyNangTinTuyenDung,GetAllKyNangTinTuyenDungsViewModel>().ReverseMap();
+
+            // KinhNghiemLamViec
+            CreateMap<KinhNghiemLamViec,GetAllKinhNghiemLamViecsViewModel>().ReverseMap();
+
+            // KetQuaPhuHop
+            CreateMap<KetQuaPhuHop,GetAllKetQuaPhuHopsViewModel>().ReverseMap();
         }
     }
 }
