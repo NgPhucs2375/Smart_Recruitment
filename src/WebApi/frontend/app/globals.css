@@ -179,10 +179,23 @@ html {
   animation: pulse-soft 8s ease-in-out infinite;
 }
 
+@keyframes marquee {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-float,
   .animate-pulse-soft,
   .animate-slide-in {
     animation: none;
+  }
+  [style*="marquee"] {
+    animation: none !important;
+    transform: none !important;
   }
 }

@@ -3,7 +3,6 @@ using Application.Wrappers;
 using MediatR;
 using System.Threading;
 using System.Threading.Tasks;
-using System;
 using Domain.Enums;
 
 namespace Application.Features.KetQuaPhuHop.Commads.CreateKetQuaPhuHop
@@ -14,7 +13,6 @@ namespace Application.Features.KetQuaPhuHop.Commads.CreateKetQuaPhuHop
         public int TinTuyenDungId { get; set; }
         public float DiemPhuHop { get; set; }
         public PhanLoaiKetQua PhanLoai { get; set; }
-        public DateTime? NgayDanhGia { get; set; }
     }
 
     public class CreateKetQuaPhuHopCommandHandler : IRequestHandler<CreateKetQuaPhuHopCommand, Response<int>>
@@ -33,8 +31,7 @@ namespace Application.Features.KetQuaPhuHop.Commads.CreateKetQuaPhuHop
                 HoSoUngVienId = request.HoSoUngVienId,
                 TinTuyenDungId = request.TinTuyenDungId,
                 DiemPhuHop = request.DiemPhuHop,
-                PhanLoai = request.PhanLoai,
-                NgayDanhGia = request.NgayDanhGia
+                PhanLoai = request.PhanLoai
             };
 
             await _context.KetQuaPhuHops.AddAsync(entity, cancellationToken);

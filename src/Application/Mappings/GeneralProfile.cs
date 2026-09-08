@@ -7,52 +7,24 @@ using Application.Features.HoSoNhaTuyenDung.Queries.GetAllHoSoNhaTuyenDungs;
 using Application.Features.HoSoNhaTuyenDung.Commands.CreateHoSoNhaTuyenDung;
 using Application.Features.ThongBao.Queries.GetAllThongBaos;
 using Application.Features.ThongBao.Commands.CreateThongBao;
-using Application.Features.LichPhongVan.Queries.GetAllLichPhongVans;
-using Application.Features.LichPhongVan.Commands.CreateLichPhongVan;
+using Application.Features.KyNang.Queries.GetAllKyNangs;
+using Application.Features.KyNangUngVien.Queries.GetAllKyNangUngViens;
+using Application.Features.KyNangTinTuyenDung.Queries.GetAllKyNangTinTuyenDungs;
+using Application.Features.KinhNghiemLamViec.Queries.GetAllKinhNghiemLamViecs;
+using Application.Features.KetQuaPhuHop.Queries.GetAllKetQuaPhuHops;
 using Domain.Entities;
 
-<<<<<<< HEAD
-<<<<<<< Updated upstream
-// namespace Application.Mappings
-// {
-//     public class GeneralProfile : Profile
-//     {
-//         public GeneralProfile()
-//         {
-//             CreateMap<Product, GetAllProductsViewModel>().ReverseMap();
-//             CreateMap<CreateProductCommand, Product>();
-//             CreateMap<GetAllProductsQuery, GetAllProductsParameter>();
-//         }
-//     }
-// }
-=======
-=======
->>>>>>> 5b8f0c9db6de3dc161c4c7d2733044d833f36890
 namespace Application.Mappings
 {
     public class GeneralProfile : Profile
     {
         public GeneralProfile()
         {
-<<<<<<< HEAD
-=======
             // HoSoUngVien
->>>>>>> 5b8f0c9db6de3dc161c4c7d2733044d833f36890
             CreateMap<HoSoUngVien, GetAllHoSoUngViensViewModel>().ReverseMap();
             CreateMap<CreateHoSoUngVienCommand, HoSoUngVien>();
             CreateMap<GetAllHoSoUngViensQuery, GetAllHoSoUngViensParameter>();
 
-<<<<<<< HEAD
-            CreateMap<Domain.Entities.KyNang, Application.Features.KyNang.Queries.GetAllKyNangs.GetAllKyNangsViewModel>().ReverseMap();
-            CreateMap<Domain.Entities.KyNangUngVien, Application.Features.KyNangUngVien.Queries.GetAllKyNangUngViens.GetAllKyNangUngViensViewModel>().ReverseMap();
-            CreateMap<Domain.Entities.KyNangTinTuyenDung, Application.Features.KyNangTinTuyenDung.Queries.GetAllKyNangTinTuyenDungs.GetAllKyNangTinTuyenDungsViewModel>().ReverseMap();
-            CreateMap<Domain.Entities.KinhNghiemLamViec, Application.Features.KinhNghiemLamViec.Queries.GetAllKinhNghiemLamViecs.GetAllKinhNghiemLamViecsViewModel>().ReverseMap();
-            CreateMap<Domain.Entities.KetQuaPhuHop, Application.Features.KetQuaPhuHop.Queries.GetAllKetQuaPhuHops.GetAllKetQuaPhuHopsViewModel>().ReverseMap();
-        }
-    }
-}
->>>>>>> Stashed changes
-=======
             // NguoiDung
             CreateMap<NguoiDung, GetAllNguoiDungsViewModel>().ReverseMap();
             CreateMap<CreateNguoiDungCommand, NguoiDung>();
@@ -68,11 +40,20 @@ namespace Application.Mappings
             CreateMap<CreateThongBaoCommand, ThongBao>();
             CreateMap<GetAllThongBaosQuery, GetAllThongBaosParameter>();
 
-            // LichPhongVan
-            CreateMap<LichPhongVan, GetAllLichPhongVansViewModel>().ReverseMap();
-            CreateMap<CreateLichPhongVanCommand, LichPhongVan>();
-            CreateMap<GetAllLichPhongVansQuery, GetAllLichPhongVansParameter>();
+            // KyNang
+            CreateMap<KyNang, GetAllKyNangsViewModel>().ReverseMap();
+
+            // KyNangUngVien
+            CreateMap<KyNangUngVien, GetAllKyNangUngViensViewModel>().ReverseMap();
+
+            // KyNangTinTuyenDung
+            CreateMap<KyNangTinTuyenDung, GetAllKyNangTinTuyenDungsViewModel>().ReverseMap();
+
+            // KinhNghiemLamViec
+            CreateMap<KinhNghiemLamViec, GetAllKinhNghiemLamViecsViewModel>().ReverseMap();
+
+            // KetQuaPhuHop
+            CreateMap<KetQuaPhuHop, GetAllKetQuaPhuHopsViewModel>().ReverseMap();
         }
     }
 }
->>>>>>> 5b8f0c9db6de3dc161c4c7d2733044d833f36890

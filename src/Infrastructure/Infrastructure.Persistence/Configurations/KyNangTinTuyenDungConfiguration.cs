@@ -11,8 +11,6 @@ namespace Infrastructure.Persistence.Configurations
             builder.ToTable("KyNangTinTuyenDung");
             builder.HasKey(x => x.Id);
 
-            builder.Property(x => x.MucDoYeuCau).HasMaxLength(50);
-
             builder.HasOne(x => x.TinTuyenDung)
                    .WithMany(x => x.KyNangTinTuyenDungs)
                    .HasForeignKey(x => x.TinTuyenDungId)

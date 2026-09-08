@@ -14,9 +14,12 @@ export function AppSidebarV2() {
   const { open } = useSidebar();
   const pathname = usePathname();
   const identity = useStoredIdentity();
+  const isAdministrator = identity?.roles.some((role) => role.trim().toUpperCase() === "QUAN_TRI_VIEN") ?? false;
   const workspaceItems = getWorkspaceNavigation(identity?.roles);
   const visibleItems = workspaceItems.filter((item) =>
-    !item.permission || (identity && hasPermission(identity.permissions, item.permission.resource, item.permission.action)),
+    !item.permission ||
+    isAdministrator ||
+    (identity && hasPermission(identity.permissions, item.permission.resource, item.permission.action)),
   );
 
   return (
@@ -31,7 +34,7 @@ export function AppSidebarV2() {
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold tracking-tight">HIRE<span className="text-sidebar-primary">AI</span></p>
               <p className="truncate text-[10px] uppercase tracking-[0.16em] text-sidebar-foreground/45">
-                {identity?.roles.some((role) => role.trim().toUpperCase() === "QUAN_TRI_VIEN") ? "Admin workspace" : "Recruiter workspace"}
+                {isAdministrator ? "Admin workspace" : "Recruiter workspace"}
               </p>
             </div>
           )}
@@ -69,13 +72,13 @@ export function AppSidebarV2() {
 
       <SidebarSeparator />
       <SidebarFooter className="p-3">
-        <SidebarProfile open={open} />
+        <SidebarProfile open={open} isAdministrator={isAdministrator} />
       </SidebarFooter>
     </Sidebar>
   );
 }
 
-function SidebarProfile({ open }: { open: boolean }) {
+function SidebarProfile({ open, isAdministrator }: { open: boolean; isAdministrator: boolean }) {
   const identity = useStoredIdentity();
   const { mutate: logout, isPending } = useLogout();
   const initials = identity?.name?.split(" ").map((part) => part[0]).join("").toUpperCase().slice(0, 2) ?? "U";
@@ -87,7 +90,7 @@ function SidebarProfile({ open }: { open: boolean }) {
         <>
           <div className="min-w-0 flex-1">
             <p className="truncate text-xs font-semibold text-sidebar-foreground">{identity?.name ?? "Người dùng"}</p>
-            <p className="truncate text-[10px] text-sidebar-foreground/50">{identity?.roles.some((role) => role.trim().toUpperCase() === "QUAN_TRI_VIEN") ? "Quản trị viên" : identity?.email}</p>
+            <p className="truncate text-[10px] text-sidebar-foreground/50">{isAdministrator ? "Quản trị viên" : identity?.email}</p>
           </div>
           <button className="rounded-lg p-1.5 text-sidebar-foreground/50 transition hover:bg-destructive/10 hover:text-destructive disabled:opacity-50" onClick={() => logout()} disabled={isPending} aria-label="Đăng xuất">
             <LogOut className="size-4" />

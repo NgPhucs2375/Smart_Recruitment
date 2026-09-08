@@ -12,10 +12,9 @@ namespace Infrastructure.Identity.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropColumn(
-                name: "vaiTro",
-                schema: "Identity",
-                table: "User");
+            // RemoveVaiTro đã drop cột này; giữ IF EXISTS để migrate fresh-DB không lỗi
+            // khi cột chưa từng tồn tại (lịch sử cũ từng AddColumn vaiTro rồi xóa file).
+            migrationBuilder.Sql(@"ALTER TABLE ""Identity"".""User"" DROP COLUMN IF EXISTS ""vaiTro"";");
 
             migrationBuilder.CreateTable(
                 name: "MagicLinkToken",
@@ -62,14 +61,6 @@ namespace Infrastructure.Identity.Migrations
             migrationBuilder.DropTable(
                 name: "MagicLinkToken",
                 schema: "Identity");
-
-            migrationBuilder.AddColumn<int>(
-                name: "vaiTro",
-                schema: "Identity",
-                table: "User",
-                type: "integer",
-                nullable: false,
-                defaultValue: 0);
         }
     }
 }

@@ -1,0 +1,2 @@
+import Link from "next/link";
+export default function HuongDanPage(){ return <main className="min-h-screen bg-[#f5f5f3] p-10 text-center"><h1 className="text-2xl font-semibold">Hướng dẫn ứng viên</h1><p className="mt-2 text-[#65756d]">Tạo CV, ứng tuyển, theo dõi trạng thái — xem tại <Link href="/tao-cv" className="underline">Tạo CV</Link></p><Link href="/" className="mt-6 inline-block underline">Về trang chủ</Link></main>;}

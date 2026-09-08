@@ -10,6 +10,6 @@ namespace Application.Features.KetQuaPhuHop.Queries.GetAllKetQuaPhuHops
         public int TinTuyenDungId { get; set; }
         public float DiemPhuHop { get; set; }
         public PhanLoaiKetQua PhanLoai { get; set; }
-        public DateTime? NgayDanhGia { get; set; }
+        public DateTime Created { get; set; }
     }
 }

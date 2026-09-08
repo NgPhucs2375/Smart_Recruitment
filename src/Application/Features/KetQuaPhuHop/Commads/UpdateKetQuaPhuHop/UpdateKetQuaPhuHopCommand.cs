@@ -3,7 +3,6 @@ using Application.Wrappers;
 using MediatR;
 using System.Threading;
 using System.Threading.Tasks;
-using System;
 using Domain.Enums;
 
 namespace Application.Features.KetQuaPhuHop.Commads.UpdateKetQuaPhuHop
@@ -15,7 +14,6 @@ namespace Application.Features.KetQuaPhuHop.Commads.UpdateKetQuaPhuHop
         public int TinTuyenDungId { get; set; }
         public float DiemPhuHop { get; set; }
         public PhanLoaiKetQua PhanLoai { get; set; }
-        public DateTime? NgayDanhGia { get; set; }
     }
 
     public class UpdateKetQuaPhuHopCommandHandler : IRequestHandler<UpdateKetQuaPhuHopCommand, Response<int>>
@@ -37,7 +35,6 @@ namespace Application.Features.KetQuaPhuHop.Commads.UpdateKetQuaPhuHop
             entity.TinTuyenDungId = request.TinTuyenDungId;
             entity.DiemPhuHop = request.DiemPhuHop;
             entity.PhanLoai = request.PhanLoai;
-            entity.NgayDanhGia = request.NgayDanhGia;
 
             await _context.SaveChangesAsync(cancellationToken);
             return new Response<int>(data: entity.Id, message: "Cap nhat ket qua phu hop thanh cong.");

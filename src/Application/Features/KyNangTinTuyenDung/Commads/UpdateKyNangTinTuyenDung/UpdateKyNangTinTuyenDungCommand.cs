@@ -1,5 +1,6 @@
 using Application.Interfaces;
 using Application.Wrappers;
+using Domain.Enums;
 using MediatR;
 using System.Threading;
 using System.Threading.Tasks;
@@ -12,7 +13,7 @@ namespace Application.Features.KyNangTinTuyenDung.Commads.UpdateKyNangTinTuyenDu
         public int Id { get; set; }
         public int TinTuyenDungId { get; set; }
         public int KyNangId { get; set; }
-        public string MucDoYeuCau { get; set; }
+        public MucDoYC MucDoYeuCau { get; set; }
     }
 
     public class UpdateKyNangTinTuyenDungCommandHandler : IRequestHandler<UpdateKyNangTinTuyenDungCommand, Response<int>>

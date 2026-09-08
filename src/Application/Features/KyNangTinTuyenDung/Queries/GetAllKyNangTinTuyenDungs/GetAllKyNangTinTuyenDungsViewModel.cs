@@ -6,6 +6,6 @@ namespace Application.Features.KyNangTinTuyenDung.Queries.GetAllKyNangTinTuyenDu
         public int Id { get; set; }
         public int TinTuyenDungId { get; set; }
         public int KyNangId { get; set; }
-        public string MucDoYeuCau { get; set; }
+        public Domain.Enums.MucDoYC MucDoYeuCau { get; set; }
     }
 }

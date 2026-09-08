@@ -51,7 +51,7 @@ namespace Application.Features.KetQuaPhuHop.Queries.GetAllKetQuaPhuHops
             query = request._sort?.ToLower() switch
             {
                 "diemphuhop" => request._order?.ToLower() == "desc" ? query.OrderByDescending(x => x.DiemPhuHop) : query.OrderBy(x => x.DiemPhuHop),
-                "ngaydanhgia" => request._order?.ToLower() == "desc" ? query.OrderByDescending(x => x.NgayDanhGia) : query.OrderBy(x => x.NgayDanhGia),
+                "ngaydanhgia" => request._order?.ToLower() == "desc" ? query.OrderByDescending(x => x.Created) : query.OrderBy(x => x.Created),
                 "phanloai" => request._order?.ToLower() == "desc" ? query.OrderByDescending(x => x.PhanLoai) : query.OrderBy(x => x.PhanLoai),
                 _ => query.OrderBy(x => x.Id)
             };

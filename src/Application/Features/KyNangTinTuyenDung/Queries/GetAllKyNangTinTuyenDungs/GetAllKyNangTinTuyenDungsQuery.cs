@@ -1,8 +1,10 @@
 using Application.Interfaces;
 using Application.Wrappers;
 using AutoMapper;
+using Domain.Enums;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -40,9 +42,9 @@ namespace Application.Features.KyNangTinTuyenDung.Queries.GetAllKyNangTinTuyenDu
                 {
                     query = query.Where(x => x.TinTuyenDungId == idFilter || x.KyNangId == idFilter);
                 }
-                else
+                else if (Enum.TryParse<MucDoYC>(request._filter, true, out var mucDo))
                 {
-                    query = query.Where(x => x.MucDoYeuCau != null && x.MucDoYeuCau.Contains(request._filter));
+                    query = query.Where(x => x.MucDoYeuCau == mucDo);
                 }
             }
 
