@@ -5,7 +5,6 @@ import Link from "next/link";
 import { usePasswordLogin, useGoogleAuth, useMagicLink } from "@/hooks";
 import {
   AuthLayout,
-  TabSwitcher,
   GoogleAuthSection,
   MagicLinkForm,
 } from "@/components/auth";
@@ -17,7 +16,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Mail, Lock, ArrowRight, Loader2, Quote } from "lucide-react";
 
 export default function LoginPage() {
-  const [tab, setTab] = useState<"password" | "google" | "magic">("password");
+  const [magicOpen, setMagicOpen] = useState(false);
 
   const {
     register,
@@ -57,7 +56,7 @@ export default function LoginPage() {
         <div className="rounded-2xl border border-white/10 bg-white/[0.05] p-5 backdrop-blur-md">
           <Quote className="mb-2 size-5 text-white/40" />
           <p className="text-sm italic text-white/80">
-            "Quy trình bóc tách CV và tính điểm chuẩn xác giúp đội ngũ kỹ thuật tiết kiệm hơn một nửa thời gian lọc ứng viên."
+            &quot;Quy trình bóc tách CV và tính điểm chuẩn xác giúp đội ngũ kỹ thuật tiết kiệm hơn một nửa thời gian lọc ứng viên.&quot;
           </p>
           <div className="mt-3 flex items-center gap-3 border-t border-white/10 pt-3">
             <div className="flex size-8 items-center justify-center rounded-full bg-white/20 font-mono text-xs font-semibold text-white">
@@ -91,23 +90,10 @@ export default function LoginPage() {
           <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" /> Cổng truy cập bảo mật
         </div>
         <h2 className="text-3xl font-semibold tracking-tight text-[#151515]">Chào mừng trở lại</h2>
-        <p className="mt-2 text-sm text-[#69727a]">Chọn phương thức phù hợp để đăng nhập vào tài khoản</p>
+        <p className="mt-2 text-sm text-[#69727a]">Đăng nhập nhanh chóng, không cần chuyển qua lại giữa các phương thức</p>
       </div>
 
-      {/* Tab Switcher */}
-      <TabSwitcher
-        tabs={[
-          { id: "password", label: "Mật khẩu" },
-          { id: "google", label: "Google" },
-          { id: "magic", label: "Magic Link" },
-        ]}
-        active={tab}
-        onChange={(id) => setTab(id as "password" | "google" | "magic")}
-      />
-
-      {/* 1. MẬT KHẨU */}
-      {tab === "password" && (
-        <form onSubmit={handleSubmit} noValidate className="space-y-4">
+      <form onSubmit={handleSubmit} noValidate className="space-y-4">
           {submitError && (
             <Alert variant="destructive" className="border-red-200 bg-red-50 py-2.5">
               <AlertDescription className="text-xs text-red-700">{submitError}</AlertDescription>
@@ -177,45 +163,47 @@ export default function LoginPage() {
             {isPending ? "Đang xác thực..." : "Tiếp tục với Mật khẩu"}
           </Button>
 
-          {/* Integrated Quick Google Section inside Password Form */}
-          <div className="relative my-4 text-center text-xs text-[#69727a]">
-            <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-[#d8d5ce]" /></div>
-            <span className="relative bg-[#f4f2ed]/90 px-3 uppercase tracking-wider">hoặc</span>
-          </div>
 
-          <GoogleAuthSection
-            onGoogleLogin={handleGoogleLogin}
-            disabled={isPending || isGooglePending}
-            text="Đăng nhập nhanh bằng Google"
-          />
-        </form>
-      )}
-
-      {/* 2. GOOGLE */}
-      {tab === "google" && (
-        <div className="space-y-4">
-          <GoogleAuthSection
-            onGoogleLogin={handleGoogleLogin}
-            disabled={isGooglePending}
-            description="Đăng nhập an toàn không cần ghi nhớ mật khẩu."
-          />
+        <div className="relative my-1 text-center text-xs text-[#69727a]">
+          <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-[#d8d5ce]" /></div>
+          <span className="relative bg-[#f4f2ed]/90 px-3 uppercase tracking-wider">hoặc</span>
         </div>
-      )}
 
-      {/* 3. MAGIC LINK */}
-      {tab === "magic" && (
-        <MagicLinkForm
-          email={magicEmail}
-          setEmail={setMagicEmail}
-          sent={magicSent}
-          loading={magicLoading}
-          error={magicError}
-          onSubmit={handleMagicSubmit}
-          onReset={resetMagic}
-          buttonText="Gửi Magic Link qua Email"
-          label="Email nhận mã truy cập"
+        <GoogleAuthSection
+          onGoogleLogin={handleGoogleLogin}
+          disabled={isPending || isGooglePending}
+          text="Tiếp tục với Google"
+          description="Đăng nhập an toàn không cần ghi nhớ mật khẩu."
         />
-      )}
+      </form>
+
+      <div className="mt-4 rounded-2xl border border-dashed border-[#d8d5ce] bg-[#f4f2ed]/55 p-3">
+        <button
+          type="button"
+          onClick={() => setMagicOpen((open) => !open)}
+          className="flex w-full items-center justify-between text-left text-xs font-medium text-[#69727a] transition hover:text-[#151515]"
+          aria-expanded={magicOpen}
+        >
+          <span>Không muốn dùng mật khẩu?</span>
+          <span className="font-semibold text-[#151515]">{magicOpen ? "Thu gọn" : "Gửi Magic Link"}</span>
+        </button>
+
+        {magicOpen && (
+          <div className="mt-4 border-t border-[#d8d5ce]/70 pt-4">
+            <MagicLinkForm
+              email={magicEmail}
+              setEmail={setMagicEmail}
+              sent={magicSent}
+              loading={magicLoading}
+              error={magicError}
+              onSubmit={handleMagicSubmit}
+              onReset={resetMagic}
+              buttonText="Gửi Magic Link qua Email"
+              label="Email nhận mã truy cập"
+            />
+          </div>
+        )}
+      </div>
 
       <div className="mt-8 border-t border-[#d8d5ce]/60 pt-5 text-center">
         <p className="text-xs text-[#69727a]">
