@@ -1,12 +1,10 @@
-﻿using AutoMapper;
+using AutoMapper;
 using Application.Features.HoSoUngVien.Commands.CreateHoSoUngVien;
 using Application.Features.HoSoUngVien.Queries.GetAllHoSoUngViens;
 using Application.Features.NguoiDung.Queries.GetAllNguoiDungs;
 using Application.Features.NguoiDung.Commands.CreateNguoiDung;
 using Application.Features.HoSoNhaTuyenDung.Queries.GetAllHoSoNhaTuyenDungs;
 using Application.Features.HoSoNhaTuyenDung.Commands.CreateHoSoNhaTuyenDung;
-using Application.Features.ThongBao.Queries.GetAllThongBaos;
-using Application.Features.ThongBao.Commands.CreateThongBao;
 using Application.Features.KyNang.Queries.GetAllKyNangs;
 using Application.Features.KyNangUngVien.Queries.GetAllKyNangUngViens;
 using Application.Features.KyNangTinTuyenDung.Queries.GetAllKyNangTinTuyenDungs;
@@ -41,25 +39,19 @@ namespace Application.Mappings
             CreateMap<CreateHoSoNhaTuyenDungCommand, HoSoNhaTuyenDung>();
             CreateMap<GetAllHoSoNhaTuyenDungsQuery, GetAllHoSoNhaTuyenDungsParameter>();
 
-            // ThongBao
-            CreateMap<ThongBao, GetAllThongBaosViewModel>().ReverseMap();
-            CreateMap<CreateThongBaoCommand, ThongBao>();
-            CreateMap<GetAllThongBaosQuery, GetAllThongBaosParameter>();
-
             // KyNang
-            CreateMap<KyNang, GetAllKyNangsViewModel>().ReverseMap();
+            CreateMap<KyNang,GetAllKyNangsViewModel>().ReverseMap();
 
             // KyNangUngVien
-            CreateMap<KyNangUngVien, GetAllKyNangUngViensViewModel>().ReverseMap();
+            CreateMap<KyNangUngVien,GetAllKyNangUngViensViewModel>().ReverseMap();
 
             // KyNangTinTuyenDung
-            CreateMap<KyNangTinTuyenDung, GetAllKyNangTinTuyenDungsViewModel>().ReverseMap();
+            CreateMap<KyNangTinTuyenDung,GetAllKyNangTinTuyenDungsViewModel>().ReverseMap();
 
             // KinhNghiemLamViec
-            CreateMap<KinhNghiemLamViec, GetAllKinhNghiemLamViecsViewModel>().ReverseMap();
+            CreateMap<KinhNghiemLamViec,GetAllKinhNghiemLamViecsViewModel>().ReverseMap();
 
             // KetQuaPhuHop
-
             CreateMap<KetQuaPhuHop,GetAllKetQuaPhuHopsViewModel>().ReverseMap();
 
             // DanhMucNghe
@@ -79,7 +71,6 @@ namespace Application.Mappings
             
             // DanhGia
             CreateMap<DanhGia, GetAllDanhGiasViewModel>();
-
         }
     }
 }

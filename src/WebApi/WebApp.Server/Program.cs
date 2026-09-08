@@ -1,5 +1,6 @@
 using Application;
 using Application.Interfaces;
+using Application.Interfaces.Repositories;
 using Infrastructure.Identity;
 using Infrastructure.Persistence;
 using Infrastructure.Shared;
@@ -69,6 +70,7 @@ _services.AddControllers().AddJsonOptions(opts =>
 _services.AddApiVersioningExtension();
 _services.AddHealthChecks();
 _services.AddSignalR();
+_services.AddScoped<INotificationService, NotificationService>();
 _services.AddScoped<IAuthenticatedUserService, AuthenticatedUserService>();
 _services.AddScoped<ICurrentNguoiDungService,CurrentNguoiDungService>();
 _services.AddHostedService<WebApp.Server.Jobs.TinTuyenDungHetHanJob>();

@@ -3,12 +3,12 @@ using Application.Interfaces;
 using Domain.Entities;
 using Domain.Enums;
 using Microsoft.EntityFrameworkCore;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
 using CVUngVien = Domain.Entities.CVUngVien;
-using ThongBao = Domain.Entities.ThongBao;
 
 namespace Application.Services.StateMachineCV
 {
@@ -48,15 +48,19 @@ namespace Application.Services.StateMachineCV
             // 1) Thông báo trong app cho ứng viên
             if (ungVienId > 0 && CanThongBao(trigger))
             {
-                _context.ThongBaos.Add(new ThongBao
+                _context.Notifications.Add(new Notification
                 {
-                    NguoiDungId = ungVienId,
                     LoaiThongBao = LoaiThongBao.CVUngVien,
                     TieuDe = TieuDeThongBao(trigger),
                     NoiDung = string.IsNullOrWhiteSpace(note) || note == trigger.ToString()
                         ? NoiDungThongBao(trigger, tenFile)
                         : $"{NoiDungThongBao(trigger, tenFile)}\n\nGhi chú: {note}",
-                    IsRead = false // lúc này mới tạo chưa đã đọc
+                    ReferenceType = nameof(CVUngVien),
+                    ReferenceId = entity.Id,
+                    Recipients = new List<NotificationRecipient>
+                    {
+                        new() { NguoiDungId = ungVienId, IsRead = false } // lúc này mới tạo chưa đã đọc
+                    }
                 });
             }
 

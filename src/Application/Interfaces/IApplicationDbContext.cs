@@ -8,7 +8,8 @@ namespace Application.Interfaces
     public interface IApplicationDbContext
     {
         DbSet<NguoiDung> NguoiDungs { get; set; }
-        DbSet<ThongBao> ThongBaos { get; set; }
+        DbSet<Notification> Notifications { get; set; }
+        DbSet<NotificationRecipient> NotificationRecipients { get; set; }
         DbSet<TinTuyenDung> TinTuyenDungs { get; set; }
         DbSet<KyNang> KyNangs { get; set; }
         DbSet<KyNangUngVien> KyNangUngViens { get; set; }
