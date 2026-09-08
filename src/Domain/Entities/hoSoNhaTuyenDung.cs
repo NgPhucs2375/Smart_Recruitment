@@ -9,16 +9,16 @@ namespace Domain.Entities
     /// <summary>
     /// Thông tin cá nhân của người đại diện tuyển dụng
     /// </summary>
-    public class hoSoNhaTuyenDung : AuditableBaseEntity
+    public class HoSoNhaTuyenDung : AuditableBaseEntity
     {
-        public int nguoiDungId { get; set; }
-        public int doanhNghiepId { get; set; }
-        public string hoTen { get; set; }
+        public int NguoiDungId { get; set; }
+        public int DoanhNghiepId { get; set; }
+        public string HoTen { get; set; }
         public string SDT { get; set; }
-        public string chucVu { get; set; }
+        public string ChucVu { get; set; }
 
         // ===   === //
-        public nguoiDung nguoiDungs { get; set; }
-        public doanhNghiep doanhNghieps { get; set; }
+        public NguoiDung NguoiDung { get; set; }
+        public DoanhNghiep DoanhNghiep { get; set; }
     }
 }

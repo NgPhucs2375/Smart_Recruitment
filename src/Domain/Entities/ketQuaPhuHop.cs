@@ -9,17 +9,18 @@ namespace Domain.Entities
     /// <summary>
     /// Lưu điểm số và đánh giá mức độ phù hợp giữa CV/Ứng viên với Tin tuyển dụng từ ML & Content-Based Filtering.
     /// </summary>
-    public class ketQuaPhuHop : AuditableBaseEntity
+    public class KetQuaPhuHop : AuditableBaseEntity
     {
-        public int hoSoUngVienId { get; set; }
-        public int tinTuyenDungId { get; set; }
-        public float diemPhuHop { get; set; }
-        public PhanLoaiKetQua phanLoai { get; set; }
-        public DateTime? ngayDanhGia { get; set; }
-
+        public int HoSoUngVienId { get; set; }
+        public int TinTuyenDungId { get; set; }
+        public float DiemPhuHop { get; set; }
+        public string KyNangThoa { get; set; }
+        public string KyNangThieu { get; set; }
+        public PhanLoaiKetQua PhanLoai { get; set; }
+        public string GhiChu { get; set; }
         // ===   === //
-        public hoSoUngVien hoSoUngViens { get; set; }
-        public tinTuyenDung tinTuyenDungs { get; set; }
+        public HoSoUngVien HoSoUngVien { get; set; }
+        public TinTuyenDung TinTuyenDung { get; set; }
 
     }
 }

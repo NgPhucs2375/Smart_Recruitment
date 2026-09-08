@@ -8,7 +8,7 @@ namespace Application.DTOs.Account
     public class YeuCauXacNhanEmail
     {
         [Required]
-        public string nguoiDungId {get; set;}
+        public string NguoiDungId {get; set;}
         [Required]
         public string Code {get; set;}
     }

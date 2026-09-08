@@ -9,22 +9,20 @@ namespace Domain.Entities
     /// <summary>
     /// Thông tin công ty/doanh nghiệp tuyển dụng.
     /// </summary>
-    public class doanhNghiep : AuditableBaseEntity
+    public class DoanhNghiep : AuditableBaseEntity
     {
-        public string tenDoanhNghiep { get; set; }
-        public string moTa { get; set; }
-        public string website { get; set; }
-        public string diaChi { get; set; }
-        public string logoUrl { get; set; }
-        public string maSoThue {get; set;}
-        public string linhVucHoatDong { get; set; }
-        public string quyMoNhanSu { get; set; }
-        public string nguoiDaiDien {get;set;}
-        
-        
+        public string TenDoanhNghiep { get; set; }
+        public string MoTa { get; set; }
+        public string Website { get; set; }
+        public string DiaChi { get; set; }
+        public string LogoUrl { get; set; }
+        public string MaSoThue {get; set;}
+        public string LinhVucHoatDong { get; set; }
+        public string QuyMoNhanSu { get; set; }
 
-        public ICollection<hoSoNhaTuyenDung> hoSoNhaTuyenDungs { get; set; }
-        public ICollection<tinTuyenDung> tinTuyenDungs { get; set; }
+        public ICollection<HoSoNhaTuyenDung> HoSoNhaTuyenDungs { get; set; }
+        public ICollection<TinTuyenDung> TinTuyenDungs { get; set; }
+        public ICollection<LoiMoiNhanSu> LoiMoiNhanSus { get; set; }
 
     }
 }

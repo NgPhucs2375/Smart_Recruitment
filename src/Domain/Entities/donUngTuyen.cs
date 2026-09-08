@@ -9,18 +9,21 @@ namespace Domain.Entities
     /// <summary>
     /// Ghi nhận việc ứng viên nộp hồ sơ vào tin tuyển dụng và theo dõi trạng thái.
     /// </summary>
-    public class donUngTuyen : AuditableBaseEntity
+    public class DonUngTuyen : AuditableBaseEntity
     {
-        public int hoSoUngVienId { get; set; }
-        public int tinTuyenDungId { get; set; }
-        public int cvUngVienId { get; set; }
-        public TrangThaiDonUngTuyen trangThai { get; set; }
-        public DateTime? ngayUngTuyen { get; set; }
+        public int HoSoUngVienId { get; set; }
+        public int TinTuyenDungId { get; set; }
+        public int CVUngVienId { get; set; }
+        public int NguoiXuLyId { get; set; } // HR noaf laf nguoi duyet don
+        public string GhiChu { get; set; } // lis docuye choi 
+        public TrangThaiDonUngTuyen TrangThai { get; set; }
+        public DateTime? NgayUngTuyen { get; set; }
 
         // ===   === //
-        public hoSoUngVien hoSoUngViens { get; set; }
-        public tinTuyenDung tinTuyenDungs { get; set; }
-        public cvUngVien cvUngViens { get; set; }
-        public ICollection<lichPhongVan> lichPhongVans { get; set; }
+        public HoSoUngVien HoSoUngVien { get; set; }
+        public TinTuyenDung TinTuyenDung { get; set; }
+        public CVUngVien CVUngVien { get; set; }
+        public ICollection<DanhGia> DanhGias { get; set; }
+        public ICollection<LichPhongVan> LichPhongVans { get; set; }
     }
 }

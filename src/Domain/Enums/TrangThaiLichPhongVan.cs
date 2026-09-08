@@ -5,8 +5,9 @@ namespace Domain.Enums
 {
     public enum TrangThaiLichPhongVan
     {
-        CHO_XAC_NHAN = 1,
-        DA_DONG_Y = 2,
-        HUY = 3
+        ChoXacNhan = 0, // HR vừa tạo lịch, chờ ứng viên phản hồi
+        DaXacNhan = 1, // Ứng viên đã bấm đồng ý tham gia
+        DaDoiLich = 2, // Ứng viên xin dời lịch hoặc HR chủ động đổi giờ hẹn
+        DaHuy = 3, // Buổi phỏng vấn bị hủy
     }
 }

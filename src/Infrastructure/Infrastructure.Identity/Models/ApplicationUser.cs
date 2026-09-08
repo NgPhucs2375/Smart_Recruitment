@@ -15,7 +15,6 @@ namespace Infrastructure.Identity.Models
     {
         public string FirstName { get; set; }
         public string LastName { get; set; }
-        public VaiTroNguoiDung vaiTro {get; set;}
         [NotMapped]
         public string RoleId { get; set; }
         public List<RefreshToken> RefreshTokens { get; set; }

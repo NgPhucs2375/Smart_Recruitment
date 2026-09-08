@@ -1,4 +1,6 @@
-import { CopilotProvider } from "./providers/CopilotProvider";
+import { Suspense } from "react";
+import { Providers } from "@/components/providers";
+import "./globals.css";
 
 export default function RootLayout({
   children,
@@ -6,9 +8,20 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body>
-        <CopilotProvider>{children}</CopilotProvider>
+        <Suspense
+          fallback={
+            <div className="flex h-screen items-center justify-center bg-background">
+              <div className="flex flex-col items-center gap-2">
+                <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+                <p className="text-sm text-muted-foreground">Loading...</p>
+              </div>
+            </div>
+          }
+        >
+          <Providers>{children}</Providers>
+        </Suspense>
       </body>
     </html>
   );

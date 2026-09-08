@@ -9,26 +9,28 @@ namespace Domain.Entities
     /// <summary>
     /// Thông tin công việc/tin tuyen dung.
     /// </summary>
-    public class tinTuyenDung : AuditableBaseEntity
+    public class TinTuyenDung : AuditableBaseEntity
     {
-        public int doanhNghiepId { get; set; }
-        public int danhMucNgheId { get; set; }
-        public string tieuDe { get; set; }
-        public string moTaCongViec { get; set; }
-        public string kinhNghiemYeuCau { get; set; }
-        public string yeuCauCongViec { get; set; }
-        public string quyenLoi { get; set; }
-        public string diaDiemLamViec { get; set; }
-        public decimal luongToiThieu { get; set; }
-        public decimal luongToiDa { get; set; }
-        public TrangThaiTinTuyenDung trangThai { get; set; }
-        public DateTime? ngayHetHan { get; set; }
+        public int DoanhNghiepId { get; set; }
+        public int DanhMucNgheId { get; set; }
+        public int NguoiDangTinId { get; set; }
+        public string TieuDe { get; set; }
+        public string MoTaCongViec { get; set; }
+        public string KinhNghiemYeuCau { get; set; }
+        public string YeuCauCongViec { get; set; }
+        public string QuyenLoi { get; set; }
+        public string DiaDiemLamViec { get; set; }
+        public decimal LuongToiThieu { get; set; }
+        public decimal LuongToiDa { get; set; }
+        public TrangThaiTinTuyenDung TrangThai { get; set; }
+        public DateTime? NgayHetHan { get; set; }
 
         // ===   === //
-        public doanhNghiep doanhNghieps { get; set; }
-        public danhMucNghe danhMucNghes { get; set; }
-        public ICollection<kyNangTinTuyenDung> kyNangTinTuyenDungs { get; set; }
-        public ICollection<donUngTuyen> donUngTuyens { get; set; }
+        public DoanhNghiep DoanhNghiep { get; set; }
+        public DanhMucNghe DanhMucNghe { get; set; }
+        public NguoiDung NguoiDangTin { get; set; }
+        public ICollection<KyNangTinTuyenDung> KyNangTinTuyenDungs { get; set; }
+        public ICollection<DonUngTuyen> DonUngTuyens { get; set; }
 
     }
 }

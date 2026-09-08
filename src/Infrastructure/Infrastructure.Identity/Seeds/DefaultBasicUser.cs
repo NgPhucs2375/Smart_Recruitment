@@ -1,5 +1,4 @@
 ﻿using Microsoft.AspNetCore.Identity;
-using Application.Enums;
 using Application.Interfaces;
 using Domain.Entities;
 using Domain.Enums;
@@ -18,8 +17,8 @@ namespace Infrastructure.Identity.Seeds
             {
                 UserName = "basicuser",
                 Email = "basicuser@gmail.com",
-                FirstName = "John",
-                LastName = "Doe",
+                FirstName = "Peter",
+                LastName = "Griffin",
                 EmailConfirmed = true,
                 PhoneNumberConfirmed = true
             };
@@ -29,15 +28,15 @@ namespace Infrastructure.Identity.Seeds
                 if (user == null)
                 {
                     await userManager.CreateAsync(defaultUser, "123Pa$$word!");
-                    await userManager.AddToRoleAsync(defaultUser, Roles.UngVien.ToString());
+                    await userManager.AddToRoleAsync(defaultUser, VaiTroNguoiDung.UNG_VIEN.ToString());
 
-                    if (!appContext.nguoiDungs.Any(n => n.ApplicationUserId == defaultUser.Id))
+                    if (!appContext.NguoiDungs.Any(n => n.ApplicationUserId == defaultUser.Id))
                     {
-                        await appContext.nguoiDungs.AddAsync(new nguoiDung
+                        await appContext.NguoiDungs.AddAsync(new NguoiDung
                         {
                             ApplicationUserId = defaultUser.Id,
-                            vaiTro = VaiTroNguoiDung.UNG_VIEN,
-                            Is_Active = true
+                            VaiTro = VaiTroNguoiDung.UNG_VIEN,
+                            IsActive = true
                         });
                         await appContext.SaveChangesAsync();
                     }

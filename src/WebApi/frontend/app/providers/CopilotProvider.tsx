@@ -1,31 +1,48 @@
 "use client";
 
-import { CopilotKit } from "@copilotkit/react-core";
-import { CopilotSidebar } from "@copilotkit/react-ui";
-import "@copilotkit/react-ui/styles.css";
-import React from "react";
+import { CopilotKit } from "@copilotkit/react-core/v2";
+import { CopilotPopup } from "@copilotkit/react-core/v2";
+import "@copilotkit/react-core/v2/styles.css";
+import React, { useState, useEffect } from "react";
 
 export function CopilotProvider({ children }: { children: React.ReactNode }) {
-  const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
+  const [token, setToken] = useState<string | null>(null);
+
+  useEffect(() => {
+    setToken(localStorage.getItem("accessToken"));
+  }, []);
 
   return (
-    <CopilotKit 
+    <CopilotKit
       runtimeUrl="/api/copilotkit"
-      agent="smart-agent"
       headers={{
         Authorization: token ? `Bearer ${token}` : "",
       }}
+      onError={(event: { code: string; error: Error; context: Record<string, unknown> }) => {
+        console.error(`[CopilotKit Error] Code: ${event.code}`, event.error.message, event.context);
+      }}
     >
-      <CopilotSidebar
-        defaultOpen={true}
-        instructions="Hỗ trợ tối ưu hóa nội dung CV và tự động cập nhật thông tin."
-        labels={{
-          title: "CV Optimizer Assistant",
-          initial: "Chào bạn! Tôi có thể giúp bạn xem xét và tối ưu hóa nội dung CV.",
+      {children}
+      <CopilotPopup
+        defaultOpen={false}
+        width="min(92vw, 420px)"
+        height="min(72vh, 650px)"
+        clickOutsideToClose
+        toggleButton={{
+          className: "adam-chat-toggle",
         }}
-      >
-        {children}
-      </CopilotSidebar>
+        header={{
+          className: "adam-chat-header",
+        }}
+        instructions="Bạn là trợ lý phỏng vấn và hoàn thiện CV. Hãy đồng hành cùng người dùng qua từng câu hỏi để hoàn thành hồ sơ chuyên nghiệp."
+        labels={{
+          modalHeaderTitle: "Adam - Trợ lý nghề nghiệp",
+          chatToggleOpenLabel: "Mở Adam",
+          chatToggleCloseLabel: "Đóng Adam",
+          welcomeMessageText: "Xin chào, tôi là Adam. Tôi có thể giúp bạn hoàn thiện CV, tìm việc phù hợp và luyện phỏng vấn.",
+          chatInputPlaceholder: "Nhắn cho Adam...",
+        }}
+      />
     </CopilotKit>
   );
 }

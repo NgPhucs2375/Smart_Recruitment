@@ -5,8 +5,8 @@ namespace Domain.Enums
 {
     public enum PhanLoaiKetQua
     {
-        Cao = 1,
-        Trung_Binh = 2,
-        Thap = 3
+        Cao = 0,
+        TrungBinh = 1,
+        Thap = 2
     }
 }

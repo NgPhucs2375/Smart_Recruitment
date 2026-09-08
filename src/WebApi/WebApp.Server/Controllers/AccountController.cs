@@ -6,6 +6,7 @@ using Application.Exceptions;
 using Application.Interfaces;
 using Infrastructure.Identity.Features.Users.Queries.GetMeByToken;
 using Microsoft.AspNetCore.Hosting;
+using Casbin;
 
 namespace WebApp.Server.Controllers
 {
@@ -15,7 +16,7 @@ namespace WebApp.Server.Controllers
     {
         private readonly IAccountService _accountService;
 
-        public AccountController(IAccountService accountService, IWebHostEnvironment webEnvironment) : base(webEnvironment)
+        public AccountController(IAccountService accountService, IWebHostEnvironment webEnvironment, Enforcer enforcer) : base(webEnvironment, enforcer)
         {
             _accountService = accountService;
         }
@@ -71,15 +72,43 @@ namespace WebApp.Server.Controllers
                 throw new ApiException("Không tìm thấy người dùng!", 404);
             }
         }
+        
+        [HttpPost("refresh-token")]
+        public async Task<IActionResult> RefreshTokenAsync([FromBody] RefreshTokenRequest request)
+        {
+            return Ok(await _accountService.RefreshTokenAsync(request.Token, GenerateIPAddress()));
+        }
 
+        [HttpPost("external-login")]
+        public async Task<IActionResult> ExternalLoginAsync([FromBody] ExternalAuthRequest request)
+        {
+            return Ok(await _accountService.ExternalLoginAsync(request,GenerateIPAddress()));
+        }
+
+        [HttpPost("request-magic-link")]
+        public async Task<IActionResult> RequestMagicLinkAsync([FromBody] YeuCauMagicLink request)
+        {
+            var origin = Request.Headers["origin"].ToString();
+            if (string.IsNullOrWhiteSpace(origin))
+            {
+                origin = $"{Request.Scheme}://{Request.Host}";
+            }
+            return Ok(await _accountService.RequestMagicLinkAsync(request, origin));
+        }
+
+        [HttpPost("magic-login")]
+        public async Task<IActionResult> MagicLoginAsync([FromBody] DoiMagicLink request)
+        {
+            return Ok(await _accountService.MagicLoginAsync(request, GenerateIPAddress()));
+        }
         private string GenerateIPAddress()
         {
            if (Request.Headers.TryGetValue("X-Forwarded-For", out var forwardedFor))
-    {
-        return forwardedFor.ToString();
-    }
+            {
+                return forwardedFor.ToString();
+            }
 
-    return HttpContext.Connection.RemoteIpAddress?.MapToIPv4().ToString() ?? "127.0.0.1";
-        }
+            return HttpContext.Connection.RemoteIpAddress?.MapToIPv4().ToString() ?? "127.0.0.1";
+        }   
     }
 }

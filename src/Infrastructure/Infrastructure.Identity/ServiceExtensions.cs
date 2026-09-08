@@ -19,6 +19,11 @@ using Infrastructure.Shared.Environments;
 using System;
 using System.Reflection;
 using System.Text;
+using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
+using DotNetEnv;
+using System.Security.Claims;
+
 
 namespace Infrastructure.Identity
 {
@@ -32,7 +37,6 @@ namespace Infrastructure.Identity
 
         public static void AddNpgSqlIdentityInfrastructure(this IServiceCollection services)
         {
-            // Build the intermediate service provider
             var sp = services.BuildServiceProvider();
             using (var scope = sp.CreateScope())
             {
@@ -50,15 +54,19 @@ namespace Infrastructure.Identity
                     }));
                 }
             }
+            sp.Dispose();
         }
 
         public static void AddIdentityRepositories(this IServiceCollection services, IConfiguration configuration)
         {
+            Env.Load();
             services.AddIdentity<ApplicationUser, IdentityRole>().AddEntityFrameworkStores<IdentityContext>().AddDefaultTokenProviders();
             #region Services
-            services.AddTransient<IAccountService, AccountService>();
+            services.AddScoped<IAccountService, AccountService>();
+            services.AddScoped<IUserEmailResolver, UserEmailResolver>();
             #endregion
             services.Configure<JWTSettings>(configuration.GetSection("JWTSettings"));
+            services.Configure<GoogleSettings>(configuration.GetSection("GoogleSettings"));
             services.AddAuthentication(options =>
             {
                 options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -77,16 +85,33 @@ namespace Infrastructure.Identity
                         ClockSkew = TimeSpan.Zero,
                         ValidIssuer = configuration["JWTSettings:Issuer"],
                         ValidAudience = configuration["JWTSettings:Audience"],
-                        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration["JWTSettings:Key"]))
+                        IssuerSigningKey = new SymmetricSecurityKey(Convert.FromBase64String(configuration["JWTSettings:Key"])),
+                        RoleClaimType = ClaimTypes.Role
                     };
                     o.Events = new JwtBearerEvents()
                     {
+                        OnMessageReceived = context =>
+                        {
+                            var accessToken = context.Request.Query["access_token"];
+                            if (!string.IsNullOrEmpty(accessToken) &&
+                                context.HttpContext.Request.Path.StartsWithSegments("/api/hubs"))
+                            {
+                                context.Token = accessToken;
+                            }
+
+                            return Task.CompletedTask;
+                        },
                         OnAuthenticationFailed = c =>
                         {
                             c.NoResult();
-                            c.Response.StatusCode = 500;
-                            c.Response.ContentType = "text/plain";
-                            return c.Response.WriteAsync(c.Exception.ToString());
+                            c.Response.StatusCode = 401;
+                            c.Response.ContentType = "application/json";
+                            var logger = c.HttpContext.RequestServices.GetRequiredService<Microsoft.Extensions.Logging.ILogger<JwtBearerEvents>>();
+                            logger.LogError(c.Exception, "Lỗi xác thực JWT Token: {Message}", c.Exception.Message);
+
+                            // 2. Trả về thông báo lỗi chung chung (Generic Message) cho Client
+                            var result = JsonConvert.SerializeObject(new Response<string>("Xác thực thất bại. Token không hợp lệ hoặc đã hết hạn."));
+                            return c.Response.WriteAsync(result);
                         },
                         OnChallenge = context =>
                         {

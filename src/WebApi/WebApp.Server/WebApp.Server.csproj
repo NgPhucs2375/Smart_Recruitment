@@ -32,7 +32,7 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.11" />
     <PackageReference Include="Microsoft.Extensions.AI" Version="10.9.0" />
     <PackageReference Include="Microsoft.Extensions.AI.OpenAI" Version="10.9.0" />
-    <PackageReference Include="Microsoft.OpenApi" Version="3.10.0" />
+    <!-- <PackageReference Include="Microsoft.OpenApi" Version="3.10.0" /> -->
     <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
     <PackageReference Include="Novell.Directory.Ldap.NETStandard" Version="4.0.0" />
     <PackageReference Include="NCrontab.Signed" Version="3.3.3" />

@@ -4,16 +4,16 @@ using Domain.Entities;
 
 namespace Infrastructure.Persistence.Configurations
 {
-    public class DanhMucNgheConfiguration : IEntityTypeConfiguration<danhMucNghe>
+    public class DanhMucNgheConfiguration : IEntityTypeConfiguration<DanhMucNghe>
     {
-        public void Configure(EntityTypeBuilder<danhMucNghe> builder)
+        public void Configure(EntityTypeBuilder<DanhMucNghe> builder)
         {
-            builder.ToTable("danhMucNghe");
+            builder.ToTable("DanhMucNghe");
             builder.HasKey(x => x.Id);
 
-            builder.Property(x => x.tenNghe).IsRequired().HasMaxLength(255);
-            builder.HasIndex(x => x.tenNghe).IsUnique();
-            builder.Property(x => x.moTa).HasMaxLength(500);
+            builder.Property(x => x.TenNghe).IsRequired().HasMaxLength(255);
+            builder.HasIndex(x => x.TenNghe).IsUnique();
+            builder.Property(x => x.MoTa).HasMaxLength(500);
         }
     }
 }

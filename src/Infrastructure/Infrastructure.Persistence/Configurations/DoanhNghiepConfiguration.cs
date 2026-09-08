@@ -4,20 +4,20 @@ using Domain.Entities;
 
 namespace Infrastructure.Persistence.Configurations
 {
-    public class DoanhNghiepConfiguration : IEntityTypeConfiguration<doanhNghiep>
+    public class DoanhNghiepConfiguration : IEntityTypeConfiguration<DoanhNghiep>
     {
-        public void Configure(EntityTypeBuilder<doanhNghiep> builder)
+        public void Configure(EntityTypeBuilder<DoanhNghiep> builder)
         {
-            builder.ToTable("doanhNghiep");
+            builder.ToTable("DoanhNghiep");
             builder.HasKey(x => x.Id);
 
-            builder.Property(x => x.tenDoanhNghiep)
+            builder.Property(x => x.TenDoanhNghiep)
                    .IsRequired()
                    .HasMaxLength(255);
 
-            builder.Property(x => x.website).HasMaxLength(255);
-            builder.Property(x => x.diaChi).HasMaxLength(255);
-            builder.Property(x => x.logoUrl).HasMaxLength(500);
+            builder.Property(x => x.Website).HasMaxLength(255);
+            builder.Property(x => x.DiaChi).HasMaxLength(255);
+            builder.Property(x => x.LogoUrl).HasMaxLength(500);
         }
     }
 }

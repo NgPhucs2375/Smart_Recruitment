@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
-using Application.Enums;
 using Application.Exceptions;
 using Application.Wrappers;
 using Infrastructure.Identity.Features.Users.Commands.UpdateUser;

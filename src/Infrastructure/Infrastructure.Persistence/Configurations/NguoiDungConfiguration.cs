@@ -4,12 +4,12 @@ using Domain.Entities;
 
 namespace Infrastructure.Persistence.Configurations
 {
-    public class NguoiDungConfiguration : IEntityTypeConfiguration<nguoiDung>
+    public class NguoiDungConfiguration : IEntityTypeConfiguration<NguoiDung>
     {
-        public void Configure(EntityTypeBuilder<nguoiDung> builder)
+        public void Configure(EntityTypeBuilder<NguoiDung> builder)
         {
 
-            builder.ToTable("nguoiDung");
+            builder.ToTable("NguoiDung");
             builder.HasKey(x => x.Id);
 
             builder.Property(x => x.ApplicationUserId)
@@ -19,7 +19,7 @@ namespace Infrastructure.Persistence.Configurations
             builder.HasIndex(x=> x.ApplicationUserId)
               .IsUnique();
 
-            builder.Property(x => x.vaiTro)
+            builder.Property(x => x.VaiTro)
                    .IsRequired()
                    .HasConversion<string>()
                    .HasMaxLength(50);

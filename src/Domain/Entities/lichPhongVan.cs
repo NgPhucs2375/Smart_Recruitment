@@ -9,16 +9,17 @@ namespace Domain.Entities
     /// <summary>
     /// Lưu lịch phỏng vấn trao đổi giữa Nhà tuyển dụng và Ứng viên.
     /// </summary>
-    public class lichPhongVan : AuditableBaseEntity
+    public class LichPhongVan : AuditableBaseEntity
     {
-        public int donUngTuyenId { get; set; }
-        public string diaDiem { get; set; }
-        public string ghiChu { get; set; }
-        public DateTime? thoiGianPhongVan { get; set; }
-        public TrangThaiLichPhongVan trangThai { get; set; }
+        public int DonUngTuyenId { get; set; }
+        public string DiaDiem { get; set; }
+        public string GhiChu { get; set; }
+        public HinhThucPhongVan HinhThuc { get; set; }
+        public DateTime? ThoiGianPhongVan { get; set; }
+        public TrangThaiLichPhongVan TrangThai { get; set; }
 
         // ===   === //
-        public donUngTuyen donUngTuyens { get; set; }
+        public DonUngTuyen DonUngTuyen { get; set; }
 
     }
 }

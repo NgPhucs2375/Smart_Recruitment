@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Infrastructure.Identity.Models;
+using Domain.Entities;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -13,6 +14,7 @@ namespace Infrastructure.Identity.Contexts
         public IdentityContext(DbContextOptions<IdentityContext> options) : base(options)
         {
         }
+        public DbSet<MagicLinkToken> MagicLinkTokens { get; set; }
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
@@ -50,6 +52,13 @@ namespace Infrastructure.Identity.Contexts
             builder.Entity<IdentityUserToken<string>>(entity =>
             {
                 entity.ToTable("UserTokens");
+            });
+            builder.Entity<MagicLinkToken>(e =>
+            {
+                e.ToTable("MagicLinkToken", "Identity");
+                e.HasIndex(x => new { x.Email, x.Token }).IsUnique();
+                e.HasIndex(x => x.ExpiresAt);
+                e.Property(x => x.Email).HasColumnType("varchar(256)");
             });
         }
     }

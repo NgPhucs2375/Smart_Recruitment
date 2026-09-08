@@ -9,13 +9,14 @@ namespace Domain.Entities
     /// <summary>
     /// Danh mục ngành nghề phục vụ phân loại và tìm kiếm.
     /// </summary>
-    public class danhMucNghe : AuditableBaseEntity
+    public class DanhMucNghe : AuditableBaseEntity
     {
-        public string tenNghe { get; set; }
-        public string moTa { get; set; }
+        public string TenNghe { get; set; }
+        public string MoTa { get; set; }
+        public bool IsActive { get; set; } = true;
 
         // ===   === //
-        public ICollection<tinTuyenDung> tinTuyenDungs { get; set;}
+        public ICollection<TinTuyenDung> TinTuyenDungs { get; set;}
 
     }
 }

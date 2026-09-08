@@ -13,6 +13,9 @@ using OpenAI;
 using OpenAI.Chat;
 using System.ClientModel;
 using Microsoft.Extensions.AI;
+using Microsoft.Extensions.Options;
+using Microsoft.AspNetCore.Http.Json;
+using Casbin;
 
 DotNetEnv.Env.Load(); 
 
@@ -35,7 +38,14 @@ _services.AddCors(options =>
     });
 });
 
-
+_services.AddSingleton(opts=>
+{
+    var env = opts.GetRequiredService<IWebHostEnvironment>();
+    return new Enforcer(
+        Path.Combine(env.WebRootPath,"model.conf"),
+        Path.Combine(env.WebRootPath,"policy.csv")
+    );
+});
 
 
 _services.AddEnvironmentVariablesExtension();
@@ -51,32 +61,27 @@ if (_env.IsDevelopment())
     _services.AddSwaggerExtension();
 }
 
-_services.AddControllers().AddJsonOptions(opts => opts.JsonSerializerOptions.PropertyNamingPolicy = null);
+_services.AddControllers().AddJsonOptions(opts =>
+{
+    opts.JsonSerializerOptions.PropertyNamingPolicy = null;
+    opts.JsonSerializerOptions.TypeInfoResolverChain.Add(SmartAgentSerializerContext.Default);
+});
 _services.AddApiVersioningExtension();
 _services.AddHealthChecks();
+_services.AddSignalR();
 _services.AddScoped<IAuthenticatedUserService, AuthenticatedUserService>();
+_services.AddScoped<ICurrentNguoiDungService,CurrentNguoiDungService>();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 _services.AddEndpointsApiExplorer();
 
-
-
-
-
 // trước Build() dùng Add sau dùng Use
 var app = builder.Build();
-
+var jsonOptions = app.Services.GetRequiredService<IOptions<JsonOptions>>();
 using (var scope = app.Services.CreateScope())
 {
     var initializer = new ApplicationInitializer(scope.ServiceProvider);
     await initializer.InitializeAsync();
 }
-
-
-var Agent = _services.AgentSmart();
-
-
-
-
 
 // Configure the HTTP request pipeline.
 if (_env.IsDevelopment())
@@ -96,33 +101,17 @@ app.UseDefaultFiles();
 app.UseStaticFiles();
 app.UseRouting();
 app.UseCors("AllowFrontend");
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.UseErrorHandlingMiddleware();
 app.UseHealthChecks("/health");
 // Map Controllers nghiệp vụ
 app.MapControllers();
-app.MapGet("/api/copilotkit/info", (HttpContext context) =>
-{
-    // Chặn hoàn toàn cache để trình duyệt nhận bản cập nhật mới nhất
-    context.Response.Headers.Append("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
-    
-    return Results.Content(
-        """
-        {
-          "agents": {
-            "smart-agent": {
-              "name": "smart-agent",
-              "description": "CV Optimizer Assistant"
-            }
-          },
-          "actions": {}
-        }
-        """,
-        "application/json"
-    );
-}).RequireCors("AllowFrontend");
-app.MapAGUIServer("/api/copilotkit", Agent).RequireCors("AllowFrontend");
+
+app.MapHub<WebApp.Server.Hubs.NotificationsHub>("/api/hubs/notifications").RequireCors("AllowFrontend");
+
+app.MapAGUIServer("/api/copilotkit", AIAgentExtension.CreateSmartAgent(jsonOptions.Value.SerializerOptions)).RequireCors("AllowFrontend");
 
 
 

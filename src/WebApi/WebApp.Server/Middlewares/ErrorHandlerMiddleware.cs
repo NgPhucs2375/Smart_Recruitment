@@ -29,8 +29,8 @@ namespace WebApp.Server.Middlewares
                 switch (error)
                 {
                     case Application.Exceptions.ApiException e:
-                        // custom application error
-                        response.StatusCode = (int)HttpStatusCode.BadRequest;
+                        // Lấy StatusCode từ Exception, nếu không có thì mặc định là 400
+                        response.StatusCode = e.StatusCode > 0 ? e.StatusCode : (int)HttpStatusCode.BadRequest;
                         break;
                     case ValidationException e:
                         // custom application error
@@ -40,6 +40,10 @@ namespace WebApp.Server.Middlewares
                     case KeyNotFoundException e:
                         // not found error
                         response.StatusCode = (int)HttpStatusCode.NotFound;
+                        break;
+                    case UnauthorizedAccessException e:
+                        // Bổ sung xử lý truy cập trái phép (401/403) của hệ thống
+                        response.StatusCode = (int)HttpStatusCode.Unauthorized;
                         break;
                     default:
                         // unhandled error

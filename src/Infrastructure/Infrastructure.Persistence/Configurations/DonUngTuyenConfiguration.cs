@@ -4,28 +4,28 @@ using Domain.Entities;
 
 namespace Infrastructure.Persistence.Configurations
 {
-    public class DonUngTuyenConfiguration : IEntityTypeConfiguration<donUngTuyen>
+    public class DonUngTuyenConfiguration : IEntityTypeConfiguration<DonUngTuyen>
     {
-        public void Configure(EntityTypeBuilder<donUngTuyen> builder)
+        public void Configure(EntityTypeBuilder<DonUngTuyen> builder)
         {
-            builder.ToTable("donUngTuyen");
+            builder.ToTable("DonUngTuyen");
             builder.HasKey(x => x.Id);
 
-            builder.Property(x => x.trangThai).IsRequired().HasConversion<string>().HasMaxLength(50);
+            builder.Property(x => x.TrangThai).IsRequired().HasConversion<string>().HasMaxLength(50);
 
-            builder.HasOne(x => x.hoSoUngViens)
-                   .WithMany(x => x.donUngTuyens)
-                   .HasForeignKey(x => x.hoSoUngVienId)
+            builder.HasOne(x => x.HoSoUngVien)
+                   .WithMany(x => x.DonUngTuyens)
+                   .HasForeignKey(x => x.HoSoUngVienId)
                    .OnDelete(DeleteBehavior.Restrict);
 
-            builder.HasOne(x => x.tinTuyenDungs)
-                   .WithMany(x => x.donUngTuyens)
-                   .HasForeignKey(x => x.tinTuyenDungId)
+            builder.HasOne(x => x.TinTuyenDung)
+                   .WithMany(x => x.DonUngTuyens)
+                   .HasForeignKey(x => x.TinTuyenDungId)
                    .OnDelete(DeleteBehavior.Restrict);
 
-            builder.HasOne(x => x.cvUngViens)
+            builder.HasOne(x => x.CVUngVien)
                    .WithMany()
-                   .HasForeignKey(x => x.cvUngVienId)
+                   .HasForeignKey(x => x.CVUngVienId)
                    .OnDelete(DeleteBehavior.Restrict);
         }
     }
