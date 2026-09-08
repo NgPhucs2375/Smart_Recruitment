@@ -272,6 +272,11 @@ namespace Infrastructure.Identity.Services
             // 1. Gán vai trò Người đại diện trong Identity Context
             await _userManager.AddToRoleAsync(user, VaiTroNguoiDung.NGUOI_DAI_DIEN.ToString()).ConfigureAwait(false);
 
+            // 1b. 1-1 nghiêm ngặt: chặn trùng MST ngay từ lúc đăng ký.
+            if (!string.IsNullOrWhiteSpace(request.MaSoThue) &&
+                await _appContext.DoanhNghieps.AnyAsync(d => d.MaSoThue == request.MaSoThue).ConfigureAwait(false))
+                throw new ApiException($"Mã số thuế '{request.MaSoThue}' đã được sử dụng.");
+
             // 2. Khởi tạo thực thể Doanh nghiệp
             var dn = new DoanhNghiep
             {
@@ -292,6 +297,9 @@ namespace Infrastructure.Identity.Services
                 VaiTro = VaiTroNguoiDung.NGUOI_DAI_DIEN,
                 IsActive = true
             };
+
+            // 3b. Gắn owner 1-1: DN này thuộc về đúng NGUOI_DAI_DIEN vừa đăng ký.
+            dn.NguoiDaiDien = nd;
 
             // 4. Khởi tạo Hồ sơ Người đại diện và liên kết thông qua Navigation Properties
             var hs = new HoSoNhaTuyenDung

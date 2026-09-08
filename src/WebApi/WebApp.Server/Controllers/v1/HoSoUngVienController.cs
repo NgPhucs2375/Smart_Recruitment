@@ -1,8 +1,8 @@
 using Application.Features.HoSoUngVien.Queries.GetAllHoSoUngViens;
 using Application.Features.HoSoUngVien.Queries.GetHoSoUngVienById;
-using Application.Features.HoSoUngVien.Commads.CreateHoSoUngVien;
-using Application.Features.HoSoUngVien.Commads.UpdateHoSoUngVien;
-using Application.Features.HoSoUngVien.Commads.DeleteHoSoUngVien;
+using Application.Features.HoSoUngVien.Commands.CreateHoSoUngVien;
+using Application.Features.HoSoUngVien.Commands.UpdateHoSoUngVien;
+using Application.Features.HoSoUngVien.Commands.DeleteHoSoUngVien;
 using Casbin;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

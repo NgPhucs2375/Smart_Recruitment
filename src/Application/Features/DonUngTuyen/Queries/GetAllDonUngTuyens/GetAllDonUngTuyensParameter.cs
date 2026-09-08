@@ -7,5 +7,10 @@ namespace Application.Features.DonUngTuyen.Queries.GetAllDonUngTuyens
         public string _order { get; set; }
         public string _sort { get; set; }
         public string _filter { get; set; }
+
+        public int? HoSoUngVienId { get; set; }
+        
+        public int? TinTuyenDungId { get; set; }
     }
 }
+

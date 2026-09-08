@@ -7,6 +7,7 @@ namespace Domain.Enums
     {
         ViecLamMoi = 1,
         LichPhongVan = 2,
-        DonUngTuyen = 3
+        DonUngTuyen = 3,
+        CVUngVien = 4
     }
 }

@@ -12,7 +12,11 @@ using DonUngTuyen = Domain.Entities.DonUngTuyen;
 namespace Application.Services.StateMachineDonUngTuyen
 {
     /// <summary>
-    /// Trạng thái: TrangThaiDonUngTuyen. Sự kiện: TriggerDonUngTuyen.
+    /// State machine cho đơn ứng tuyển (1 cấp state <see cref="TrangThaiDonUngTuyen"/>).
+    /// Luồng: KhoiTao -system-&gt; ChoXuLy -XemDon-&gt; DaXem -DanhGiaPhuHop-&gt; PhuHop,
+    /// TuChoi ở mọi bước HR, RutDon của ứng viên, HetHanXuLy/DongBoiTinTuyenDung của hệ thống.
+    /// Tác nhân người: HR (tin mình đăng / cùng công ty) + ứng viên nộp đơn.
+    /// Tác nhân hệ thống: dùng <see cref="FireSystemAsync"/> (bypass auth).
     /// </summary>
     public class DonUngTuyenStateMachine
     {
@@ -24,14 +28,14 @@ namespace Application.Services.StateMachineDonUngTuyen
         private string _currentNote;
         private CancellationToken _currentCt;
 
-        private readonly StateMachine<TrangThaiDonUngTuyen, TriggerDonUngTuyen>.TriggerWithParameters<string, CancellationToken>
-            _xemDon,
-            _danhGiaPhuHop,
-            _taoLichPhongVan,
-            _congBoTrungTuyen,
-            _tuChoi,
-            _rutDonTruocPhongVan,
-            _rutDonSauPhongVan;
+        /// <summary>
+        /// Các trigger chỉ hệ thống được fire (tiếp nhận hồ sơ, job SLA, cascade đóng tin).
+        /// </summary>
+        public static bool LaTriggerHeThong(TriggerDonUngTuyen trigger)
+            => trigger == TriggerDonUngTuyen.XuLyHoSoThanhCong
+            || trigger == TriggerDonUngTuyen.XuLyHoSoThatBai
+            || trigger == TriggerDonUngTuyen.HetHanXuLy
+            || trigger == TriggerDonUngTuyen.DongBoiTinTuyenDung;
 
         public DonUngTuyenStateMachine(
             IDonUngTuyenWorkflowService workflow,
@@ -46,20 +50,12 @@ namespace Application.Services.StateMachineDonUngTuyen
                 () => _entity.TrangThai,
                 s => _entity.TrangThai = s);
 
-            // truyền tham số trigger 
-            _xemDon = _machine.SetTriggerParameters<string, CancellationToken>(TriggerDonUngTuyen.XemDon);
-            _danhGiaPhuHop = _machine.SetTriggerParameters<string, CancellationToken>(TriggerDonUngTuyen.DanhGiaPhuHop);
-            _taoLichPhongVan = _machine.SetTriggerParameters<string, CancellationToken>(TriggerDonUngTuyen.TaoLichPhongVan);
-            _congBoTrungTuyen = _machine.SetTriggerParameters<string, CancellationToken>(TriggerDonUngTuyen.CongBoTrungTuyen);
-            _tuChoi = _machine.SetTriggerParameters<string, CancellationToken>(TriggerDonUngTuyen.TuChoi);
-            _rutDonTruocPhongVan = _machine.SetTriggerParameters<string, CancellationToken>(TriggerDonUngTuyen.RutDonTruocPhongVan);
-            _rutDonSauPhongVan = _machine.SetTriggerParameters<string, CancellationToken>(TriggerDonUngTuyen.RutDonSauPhongVan);
-
             ConfigureTransitions();
         }
 
         // hàm kiểm tra xem trigger có thể được fire hay không, không kiểm tra quyền
         public bool CanFire(TriggerDonUngTuyen trigger) => _machine.CanFire(trigger);
+
         public async Task<bool> CanFireAsync(TriggerDonUngTuyen trigger)
         {
             if (!_machine.CanFire(trigger))
@@ -75,7 +71,10 @@ namespace Application.Services.StateMachineDonUngTuyen
             }
         }
 
-        // hàm phát tín hiệu 
+        /// <summary>
+        /// Fire trigger có kiểm tra quyền (dành cho tác nhân người: HR / ứng viên).
+        /// Caller tự <c>SaveChangesAsync</c> sau khi fire thành công.
+        /// </summary>
         public async Task FireAsync(TriggerDonUngTuyen trigger, string note = "", CancellationToken ct = default)
         {
             if (!_machine.CanFire(trigger))
@@ -88,19 +87,29 @@ namespace Application.Services.StateMachineDonUngTuyen
             _currentNote = string.IsNullOrWhiteSpace(note) ? GetDefaultNote(trigger) : note;
             _currentCt = ct;
 
-            var paramTrigger = trigger switch
-            {
-                TriggerDonUngTuyen.XemDon => _xemDon,
-                TriggerDonUngTuyen.DanhGiaPhuHop => _danhGiaPhuHop,
-                TriggerDonUngTuyen.TaoLichPhongVan => _taoLichPhongVan,
-                TriggerDonUngTuyen.CongBoTrungTuyen => _congBoTrungTuyen,
-                TriggerDonUngTuyen.TuChoi => _tuChoi,
-                TriggerDonUngTuyen.RutDonTruocPhongVan => _rutDonTruocPhongVan,
-                TriggerDonUngTuyen.RutDonSauPhongVan => _rutDonSauPhongVan,
-                _ => throw new ArgumentOutOfRangeException(nameof(trigger))
-            };
+            await _machine.FireAsync(trigger);
 
-            await _machine.FireAsync(paramTrigger, _currentNote, _currentCt);
+            _currentNote = null;
+        }
+
+        /// <summary>
+        /// Fire trigger hệ thống, bỏ kiểm tra quyền (tiếp nhận hồ sơ, job SLA, cascade đóng tin).
+        /// Chỉ chấp nhận 4 trigger hệ thống, trigger của người sẽ bị từ chối.
+        /// </summary>
+        public async Task FireSystemAsync(TriggerDonUngTuyen trigger, string note = "", CancellationToken ct = default)
+        {
+            if (!LaTriggerHeThong(trigger))
+                throw new ApiException($"Trigger '{trigger}' phải fire qua FireAsync (có kiểm tra quyền).");
+
+            if (!_machine.CanFire(trigger))
+            {
+                throw new ApiException($"Không thể thực hiện hành động '{trigger}' khi đơn đang ở trạng thái '{_entity.TrangThai}'.");
+            }
+
+            _currentNote = string.IsNullOrWhiteSpace(note) ? GetDefaultNote(trigger) : note;
+            _currentCt = ct;
+
+            await _machine.FireAsync(trigger);
 
             _currentNote = null;
         }
@@ -110,39 +119,52 @@ namespace Application.Services.StateMachineDonUngTuyen
         /// </summary>
         private async Task ValidateAuthorization(TriggerDonUngTuyen trigger)
         {
+            // Trigger hệ thống không đi đường này
+            if (LaTriggerHeThong(trigger))
+                throw new ApiException("Hành động này chỉ hệ thống được thực hiện.");
+
             var ctx = await _current.ResolveAsync();
-            bool isHr = ctx.VaiTro == VaiTroNguoiDung.NHAN_SU || ctx.VaiTro == VaiTroNguoiDung.NGUOI_DAI_DIEN;
 
             switch (trigger)
             {
                 // Các hành động của Nhân sự / Người đại diện, chỉ áp dụng cho đơn thuộc tin họ đăng/tổ chức họ thuộc về
                 case TriggerDonUngTuyen.XemDon:
                 case TriggerDonUngTuyen.DanhGiaPhuHop:
-                case TriggerDonUngTuyen.TaoLichPhongVan:
-                case TriggerDonUngTuyen.CongBoTrungTuyen:
                 case TriggerDonUngTuyen.TuChoi:
-                    if (!isHr)
+                    if (ctx.VaiTro == VaiTroNguoiDung.NGUOI_DAI_DIEN)
+                    {
+                        if (_entity.TinTuyenDung == null || _entity.TinTuyenDung.DoanhNghiepId != ctx.DoanhNghiepId)
+                            throw new ApiException("Bạn không có quyền xử lý đơn ứng tuyển này.", 403);
+                    }
+                    else if (ctx.VaiTro == VaiTroNguoiDung.NHAN_SU)
+                    {
+                        if (_entity.TinTuyenDung == null || _entity.TinTuyenDung.NguoiDangTinId != ctx.Id)
+                            throw new ApiException("Bạn chỉ được xử lý đơn thuộc tin do mình đăng.", 403);
+                    }
+                    else
+                    {
                         throw new ApiException("Chỉ Nhân sự hoặc Người đại diện được thực hiện hành động này.");
-                    bool owned = _entity.TinTuyenDung != null &&
-                        (_entity.TinTuyenDung.NguoiDangTinId == ctx.Id
-                         || _entity.TinTuyenDung.DoanhNghiepId == ctx.DoanhNghiepId);
-                    if (!owned)
-                        throw new ApiException("Bạn không có quyền xử lý đơn ứng tuyển này.", 403);
+                    }
                     break;
 
-                // Chỉ ứng viên là người nộp đơn mới được rút
-                case TriggerDonUngTuyen.RutDonTruocPhongVan:
-                case TriggerDonUngTuyen.RutDonSauPhongVan:
+                // Chỉ ứng viên nộp đơn mới được rút / nộp lại hồ sơ
+                case TriggerDonUngTuyen.RutDon:
+                case TriggerDonUngTuyen.NopLaiHoSo:
                     if (ctx.VaiTro != VaiTroNguoiDung.UNG_VIEN)
-                        throw new ApiException("Chỉ ứng viên mới được rút đơn.");
-                    if (_entity.HoSoUngVien == null || _entity.HoSoUngVien.NguoiDungId != ctx.Id)
-                        throw new ApiException("Bạn không phải người nộp đơn này.");
+                        throw new ApiException("Chỉ ứng viên mới được thực hiện hành động này.");
+                    // Entity load kèm HoSoUngVien thì đối chiếu NguoiDungId; nếu chưa Include navigation
+                    // thì quyền sở hữu đã được kiểm tra ở command handler nên cho qua.
+                    if (_entity.HoSoUngVien != null && _entity.HoSoUngVien.NguoiDungId != ctx.Id)
+                        throw new ApiException("Bạn không phải người nộp đơn này.", 403);
                     break;
+
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(trigger));
             }
         }
 
         /// <summary>
-        /// Hook chạy sau mỗi transition — ghi thông báo / email / cập nhật entity liên quan.
+        /// Hook chạy sau mỗi transition — ghi thông báo / email cho ứng viên.
         /// </summary>
         private async Task OnTransitedAsync(StateMachine<TrangThaiDonUngTuyen, TriggerDonUngTuyen>.Transition transition)
         {
@@ -156,30 +178,48 @@ namespace Application.Services.StateMachineDonUngTuyen
 
         private void ConfigureTransitions()
         {
-            _machine.Configure(TrangThaiDonUngTuyen.ChoXuLy)
-                .Permit(TriggerDonUngTuyen.XemDon, TrangThaiDonUngTuyen.DaXem);
+            // Tiếp nhận hệ thống: hồ sơ hợp lệ -> chờ xử lý | lỗi -> chờ nộp lại
+            _machine.Configure(TrangThaiDonUngTuyen.KhoiTao)
+                .Permit(TriggerDonUngTuyen.XuLyHoSoThanhCong, TrangThaiDonUngTuyen.ChoXuLy)
+                .Permit(TriggerDonUngTuyen.XuLyHoSoThatBai, TrangThaiDonUngTuyen.LoiXuLyHoSo);
 
+            // Lỗi hồ sơ: ứng viên nộp lại -> chờ xử lý
+            _machine.Configure(TrangThaiDonUngTuyen.LoiXuLyHoSo)
+                .OnEntryAsync(OnTransitedAsync)
+                .Permit(TriggerDonUngTuyen.NopLaiHoSo, TrangThaiDonUngTuyen.ChoXuLy);
+
+            // Chờ xử lý: HR xem / từ chối sớm, ứng viên rút, hết SLA, tin bị đóng
+            _machine.Configure(TrangThaiDonUngTuyen.ChoXuLy)
+                .OnEntryAsync(OnTransitedAsync)
+                .Permit(TriggerDonUngTuyen.XemDon, TrangThaiDonUngTuyen.DaXem)
+                .Permit(TriggerDonUngTuyen.TuChoi, TrangThaiDonUngTuyen.TuChoi)
+                .Permit(TriggerDonUngTuyen.RutDon, TrangThaiDonUngTuyen.UngVienRutDon)
+                .Permit(TriggerDonUngTuyen.HetHanXuLy, TrangThaiDonUngTuyen.QuaHanXuLy)
+                .Permit(TriggerDonUngTuyen.DongBoiTinTuyenDung, TrangThaiDonUngTuyen.TinTuyenDungBiDong);
+
+            // Đã xem: đánh giá phù hợp / từ chối / rút / hết hạn / tin đóng
             _machine.Configure(TrangThaiDonUngTuyen.DaXem)
                 .OnEntryAsync(OnTransitedAsync)
                 .Permit(TriggerDonUngTuyen.DanhGiaPhuHop, TrangThaiDonUngTuyen.PhuHop)
                 .Permit(TriggerDonUngTuyen.TuChoi, TrangThaiDonUngTuyen.TuChoi)
-                .Permit(TriggerDonUngTuyen.RutDonTruocPhongVan, TrangThaiDonUngTuyen.UngVienRutDon);
+                .Permit(TriggerDonUngTuyen.RutDon, TrangThaiDonUngTuyen.UngVienRutDon)
+                .Permit(TriggerDonUngTuyen.HetHanXuLy, TrangThaiDonUngTuyen.QuaHanXuLy)
+                .Permit(TriggerDonUngTuyen.DongBoiTinTuyenDung, TrangThaiDonUngTuyen.TinTuyenDungBiDong);
 
+            // Phù hợp: từ chối sau đánh giá / rút / hết hạn / tin đóng
             _machine.Configure(TrangThaiDonUngTuyen.PhuHop)
                 .OnEntryAsync(OnTransitedAsync)
-                .Permit(TriggerDonUngTuyen.TaoLichPhongVan, TrangThaiDonUngTuyen.HenPhongVan)
                 .Permit(TriggerDonUngTuyen.TuChoi, TrangThaiDonUngTuyen.TuChoi)
-                .Permit(TriggerDonUngTuyen.RutDonTruocPhongVan, TrangThaiDonUngTuyen.UngVienRutDon);
+                .Permit(TriggerDonUngTuyen.RutDon, TrangThaiDonUngTuyen.UngVienRutDon)
+                .Permit(TriggerDonUngTuyen.HetHanXuLy, TrangThaiDonUngTuyen.QuaHanXuLy)
+                .Permit(TriggerDonUngTuyen.DongBoiTinTuyenDung, TrangThaiDonUngTuyen.TinTuyenDungBiDong);
 
-            _machine.Configure(TrangThaiDonUngTuyen.HenPhongVan)
-                .OnEntryAsync(OnTransitedAsync)
-                .Permit(TriggerDonUngTuyen.CongBoTrungTuyen, TrangThaiDonUngTuyen.TrungTuyen)
-                .Permit(TriggerDonUngTuyen.TuChoi, TrangThaiDonUngTuyen.TuChoi)
-                .Permit(TriggerDonUngTuyen.RutDonSauPhongVan, TrangThaiDonUngTuyen.UngVienRutDon);
-
-            _machine.Configure(TrangThaiDonUngTuyen.TrungTuyen).OnEntryAsync(OnTransitedAsync);
+            // Terminal
             _machine.Configure(TrangThaiDonUngTuyen.TuChoi).OnEntryAsync(OnTransitedAsync);
             _machine.Configure(TrangThaiDonUngTuyen.UngVienRutDon).OnEntryAsync(OnTransitedAsync);
+            _machine.Configure(TrangThaiDonUngTuyen.QuaHanXuLy).OnEntryAsync(OnTransitedAsync);
+            _machine.Configure(TrangThaiDonUngTuyen.TinTuyenDungBiDong).OnEntryAsync(OnTransitedAsync);
+            _machine.Configure(TrangThaiDonUngTuyen.VoHieuHoa).OnEntryAsync(OnTransitedAsync);
         }
 
         private static string GetDefaultNote(TriggerDonUngTuyen trigger) => trigger.ToString();

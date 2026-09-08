@@ -1,5 +1,5 @@
 ﻿using AutoMapper;
-using Application.Features.HoSoUngVien.Commads.CreateHoSoUngVien;
+using Application.Features.HoSoUngVien.Commands.CreateHoSoUngVien;
 using Application.Features.HoSoUngVien.Queries.GetAllHoSoUngViens;
 using Application.Features.NguoiDung.Queries.GetAllNguoiDungs;
 using Application.Features.NguoiDung.Commands.CreateNguoiDung;
@@ -13,6 +13,12 @@ using Application.Features.KyNangTinTuyenDung.Queries.GetAllKyNangTinTuyenDungs;
 using Application.Features.KinhNghiemLamViec.Queries.GetAllKinhNghiemLamViecs;
 using Application.Features.KetQuaPhuHop.Queries.GetAllKetQuaPhuHops;
 using Domain.Entities;
+using Application.Features.DanhMucNghe.Queries.GetAllDanhMucNghes;
+using Application.Features.DoanhNghiep.Queries.GetAllDoanhNghieps;
+using Application.Features.CVUngVien.Queries.GetAllCVUngViens;
+using Application.Features.DonUngTuyen.Queries.GetAllDonUngTuyens;
+using Application.Features.KetQuaPhanTichCv.Queries.GetAllKetQuaPhanTichCvs;
+using Application.Features.DanhGia.Queries.GetAllDanhGias;
 
 namespace Application.Mappings
 {
@@ -24,7 +30,6 @@ namespace Application.Mappings
             CreateMap<HoSoUngVien, GetAllHoSoUngViensViewModel>().ReverseMap();
             CreateMap<CreateHoSoUngVienCommand, HoSoUngVien>();
             CreateMap<GetAllHoSoUngViensQuery, GetAllHoSoUngViensParameter>();
-
 
             // NguoiDung
             CreateMap<NguoiDung, GetAllNguoiDungsViewModel>().ReverseMap();
@@ -55,6 +60,24 @@ namespace Application.Mappings
 
             // KetQuaPhuHop
             CreateMap<KetQuaPhuHop,GetAllKetQuaPhuHopsViewModel>().ReverseMap();
+
+            // DanhMucNghe
+            CreateMap<DanhMucNghe, GetAllDanhMucNghesViewModel>();
+
+            // DoanhNghiep
+            CreateMap<DoanhNghiep, GetAllDoanhNghiepsViewModel>();
+
+            // CVUngVien
+            CreateMap<CVUngVien, GetAllCVUngViensViewModel>();
+
+            // DonUngTuyen
+            CreateMap<DonUngTuyen, GetAllDonUngTuyensViewModel>();
+
+            // KetQuaPhanTichCv
+            CreateMap<KetQuaPhanTichCv, GetAllKetQuaPhanTichCvsViewModel>();
+            
+            // DanhGia
+            CreateMap<DanhGia, GetAllDanhGiasViewModel>();
         }
     }
 }

@@ -1,5 +1,6 @@
 using Application.Features.TinTuyenDung.Commands.CreateTinTuyenDung;
 using Application.Features.TinTuyenDung.Commands.DeleteTinTuyenDung;
+using Application.Features.TinTuyenDung.Commands.FireTinTuyenDungTrigger;
 using Application.Features.TinTuyenDung.Commands.UpdateTinTuyenDung;
 using Application.Features.TinTuyenDung.Queries.GetAllTinTuyenDungs;
 using Application.Features.TinTuyenDung.Queries.GetTinTuyenDungById;
@@ -68,6 +69,16 @@ namespace WebApp.Server.Controllers.v1
             return await EnforcePermissionAndExecute("tinvuyendungs", "delete", async () =>
             {
                 return Ok(await Mediator.Send(new DeleteTinTuyenDungCommand { Id = id }));
+            });
+        }
+
+        [HttpPost("{id}/fire")]
+        public async Task<IActionResult> Fire(int id, FireTinTuyenDungTriggerCommand command)
+        {
+            return await EnforcePermissionAndExecute("tinvuyendungs", "edit", async () =>
+            {
+                if (id != command.Id) return BadRequest();
+                return Ok(await Mediator.Send(command));
             });
         }
     }

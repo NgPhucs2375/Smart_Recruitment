@@ -4,7 +4,9 @@ using MediatR;
 using Microsoft.Extensions.DependencyInjection;
 using Application.Behaviours;
 using Application.Interfaces;
+using Application.Services.StateMachineCV;
 using Application.Services.StateMachineDonUngTuyen;
+using Application.Services.StateMachineTinTuyenDung;
 using System.Reflection;
 
 namespace Application
@@ -20,6 +22,14 @@ namespace Application
 
             #region State Machine DonUngTuyen
             services.AddScoped<IDonUngTuyenWorkflowService, DonUngTuyenWorkflowService>();
+            #endregion
+
+            #region State Machine CVUngVien
+            services.AddScoped<ICVWorkflowService, CVWorkflowService>();
+            #endregion
+
+            #region State Machine TinTuyenDung
+            services.AddScoped<ITinTuyenDungWorkflowService, TinTuyenDungWorkflowService>();
             #endregion
         }
     }
