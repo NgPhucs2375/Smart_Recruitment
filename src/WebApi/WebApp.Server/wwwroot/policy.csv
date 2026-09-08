@@ -2,6 +2,10 @@ p, NGUOI_DAI_DIEN, donungtuyens, list
 p, NGUOI_DAI_DIEN, donungtuyens, show
 p, NGUOI_DAI_DIEN, hosoungviens, list
 p, NGUOI_DAI_DIEN, hosoungviens, show
+p, NGUOI_DAI_DIEN, lichphongvans, create
+p, NGUOI_DAI_DIEN, lichphongvans, edit
+p, NGUOI_DAI_DIEN, lichphongvans, list
+p, NGUOI_DAI_DIEN, lichphongvans, show
 p, NGUOI_DAI_DIEN, loimoinhansus, create
 p, NGUOI_DAI_DIEN, loimoinhansus, list
 p, NGUOI_DAI_DIEN, loimoinhansus, show
@@ -20,12 +24,15 @@ p, NGUOI_DAI_DIEN, tinvuyendungs, list
 p, NGUOI_DAI_DIEN, tinvuyendungs, show
 p, NGUOI_DAI_DIEN, users, list
 p, NGUOI_DAI_DIEN, users, show
-
 p, NHAN_SU, donungtuyens, edit
 p, NHAN_SU, donungtuyens, list
 p, NHAN_SU, donungtuyens, show
 p, NHAN_SU, hosoungviens, list
 p, NHAN_SU, hosoungviens, show
+p, NHAN_SU, lichphongvans, create
+p, NHAN_SU, lichphongvans, edit
+p, NHAN_SU, lichphongvans, list
+p, NHAN_SU, lichphongvans, show
 p, NHAN_SU, roles, list
 p, NHAN_SU, thongbaos, list
 p, NHAN_SU, thongbaos, show
@@ -36,38 +43,6 @@ p, NHAN_SU, tinvuyendungs, list
 p, NHAN_SU, tinvuyendungs, show
 p, NHAN_SU, users, list
 p, NHAN_SU, users, show
-
-p, NHA_TUYEN_DUNG, cvungviens, list
-p, NHA_TUYEN_DUNG, cvungviens, show
-p, NHA_TUYEN_DUNG, danhgias, create
-p, NHA_TUYEN_DUNG, danhgias, edit
-p, NHA_TUYEN_DUNG, danhgias, list
-p, NHA_TUYEN_DUNG, danhgias, show
-p, NHA_TUYEN_DUNG, danhmucnghes, list
-p, NHA_TUYEN_DUNG, danhmucnghes, show
-p, NHA_TUYEN_DUNG, donungtuyens, list
-p, NHA_TUYEN_DUNG, donungtuyens, show
-p, NHA_TUYEN_DUNG, hosoungviens, list
-p, NHA_TUYEN_DUNG, hosoungviens, show
-p, NHA_TUYEN_DUNG, ketquaphantichcvs, list
-p, NHA_TUYEN_DUNG, ketquaphantichcvs, show
-p, NHA_TUYEN_DUNG, lichphongvans, create
-p, NHA_TUYEN_DUNG, lichphongvans, edit
-p, NHA_TUYEN_DUNG, lichphongvans, list
-p, NHA_TUYEN_DUNG, lichphongvans, show
-p, NHA_TUYEN_DUNG, roleclaims, list
-p, NHA_TUYEN_DUNG, roleclaims, show
-p, NHA_TUYEN_DUNG, roles, list
-p, NHA_TUYEN_DUNG, roles, show
-p, NHA_TUYEN_DUNG, thongbaos, list
-p, NHA_TUYEN_DUNG, thongbaos, show
-p, NHA_TUYEN_DUNG, tinvuyendungs, create
-p, NHA_TUYEN_DUNG, tinvuyendungs, edit
-p, NHA_TUYEN_DUNG, tinvuyendungs, list
-p, NHA_TUYEN_DUNG, tinvuyendungs, show
-p, NHA_TUYEN_DUNG, users, list
-p, NHA_TUYEN_DUNG, users, show
-
 p, QUAN_TRI_VIEN, cvs, create
 p, QUAN_TRI_VIEN, cvs, delete
 p, QUAN_TRI_VIEN, cvs, edit
@@ -176,7 +151,6 @@ p, QUAN_TRI_VIEN, tinvuyendungs, show
 p, QUAN_TRI_VIEN, users, create
 p, QUAN_TRI_VIEN, users, list
 p, QUAN_TRI_VIEN, users, show
-
 p, UNG_VIEN, cvs, create
 p, UNG_VIEN, cvs, delete
 p, UNG_VIEN, cvs, edit

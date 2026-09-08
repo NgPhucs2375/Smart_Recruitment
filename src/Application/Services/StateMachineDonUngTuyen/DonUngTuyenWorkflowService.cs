@@ -2,11 +2,11 @@ using Application.DTOs.Email;
 using Application.Interfaces;
 using Domain.Entities;
 using Domain.Enums;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
 using DonUngTuyen = Domain.Entities.DonUngTuyen;
-using ThongBao = Domain.Entities.ThongBao;
 
 namespace Application.Services.StateMachineDonUngTuyen
 {
@@ -46,15 +46,19 @@ namespace Application.Services.StateMachineDonUngTuyen
             // 1) Thông báo trong app cho ứng viên
             if (UngVienId > 0 && CanThongBao(trigger))
             {
-                _context.ThongBaos.Add(new ThongBao
+                _context.Notifications.Add(new Notification
                 {
-                    NguoiDungId = UngVienId,
                     LoaiThongBao = LoaiThongBao.DonUngTuyen,
                     TieuDe = TieuDeThongBao(trigger),
                     NoiDung = string.IsNullOrWhiteSpace(note) || note == trigger.ToString()
                         ? NoiDungThongBao(trigger, TieuDeTin)
                         : $"{NoiDungThongBao(trigger, TieuDeTin)}\n\nGhi chú: {note}",
-                    IsRead = false // lúc này mới tạo chưa đã đọc
+                    ReferenceType = nameof(DonUngTuyen),
+                    ReferenceId = entity.Id,
+                    Recipients = new List<NotificationRecipient>
+                    {
+                        new() { NguoiDungId = UngVienId, IsRead = false } // lúc này mới tạo chưa đã đọc
+                    }
                 });
             }
 

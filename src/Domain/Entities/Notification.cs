@@ -9,15 +9,14 @@ namespace Domain.Entities
     /// <summary>
     /// Lưu các thông báo hệ thống phục vụ hiển thị trên Web và Mobile App.
     /// </summary>
-    public class ThongBao : AuditableBaseEntity
+    public class Notification : AuditableBaseEntity
     {
-        public int NguoiDungId { get; set; }
         public string TieuDe { get; set; }
         public string NoiDung { get; set; }
         public LoaiThongBao LoaiThongBao { get; set; }
-        public bool IsRead { get; set; } = false;
+        public string? ReferenceType { get; set; }
+        public int? ReferenceId { get; set; }
 
-        // ===   === //
-        public NguoiDung NguoiDung { get; set; }
+        public ICollection<NotificationRecipient> Recipients { get; set; } = new List<NotificationRecipient>();
     }
 }

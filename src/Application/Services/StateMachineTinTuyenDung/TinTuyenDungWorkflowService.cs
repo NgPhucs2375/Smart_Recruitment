@@ -3,11 +3,10 @@ using Application.Interfaces;
 using Domain.Entities;
 using Domain.Enums;
 using Microsoft.EntityFrameworkCore;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-
-using ThongBao = Domain.Entities.ThongBao;
 
 namespace Application.Services.StateMachineTinTuyenDung
 {
@@ -55,15 +54,19 @@ namespace Application.Services.StateMachineTinTuyenDung
             // 1) Thông báo trong app cho HR đăng tin
             if (entity.NguoiDangTinId > 0)
             {
-                _context.ThongBaos.Add(new ThongBao
+                _context.Notifications.Add(new Notification
                 {
-                    NguoiDungId = entity.NguoiDangTinId,
                     LoaiThongBao = LoaiThongBao.ViecLamMoi,
                     TieuDe = TieuDeThongBao(trigger),
                     NoiDung = string.IsNullOrWhiteSpace(note) || note == trigger.ToString()
                         ? NoiDungThongBao(trigger, tieuDe)
                         : $"{NoiDungThongBao(trigger, tieuDe)}\n\nGhi chú: {note}",
-                    IsRead = false // lúc này mới tạo chưa đã đọc
+                    ReferenceType = nameof(TinTuyenDung),
+                    ReferenceId = entity.Id,
+                    Recipients = new List<NotificationRecipient>
+                    {
+                        new() { NguoiDungId = entity.NguoiDangTinId, IsRead = false } // lúc này mới tạo chưa đã đọc
+                    }
                 });
             }
 
@@ -100,13 +103,17 @@ namespace Application.Services.StateMachineTinTuyenDung
                     int ungVienId = don.HoSoUngVien?.NguoiDungId ?? 0;
                     if (ungVienId > 0)
                     {
-                        _context.ThongBaos.Add(new ThongBao
+                        _context.Notifications.Add(new Notification
                         {
-                            NguoiDungId = ungVienId,
                             LoaiThongBao = LoaiThongBao.DonUngTuyen,
                             TieuDe = "Tin tuyển dụng bạn đã ứng tuyển đã đóng",
                             NoiDung = $"Tin {tieuDe} đã {LyDoDongTin(trigger)} nên đơn ứng tuyển của bạn được ghi nhận dừng xử lý.",
-                            IsRead = false
+                            ReferenceType = nameof(DonUngTuyen),
+                            ReferenceId = don.Id,
+                            Recipients = new List<NotificationRecipient>
+                            {
+                                new() { NguoiDungId = ungVienId, IsRead = false }
+                            }
                         });
                     }
                 }

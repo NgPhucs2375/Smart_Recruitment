@@ -5,8 +5,6 @@ using Application.Features.NguoiDung.Queries.GetAllNguoiDungs;
 using Application.Features.NguoiDung.Commands.CreateNguoiDung;
 using Application.Features.HoSoNhaTuyenDung.Queries.GetAllHoSoNhaTuyenDungs;
 using Application.Features.HoSoNhaTuyenDung.Commands.CreateHoSoNhaTuyenDung;
-using Application.Features.ThongBao.Queries.GetAllThongBaos;
-using Application.Features.ThongBao.Commands.CreateThongBao;
 using Application.Features.KyNang.Queries.GetAllKyNangs;
 using Application.Features.KyNangUngVien.Queries.GetAllKyNangUngViens;
 using Application.Features.KyNangTinTuyenDung.Queries.GetAllKyNangTinTuyenDungs;
@@ -40,11 +38,6 @@ namespace Application.Mappings
             CreateMap<HoSoNhaTuyenDung, GetAllHoSoNhaTuyenDungsViewModel>().ReverseMap();
             CreateMap<CreateHoSoNhaTuyenDungCommand, HoSoNhaTuyenDung>();
             CreateMap<GetAllHoSoNhaTuyenDungsQuery, GetAllHoSoNhaTuyenDungsParameter>();
-
-            // ThongBao
-            CreateMap<ThongBao, GetAllThongBaosViewModel>().ReverseMap();
-            CreateMap<CreateThongBaoCommand, ThongBao>();
-            CreateMap<GetAllThongBaosQuery, GetAllThongBaosParameter>();
 
             // KyNang
             CreateMap<KyNang,GetAllKyNangsViewModel>().ReverseMap();

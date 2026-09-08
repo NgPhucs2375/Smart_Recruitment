@@ -32,6 +32,27 @@ namespace Infrastructure.Identity.Seeds
                     throw new InvalidOperationException(
                         $"Không thể tạo tài khoản superadmin: {string.Join("; ", createResult.Errors.Select(error => error.Description))}");
                 }
+                user = defaultUser;
+            }
+            else
+            {
+                // Đảm bảo mật khẩu luôn đúng với seed nếu tài khoản đã tồn tại từ trước
+                if (!await userManager.CheckPasswordAsync(user, "123Pa$$word!"))
+                {
+                    var resetToken = await userManager.GeneratePasswordResetTokenAsync(user);
+                    await userManager.ResetPasswordAsync(user, resetToken, "123Pa$$word!");
+                }
+
+                if (!user.EmailConfirmed)
+                {
+                    user.EmailConfirmed = true;
+                    await userManager.UpdateAsync(user);
+                }
+
+                if (user.LockoutEnd.HasValue && user.LockoutEnd > DateTimeOffset.UtcNow)
+                {
+                    await userManager.SetLockoutEndDateAsync(user, null);
+                }
             }
 
             var adminRole = VaiTroNguoiDung.QUAN_TRI_VIEN.ToString();

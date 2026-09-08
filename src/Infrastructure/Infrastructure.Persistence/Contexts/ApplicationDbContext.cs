@@ -24,7 +24,8 @@ namespace Infrastructure.Persistence.Contexts
             _authenticatedUser = authenticatedUser;
         }
         public DbSet<NguoiDung> NguoiDungs { get; set; }
-        public DbSet<ThongBao> ThongBaos { get; set; }
+        public DbSet<Notification> Notifications { get; set; }
+        public DbSet<NotificationRecipient> NotificationRecipients { get; set; }
         public DbSet<TinTuyenDung> TinTuyenDungs { get; set; }
         public DbSet<KyNang> KyNangs { get; set; }
         public DbSet<KyNangUngVien> KyNangUngViens { get; set; }

@@ -6,6 +6,7 @@ using Application.Behaviours;
 using Application.Interfaces;
 using Application.Services.StateMachineCV;
 using Application.Services.StateMachineDonUngTuyen;
+using Application.Services.StateMachineLoiMoi;
 using Application.Services.StateMachineTinTuyenDung;
 using System.Reflection;
 
@@ -30,6 +31,10 @@ namespace Application
 
             #region State Machine TinTuyenDung
             services.AddScoped<ITinTuyenDungWorkflowService, TinTuyenDungWorkflowService>();
+            #endregion
+
+            #region State Machine LoiMoiNhanSu
+            services.AddScoped<ILoiMoiNhanSuWorkflowService, LoiMoiNhanSuWorkflowService>();
             #endregion
         }
     }
