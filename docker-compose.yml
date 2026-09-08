@@ -63,12 +63,20 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ASPNETCORE_URLS: http://+:8080
+
       ConnectionStrings__PostgresConnection: Host=postgres;Port=5432;Database=smart_recruitment_db;Username=postgres;Password=${POSTGRES_PASSWORD:-SuperStrongPassword123!}
+
+      JWTSettings__Key: ${JWT_KEY}
+      JWTSettings__Issuer: ${JWT_ISSUER}
+      JWTSettings__Audience: ${JWT_AUDIENCE}
+      JWTSettings__DurationInMinutes: ${JWT_DURATION:-60}
+
       RabbitMq__HostName: rabbitmq
       RabbitMq__UserName: guest
       RabbitMq__Password: guest
       RabbitMq__Port: "5672"
       RabbitMq__VHost: ""
+
       GROQ_API_KEY: ${GROQ_API_KEY:-dev-placeholder}
     ports:
       - "${BACKEND_PORT:-8000}:8080"
