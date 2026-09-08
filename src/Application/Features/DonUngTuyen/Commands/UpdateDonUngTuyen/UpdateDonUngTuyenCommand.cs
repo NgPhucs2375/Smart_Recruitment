@@ -35,6 +35,10 @@ namespace Application.Features.DonUngTuyen.Commands.UpdateDonUngTuyen
 
         public async Task<Response<int>> Handle(UpdateDonUngTuyenCommand r, CancellationToken ct)
         {
+            // Trigger hệ thống (tiếp nhận/job/cascade) không đi qua API
+            if (DonUngTuyenStateMachine.LaTriggerHeThong(r.Trigger))
+                return new Response<int>("Hành động này chỉ hệ thống được thực hiện.");
+
             var entity = await _context.DonUngTuyens
                 .Include(d => d.TinTuyenDung)
                 .Include(d => d.HoSoUngVien)
@@ -43,10 +47,24 @@ namespace Application.Features.DonUngTuyen.Commands.UpdateDonUngTuyen
                 return new Response<int>("Không tìm thấy đơn ứng tuyển.");
 
             var sm = new DonUngTuyenStateMachine(_workflow, _current, entity);
-            await sm.FireAsync(r.Trigger, r.GhiChu, ct);
+            try
+            {
+                await sm.FireAsync(r.Trigger, r.GhiChu ?? string.Empty, ct);
+            }
+            catch (ApiException ex)
+            {
+                return new Response<int>(ex.Message);
+            }
 
-            var ctx = await _current.ResolveAsync();
-            entity.NguoiXuLyId = ctx.Id;
+            // Lưu lý do duyệt/từ chối; chỉ gán người xử lý cho hành động của HR
+            entity.GhiChu = r.GhiChu;
+            if (r.Trigger == TriggerDonUngTuyen.XemDon
+                || r.Trigger == TriggerDonUngTuyen.DanhGiaPhuHop
+                || r.Trigger == TriggerDonUngTuyen.TuChoi)
+            {
+                var ctx = await _current.ResolveAsync();
+                entity.NguoiXuLyId = ctx.Id;
+            }
 
             await _context.SaveChangesAsync(ct);
             return new Response<int>(entity.Id, "Cập nhật đơn ứng tuyển thành công.");

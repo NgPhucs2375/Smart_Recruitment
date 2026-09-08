@@ -71,6 +71,7 @@ _services.AddHealthChecks();
 _services.AddSignalR();
 _services.AddScoped<IAuthenticatedUserService, AuthenticatedUserService>();
 _services.AddScoped<ICurrentNguoiDungService,CurrentNguoiDungService>();
+_services.AddHostedService<WebApp.Server.Jobs.TinTuyenDungHetHanJob>();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 _services.AddEndpointsApiExplorer();
 

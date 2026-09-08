@@ -48,7 +48,7 @@ namespace Application.Features.DonUngTuyen.Queries.GetDonUngTuyenById
                 Id = entity.Id,
                 HoSoUngVienId = entity.HoSoUngVienId,
                 TinTuyenDungId = entity.TinTuyenDungId,
-                TrangThai = entity.TrangThai.ToString(),
+                TrangThai = entity.TrangThai,
                 GhiChu = entity.GhiChu
             };
             return new Response<GetAllDonUngTuyens.GetAllDonUngTuyensViewModel>(vm);

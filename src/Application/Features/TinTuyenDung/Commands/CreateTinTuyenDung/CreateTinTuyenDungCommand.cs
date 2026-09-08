@@ -21,7 +21,6 @@ namespace Application.Features.TinTuyenDung.Commands.CreateTinTuyenDung
         public string DiaDiemLamViec { get; set; }
         public decimal LuongToiThieu { get; set; }
         public decimal LuongToiDa { get; set; }
-        public TrangThaiTinTuyenDung TrangThai { get; set; }
         public System.DateTime? NgayHetHan { get; set; }
     }
 
@@ -55,7 +54,8 @@ namespace Application.Features.TinTuyenDung.Commands.CreateTinTuyenDung
                 DiaDiemLamViec = r.DiaDiemLamViec,
                 LuongToiThieu = r.LuongToiThieu,
                 LuongToiDa = r.LuongToiDa,
-                TrangThai = r.TrangThai,
+                // State machine: tin mới luôn bắt đầu ở Nhap, muốn công khai phải qua funnel (GuiDuyet)
+                TrangThai = TrangThaiTinTuyenDung.Nhap,
                 NgayHetHan = r.NgayHetHan
             };
 
