@@ -1,34 +1,15 @@
-import type { CvTemplate } from "./types";
+import type { CvTemplate, CvFormData } from "./types";
 
 export const cvTemplates: CvTemplate[] = [
-  {
-    id: "modern",
-    name: "Modern",
-    description: "Giao diện sạch, tối giản, phù hợp IT",
-    color: "#2563eb",
-  },
-  {
-    id: "professional",
-    name: "Professional",
-    description: "Trang trọng, phù hợp doanh nghiệp lớn",
-    color: "#1f2937",
-  },
-  {
-    id: "creative",
-    name: "Creative",
-    description: "Sáng tạo, phù hợp Designer/Marketing",
-    color: "#7c3aed",
-  },
-  {
-    id: "minimal",
-    name: "Minimal",
-    description: "Tối thiểu, tập trung vào nội dung",
-    color: "#374151",
-  },
+  { id: "modern", name: "Signal", description: "Đen trắng, accent mint", color: "#111111" },
+  { id: "professional", name: "Executive", description: "Trang trọng, rõ nét", color: "#263238" },
+  { id: "creative", name: "Studio", description: "Sáng tạo, có điểm nhấn", color: "#376c5e" },
+  { id: "minimal", name: "Essential", description: "Tối giản, tập trung nội dung", color: "#4d5b58" },
 ];
 
-export const defaultCvData = {
+export const defaultCvData: CvFormData = {
   fullName: "",
+  roleTitle: "",
   email: "",
   phone: "",
   address: "",
