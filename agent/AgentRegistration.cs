@@ -24,9 +24,9 @@ public static class AgentRegistration
     {
         services.AddHttpContextAccessor();
 
-        // Chat client: Groq default (matches existing AIAgentExtension setup).
+        // Chat client: Ollama API default (local or remote Ollama server).
         // Swap to OpenAIChatClientImpl via config when needed.
-        services.TryAddSingleton<IChatClient, GroqChatClientImpl>();
+        services.TryAddSingleton<IChatClient, OllamaChatClientImpl>();
 
         // Expose the configured JsonSerializerOptions so factories can inject it
         // (same pattern as form-filling Program.cs).
@@ -43,7 +43,7 @@ public static class AgentRegistration
         services.AddScoped<ICvKnowledgeService, CvKnowledgeService>();
 
         // Agent factories (DI injects all dependencies automatically).
-        services.AddScoped<IAgentFactory, CvMatchingAgentFactory>();
+        services.TryAddSingleton<IAgentFactory, CvMatchingAgentFactory>();
 
         return services;
     }

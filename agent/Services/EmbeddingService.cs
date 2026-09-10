@@ -7,7 +7,7 @@ namespace RecruitmentAgent.Services;
 /// (<c>agent/Services/EmbeddingService.cs</c> + <c>DbService.SearchKnowledge</c>).
 /// This project has neither OllamaSharp nor pgvector wired, so the default is a
 /// null-object: chunking + keyword search work, vector ranking is a TODO.
-/// Implement <c>IEmbeddingService</c> with the Ollama/Groq endpoint later without
+/// Implement <c>IEmbeddingService</c> with the Ollama endpoint later without
 /// touching callers.
 /// </summary>
 public interface IEmbeddingService

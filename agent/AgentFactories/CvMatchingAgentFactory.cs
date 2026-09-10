@@ -4,6 +4,7 @@ using System.Text.Json;
 using Microsoft.Agents.AI;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.AI;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using RecruitmentAgent.AgentFactories;
 using RecruitmentAgent.Chunker;
@@ -27,7 +28,7 @@ public sealed class CvMatchingAgentFactory : IAgentFactory
     private readonly IChatClient _chatClient;
     private readonly ILogger _logger;
     private readonly IDocumentParserStrategy _parserStrategy;
-    private readonly ICvKnowledgeService _knowledge;
+    private readonly IServiceScopeFactory _scopeFactory;
 
     public CvMatchingAgentFactory(
         IChatClient chatClient,
@@ -35,7 +36,7 @@ public sealed class CvMatchingAgentFactory : IAgentFactory
         IHttpContextAccessor httpContextAccessor,
         JsonSerializerOptions jsonSerializerOptions,
         IDocumentParserStrategy parserStrategy,
-        ICvKnowledgeService knowledge
+        IServiceScopeFactory scopeFactory
         )
     {
         _chatClient = chatClient;
@@ -43,8 +44,7 @@ public sealed class CvMatchingAgentFactory : IAgentFactory
         _jsonSerializerOptions = jsonSerializerOptions;
         _logger = loggerFactory.CreateLogger<CvMatchingAgentFactory>();
         _parserStrategy = parserStrategy;
-        _knowledge = knowledge;
-
+        _scopeFactory = scopeFactory;
 
         _logger.LogInformation("CV parser strategy: {Strategy}", _parserStrategy.GetType().Name);
     }
@@ -140,7 +140,9 @@ public sealed class CvMatchingAgentFactory : IAgentFactory
     {
         try
         {
-            var matches = await _knowledge.SearchTinTuyenDungAsync(query, 10, cancellationToken);
+            using var scope = _scopeFactory.CreateScope();
+            var knowledge = scope.ServiceProvider.GetRequiredService<ICvKnowledgeService>();
+            var matches = await knowledge.SearchTinTuyenDungAsync(query, 10, cancellationToken);
             _logger.LogInformation("search_tin_tuyen_dung returned {Count} results for: {Query}", matches.Count, query);
             return matches.Select(m => new TinMatchDto
             {

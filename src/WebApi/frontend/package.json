@@ -10,7 +10,6 @@
   },
   "dependencies": {
     "@ag-ui/client": "0.0.59",
-    "@ai-sdk/groq": "^4.0.37",
     "@ai-sdk/openai-compatible": "^3.0.0",
     "@base-ui/react": "^1.7.0",
     "@copilotkit/react-core": "^1.70.0",

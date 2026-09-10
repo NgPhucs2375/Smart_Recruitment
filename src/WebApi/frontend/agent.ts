@@ -1,12 +1,14 @@
 import { BuiltInAgent } from "@copilotkit/runtime/v2";
-import { createGroq } from "@ai-sdk/groq";
+import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 
-const groq = createGroq({
-  apiKey: process.env.GROQ_API_KEY || "",
+const ollama = createOpenAICompatible({
+  baseURL: process.env.OLLAMA_BASE_URL || "http://localhost:11434/v1",
+  name: "ollama",
+  apiKey: process.env.OLLAMA_API_KEY || "ollama",
 });
 
 export function createDefaultAgent() {
-  const baseModel = groq("qwen/qwen3.6-27b");
+  const baseModel = ollama(process.env.OLLAMA_MODEL || "gpt-oss:120b");
 
   // Đánh lừa bộ kiểm duyệt của CopilotKit Runtime bằng Proxy
   const compatibleModel = new Proxy(baseModel, {

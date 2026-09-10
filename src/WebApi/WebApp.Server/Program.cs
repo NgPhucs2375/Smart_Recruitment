@@ -7,17 +7,10 @@ using Infrastructure.Shared;
 using WebApp.Server.Extensions;
 using WebApp.Server.Initializer;
 using WebApp.Server.Services;
-using System.ComponentModel;
-using Microsoft.Agents.AI;
 using Microsoft.Agents.AI.Hosting.AGUI.AspNetCore;
-using OpenAI;
-using OpenAI.Chat;
-using System.ClientModel;
-using Microsoft.Extensions.AI;
-using Microsoft.Extensions.Options;
-using Microsoft.AspNetCore.Http.Json;
 using Casbin;
 using RecruitmentAgent;
+using RecruitmentAgent.AgentFactories;
 
 DotNetEnv.Env.Load(); 
 
@@ -67,7 +60,6 @@ if (_env.IsDevelopment())
 _services.AddControllers().AddJsonOptions(opts =>
 {
     opts.JsonSerializerOptions.PropertyNamingPolicy = null;
-    opts.JsonSerializerOptions.TypeInfoResolverChain.Add(SmartAgentSerializerContext.Default);
 });
 _services.AddApiVersioningExtension();
 _services.AddHealthChecks();
@@ -81,7 +73,6 @@ _services.AddEndpointsApiExplorer();
 
 // trước Build() dùng Add sau dùng Use
 var app = builder.Build();
-var jsonOptions = app.Services.GetRequiredService<IOptions<JsonOptions>>();
 using (var scope = app.Services.CreateScope())
 {
     var initializer = new ApplicationInitializer(scope.ServiceProvider);
@@ -117,7 +108,8 @@ app.MapControllers();
 
 app.MapHub<WebApp.Server.Hubs.NotificationsHub>("/api/hubs/notifications").RequireCors("AllowFrontend");
 
-app.MapAGUIServer("/api/copilotkit", AIAgentExtension.CreateSmartAgent(jsonOptions.Value.SerializerOptions)).RequireCors("AllowFrontend");
+var cvMatchingAgent = app.Services.GetRequiredService<IAgentFactory>().CreateAgent();
+app.MapAGUIServer("/api/copilotkit", cvMatchingAgent).RequireCors("AllowFrontend");
 
 
 

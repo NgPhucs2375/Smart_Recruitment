@@ -11,8 +11,8 @@ Only the **folder structure way** was moved — no Minimal API was introduced.
 | `AgentFactories/IAgentFactory.cs` | `AgentFactories/IAgentFactory.cs` | Same contract. `Route` is informational (no Minimal API route mapping). |
 | `AgentFactories/FormFillAgentFactory.cs` | `AgentFactories/CvMatchingAgentFactory.cs` | Tools ported to recruitment domain: `parse_cv_document` → `search_tin_tuyen_dung` → `recommend_cv_matches`. |
 | `FormFillAgent.cs` (DelegatingAIAgent, `__form_fills__`) | `CvMatchingAgent.cs` | Same pattern, emits `{"matches": [...]}` via `__cv_matches__` DataContent. |
-| `ChatClients/OllamaChatClientImpl.cs` | — (skipped) | Needs OllamaSharp package — intentionally NOT added to keep build green. |
-| `ChatClients/OpenAIChatClientImpl.cs` | `ChatClients/OpenAIChatClientImpl.cs` + `ChatClients/GroqChatClientImpl.cs` | Groq is default (matches existing `AIAgentExtension` Omniroute setup). |
+| `ChatClients/OllamaChatClientImpl.cs` | `ChatClients/OllamaChatClientImpl.cs` | Ollama API default via OllamaSharp (`OLLAMA_BASE_URL`, `CHAT__MODEL`/`OLLAMA_MODEL`). |
+| `ChatClients/OpenAIChatClientImpl.cs` | `ChatClients/OpenAIChatClientImpl.cs` | Alternative OpenAI-compatible endpoint (opt-in via DI). |
 | `Chunker/WeKnoraChunker.cs` + `Models.cs` + `HeaderTracker.cs` | `Chunker/SimpleChunker.cs` + `Chunker/Models.cs` | Self-contained recursive splitter + parent/child; table/LaTeX protected-spans omitted (CV text doesn't need them, zero new deps). |
 | `Common/Interfaces/IApplicationDbContext.cs` | `Common/Interfaces/ICvKnowledgeService.cs` | Reuses existing `Application.Interfaces.IApplicationDbContext` — no new tables, no migration, no pgvector. |
 | `Services/DbService.cs` | `Services/CvKnowledgeService.cs` | `ListForms/SearchKnowledge` → `SearchTinTuyenDungAsync/ListTinDangTuyenAsync/GetCvUngVienAsync/ListKyNangAsync` (keyword-based; vector ranking = TODO). |
@@ -45,7 +45,7 @@ var cvAgent = cvFactory.CreateAgent();
 
 `RecruitmentAgent.csproj` references `src/Application/Application.csproj` and pins
 `Microsoft.Agents.AI 1.18.0` / `Microsoft.Extensions.AI 10.9.0` — the exact versions
-`WebApp.Server` already uses. Add to solution with:
+`WebApp.Server` already uses — plus `OllamaSharp 5.4.30` for the Ollama API client. Add to solution with:
 
 ```powershell
 dotnet sln RecruitmentSmart.sln add agent/RecruitmentAgent.csproj

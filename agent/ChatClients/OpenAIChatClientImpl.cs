@@ -9,8 +9,7 @@ namespace RecruitmentAgent.ChatClients;
 /// <summary>
 /// Mirrors form-filling <c>agent/ChatClients/OpenAIChatClientImpl.cs</c>.
 /// Uses an OpenAI-compatible endpoint (<c>OPENAI_BASE_URL</c>, default
-/// <c>https://api.openai.com/v1</c>). No OllamaSharp dependency on purpose:
-/// add <c>OllamaChatClientImpl</c> back only if the OllamaSharp package is added.
+/// <c>https://api.openai.com/v1</c>).
 /// </summary>
 public sealed class OpenAIChatClientImpl : IChatClient
 {
