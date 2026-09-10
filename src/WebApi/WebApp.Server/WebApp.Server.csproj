@@ -60,6 +60,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\Application\Application.csproj" />
+    <ProjectReference Include="..\..\..\agent\RecruitmentAgent.csproj" />
     <ProjectReference Include="..\..\Infrastructure\Infrastructure.Identity\Infrastructure.Identity.csproj" />
     <ProjectReference Include="..\..\Infrastructure\Infrastructure.Persistence\Infrastructure.Persistence.csproj" />
   </ItemGroup>

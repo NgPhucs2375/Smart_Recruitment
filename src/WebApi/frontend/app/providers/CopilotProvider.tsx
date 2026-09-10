@@ -1,6 +1,6 @@
 "use client";
 
-import { CopilotKit } from "@copilotkit/react-core/v2";
+import { CopilotChatConfigurationProvider, CopilotKit } from "@copilotkit/react-core/v2";
 import { CopilotPopup } from "@copilotkit/react-core/v2";
 import "@copilotkit/react-core/v2/styles.css";
 import React, { useState, useEffect } from "react";
@@ -23,6 +23,7 @@ export function CopilotProvider({ children }: { children: React.ReactNode }) {
       }}
     >
       {children}
+      <CopilotChatConfigurationProvider agentId="cvMatching">
       <CopilotPopup
         defaultOpen={false}
         width="min(92vw, 420px)"
@@ -43,6 +44,8 @@ export function CopilotProvider({ children }: { children: React.ReactNode }) {
           chatInputPlaceholder: "Nhắn cho Adam...",
         }}
       />
+      </CopilotChatConfigurationProvider>
+
     </CopilotKit>
   );
 }

@@ -6,10 +6,14 @@ import {
 } from "@copilotkit/runtime/v2";
 import { createDefaultAgent } from "@/agent";
 import { handle } from "hono/vercel";
+import {HttpAgent} from "@ag-ui/client";
 
 const runtime = new CopilotRuntime({
   agents: {
     default: createDefaultAgent(),
+    cvMatching: new HttpAgent({
+      url: "http://localhost:8000/cvMatching"
+    })
   },
   // --- copilotkit:intelligence (remove this block to opt out) ---
   ...(process.env.COPILOTKIT_LICENSE_TOKEN

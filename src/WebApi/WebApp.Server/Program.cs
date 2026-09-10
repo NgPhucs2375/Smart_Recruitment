@@ -17,6 +17,7 @@ using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Options;
 using Microsoft.AspNetCore.Http.Json;
 using Casbin;
+using RecruitmentAgent;
 
 DotNetEnv.Env.Load(); 
 
@@ -57,6 +58,7 @@ _services.AddNpgSqlPersistenceInfrastructure();
 _services.AddIdentityRepositories(_config);
 _services.AddPersistenceRepositories();
 _services.AddSharedInfrastructure(_config);
+_services.AddRecruitmentAgent();
 if (_env.IsDevelopment())
 {
     _services.AddSwaggerExtension();
@@ -109,6 +111,7 @@ app.UseAuthorization();
 
 app.UseErrorHandlingMiddleware();
 app.UseHealthChecks("/health");
+app.UseMiddleware<FileAttachmentMiddleware>();
 // Map Controllers nghiệp vụ
 app.MapControllers();
 
