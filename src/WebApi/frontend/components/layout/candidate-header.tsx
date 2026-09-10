@@ -23,24 +23,16 @@ const menus: CandidateMenu[] = [
       ["Việc làm đã lưu", "/viec-lam/da-luu"],
       ["Việc làm đã ứng tuyển", "/viec-lam/da-ung-tuyen"],
       ["Việc làm phù hợp", "/viec-lam/phu-hop"],
-      ["Việc làm theo vị trí", "/viec-lam/theo-vi-tri"],
     ],
   },
   {
-    title: "Doanh nghiệp",
+    title: "Hồ sơ",
     items: [
-      ["Tìm công ty", "/doanh-nghiep"],
-      ["Công ty đã theo dõi", "/doanh-nghiep/dang-theo-doi"],
-      ["Top doanh nghiệp", "/doanh-nghiep/top"],
-    ],
-  },
-  {
-    title: "Tạo CV",
-    items: [
-      ["Mẫu CV", "/tao-cv"],
-      ["Tải CV lên", "/tao-cv/tai-len"],
+      ["Hồ sơ cá nhân", "/ho-so"],
+      ["Kinh nghiệm làm việc", "/kinh-nghiem"],
+      ["Kỹ năng của tôi", "/ky-nang-ung-vien"],
       ["Quản lý CV", "/CV"],
-      ["Tạo CV với AI", "/tao-cv/ai"],
+      ["Tạo CV", "/tao-cv"],
     ],
   },
 ];
@@ -66,14 +58,14 @@ export function CandidateHeader() {
           {menus.map((menu) => (
             <DropdownMenu key={menu.title}>
               <DropdownMenuTrigger className={cn(
-                "inline-flex items-center gap-1 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground",
+                "inline-flex items-center gap-1 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground cursor-pointer",
                 isMenuActive(menu, pathname) && "bg-accent text-foreground",
               )}>
                 {menu.title}<ChevronDown className="size-3.5" />
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" className="w-56">
                 {menu.items.map(([label, href]) => (
-                  <DropdownMenuItem key={href} onClick={() => { window.location.href = href; }}>
+                  <DropdownMenuItem key={href} onClick={() => { window.location.href = href; }} className="cursor-pointer">
                     {label}
                   </DropdownMenuItem>
                 ))}
@@ -86,7 +78,7 @@ export function CandidateHeader() {
           <NotificationBell />
           <ModeToggle />
           <DropdownMenu>
-            <DropdownMenuTrigger className="flex size-9 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label="Tài khoản">
+            <DropdownMenuTrigger className="flex size-9 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground ring-2 ring-background transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 cursor-pointer" aria-label="Tài khoản">
               {initials}
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
@@ -94,8 +86,8 @@ export function CandidateHeader() {
                 <p className="truncate text-sm font-medium">{identity?.name ?? "Người dùng"}</p>
                 <p className="truncate text-xs text-muted-foreground">{identity?.email}</p>
               </div>
-              <DropdownMenuItem onClick={() => { window.location.href = "/settings"; }}>Cài đặt tài khoản</DropdownMenuItem>
-              <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => logout()} disabled={isPending}>
+              <DropdownMenuItem onClick={() => { window.location.href = "/settings"; }} className="cursor-pointer">Cài đặt tài khoản</DropdownMenuItem>
+              <DropdownMenuItem className="text-destructive focus:text-destructive cursor-pointer" onClick={() => logout()} disabled={isPending}>
                 <LogOut className="mr-2 size-4" />{isPending ? "Đang đăng xuất…" : "Đăng xuất"}
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -108,14 +100,14 @@ export function CandidateHeader() {
         {menus.map((menu) => (
           <DropdownMenu key={menu.title}>
             <DropdownMenuTrigger className={cn(
-              "inline-flex shrink-0 items-center gap-1 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground",
+              "inline-flex shrink-0 items-center gap-1 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground cursor-pointer",
               isMenuActive(menu, pathname) && "bg-primary/10 text-primary",
             )}>
               {menu.title}<ChevronDown className="size-3.5" />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="w-56">
               {menu.items.map(([label, href]) => (
-                <DropdownMenuItem key={href} onClick={() => { window.location.href = href; }}>
+                <DropdownMenuItem key={href} onClick={() => { window.location.href = href; }} className="cursor-pointer">
                   {label}
                 </DropdownMenuItem>
               ))}

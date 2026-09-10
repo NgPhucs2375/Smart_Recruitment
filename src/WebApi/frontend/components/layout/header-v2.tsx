@@ -105,7 +105,7 @@ function UserDropdownV2() {
     <DropdownMenu>
       <DropdownMenuTrigger
         aria-label={identity?.name ?? "User menu"}
-        className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-primary-foreground text-sm font-semibold shrink-0 hover:bg-primary/90 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+        className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-primary-foreground text-sm font-semibold shrink-0 ring-2 ring-background hover:bg-primary/90 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
       >
         {identity?.avatar ? (
           <img
@@ -126,7 +126,7 @@ function UserDropdownV2() {
         )}
         <DropdownMenuSeparator />
         <DropdownMenuItem
-          className="flex items-center gap-2"
+          className="flex items-center gap-2 cursor-pointer"
           onClick={() => window.location.href = "/settings"}
         >
           <Settings className="h-4 w-4" />
@@ -134,7 +134,7 @@ function UserDropdownV2() {
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem
-          className="flex items-center gap-2 text-destructive focus:text-destructive"
+          className="flex items-center gap-2 text-destructive focus:text-destructive cursor-pointer"
           onClick={() => logout()}
         >
           <LogOut className="h-4 w-4" />

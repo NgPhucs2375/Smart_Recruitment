@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
-import { Pencil, Plus, Search, Trash2, X } from "lucide-react";
+import { Pencil, Plus, Search, Tags, Trash2, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +13,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  AdminPageLayout,
+  AdminPageHeader,
+  AdminCard,
+  AdminCardHeader,
+  AdminEmptyState,
+  AdminLoadingState,
+} from "@/components/admin/admin-page-layout";
 
 type KyNang = {
   id: number;
@@ -277,26 +285,21 @@ export default function KyNangPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-medium tracking-tight text-foreground">
-            Quản lý kỹ năng
-          </h1>
-
-          <p className="mt-1 text-sm text-muted-foreground">
-            Quản lý danh mục kỹ năng được sử dụng trong hệ thống tuyển dụng.
-          </p>
-        </div>
-
-        <Button onClick={openCreateForm}>
-          <Plus className="size-4" />
-          Thêm kỹ năng
-        </Button>
-      </div>
+    <AdminPageLayout>
+      <AdminPageHeader
+        icon={Tags}
+        title="Quản lý kỹ năng"
+        description="Quản lý danh mục kỹ năng được sử dụng trong hệ thống tuyển dụng."
+        actions={
+          <Button onClick={openCreateForm}>
+            <Plus className="size-4" />
+            Thêm kỹ năng
+          </Button>
+        }
+      />
 
       {message && (
-        <div className="rounded-xl border border-border bg-muted/40 px-4 py-3 text-sm text-foreground">
+        <div className="rounded-xl border border-border bg-card px-4 py-3 text-sm text-foreground shadow-sm">
           {message}
         </div>
       )}
@@ -310,7 +313,7 @@ export default function KyNangPage() {
       {showForm && (
         <form
           onSubmit={handleSubmit}
-          className="rounded-xl border border-border bg-card p-5 shadow-sm"
+          className="rounded-2xl border border-border bg-card p-6 shadow-sm"
         >
           <div className="mb-5 flex items-center justify-between">
             <div>
@@ -394,29 +397,23 @@ export default function KyNangPage() {
         </form>
       )}
 
-      <div className="rounded-xl border border-border bg-card shadow-sm">
-        <div className="flex flex-col gap-4 border-b border-border p-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h2 className="font-medium text-foreground">
-              Danh sách kỹ năng
-            </h2>
+      <AdminCard>
+        <AdminCardHeader
+          title="Danh sách kỹ năng"
+          description={`${items.length} kỹ năng trong hệ thống`}
+          action={
+            <div className="relative w-full sm:w-72">
+              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
 
-            <p className="mt-1 text-sm text-muted-foreground">
-              {items.length} kỹ năng trong hệ thống
-            </p>
-          </div>
-
-          <div className="relative w-full sm:w-72">
-            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-
-            <Input
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="Tìm kiếm kỹ năng..."
-              className="pl-9"
-            />
-          </div>
-        </div>
+              <Input
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Tìm kiếm kỹ năng..."
+                className="pl-9"
+              />
+            </div>
+          }
+        />
 
         <Table>
           <TableHeader>
@@ -424,31 +421,37 @@ export default function KyNangPage() {
               <TableHead className="w-20">ID</TableHead>
               <TableHead>Tên kỹ năng</TableHead>
               <TableHead>Mô tả</TableHead>
-              <TableHead className="w-40 text-right">
-                Thao tác
-              </TableHead>
+              <TableHead className="w-40 text-right">Thao tác</TableHead>
             </TableRow>
           </TableHeader>
 
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell
-                  colSpan={4}
-                  className="h-28 text-center text-muted-foreground"
-                >
-                  Đang tải dữ liệu...
+                <TableCell colSpan={4}>
+                  <AdminLoadingState />
                 </TableCell>
               </TableRow>
             ) : filteredItems.length === 0 ? (
               <TableRow>
-                <TableCell
-                  colSpan={4}
-                  className="h-28 text-center text-muted-foreground"
-                >
-                  {search
-                    ? "Không tìm thấy kỹ năng phù hợp."
-                    : "Chưa có kỹ năng nào."}
+                <TableCell colSpan={4}>
+                  <AdminEmptyState
+                    icon={Tags}
+                    title={search ? "Không tìm thấy kết quả" : "Chưa có kỹ năng"}
+                    description={
+                      search
+                        ? "Thử thay đổi từ khóa tìm kiếm."
+                        : "Bắt đầu bằng cách thêm kỹ năng mới vào hệ thống."
+                    }
+                    action={
+                      !search ? (
+                        <Button onClick={openCreateForm} size="sm">
+                          <Plus className="size-4" />
+                          Thêm kỹ năng
+                        </Button>
+                      ) : undefined
+                    }
+                  />
                 </TableCell>
               </TableRow>
             ) : (
@@ -495,7 +498,7 @@ export default function KyNangPage() {
             )}
           </TableBody>
         </Table>
-      </div>
-    </div>
+      </AdminCard>
+    </AdminPageLayout>
   );
 }

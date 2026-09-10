@@ -8,10 +8,28 @@ import { AppHeaderV2 } from "@/components/layout/header-v2";
 import { CandidateHeader } from "@/components/layout/candidate-header";
 import { cn } from "@/lib/utils";
 import { Toaster } from "sonner";
-import { useStoredIdentity } from "@/hooks/use-stored-identity";
+import { useStoredIdentity, useIdentityResolved } from "@/hooks/use-stored-identity";
 
 export function AppLayout({ children }: PropsWithChildren) {
   const identity = useStoredIdentity();
+  const resolved = useIdentityResolved();
+
+  // Identity not yet read from localStorage — render neutral shell
+  // to prevent role-specific layout flash (admin sidebar for candidate, etc.)
+  if (!resolved) {
+    return (
+      <TooltipProvider>
+        <Toaster position="top-right" richColors closeButton />
+        <div className="flex min-h-screen items-center justify-center bg-background">
+          <div className="flex flex-col items-center gap-3">
+            <div className="size-8 animate-spin rounded-full border-2 border-muted border-t-primary" />
+            <span className="text-xs text-muted-foreground">Đang tải...</span>
+          </div>
+        </div>
+      </TooltipProvider>
+    );
+  }
+
   const isCandidate = identity?.roles.some((role) => role.trim().toUpperCase() === "UNG_VIEN") ?? false;
 
   if (isCandidate) {
@@ -31,7 +49,7 @@ export function AppLayout({ children }: PropsWithChildren) {
       <SidebarProvider>
         <AppSidebarV2 />
         <Toaster position="top-right" richColors closeButton />
-        <SidebarInset className="min-w-0 bg-muted/30">
+        <SidebarInset className="min-w-0 bg-[#f5f5f3]">
           <AppHeaderV2 />
           <main
             className={cn(

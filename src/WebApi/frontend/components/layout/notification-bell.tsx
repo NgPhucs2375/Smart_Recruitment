@@ -161,7 +161,7 @@ function NotificationBellInner({
       {/* DropdownMenuTrigger renders as <button> — do NOT use asChild + Button to avoid button>button */}
       <DropdownMenuTrigger
         aria-label="Notifications"
-        className="relative flex h-8 w-8 items-center justify-center rounded-md text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+        className="relative flex h-8 w-8 items-center justify-center rounded-md text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
       >
         <Bell className="h-4 w-4" />
         {unreadCount > 0 && (
@@ -178,7 +178,7 @@ function NotificationBellInner({
           {unreadCount > 0 && (
             <button
               type="button"
-              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
               onClick={handleMarkAllRead}
             >
               <CheckCheck className="h-3 w-3" /> Mark all read

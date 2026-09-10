@@ -54,7 +54,7 @@ export function AppSidebarV2() {
                 title={!open ? item.title : undefined}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "group flex h-10 items-center gap-3 rounded-xl px-3 text-sm font-medium transition-all",
+                  "group flex h-10 items-center gap-3 rounded-xl px-3 text-sm font-medium transition-all cursor-pointer",
                   !open && "justify-center px-0",
                   active
                     ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-sm"
@@ -92,7 +92,7 @@ function SidebarProfile({ open, isAdministrator }: { open: boolean; isAdministra
             <p className="truncate text-xs font-semibold text-sidebar-foreground">{identity?.name ?? "Người dùng"}</p>
             <p className="truncate text-[10px] text-sidebar-foreground/50">{isAdministrator ? "Quản trị viên" : identity?.email}</p>
           </div>
-          <button className="rounded-lg p-1.5 text-sidebar-foreground/50 transition hover:bg-destructive/10 hover:text-destructive disabled:opacity-50" onClick={() => logout()} disabled={isPending} aria-label="Đăng xuất">
+          <button className="rounded-lg p-1.5 text-sidebar-foreground/50 transition hover:bg-destructive/10 hover:text-destructive disabled:opacity-50 cursor-pointer" onClick={() => logout()} disabled={isPending} aria-label="Đăng xuất">
             <LogOut className="size-4" />
           </button>
         </>
@@ -104,7 +104,7 @@ function SidebarProfile({ open, isAdministrator }: { open: boolean; isAdministra
 export function MobileSidebarTrigger() {
   const { open, toggleSidebar } = useSidebar();
   return (
-    <button onClick={toggleSidebar} className="flex size-10 items-center justify-center rounded-xl text-muted-foreground hover:bg-accent hover:text-foreground lg:hidden" aria-label={open ? "Đóng menu" : "Mở menu"}>
+    <button onClick={toggleSidebar} className="flex size-10 items-center justify-center rounded-xl text-muted-foreground hover:bg-accent hover:text-foreground transition-colors cursor-pointer lg:hidden" aria-label={open ? "Đóng menu" : "Mở menu"}>
       {open ? <X className="size-5" /> : <Menu className="size-5" />}
     </button>
   );

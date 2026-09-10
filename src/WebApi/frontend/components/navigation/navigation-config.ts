@@ -1,14 +1,14 @@
 import {
   BarChart3,
-  BriefcaseBusiness,
+  Briefcase,
   Building2,
   FileCheck,
-  FileText,
   LayoutDashboard,
   Settings,
   ShieldCheck,
   Tags,
   Users,
+  Zap,
 } from "lucide-react";
 
 export interface NavigationItem {
@@ -20,12 +20,11 @@ export interface NavigationItem {
 
 export const recruiterNavigation: NavigationItem[] = [
   { title: "Tổng quan", href: "/dashboard", icon: LayoutDashboard },
-  { title: "Việc làm", href: "/viec-lam", icon: BriefcaseBusiness, permission: { resource: "tintuyendungs", action: "list" } },
+  { title: "Quản lý tin tuyển dụng", href: "/tin-tuyen-dung", icon: Briefcase, permission: { resource: "tintuyendungs", action: "list" } },
+  { title: "Kỹ năng tin tuyển dụng", href: "/ky-nang-tin-tuyen-dung", icon: Zap, permission: { resource: "kynangtintuyendungs", action: "list" } },
   { title: "Ứng viên", href: "/ung-vien", icon: Users },
-  { title: "Lịch phỏng vấn", href: "/lich-phong-van", icon: FileCheck },
-  { title: "Tin nhắn", href: "/tin-nhan", icon: FileText },
+  { title: "Hồ sơ doanh nghiệp", href: "/doanh-nghiep", icon: Building2 },
   { title: "Báo cáo", href: "/reports", icon: BarChart3 },
-  { title: "Hồ sơ doanh nghiệp", href: "/doanh-nghiep/ho-so", icon: Building2 },
   { title: "Cài đặt", href: "/settings", icon: Settings },
 ];
 
@@ -33,11 +32,10 @@ export const adminNavigation: NavigationItem[] = [
   { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { title: "Quản lý người dùng", href: "/user-roles", icon: Users, permission: { resource: "roles", action: "list" } },
   { title: "Duyệt tin tuyển dụng", href: "/regulatory-requests", icon: ShieldCheck },
-  { title: "Quản lý CV/mẫu CV", href: "/CV", icon: FileCheck },
+  { title: "Hóa đơn", href: "/invoices", icon: FileCheck },
   { title: "Quản lý kỹ năng", href: "/ky-nang", icon: Tags, permission: { resource: "kynangs", action: "list" } },
   { title: "Báo cáo và thống kê", href: "/reports", icon: BarChart3 },
   { title: "Phân quyền", href: "/permission-matrix", icon: ShieldCheck, permission: { resource: "roleclaims", action: "list" } },
-  { title: "Hóa đơn", href: "/invoices", icon: FileCheck },
   { title: "Cài đặt hệ thống", href: "/settings", icon: Settings },
 ];
 
