@@ -23,6 +23,7 @@ using System.Threading.Tasks;
 using Domain.Enums;
 using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Google.Apis.Auth;
 
 namespace Infrastructure.Identity.Services
@@ -39,6 +40,7 @@ namespace Infrastructure.Identity.Services
         private readonly IApplicationDbContext _appContext;
         private readonly IAuthenticatedUserService _authenticatedUserService;
         private readonly IOptions<GoogleSettings> _googleSettings;
+        private readonly ILogger<AccountService> _logger;
         public AccountService(
             IdentityContext context,
             IApplicationDbContext appContext,
@@ -49,7 +51,8 @@ namespace Infrastructure.Identity.Services
             SignInManager<ApplicationUser> signInManager,
             IEmailService emailService,
             IAuthenticatedUserService authenticatedUserService,
-            IOptions<GoogleSettings> googleSettings)
+            IOptions<GoogleSettings> googleSettings,
+            ILogger<AccountService> logger)
         {
             _context = context;
             _appContext = appContext;
@@ -61,6 +64,7 @@ namespace Infrastructure.Identity.Services
             this._emailService = emailService;
             _authenticatedUserService = authenticatedUserService;
             _googleSettings = googleSettings;
+            _logger = logger;
         }
 
         internal sealed record RolePermission
@@ -727,25 +731,45 @@ namespace Infrastructure.Identity.Services
 
         public async Task<Response<AuthenticationResponse>> ExternalLoginAsync(ExternalAuthRequest request, string ipAddress)
         {
+            if (string.IsNullOrWhiteSpace(request?.IdToken))
+                throw new ApiException("IdToken không được để trống.");
+
+            var configuredClientId = _googleSettings.Value?.ClientId;
+            if (string.IsNullOrWhiteSpace(configuredClientId))
+            {
+                _logger.LogError("GoogleSettings:ClientId chưa được cấu hình trên server.");
+                throw new ApiException("Cấu hình Google ClientId trên server bị thiếu.");
+            }
+
             // 1. Xác thực token từ nhà cung cấp bên ngoài (Google): trong thu vien Api.Auth.Google
             GoogleJsonWebSignature.Payload payload;
             try
             {
                 var validationSettings = new GoogleJsonWebSignature.ValidationSettings
                 {
-                    Audience = new[] { _googleSettings.Value.ClientId }
+                    Audience = new[] { configuredClientId }
                 };
+                _logger.LogInformation("Validating Google IdToken length={Len} for ClientId={ClientId}", request.IdToken.Length, configuredClientId);
                 payload = await GoogleJsonWebSignature.ValidateAsync(request.IdToken, validationSettings).ConfigureAwait(false);
             }
-            catch (Exception)
+            catch (InvalidJwtException jwtEx)
             {
-                throw new ApiException("Xác thực bên ngoài không thành công. Token không hợp lệ.");
+                _logger.LogWarning(jwtEx, "Google JWT validation failed: {Message} aud expected={Aud} tokenSnippet={Snippet}", jwtEx.Message, configuredClientId, request.IdToken.Substring(0, Math.Min(60, request.IdToken.Length)));
+                throw new ApiException($"Xác thực bên ngoài không thành công. Token không hợp lệ: {jwtEx.Message}");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Google validation unexpected error: {Message} tokenSnippet={Snippet}", ex.Message, request.IdToken.Substring(0, Math.Min(60, request.IdToken.Length)));
+                throw new ApiException($"Xác thực bên ngoài không thành công. Token không hợp lệ: {ex.Message}");
             }
 
             if (payload == null)
             {
+                _logger.LogWarning("Google payload null after validation for tokenSnippet={Snippet}", request.IdToken.Substring(0, Math.Min(60, request.IdToken.Length)));
                 throw new ApiException("Dữ liệu xác thực bên ngoài bị trống.");
             }
+
+            _logger.LogInformation("Google payload OK email={Email} aud={Aud} iss={Iss}", payload.Email, payload.Audience, payload.Issuer);
 
             // 2. Kiểm tra xem người dùng đã tồn tại trong hệ thống chưa[cite: 3]
             var user = await _userManager.FindByEmailAsync(payload.Email).ConfigureAwait(false);

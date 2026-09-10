@@ -215,14 +215,22 @@ export const authProvider: AuthProvider = {
   login: async (payload) => {
     clearAuth();
     try {
-      // Nhận diện luồng đăng nhập (Google hay Local)
-      const isExternal = payload.providerName === "google" || payload.provider === "Google";
+      // Nhận diện luồng đăng nhập (Google hay Local) — hỗ trợ cả payload từ useGoogleAuth
+      const isExternal = payload.providerName === "google" || payload.provider === "Google" || !!payload.credential || !!payload.idToken;
       
       const endpoint = isExternal ? `${API_URL}/external-login` : `${API_URL}/authenticate`;
       
+      const rawToken: string | undefined = payload.idToken || payload.credential || payload.IdToken;
+      if (isExternal && (!rawToken || typeof rawToken !== "string" || rawToken.split(".").length !== 3)) {
+        console.warn("[auth] Google credential không hợp lệ, length=", rawToken?.length, "snippet=", rawToken?.slice(0,40));
+        return { success: false, error: { name: "Đăng nhập thất bại", message: "Token Google không hợp lệ (không phải JWT). Vui lòng thử lại." } };
+      }
+
       const requestBody = isExternal 
-        ? { Provider: "Google", IdToken: payload.idToken || payload.credential }
+        ? { Provider: "Google", IdToken: rawToken }
         : { Email: payload.email, Password: payload.password };
+
+      if (isExternal) console.log("[auth] external-login sending IdToken length", rawToken?.length);
 
       const res = await fetch(endpoint, {
         method: "POST",
@@ -234,7 +242,11 @@ export const authProvider: AuthProvider = {
         let message = isExternal ? "Đăng nhập Google thất bại" : "Email hoặc mật khẩu không đúng";
         try {
           const body = await res.json();
-          message = body?.detail ?? body?.title ?? body?.Message ?? message;
+          // Backend trả Response{Message, Errors} hoặc ProblemDetails
+          const serverMsg = body?.Message ?? body?.message ?? body?.detail ?? body?.title;
+          const serverErrors = Array.isArray(body?.Errors) ? body.Errors.join("; ") : Array.isArray(body?.errors) ? body.errors.join("; ") : "";
+          if (serverMsg) message = serverErrors ? `${serverMsg}: ${serverErrors}` : serverMsg;
+          console.warn("[auth] login failed", endpoint, res.status, body);
         } catch { /* ignore */ }
         return { success: false, error: { name: "Đăng nhập thất bại", message } };
       }

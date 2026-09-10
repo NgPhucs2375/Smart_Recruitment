@@ -62,7 +62,7 @@ export async function proxyDotnet(
     if (!r.ok) {
       const errBody = await r.text().catch(() => "");
       console.warn(
-        `[${label} ${reqId}] ${method} non-OK status=${r.status} (${elapsed}ms) body=${errBody.slice(0, 200)}`,
+        `[${label} ${reqId}] ${method} non-OK status=${r.status} (${elapsed}ms) url=${url} body=${errBody.slice(0, 500)}`,
       );
       // Forward upstream error body + status code to client.
       return new NextResponse(errBody, {
