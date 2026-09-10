@@ -4,6 +4,7 @@ using Application.Features.KetQuaPhuHop.Queries.GetKetQuaPhuHopById;
 using Application.Features.KetQuaPhuHop.Commands.CreateKetQuaPhuHop;
 using Application.Features.KetQuaPhuHop.Commands.UpdateKetQuaPhuHop;
 using Application.Features.KetQuaPhuHop.Commands.DeleteKetQuaPhuHop;
+using Application.Features.KetQuaPhuHop.Commands.TinhDiemPhuHop;
 using AutoMapper;
 using Casbin;
 using Microsoft.AspNetCore.Authorization;
@@ -76,6 +77,22 @@ namespace WebApp.Server.Controllers.v1
                 {
                     var command =
                         _mapper.Map<CreateKetQuaPhuHopCommand>(dto);
+
+                    return Ok(await Mediator.Send(command));
+                });
+        }
+
+        [HttpPost("tinh-diem")]
+        public async Task<IActionResult> TinhDiem(
+            [FromBody] TinhDiemPhuHopDto dto)
+        {
+            return await EnforcePermissionAndExecute(
+                "ketquaphuhops",
+                "create",
+                async () =>
+                {
+                    var command =
+                        _mapper.Map<TinhDiemPhuHopCommand>(dto);
 
                     return Ok(await Mediator.Send(command));
                 });

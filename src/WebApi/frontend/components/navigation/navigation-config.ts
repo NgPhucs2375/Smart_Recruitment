@@ -20,6 +20,8 @@ export interface NavigationItem {
 export const recruiterNavigation: NavigationItem[] = [
   { title: "Tổng quan", href: "/dashboard", icon: LayoutDashboard },
   { title: "Việc làm", href: "/viec-lam", icon: BriefcaseBusiness, permission: { resource: "tintuyendungs", action: "list" } },
+  { title: "Tin tuyển dụng", href: "/tin-tuyen-dung", icon: FileText },
+  { title: "Nhân sự", href: "/nhan-su", icon: Users },
   { title: "Ứng viên", href: "/ung-vien", icon: Users },
   { title: "Lịch phỏng vấn", href: "/lich-phong-van", icon: FileCheck },
   { title: "Tin nhắn", href: "/tin-nhan", icon: FileText },

@@ -18,6 +18,7 @@ export const registerSchema = z.object({
   tenDoanhNghiep:z.string().optional(),
   diaChiDoanhNghiep:z.string().optional(),
   chucVu:z.string().optional(),
+  inviteToken:z.string().optional(),
 }).superRefine((data,ctx) => {
   if (data.password !== data.confirmPassword) {
     ctx.addIssue({

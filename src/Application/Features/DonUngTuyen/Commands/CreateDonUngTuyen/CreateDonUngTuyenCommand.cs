@@ -1,4 +1,5 @@
 using Application.Interfaces;
+using Application.Services.Matching;
 using Application.Services.StateMachineDonUngTuyen;
 using Application.Wrappers;
 using Domain.Entities;
@@ -7,6 +8,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using DonUngTuyenEntity = global::Domain.Entities.DonUngTuyen;
 using CVUngVienEntity = global::Domain.Entities.CVUngVien;
+using KetQuaPhuHopEntity = global::Domain.Entities.KetQuaPhuHop;
 
 namespace Application.Features.DonUngTuyen.Commands.CreateDonUngTuyen;
 
@@ -19,7 +21,8 @@ public class CreateDonUngTuyenCommand : IRequest<Response<int>>
 public class CreateDonUngTuyenCommandHandler(
     IApplicationDbContext context,
     ICurrentNguoiDungService current,
-    IDonUngTuyenWorkflowService workflow)
+    IDonUngTuyenWorkflowService workflow,
+    IMatchingService matching)
     : IRequestHandler<CreateDonUngTuyenCommand, Response<int>>
 {
     public async Task<Response<int>> Handle(CreateDonUngTuyenCommand request, CancellationToken cancellationToken)
@@ -81,7 +84,67 @@ public class CreateDonUngTuyenCommandHandler(
 
         await context.SaveChangesAsync(cancellationToken);
 
+        // Tự động chấm điểm phù hợp và lưu KetQuaPhuHop.
+        // Chấm điểm lỗi thì bỏ qua, không chặn nộp đơn thành công.
+        await LuuDiemPhuHopTuDong(
+            cv.HoSoUngVienId,
+            request.TinTuyenDungId,
+            request.CVUngVienId,
+            cancellationToken);
+
         return new Response<int>(data: entity.Id, message: "Nộp đơn ứng tuyển thành công.");
+    }
+
+    private async Task LuuDiemPhuHopTuDong(
+        int hoSoUngVienId,
+        int tinTuyenDungId,
+        int cvUngVienId,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var daTonTai = await context.KetQuaPhuHops
+                .AsNoTracking()
+                .AnyAsync(
+                    x => x.HoSoUngVienId == hoSoUngVienId &&
+                         x.TinTuyenDungId == tinTuyenDungId,
+                    cancellationToken);
+
+            if (daTonTai)
+            {
+                return;
+            }
+
+            var ketQua = await matching.CalculateAsync(
+                hoSoUngVienId,
+                tinTuyenDungId,
+                cvUngVienId,
+                cancellationToken);
+
+            if (!ketQua.ThanhCong)
+            {
+                return;
+            }
+
+            await context.KetQuaPhuHops.AddAsync(
+                new KetQuaPhuHopEntity
+                {
+                    HoSoUngVienId = hoSoUngVienId,
+                    TinTuyenDungId = tinTuyenDungId,
+                    DiemPhuHop = ketQua.DiemPhuHop,
+                    PhanLoai = ketQua.PhanLoai,
+                    KyNangThoa = string.Join("; ", ketQua.KyNangThoa),
+                    KyNangThieu = string.Join("; ", ketQua.KyNangThieu),
+                    GhiChu = "Tự động chấm khi nộp đơn."
+                },
+                cancellationToken);
+
+            await context.SaveChangesAsync(cancellationToken);
+        }
+        catch
+        {
+            // Bỏ qua lỗi chấm điểm để không ảnh hưởng luồng nộp đơn.
+        }
     }
 
     /// <summary>

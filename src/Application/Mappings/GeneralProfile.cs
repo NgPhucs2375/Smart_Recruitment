@@ -38,6 +38,7 @@ using Application.Features.KyNangTinTuyenDung.Commands.CreateKyNangTinTuyenDung;
 using Application.DTOs.KetQuaPhuHop;
 using Application.Features.KetQuaPhuHop.Commands.UpdateKetQuaPhuHop;
 using Application.Features.KetQuaPhuHop.Commands.CreateKetQuaPhuHop;
+using Application.Features.KetQuaPhuHop.Commands.TinhDiemPhuHop;
 using Application.DTOs.KetQuaPhanTichCv;
 using Application.Features.KetQuaPhanTichCv.Commands.CreateKetQuaPhanTichCv;
 using Application.Features.KetQuaPhanTichCv.Commands.UpdateKetQuaPhanTichCv;
@@ -90,6 +91,7 @@ namespace Application.Mappings
             CreateMap<KetQuaPhuHop,GetAllKetQuaPhuHopsViewModel>().ReverseMap();
             CreateMap<TaoKetQuaPhuHopDto, CreateKetQuaPhuHopCommand>();
             CreateMap<CapNhatKetQuaPhuHopDto, UpdateKetQuaPhuHopCommand>();
+            CreateMap<TinhDiemPhuHopDto, TinhDiemPhuHopCommand>();
 
             // DanhMucNghe
             CreateMap<DanhMucNghe, GetAllDanhMucNghesViewModel>();

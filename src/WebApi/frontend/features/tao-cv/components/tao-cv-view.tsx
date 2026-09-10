@@ -47,7 +47,35 @@ export function TaoCvView() {
   }, []);
 
   useEffect(() => {
-    void loadAll();
+    let cancelled = false;
+    void (async () => {
+      await loadAll();
+      if (cancelled) return;
+      // Nhận JSON từ trang /tao-cv/tai-len (Gemini OCR) qua localStorage,
+      // áp dụng SAU khi đã nạp CV từ server để không bị ghi đè.
+      try {
+        const raw = localStorage.getItem("tao-cv-import");
+        if (raw) {
+          const parsed = JSON.parse(raw) as { data?: unknown; fileName?: string };
+          if (parsed?.data && typeof parsed.data === "object") {
+            setSelectedId(null);
+            setCvData((prev) => ({
+              ...cvDataFromJson(JSON.stringify(parsed.data), prev),
+              tenFile: typeof parsed.fileName === "string" && parsed.fileName
+                ? parsed.fileName.replace(/\.[^.]+$/, "")
+                : prev.tenFile,
+            }));
+            toast.success("Đã đổ dữ liệu CV từ file tải lên");
+          }
+          localStorage.removeItem("tao-cv-import");
+        }
+      } catch {
+        /* bỏ qua import lỗi */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [loadAll]);
 
   const handleSave = async () => {

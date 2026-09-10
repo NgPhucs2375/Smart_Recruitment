@@ -4,6 +4,7 @@ using MediatR;
 using Microsoft.Extensions.DependencyInjection;
 using Application.Behaviours;
 using Application.Interfaces;
+using Application.Services.Matching;
 using Application.Services.StateMachineDonUngTuyen;
 using Application.Services.StateMachineLoiMoi;
 using Application.Services.StateMachineTinTuyenDung;
@@ -19,6 +20,11 @@ namespace Application
             services.AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
             services.AddAutoMapper(cfg => cfg.AddMaps(Assembly.GetExecutingAssembly()));
             services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
+
+            #region Matching diem phu hop
+            services.AddSingleton(_ => new MatchingWeightOptions());
+            services.AddScoped<IMatchingService, MatchingService>();
+            #endregion
 
             #region State Machine DonUngTuyen
             services.AddScoped<IDonUngTuyenWorkflowService, DonUngTuyenWorkflowService>();

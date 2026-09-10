@@ -35,7 +35,8 @@ namespace WebApp.Server.Controllers.v1
             });
         }
 
-        // GET: api/NhanSu/invite/token?token=...
+        // GET: api/NhanSu/invite/token?token=... (public: người được mời chưa có tài khoản)
+        [AllowAnonymous]
         [HttpGet("invite/token")]
         public async Task<IActionResult> GetByToken([FromQuery] string token)
         {
@@ -48,7 +49,12 @@ namespace WebApp.Server.Controllers.v1
         {
             return await EnforcePermissionAndExecute("loimoinhansus", "create", async () =>
             {
-                command.Origin = $"{Request.Scheme}://{Request.Host}";
+                // Ưu tiên Origin của frontend để link mời trỏ đúng web app,
+                // fallback host backend khi gọi trực tiếp (swagger/postman).
+                var origin = Request.Headers["origin"].ToString();
+                command.Origin = string.IsNullOrWhiteSpace(origin)
+                    ? $"{Request.Scheme}://{Request.Host}"
+                    : origin.TrimEnd('/');
                 return Ok(await Mediator.Send(command));
             });
         }
