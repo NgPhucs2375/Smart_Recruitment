@@ -482,59 +482,6 @@ namespace Infrastructure.Persistence.Migrations
                     b.ToTable("KetQuaPhuHop", (string)null);
                 });
 
-            modelBuilder.Entity("Domain.Entities.KinhNghiemLamViec", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("Created")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("text");
-
-                    b.Property<DateTime?>("DenNgay")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("DiaChi")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<int>("HoSoUngVienId")
-                        .HasColumnType("integer");
-
-                    b.Property<bool>("IsHienTai")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<DateTime?>("LastModified")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("LastModifiedBy")
-                        .HasColumnType("text");
-
-                    b.Property<string>("MoTa")
-                        .HasColumnType("text");
-
-                    b.Property<string>("TenCongTy")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)");
-
-                    b.Property<DateTime?>("TuNgay")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("HoSoUngVienId");
-
-                    b.ToTable("KinhNghiemLamViec", (string)null);
-                });
-
             modelBuilder.Entity("Domain.Entities.KyNang", b =>
                 {
                     b.Property<int>("Id")
@@ -608,47 +555,6 @@ namespace Infrastructure.Persistence.Migrations
                     b.HasIndex("TinTuyenDungId");
 
                     b.ToTable("KyNangTinTuyenDung", (string)null);
-                });
-
-            modelBuilder.Entity("Domain.Entities.KyNangUngVien", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("Created")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("text");
-
-                    b.Property<int>("HoSoUngVienId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("KyNangId")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime?>("LastModified")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("LastModifiedBy")
-                        .HasColumnType("text");
-
-                    b.Property<int>("MucDoThongThao")
-                        .HasColumnType("integer");
-
-                    b.Property<float?>("SoNamKinhNghiem")
-                        .HasColumnType("real");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("HoSoUngVienId");
-
-                    b.HasIndex("KyNangId");
-
-                    b.ToTable("KyNangUngVien", (string)null);
                 });
 
             modelBuilder.Entity("Domain.Entities.LoiMoiNhanSu", b =>
@@ -1013,17 +919,6 @@ namespace Infrastructure.Persistence.Migrations
                     b.Navigation("TinTuyenDung");
                 });
 
-            modelBuilder.Entity("Domain.Entities.KinhNghiemLamViec", b =>
-                {
-                    b.HasOne("Domain.Entities.HoSoUngVien", "HoSoUngVien")
-                        .WithMany("KinhNghiemLamViecs")
-                        .HasForeignKey("HoSoUngVienId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("HoSoUngVien");
-                });
-
             modelBuilder.Entity("Domain.Entities.KyNangTinTuyenDung", b =>
                 {
                     b.HasOne("Domain.Entities.KyNang", "KyNang")
@@ -1041,25 +936,6 @@ namespace Infrastructure.Persistence.Migrations
                     b.Navigation("KyNang");
 
                     b.Navigation("TinTuyenDung");
-                });
-
-            modelBuilder.Entity("Domain.Entities.KyNangUngVien", b =>
-                {
-                    b.HasOne("Domain.Entities.HoSoUngVien", "HoSoUngVien")
-                        .WithMany("KyNangUngViens")
-                        .HasForeignKey("HoSoUngVienId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Domain.Entities.KyNang", "KyNang")
-                        .WithMany("KyNangUngViens")
-                        .HasForeignKey("KyNangId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("HoSoUngVien");
-
-                    b.Navigation("KyNang");
                 });
 
             modelBuilder.Entity("Domain.Entities.LoiMoiNhanSu", b =>
@@ -1156,17 +1032,11 @@ namespace Infrastructure.Persistence.Migrations
                     b.Navigation("CVUngViens");
 
                     b.Navigation("KetQuaPhuHops");
-
-                    b.Navigation("KinhNghiemLamViecs");
-
-                    b.Navigation("KyNangUngViens");
                 });
 
             modelBuilder.Entity("Domain.Entities.KyNang", b =>
                 {
                     b.Navigation("KyNangTinTuyenDungs");
-
-                    b.Navigation("KyNangUngViens");
                 });
 
             modelBuilder.Entity("Domain.Entities.NguoiDung", b =>
