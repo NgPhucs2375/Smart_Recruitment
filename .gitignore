@@ -57,10 +57,10 @@ pnpm-debug.log*
 **/appsettings.Development.json
 
 
-..opencode
-**/.opencode
-*.opencode
-**/.opencode/
+# ..opencode
+# **/.opencode
+# *.opencode
+# **/.opencode/
 
 
 # Loại bỏ file rác tự sinh của Windows & macOS

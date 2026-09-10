@@ -1,0 +1,20 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "mcp_copilotkit": {
+      "type": "remote",
+      "url": "https://mcp.copilotkit.ai/mcp",
+      "enable": true,
+    },
+    "mcp_next": {
+      "type": "local",
+      "command": ["npx", "-y", "next-devtools-mcp@latest"],
+      "enable": true,
+    },
+    "mcp_microsoft_learn": {
+      "type": "remote", // Server remote
+      "url": "https://learn.microsoft.com/api/mcp", // URL API
+      "enabled": true, // Kích hoạt server này
+    },
+  },
+}
