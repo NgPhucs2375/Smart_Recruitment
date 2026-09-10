@@ -747,9 +747,12 @@ namespace Infrastructure.Identity.Services
             {
                 var validationSettings = new GoogleJsonWebSignature.ValidationSettings
                 {
-                    Audience = new[] { configuredClientId }
+                    Audience = new[] { configuredClientId },
+                    // Cho phép lệch đồng hồ 5 phút (BE clock chậm/so với Google) — mặc định 30s quá chặt gây "JWT is not yet valid"
+                    IssuedAtClockTolerance = TimeSpan.FromMinutes(5),
+                    ExpirationTimeClockTolerance = TimeSpan.FromMinutes(5)
                 };
-                _logger.LogInformation("Validating Google IdToken length={Len} for ClientId={ClientId}", request.IdToken.Length, configuredClientId);
+                _logger.LogInformation("Validating Google IdToken length={Len} for ClientId={ClientId} serverUtc={Utc}", request.IdToken.Length, configuredClientId, DateTime.UtcNow);
                 payload = await GoogleJsonWebSignature.ValidateAsync(request.IdToken, validationSettings).ConfigureAwait(false);
             }
             catch (InvalidJwtException jwtEx)
