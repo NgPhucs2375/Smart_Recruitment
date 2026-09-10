@@ -1,4 +1,5 @@
 using Application.DTOs.Email;
+using Application.DTOs.ThongBao;
 using Application.Interfaces;
 using Domain.Entities;
 using Domain.Enums;
@@ -11,7 +12,7 @@ using LoiMoiNhanSu = Domain.Entities.LoiMoiNhanSu;
 namespace Application.Services.StateMachineLoiMoi
 {
     /// <summary>
-    /// 1. Tạo thông báo trong app cho Người đại diện sau mỗi transition.
+    /// 1. Tạo thông báo trong app cho Người đại diện sau mỗi transition + đẩy realtime.
     /// 2. Email cho Người đại diện khi lời mời được chấp nhận / từ chối.
     /// 3. Email cho người được mời khi lời mời bị thu hồi.
     /// Mail mời ban đầu do InviteNhanSuCommand gửi lúc tạo (creation không phải trigger).
@@ -22,15 +23,18 @@ namespace Application.Services.StateMachineLoiMoi
         private readonly IApplicationDbContext _context;
         private readonly IEmailService _email;
         private readonly IUserEmailResolver _emailResolver;
+        private readonly INotificationPushService _push;
 
         public LoiMoiNhanSuWorkflowService(
             IApplicationDbContext context,
             IEmailService email,
-            IUserEmailResolver emailResolver)
+            IUserEmailResolver emailResolver,
+            INotificationPushService push)
         {
             _context = context;
             _email = email;
             _emailResolver = emailResolver;
+            _push = push;
         }
 
         /// <summary>
@@ -47,16 +51,19 @@ namespace Application.Services.StateMachineLoiMoi
                 ? entity.Email
                 : $"{entity.HoTen} ({entity.Email})";
 
-            // 1) Thông báo trong app cho Người đại diện
+            // 1) Thông báo trong app cho Người đại diện + đẩy realtime.
             if (entity.NguoiDaiDienId > 0)
             {
+                var tieuDe = TieuDeThongBao(trigger);
+                var noiDung = string.IsNullOrWhiteSpace(note) || note == trigger.ToString()
+                    ? NoiDungThongBao(trigger, tenDn, nguoiDuocMoi)
+                    : $"{NoiDungThongBao(trigger, tenDn, nguoiDuocMoi)}\n\nGhi chú: {note}";
+
                 _context.Notifications.Add(new Notification
                 {
                     LoaiThongBao = LoaiThongBao.LoiMoiNhanSu,
-                    TieuDe = TieuDeThongBao(trigger),
-                    NoiDung = string.IsNullOrWhiteSpace(note) || note == trigger.ToString()
-                        ? NoiDungThongBao(trigger, tenDn, nguoiDuocMoi)
-                        : $"{NoiDungThongBao(trigger, tenDn, nguoiDuocMoi)}\n\nGhi chú: {note}",
+                    TieuDe = tieuDe,
+                    NoiDung = noiDung,
                     ReferenceType = nameof(LoiMoiNhanSu),
                     ReferenceId = entity.Id,
                     Recipients = new List<NotificationRecipient>
@@ -64,6 +71,18 @@ namespace Application.Services.StateMachineLoiMoi
                         new() { NguoiDungId = entity.NguoiDaiDienId, IsRead = false } // lúc này mới tạo chưa đã đọc
                     }
                 });
+
+                await _push.PushToUserAsync(
+                    entity.NguoiDaiDienId,
+                    new ThongBaoDTO
+                    {
+                        TieuDe = tieuDe,
+                        NoiDung = noiDung,
+                        LoaiThongBao = LoaiThongBao.LoiMoiNhanSu,
+                        ReferenceType = nameof(LoiMoiNhanSu),
+                        ReferenceId = entity.Id
+                    },
+                    ct);
             }
 
             // 2) Email cho Người đại diện khi lời mời được chấp nhận / từ chối

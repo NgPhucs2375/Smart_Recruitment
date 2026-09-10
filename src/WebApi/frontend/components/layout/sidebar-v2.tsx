@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LogOut, Menu, Sparkles, X } from "lucide-react";
@@ -14,13 +15,21 @@ export function AppSidebarV2() {
   const { open } = useSidebar();
   const pathname = usePathname();
   const identity = useStoredIdentity();
+  // Chờ mount ở client mới đọc identity từ localStorage.
+  // Tránh flash: lần vẽ đầu hiện recruiter menu rồi giật sang admin menu.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
   const isAdministrator = identity?.roles.some((role) => role.trim().toUpperCase() === "QUAN_TRI_VIEN") ?? false;
   const workspaceItems = getWorkspaceNavigation(identity?.roles);
-  const visibleItems = workspaceItems.filter((item) =>
-    !item.permission ||
-    isAdministrator ||
-    (identity && hasPermission(identity.permissions, item.permission.resource, item.permission.action)),
-  );
+  const visibleItems = !mounted
+    ? []
+    : workspaceItems.filter((item) =>
+      !item.permission ||
+      isAdministrator ||
+      (identity && hasPermission(identity.permissions, item.permission.resource, item.permission.action)),
+    );
 
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border bg-sidebar">

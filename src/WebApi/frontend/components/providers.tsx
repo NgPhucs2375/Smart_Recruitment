@@ -30,6 +30,8 @@ const resources = [
   { name: "user-roles", list: "/user-roles", meta: { label: "User Roles", icon: <Users />, requiredResource: "roles" } },
   { name: "permission-matrix", list: "/permission-matrix", meta: { label: "Permission Matrix", icon: <ShieldCheck />, requiredResource: "roleclaims" } },
   { name: "regulatory-requests", list: "/regulatory-requests", meta: { label: "Regulatory Requests", icon: <FileCheck2 />, requiredResource: "regulatory-requests" } },
+  // Lưu ý: menu sidebar thật nằm ở components/navigation/navigation-config.ts
+  // (AppSidebarV2 đọc từ đó). Không thêm mục menu vào resources ở đây.
 ];
 
 export function Providers({ children }: { children: React.ReactNode }) {

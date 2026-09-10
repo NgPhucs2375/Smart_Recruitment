@@ -85,6 +85,10 @@ namespace Infrastructure.Identity.Services
 
             // Kiểm tra Mật khẩu
             var result = await _signInManager.PasswordSignInAsync(user.UserName, request.Password, false, lockoutOnFailure: false);
+            if (result.IsLockedOut || await _userManager.IsLockedOutAsync(user))
+            {
+                throw new ApiException($"Tài khoản '{request.Email}' đã bị khóa. Vui lòng liên hệ quản trị viên.");
+            }
             if (!result.Succeeded)
             {
                 throw new ApiException($"Thông tin đăng nhập không hợp lệ cho '{request.Email}'.");

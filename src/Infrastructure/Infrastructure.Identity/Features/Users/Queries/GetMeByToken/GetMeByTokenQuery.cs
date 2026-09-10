@@ -26,7 +26,10 @@ namespace Infrastructure.Identity.Features.Users.Queries.GetMeByToken
                 var email = FindClaimValue(request.Identity, ClaimTypes.Email);
                 var name = FindClaimValue(request.Identity, ClaimTypes.NameIdentifier);
                 var fullname = FindClaimValue(request.Identity, "fullname");
-                var roles = FindAllClaimValues(request.Identity, ClaimTypes.Role).ToArray();
+                var allRoleValues = FindAllClaimValues(request.Identity, ClaimTypes.Role).ToList();
+                // JWT inbound mapping có thể đẩy claim "roles" (chuỗi JSON quyền)
+                // vào nhóm Role — loại blob JSON khỏi danh sách vai trò.
+                var roles = allRoleValues.Where(v => !IsJsonBlob(v)).ToArray();
                 var uid = FindClaimValue(request.Identity, "uid");
                 var avatarUrl = FindClaimValue(request.Identity, "AvatarUrl");
                 var avatarUid = FindClaimValue(request.Identity, "AvatarUid");
@@ -38,8 +41,11 @@ namespace Infrastructure.Identity.Features.Users.Queries.GetMeByToken
                 var id = uid ?? FindClaimValue(request.Identity, ClaimTypes.NameIdentifier) ?? "";
 
                 // Parse permissions from "roles" JSON claims (injected by AccountService.GenerateJWToken)
+                // + fallback: blob JSON nằm lẫn trong Role claims do inbound mapping.
                 var permissions = new List<PermissionDto>();
-                var roleJsonClaims = request.Identity.FindAll("roles").Select(c => c.Value).ToList();
+                var roleJsonClaims = request.Identity.FindAll("roles").Select(c => c.Value)
+                    .Concat(allRoleValues.Where(IsJsonBlob))
+                    .ToList();
                 foreach (var json in roleJsonClaims)
                 {
                     try
@@ -85,6 +91,12 @@ namespace Infrastructure.Identity.Features.Users.Queries.GetMeByToken
         private static string FindClaimValue(ClaimsIdentity identity, string claimType)
         {
             return identity.FindFirst(claimType)?.Value;
+        }
+
+        private static bool IsJsonBlob(string value)
+        {
+            return !string.IsNullOrWhiteSpace(value)
+                && value.TrimStart().StartsWith("{");
         }
 
         private static IEnumerable<string> FindAllClaimValues(ClaimsIdentity identity, string claimType)

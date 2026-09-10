@@ -1,4 +1,5 @@
 using Application.DTOs.Email;
+using Application.DTOs.ThongBao;
 using Application.Interfaces;
 using Domain.Entities;
 using Domain.Enums;
@@ -11,9 +12,10 @@ using System.Threading.Tasks;
 namespace Application.Services.StateMachineTinTuyenDung
 {
     /// <summary>
-    /// 1. Tạo thông báo cho HR đăng tin sau mỗi transition.
-    /// 2. Email cho HR khi có kết quả kiểm duyệt / tin bị khóa.
-    /// 3. Cascade trực tiếp: tin Dong/HetHan/BiKhoa -&gt; các đơn đang dở dang sang TinTuyenDungBiDong
+    /// 1. Tạo thông báo cho HR đăng tin sau mỗi transition + đẩy realtime.
+    /// 2. Báo thêm cho Người đại diện khi tin dính kiểm duyệt/vi phạm.
+    /// 3. Email cho HR khi có kết quả kiểm duyệt / tin bị khóa.
+    /// 4. Cascade trực tiếp: tin Dong/HetHan/BiKhoa -&gt; các đơn đang dở dang sang TinTuyenDungBiDong
     ///    kèm thông báo cho từng ứng viên (không qua DonUngTuyenStateMachine để tránh vòng phụ thuộc).
     /// </summary>
     public class TinTuyenDungWorkflowService : ITinTuyenDungWorkflowService
@@ -21,6 +23,7 @@ namespace Application.Services.StateMachineTinTuyenDung
         private readonly IApplicationDbContext _context;
         private readonly IEmailService _email;
         private readonly IUserEmailResolver _emailResolver;
+        private readonly INotificationPushService _push;
 
         // Các đơn "đang dở dang" cần cascade khi tin đóng/hết hạn/bị khóa
         private static readonly TrangThaiDonUngTuyen[] DonDangDo =
@@ -30,14 +33,25 @@ namespace Application.Services.StateMachineTinTuyenDung
             TrangThaiDonUngTuyen.PhuHop
         };
 
+        // Trigger liên quan kiểm duyệt/vi phạm — cần báo thêm Người đại diện.
+        private static readonly TriggerTinTuyenDung[] TriggerBaoChuDoanhNghiep =
+        {
+            TriggerTinTuyenDung.PhatHienNghiVan,
+            TriggerTinTuyenDung.HeThongTuChoi,
+            TriggerTinTuyenDung.AdminTuChoi,
+            TriggerTinTuyenDung.AdminCuongCheKhoa
+        };
+
         public TinTuyenDungWorkflowService(
             IApplicationDbContext context,
             IEmailService email,
-            IUserEmailResolver emailResolver)
+            IUserEmailResolver emailResolver,
+            INotificationPushService push)
         {
             _context = context;
             _email = email;
             _emailResolver = emailResolver;
+            _push = push;
         }
 
         /// <summary>
@@ -51,23 +65,45 @@ namespace Application.Services.StateMachineTinTuyenDung
         {
             string tieuDe = string.IsNullOrWhiteSpace(entity.TieuDe) ? $"Tin #{entity.Id}" : entity.TieuDe;
 
-            // 1) Thông báo trong app cho HR đăng tin
+            var noiDung = string.IsNullOrWhiteSpace(note) || note == trigger.ToString()
+                ? NoiDungThongBao(trigger, tieuDe)
+                : $"{NoiDungThongBao(trigger, tieuDe)}\n\nGhi chú: {note}";
+
+            // 1) Thông báo trong app cho HR đăng tin + đẩy realtime.
             if (entity.NguoiDangTinId > 0)
             {
-                _context.Notifications.Add(new Notification
+                await ThemThongBaoAsync(
+                    entity.NguoiDangTinId,
+                    LoaiThongBao.ViecLamMoi,
+                    TieuDeThongBao(trigger),
+                    noiDung,
+                    nameof(TinTuyenDung),
+                    entity.Id,
+                    ct);
+            }
+
+            // 1b) Báo thêm Người đại diện khi tin dính kiểm duyệt/vi phạm.
+            if (TriggerBaoChuDoanhNghiep.Contains(trigger))
+            {
+                var chuDoanhNghiepId = await _context.DoanhNghieps
+                    .AsNoTracking()
+                    .Where(d => d.Id == entity.DoanhNghiepId)
+                    .Select(d => d.NguoiDaiDienId)
+                    .FirstOrDefaultAsync(ct);
+
+                if (chuDoanhNghiepId.HasValue
+                    && chuDoanhNghiepId.Value > 0
+                    && chuDoanhNghiepId.Value != entity.NguoiDangTinId)
                 {
-                    LoaiThongBao = LoaiThongBao.ViecLamMoi,
-                    TieuDe = TieuDeThongBao(trigger),
-                    NoiDung = string.IsNullOrWhiteSpace(note) || note == trigger.ToString()
-                        ? NoiDungThongBao(trigger, tieuDe)
-                        : $"{NoiDungThongBao(trigger, tieuDe)}\n\nGhi chú: {note}",
-                    ReferenceType = nameof(TinTuyenDung),
-                    ReferenceId = entity.Id,
-                    Recipients = new List<NotificationRecipient>
-                    {
-                        new() { NguoiDungId = entity.NguoiDangTinId, IsRead = false } // lúc này mới tạo chưa đã đọc
-                    }
-                });
+                    await ThemThongBaoAsync(
+                        chuDoanhNghiepId.Value,
+                        LoaiThongBao.ViecLamMoi,
+                        TieuDeThongBao(trigger),
+                        noiDung,
+                        nameof(TinTuyenDung),
+                        entity.Id,
+                        ct);
+                }
             }
 
             // 2) Email cho HR khi có kết quả kiểm duyệt / tin bị khóa
@@ -103,11 +139,14 @@ namespace Application.Services.StateMachineTinTuyenDung
                     int ungVienId = don.CVUngVien?.HoSoUngVien?.NguoiDungId ?? 0;
                     if (ungVienId > 0)
                     {
+                        var tieuDeCascade = "Tin tuyển dụng bạn đã ứng tuyển đã đóng";
+                        var noiDungCascade = $"Tin {tieuDe} đã {LyDoDongTin(trigger)} nên đơn ứng tuyển của bạn được ghi nhận dừng xử lý.";
+
                         _context.Notifications.Add(new Notification
                         {
                             LoaiThongBao = LoaiThongBao.DonUngTuyen,
-                            TieuDe = "Tin tuyển dụng bạn đã ứng tuyển đã đóng",
-                            NoiDung = $"Tin {tieuDe} đã {LyDoDongTin(trigger)} nên đơn ứng tuyển của bạn được ghi nhận dừng xử lý.",
+                            TieuDe = tieuDeCascade,
+                            NoiDung = noiDungCascade,
                             ReferenceType = nameof(DonUngTuyen),
                             ReferenceId = don.Id,
                             Recipients = new List<NotificationRecipient>
@@ -115,9 +154,56 @@ namespace Application.Services.StateMachineTinTuyenDung
                                 new() { NguoiDungId = ungVienId, IsRead = false }
                             }
                         });
+
+                        await _push.PushToUserAsync(
+                            ungVienId,
+                            new ThongBaoDTO
+                            {
+                                TieuDe = tieuDeCascade,
+                                NoiDung = noiDungCascade,
+                                LoaiThongBao = LoaiThongBao.DonUngTuyen,
+                                ReferenceType = nameof(DonUngTuyen),
+                                ReferenceId = don.Id
+                            },
+                            ct);
                     }
                 }
             }
+        }
+
+        private async Task ThemThongBaoAsync(
+            int nguoiDungId,
+            LoaiThongBao loai,
+            string tieuDe,
+            string noiDung,
+            string referenceType,
+            int referenceId,
+            CancellationToken ct)
+        {
+            _context.Notifications.Add(new Notification
+            {
+                LoaiThongBao = loai,
+                TieuDe = tieuDe,
+                NoiDung = noiDung,
+                ReferenceType = referenceType,
+                ReferenceId = referenceId,
+                Recipients = new List<NotificationRecipient>
+                {
+                    new() { NguoiDungId = nguoiDungId, IsRead = false } // lúc này mới tạo chưa đã đọc
+                }
+            });
+
+            await _push.PushToUserAsync(
+                nguoiDungId,
+                new ThongBaoDTO
+                {
+                    TieuDe = tieuDe,
+                    NoiDung = noiDung,
+                    LoaiThongBao = loai,
+                    ReferenceType = referenceType,
+                    ReferenceId = referenceId
+                },
+                ct);
         }
 
         // Chỉ gửi email ở mốc kết quả kiểm duyệt / khóa tin

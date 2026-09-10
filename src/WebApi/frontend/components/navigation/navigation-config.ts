@@ -7,6 +7,8 @@ import {
   LayoutDashboard,
   Settings,
   ShieldCheck,
+  Tags,
+  UserCog,
   Users,
 } from "lucide-react";
 
@@ -30,8 +32,10 @@ export const recruiterNavigation: NavigationItem[] = [
 
 export const adminNavigation: NavigationItem[] = [
   { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { title: "Quản lý người dùng", href: "/user-roles", icon: Users, permission: { resource: "roles", action: "list" } },
-  { title: "Duyệt tin tuyển dụng", href: "/regulatory-requests", icon: ShieldCheck },
+  { title: "Quản lý người dùng", href: "/admin/nguoi-dung", icon: UserCog, permission: { resource: "nguoidungs", action: "list" } },
+  { title: "Quản lý doanh nghiệp", href: "/admin/doanh-nghiep", icon: Building2, permission: { resource: "doanhnghieps", action: "list" } },
+  { title: "Duyệt tin tuyển dụng", href: "/admin/tin-tuyen-dung", icon: ShieldCheck, permission: { resource: "tintuyendungs", action: "list" } },
+  { title: "Quản lý danh mục", href: "/admin/danh-muc", icon: Tags, permission: { resource: "danhmucnghes", action: "list" } },
   { title: "Quản lý CV/mẫu CV", href: "/CV", icon: FileCheck },
   { title: "Báo cáo và thống kê", href: "/reports", icon: BarChart3 },
   { title: "Phân quyền", href: "/permission-matrix", icon: ShieldCheck, permission: { resource: "roleclaims", action: "list" } },

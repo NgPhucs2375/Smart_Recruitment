@@ -71,6 +71,7 @@ _services.AddApiVersioningExtension();
 _services.AddHealthChecks();
 _services.AddSignalR();
 _services.AddScoped<INotificationService, NotificationService>();
+_services.AddScoped<Application.Interfaces.INotificationPushService, NotificationPushService>();
 _services.AddScoped<IAuthenticatedUserService, AuthenticatedUserService>();
 _services.AddScoped<ICurrentNguoiDungService,CurrentNguoiDungService>();
 _services.AddHostedService<WebApp.Server.Jobs.TinTuyenDungHetHanJob>();

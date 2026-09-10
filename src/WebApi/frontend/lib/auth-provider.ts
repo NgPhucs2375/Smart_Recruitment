@@ -36,12 +36,45 @@ function normalizeMeResponse(value: unknown): MeResponse | null {
     return null;
   }
 
-  return {
-    id,
-    email,
-    userName,
-    roles: roles.filter((role): role is string => typeof role === "string"),
-    permissions: permissions.flatMap((permission) => {
+  // Roles có thể lẫn blob JSON quyền (do JWT inbound mapping đẩy claim
+  // "roles" vào nhóm Role) — bóc tách: giữ tên role, trích permissions nhúng.
+  const cleanRoles: string[] = [];
+  const embeddedPermissions: { resource: string; action: string }[] = [];
+  for (const role of roles) {
+    if (typeof role !== "string") continue;
+    const trimmed = role.trim();
+    if (!trimmed.startsWith("{")) {
+      cleanRoles.push(role);
+      continue;
+    }
+    try {
+      const parsed = JSON.parse(trimmed) as {
+        role?: unknown;
+        permissions?: unknown;
+      };
+      if (typeof parsed.role === "string" && parsed.role) cleanRoles.push(parsed.role);
+      if (Array.isArray(parsed.permissions)) {
+        for (const p of parsed.permissions) {
+          if (!p || typeof p !== "object") continue;
+          const rec = p as Record<string, unknown>;
+          const resource = rec.resource ?? rec.Resource;
+          const acts = rec.action ?? rec.Action;
+          const list = Array.isArray(acts) ? acts : [acts];
+          for (const a of list) {
+            if (typeof resource === "string" && typeof a === "string") {
+              embeddedPermissions.push({ resource, action: a });
+            }
+          }
+        }
+      }
+    } catch {
+      // Bỏ qua blob lỗi — không chặn đăng nhập
+    }
+  }
+
+  const seen = new Set<string>();
+  const mergedPermissions = [
+    ...permissions.flatMap((permission) => {
       if (!permission || typeof permission !== "object") return [];
       const item = permission as Record<string, unknown>;
       const resource = item.resource ?? item.Resource;
@@ -50,6 +83,20 @@ function normalizeMeResponse(value: unknown): MeResponse | null {
         ? [{ resource, action }]
         : [];
     }),
+    ...embeddedPermissions,
+  ].filter((p) => {
+    const key = `${p.resource}::${p.action}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+
+  return {
+    id,
+    email,
+    userName,
+    roles: [...new Set(cleanRoles)],
+    permissions: mergedPermissions,
   };
 }
 
@@ -128,6 +175,29 @@ async function attemptRefresh(): Promise<boolean> {
 
 export function getAuthToken(): string | null {
   return getToken();
+}
+
+function parseJwtExp(token: string): number | null {
+  try {
+    const parts = token.split(".");
+    if (parts.length < 2 || !parts[1]) return null;
+    const json = atob(parts[1].replace(/-/g, "+").replace(/_/g, "/"));
+    const payload = JSON.parse(json) as { exp?: unknown };
+    return typeof payload.exp === "number" ? payload.exp * 1000 : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Trả về token còn hạn; tự refresh khi sắp hết hạn (<60s). Null nếu không có/không refresh được. */
+export async function getValidToken(): Promise<string | null> {
+  const token = getToken();
+  if (!token) return null;
+  const exp = parseJwtExp(token);
+  if (exp !== null && exp - Date.now() > 60_000) return token;
+  // Hết hạn hoặc không đọc được exp → thử refresh
+  const refreshed = await attemptRefresh();
+  return refreshed ? getToken() : null;
 }
 
 /** Re-fetch /me and refresh the cached identity + permissions in localStorage.

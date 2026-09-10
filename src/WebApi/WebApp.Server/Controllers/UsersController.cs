@@ -70,6 +70,26 @@ namespace WebApp.Server.Controllers.Identity
         }
 
 
+        // PUT: api/users/5/lock
+        [HttpPut("{id}/lock")]
+        public async Task<IActionResult> Lock(string id)
+        {
+            return await EnforcePermissionAndExecute("users", "edit", async () =>
+            {
+                return Ok(await Mediator.Send(new LockUserCommand { Id = id }));
+            });
+        }
+
+        // PUT: api/users/5/unlock
+        [HttpPut("{id}/unlock")]
+        public async Task<IActionResult> Unlock(string id)
+        {
+            return await EnforcePermissionAndExecute("users", "edit", async () =>
+            {
+                return Ok(await Mediator.Send(new UnlockUserCommand { Id = id }));
+            });
+        }
+
         // DELETE: api/users/delete/5
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(string id)

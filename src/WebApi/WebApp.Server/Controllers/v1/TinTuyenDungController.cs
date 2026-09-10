@@ -22,7 +22,7 @@ namespace WebApp.Server.Controllers.v1
         [HttpGet]
         public async Task<IActionResult> Get([FromQuery] GetAllTinTuyenDungsParameter filter)
         {
-            return await EnforcePermissionAndExecute("tinvuyendungs", "list", async () =>
+            return await EnforcePermissionAndExecute("tintuyendungs", "list", async () =>
             {
                 return Ok(await Mediator.Send(new GetAllTinTuyenDungsQuery
                 {
@@ -38,7 +38,7 @@ namespace WebApp.Server.Controllers.v1
         [HttpGet("show/{id}")]
         public async Task<IActionResult> Show(int id)
         {
-            return await EnforcePermissionAndExecute("tinvuyendungs", "show", async () =>
+            return await EnforcePermissionAndExecute("tintuyendungs", "show", async () =>
             {
                 return Ok(await Mediator.Send(new GetTinTuyenDungByIdQuery { Id = id }));
             });
@@ -47,7 +47,7 @@ namespace WebApp.Server.Controllers.v1
         [HttpPost]
         public async Task<IActionResult> Create(CreateTinTuyenDungCommand command)
         {
-            return await EnforcePermissionAndExecute("tinvuyendungs", "create", async () =>
+            return await EnforcePermissionAndExecute("tintuyendungs", "create", async () =>
             {
                 return Ok(await Mediator.Send(command));
             });
@@ -56,7 +56,7 @@ namespace WebApp.Server.Controllers.v1
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(int id, UpdateTinTuyenDungCommand command)
         {
-            return await EnforcePermissionAndExecute("tinvuyendungs", "edit", async () =>
+            return await EnforcePermissionAndExecute("tintuyendungs", "edit", async () =>
             {
                 if (id != command.Id) return BadRequest();
                 return Ok(await Mediator.Send(command));
@@ -66,7 +66,7 @@ namespace WebApp.Server.Controllers.v1
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {
-            return await EnforcePermissionAndExecute("tinvuyendungs", "delete", async () =>
+            return await EnforcePermissionAndExecute("tintuyendungs", "delete", async () =>
             {
                 return Ok(await Mediator.Send(new DeleteTinTuyenDungCommand { Id = id }));
             });
@@ -75,7 +75,7 @@ namespace WebApp.Server.Controllers.v1
         [HttpPost("{id}/fire")]
         public async Task<IActionResult> Fire(int id, FireTinTuyenDungTriggerCommand command)
         {
-            return await EnforcePermissionAndExecute("tinvuyendungs", "edit", async () =>
+            return await EnforcePermissionAndExecute("tintuyendungs", "edit", async () =>
             {
                 if (id != command.Id) return BadRequest();
                 return Ok(await Mediator.Send(command));
