@@ -10,21 +10,30 @@ public class DeleteKetQuaPhanTichCvByIdCommand : IRequest<Response<int>>
     public int Id { get; set; }
 }
 
-public class DeleteKetQuaPhanTichCvByIdCommandHandler(IApplicationDbContext context) 
+public class DeleteKetQuaPhanTichCvByIdCommandHandler(
+    IApplicationDbContext context)
     : IRequestHandler<DeleteKetQuaPhanTichCvByIdCommand, Response<int>>
 {
-    public async Task<Response<int>> Handle(DeleteKetQuaPhanTichCvByIdCommand request, CancellationToken cancellationToken)
+    public async Task<Response<int>> Handle(
+        DeleteKetQuaPhanTichCvByIdCommand request,
+        CancellationToken cancellationToken)
     {
-        var entity = await context.KetQuaPhanTichCvs.FindAsync([request.Id], cancellationToken);
-        
+        var entity = await context.KetQuaPhanTichCvs
+            .FindAsync([request.Id], cancellationToken);
+
         if (entity == null)
         {
-            return new Response<int>("Không tìm thấy kết quả phân tích CV.");
+            return new Response<int>(
+                "Không tìm thấy kết quả phân tích CV.");
         }
 
         context.KetQuaPhanTichCvs.Remove(entity);
-        await context.SaveChangesAsync(cancellationToken);
 
-        return new Response<int>(entity.Id, "Xóa kết quả phân tích CV thành công.");
+        await context.SaveChangesAsync(
+            cancellationToken);
+
+        return new Response<int>(
+            data: entity.Id,
+            message: "Xóa kết quả phân tích CV thành công.");
     }
 }

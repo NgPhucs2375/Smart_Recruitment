@@ -37,12 +37,14 @@ namespace Infrastructure.Persistence.Migrations
                         .HasColumnType("text");
 
                     b.Property<string>("FileUrl")
-                        .IsRequired()
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
                     b.Property<int>("HoSoUngVienId")
                         .HasColumnType("integer");
+
+                    b.Property<bool>("IsDaXoa")
+                        .HasColumnType("boolean");
 
                     b.Property<bool>("IsDefault")
                         .HasColumnType("boolean");
@@ -53,25 +55,19 @@ namespace Infrastructure.Persistence.Migrations
                     b.Property<string>("LastModifiedBy")
                         .HasColumnType("text");
 
-                    b.Property<string>("LoiChiTiet")
-                        .HasColumnType("text");
-
                     b.Property<DateTime?>("NgayUpload")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<int>("PhuongThucTaoCV")
-                        .HasColumnType("integer");
+                    b.Property<string>("NoiDungJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("TemplateId")
+                        .HasColumnType("text");
 
                     b.Property<string>("TenFile")
-                        .IsRequired()
                         .HasMaxLength(255)
                         .HasColumnType("character varying(255)");
-
-                    b.Property<int>("TrangThaiCV")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("TrangThaiTienTrinhCV")
-                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 
@@ -243,9 +239,6 @@ namespace Infrastructure.Persistence.Migrations
                     b.Property<string>("GhiChu")
                         .HasColumnType("text");
 
-                    b.Property<int>("HoSoUngVienId")
-                        .HasColumnType("integer");
-
                     b.Property<DateTime?>("LastModified")
                         .HasColumnType("timestamp with time zone");
 
@@ -269,8 +262,6 @@ namespace Infrastructure.Persistence.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("CVUngVienId");
-
-                    b.HasIndex("HoSoUngVienId");
 
                     b.HasIndex("TinTuyenDungId");
 
@@ -947,12 +938,6 @@ namespace Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("Domain.Entities.HoSoUngVien", "HoSoUngVien")
-                        .WithMany("DonUngTuyens")
-                        .HasForeignKey("HoSoUngVienId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
                     b.HasOne("Domain.Entities.TinTuyenDung", "TinTuyenDung")
                         .WithMany("DonUngTuyens")
                         .HasForeignKey("TinTuyenDungId")
@@ -960,8 +945,6 @@ namespace Infrastructure.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("CVUngVien");
-
-                    b.Navigation("HoSoUngVien");
 
                     b.Navigation("TinTuyenDung");
                 });
@@ -1171,8 +1154,6 @@ namespace Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Domain.Entities.HoSoUngVien", b =>
                 {
                     b.Navigation("CVUngViens");
-
-                    b.Navigation("DonUngTuyens");
 
                     b.Navigation("KetQuaPhuHops");
 

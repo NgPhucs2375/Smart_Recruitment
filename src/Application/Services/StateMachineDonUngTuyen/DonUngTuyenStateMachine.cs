@@ -152,9 +152,9 @@ namespace Application.Services.StateMachineDonUngTuyen
                 case TriggerDonUngTuyen.NopLaiHoSo:
                     if (ctx.VaiTro != VaiTroNguoiDung.UNG_VIEN)
                         throw new ApiException("Chỉ ứng viên mới được thực hiện hành động này.");
-                    // Entity load kèm HoSoUngVien thì đối chiếu NguoiDungId; nếu chưa Include navigation
+                    // Entity load kèm CVUngVien.HoSoUngVien thì đối chiếu NguoiDungId; nếu chưa Include navigation
                     // thì quyền sở hữu đã được kiểm tra ở command handler nên cho qua.
-                    if (_entity.HoSoUngVien != null && _entity.HoSoUngVien.NguoiDungId != ctx.Id)
+                    if (_entity.CVUngVien?.HoSoUngVien != null && _entity.CVUngVien.HoSoUngVien.NguoiDungId != ctx.Id)
                         throw new ApiException("Bạn không phải người nộp đơn này.", 403);
                     break;
 

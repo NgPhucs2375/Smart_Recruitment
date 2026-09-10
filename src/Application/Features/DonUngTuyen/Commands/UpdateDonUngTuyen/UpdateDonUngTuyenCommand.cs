@@ -17,39 +17,44 @@ namespace Application.Features.DonUngTuyen.Commands.UpdateDonUngTuyen
         public string GhiChu { get; set; }
     }
 
-    public class UpdateDonUngTuyenCommandHandler : IRequestHandler<UpdateDonUngTuyenCommand, Response<int>>
+    public class UpdateDonUngTuyenCommandHandler(
+        IApplicationDbContext context,
+        ICurrentNguoiDungService current,
+        IDonUngTuyenWorkflowService workflow)
+        : IRequestHandler<UpdateDonUngTuyenCommand, Response<int>>
     {
-        private readonly IApplicationDbContext _context;
-        private readonly ICurrentNguoiDungService _current;
-        private readonly IDonUngTuyenWorkflowService _workflow;
-
-        public UpdateDonUngTuyenCommandHandler(
-            IApplicationDbContext context,
-            ICurrentNguoiDungService current,
-            IDonUngTuyenWorkflowService workflow)
-        {
-            _context = context;
-            _current = current;
-            _workflow = workflow;
-        }
-
-        public async Task<Response<int>> Handle(UpdateDonUngTuyenCommand r, CancellationToken ct)
+        public async Task<Response<int>> Handle(
+            UpdateDonUngTuyenCommand request,
+            CancellationToken cancellationToken)
         {
             // Trigger hệ thống (tiếp nhận/job/cascade) không đi qua API
-            if (DonUngTuyenStateMachine.LaTriggerHeThong(r.Trigger))
-                return new Response<int>("Hành động này chỉ hệ thống được thực hiện.");
+            if (DonUngTuyenStateMachine.LaTriggerHeThong(request.Trigger))
+            {
+                return new Response<int>(
+                    "Hành động này chỉ hệ thống được thực hiện.");
+            }
 
-            var entity = await _context.DonUngTuyens
+            var entity = await context.DonUngTuyens
                 .Include(d => d.TinTuyenDung)
-                .Include(d => d.HoSoUngVien)
-                .FirstOrDefaultAsync(d => d.Id == r.Id, ct);
-            if (entity == null)
-                return new Response<int>("Không tìm thấy đơn ứng tuyển.");
+                .Include(d => d.CVUngVien).ThenInclude(cv => cv.HoSoUngVien)
+                .FirstOrDefaultAsync(
+                    d => d.Id == request.Id,
+                    cancellationToken);
 
-            var sm = new DonUngTuyenStateMachine(_workflow, _current, entity);
+            if (entity == null)
+            {
+                return new Response<int>(
+                    "Không tìm thấy đơn ứng tuyển.");
+            }
+
+            var sm = new DonUngTuyenStateMachine(workflow, current, entity);
+
             try
             {
-                await sm.FireAsync(r.Trigger, r.GhiChu ?? string.Empty, ct);
+                await sm.FireAsync(
+                    request.Trigger,
+                    request.GhiChu ?? string.Empty,
+                    cancellationToken);
             }
             catch (ApiException ex)
             {
@@ -57,17 +62,22 @@ namespace Application.Features.DonUngTuyen.Commands.UpdateDonUngTuyen
             }
 
             // Lưu lý do duyệt/từ chối; chỉ gán người xử lý cho hành động của HR
-            entity.GhiChu = r.GhiChu;
-            if (r.Trigger == TriggerDonUngTuyen.XemDon
-                || r.Trigger == TriggerDonUngTuyen.DanhGiaPhuHop
-                || r.Trigger == TriggerDonUngTuyen.TuChoi)
+            entity.GhiChu = request.GhiChu?.Trim();
+
+            if (request.Trigger == TriggerDonUngTuyen.XemDon
+                || request.Trigger == TriggerDonUngTuyen.DanhGiaPhuHop
+                || request.Trigger == TriggerDonUngTuyen.TuChoi)
             {
-                var ctx = await _current.ResolveAsync();
+                var ctx = await current.ResolveAsync();
                 entity.NguoiXuLyId = ctx.Id;
             }
 
-            await _context.SaveChangesAsync(ct);
-            return new Response<int>(entity.Id, "Cập nhật đơn ứng tuyển thành công.");
+            await context.SaveChangesAsync(
+                cancellationToken);
+
+            return new Response<int>(
+                data: entity.Id,
+                message: "Cập nhật đơn ứng tuyển thành công.");
         }
     }
 }

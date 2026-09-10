@@ -24,44 +24,63 @@ namespace Application.Features.TinTuyenDung.Commands.CreateTinTuyenDung
         public System.DateTime? NgayHetHan { get; set; }
     }
 
-    public class CreateTinTuyenDungCommandHandler : IRequestHandler<CreateTinTuyenDungCommand, Response<int>>
+    public class CreateTinTuyenDungCommandHandler(
+        IApplicationDbContext context,
+        ICurrentNguoiDungService current)
+        : IRequestHandler<CreateTinTuyenDungCommand, Response<int>>
     {
-        private readonly IApplicationDbContext _context;
-        private readonly ICurrentNguoiDungService _current;
-
-        public CreateTinTuyenDungCommandHandler(IApplicationDbContext context, ICurrentNguoiDungService current)
+        public async Task<Response<int>> Handle(
+            CreateTinTuyenDungCommand request,
+            CancellationToken cancellationToken)
         {
-            _context = context;
-            _current = current;
-        }
+            var ctx = await current.ResolveAsync();
 
-        public async Task<Response<int>> Handle(CreateTinTuyenDungCommand r, CancellationToken ct)
-        {
-            var ctx = await _current.ResolveAsync();
             if (ctx.DoanhNghiepId == null)
-                throw new ApiException("Bạn chưa thuộc doanh nghiệp nào.");
+            {
+                throw new ApiException(
+                    "Bạn chưa thuộc doanh nghiệp nào.");
+            }
+
+            var danhMucTonTai = await context.DanhMucNghes
+                .AsNoTracking()
+                .AnyAsync(
+                    x => x.Id == request.DanhMucNgheId,
+                    cancellationToken);
+
+            if (!danhMucTonTai)
+            {
+                return new Response<int>(
+                    "Không tìm thấy danh mục nghề.");
+            }
 
             var entity = new Domain.Entities.TinTuyenDung
             {
                 DoanhNghiepId = ctx.DoanhNghiepId.Value,
                 NguoiDangTinId = ctx.Id,
-                DanhMucNgheId = r.DanhMucNgheId,
-                TieuDe = r.TieuDe,
-                MoTaCongViec = r.MoTaCongViec,
-                KinhNghiemYeuCau = r.KinhNghiemYeuCau,
-                YeuCauCongViec = r.YeuCauCongViec,
-                QuyenLoi = r.QuyenLoi,
-                DiaDiemLamViec = r.DiaDiemLamViec,
-                LuongToiThieu = r.LuongToiThieu,
-                LuongToiDa = r.LuongToiDa,
+                DanhMucNgheId = request.DanhMucNgheId,
+                TieuDe = request.TieuDe?.Trim(),
+                MoTaCongViec = request.MoTaCongViec?.Trim(),
+                KinhNghiemYeuCau = request.KinhNghiemYeuCau?.Trim(),
+                YeuCauCongViec = request.YeuCauCongViec?.Trim(),
+                QuyenLoi = request.QuyenLoi?.Trim(),
+                DiaDiemLamViec = request.DiaDiemLamViec?.Trim(),
+                LuongToiThieu = request.LuongToiThieu,
+                LuongToiDa = request.LuongToiDa,
                 // State machine: tin mới luôn bắt đầu ở Nhap, muốn công khai phải qua funnel (GuiDuyet)
                 TrangThai = TrangThaiTinTuyenDung.Nhap,
-                NgayHetHan = r.NgayHetHan
+                NgayHetHan = request.NgayHetHan
             };
 
-            await _context.TinTuyenDungs.AddAsync(entity, ct);
-            await _context.SaveChangesAsync(ct);
-            return new Response<int>(entity.Id, "Tạo tin tuyển dụng thành công.");
+            await context.TinTuyenDungs.AddAsync(
+                entity,
+                cancellationToken);
+
+            await context.SaveChangesAsync(
+                cancellationToken);
+
+            return new Response<int>(
+                data: entity.Id,
+                message: "Tạo tin tuyển dụng thành công.");
         }
     }
 }

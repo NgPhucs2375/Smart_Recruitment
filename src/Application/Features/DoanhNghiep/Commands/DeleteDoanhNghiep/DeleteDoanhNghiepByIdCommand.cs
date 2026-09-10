@@ -5,16 +5,62 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Application.Features.DoanhNghiep.Commands.DeleteDoanhNghiep;
 
-public class DeleteDoanhNghiepByIdCommand : IRequest<Response<int>> { public int Id { get; set; } }
-
-public class DeleteDoanhNghiepByIdCommandHandler(IApplicationDbContext context) : IRequestHandler<DeleteDoanhNghiepByIdCommand, Response<int>>
+public class DeleteDoanhNghiepByIdCommand : IRequest<Response<int>>
 {
-    public async Task<Response<int>> Handle(DeleteDoanhNghiepByIdCommand request, CancellationToken cancellationToken)
+    public int Id { get; set; }
+}
+
+public class DeleteDoanhNghiepByIdCommandHandler(
+    IApplicationDbContext context)
+    : IRequestHandler<DeleteDoanhNghiepByIdCommand, Response<int>>
+{
+    public async Task<Response<int>> Handle(
+        DeleteDoanhNghiepByIdCommand request,
+        CancellationToken cancellationToken)
     {
-        var entity = await context.DoanhNghieps.AsTracking().FirstOrDefaultAsync(x => x.Id == request.Id, cancellationToken);
-        if (entity == null) return new Response<int>("Không tìm thấy doanh nghiệp.");
-        if (await context.TinTuyenDungs.AnyAsync(x => x.DoanhNghiepId == request.Id, cancellationToken)) return new Response<int>("Không thể xóa doanh nghiệp đang có tin tuyển dụng.");
-        if (await context.HoSoNhaTuyenDungs.AnyAsync(x => x.DoanhNghiepId == request.Id, cancellationToken)) return new Response<int>("Không thể xóa doanh nghiệp đang có hồ sơ nhà tuyển dụng.");
-        context.DoanhNghieps.Remove(entity); await context.SaveChangesAsync(cancellationToken); return new Response<int>(data: entity.Id, message: "Xóa doanh nghiệp thành công.");
+        var entity = await context.DoanhNghieps
+            .AsTracking()
+            .FirstOrDefaultAsync(
+                x => x.Id == request.Id,
+                cancellationToken);
+
+        if (entity == null)
+        {
+            return new Response<int>(
+                "Không tìm thấy doanh nghiệp.");
+        }
+
+        var coTinTuyenDung = await context.TinTuyenDungs
+            .AsNoTracking()
+            .AnyAsync(
+                x => x.DoanhNghiepId == request.Id,
+                cancellationToken);
+
+        if (coTinTuyenDung)
+        {
+            return new Response<int>(
+                "Không thể xóa doanh nghiệp đang có tin tuyển dụng.");
+        }
+
+        var coHoSo = await context.HoSoNhaTuyenDungs
+            .AsNoTracking()
+            .AnyAsync(
+                x => x.DoanhNghiepId == request.Id,
+                cancellationToken);
+
+        if (coHoSo)
+        {
+            return new Response<int>(
+                "Không thể xóa doanh nghiệp đang có hồ sơ nhà tuyển dụng.");
+        }
+
+        context.DoanhNghieps.Remove(entity);
+
+        await context.SaveChangesAsync(
+            cancellationToken);
+
+        return new Response<int>(
+            data: entity.Id,
+            message: "Xóa doanh nghiệp thành công.");
     }
 }

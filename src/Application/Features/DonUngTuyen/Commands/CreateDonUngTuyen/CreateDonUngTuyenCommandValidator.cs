@@ -6,13 +6,12 @@ public class CreateDonUngTuyenCommandValidator : AbstractValidator<CreateDonUngT
 {
     public CreateDonUngTuyenCommandValidator()
     {
-        RuleFor(x => x.HoSoUngVienId)
-            .GreaterThan(0);
-
         RuleFor(x => x.TinTuyenDungId)
-            .GreaterThan(0);
+            .GreaterThan(0)
+            .WithMessage("Tin tuyển dụng không hợp lệ.");
 
         RuleFor(x => x.CVUngVienId)
-            .GreaterThan(0);
+            .GreaterThan(0)
+            .WithMessage("CV ứng viên không hợp lệ.");
     }
 }

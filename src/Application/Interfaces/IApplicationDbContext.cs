@@ -12,7 +12,6 @@ namespace Application.Interfaces
         DbSet<NotificationRecipient> NotificationRecipients { get; set; }
         DbSet<TinTuyenDung> TinTuyenDungs { get; set; }
         DbSet<KyNang> KyNangs { get; set; }
-        DbSet<KyNangUngVien> KyNangUngViens { get; set; }
         DbSet<KyNangTinTuyenDung> KyNangTinTuyenDungs { get; set; }
         DbSet<KetQuaPhanTichCv> KetQuaPhanTichCvs { get; set; }
         DbSet<KetQuaPhuHop> KetQuaPhuHops { get; set; }
@@ -23,7 +22,6 @@ namespace Application.Interfaces
         DbSet<DoanhNghiep> DoanhNghieps { get; set; }
         DbSet<DanhMucNghe> DanhMucNghes { get; set; }
         DbSet<CVUngVien> CVUngViens { get; set; }
-        DbSet<KinhNghiemLamViec> KinhNghiemLamViecs { get; set; }
         DbSet<DanhGia> DanhGias { get; set; }
         Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
     }

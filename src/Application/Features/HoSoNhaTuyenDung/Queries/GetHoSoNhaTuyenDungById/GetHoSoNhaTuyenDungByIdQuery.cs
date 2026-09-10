@@ -12,25 +12,29 @@ namespace Application.Features.HoSoNhaTuyenDung.Queries.GetHoSoNhaTuyenDungById
         public int Id { get; set; }
     }
 
-    public class GetHoSoNhaTuyenDungByIdQueryHandler : IRequestHandler<GetHoSoNhaTuyenDungByIdQuery, Response<GetAllHoSoNhaTuyenDungs.GetAllHoSoNhaTuyenDungsViewModel>>
+    public class GetHoSoNhaTuyenDungByIdQueryHandler(
+        IApplicationDbContext context,
+        IMapper mapper)
+        : IRequestHandler<GetHoSoNhaTuyenDungByIdQuery, Response<GetAllHoSoNhaTuyenDungs.GetAllHoSoNhaTuyenDungsViewModel>>
     {
-        private readonly IApplicationDbContext _context;
-        private readonly IMapper _mapper;
-
-        public GetHoSoNhaTuyenDungByIdQueryHandler(IApplicationDbContext context, IMapper mapper)
+        public async Task<Response<GetAllHoSoNhaTuyenDungs.GetAllHoSoNhaTuyenDungsViewModel>> Handle(
+            GetHoSoNhaTuyenDungByIdQuery request,
+            CancellationToken cancellationToken)
         {
-            _context = context;
-            _mapper = mapper;
-        }
+            var entity = await context.HoSoNhaTuyenDungs
+                .FindAsync([request.Id], cancellationToken);
 
-        public async Task<Response<GetAllHoSoNhaTuyenDungs.GetAllHoSoNhaTuyenDungsViewModel>> Handle(GetHoSoNhaTuyenDungByIdQuery request, CancellationToken cancellationToken)
-        {
-            var entity = await _context.HoSoNhaTuyenDungs.FindAsync(request.Id);
             if (entity == null)
-                return new Response<GetAllHoSoNhaTuyenDungs.GetAllHoSoNhaTuyenDungsViewModel>("Không tìm thấy hồ sơ nhà tuyển dụng.");
+            {
+                return new Response<GetAllHoSoNhaTuyenDungs.GetAllHoSoNhaTuyenDungsViewModel>(
+                    "Không tìm thấy hồ sơ nhà tuyển dụng.");
+            }
 
-            var result = _mapper.Map<GetAllHoSoNhaTuyenDungs.GetAllHoSoNhaTuyenDungsViewModel>(entity);
-            return new Response<GetAllHoSoNhaTuyenDungs.GetAllHoSoNhaTuyenDungsViewModel>(result);
+            var result = mapper.Map<GetAllHoSoNhaTuyenDungs.GetAllHoSoNhaTuyenDungsViewModel>(
+                entity);
+
+            return new Response<GetAllHoSoNhaTuyenDungs.GetAllHoSoNhaTuyenDungsViewModel>(
+                result);
         }
     }
 }

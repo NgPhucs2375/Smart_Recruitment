@@ -93,11 +93,6 @@ p, QUAN_TRI_VIEN, ketquaphuhops, delete
 p, QUAN_TRI_VIEN, ketquaphuhops, edit
 p, QUAN_TRI_VIEN, ketquaphuhops, list
 p, QUAN_TRI_VIEN, ketquaphuhops, show
-p, QUAN_TRI_VIEN, kinhnghiemlamviecs, create
-p, QUAN_TRI_VIEN, kinhnghiemlamviecs, delete
-p, QUAN_TRI_VIEN, kinhnghiemlamviecs, edit
-p, QUAN_TRI_VIEN, kinhnghiemlamviecs, list
-p, QUAN_TRI_VIEN, kinhnghiemlamviecs, show
 p, QUAN_TRI_VIEN, kynangs, create
 p, QUAN_TRI_VIEN, kynangs, delete
 p, QUAN_TRI_VIEN, kynangs, edit
@@ -108,11 +103,6 @@ p, QUAN_TRI_VIEN, kynangtintuyendungs, delete
 p, QUAN_TRI_VIEN, kynangtintuyendungs, edit
 p, QUAN_TRI_VIEN, kynangtintuyendungs, list
 p, QUAN_TRI_VIEN, kynangtintuyendungs, show
-p, QUAN_TRI_VIEN, kynangungviens, create
-p, QUAN_TRI_VIEN, kynangungviens, delete
-p, QUAN_TRI_VIEN, kynangungviens, edit
-p, QUAN_TRI_VIEN, kynangungviens, list
-p, QUAN_TRI_VIEN, kynangungviens, show
 p, QUAN_TRI_VIEN, lichphongvans, create
 p, QUAN_TRI_VIEN, lichphongvans, delete
 p, QUAN_TRI_VIEN, lichphongvans, edit

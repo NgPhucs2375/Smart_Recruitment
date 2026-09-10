@@ -21,28 +21,41 @@ namespace Application.Features.NhanSu.Queries.GetAllNhanSus
         public string VaiTro { get; set; }
     }
 
-    public class GetAllNhanSusQueryHandler : IRequestHandler<GetAllNhanSusQuery, Response<IEnumerable<NhanSuVm>>>
+    public class GetAllNhanSusQueryHandler(
+        IApplicationDbContext context,
+        IAuthenticatedUserService auth)
+        : IRequestHandler<GetAllNhanSusQuery, Response<IEnumerable<NhanSuVm>>>
     {
-        private readonly IApplicationDbContext _context;
-        private readonly IAuthenticatedUserService _auth;
-
-        public GetAllNhanSusQueryHandler(IApplicationDbContext context, IAuthenticatedUserService auth)
+        public async Task<Response<IEnumerable<NhanSuVm>>> Handle(
+            GetAllNhanSusQuery request,
+            CancellationToken cancellationToken)
         {
-            _context = context;
-            _auth = auth;
-        }
+            var ndd = await context.NguoiDungs
+                .AsNoTracking()
+                .FirstOrDefaultAsync(
+                    x => x.ApplicationUserId == auth.UserId,
+                    cancellationToken);
 
-        public async Task<Response<IEnumerable<NhanSuVm>>> Handle(GetAllNhanSusQuery q, CancellationToken ct)
-        {
-            var ndd = await _context.NguoiDungs.FirstOrDefaultAsync(n => n.ApplicationUserId == _auth.UserId, ct);
             if (ndd == null)
-                return new Response<IEnumerable<NhanSuVm>>("Không xác định người dùng.");
+            {
+                return new Response<IEnumerable<NhanSuVm>>(
+                    "Không xác định người dùng.");
+            }
 
-            var hs = await _context.HoSoNhaTuyenDungs.FirstOrDefaultAsync(h => h.NguoiDungId == ndd.Id, ct);
+            var hs = await context.HoSoNhaTuyenDungs
+                .AsNoTracking()
+                .FirstOrDefaultAsync(
+                    x => x.NguoiDungId == ndd.Id,
+                    cancellationToken);
+
             if (hs == null)
-                return new Response<IEnumerable<NhanSuVm>>("Không xác định doanh nghiệp.");
+            {
+                return new Response<IEnumerable<NhanSuVm>>(
+                    "Không xác định doanh nghiệp.");
+            }
 
-            var list = await _context.HoSoNhaTuyenDungs
+            var list = await context.HoSoNhaTuyenDungs
+                .AsNoTracking()
                 .Include(h => h.NguoiDung)
                 .Where(h => h.DoanhNghiepId == hs.DoanhNghiepId)
                 .Select(h => new NhanSuVm
@@ -53,7 +66,7 @@ namespace Application.Features.NhanSu.Queries.GetAllNhanSus
                     ChucVu = h.ChucVu,
                     VaiTro = h.NguoiDung.VaiTro.ToString()
                 })
-                .ToListAsync(ct);
+                .ToListAsync(cancellationToken);
 
             return new Response<IEnumerable<NhanSuVm>>(list);
         }

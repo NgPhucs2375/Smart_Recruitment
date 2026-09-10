@@ -40,19 +40,19 @@ public class CreateDoanhNghiepCommandHandler(IApplicationDbContext context, ICur
         }
 
         if (!string.IsNullOrWhiteSpace(request.MaSoThue) &&
-            await context.DoanhNghieps.AnyAsync(d => d.MaSoThue == request.MaSoThue, cancellationToken))
-            throw new ApiException($"Mã số thuế '{request.MaSoThue}' đã được sử dụng.");
+            await context.DoanhNghieps.AnyAsync(d => d.MaSoThue == request.MaSoThue.Trim(), cancellationToken))
+            throw new ApiException($"Mã số thuế '{request.MaSoThue.Trim()}' đã được sử dụng.");
 
         var entity = new DoanhNghiepEntity
         {
-            TenDoanhNghiep = request.TenDoanhNghiep,
-            MoTa = request.MoTa,
-            Website = request.Website,
-            DiaChi = request.DiaChi,
-            LogoUrl = request.LogoUrl,
-            MaSoThue = request.MaSoThue,
-            LinhVucHoatDong = request.LinhVucHoatDong,
-            QuyMoNhanSu = request.QuyMoNhanSu,
+            TenDoanhNghiep = request.TenDoanhNghiep?.Trim(),
+            MoTa = request.MoTa?.Trim(),
+            Website = request.Website?.Trim(),
+            DiaChi = request.DiaChi?.Trim(),
+            LogoUrl = request.LogoUrl?.Trim(),
+            MaSoThue = request.MaSoThue?.Trim(),
+            LinhVucHoatDong = request.LinhVucHoatDong?.Trim(),
+            QuyMoNhanSu = request.QuyMoNhanSu?.Trim(),
             // NGUOI_DAI_DIEN tự tạo thì gán mình làm owner; ADMIN tạo hộ thì để null, gán sau.
             NguoiDaiDienId = ctx.VaiTro == VaiTroNguoiDung.NGUOI_DAI_DIEN ? ctx.Id : null
         };

@@ -38,17 +38,17 @@ public class UpdateDoanhNghiepCommandHandler(IApplicationDbContext context, ICur
             throw new ApiException("Bạn không có quyền cập nhật doanh nghiệp này.", 403);
 
         if (!string.IsNullOrWhiteSpace(request.MaSoThue) &&
-            await context.DoanhNghieps.AnyAsync(d => d.Id != request.Id && d.MaSoThue == request.MaSoThue, cancellationToken))
-            throw new ApiException($"Mã số thuế '{request.MaSoThue}' đã được sử dụng.");
+            await context.DoanhNghieps.AnyAsync(d => d.Id != request.Id && d.MaSoThue == request.MaSoThue.Trim(), cancellationToken))
+            throw new ApiException($"Mã số thuế '{request.MaSoThue.Trim()}' đã được sử dụng.");
 
-        entity.TenDoanhNghiep = request.TenDoanhNghiep;
-        entity.MoTa = request.MoTa;
-        entity.Website = request.Website;
-        entity.DiaChi = request.DiaChi;
-        entity.LogoUrl = request.LogoUrl;
-        entity.MaSoThue = request.MaSoThue;
-        entity.LinhVucHoatDong = request.LinhVucHoatDong;
-        entity.QuyMoNhanSu = request.QuyMoNhanSu;
+        entity.TenDoanhNghiep = request.TenDoanhNghiep?.Trim();
+        entity.MoTa = request.MoTa?.Trim();
+        entity.Website = request.Website?.Trim();
+        entity.DiaChi = request.DiaChi?.Trim();
+        entity.LogoUrl = request.LogoUrl?.Trim();
+        entity.MaSoThue = request.MaSoThue?.Trim();
+        entity.LinhVucHoatDong = request.LinhVucHoatDong?.Trim();
+        entity.QuyMoNhanSu = request.QuyMoNhanSu?.Trim();
         await context.SaveChangesAsync(cancellationToken);
         return new Response<int>(data: entity.Id, message: "Cập nhật doanh nghiệp thành công.");
     }

@@ -12,25 +12,29 @@ namespace Application.Features.KetQuaPhuHop.Queries.GetKetQuaPhuHopById
         public int Id { get; set; }
     }
 
-    public class GetKetQuaPhuHopByIdQueryHandler : IRequestHandler<GetKetQuaPhuHopByIdQuery, Response<GetAllKetQuaPhuHops.GetAllKetQuaPhuHopsViewModel>>
+    public class GetKetQuaPhuHopByIdQueryHandler(
+        IApplicationDbContext context,
+        IMapper mapper)
+        : IRequestHandler<GetKetQuaPhuHopByIdQuery, Response<GetAllKetQuaPhuHops.GetAllKetQuaPhuHopsViewModel>>
     {
-        private readonly IApplicationDbContext _context;
-        private readonly IMapper _mapper;
-
-        public GetKetQuaPhuHopByIdQueryHandler(IApplicationDbContext context, IMapper mapper)
+        public async Task<Response<GetAllKetQuaPhuHops.GetAllKetQuaPhuHopsViewModel>> Handle(
+            GetKetQuaPhuHopByIdQuery request,
+            CancellationToken cancellationToken)
         {
-            _context = context;
-            _mapper = mapper;
-        }
+            var entity = await context.KetQuaPhuHops
+                .FindAsync([request.Id], cancellationToken);
 
-        public async Task<Response<GetAllKetQuaPhuHops.GetAllKetQuaPhuHopsViewModel>> Handle(GetKetQuaPhuHopByIdQuery request, CancellationToken cancellationToken)
-        {
-            var entity = await _context.KetQuaPhuHops.FindAsync(request.Id);
             if (entity == null)
-                return new Response<GetAllKetQuaPhuHops.GetAllKetQuaPhuHopsViewModel>("Khong tim thay ket qua phu hop.");
+            {
+                return new Response<GetAllKetQuaPhuHops.GetAllKetQuaPhuHopsViewModel>(
+                    "Không tìm thấy kết quả phù hợp.");
+            }
 
-            var result = _mapper.Map<GetAllKetQuaPhuHops.GetAllKetQuaPhuHopsViewModel>(entity);
-            return new Response<GetAllKetQuaPhuHops.GetAllKetQuaPhuHopsViewModel>(result);
+            var result = mapper.Map<GetAllKetQuaPhuHops.GetAllKetQuaPhuHopsViewModel>(
+                entity);
+
+            return new Response<GetAllKetQuaPhuHops.GetAllKetQuaPhuHopsViewModel>(
+                result);
         }
     }
 }

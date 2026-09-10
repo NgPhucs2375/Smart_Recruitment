@@ -20,6 +20,8 @@ import {
   User,
   Phone,
   Building2,
+  MapPin,
+  Briefcase,
   ArrowRight,
   Sparkles,
   CheckCircle2,
@@ -143,19 +145,51 @@ export default function RegisterPage() {
           />
 
           {pwdRole === "NGUOI_DAI_DIEN" && (
-            <div className="space-y-1">
-              <Label className="text-xs font-medium text-gray-700">Tên Doanh nghiệp / Tổ chức</Label>
-              <div className="relative">
-                <Building2 className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
-                <Input
-                  {...registerPwd("companyName")}
-                  disabled={isPwdPending}
-                  placeholder="Công ty Công nghệ..."
-                  className="h-10 rounded-xl border-[#d8d5ce] bg-white pl-10 text-sm"
-                />
+            <>
+              <div className="space-y-1">
+                <Label className="text-xs font-medium text-gray-700">Tên Doanh nghiệp / Tổ chức</Label>
+                <div className="relative">
+                  <Building2 className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
+                  <Input
+                    {...registerPwd("tenDoanhNghiep")}
+                    disabled={isPwdPending}
+                    placeholder="Công ty Công nghệ..."
+                    className="h-10 rounded-xl border-[#d8d5ce] bg-white pl-10 text-sm"
+                  />
+                </div>
+                {pwdErrors.tenDoanhNghiep && <p className="text-xs text-red-500">{pwdErrors.tenDoanhNghiep.message}</p>}
               </div>
-              {pwdErrors.companyName && <p className="text-xs text-red-500">{pwdErrors.companyName.message}</p>}
-            </div>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="space-y-1">
+                  <Label className="text-xs font-medium text-gray-700">Địa chỉ doanh nghiệp</Label>
+                  <div className="relative">
+                    <MapPin className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
+                    <Input
+                      {...registerPwd("diaChiDoanhNghiep")}
+                      disabled={isPwdPending}
+                      placeholder="Số nhà, đường, quận, thành phố..."
+                      className="h-10 rounded-xl border-[#d8d5ce] bg-white pl-10 text-sm"
+                    />
+                  </div>
+                  {pwdErrors.diaChiDoanhNghiep && <p className="text-xs text-red-500">{pwdErrors.diaChiDoanhNghiep.message}</p>}
+                </div>
+
+                <div className="space-y-1">
+                  <Label className="text-xs font-medium text-gray-700">Chức vụ</Label>
+                  <div className="relative">
+                    <Briefcase className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
+                    <Input
+                      {...registerPwd("chucVu")}
+                      disabled={isPwdPending}
+                      placeholder="VD: Giám đốc, Trưởng phòng..."
+                      className="h-10 rounded-xl border-[#d8d5ce] bg-white pl-10 text-sm"
+                    />
+                  </div>
+                  {pwdErrors.chucVu && <p className="text-xs text-red-500">{pwdErrors.chucVu.message}</p>}
+                </div>
+              </div>
+            </>
           )}
 
           <div className="grid gap-3 sm:grid-cols-2">

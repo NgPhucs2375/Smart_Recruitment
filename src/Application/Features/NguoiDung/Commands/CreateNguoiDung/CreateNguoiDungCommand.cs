@@ -2,40 +2,58 @@ using Application.Interfaces;
 using Application.Wrappers;
 using Domain.Enums;
 using MediatR;
-using System.Threading;
-using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
+using NguoiDungEntity = global::Domain.Entities.NguoiDung;
 
-namespace Application.Features.NguoiDung.Commands.CreateNguoiDung
+namespace Application.Features.NguoiDung.Commands.CreateNguoiDung;
+
+public class CreateNguoiDungCommand : IRequest<Response<int>>
 {
-    public class CreateNguoiDungCommand : IRequest<Response<int>>
-    {
-        public string ApplicationUserId { get; set; }
-        public VaiTroNguoiDung VaiTro { get; set; }
-        public bool IsActive { get; set; } = true;
-    }
+    public string ApplicationUserId { get; set; }
 
-    public class CreateNguoiDungCommandHandler : IRequestHandler<CreateNguoiDungCommand, Response<int>>
-    {
-        private readonly IApplicationDbContext _context;
+    public VaiTroNguoiDung VaiTro { get; set; }
 
-        public CreateNguoiDungCommandHandler(IApplicationDbContext context)
+    public bool IsActive { get; set; } = true;
+}
+
+public class CreateNguoiDungCommandHandler(
+    IApplicationDbContext context)
+    : IRequestHandler<CreateNguoiDungCommand, Response<int>>
+{
+    public async Task<Response<int>> Handle(
+        CreateNguoiDungCommand request,
+        CancellationToken cancellationToken)
+    {
+        var applicationUserId = request.ApplicationUserId?.Trim();
+
+        var daTonTai = await context.NguoiDungs
+            .AsNoTracking()
+            .AnyAsync(
+                x => x.ApplicationUserId == applicationUserId,
+                cancellationToken);
+
+        if (daTonTai)
         {
-            _context = context;
+            return new Response<int>(
+                "Người dùng này đã tồn tại.");
         }
 
-        public async Task<Response<int>> Handle(CreateNguoiDungCommand request, CancellationToken cancellationToken)
+        var entity = new NguoiDungEntity
         {
-            var entity = new Domain.Entities.NguoiDung
-            {
-                ApplicationUserId = request.ApplicationUserId,
-                VaiTro = request.VaiTro,
-                IsActive = request.IsActive
-            };
+            ApplicationUserId = applicationUserId,
+            VaiTro = request.VaiTro,
+            IsActive = request.IsActive
+        };
 
-            await _context.NguoiDungs.AddAsync(entity, cancellationToken);
-            await _context.SaveChangesAsync(cancellationToken);
+        await context.NguoiDungs.AddAsync(
+            entity,
+            cancellationToken);
 
-            return new Response<int>(data: entity.Id, message: "Tạo người dùng thành công.");
-        }
+        await context.SaveChangesAsync(
+            cancellationToken);
+
+        return new Response<int>(
+            data: entity.Id,
+            message: "Tạo người dùng thành công.");
     }
 }

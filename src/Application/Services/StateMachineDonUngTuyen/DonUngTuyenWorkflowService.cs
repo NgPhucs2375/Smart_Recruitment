@@ -40,7 +40,7 @@ namespace Application.Services.StateMachineDonUngTuyen
             string note,
             CancellationToken ct = default)
         {
-            int UngVienId = entity.HoSoUngVien?.NguoiDungId ?? 0;
+            int UngVienId = entity.CVUngVien?.HoSoUngVien?.NguoiDungId ?? 0;
             string TieuDeTin = entity.TinTuyenDung?.TieuDe ?? "vị trí ứng tuyển";
 
             // 1) Thông báo trong app cho ứng viên

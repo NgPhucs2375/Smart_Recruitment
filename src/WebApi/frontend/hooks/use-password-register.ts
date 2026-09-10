@@ -27,7 +27,9 @@ export function usePasswordRegister() {
       role: "UNG_VIEN",
       hoTen: "",
       soDienThoai: "",
-      companyName: "",
+      tenDoanhNghiep: "",
+      diaChiDoanhNghiep: "",
+      chucVu: "",
     },
   });
 

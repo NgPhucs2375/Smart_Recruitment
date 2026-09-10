@@ -28,7 +28,6 @@ namespace Infrastructure.Persistence.Contexts
         public DbSet<NotificationRecipient> NotificationRecipients { get; set; }
         public DbSet<TinTuyenDung> TinTuyenDungs { get; set; }
         public DbSet<KyNang> KyNangs { get; set; }
-        public DbSet<KyNangUngVien> KyNangUngViens { get; set; }
         public DbSet<KyNangTinTuyenDung> KyNangTinTuyenDungs { get; set; }
         public DbSet<KetQuaPhanTichCv> KetQuaPhanTichCvs { get; set; }
         public DbSet<KetQuaPhuHop> KetQuaPhuHops { get; set; }
@@ -39,7 +38,6 @@ namespace Infrastructure.Persistence.Contexts
         public DbSet<DoanhNghiep> DoanhNghieps { get; set; }
         public DbSet<DanhMucNghe> DanhMucNghes { get; set; }
         public DbSet<CVUngVien> CVUngViens { get; set; }
-        public DbSet<KinhNghiemLamViec> KinhNghiemLamViecs { get; set; }
         public DbSet<DanhGia> DanhGias {get; set;}
 
         public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = new CancellationToken())

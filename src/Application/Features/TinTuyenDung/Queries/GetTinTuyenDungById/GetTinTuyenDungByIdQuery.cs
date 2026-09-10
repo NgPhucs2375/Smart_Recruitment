@@ -14,31 +14,38 @@ namespace Application.Features.TinTuyenDung.Queries.GetTinTuyenDungById
         public int Id { get; set; }
     }
 
-    public class GetTinTuyenDungByIdQueryHandler : IRequestHandler<GetTinTuyenDungByIdQuery, Response<GetAllTinTuyenDungs.GetAllTinTuyenDungsViewModel>>
+    public class GetTinTuyenDungByIdQueryHandler(
+        IApplicationDbContext context,
+        ICurrentNguoiDungService current)
+        : IRequestHandler<GetTinTuyenDungByIdQuery, Response<GetAllTinTuyenDungs.GetAllTinTuyenDungsViewModel>>
     {
-        private readonly IApplicationDbContext _context;
-        private readonly ICurrentNguoiDungService _current;
-
-        public GetTinTuyenDungByIdQueryHandler(IApplicationDbContext context, ICurrentNguoiDungService current)
+        public async Task<Response<GetAllTinTuyenDungs.GetAllTinTuyenDungsViewModel>> Handle(
+            GetTinTuyenDungByIdQuery request,
+            CancellationToken cancellationToken)
         {
-            _context = context;
-            _current = current;
-        }
+            var entity = await context.TinTuyenDungs
+                .FindAsync([request.Id], cancellationToken);
 
-        public async Task<Response<GetAllTinTuyenDungs.GetAllTinTuyenDungsViewModel>> Handle(GetTinTuyenDungByIdQuery q, CancellationToken ct)
-        {
-            var entity = await _context.TinTuyenDungs.FindAsync(q.Id);
             if (entity == null)
-                return new Response<GetAllTinTuyenDungs.GetAllTinTuyenDungsViewModel>("Không tìm thấy tin tuyển dụng.");
+            {
+                return new Response<GetAllTinTuyenDungs.GetAllTinTuyenDungsViewModel>(
+                    "Không tìm thấy tin tuyển dụng.");
+            }
 
-            var ctx = await _current.ResolveAsync();
-            bool accessible = ctx.VaiTro == VaiTroNguoiDung.UNG_VIEN
+            var ctx = await current.ResolveAsync();
+
+            var accessible = ctx.VaiTro == VaiTroNguoiDung.UNG_VIEN
                 ? entity.TrangThai == TrangThaiTinTuyenDung.DangTuyen
-                : (ctx.VaiTro == VaiTroNguoiDung.NGUOI_DAI_DIEN
+                : ctx.VaiTro == VaiTroNguoiDung.NGUOI_DAI_DIEN
                     ? entity.DoanhNghiepId == ctx.DoanhNghiepId
-                    : (ctx.VaiTro == VaiTroNguoiDung.NHAN_SU ? entity.NguoiDangTinId == ctx.Id : false));
+                    : ctx.VaiTro == VaiTroNguoiDung.NHAN_SU &&
+                      entity.NguoiDangTinId == ctx.Id;
+
             if (!accessible)
-                throw new ApiException("Bạn không có quyền xem tin tuyển dụng này.", 403);
+            {
+                throw new ApiException(
+                    "Bạn không có quyền xem tin tuyển dụng này.", 403);
+            }
 
             var vm = new GetAllTinTuyenDungs.GetAllTinTuyenDungsViewModel
             {
@@ -52,6 +59,7 @@ namespace Application.Features.TinTuyenDung.Queries.GetTinTuyenDungById
                 NguoiDangTinId = entity.NguoiDangTinId,
                 DoanhNghiepId = entity.DoanhNghiepId
             };
+
             return new Response<GetAllTinTuyenDungs.GetAllTinTuyenDungsViewModel>(vm);
         }
     }

@@ -20,43 +20,51 @@ namespace Application.Features.TinTuyenDung.Commands.FireTinTuyenDungTrigger
         public string GhiChu { get; set; }
     }
 
-    public class FireTinTuyenDungTriggerCommandHandler : IRequestHandler<FireTinTuyenDungTriggerCommand, Response<int>>
+    public class FireTinTuyenDungTriggerCommandHandler(
+        IApplicationDbContext context,
+        ICurrentNguoiDungService current,
+        ITinTuyenDungWorkflowService workflow)
+        : IRequestHandler<FireTinTuyenDungTriggerCommand, Response<int>>
     {
-        private readonly IApplicationDbContext _context;
-        private readonly ICurrentNguoiDungService _current;
-        private readonly ITinTuyenDungWorkflowService _workflow;
-
-        public FireTinTuyenDungTriggerCommandHandler(
-            IApplicationDbContext context,
-            ICurrentNguoiDungService current,
-            ITinTuyenDungWorkflowService workflow)
+        public async Task<Response<int>> Handle(
+            FireTinTuyenDungTriggerCommand request,
+            CancellationToken cancellationToken)
         {
-            _context = context;
-            _current = current;
-            _workflow = workflow;
-        }
+            if (TinTuyenDungStateMachine.LaTriggerHeThong(request.Trigger))
+            {
+                return new Response<int>(
+                    "Hành động này chỉ hệ thống được thực hiện.");
+            }
 
-        public async Task<Response<int>> Handle(FireTinTuyenDungTriggerCommand r, CancellationToken ct)
-        {
-            if (TinTuyenDungStateMachine.LaTriggerHeThong(r.Trigger))
-                return new Response<int>("Hành động này chỉ hệ thống được thực hiện.");
+            var entity = await context.TinTuyenDungs
+                .FindAsync([request.Id], cancellationToken);
 
-            var entity = await _context.TinTuyenDungs.FindAsync(new object[] { r.Id }, ct);
             if (entity == null)
-                return new Response<int>("Không tìm thấy tin tuyển dụng.");
+            {
+                return new Response<int>(
+                    "Không tìm thấy tin tuyển dụng.");
+            }
 
-            var machine = new TinTuyenDungStateMachine(_workflow, _current, entity);
+            var machine = new TinTuyenDungStateMachine(workflow, current, entity);
+
             try
             {
-                await machine.FireAsync(r.Trigger, r.GhiChu ?? string.Empty, ct);
+                await machine.FireAsync(
+                    request.Trigger,
+                    request.GhiChu ?? string.Empty,
+                    cancellationToken);
             }
             catch (ApiException ex)
             {
                 return new Response<int>(ex.Message);
             }
 
-            await _context.SaveChangesAsync(ct);
-            return new Response<int>(entity.Id, "Cập nhật trạng thái tin thành công.");
+            await context.SaveChangesAsync(
+                cancellationToken);
+
+            return new Response<int>(
+                data: entity.Id,
+                message: "Cập nhật trạng thái tin thành công.");
         }
     }
 }

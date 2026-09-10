@@ -18,50 +18,49 @@ type AiSuggestion = {
   message: string;
 };
 
-export function AiAgent({ data, onUpdate }: AiAgentProps) {
+export function AiAgent({ data }: AiAgentProps) {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [suggestions, setSuggestions] = useState<AiSuggestion[]>([]);
 
   const analyzeCv = () => {
     setIsAnalyzing(true);
 
-    // Simulate AI analysis
+    // Kiểm tra rule-based trên form mới (giữ chỗ cho agent chat thật ở phase 3)
     setTimeout(() => {
+      const lh = data.thongTinLienHe;
       const newSuggestions: AiSuggestion[] = [];
 
-      if (!data.summary) {
+      if (!lh.hoTen || !lh.email || !lh.sdt) {
         newSuggestions.push({
           id: "1",
           type: "warning",
-          message: "CV chưa có phần tóm tắt. Hãy viết 3-4 câu mô tả mục tiêu nghề nghiệp.",
+          message: "Thiếu thông tin liên hệ bắt buộc (họ tên, email, SĐT).",
         });
       }
 
-      if (data.experiences.length === 0) {
+      if (!lh.gioiThieuBanThan) {
         newSuggestions.push({
           id: "2",
           type: "warning",
-          message: "Chưa có kinh nghiệm làm việc. Hãy bổ sung để CV thêm ấn tượng.",
+          message: "CV chưa có phần giới thiệu bản thân. Hãy viết 3-4 câu về mục tiêu và điểm mạnh.",
         });
-      }
-
-      if (data.skills.length < 3) {
+      } else if (lh.gioiThieuBanThan.length < 50) {
         newSuggestions.push({
           id: "3",
-          type: "tip",
-          message: "Nên có ít nhất 5 kỹ năng để tăng khả năng được chú ý.",
+          type: "improvement",
+          message: "Giới thiệu quá ngắn. Hãy mở rộng thêm về kinh nghiệm và mục tiêu.",
         });
       }
 
-      if (data.summary && data.summary.length < 50) {
+      if (data.kinhNghiemLamViec.length === 0 && data.hocVan.length === 0) {
         newSuggestions.push({
           id: "4",
-          type: "improvement",
-          message: "Tóm tắt quá ngắn. Hãy mở rộng thêm về kinh nghiệm và mục tiêu.",
+          type: "warning",
+          message: "CV cần ít nhất một mục kinh nghiệm làm việc hoặc học vấn.",
         });
       }
 
-      if (data.experiences.length > 0 && !data.experiences.some((e) => e.description)) {
+      if (data.kinhNghiemLamViec.length > 0 && !data.kinhNghiemLamViec.some((e) => e.moTa)) {
         newSuggestions.push({
           id: "5",
           type: "tip",
@@ -69,17 +68,33 @@ export function AiAgent({ data, onUpdate }: AiAgentProps) {
         });
       }
 
-      if (newSuggestions.length === 0) {
+      if (data.kyNang.length < 3) {
         newSuggestions.push({
           id: "6",
           type: "tip",
-          message: "CV của bạn đã khá tốt! Hãy kiểm tra lại chính tả trước khi gửi.",
+          message: "Nên có ít nhất 3 kỹ năng để tăng khả năng được chú ý.",
+        });
+      }
+
+      if (data.duAn.length === 0) {
+        newSuggestions.push({
+          id: "7",
+          type: "tip",
+          message: "Thêm dự án đã làm sẽ giúp CV nổi bật hơn, nhất là với IT.",
+        });
+      }
+
+      if (newSuggestions.length === 0) {
+        newSuggestions.push({
+          id: "8",
+          type: "tip",
+          message: "CV của bạn đã khá đầy đủ! Hãy kiểm tra lại chính tả trước khi lưu.",
         });
       }
 
       setSuggestions(newSuggestions);
       setIsAnalyzing(false);
-    }, 1500);
+    }, 800);
   };
 
   const typeConfig = {

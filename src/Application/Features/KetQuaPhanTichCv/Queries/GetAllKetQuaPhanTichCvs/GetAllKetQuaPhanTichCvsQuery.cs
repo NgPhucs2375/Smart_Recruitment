@@ -16,10 +16,14 @@ public class GetAllKetQuaPhanTichCvsQuery : IRequest<Response<List<GetAllKetQuaP
     public int? CVUngVienId { get; set; }
 }
 
-public class GetAllKetQuaPhanTichCvsQueryHandler(IApplicationDbContext context, IMapper mapper) 
+public class GetAllKetQuaPhanTichCvsQueryHandler(
+    IApplicationDbContext context,
+    IMapper mapper)
     : IRequestHandler<GetAllKetQuaPhanTichCvsQuery, Response<List<GetAllKetQuaPhanTichCvsViewModel>>>
 {
-    public async Task<Response<List<GetAllKetQuaPhanTichCvsViewModel>>> Handle(GetAllKetQuaPhanTichCvsQuery request, CancellationToken cancellationToken)
+    public async Task<Response<List<GetAllKetQuaPhanTichCvsViewModel>>> Handle(
+        GetAllKetQuaPhanTichCvsQuery request,
+        CancellationToken cancellationToken)
     {
         var query = context.KetQuaPhanTichCvs.AsNoTracking();
 
@@ -28,17 +32,23 @@ public class GetAllKetQuaPhanTichCvsQueryHandler(IApplicationDbContext context, 
             query = query.Where(x => x.CVUngVienId == request.CVUngVienId.Value);
         }
 
-        var take = request._end - request._start;
-        if (take > 0)
+        var skip = request._start < 0 ? 0 : request._start;
+        var take = request._end - skip;
+
+        if (skip > 0)
         {
-            query = query.Skip(request._start).Take(take);
+            query = query.Skip(skip);
         }
 
+        if (take > 0)
+        {
+            query = query.Take(take);
+        }
 
+        var items = await query.ToListAsync(
+            cancellationToken);
 
         return new Response<List<GetAllKetQuaPhanTichCvsViewModel>>(
-            mapper.Map<List<GetAllKetQuaPhanTichCvsViewModel>>
-            (await query.ToListAsync(cancellationToken))
-        );
+            mapper.Map<List<GetAllKetQuaPhanTichCvsViewModel>>(items));
     }
 }

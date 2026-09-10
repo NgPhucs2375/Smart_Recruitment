@@ -1,5 +1,6 @@
 using Application.Interfaces;
 using Application.Wrappers;
+using Domain.Enums;
 using MediatR;
 using System;
 using System.Threading;
@@ -16,33 +17,54 @@ namespace Application.Features.HoSoUngVien.Commands.UpdateHoSoUngVien
         public string GioiTinh { get; set; }
         public string DiaChi { get; set; }
         public string GioiThieu { get; set; }
+        public string ViTriUngTuyen { get; set; }
+        public double MucLuongMongMuon { get; set; }
+        public bool IsTimViec { get; set; } = true;
     }
 
-    public class UpdateHoSoUngVienCommandHandler : IRequestHandler<UpdateHoSoUngVienCommand, Response<int>>
+    public class UpdateHoSoUngVienCommandHandler(
+        IApplicationDbContext context,
+        ICurrentNguoiDungService current)
+        : IRequestHandler<UpdateHoSoUngVienCommand, Response<int>>
     {
-        private readonly IApplicationDbContext _context;
-
-        public UpdateHoSoUngVienCommandHandler(IApplicationDbContext context)
+        public async Task<Response<int>> Handle(
+            UpdateHoSoUngVienCommand request,
+            CancellationToken cancellationToken)
         {
-            _context = context;
-        }
+            var entity = await context.HoSoUngViens
+                .FindAsync([request.Id], cancellationToken);
 
-        public async Task<Response<int>> Handle(UpdateHoSoUngVienCommand request, CancellationToken cancellationToken)
-        {
-            var entity = await _context.HoSoUngViens.FindAsync(request.Id);
             if (entity == null)
-                return new Response<int>("Không tìm thấy hồ sơ ứng viên.");
+            {
+                return new Response<int>(
+                    "Không tìm thấy hồ sơ ứng viên.");
+            }
 
-            entity.HoTen = request.HoTen;
-            entity.SDT = request.SDT;
+            var ctx = await current.ResolveAsync();
+
+            if (ctx.VaiTro == VaiTroNguoiDung.UNG_VIEN &&
+                entity.NguoiDungId != ctx.Id)
+            {
+                return new Response<int>(
+                    "Bạn chỉ được sửa hồ sơ của chính mình.");
+            }
+
+            entity.HoTen = request.HoTen?.Trim();
+            entity.SDT = request.SDT?.Trim();
             entity.NgaySinh = request.NgaySinh;
-            entity.GioiTinh = request.GioiTinh;
-            entity.DiaChi = request.DiaChi;
-            entity.GioiThieu = request.GioiThieu;
+            entity.GioiTinh = request.GioiTinh?.Trim();
+            entity.DiaChi = request.DiaChi?.Trim();
+            entity.GioiThieu = request.GioiThieu?.Trim();
+            entity.ViTriUngTuyen = request.ViTriUngTuyen?.Trim();
+            entity.MucLuongMongMuon = request.MucLuongMongMuon;
+            entity.IsTimViec = request.IsTimViec;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            await context.SaveChangesAsync(
+                cancellationToken);
 
-            return new Response<int>(data: entity.Id, message: "Cập nhật hồ sơ ứng viên thành công.");
+            return new Response<int>(
+                data: entity.Id,
+                message: "Cập nhật hồ sơ ứng viên thành công.");
         }
     }
 }

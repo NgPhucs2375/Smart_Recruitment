@@ -11,7 +11,6 @@ namespace Domain.Entities
     /// </summary>
     public class DonUngTuyen : AuditableBaseEntity
     {
-        public int HoSoUngVienId { get; set; }
         public int TinTuyenDungId { get; set; }
         public int CVUngVienId { get; set; }
         public int NguoiXuLyId { get; set; } // HR noaf laf nguoi duyet don
@@ -20,7 +19,6 @@ namespace Domain.Entities
         public DateTime? NgayUngTuyen { get; set; }
 
         // ===   === //
-        public HoSoUngVien HoSoUngVien { get; set; }
         public TinTuyenDung TinTuyenDung { get; set; }
         public CVUngVien CVUngVien { get; set; }
         public ICollection<DanhGia> DanhGias { get; set; }

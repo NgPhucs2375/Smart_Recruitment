@@ -91,7 +91,7 @@ namespace Application.Services.StateMachineTinTuyenDung
                 || trigger == TriggerTinTuyenDung.AdminCuongCheKhoa)
             {
                 var dons = await _context.DonUngTuyens
-                    .Include(d => d.HoSoUngVien)
+                    .Include(d => d.CVUngVien).ThenInclude(cv => cv.HoSoUngVien)
                     .Where(d => d.TinTuyenDungId == entity.Id && DonDangDo.Contains(d.TrangThai))
                     .ToListAsync(ct);
 
@@ -100,7 +100,7 @@ namespace Application.Services.StateMachineTinTuyenDung
                     don.TrangThai = TrangThaiDonUngTuyen.TinTuyenDungBiDong;
                     don.GhiChu = $"Tin tuyển dụng đã {LyDoDongTin(trigger)}.";
 
-                    int ungVienId = don.HoSoUngVien?.NguoiDungId ?? 0;
+                    int ungVienId = don.CVUngVien?.HoSoUngVien?.NguoiDungId ?? 0;
                     if (ungVienId > 0)
                     {
                         _context.Notifications.Add(new Notification

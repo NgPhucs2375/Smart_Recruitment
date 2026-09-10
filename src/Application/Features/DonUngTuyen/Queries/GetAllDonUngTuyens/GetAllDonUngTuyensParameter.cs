@@ -9,7 +9,9 @@ namespace Application.Features.DonUngTuyen.Queries.GetAllDonUngTuyens
         public string _filter { get; set; }
 
         public int? HoSoUngVienId { get; set; }
-        
+
+        public int? CVUngVienId { get; set; }
+
         public int? TinTuyenDungId { get; set; }
     }
 }

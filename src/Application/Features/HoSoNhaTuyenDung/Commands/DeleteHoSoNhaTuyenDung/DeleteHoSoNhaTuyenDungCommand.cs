@@ -11,25 +11,31 @@ namespace Application.Features.HoSoNhaTuyenDung.Commands.DeleteHoSoNhaTuyenDung
         public int Id { get; set; }
     }
 
-    public class DeleteHoSoNhaTuyenDungCommandHandler : IRequestHandler<DeleteHoSoNhaTuyenDungCommand, Response<int>>
+    public class DeleteHoSoNhaTuyenDungCommandHandler(
+        IApplicationDbContext context)
+        : IRequestHandler<DeleteHoSoNhaTuyenDungCommand, Response<int>>
     {
-        private readonly IApplicationDbContext _context;
-
-        public DeleteHoSoNhaTuyenDungCommandHandler(IApplicationDbContext context)
+        public async Task<Response<int>> Handle(
+            DeleteHoSoNhaTuyenDungCommand request,
+            CancellationToken cancellationToken)
         {
-            _context = context;
-        }
+            var entity = await context.HoSoNhaTuyenDungs
+                .FindAsync([request.Id], cancellationToken);
 
-        public async Task<Response<int>> Handle(DeleteHoSoNhaTuyenDungCommand request, CancellationToken cancellationToken)
-        {
-            var entity = await _context.HoSoNhaTuyenDungs.FindAsync(request.Id);
             if (entity == null)
-                return new Response<int>("Không tìm thấy hồ sơ nhà tuyển dụng.");
+            {
+                return new Response<int>(
+                    "Không tìm thấy hồ sơ nhà tuyển dụng.");
+            }
 
-            _context.HoSoNhaTuyenDungs.Remove(entity);
-            await _context.SaveChangesAsync(cancellationToken);
+            context.HoSoNhaTuyenDungs.Remove(entity);
 
-            return new Response<int>(data: entity.Id, message: "Xóa hồ sơ nhà tuyển dụng thành công.");
+            await context.SaveChangesAsync(
+                cancellationToken);
+
+            return new Response<int>(
+                data: entity.Id,
+                message: "Xóa hồ sơ nhà tuyển dụng thành công.");
         }
     }
 }

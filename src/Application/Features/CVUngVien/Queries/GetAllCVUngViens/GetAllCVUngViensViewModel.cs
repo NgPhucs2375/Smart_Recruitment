@@ -1,3 +1,3 @@
 using System;
 namespace Application.Features.CVUngVien.Queries.GetAllCVUngViens;
-public class GetAllCVUngViensViewModel { public int Id { get; set; } public int HoSoUngVienId { get; set; } public string TenFile { get; set; } public string FileUrl { get; set; } public DateTime? NgayUpload { get; set; } public bool IsDefault { get; set; } }
+public class GetAllCVUngViensViewModel { public int Id { get; set; } public int HoSoUngVienId { get; set; } public string TenFile { get; set; } public string FileUrl { get; set; } public DateTime? NgayUpload { get; set; } public bool IsDefault { get; set; } public bool IsDaXoa { get; set; } public string TemplateId { get; set; } public string NoiDungJson { get; set; } }
