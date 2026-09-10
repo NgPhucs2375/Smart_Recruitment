@@ -748,17 +748,35 @@ namespace Infrastructure.Identity.Services
                 var validationSettings = new GoogleJsonWebSignature.ValidationSettings
                 {
                     Audience = new[] { configuredClientId },
-                    // Cho phép lệch đồng hồ 5 phút (BE clock chậm/so với Google) — mặc định 30s quá chặt gây "JWT is not yet valid"
-                    IssuedAtClockTolerance = TimeSpan.FromMinutes(5),
-                    ExpirationTimeClockTolerance = TimeSpan.FromMinutes(5)
+                    // Dev: nới rất rộng để vượt lệch đồng hồ BE (đã thử 5m/10m vẫn "not yet valid" do w32tm chưa sync) — prod nên để 5m
+                    IssuedAtClockTolerance = TimeSpan.FromHours(1),
+                    ExpirationTimeClockTolerance = TimeSpan.FromHours(1)
                 };
-                _logger.LogInformation("Validating Google IdToken length={Len} for ClientId={ClientId} serverUtc={Utc}", request.IdToken.Length, configuredClientId, DateTime.UtcNow);
+                // Log thêm iat/exp của token để chẩn lệch giờ
+                string tokenIatInfo = "unknown";
+                try
+                {
+                    var parts = request.IdToken.Split('.');
+                    if (parts.Length == 3)
+                    {
+                        var payloadJson = System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(parts[1].Replace('-', '+').Replace('_', '/').PadRight(parts[1].Length + (4 - parts[1].Length % 4) % 4, '=')));
+                        using var doc = System.Text.Json.JsonDocument.Parse(payloadJson);
+                        if (doc.RootElement.TryGetProperty("iat", out var iatEl) && doc.RootElement.TryGetProperty("exp", out var expEl))
+                        {
+                            var iat = DateTimeOffset.FromUnixTimeSeconds(iatEl.GetInt64()).UtcDateTime;
+                            var exp = DateTimeOffset.FromUnixTimeSeconds(expEl.GetInt64()).UtcDateTime;
+                            tokenIatInfo = $"iat={iat:O} exp={exp:O} skew={(iat - DateTime.UtcNow).TotalSeconds:F0}s";
+                        }
+                    }
+                } catch { }
+                _logger.LogInformation("Validating Google IdToken length={Len} for ClientId={ClientId} serverUtc={Utc} token={TokenInfo}", request.IdToken.Length, configuredClientId, DateTime.UtcNow, tokenIatInfo);
                 payload = await GoogleJsonWebSignature.ValidateAsync(request.IdToken, validationSettings).ConfigureAwait(false);
             }
             catch (InvalidJwtException jwtEx)
             {
-                _logger.LogWarning(jwtEx, "Google JWT validation failed: {Message} aud expected={Aud} tokenSnippet={Snippet}", jwtEx.Message, configuredClientId, request.IdToken.Substring(0, Math.Min(60, request.IdToken.Length)));
-                throw new ApiException($"Xác thực bên ngoài không thành công. Token không hợp lệ: {jwtEx.Message}");
+                // Log kèm serverUtc và hint sync clock
+                _logger.LogWarning(jwtEx, "Google JWT validation failed: {Message} aud expected={Aud} serverUtc={Utc} tokenSnippet={Snippet} -> Gợi ý: chạy w32tm /resync hoặc Settings > Time > Sync now", jwtEx.Message, configuredClientId, DateTime.UtcNow, request.IdToken.Substring(0, Math.Min(60, request.IdToken.Length)));
+                throw new ApiException($"Xác thực bên ngoài không thành công. Token không hợp lệ: {jwtEx.Message} (serverUtc={DateTime.UtcNow:O}, hãy đồng bộ đồng hồ BE: w32tm /resync)");
             }
             catch (Exception ex)
             {
