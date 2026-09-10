@@ -13,14 +13,13 @@ public static class AIAgentExtension
     {
         string groqApiKey = Environment.GetEnvironmentVariable("GROQ_API_KEY") 
                             ?? throw new InvalidOperationException("Chưa khai báo GROQ_API_KEY trong file .env!"); //[cite: 29]
-
         var groqOptions = new OpenAIClientOptions
         {
-            Endpoint = new Uri("https://api.groq.com/openai/v1") //[cite: 29]
+            Endpoint = new Uri("https://omniroute.operamind.one/v1") //[cite: 29]
         };
 
         var openAiClient = new OpenAIClient(new ApiKeyCredential(groqApiKey), groqOptions);
-        var chatClient = openAiClient.GetChatClient("qwen/qwen3.6-27b").AsIChatClient(); //[cite: 31]
+        var chatClient = openAiClient.GetChatClient("gpt").AsIChatClient(); //[cite: 31]
 
         var chatClientAgent = new ChatClientAgent(
             chatClient,

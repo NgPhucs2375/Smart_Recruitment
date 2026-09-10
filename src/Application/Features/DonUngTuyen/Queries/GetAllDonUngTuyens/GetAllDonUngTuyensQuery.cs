@@ -17,55 +17,90 @@ namespace Application.Features.DonUngTuyen.Queries.GetAllDonUngTuyens
         public string _order { get; set; }
         public string _sort { get; set; }
         public string _filter { get; set; }
+        public int? HoSoUngVienId { get; set; }
+        public int? CVUngVienId { get; set; }
+        public int? TinTuyenDungId { get; set; }
     }
 
-    public class GetAllDonUngTuyensQueryHandler : IRequestHandler<GetAllDonUngTuyensQuery, Response<List<GetAllDonUngTuyensViewModel>>>
+    public class GetAllDonUngTuyensQueryHandler(
+        IApplicationDbContext context,
+        ICurrentNguoiDungService current)
+        : IRequestHandler<GetAllDonUngTuyensQuery, Response<List<GetAllDonUngTuyensViewModel>>>
     {
-        private readonly IApplicationDbContext _context;
-        private readonly ICurrentNguoiDungService _current;
-
-        public GetAllDonUngTuyensQueryHandler(IApplicationDbContext context, ICurrentNguoiDungService current)
+        public async Task<Response<List<GetAllDonUngTuyensViewModel>>> Handle(
+            GetAllDonUngTuyensQuery request,
+            CancellationToken cancellationToken)
         {
-            _context = context;
-            _current = current;
-        }
+            var ctx = await current.ResolveAsync();
 
-        public async Task<Response<List<GetAllDonUngTuyensViewModel>>> Handle(GetAllDonUngTuyensQuery q, CancellationToken ct)
-        {
-            var ctx = await _current.ResolveAsync();
-            var query = _context.DonUngTuyens.AsQueryable();
+            var query = context.DonUngTuyens.AsNoTracking();
 
+            // QUAN_TRI_VIEN: xem tất cả, không lọc thêm
             if (ctx.VaiTro == VaiTroNguoiDung.NHAN_SU)
-                query = query.Where(d => d.TinTuyenDung.NguoiDangTinId == ctx.Id);
-            else if (ctx.VaiTro == VaiTroNguoiDung.NGUOI_DAI_DIEN)
-                query = query.Where(d => d.TinTuyenDung.DoanhNghiepId == ctx.DoanhNghiepId);
-            else if (ctx.VaiTro == VaiTroNguoiDung.UNG_VIEN)
-                query = query.Where(d => d.HoSoUngVien.NguoiDungId == ctx.Id);
-
-            if (!string.IsNullOrWhiteSpace(q._filter))
-                query = query.Where(d => d.GhiChu.Contains(q._filter));
-
-            query = q._sort?.ToLower() switch
             {
-                "trangthai" => q._order?.ToLower() == "desc"
+                query = query.Where(d => d.TinTuyenDung.NguoiDangTinId == ctx.Id);
+            }
+            else if (ctx.VaiTro == VaiTroNguoiDung.NGUOI_DAI_DIEN)
+            {
+                query = query.Where(d => d.TinTuyenDung.DoanhNghiepId == ctx.DoanhNghiepId);
+            }
+            else if (ctx.VaiTro == VaiTroNguoiDung.UNG_VIEN)
+            {
+                query = query.Where(d => d.CVUngVien.HoSoUngVien.NguoiDungId == ctx.Id);
+            }
+
+            if (request.HoSoUngVienId.HasValue)
+            {
+                query = query.Where(x => x.CVUngVien.HoSoUngVienId == request.HoSoUngVienId.Value);
+            }
+
+            if (request.CVUngVienId.HasValue)
+            {
+                query = query.Where(x => x.CVUngVienId == request.CVUngVienId.Value);
+            }
+
+            if (request.TinTuyenDungId.HasValue)
+            {
+                query = query.Where(x => x.TinTuyenDungId == request.TinTuyenDungId.Value);
+            }
+
+            var filter = request._filter?.Trim();
+
+            if (!string.IsNullOrWhiteSpace(filter))
+            {
+                query = query.Where(d => d.GhiChu != null && d.GhiChu.Contains(filter));
+            }
+
+            query = request._sort?.ToLower() switch
+            {
+                "trangthai" => request._order?.ToLower() == "desc"
                     ? query.OrderByDescending(d => d.TrangThai)
                     : query.OrderBy(d => d.TrangThai),
                 _ => query.OrderByDescending(d => d.Id)
             };
 
-            var skip = q._start;
-            var take = q._end - q._start;
+            var skip = request._start < 0 ? 0 : request._start;
+            var take = request._end - skip;
+
+            if (skip > 0)
+            {
+                query = query.Skip(skip);
+            }
+
             if (take > 0)
-                query = query.Skip(skip).Take(take);
+            {
+                query = query.Take(take);
+            }
 
             var items = await query.Select(d => new GetAllDonUngTuyensViewModel
             {
                 Id = d.Id,
-                HoSoUngVienId = d.HoSoUngVienId,
+                HoSoUngVienId = d.CVUngVien.HoSoUngVienId,
                 TinTuyenDungId = d.TinTuyenDungId,
-                TrangThai = d.TrangThai.ToString(),
+                CVUngVienId = d.CVUngVienId,
+                TrangThai = d.TrangThai,
                 GhiChu = d.GhiChu
-            }).ToListAsync(ct);
+            }).ToListAsync(cancellationToken);
 
             return new Response<List<GetAllDonUngTuyensViewModel>>(items);
         }

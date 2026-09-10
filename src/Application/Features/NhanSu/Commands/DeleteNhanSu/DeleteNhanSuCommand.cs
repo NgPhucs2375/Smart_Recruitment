@@ -14,44 +14,70 @@ namespace Application.Features.NhanSu.Commands.DeleteNhanSu
         public int Id { get; set; }
     }
 
-    public class DeleteNhanSuCommandHandler : IRequestHandler<DeleteNhanSuCommand, Response<string>>
+    public class DeleteNhanSuCommandHandler(
+        IApplicationDbContext context,
+        IAuthenticatedUserService auth)
+        : IRequestHandler<DeleteNhanSuCommand, Response<string>>
     {
-        private readonly IApplicationDbContext _context;
-        private readonly IAuthenticatedUserService _auth;
-
-        public DeleteNhanSuCommandHandler(IApplicationDbContext context, IAuthenticatedUserService auth)
+        public async Task<Response<string>> Handle(
+            DeleteNhanSuCommand request,
+            CancellationToken cancellationToken)
         {
-            _context = context;
-            _auth = auth;
-        }
+            var ndd = await context.NguoiDungs
+                .AsNoTracking()
+                .FirstOrDefaultAsync(
+                    x => x.ApplicationUserId == auth.UserId,
+                    cancellationToken);
 
-        public async Task<Response<string>> Handle(DeleteNhanSuCommand c, CancellationToken ct)
-        {
-            var ndd = await _context.NguoiDungs.FirstOrDefaultAsync(n => n.ApplicationUserId == _auth.UserId, ct);
             if (ndd == null)
-                throw new ApiException("Không xác định người dùng.");
+            {
+                throw new ApiException(
+                    "Không xác định người dùng.");
+            }
 
-            var myHs = await _context.HoSoNhaTuyenDungs.FirstOrDefaultAsync(h => h.NguoiDungId == ndd.Id, ct);
+            var myHs = await context.HoSoNhaTuyenDungs
+                .AsNoTracking()
+                .FirstOrDefaultAsync(
+                    x => x.NguoiDungId == ndd.Id,
+                    cancellationToken);
+
             if (myHs == null)
-                throw new ApiException("Không xác định doanh nghiệp.");
+            {
+                throw new ApiException(
+                    "Không xác định doanh nghiệp.");
+            }
 
-            var target = await _context.HoSoNhaTuyenDungs
+            var target = await context.HoSoNhaTuyenDungs
                 .Include(h => h.NguoiDung)
-                .FirstOrDefaultAsync(h => h.Id == c.Id, ct);
+                .FirstOrDefaultAsync(
+                    h => h.Id == request.Id,
+                    cancellationToken);
 
             if (target == null)
-                throw new ApiException("Không tìm thấy nhân sự.");
-            if (target.DoanhNghiepId != myHs.DoanhNghiepId)
-                throw new ApiException("Bạn không có quyền xóa nhân sự này.");
+            {
+                throw new ApiException(
+                    "Không tìm thấy nhân sự.");
+            }
 
-            _context.HoSoNhaTuyenDungs.Remove(target);
+            if (target.DoanhNghiepId != myHs.DoanhNghiepId)
+            {
+                throw new ApiException(
+                    "Bạn không có quyền xóa nhân sự này.");
+            }
+
+            context.HoSoNhaTuyenDungs.Remove(target);
+
             if (target.NguoiDung != null)
             {
                 target.NguoiDung.VaiTro = VaiTroNguoiDung.UNG_VIEN;
             }
 
-            await _context.SaveChangesAsync(ct);
-            return new Response<string>(target.NguoiDungId.ToString(), "Đã xóa nhân sự khỏi doanh nghiệp.");
+            await context.SaveChangesAsync(
+                cancellationToken);
+
+            return new Response<string>(
+                target.NguoiDungId.ToString(),
+                "Đã xóa nhân sự khỏi doanh nghiệp.");
         }
     }
 }

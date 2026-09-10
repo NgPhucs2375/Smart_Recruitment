@@ -24,10 +24,7 @@ namespace Domain.Entities
 
         // ===   === //
         public NguoiDung NguoiDung { get; set; }
-        public ICollection<KyNangUngVien> KyNangUngViens { get; set; }
         public ICollection<CVUngVien> CVUngViens { get; set; }
-        public ICollection<DonUngTuyen> DonUngTuyens { get; set; }
-        public ICollection<KinhNghiemLamViec> KinhNghiemLamViecs { get; set; }
         public ICollection<KetQuaPhuHop> KetQuaPhuHops { get; set; }
     }
 }

@@ -1,4 +1,4 @@
-import type { CvTemplate } from "./types";
+import type { CvTemplate, CvFormData } from "./types";
 
 export const cvTemplates: CvTemplate[] = [
   {
@@ -27,15 +27,26 @@ export const cvTemplates: CvTemplate[] = [
   },
 ];
 
-export const defaultCvData = {
-  fullName: "",
-  email: "",
-  phone: "",
-  address: "",
-  linkedin: "",
-  summary: "",
-  experiences: [],
-  education: [],
-  skills: [],
+export const defaultCvData: CvFormData = {
+  thongTinLienHe: {
+    hoTen: "",
+    email: "",
+    sdt: "",
+    diaChi: "",
+    github: "",
+    linkedIn: "",
+    portfolio: "",
+    gioiTinh: "",
+    ngaySinh: "",
+    viTriUngTuyen: "",
+    mucLuongMongMuon: "",
+    gioiThieuBanThan: "",
+  },
+  hocVan: [],
+  kinhNghiemLamViec: [],
+  duAn: [],
+  kyNang: [],
+  chungChi: [],
   templateId: "modern",
+  tenFile: "",
 };

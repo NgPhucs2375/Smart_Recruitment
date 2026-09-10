@@ -37,12 +37,14 @@ namespace Infrastructure.Persistence.Migrations
                         .HasColumnType("text");
 
                     b.Property<string>("FileUrl")
-                        .IsRequired()
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
                     b.Property<int>("HoSoUngVienId")
                         .HasColumnType("integer");
+
+                    b.Property<bool>("IsDaXoa")
+                        .HasColumnType("boolean");
 
                     b.Property<bool>("IsDefault")
                         .HasColumnType("boolean");
@@ -56,13 +58,16 @@ namespace Infrastructure.Persistence.Migrations
                     b.Property<DateTime?>("NgayUpload")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("TenFile")
+                    b.Property<string>("NoiDungJson")
                         .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("TemplateId")
+                        .HasColumnType("text");
+
+                    b.Property<string>("TenFile")
                         .HasMaxLength(255)
                         .HasColumnType("character varying(255)");
-
-                    b.Property<int>("TrangThaiCV")
-                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 
@@ -188,6 +193,9 @@ namespace Infrastructure.Persistence.Migrations
                     b.Property<string>("MoTa")
                         .HasColumnType("text");
 
+                    b.Property<int?>("NguoiDaiDienId")
+                        .HasColumnType("integer");
+
                     b.Property<string>("QuyMoNhanSu")
                         .HasColumnType("text");
 
@@ -201,6 +209,12 @@ namespace Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(255)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("MaSoThue")
+                        .IsUnique();
+
+                    b.HasIndex("NguoiDaiDienId")
+                        .IsUnique();
 
                     b.ToTable("DoanhNghiep", (string)null);
                 });
@@ -225,9 +239,6 @@ namespace Infrastructure.Persistence.Migrations
                     b.Property<string>("GhiChu")
                         .HasColumnType("text");
 
-                    b.Property<int>("HoSoUngVienId")
-                        .HasColumnType("integer");
-
                     b.Property<DateTime?>("LastModified")
                         .HasColumnType("timestamp with time zone");
 
@@ -251,8 +262,6 @@ namespace Infrastructure.Persistence.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("CVUngVienId");
-
-                    b.HasIndex("HoSoUngVienId");
 
                     b.HasIndex("TinTuyenDungId");
 
@@ -405,6 +414,9 @@ namespace Infrastructure.Persistence.Migrations
 
                     b.Property<string>("NoiDungTrichXuat")
                         .HasColumnType("text");
+
+                    b.Property<int>("PhanTich")
+                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 
@@ -584,7 +596,6 @@ namespace Infrastructure.Persistence.Migrations
                         .HasColumnType("text");
 
                     b.Property<int>("MucDoYeuCau")
-                        .HasMaxLength(50)
                         .HasColumnType("integer");
 
                     b.Property<int>("TinTuyenDungId")
@@ -638,55 +649,6 @@ namespace Infrastructure.Persistence.Migrations
                     b.HasIndex("KyNangId");
 
                     b.ToTable("KyNangUngVien", (string)null);
-                });
-
-            modelBuilder.Entity("Domain.Entities.LichPhongVan", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("Created")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("text");
-
-                    b.Property<string>("DiaDiem")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)");
-
-                    b.Property<int>("DonUngTuyenId")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("GhiChu")
-                        .HasColumnType("text");
-
-                    b.Property<int>("HinhThuc")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime?>("LastModified")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("LastModifiedBy")
-                        .HasColumnType("text");
-
-                    b.Property<DateTime?>("ThoiGianPhongVan")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("TrangThai")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("DonUngTuyenId");
-
-                    b.ToTable("LichPhongVan", (string)null);
                 });
 
             modelBuilder.Entity("Domain.Entities.LoiMoiNhanSu", b =>
@@ -794,7 +756,7 @@ namespace Infrastructure.Persistence.Migrations
                     b.ToTable("NguoiDung", (string)null);
                 });
 
-            modelBuilder.Entity("Domain.Entities.ThongBao", b =>
+            modelBuilder.Entity("Domain.Entities.Notification", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -808,9 +770,6 @@ namespace Infrastructure.Persistence.Migrations
                     b.Property<string>("CreatedBy")
                         .HasColumnType("text");
 
-                    b.Property<bool>("IsRead")
-                        .HasColumnType("boolean");
-
                     b.Property<DateTime?>("LastModified")
                         .HasColumnType("timestamp with time zone");
 
@@ -822,12 +781,16 @@ namespace Infrastructure.Persistence.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
 
-                    b.Property<int>("NguoiDungId")
-                        .HasColumnType("integer");
-
                     b.Property<string>("NoiDung")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<int?>("ReferenceId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ReferenceType")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
 
                     b.Property<string>("TieuDe")
                         .IsRequired()
@@ -836,9 +799,25 @@ namespace Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
+                    b.ToTable("Notifications", (string)null);
+                });
+
+            modelBuilder.Entity("Domain.Entities.NotificationRecipient", b =>
+                {
+                    b.Property<int>("NotificationId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("NguoiDungId")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsRead")
+                        .HasColumnType("boolean");
+
+                    b.HasKey("NotificationId", "NguoiDungId");
+
                     b.HasIndex("NguoiDungId");
 
-                    b.ToTable("ThongBao", (string)null);
+                    b.ToTable("NotificationRecipients", (string)null);
                 });
 
             modelBuilder.Entity("Domain.Entities.TinTuyenDung", b =>
@@ -941,17 +920,21 @@ namespace Infrastructure.Persistence.Migrations
                     b.Navigation("DonUngTuyen");
                 });
 
+            modelBuilder.Entity("Domain.Entities.DoanhNghiep", b =>
+                {
+                    b.HasOne("Domain.Entities.NguoiDung", "NguoiDaiDien")
+                        .WithMany()
+                        .HasForeignKey("NguoiDaiDienId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("NguoiDaiDien");
+                });
+
             modelBuilder.Entity("Domain.Entities.DonUngTuyen", b =>
                 {
                     b.HasOne("Domain.Entities.CVUngVien", "CVUngVien")
                         .WithMany()
                         .HasForeignKey("CVUngVienId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("Domain.Entities.HoSoUngVien", "HoSoUngVien")
-                        .WithMany("DonUngTuyens")
-                        .HasForeignKey("HoSoUngVienId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
@@ -962,8 +945,6 @@ namespace Infrastructure.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("CVUngVien");
-
-                    b.Navigation("HoSoUngVien");
 
                     b.Navigation("TinTuyenDung");
                 });
@@ -1081,17 +1062,6 @@ namespace Infrastructure.Persistence.Migrations
                     b.Navigation("KyNang");
                 });
 
-            modelBuilder.Entity("Domain.Entities.LichPhongVan", b =>
-                {
-                    b.HasOne("Domain.Entities.DonUngTuyen", "DonUngTuyen")
-                        .WithMany("LichPhongVans")
-                        .HasForeignKey("DonUngTuyenId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("DonUngTuyen");
-                });
-
             modelBuilder.Entity("Domain.Entities.LoiMoiNhanSu", b =>
                 {
                     b.HasOne("Domain.Entities.DoanhNghiep", "DoanhNghiep")
@@ -1111,7 +1081,7 @@ namespace Infrastructure.Persistence.Migrations
                     b.Navigation("NguoiDaiDien");
                 });
 
-            modelBuilder.Entity("Domain.Entities.ThongBao", b =>
+            modelBuilder.Entity("Domain.Entities.NotificationRecipient", b =>
                 {
                     b.HasOne("Domain.Entities.NguoiDung", "NguoiDung")
                         .WithMany()
@@ -1119,7 +1089,15 @@ namespace Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("Domain.Entities.Notification", "Notification")
+                        .WithMany("Recipients")
+                        .HasForeignKey("NotificationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.Navigation("NguoiDung");
+
+                    b.Navigation("Notification");
                 });
 
             modelBuilder.Entity("Domain.Entities.TinTuyenDung", b =>
@@ -1171,15 +1149,11 @@ namespace Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Domain.Entities.DonUngTuyen", b =>
                 {
                     b.Navigation("DanhGias");
-
-                    b.Navigation("LichPhongVans");
                 });
 
             modelBuilder.Entity("Domain.Entities.HoSoUngVien", b =>
                 {
                     b.Navigation("CVUngViens");
-
-                    b.Navigation("DonUngTuyens");
 
                     b.Navigation("KetQuaPhuHops");
 
@@ -1204,6 +1178,11 @@ namespace Infrastructure.Persistence.Migrations
                     b.Navigation("LoiMoiNhanSus");
 
                     b.Navigation("TinTuyenDungs");
+                });
+
+            modelBuilder.Entity("Domain.Entities.Notification", b =>
+                {
+                    b.Navigation("Recipients");
                 });
 
             modelBuilder.Entity("Domain.Entities.TinTuyenDung", b =>

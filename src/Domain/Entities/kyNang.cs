@@ -15,7 +15,6 @@ namespace Domain.Entities
         public string MoTa { get; set; }
 
         // ===   === //
-        public ICollection<KyNangUngVien> KyNangUngViens { get; set; }
         public ICollection<KyNangTinTuyenDung> KyNangTinTuyenDungs { get; set; }
     }
 }

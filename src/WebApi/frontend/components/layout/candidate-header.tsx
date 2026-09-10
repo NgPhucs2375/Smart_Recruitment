@@ -37,6 +37,7 @@ const menus: CandidateMenu[] = [
   {
     title: "Tạo CV",
     items: [
+      ["Hồ sơ của tôi", "/ho-so"],
       ["Mẫu CV", "/tao-cv"],
       ["Tải CV lên", "/tao-cv/tai-len"],
       ["Quản lý CV", "/CV"],
@@ -94,6 +95,7 @@ export function CandidateHeader() {
                 <p className="truncate text-sm font-medium">{identity?.name ?? "Người dùng"}</p>
                 <p className="truncate text-xs text-muted-foreground">{identity?.email}</p>
               </div>
+              <DropdownMenuItem onClick={() => { window.location.href = "/ho-so"; }}>Hồ sơ của tôi</DropdownMenuItem>
               <DropdownMenuItem onClick={() => { window.location.href = "/settings"; }}>Cài đặt tài khoản</DropdownMenuItem>
               <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => logout()} disabled={isPending}>
                 <LogOut className="mr-2 size-4" />{isPending ? "Đang đăng xuất…" : "Đăng xuất"}

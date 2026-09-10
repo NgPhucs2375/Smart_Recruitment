@@ -20,43 +20,59 @@ namespace Application.Features.TinTuyenDung.Queries.GetAllTinTuyenDungs
         public string _filter { get; set; }
     }
 
-    public class GetAllTinTuyenDungsQueryHandler : IRequestHandler<GetAllTinTuyenDungsQuery, Response<List<GetAllTinTuyenDungsViewModel>>>
+    public class GetAllTinTuyenDungsQueryHandler(
+        IApplicationDbContext context,
+        ICurrentNguoiDungService current)
+        : IRequestHandler<GetAllTinTuyenDungsQuery, Response<List<GetAllTinTuyenDungsViewModel>>>
     {
-        private readonly IApplicationDbContext _context;
-        private readonly ICurrentNguoiDungService _current;
-
-        public GetAllTinTuyenDungsQueryHandler(IApplicationDbContext context, ICurrentNguoiDungService current)
+        public async Task<Response<List<GetAllTinTuyenDungsViewModel>>> Handle(
+            GetAllTinTuyenDungsQuery request,
+            CancellationToken cancellationToken)
         {
-            _context = context;
-            _current = current;
-        }
+            var ctx = await current.ResolveAsync();
 
-        public async Task<Response<List<GetAllTinTuyenDungsViewModel>>> Handle(GetAllTinTuyenDungsQuery q, CancellationToken ct)
-        {
-            var ctx = await _current.ResolveAsync();
-
-            var query = _context.TinTuyenDungs.AsQueryable();
+            var query = context.TinTuyenDungs.AsNoTracking();
 
             if (ctx.VaiTro == VaiTroNguoiDung.NHAN_SU)
-                query = query.Where(t => t.NguoiDangTinId == ctx.Id);
-            else if (ctx.VaiTro == VaiTroNguoiDung.NGUOI_DAI_DIEN)
-                query = query.Where(t => t.DoanhNghiepId == ctx.DoanhNghiepId);
-            else // UNG_VIEN: chỉ tin công khai
-                query = query.Where(t => t.TrangThai == TrangThaiTinTuyenDung.DangTuyen);
-
-            if (!string.IsNullOrWhiteSpace(q._filter))
-                query = query.Where(t => t.TieuDe.Contains(q._filter));
-
-            query = q._sort?.ToLower() switch
             {
-                "tieude" => q._order?.ToLower() == "desc" ? query.OrderByDescending(t => t.TieuDe) : query.OrderBy(t => t.TieuDe),
+                query = query.Where(t => t.NguoiDangTinId == ctx.Id);
+            }
+            else if (ctx.VaiTro == VaiTroNguoiDung.NGUOI_DAI_DIEN)
+            {
+                query = query.Where(t => t.DoanhNghiepId == ctx.DoanhNghiepId);
+            }
+            else // UNG_VIEN: chỉ tin công khai
+            {
+                query = query.Where(t => t.TrangThai == TrangThaiTinTuyenDung.DangTuyen);
+            }
+
+            var filter = request._filter?.Trim();
+
+            if (!string.IsNullOrWhiteSpace(filter))
+            {
+                query = query.Where(t => t.TieuDe.Contains(filter));
+            }
+
+            query = request._sort?.ToLower() switch
+            {
+                "tieude" => request._order?.ToLower() == "desc"
+                    ? query.OrderByDescending(t => t.TieuDe)
+                    : query.OrderBy(t => t.TieuDe),
                 _ => query.OrderByDescending(t => t.Id)
             };
 
-            var skip = q._start;
-            var take = q._end - q._start;
+            var skip = request._start < 0 ? 0 : request._start;
+            var take = request._end - skip;
+
+            if (skip > 0)
+            {
+                query = query.Skip(skip);
+            }
+
             if (take > 0)
-                query = query.Skip(skip).Take(take);
+            {
+                query = query.Take(take);
+            }
 
             var items = await query.Select(t => new GetAllTinTuyenDungsViewModel
             {
@@ -69,7 +85,7 @@ namespace Application.Features.TinTuyenDung.Queries.GetAllTinTuyenDungs
                 NgayHetHan = t.NgayHetHan,
                 NguoiDangTinId = t.NguoiDangTinId,
                 DoanhNghiepId = t.DoanhNghiepId
-            }).ToListAsync(ct);
+            }).ToListAsync(cancellationToken);
 
             return new Response<List<GetAllTinTuyenDungsViewModel>>(items);
         }

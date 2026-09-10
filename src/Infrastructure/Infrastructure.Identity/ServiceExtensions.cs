@@ -88,11 +88,12 @@ namespace Infrastructure.Identity
                         IssuerSigningKey = new SymmetricSecurityKey(Convert.FromBase64String(configuration["JWTSettings:Key"])),
                         RoleClaimType = ClaimTypes.Role
                     };
-                    o.Events = new JwtBearerEvents()
+                    o.Events = new JwtBearerEvents
                     {
                         OnMessageReceived = context =>
                         {
                             var accessToken = context.Request.Query["access_token"];
+
                             if (!string.IsNullOrEmpty(accessToken) &&
                                 context.HttpContext.Request.Path.StartsWithSegments("/api/hubs"))
                             {
@@ -101,33 +102,62 @@ namespace Infrastructure.Identity
 
                             return Task.CompletedTask;
                         },
-                        OnAuthenticationFailed = c =>
-                        {
-                            c.NoResult();
-                            c.Response.StatusCode = 401;
-                            c.Response.ContentType = "application/json";
-                            var logger = c.HttpContext.RequestServices.GetRequiredService<Microsoft.Extensions.Logging.ILogger<JwtBearerEvents>>();
-                            logger.LogError(c.Exception, "Lỗi xác thực JWT Token: {Message}", c.Exception.Message);
 
-                            // 2. Trả về thông báo lỗi chung chung (Generic Message) cho Client
-                            var result = JsonConvert.SerializeObject(new Response<string>("Xác thực thất bại. Token không hợp lệ hoặc đã hết hạn."));
-                            return c.Response.WriteAsync(result);
-                        },
-                        OnChallenge = context =>
+                        OnAuthenticationFailed = context =>
                         {
+                            var logger = context.HttpContext.RequestServices
+                                .GetRequiredService<ILogger<JwtBearerEvents>>();
+
+                            logger.LogWarning(
+                                context.Exception,
+                                "Lỗi xác thực JWT Token: {Message}",
+                                context.Exception.Message);
+
+                            // KHÔNG WriteAsync ở đây.
+                            // Để OnChallenge trả response 401.
+                            return Task.CompletedTask;
+                        },
+
+                        OnChallenge = async context =>
+                        {
+                            // Tắt response mặc định của JwtBearer.
                             context.HandleResponse();
-                            context.Response.StatusCode = 401;
+
+                            if (context.Response.HasStarted)
+                            {
+                                return;
+                            }
+
+                            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
                             context.Response.ContentType = "application/json";
-                            var result = JsonConvert.SerializeObject(new Response<string>("You are not Authorized"));
-                            return context.Response.WriteAsync(result);
+
+                            var result = JsonConvert.SerializeObject(
+                                new Response<string>(
+                                    "Xác thực thất bại. Token không hợp lệ hoặc đã hết hạn."
+                                )
+                            );
+
+                            await context.Response.WriteAsync(result);
                         },
-                        OnForbidden = context =>
+
+                        OnForbidden = async context =>
                         {
-                            context.Response.StatusCode = 403;
+                            if (context.Response.HasStarted)
+                            {
+                                return;
+                            }
+
+                            context.Response.StatusCode = StatusCodes.Status403Forbidden;
                             context.Response.ContentType = "application/json";
-                            var result = JsonConvert.SerializeObject(new Response<string>("You are not authorized to access this resource"));
-                            return context.Response.WriteAsync(result);
-                        },
+
+                            var result = JsonConvert.SerializeObject(
+                                new Response<string>(
+                                    "Bạn không có quyền truy cập tài nguyên này."
+                                )
+                            );
+
+                            await context.Response.WriteAsync(result);
+                        }
                     };
                 });
         }

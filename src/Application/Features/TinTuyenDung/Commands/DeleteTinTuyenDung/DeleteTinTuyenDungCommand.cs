@@ -1,5 +1,6 @@
 using Application.Exceptions;
 using Application.Interfaces;
+using Application.Services.StateMachineTinTuyenDung;
 using Application.Wrappers;
 using Domain.Enums;
 using MediatR;
@@ -14,33 +15,54 @@ namespace Application.Features.TinTuyenDung.Commands.DeleteTinTuyenDung
         public int Id { get; set; }
     }
 
-    public class DeleteTinTuyenDungCommandHandler : IRequestHandler<DeleteTinTuyenDungCommand, Response<int>>
+    public class DeleteTinTuyenDungCommandHandler(
+        IApplicationDbContext context,
+        ICurrentNguoiDungService current,
+        ITinTuyenDungWorkflowService workflow)
+        : IRequestHandler<DeleteTinTuyenDungCommand, Response<int>>
     {
-        private readonly IApplicationDbContext _context;
-        private readonly ICurrentNguoiDungService _current;
-
-        public DeleteTinTuyenDungCommandHandler(IApplicationDbContext context, ICurrentNguoiDungService current)
+        public async Task<Response<int>> Handle(
+            DeleteTinTuyenDungCommand request,
+            CancellationToken cancellationToken)
         {
-            _context = context;
-            _current = current;
-        }
+            var entity = await context.TinTuyenDungs
+                .FindAsync([request.Id], cancellationToken);
 
-        public async Task<Response<int>> Handle(DeleteTinTuyenDungCommand r, CancellationToken ct)
-        {
-            var entity = await _context.TinTuyenDungs.FindAsync(r.Id);
             if (entity == null)
-                return new Response<int>("Không tìm thấy tin tuyển dụng.");
+            {
+                return new Response<int>(
+                    "Không tìm thấy tin tuyển dụng.");
+            }
 
-            var ctx = await _current.ResolveAsync();
-            bool accessible = ctx.VaiTro == VaiTroNguoiDung.NGUOI_DAI_DIEN
-                ? entity.DoanhNghiepId == ctx.DoanhNghiepId
-                : (ctx.VaiTro == VaiTroNguoiDung.NHAN_SU ? entity.NguoiDangTinId == ctx.Id : false);
-            if (!accessible)
-                throw new ApiException("Bạn không có quyền xóa tin tuyển dụng này.", 403);
+            // Xóa mềm qua state machine để giữ record cho DonUngTuyen tham chiếu
+            // + cascade đóng các đơn đang dở dang trong workflow.
+            // HR: DongTin | Admin: AdminCuongCheKhoa (quyền check trong machine).
+            var ctx = await current.ResolveAsync();
 
-            _context.TinTuyenDungs.Remove(entity);
-            await _context.SaveChangesAsync(ct);
-            return new Response<int>(entity.Id, "Xóa tin tuyển dụng thành công.");
+            var trigger = ctx.VaiTro == VaiTroNguoiDung.QUAN_TRI_VIEN
+                ? TriggerTinTuyenDung.AdminCuongCheKhoa
+                : TriggerTinTuyenDung.DongTin;
+
+            var machine = new TinTuyenDungStateMachine(workflow, current, entity);
+
+            try
+            {
+                await machine.FireAsync(
+                    trigger,
+                    "Xóa tin tuyển dụng.",
+                    cancellationToken);
+            }
+            catch (ApiException ex)
+            {
+                return new Response<int>(ex.Message);
+            }
+
+            await context.SaveChangesAsync(
+                cancellationToken);
+
+            return new Response<int>(
+                data: entity.Id,
+                message: "Xóa tin tuyển dụng thành công.");
         }
     }
 }

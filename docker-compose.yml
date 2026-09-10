@@ -1,3 +1,4 @@
+
 services:
   postgres:
     image: postgres:16-alpine
@@ -38,10 +39,6 @@ services:
     image: rabbitmq:3-management-alpine
     container_name: rabbitmq
     restart: unless-stopped
-    environment:
-      RABBITMQ_DEFAULT_USER: guest
-      RABBITMQ_DEFAULT_PASS: guest
-    ports:
       - "${RABBITMQ_PORT:-5672}:5672"
       - "${RABBITMQ_MANAGEMENT_PORT:-15672}:15672"
     healthcheck:
@@ -107,3 +104,4 @@ networks:
 volumes:
   postgres_data:
   frontend_node_modules:
+

@@ -21,45 +21,73 @@ namespace Application.Features.TinTuyenDung.Commands.UpdateTinTuyenDung
         public string DiaDiemLamViec { get; set; }
         public decimal LuongToiThieu { get; set; }
         public decimal LuongToiDa { get; set; }
-        public TrangThaiTinTuyenDung TrangThai { get; set; }
         public System.DateTime? NgayHetHan { get; set; }
     }
 
-    public class UpdateTinTuyenDungCommandHandler : IRequestHandler<UpdateTinTuyenDungCommand, Response<int>>
+    public class UpdateTinTuyenDungCommandHandler(
+        IApplicationDbContext context,
+        ICurrentNguoiDungService current)
+        : IRequestHandler<UpdateTinTuyenDungCommand, Response<int>>
     {
-        private readonly IApplicationDbContext _context;
-        private readonly ICurrentNguoiDungService _current;
-
-        public UpdateTinTuyenDungCommandHandler(IApplicationDbContext context, ICurrentNguoiDungService current)
+        public async Task<Response<int>> Handle(
+            UpdateTinTuyenDungCommand request,
+            CancellationToken cancellationToken)
         {
-            _context = context;
-            _current = current;
-        }
+            var entity = await context.TinTuyenDungs
+                .FindAsync([request.Id], cancellationToken);
 
-        public async Task<Response<int>> Handle(UpdateTinTuyenDungCommand r, CancellationToken ct)
-        {
-            var entity = await _context.TinTuyenDungs.FindAsync(r.Id);
             if (entity == null)
-                return new Response<int>("Không tìm thấy tin tuyển dụng.");
+            {
+                return new Response<int>(
+                    "Không tìm thấy tin tuyển dụng.");
+            }
 
-            var ctx = await _current.ResolveAsync();
+            var ctx = await current.ResolveAsync();
+
             if (!CoTheThaoTac(ctx, entity))
-                throw new ApiException("Bạn không có quyền sửa tin tuyển dụng này.", 403);
+            {
+                throw new ApiException(
+                    "Bạn không có quyền sửa tin tuyển dụng này.", 403);
+            }
 
-            entity.DanhMucNgheId = r.DanhMucNgheId;
-            entity.TieuDe = r.TieuDe;
-            entity.MoTaCongViec = r.MoTaCongViec;
-            entity.KinhNghiemYeuCau = r.KinhNghiemYeuCau;
-            entity.YeuCauCongViec = r.YeuCauCongViec;
-            entity.QuyenLoi = r.QuyenLoi;
-            entity.DiaDiemLamViec = r.DiaDiemLamViec;
-            entity.LuongToiThieu = r.LuongToiThieu;
-            entity.LuongToiDa = r.LuongToiDa;
-            entity.TrangThai = r.TrangThai;
-            entity.NgayHetHan = r.NgayHetHan;
+            // State machine: chỉ sửa nội dung khi tin còn Nhap hoặc bị TuChoi.
+            // Chuyển trạng thái (tạm dừng/đóng/mở lại...) bắt buộc qua FireTinTuyenDungTriggerCommand.
+            if (entity.TrangThai != TrangThaiTinTuyenDung.Nhap &&
+                entity.TrangThai != TrangThaiTinTuyenDung.TuChoi)
+            {
+                throw new ApiException(
+                    $"Không thể sửa nội dung khi tin đang ở trạng thái '{entity.TrangThai}'.");
+            }
 
-            await _context.SaveChangesAsync(ct);
-            return new Response<int>(entity.Id, "Cập nhật tin tuyển dụng thành công.");
+            var danhMucTonTai = await context.DanhMucNghes
+                .AsNoTracking()
+                .AnyAsync(
+                    x => x.Id == request.DanhMucNgheId,
+                    cancellationToken);
+
+            if (!danhMucTonTai)
+            {
+                return new Response<int>(
+                    "Không tìm thấy danh mục nghề.");
+            }
+
+            entity.DanhMucNgheId = request.DanhMucNgheId;
+            entity.TieuDe = request.TieuDe?.Trim();
+            entity.MoTaCongViec = request.MoTaCongViec?.Trim();
+            entity.KinhNghiemYeuCau = request.KinhNghiemYeuCau?.Trim();
+            entity.YeuCauCongViec = request.YeuCauCongViec?.Trim();
+            entity.QuyenLoi = request.QuyenLoi?.Trim();
+            entity.DiaDiemLamViec = request.DiaDiemLamViec?.Trim();
+            entity.LuongToiThieu = request.LuongToiThieu;
+            entity.LuongToiDa = request.LuongToiDa;
+            entity.NgayHetHan = request.NgayHetHan;
+
+            await context.SaveChangesAsync(
+                cancellationToken);
+
+            return new Response<int>(
+                data: entity.Id,
+                message: "Cập nhật tin tuyển dụng thành công.");
         }
 
         private static bool CoTheThaoTac(CurrentNguoiDungContext ctx, Domain.Entities.TinTuyenDung t)

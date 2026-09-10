@@ -14,43 +14,57 @@ namespace Application.Features.DonUngTuyen.Queries.GetDonUngTuyenById
         public int Id { get; set; }
     }
 
-    public class GetDonUngTuyenByIdQueryHandler : IRequestHandler<GetDonUngTuyenByIdQuery, Response<GetAllDonUngTuyens.GetAllDonUngTuyensViewModel>>
+    public class GetDonUngTuyenByIdQueryHandler(
+        IApplicationDbContext context,
+        ICurrentNguoiDungService current)
+        : IRequestHandler<GetDonUngTuyenByIdQuery, Response<GetAllDonUngTuyens.GetAllDonUngTuyensViewModel>>
     {
-        private readonly IApplicationDbContext _context;
-        private readonly ICurrentNguoiDungService _current;
-
-        public GetDonUngTuyenByIdQueryHandler(IApplicationDbContext context, ICurrentNguoiDungService current)
+        public async Task<Response<GetAllDonUngTuyens.GetAllDonUngTuyensViewModel>> Handle(
+            GetDonUngTuyenByIdQuery request,
+            CancellationToken cancellationToken)
         {
-            _context = context;
-            _current = current;
-        }
-
-        public async Task<Response<GetAllDonUngTuyens.GetAllDonUngTuyensViewModel>> Handle(GetDonUngTuyenByIdQuery q, CancellationToken ct)
-        {
-            var entity = await _context.DonUngTuyens
+            var entity = await context.DonUngTuyens
                 .Include(d => d.TinTuyenDung)
-                .Include(d => d.HoSoUngVien)
-                .FirstOrDefaultAsync(d => d.Id == q.Id, ct);
-            if (entity == null)
-                return new Response<GetAllDonUngTuyens.GetAllDonUngTuyensViewModel>("Không tìm thấy đơn ứng tuyển.");
+                .Include(d => d.CVUngVien).ThenInclude(cv => cv.HoSoUngVien)
+                .FirstOrDefaultAsync(
+                    d => d.Id == request.Id,
+                    cancellationToken);
 
-            var ctx = await _current.ResolveAsync();
-            bool accessible = ctx.VaiTro == VaiTroNguoiDung.UNG_VIEN
-                ? entity.HoSoUngVien.NguoiDungId == ctx.Id
-                : (ctx.VaiTro == VaiTroNguoiDung.NGUOI_DAI_DIEN
+            if (entity == null)
+            {
+                return new Response<GetAllDonUngTuyens.GetAllDonUngTuyensViewModel>(
+                    "Không tìm thấy đơn ứng tuyển.");
+            }
+
+            var ctx = await current.ResolveAsync();
+
+            var accessible = ctx.VaiTro == VaiTroNguoiDung.UNG_VIEN
+                ? entity.CVUngVien != null &&
+                  entity.CVUngVien.HoSoUngVien != null &&
+                  entity.CVUngVien.HoSoUngVien.NguoiDungId == ctx.Id
+                : ctx.VaiTro == VaiTroNguoiDung.NGUOI_DAI_DIEN
                     ? entity.TinTuyenDung.DoanhNghiepId == ctx.DoanhNghiepId
-                    : (ctx.VaiTro == VaiTroNguoiDung.NHAN_SU ? entity.TinTuyenDung.NguoiDangTinId == ctx.Id : false));
+                    : ctx.VaiTro == VaiTroNguoiDung.NHAN_SU &&
+                      entity.TinTuyenDung.NguoiDangTinId == ctx.Id;
+
             if (!accessible)
-                throw new ApiException("Bạn không có quyền xem đơn ứng tuyển này.", 403);
+            {
+                throw new ApiException(
+                    "Bạn không có quyền xem đơn ứng tuyển này.", 403);
+            }
 
             var vm = new GetAllDonUngTuyens.GetAllDonUngTuyensViewModel
             {
                 Id = entity.Id,
-                HoSoUngVienId = entity.HoSoUngVienId,
+                HoSoUngVienId = entity.CVUngVien != null
+                    ? entity.CVUngVien.HoSoUngVienId
+                    : 0,
                 TinTuyenDungId = entity.TinTuyenDungId,
-                TrangThai = entity.TrangThai.ToString(),
+                CVUngVienId = entity.CVUngVienId,
+                TrangThai = entity.TrangThai,
                 GhiChu = entity.GhiChu
             };
+
             return new Response<GetAllDonUngTuyens.GetAllDonUngTuyensViewModel>(vm);
         }
     }

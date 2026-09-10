@@ -21,28 +21,26 @@ namespace Application.Features.KetQuaPhuHop.Queries.GetAllKetQuaPhuHops
         public string _filter { get; set; }
     }
 
-    public class GetAllKetQuaPhuHopsQueryHandler : IRequestHandler<GetAllKetQuaPhuHopsQuery, Response<List<GetAllKetQuaPhuHopsViewModel>>>
+    public class GetAllKetQuaPhuHopsQueryHandler(
+        IApplicationDbContext context,
+        IMapper mapper)
+        : IRequestHandler<GetAllKetQuaPhuHopsQuery, Response<List<GetAllKetQuaPhuHopsViewModel>>>
     {
-        private readonly IApplicationDbContext _context;
-        private readonly IMapper _mapper;
-
-        public GetAllKetQuaPhuHopsQueryHandler(IApplicationDbContext context, IMapper mapper)
+        public async Task<Response<List<GetAllKetQuaPhuHopsViewModel>>> Handle(
+            GetAllKetQuaPhuHopsQuery request,
+            CancellationToken cancellationToken)
         {
-            _context = context;
-            _mapper = mapper;
-        }
+            var query = context.KetQuaPhuHops.AsNoTracking();
 
-        public async Task<Response<List<GetAllKetQuaPhuHopsViewModel>>> Handle(GetAllKetQuaPhuHopsQuery request, CancellationToken cancellationToken)
-        {
-            var query = _context.KetQuaPhuHops.AsQueryable();
+            var filter = request._filter?.Trim();
 
-            if (!string.IsNullOrWhiteSpace(request._filter))
+            if (!string.IsNullOrWhiteSpace(filter))
             {
-                if (int.TryParse(request._filter, out var idFilter))
+                if (int.TryParse(filter, out var idFilter))
                 {
                     query = query.Where(x => x.HoSoUngVienId == idFilter || x.TinTuyenDungId == idFilter);
                 }
-                else if (Enum.TryParse<PhanLoaiKetQua>(request._filter, true, out var phanLoai))
+                else if (Enum.TryParse<PhanLoaiKetQua>(filter, true, out var phanLoai))
                 {
                     query = query.Where(x => x.PhanLoai == phanLoai);
                 }
@@ -56,13 +54,24 @@ namespace Application.Features.KetQuaPhuHop.Queries.GetAllKetQuaPhuHops
                 _ => query.OrderBy(x => x.Id)
             };
 
-            var skip = request._start;
-            var take = request._end - request._start;
-            if (take > 0)
-                query = query.Skip(skip).Take(take);
+            var skip = request._start < 0 ? 0 : request._start;
+            var take = request._end - skip;
 
-            var items = await query.ToListAsync(cancellationToken);
-            var result = _mapper.Map<List<GetAllKetQuaPhuHopsViewModel>>(items);
+            if (skip > 0)
+            {
+                query = query.Skip(skip);
+            }
+
+            if (take > 0)
+            {
+                query = query.Take(take);
+            }
+
+            var items = await query.ToListAsync(
+                cancellationToken);
+
+            var result = mapper.Map<List<GetAllKetQuaPhuHopsViewModel>>(items);
+
             return new Response<List<GetAllKetQuaPhuHopsViewModel>>(result);
         }
     }

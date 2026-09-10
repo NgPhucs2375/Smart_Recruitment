@@ -15,7 +15,10 @@ export const registerSchema = z.object({
   role:z.enum(["UNG_VIEN","NGUOI_DAI_DIEN"]),
   hoTen:z.string().min(1,"Vui lòng nhập họ tên"),
   soDienThoai:z.string().min(1,"Vui lòng nhập số điện thoại"),
-  companyName:z.string().optional(),
+  tenDoanhNghiep:z.string().optional(),
+  diaChiDoanhNghiep:z.string().optional(),
+  chucVu:z.string().optional(),
+  inviteToken:z.string().optional(),
 }).superRefine((data,ctx) => {
   if (data.password !== data.confirmPassword) {
     ctx.addIssue({
@@ -25,12 +28,30 @@ export const registerSchema = z.object({
     });
   }
 
-  if (data.role === "NGUOI_DAI_DIEN" && (!data.companyName || data.companyName.trim() === "")) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "Vui lòng nhập tên doanh nghiệp.",
-      path: ["companyName"],
-    });
+  if (data.role === "NGUOI_DAI_DIEN") {
+    if (!data.tenDoanhNghiep || data.tenDoanhNghiep.trim() === "") {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Vui lòng nhập tên doanh nghiệp.",
+        path: ["tenDoanhNghiep"],
+      });
+    }
+
+    if (!data.diaChiDoanhNghiep || data.diaChiDoanhNghiep.trim() === "") {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Vui lòng nhập địa chỉ doanh nghiệp.",
+        path: ["diaChiDoanhNghiep"],
+      });
+    }
+
+    if (!data.chucVu || data.chucVu.trim() === "") {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Vui lòng nhập chức vụ.",
+        path: ["chucVu"],
+      });
+    }
   }
 });
 

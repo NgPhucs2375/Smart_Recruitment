@@ -1,16 +1,17 @@
 "use client";
 
-import { useLogin, useRegister } from "@refinedev/core";
-import { useRouter } from "next/navigation";
+import { useRegister } from "@refinedev/core";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { registerSchema, type RegisterFormData } from "@/lib/schemas";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 export function usePasswordRegister() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const { mutateAsync: registerMutation, isPending } = useRegister<RegisterFormData>();
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const {
     register,
@@ -27,11 +28,26 @@ export function usePasswordRegister() {
       role: "UNG_VIEN",
       hoTen: "",
       soDienThoai: "",
-      companyName: "",
+      tenDoanhNghiep: "",
+      diaChiDoanhNghiep: "",
+      chucVu: "",
+      inviteToken: "",
     },
   });
 
+  useEffect(() => {
+    const inviteToken = searchParams.get("inviteToken") ?? searchParams.get("token");
+    const email = searchParams.get("email");
+    if (inviteToken) {
+      setValue("inviteToken", inviteToken);
+    }
+    if (email) {
+      setValue("email", email);
+    }
+  }, [searchParams, setValue]);
+
   const selectedRole = useWatch({ control, name: "role" });
+  const inviteToken = useWatch({ control, name: "inviteToken" });
 
   async function onSubmit(data: RegisterFormData) {
     setSubmitError(null);
@@ -56,5 +72,6 @@ export function usePasswordRegister() {
     isPending,
     submitError,
     selectedRole,
+    inviteToken,
   };
 }

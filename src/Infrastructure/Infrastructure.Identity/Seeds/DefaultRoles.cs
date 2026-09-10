@@ -43,6 +43,7 @@ namespace Infrastructure.Identity.Seeds
             foreach (var kv in groups)
             {
                 var role = await rm.FindByNameAsync(kv.Key.role);
+                if (role == null) continue; // policy.csv còn role lạ (VD: NHA_TUYEN_DUNG cũ) — bỏ qua, tránh ArgumentNullException ở GetClaimsAsync
                 var existing = (await rm.GetClaimsAsync(role)).FirstOrDefault(c => c.Type == kv.Key.resource);
                 var wanted = string.Join("#", kv.Value);
                 if (existing == null) await rm.AddClaimAsync(role, new Claim(kv.Key.resource, wanted));

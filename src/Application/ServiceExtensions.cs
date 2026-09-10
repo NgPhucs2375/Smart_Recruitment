@@ -4,7 +4,10 @@ using MediatR;
 using Microsoft.Extensions.DependencyInjection;
 using Application.Behaviours;
 using Application.Interfaces;
+using Application.Services.Matching;
 using Application.Services.StateMachineDonUngTuyen;
+using Application.Services.StateMachineLoiMoi;
+using Application.Services.StateMachineTinTuyenDung;
 using System.Reflection;
 
 namespace Application
@@ -18,8 +21,21 @@ namespace Application
             services.AddAutoMapper(cfg => cfg.AddMaps(Assembly.GetExecutingAssembly()));
             services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
 
+            #region Matching diem phu hop
+            services.AddSingleton(_ => new MatchingWeightOptions());
+            services.AddScoped<IMatchingService, MatchingService>();
+            #endregion
+
             #region State Machine DonUngTuyen
             services.AddScoped<IDonUngTuyenWorkflowService, DonUngTuyenWorkflowService>();
+            #endregion
+
+            #region State Machine TinTuyenDung
+            services.AddScoped<ITinTuyenDungWorkflowService, TinTuyenDungWorkflowService>();
+            #endregion
+
+            #region State Machine LoiMoiNhanSu
+            services.AddScoped<ILoiMoiNhanSuWorkflowService, LoiMoiNhanSuWorkflowService>();
             #endregion
         }
     }

@@ -30,30 +30,30 @@ namespace WebApp.Server.Controllers
             if (nd == null)
                 return Ok(new NotificationsVm { Notifications = new List<NotificationDto>(), UnreadCount = 0 });
 
-            var query = _context.ThongBaos
-                .Where(t => t.NguoiDungId == nd.Id)
+            var query = _context.NotificationRecipients
+                .Where(r => r.NguoiDungId == nd.Id)
                 .AsNoTracking();
 
             if (unreadOnly)
-                query = query.Where(t => !t.IsRead);
+                query = query.Where(r => !r.IsRead);
 
             var items = await query
-                .OrderByDescending(t => t.Created)
+                .OrderByDescending(r => r.Notification.Created)
                 .Take(50)
-                .Select(t => new NotificationDto
+                .Select(r => new NotificationDto
                 {
-                    Id = t.Id,
-                    Message = t.TieuDe + (string.IsNullOrEmpty(t.NoiDung) ? "" : " - " + t.NoiDung),
-                    Type = MapLoaiThongBao(t.LoaiThongBao),
-                    IsRead = t.IsRead,
+                    Id = r.NotificationId,
+                    Message = r.Notification.TieuDe + (string.IsNullOrEmpty(r.Notification.NoiDung) ? "" : " - " + r.Notification.NoiDung),
+                    Type = MapLoaiThongBao(r.Notification.LoaiThongBao),
+                    IsRead = r.IsRead,
                     InvoiceId = null,
                     ApproverGroup = null,
-                    Created = t.Created,
+                    Created = r.Notification.Created,
                 })
                 .ToListAsync();
 
-            var unreadCount = await _context.ThongBaos
-                .Where(t => t.NguoiDungId == nd.Id && !t.IsRead)
+            var unreadCount = await _context.NotificationRecipients
+                .Where(r => r.NguoiDungId == nd.Id && !r.IsRead)
                 .CountAsync();
 
             return Ok(new NotificationsVm
@@ -71,12 +71,12 @@ namespace WebApp.Server.Controllers
 
             if (nd == null) return Ok();
 
-            var unread = await _context.ThongBaos
-                .Where(t => t.NguoiDungId == nd.Id && !t.IsRead)
+            var unread = await _context.NotificationRecipients
+                .Where(r => r.NguoiDungId == nd.Id && !r.IsRead)
                 .ToListAsync();
 
-            foreach (var t in unread)
-                t.IsRead = true;
+            foreach (var recipient in unread)
+                recipient.IsRead = true;
 
             await _context.SaveChangesAsync(CancellationToken.None);
             return Ok();

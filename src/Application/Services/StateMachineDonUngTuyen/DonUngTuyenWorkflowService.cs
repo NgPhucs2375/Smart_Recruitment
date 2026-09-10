@@ -2,18 +2,18 @@ using Application.DTOs.Email;
 using Application.Interfaces;
 using Domain.Entities;
 using Domain.Enums;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
 using DonUngTuyen = Domain.Entities.DonUngTuyen;
-using ThongBao = Domain.Entities.ThongBao;
 
 namespace Application.Services.StateMachineDonUngTuyen
 {
     /// <summary>
-    /// 1. Tạo thông báo cho ứng viên 
-    /// 2. Email cho ứng viên khi có kết quả (trúng tuyển / từ chối)
-    /// Dự án không làm tới phỏng vấn: đã loại bỏ logic LichPhongVan.
+    /// 1. Tạo thông báo trong app cho ứng viên (trừ các bước nội bộ ồn).
+    /// 2. Email cho ứng viên khi có kết quả đánh giá (phù hợp / từ chối).
+    /// Dự án không làm tới phỏng vấn: không có logic LichPhongVan.
     /// </summary>
     public class DonUngTuyenWorkflowService : IDonUngTuyenWorkflowService
     {
@@ -32,7 +32,7 @@ namespace Application.Services.StateMachineDonUngTuyen
         }
 
         /// <summary>
-        /// Tập hợp các side-effect chạy SAU mỗi transition của DonUngTuyenStateMachine.
+        /// Tập hợp các side-effect chạy SAU mỗi transition của <see cref="DonUngTuyenStateMachine"/>.
         /// </summary>
         public async Task HandleSideEffectsAsync(
             DonUngTuyen entity,
@@ -40,66 +40,74 @@ namespace Application.Services.StateMachineDonUngTuyen
             string note,
             CancellationToken ct = default)
         {
-            int UngVienId = entity.HoSoUngVien?.NguoiDungId ?? 0;
+            int UngVienId = entity.CVUngVien?.HoSoUngVien?.NguoiDungId ?? 0;
             string TieuDeTin = entity.TinTuyenDung?.TieuDe ?? "vị trí ứng tuyển";
 
             // 1) Thông báo trong app cho ứng viên
             if (UngVienId > 0 && CanThongBao(trigger))
             {
-                _context.ThongBaos.Add(new ThongBao
+                _context.Notifications.Add(new Notification
                 {
-                    NguoiDungId = UngVienId,
                     LoaiThongBao = LoaiThongBao.DonUngTuyen,
                     TieuDe = TieuDeThongBao(trigger),
-                    NoiDung = string.IsNullOrWhiteSpace(note)
+                    NoiDung = string.IsNullOrWhiteSpace(note) || note == trigger.ToString()
                         ? NoiDungThongBao(trigger, TieuDeTin)
                         : $"{NoiDungThongBao(trigger, TieuDeTin)}\n\nGhi chú: {note}",
-                    IsRead = false // lúc này mới tạo chưa đã đọc 
+                    ReferenceType = nameof(DonUngTuyen),
+                    ReferenceId = entity.Id,
+                    Recipients = new List<NotificationRecipient>
+                    {
+                        new() { NguoiDungId = UngVienId, IsRead = false } // lúc này mới tạo chưa đã đọc
+                    }
                 });
             }
 
-            // 2) Email cho ứng viên khi có kết quả (trúng tuyển / từ chối)
-            if ((trigger == TriggerDonUngTuyen.CongBoTrungTuyen
+            // 2) Email cho ứng viên khi có kết quả đánh giá (phù hợp / từ chối)
+            if ((trigger == TriggerDonUngTuyen.DanhGiaPhuHop
                  || trigger == TriggerDonUngTuyen.TuChoi) && UngVienId > 0)
             {
                 var emailUv = await _emailResolver.GetEmailByNguoiDungIdAsync(UngVienId, ct);
                 if (!string.IsNullOrWhiteSpace(emailUv))
                 {
-                    bool trungTuyen = trigger == TriggerDonUngTuyen.CongBoTrungTuyen;
+                    bool phuHop = trigger == TriggerDonUngTuyen.DanhGiaPhuHop;
                     await _email.SendAsync(new EmailRequest
                     {
                         To = emailUv,
-                        Subject = trungTuyen ? "Chúc mừng bạn trúng tuyển" : "Kết quả ứng tuyển",
-                        Body = trungTuyen
-                            ? $"Chúc mừng bạn đã trúng tuyển vị trí {TieuDeTin}."
+                        Subject = phuHop ? "Hồ sơ của bạn đã được đánh giá phù hợp" : "Kết quả ứng tuyển",
+                        Body = phuHop
+                            ? $"Hồ sơ của bạn cho vị trí {TieuDeTin} đã được đánh giá phù hợp. Nhà tuyển dụng sẽ liên hệ với bạn."
                             : $"Rất tiếc hồ sơ của bạn cho vị trí {TieuDeTin} chưa phù hợp đợt này."
                     });
                 }
             }
         }
 
-        // Hepler cho việc xác định xem trigger có cần thông báo hay không
-        private static bool CanThongBao(TriggerDonUngTuyen t) => t != TriggerDonUngTuyen.XemDon;
+        // Các bước nội bộ ồn (tiếp nhận xong, HR mới mở xem) thì không thông báo
+        private static bool CanThongBao(TriggerDonUngTuyen t)
+            => t != TriggerDonUngTuyen.XuLyHoSoThanhCong
+            && t != TriggerDonUngTuyen.XemDon;
 
         private static string TieuDeThongBao(TriggerDonUngTuyen t) => t switch
         {
+            TriggerDonUngTuyen.XuLyHoSoThatBai => "Hồ sơ gặp sự cố kỹ thuật",
+            TriggerDonUngTuyen.NopLaiHoSo => "Đã nhận lại hồ sơ",
+            TriggerDonUngTuyen.HetHanXuLy => "Đơn ứng tuyển quá hạn xử lý",
+            TriggerDonUngTuyen.DongBoiTinTuyenDung => "Tin tuyển dụng đã đóng",
             TriggerDonUngTuyen.DanhGiaPhuHop => "Hồ sơ của bạn đã được đánh giá phù hợp",
-            TriggerDonUngTuyen.TaoLichPhongVan => "Bạn được mời phỏng vấn",
-            TriggerDonUngTuyen.CongBoTrungTuyen => "Chúc mừng bạn trúng tuyển",
             TriggerDonUngTuyen.TuChoi => "Kết quả ứng tuyển",
-            TriggerDonUngTuyen.RutDonTruocPhongVan => "Đơn ứng tuyển đã rút",
-            TriggerDonUngTuyen.RutDonSauPhongVan => "Đơn ứng tuyển đã rút (hủy lịch PV)",
+            TriggerDonUngTuyen.RutDon => "Đơn ứng tuyển đã rút",
             _ => "Cập nhật đơn ứng tuyển"
         };
 
         private static string NoiDungThongBao(TriggerDonUngTuyen t, string tin) => t switch
         {
+            TriggerDonUngTuyen.XuLyHoSoThatBai => $"Hồ sơ nộp cho vị trí {tin} gặp sự cố kỹ thuật. Vui lòng gửi lại hồ sơ.",
+            TriggerDonUngTuyen.NopLaiHoSo => $"Hồ sơ gửi lại cho vị trí {tin} đã vào hàng đợi xử lý.",
+            TriggerDonUngTuyen.HetHanXuLy => $"Đơn ứng tuyển vị trí {tin} đã quá hạn xử lý.",
+            TriggerDonUngTuyen.DongBoiTinTuyenDung => $"Tin {tin} đã ngừng nhận hồ sơ nên đơn của bạn được ghi nhận dừng xử lý.",
             TriggerDonUngTuyen.DanhGiaPhuHop => $"Hồ sơ của bạn cho vị trí {tin} đã được đánh giá phù hợp.",
-            TriggerDonUngTuyen.TaoLichPhongVan => $"Nhà tuyển dụng mời bạn phỏng vấn vị trí {tin}.",
-            TriggerDonUngTuyen.CongBoTrungTuyen => $"Bạn đã trúng tuyển vị trí {tin}.",
             TriggerDonUngTuyen.TuChoi => $"Hồ sơ của bạn cho vị trí {tin} chưa phù hợp.",
-            TriggerDonUngTuyen.RutDonTruocPhongVan => $"Bạn đã rút đơn ứng tuyển vị trí {tin}.",
-            TriggerDonUngTuyen.RutDonSauPhongVan => $"Bạn đã rút đơn ứng tuyển vị trí {tin}, lịch phỏng vấn đã hủy.",
+            TriggerDonUngTuyen.RutDon => $"Bạn đã rút đơn ứng tuyển vị trí {tin}.",
             _ => $"Đơn ứng tuyển vị trí {tin} có cập nhật."
         };
     }

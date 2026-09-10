@@ -20,6 +20,11 @@ namespace Domain.Entities
         public string LinhVucHoatDong { get; set; }
         public string QuyMoNhanSu { get; set; }
 
+        // Chủ sở hữu duy nhất (1 DN - 1 NGUOI_DAI_DIEN, 1-1 nghiêm ngặt).
+        // Nullable để migration không fail với dữ liệu cũ; code mới luôn set.
+        public int? NguoiDaiDienId { get; set; }
+        public NguoiDung NguoiDaiDien { get; set; }
+
         public ICollection<HoSoNhaTuyenDung> HoSoNhaTuyenDungs { get; set; }
         public ICollection<TinTuyenDung> TinTuyenDungs { get; set; }
         public ICollection<LoiMoiNhanSu> LoiMoiNhanSus { get; set; }

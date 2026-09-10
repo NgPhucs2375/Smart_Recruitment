@@ -17,39 +17,67 @@ namespace Application.Features.DonUngTuyen.Commands.UpdateDonUngTuyen
         public string GhiChu { get; set; }
     }
 
-    public class UpdateDonUngTuyenCommandHandler : IRequestHandler<UpdateDonUngTuyenCommand, Response<int>>
+    public class UpdateDonUngTuyenCommandHandler(
+        IApplicationDbContext context,
+        ICurrentNguoiDungService current,
+        IDonUngTuyenWorkflowService workflow)
+        : IRequestHandler<UpdateDonUngTuyenCommand, Response<int>>
     {
-        private readonly IApplicationDbContext _context;
-        private readonly ICurrentNguoiDungService _current;
-        private readonly IDonUngTuyenWorkflowService _workflow;
-
-        public UpdateDonUngTuyenCommandHandler(
-            IApplicationDbContext context,
-            ICurrentNguoiDungService current,
-            IDonUngTuyenWorkflowService workflow)
+        public async Task<Response<int>> Handle(
+            UpdateDonUngTuyenCommand request,
+            CancellationToken cancellationToken)
         {
-            _context = context;
-            _current = current;
-            _workflow = workflow;
-        }
+            // Trigger hệ thống (tiếp nhận/job/cascade) không đi qua API
+            if (DonUngTuyenStateMachine.LaTriggerHeThong(request.Trigger))
+            {
+                return new Response<int>(
+                    "Hành động này chỉ hệ thống được thực hiện.");
+            }
 
-        public async Task<Response<int>> Handle(UpdateDonUngTuyenCommand r, CancellationToken ct)
-        {
-            var entity = await _context.DonUngTuyens
+            var entity = await context.DonUngTuyens
                 .Include(d => d.TinTuyenDung)
-                .Include(d => d.HoSoUngVien)
-                .FirstOrDefaultAsync(d => d.Id == r.Id, ct);
+                .Include(d => d.CVUngVien).ThenInclude(cv => cv.HoSoUngVien)
+                .FirstOrDefaultAsync(
+                    d => d.Id == request.Id,
+                    cancellationToken);
+
             if (entity == null)
-                return new Response<int>("Không tìm thấy đơn ứng tuyển.");
+            {
+                return new Response<int>(
+                    "Không tìm thấy đơn ứng tuyển.");
+            }
 
-            var sm = new DonUngTuyenStateMachine(_workflow, _current, entity);
-            await sm.FireAsync(r.Trigger, r.GhiChu, ct);
+            var sm = new DonUngTuyenStateMachine(workflow, current, entity);
 
-            var ctx = await _current.ResolveAsync();
-            entity.NguoiXuLyId = ctx.Id;
+            try
+            {
+                await sm.FireAsync(
+                    request.Trigger,
+                    request.GhiChu ?? string.Empty,
+                    cancellationToken);
+            }
+            catch (ApiException ex)
+            {
+                return new Response<int>(ex.Message);
+            }
 
-            await _context.SaveChangesAsync(ct);
-            return new Response<int>(entity.Id, "Cập nhật đơn ứng tuyển thành công.");
+            // Lưu lý do duyệt/từ chối; chỉ gán người xử lý cho hành động của HR
+            entity.GhiChu = request.GhiChu?.Trim();
+
+            if (request.Trigger == TriggerDonUngTuyen.XemDon
+                || request.Trigger == TriggerDonUngTuyen.DanhGiaPhuHop
+                || request.Trigger == TriggerDonUngTuyen.TuChoi)
+            {
+                var ctx = await current.ResolveAsync();
+                entity.NguoiXuLyId = ctx.Id;
+            }
+
+            await context.SaveChangesAsync(
+                cancellationToken);
+
+            return new Response<int>(
+                data: entity.Id,
+                message: "Cập nhật đơn ứng tuyển thành công.");
         }
     }
 }

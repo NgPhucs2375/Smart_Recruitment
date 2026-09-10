@@ -17,7 +17,10 @@ namespace Domain.Entities
         public string FileUrl { get; set; }
         public DateTime? NgayUpload { get; set; }
         public bool IsDefault { get; set; } = true;
-        public TrangThaiCV TrangThaiCV { get; set; } 
+        public bool IsDaXoa { get; set; } = false;
+        public string NoiDungJson { get; set; }
+        public string TemplateId { get; set; }
+        
 
         // ===   === //
         public HoSoUngVien HoSoUngVien { get; set; }
