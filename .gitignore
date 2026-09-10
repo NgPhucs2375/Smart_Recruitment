@@ -66,3 +66,4 @@ pnpm-debug.log*
 # Loại bỏ file rác tự sinh của Windows & macOS
 .DS_Store
 Thumbs.db
+.vercel
