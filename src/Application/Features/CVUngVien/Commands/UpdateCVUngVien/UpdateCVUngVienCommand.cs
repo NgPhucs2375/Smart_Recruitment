@@ -14,7 +14,8 @@ public class UpdateCVUngVienCommand : IRequest<Response<int>>
     public string TenFile { get; set; }
     public string TemplateId { get; set; }
     public bool IsDefault { get; set; }
-    public TaoCVThuCong NoiDung { get; set; }
+    public PhuongThucTaoCV PhuongThucTao { get; set; }
+    public NoiDungCVDto NoiDung { get; set; }
 }
 
 public class UpdateCVUngVienCommandHandler(
@@ -48,6 +49,7 @@ public class UpdateCVUngVienCommandHandler(
         }
 
         entity.TemplateId = request.TemplateId?.Trim();
+        entity.PhuongThucTao = request.PhuongThucTao;
         entity.NoiDungJson = JsonSerializer.Serialize(request.NoiDung, new JsonSerializerOptions
         {
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase,

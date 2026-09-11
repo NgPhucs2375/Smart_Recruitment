@@ -152,12 +152,12 @@ export const hoSoApi = {
 export const cvApi = {
   getMyHoSo: () => hoSoApi.getMyHoSo(),
   listCvs: async (hoSoUngVienId: number): Promise<CvVm[]> => {
-    const res = await request<unknown[]>(`cvungvien?_start=0&_end=100&HoSoUngVienId=${hoSoUngVienId}`);
+    const res = await request<unknown[]>(`cvungviens?_start=0&_end=100&HoSoUngVienId=${hoSoUngVienId}`);
     return Array.isArray(res) ? res.map(normalizeCv) : [];
   },
   createCv: (payload: Record<string, unknown>) =>
-    request<number>("cvungvien", { method: "POST", body: JSON.stringify(payload) }),
+    request<number>("cvungviens", { method: "POST", body: JSON.stringify(payload) }),
   updateCv: (id: number, payload: Record<string, unknown>) =>
-    request<number>(`cvungvien/${id}`, { method: "PUT", body: JSON.stringify(payload) }),
-  deleteCv: (id: number) => request<number>(`cvungvien/${id}`, { method: "DELETE" }),
+    request<number>(`cvungviens/${id}`, { method: "PUT", body: JSON.stringify(payload) }),
+  deleteCv: (id: number) => request<number>(`cvungviens/${id}`, { method: "DELETE" }),
 };

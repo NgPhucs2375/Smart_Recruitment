@@ -1,3 +1,5 @@
+using Domain.Enums;
+
 namespace Application.DTOs.CV
 {
     public class TaoCVUngVienDto
@@ -10,6 +12,8 @@ namespace Application.DTOs.CV
 
         public bool IsDefault { get; set; } = true;
 
-        public TaoCVThuCong NoiDung { get; set; }
+        public PhuongThucTaoCV PhuongThucTao { get; set; }
+
+        public NoiDungCVDto NoiDung { get; set; }
     }
 }

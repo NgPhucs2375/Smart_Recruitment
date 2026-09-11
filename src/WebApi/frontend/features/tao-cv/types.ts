@@ -64,7 +64,7 @@ export type ChungChiItem = {
   maXacMinh: string;
 };
 
-/** Form CV thủ công — map 1-1 với TaoCVThuCong bên backend (camelCase). */
+/** Form CV thủ công — map 1-1 với NoiDungCVDto bên backend (camelCase). */
 export type CvFormData = {
   thongTinLienHe: LienHe;
   hocVan: HocVanItem[];
@@ -115,7 +115,7 @@ export function cvDataFromJson(json: string | null | undefined, fallback: CvForm
   }
 }
 
-/** Build body POST / PUT cvungvien từ form (ngày dd/mm/yyyy -> ISO). */
+/** Build body POST / PUT cvungviens từ form (ngày dd/mm/yyyy -> ISO). */
 export function toCvPayload(hoSoUngVienId: number, data: CvFormData, isDefault: boolean) {
   const vnDateOrNull = (v: string) => {
     const iso = vnToIsoDate(v);
@@ -126,6 +126,7 @@ export function toCvPayload(hoSoUngVienId: number, data: CvFormData, isDefault: 
     tenFile: data.tenFile?.trim() || `CV-${new Date().toISOString().slice(0, 10)}`,
     templateId: data.templateId,
     isDefault,
+    phuongThucTao: 1, // ThuCongTemplate
     noiDung: {
       thongTinLienHe: {
         ...data.thongTinLienHe,

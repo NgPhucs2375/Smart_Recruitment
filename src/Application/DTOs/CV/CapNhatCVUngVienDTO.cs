@@ -1,3 +1,6 @@
+using System.Collections.Generic;
+using Domain.Enums;
+
 namespace Application.DTOs.CV
 {
     public class CapNhatCVUngVienDto
@@ -10,6 +13,8 @@ namespace Application.DTOs.CV
 
         public bool IsDefault { get; set; }
 
-        public TaoCVThuCong NoiDung { get; set; }
+        public PhuongThucTaoCV PhuongThucTao { get; set; }
+
+        public NoiDungCVDto NoiDung { get; set; }
     }
 }

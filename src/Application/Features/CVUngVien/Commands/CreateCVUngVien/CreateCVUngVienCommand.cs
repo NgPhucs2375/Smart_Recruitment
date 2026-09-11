@@ -15,7 +15,8 @@ public class CreateCVUngVienCommand : IRequest<Response<int>>
     public string TenFile { get; set; }
     public string TemplateId { get; set; }
     public bool IsDefault { get; set; } = true;
-    public TaoCVThuCong NoiDung { get; set; }
+    public PhuongThucTaoCV PhuongThucTao { get; set; }
+    public NoiDungCVDto NoiDung { get; set; }
 }
 
 public class CreateCVUngVienCommandHandler(
@@ -79,7 +80,8 @@ public class CreateCVUngVienCommandHandler(
             IsDefault = isDefault,
             IsDaXoa = false,
             NoiDungJson = noiDungJson,
-            TemplateId = request.TemplateId?.Trim()
+            TemplateId = request.TemplateId?.Trim(),
+            PhuongThucTao = request.PhuongThucTao
         };
 
         await context.CVUngViens.AddAsync(entity, cancellationToken);

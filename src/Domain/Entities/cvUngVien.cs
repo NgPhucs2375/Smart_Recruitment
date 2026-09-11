@@ -1,5 +1,6 @@
 using Domain.Common;
 using Domain.Enums;
+using Pgvector;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -20,6 +21,9 @@ namespace Domain.Entities
         public bool IsDaXoa { get; set; } = false;
         public string NoiDungJson { get; set; }
         public string TemplateId { get; set; }
+        public PhuongThucTaoCV PhuongThucTao { get; set; }
+        public Vector? Embedding { get; set; }
+        public string? SemanticText { get; set; }
         
 
         // ===   === //
