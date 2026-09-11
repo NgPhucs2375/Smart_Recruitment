@@ -46,6 +46,7 @@ namespace Infrastructure.Persistence
             services.AddTransient(typeof(IGenericRepositoryAsync<>), typeof(GenericRepositoryAsync<>));
             services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<ApplicationDbContext>());
             services.AddScoped<ICandidateSemanticSearchRepository, CandidateSemanticSearch>();
+            services.AddScoped<ICvEmbeddingService, CvEmbeddingService>();
             // services.AddScoped<IHoSoUngVienRepositoryAsync, HoSoUngVienRepositoryAsync>();
             #endregion
         }
