@@ -34,6 +34,16 @@ namespace Infrastructure.Persistence.Configurations
                    .WithMany(x => x.CVUngViens)
                    .HasForeignKey(x => x.HoSoUngVienId)
                    .OnDelete(DeleteBehavior.Cascade);
+
+               builder.Property(x => x.PhuongThucTao)
+                    .HasConversion<string>()
+                    .IsRequired();
+
+               builder.Property(x => x.SemanticText)
+                      .HasColumnType("text");
+
+               builder.Property(x => x.Embedding)
+                      .HasColumnType("vector(768)");
         }
     }
 }
