@@ -1,7 +1,9 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Application.Interfaces;
+using Application.Interfaces.Repositories;
 using Infrastructure.Persistence.Contexts;
+using Infrastructure.Persistence.Repositories;
 using Infrastructure.Persistence.Repository;
 using Infrastructure.Shared.Environments;
 
@@ -31,6 +33,7 @@ namespace Infrastructure.Persistence
                     {
                         b.MigrationsAssembly(typeof(ApplicationDbContext).Assembly.FullName);
                         b.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery);
+                        b.UseVector();
                     }));
                 }
             }
@@ -42,6 +45,7 @@ namespace Infrastructure.Persistence
             #region Repositories
             services.AddTransient(typeof(IGenericRepositoryAsync<>), typeof(GenericRepositoryAsync<>));
             services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<ApplicationDbContext>());
+            services.AddScoped<ICandidateSemanticSearchRepository, CandidateSemanticSearch>();
             // services.AddScoped<IHoSoUngVienRepositoryAsync, HoSoUngVienRepositoryAsync>();
             #endregion
         }
