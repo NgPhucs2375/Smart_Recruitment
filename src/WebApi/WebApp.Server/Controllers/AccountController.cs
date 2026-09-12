@@ -7,6 +7,7 @@ using Application.Interfaces;
 using Infrastructure.Identity.Features.Users.Queries.GetMeByToken;
 using Microsoft.AspNetCore.Hosting;
 using Casbin;
+using Domain.Enums;
 
 namespace WebApp.Server.Controllers
 {
@@ -109,6 +110,24 @@ namespace WebApp.Server.Controllers
             }
 
             return HttpContext.Connection.RemoteIpAddress?.MapToIPv4().ToString() ?? "127.0.0.1";
-        }   
+        }
+        //         [HttpGet("test-embedding")]
+        // public async Task<IActionResult> TestEmbedding(
+        //     [FromServices] IEmbeddingService embeddingService,
+        //     CancellationToken cancellationToken)
+        // {
+        //     var vector =
+        //         await embeddingService.GenerateEmbeddingAsync(
+        //             "Backend Developer ASP.NET Core PostgreSQL Docker",
+        //             EmbeddingTaskType.RetrievalDocument,
+        //             cancellationToken);
+
+        //     return Ok(new
+        //     {
+        //         dimensions = vector.Length,
+        //         firstValues = vector.Take(10)
+        //     });
+        // }
+
     }
 }

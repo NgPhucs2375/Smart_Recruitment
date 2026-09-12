@@ -20,10 +20,16 @@ export function AppLayout({ children }: PropsWithChildren) {
     return (
       <TooltipProvider>
         <Toaster position="top-right" richColors closeButton />
-        <div className="flex min-h-screen items-center justify-center bg-background">
-          <div className="flex flex-col items-center gap-3">
-            <div className="size-8 animate-spin rounded-full border-2 border-muted border-t-primary" />
-            <span className="text-xs text-muted-foreground">Đang tải...</span>
+        <div className="flex min-h-dvh items-center justify-center bg-background px-6" aria-busy="true" aria-label="Đang tải">
+          <div className="w-full max-w-3xl space-y-4" aria-hidden="true">
+            <div className="h-8 w-1/3 animate-pulse rounded-lg bg-muted" />
+            <div className="h-4 w-1/2 animate-pulse rounded-md bg-muted" />
+            <div className="grid gap-3 pt-2 sm:grid-cols-3">
+              <div className="h-24 animate-pulse rounded-xl bg-muted" />
+              <div className="h-24 animate-pulse rounded-xl bg-muted [animation-delay:120ms]" />
+              <div className="h-24 animate-pulse rounded-xl bg-muted [animation-delay:240ms]" />
+            </div>
+            <span className="sr-only">Đang tải…</span>
           </div>
         </div>
       </TooltipProvider>

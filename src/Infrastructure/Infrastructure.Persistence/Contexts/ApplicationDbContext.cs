@@ -47,17 +47,41 @@ namespace Infrastructure.Persistence.Contexts
                 switch (entry.State)
                 {
                     case EntityState.Added:
-                        entry.Entity.Created = _dateTime.NowUtc;
+                        entry.Entity.Created = NormalizeToUtc(_dateTime.NowUtc);
                         entry.Entity.CreatedBy = _authenticatedUser.UserId;
                         break;
                     case EntityState.Modified:
-                        entry.Entity.LastModified = _dateTime.NowUtc;
+                        entry.Entity.LastModified = NormalizeToUtc(_dateTime.NowUtc);
                         entry.Entity.LastModifiedBy = _authenticatedUser.UserId;
                         break;
                 }
             }
+            // Npgsql chỉ chấp nhận DateTime Kind=Utc cho cột timestamptz.
+            // JSON không kèm offset (vd: NgayHetHan) deserialize thành Kind=Unspecified -> crash khi save.
+            // Chuẩn hóa mọi DateTime về UTC trước khi ghi.
+            foreach (var entry in ChangeTracker.Entries())
+            {
+                if (entry.State != EntityState.Added && entry.State != EntityState.Modified)
+                    continue;
+                foreach (var property in entry.Properties)
+                {
+                    if (property.CurrentValue is DateTime value)
+                    {
+                        var normalized = NormalizeToUtc(value);
+                        property.Metadata.PropertyInfo?.SetValue(entry.Entity, normalized);
+                        property.CurrentValue = normalized;
+                    }
+                }
+            }
             return base.SaveChangesAsync(cancellationToken);
         }
+
+        private static DateTime NormalizeToUtc(DateTime value) => value.Kind switch
+        {
+            DateTimeKind.Utc => value,
+            DateTimeKind.Local => value.ToUniversalTime(),
+            _ => DateTime.SpecifyKind(value, DateTimeKind.Utc),
+        };
         protected override void OnModelCreating(ModelBuilder builder)
         {
             builder.HasPostgresExtension("vector");

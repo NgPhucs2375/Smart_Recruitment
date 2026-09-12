@@ -1,3 +1,5 @@
+p, NGUOI_DAI_DIEN, danhmucnghes, list
+p, NGUOI_DAI_DIEN, danhmucnghes, show
 p, NGUOI_DAI_DIEN, donungtuyens, list
 p, NGUOI_DAI_DIEN, donungtuyens, show
 p, NGUOI_DAI_DIEN, hosoungviens, list
@@ -24,6 +26,8 @@ p, NGUOI_DAI_DIEN, tintuyendungs, list
 p, NGUOI_DAI_DIEN, tintuyendungs, show
 p, NGUOI_DAI_DIEN, users, list
 p, NGUOI_DAI_DIEN, users, show
+p, NHAN_SU, danhmucnghes, list
+p, NHAN_SU, danhmucnghes, show
 p, NHAN_SU, donungtuyens, edit
 p, NHAN_SU, donungtuyens, list
 p, NHAN_SU, donungtuyens, show

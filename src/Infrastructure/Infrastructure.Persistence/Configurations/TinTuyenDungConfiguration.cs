@@ -40,6 +40,10 @@ namespace Infrastructure.Persistence.Configurations
                 .HasForeignKey(x => x.NguoiDangTinId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            builder.Property(x => x.Embedding)
+                .HasColumnType("vector(768)");
+                
+
         }
 
     }

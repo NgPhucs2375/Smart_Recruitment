@@ -77,7 +77,12 @@ namespace Application.Features.TinTuyenDung.Queries.GetAllTinTuyenDungs
             var items = await query.Select(t => new GetAllTinTuyenDungsViewModel
             {
                 Id = t.Id,
+                DanhMucNgheId = t.DanhMucNgheId,
                 TieuDe = t.TieuDe,
+                MoTaCongViec = t.MoTaCongViec,
+                KinhNghiemYeuCau = t.KinhNghiemYeuCau,
+                YeuCauCongViec = t.YeuCauCongViec,
+                QuyenLoi = t.QuyenLoi,
                 DiaDiemLamViec = t.DiaDiemLamViec,
                 LuongToiThieu = t.LuongToiThieu,
                 LuongToiDa = t.LuongToiDa,

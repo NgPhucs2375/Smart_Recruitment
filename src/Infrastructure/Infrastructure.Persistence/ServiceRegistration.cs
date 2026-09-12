@@ -6,6 +6,7 @@ using Infrastructure.Persistence.Contexts;
 using Infrastructure.Persistence.Repositories;
 using Infrastructure.Persistence.Repository;
 using Infrastructure.Shared.Environments;
+using Application.Services.Retrieval;
 
 namespace Infrastructure.Persistence
 {
@@ -47,6 +48,13 @@ namespace Infrastructure.Persistence
             services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<ApplicationDbContext>());
             services.AddScoped<ICandidateSemanticSearchRepository, CandidateSemanticSearch>();
             services.AddScoped<ICvEmbeddingService, CvEmbeddingService>();
+            services.AddScoped<
+                ICvSemanticDocumentBuilder,
+                CvSemanticDocumentBuilder>();
+
+            services.AddScoped<
+                ICvEmbeddingService,
+                CvEmbeddingService>();
             // services.AddScoped<IHoSoUngVienRepositoryAsync, HoSoUngVienRepositoryAsync>();
             #endregion
         }

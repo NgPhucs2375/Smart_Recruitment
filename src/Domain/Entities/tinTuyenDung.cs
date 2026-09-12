@@ -1,5 +1,6 @@
 using Domain.Common;
 using Domain.Enums;
+using Pgvector;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -24,6 +25,12 @@ namespace Domain.Entities
         public decimal LuongToiDa { get; set; }
         public TrangThaiTinTuyenDung TrangThai { get; set; }
         public DateTime? NgayHetHan { get; set; }
+        public string SemanticText { get; set; }
+        public Vector? Embedding { get; set; }
+        public EmbeddingStatus EmbeddingStatus { get; set; }
+        public DateTime? EmbeddingUpdateAt { get; set; }
+        public string EmbeddingError { get; set; }
+        public string SemanticHash { get; set; }
 
         // ===   === //
         public DoanhNghiep DoanhNghiep { get; set; }

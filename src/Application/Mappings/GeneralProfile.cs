@@ -121,11 +121,6 @@ namespace Application.Mappings
             CreateMap<TaoDanhGiaDto, CreateDanhGiaCommand>();
             CreateMap<CapNhatDanhGiaDto, UpdateDanhGiaCommand>();
 
-
-
-
-
-
         }
     }
 }

@@ -19,7 +19,7 @@ namespace Application.Features.KetQuaPhuHop.Commands.UpdateKetQuaPhuHop
             .WithMessage("Tin tuyển dụng không hợp lệ.");
 
         RuleFor(x => x.DiemPhuHop)
-            .InclusiveBetween(0, 100)
+            .InclusiveBetween(0f, 1f)
             .WithMessage("Điểm phù hợp phải nằm trong khoảng từ 0 đến 100.");
 
         RuleFor(x => x.PhanLoai)

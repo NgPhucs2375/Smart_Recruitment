@@ -143,7 +143,7 @@ function ViecLamContent() {
             </Button>
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center py-16 text-center">
+          <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed py-16 text-center">
             <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted">
               <Briefcase className="h-8 w-8 text-muted-foreground" />
             </div>
@@ -151,6 +151,14 @@ function ViecLamContent() {
             <p className="mt-2 text-sm text-muted-foreground max-w-md">
               Thử thay đổi từ khóa hoặc bộ lọc để tìm kiếm nhiều cơ hội hơn
             </p>
+            <Button
+              variant="outline"
+              size="sm"
+              className="mt-4"
+              onClick={() => setFilters(initialFilters)}
+            >
+              Xóa bộ lọc
+            </Button>
           </div>
         )}
       </div>
@@ -166,7 +174,19 @@ function ViecLamContent() {
 
 export function ViecLamView() {
   return (
-    <Suspense fallback={<div className="py-16 text-center text-sm text-muted-foreground">Đang tải bộ lọc...</div>}>
+    <Suspense
+      fallback={
+        <div className="space-y-4" aria-busy="true" aria-label="Đang tải danh sách việc làm">
+          <div className="h-12 animate-pulse rounded-xl bg-muted" aria-hidden="true" />
+          <div className="grid gap-4" aria-hidden="true">
+            <div className="h-36 animate-pulse rounded-xl bg-muted" />
+            <div className="h-36 animate-pulse rounded-xl bg-muted [animation-delay:120ms]" />
+            <div className="h-36 animate-pulse rounded-xl bg-muted [animation-delay:240ms]" />
+          </div>
+          <span className="sr-only">Đang tải bộ lọc…</span>
+        </div>
+      }
+    >
       <ViecLamContent />
     </Suspense>
   );
@@ -229,7 +249,15 @@ function DaLuuContent() {
 
 export function DaLuuView() {
   return (
-    <Suspense fallback={<div className="py-16 text-center text-sm text-muted-foreground">Đang tải...</div>}>
+    <Suspense
+      fallback={
+        <div className="grid gap-4" aria-busy="true" aria-label="Đang tải việc đã lưu">
+          <div className="h-36 animate-pulse rounded-xl bg-muted" aria-hidden="true" />
+          <div className="h-36 animate-pulse rounded-xl bg-muted [animation-delay:120ms]" aria-hidden="true" />
+          <span className="sr-only">Đang tải…</span>
+        </div>
+      }
+    >
       <DaLuuContent />
     </Suspense>
   );

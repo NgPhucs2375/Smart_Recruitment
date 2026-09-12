@@ -24,6 +24,10 @@ namespace Domain.Entities
         public PhuongThucTaoCV PhuongThucTao { get; set; }
         public Vector? Embedding { get; set; }
         public string? SemanticText { get; set; }
+        public EmbeddingStatus EmbeddingStatus { get; set; }
+        public DateTime? EmbeddingUpdatedAt { get; set; }
+        public string EmbeddingError { get; set; }
+        public string SemanticHash { get; set; }
         
 
         // ===   === //

@@ -12,14 +12,14 @@ interface JobCardProps {
   job: Job;
 }
 
-const levelColors: Record<string, string> = {
-  Intern: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
-  Fresher: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
-  Junior: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400",
-  Mid: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400",
-  Senior: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
-  Lead: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400",
-  Manager: "bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-400",
+const levelStyles: Record<string, string> = {
+  Intern: "bg-[#151515]/[0.06] text-[#151515]",
+  Fresher: "bg-[#151515]/[0.06] text-[#151515]",
+  Junior: "bg-[#151515]/[0.06] text-[#151515]",
+  Mid: "border-[#151515]/25 bg-white text-[#151515]",
+  Senior: "bg-[#151515] text-white",
+  Lead: "bg-[#151515] text-white",
+  Manager: "bg-[#151515] text-white",
 };
 
 const workModeConfig: Record<string, { label: string; icon: typeof Building2 }> = {
@@ -45,10 +45,10 @@ export function JobCard({ job }: JobCardProps) {
   }
 
   return (
-    <Card className="group cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5">
+    <Card className="group cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[var(--shadow-tinted-md)] active:scale-[0.99]">
       <CardContent className="p-5">
         <div className="flex items-start gap-4">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary font-bold text-sm">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary font-bold text-sm">
             {job.logo}
           </div>
           <div className="flex-1 min-w-0">
@@ -61,10 +61,10 @@ export function JobCard({ job }: JobCardProps) {
               </div>
               <div className="flex items-center gap-1.5 shrink-0">
                 {job.isHot && (
-                  <Badge variant="destructive" className="gap-1">
-                    <Flame className="h-3 w-3" />
+                  <span className="inline-flex items-center gap-1 rounded-[6px] bg-[#151515] px-2 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-white">
+                    <Flame className="h-3 w-3 text-orange-300" />
                     Hot
-                  </Badge>
+                  </span>
                 )}
                 <button
                   type="button"
@@ -84,7 +84,7 @@ export function JobCard({ job }: JobCardProps) {
             </div>
 
             <div className="flex flex-wrap items-center gap-2 mt-3">
-              <span className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">{job.salary}</span>
+              <span className="tnum text-sm font-bold text-foreground">{job.salary}</span>
               <span className="text-muted-foreground">·</span>
               <span className="flex items-center gap-1 text-sm text-muted-foreground">
                 <MapPin className="h-3.5 w-3.5" />
@@ -98,7 +98,7 @@ export function JobCard({ job }: JobCardProps) {
             </div>
 
             <div className="flex flex-wrap gap-1.5 mt-3">
-              <Badge variant="secondary" className={cn("text-xs", levelColors[job.level])}>
+              <Badge variant="secondary" className={cn("border text-xs", levelStyles[job.level])}>
                 {job.level}
               </Badge>
               <Badge variant="outline" className="text-xs">

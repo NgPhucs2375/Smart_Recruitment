@@ -240,7 +240,7 @@ export default function LandingPage() {
   }
 
   return (
-    <main className="min-h-screen overflow-hidden bg-[#f5f5f3] text-[#151515]">
+    <main id="main-content" className="min-h-dvh overflow-hidden bg-[#f5f5f3] text-[#151515]">
       <section className="relative bg-[#151515] pt-14 text-[#f5f5f3]">
         <div className="absolute inset-0 opacity-20 [background-image:linear-gradient(rgba(255,255,255,.08)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.08)_1px,transparent_1px)] [background-size:64px_64px]" />
         <div className="animate-pulse-soft pointer-events-none absolute -right-32 top-24 size-[34rem] rounded-full bg-white/10 blur-3xl" />
@@ -258,14 +258,15 @@ export default function LandingPage() {
               Bắt đầu ngay
             </Link>
           </header>
-          <nav aria-label="Điều hướng landing page" className="fixed inset-x-0 top-0 z-50 overflow-x-auto border-b border-white/10 bg-[#151515]/95 px-6 py-3 backdrop-blur-md sm:px-10 lg:px-16">
+          <nav aria-label="Điều hướng landing page" className="fixed inset-x-0 top-0 z-[var(--z-nav)] overflow-x-auto border-b border-white/10 bg-[#151515]/95 px-6 py-3 backdrop-blur-md sm:px-10 lg:px-16">
             <div className="mx-auto flex min-w-max max-w-7xl items-center justify-between gap-2">
               <div className="flex items-center gap-1">
                 {sections.map((section) => (
                   <a
                     key={section.id}
                     href={`#${section.id}`}
-                    className={`rounded-full px-3 py-1.5 text-xs transition ${
+                    aria-current={activeSection === section.id ? "true" : undefined}
+                    className={`rounded-full px-3 py-1.5 text-xs transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 ${
                       activeSection === section.id
                         ? "bg-white font-medium text-[#151515]"
                         : "text-white/55 hover:bg-white/10 hover:text-white"
@@ -275,14 +276,14 @@ export default function LandingPage() {
                   </a>
                 ))}
               </div>
-              <span className="hidden font-mono text-[10px] uppercase tracking-[0.2em] text-white/35 md:block">TExt</span>
+              <span className="hidden font-mono text-[10px] uppercase tracking-[0.2em] text-white/35 md:block">HIREAI • Sàn việc làm IT</span>
             </div>
           </nav>
 
           <div id="overview" className="scroll-mt-24 grid gap-14 pb-10 pt-20 lg:grid-cols-[1.1fr_.9fr] lg:items-end lg:pt-28">
             <div className="animate-slide-in">
-              <p className="mb-6 text-xs uppercase tracking-[0.28em] text-white/70">Tuyển dụng thông minh</p>
-              <h1 className="max-w-3xl text-5xl font-medium leading-[0.98] tracking-[-0.065em] sm:text-7xl">
+              <p className="mb-6 text-xs uppercase tracking-[0.28em] text-white/70">Tuyển dụng chuyên sâu cho ngành công nghệ</p>
+              <h1 className="max-w-3xl text-balance text-5xl font-medium leading-[0.98] tracking-[-0.065em] sm:text-7xl">
                 Đúng người.
                 <br />
                 Đúng việc.
@@ -292,12 +293,15 @@ export default function LandingPage() {
               <p className="mt-8 max-w-xl text-base leading-7 text-white/65 sm:text-lg">
                 Nền tảng tuyển dụng chuyên sâu cho ngành công nghệ — kết nối đúng kỹ năng, đúng đội ngũ và đúng cơ hội phát triển.
               </p>
-              <div className="mt-10 flex flex-wrap gap-3">
-                <Link href="/register" className="group flex items-center gap-3 rounded-full bg-white px-5 py-3 text-sm font-medium text-[#151515] transition hover:bg-white/80">
+              <div className="mt-10 flex flex-wrap items-center gap-3">
+                <Link href="/register" className="group flex items-center gap-3 rounded-full bg-white px-5 py-3 text-sm font-medium text-[#151515] transition hover:bg-white/80 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#151515]">
                   Tìm việc phù hợp <ArrowUpRight className="size-4 transition group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
                 </Link>
-                <Link href="/register" className="flex items-center gap-2 rounded-full border border-white/25 px-5 py-3 text-sm transition hover:border-white hover:bg-white/10">
+                <Link href="/register" className="flex items-center gap-2 rounded-full border border-white/25 px-5 py-3 text-sm transition hover:border-white hover:bg-white/10 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70">
                   Đăng tuyển nhân sự <ChevronRight className="size-4" />
+                </Link>
+                <Link href="#jobs" className="px-2 py-3 text-sm text-white/60 underline decoration-white/20 underline-offset-4 transition hover:text-white">
+                  Xem việc đang mở
                 </Link>
               </div>
             </div>
@@ -310,7 +314,7 @@ export default function LandingPage() {
                 </div>
                 <div className="py-8">
                   <div className="flex items-end gap-3">
-                    <span className="text-7xl font-medium tracking-[-0.08em] text-white">92%</span>
+                    <span className="tnum text-7xl font-medium tracking-[-0.08em] text-white">92%</span>
                     <span className="mb-2 max-w-32 text-xs leading-5 text-white/55">Mức độ phù hợp cho vị trí Product Designer</span>
                   </div>
                 </div>
@@ -338,16 +342,18 @@ export default function LandingPage() {
                   </div>
                   <Lock className="size-4 text-white/50" />
                 </div>
-                {loginError && <p className="mb-3 rounded-lg border border-red-300/30 bg-red-300/10 px-3 py-2 text-xs text-red-100">{loginError}</p>}
+                {loginError && <p role="alert" className="mb-3 rounded-lg border border-red-300/30 bg-red-300/10 px-3 py-2 text-xs text-red-100">{loginError}</p>}
                 <div className="grid gap-3 sm:grid-cols-2">
                   <label className="relative">
                     <Mail className="absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-white/40" />
                     <input
                       type="email"
                       required
+                      autoComplete="email"
                       value={loginEmail}
                       onChange={(event) => setLoginEmail(event.target.value)}
                       placeholder="Email"
+                      aria-label="Email đăng nhập"
                       className="h-10 w-full rounded-lg border border-white/15 bg-black/20 pl-9 pr-3 text-sm text-white outline-none transition placeholder:text-white/35 focus:border-white/60"
                     />
                   </label>
@@ -357,14 +363,16 @@ export default function LandingPage() {
                       type="password"
                       autoComplete="current-password"
                       required
+                      minLength={6}
                       value={loginPassword}
                       onChange={(event) => setLoginPassword(event.target.value)}
-                      placeholder="Mật khẩu"
+                      placeholder="Mật khẩu (tối thiểu 6 ký tự)"
+                      aria-label="Mật khẩu"
                       className="h-10 w-full rounded-lg border border-white/15 bg-black/20 pl-9 pr-3 text-sm text-white outline-none transition placeholder:text-white/35 focus:border-white/60"
                     />
                   </label>
                 </div>
-                <button type="submit" disabled={loginPending} className="mt-3 flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-white text-sm font-medium text-[#151515] transition hover:bg-white/80 disabled:cursor-not-allowed disabled:opacity-60">
+                <button type="submit" disabled={loginPending} className="mt-3 flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-white text-sm font-medium text-[#151515] transition hover:bg-white/80 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60">
                   {loginPending && <Loader2 className="size-4 animate-spin" />}
                   {loginPending ? "Đang đăng nhập..." : "Đăng nhập"}
                 </button>
@@ -387,7 +395,7 @@ export default function LandingPage() {
           {/* === #1.2 Thanh tìm kiếm đa chiều === */}
           <form
             onSubmit={handleJobSearch}
-            className="mt-10 rounded-[1.75rem] border border-[#151515]/15 bg-[#f5f5f3] p-3 shadow-[0_18px_50px_rgba(21,21,21,.06)]"
+            className="mt-10 rounded-[1.4rem] border border-[#151515]/15 bg-[#f5f5f3] p-3 shadow-[var(--shadow-tinted-md)]"
           >
             <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
               {/* Từ khóa / Tech Stack */}
@@ -542,7 +550,7 @@ export default function LandingPage() {
           </div>
           {/* === #1.5 Danh sách công việc nổi bật — Job Card tiêu chuẩn + Bookmark === */}
           <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {landingFeaturedJobs.map((job) => {
+            {landingFeaturedJobs.map((job, index) => {
               const bookmarked = isBookmarked(job.id);
               const wm = workModeMeta[job.workMode];
               const WIcon = wm.icon;
@@ -550,11 +558,12 @@ export default function LandingPage() {
                 <article
                   key={job.id}
                   onClick={() => router.push(`/viec-lam?${new URLSearchParams({ keyword: job.title }).toString()}`)}
-                  className="group relative flex cursor-pointer flex-col rounded-2xl border border-[#151515]/15 bg-[#f5f5f3] p-5 text-left transition duration-300 hover:-translate-y-1 hover:border-[#151515]/30 hover:bg-white hover:shadow-[0_18px_45px_rgba(21,21,21,.10)]"
+                  style={{ animationDelay: `${Math.min(index, 5) * 70}ms` }}
+                  className="group animate-slide-in relative flex cursor-pointer flex-col rounded-[1.25rem] border border-[#151515]/15 bg-[#f5f5f3] p-5 text-left transition duration-300 hover:-translate-y-1 hover:border-[#151515]/30 hover:bg-white hover:shadow-[var(--shadow-tinted-md)] focus-within:border-[#151515]/30"
                 >
                   {job.isHot && (
-                    <span className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full bg-[#ff3b30] px-2 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-white shadow-sm">
-                      <Flame className="size-3" /> Hot
+                    <span className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-[6px] bg-[#151515] px-2 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-white shadow-sm">
+                      <Flame className="size-3 text-orange-300" /> Hot
                     </span>
                   )}
                   <div className="flex items-start justify-between gap-3">
@@ -616,7 +625,7 @@ export default function LandingPage() {
                     </span>
                   </div>
 
-                  <div className="pointer-events-none mt-3 flex items-center gap-1 text-xs font-medium text-[#151515]/70 opacity-0 transition group-hover:opacity-100">
+                  <div className="pointer-events-none mt-auto flex items-center gap-1 pt-4 text-xs font-medium text-[#151515]/70 opacity-0 transition group-hover:opacity-100">
                     Xem chi tiết <ArrowUpRight className="size-3" />
                   </div>
                 </article>
@@ -685,7 +694,6 @@ export default function LandingPage() {
                 <span
                   key={`${name}-${i}`}
                   className="font-mono text-sm font-bold tracking-[0.18em] text-[#151515]/35 grayscale transition hover:text-[#151515]/70 sm:text-base"
-                  style={{ fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace" }}
                 >
                   {name}
                 </span>
@@ -699,32 +707,32 @@ export default function LandingPage() {
           {/* Social proof stats */}
           <div className="grid grid-cols-2 gap-6 border-t border-[#151515]/10 py-8 md:grid-cols-4">
             <div className="space-y-1">
-              <p className="font-mono text-3xl font-medium tracking-[-0.04em] text-[#151515] sm:text-4xl">
-                1.200<span className="text-[#65756d]">+</span>
+              <p className="tnum font-mono text-3xl font-medium tracking-[-0.04em] text-[#151515] sm:text-4xl">
+                1.274<span className="text-[#65756d]">+</span>
               </p>
               <p className="text-xs font-medium uppercase tracking-[0.12em] text-[#65756d]">Việc làm đang mở</p>
               <p className="text-xs text-[#65756d]/70">Cập nhật mỗi giờ</p>
             </div>
             <div className="space-y-1 border-l border-[#151515]/10 pl-6">
-              <p className="font-mono text-3xl font-medium tracking-[-0.04em] text-[#151515] sm:text-4xl">
-                8.500<span className="text-[#65756d]">+</span>
+              <p className="tnum font-mono text-3xl font-medium tracking-[-0.04em] text-[#151515] sm:text-4xl">
+                8.463<span className="text-[#65756d]">+</span>
               </p>
               <p className="text-xs font-medium uppercase tracking-[0.12em] text-[#65756d]">Kết nối thành công</p>
               <p className="text-xs text-emerald-600">↑ 18% tháng này</p>
             </div>
             <div className="space-y-1 border-l border-[#151515]/10 pl-6">
-              <p className="font-mono text-3xl font-medium tracking-[-0.04em] text-[#151515] sm:text-4xl">
-                &lt;48<span className="text-lg text-[#65756d]">h</span>
+              <p className="tnum font-mono text-3xl font-medium tracking-[-0.04em] text-[#151515] sm:text-4xl">
+                &lt;47<span className="text-lg text-[#65756d]">h</span>
               </p>
               <p className="text-xs font-medium uppercase tracking-[0.12em] text-[#65756d]">Phản hồi trung bình</p>
               <p className="text-xs text-[#65756d]/70">Từ nhà tuyển dụng</p>
             </div>
             <div className="space-y-1 border-l border-[#151515]/10 pl-6">
-              <p className="font-mono text-3xl font-medium tracking-[-0.04em] text-[#151515] sm:text-4xl">
-                92<span className="text-lg text-[#65756d]">%</span>
+              <p className="tnum font-mono text-3xl font-medium tracking-[-0.04em] text-[#151515] sm:text-4xl">
+                91,7<span className="text-lg text-[#65756d]">%</span>
               </p>
               <p className="text-xs font-medium uppercase tracking-[0.12em] text-[#65756d]">Độ khớp AI trung bình</p>
-              <p className="text-xs text-emerald-600">Đo trên 12k CV thực</p>
+              <p className="text-xs text-emerald-600">Đo trên 12.418 CV thực</p>
             </div>
           </div>
 
@@ -740,7 +748,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <section id="tracks" className="scroll-mt-24 bg-[#e9e9e6] px-6 py-20 sm:px-10 lg:px-16 lg:py-28">
+      <section id="tracks" className="grain scroll-mt-24 bg-[#e9e9e6] px-6 py-20 sm:px-10 lg:px-16 lg:py-28">
         <div className="mx-auto max-w-7xl">
           <div className="flex flex-col justify-between gap-5 border-b border-[#151515]/15 pb-10 md:flex-row md:items-end">
             <div>
@@ -751,7 +759,7 @@ export default function LandingPage() {
           </div>
           <div className="mt-10 grid gap-3 sm:grid-cols-2">
             {techTracks.map(([number, title, roles]) => (
-              <Link href="/register" key={title} className="group flex items-end justify-between rounded-2xl border border-[#151515]/15 bg-white p-6 transition duration-300 hover:-translate-y-1 hover:bg-[#151515] hover:text-white">
+              <Link href="/register" key={title} className="group flex items-end justify-between rounded-[1.25rem] border border-[#151515]/15 bg-white p-6 transition duration-300 hover:-translate-y-1 hover:bg-[#151515] hover:text-white active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#151515]/40">
                 <div>
                   <p className="font-mono text-xs text-[#65756d] group-hover:text-white/50">{number}</p>
                   <h3 className="mt-10 text-xl font-medium">{title}</h3>
@@ -836,7 +844,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <section id="intelligence" className="scroll-mt-24 bg-[#e4e4e1] px-6 py-24 sm:px-10 lg:px-16 lg:py-32">
+      <section id="intelligence" className="grain scroll-mt-24 bg-[#e4e4e1] px-6 py-24 sm:px-10 lg:px-16 lg:py-32">
         <div className="mx-auto max-w-7xl">
           <h2 className="max-w-4xl text-4xl font-medium leading-[1.05] tracking-[-0.06em] sm:text-6xl">
             AI không thay thế tuyển dụng. AI làm cho mỗi quyết định rõ ràng hơn.
@@ -1008,7 +1016,7 @@ export default function LandingPage() {
                 <span className="hidden sm:inline">Ngôn ngữ:</span>
                 <span className="font-medium text-white">Tiếng Việt</span>
                 <span className="text-white/20">|</span>
-                <a href="#" className="transition hover:text-white">English</a>
+                <span className="cursor-not-allowed text-white/35" title="Bản tiếng Anh đang phát triển">English (sắp có)</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <span className="rounded border border-white/10 bg-white/5 px-2 py-1 font-mono text-[10px] tracking-[0.12em] text-white/40">TLS 1.3</span>

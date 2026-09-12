@@ -28,7 +28,7 @@ export function AppHeaderV2() {
 
 function DesktopHeaderV2() {
   return (
-    <header className="sticky top-0 z-40 flex h-[4.5rem] shrink-0 items-center justify-between gap-4 border-b border-border/70 bg-background/85 px-4 backdrop-blur-xl supports-[backdrop-filter]:bg-background/70 md:px-8">
+    <header className="sticky top-0 z-[var(--z-header)] flex h-[4.5rem] shrink-0 items-center justify-between gap-4 border-b border-border/70 bg-background/85 px-4 backdrop-blur-xl supports-[backdrop-filter]:bg-background/70 md:px-8">
       <div className="flex flex-1 items-center gap-4 min-w-0">
         <SidebarTrigger
           className="lg:hidden flex h-10 w-10 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
@@ -47,7 +47,7 @@ function DesktopHeaderV2() {
 function MobileHeaderV2() {
   const { open, isMobile } = useSidebar();
   return (
-    <header className="sticky top-0 z-40 flex h-12 shrink-0 items-center justify-between gap-2 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-3">
+    <header className="sticky top-0 z-[var(--z-header)] flex h-12 shrink-0 items-center justify-between gap-2 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-3">
       <SidebarTrigger
         className={cn(
           "text-muted-foreground transition-opacity duration-200",

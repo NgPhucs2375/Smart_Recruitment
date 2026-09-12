@@ -37,3 +37,9 @@ taskkill /F /IM WebApp.Server.exe /T
 # Sau khi chạy docker muốn test xem có lên chưa thì có thể vào
 http://localhost:5000/swagger
 
+
+# tao venv
+python -m venv .venv
+
+# active
+.venv\Scripts\activate

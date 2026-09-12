@@ -50,7 +50,12 @@ namespace Application.Features.TinTuyenDung.Queries.GetTinTuyenDungById
             var vm = new GetAllTinTuyenDungs.GetAllTinTuyenDungsViewModel
             {
                 Id = entity.Id,
+                DanhMucNgheId = entity.DanhMucNgheId,
                 TieuDe = entity.TieuDe,
+                MoTaCongViec = entity.MoTaCongViec,
+                KinhNghiemYeuCau = entity.KinhNghiemYeuCau,
+                YeuCauCongViec = entity.YeuCauCongViec,
+                QuyenLoi = entity.QuyenLoi,
                 DiaDiemLamViec = entity.DiaDiemLamViec,
                 LuongToiThieu = entity.LuongToiThieu,
                 LuongToiDa = entity.LuongToiDa,
