@@ -7,6 +7,8 @@
   /* CopilotKit V2 theme variables */
   --card: oklch(0.998 0.002 95);
   --card-foreground: oklch(0.19 0.02 260);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.19 0.02 260);
   --primary: oklch(0.31 0.09 255);
   --primary-foreground: oklch(0.985 0 0);
   --secondary: oklch(0.95 0.015 255);
@@ -41,24 +43,29 @@
   --font-code: "SFMono-Regular", Menlo, Monaco, Consolas, monospace;
 }
 
+/* Dark theme: admin content area uses forced light bg (#f5f5f3).
+   Tokens below are tuned for readability on that light bg.
+   Sidebar uses --sidebar-* (dark). Header uses bg-[#0a0a0a]/80 (hardcoded in header-v2). */
 .dark {
-  --background: #0a0a0a;
-  --foreground: #ededed;
-  --card: oklch(0.145 0 0);
-  --card-foreground: oklch(0.985 0 0);
+  --background: #f5f5f3;
+  --foreground: oklch(0.19 0.02 260);
+  --card: oklch(0.998 0.002 95);
+  --card-foreground: oklch(0.19 0.02 260);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.19 0.02 260);
   --primary: oklch(0.488 0.243 264.376);
   --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.396 0.141 25.723);
+  --secondary: oklch(0.95 0.015 255);
+  --secondary-foreground: oklch(0.26 0.04 255);
+  --muted: oklch(0.955 0.008 95);
+  --muted-foreground: oklch(0.45 0.025 260);
+  --accent: oklch(0.94 0.025 255);
+  --accent-foreground: oklch(0.24 0.05 255);
+  --destructive: oklch(0.577 0.245 27.325);
   --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(0.269 0 0);
-  --input: oklch(0.269 0 0);
-  --ring: oklch(0.439 0 0);
+  --border: oklch(0.89 0.012 260);
+  --input: oklch(0.87 0.015 260);
+  --ring: oklch(0.62 0.13 255);
   --sidebar: oklch(0.145 0 0);
   --sidebar-foreground: oklch(0.985 0 0);
   --sidebar-primary: oklch(0.488 0.243 264.376);
@@ -69,10 +76,106 @@
   --sidebar-ring: oklch(0.439 0 0);
 }
 
+/* Header: keep dark in dark mode via .dark class */
+.dark header,
+.dark [data-slot="sidebar-inset"] > header {
+  background-color: #0a0a0a !important;
+  color: #ededed !important;
+}
+.dark header .text-muted-foreground {
+  color: rgba(255, 255, 255, 0.6) !important;
+}
+.dark header .hover\:bg-accent:hover {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+}
+.dark header .hover\:text-foreground:hover,
+.dark header .hover\:text-accent-foreground:hover {
+  color: #ffffff !important;
+}
+.dark header input {
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  background-color: rgba(255, 255, 255, 0.05) !important;
+  color: #ededed !important;
+}
+.dark header input::placeholder {
+  color: rgba(255, 255, 255, 0.3) !important;
+}
+.dark header kbd {
+  color: rgba(255, 255, 255, 0.3) !important;
+  background-color: rgba(255, 255, 255, 0.1) !important;
+}
+.dark header .text-foreground {
+  color: #ededed !important;
+}
+.dark header .rounded-full.bg-primary {
+  background-color: oklch(0.488 0.243 264.376) !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 0 2px #0a0a0a !important;
+}
+
+/* Sidebar: ensure dark bg + light text in dark mode */
+.dark [data-slot="sidebar-inner"] {
+  background-color: oklch(0.145 0 0) !important;
+  color: oklch(0.985 0 0) !important;
+}
+.dark [data-slot="sidebar-inner"] .text-sidebar-foreground {
+  color: oklch(0.985 0 0) !important;
+}
+.dark [data-slot="sidebar-inner"] .text-sidebar-primary-foreground {
+  color: oklch(0.985 0 0) !important;
+}
+.dark [data-slot="sidebar-inner"] .text-muted-foreground {
+  color: rgba(255, 255, 255, 0.5) !important;
+}
+.dark [data-slot="sidebar-inner"] .bg-sidebar-primary {
+  background-color: oklch(0.488 0.243 264.376) !important;
+}
+.dark [data-slot="sidebar-inner"] .hover\:bg-accent:hover {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+}
+.dark [data-slot="sidebar-inner"] .hover\:text-foreground:hover,
+.dark [data-slot="sidebar-inner"] .hover\:text-destructive:hover {
+  color: inherit !important;
+}
+.dark [data-slot="sidebar-inner"] .border-sidebar-border {
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-body);
+}
+
+/* Dropdown / menu item highlight on hover */
+[data-slot="dropdown-menu-content"],
+[data-slot="select-content"] {
+  background-color: var(--popover);
+  color: var(--popover-foreground);
+}
+[data-slot="dropdown-menu-content"] [data-slot="dropdown-menu-item"],
+[data-slot="dropdown-menu-content"] [data-slot="dropdown-menu-checkbox-item"],
+[data-slot="dropdown-menu-content"] [data-slot="dropdown-menu-radio-item"],
+[data-slot="dropdown-menu-content"] [data-slot="dropdown-menu-sub-trigger"] {
+  transition: background-color 0.1s, color 0.1s;
+}
+[data-slot="dropdown-menu-content"] [data-slot="dropdown-menu-item"]:hover,
+[data-slot="dropdown-menu-content"] [data-slot="dropdown-menu-item"][data-highlighted],
+[data-slot="dropdown-menu-content"] [data-slot="dropdown-menu-checkbox-item"]:hover,
+[data-slot="dropdown-menu-content"] [data-slot="dropdown-menu-checkbox-item"][data-highlighted],
+[data-slot="dropdown-menu-content"] [data-slot="dropdown-menu-radio-item"]:hover,
+[data-slot="dropdown-menu-content"] [data-slot="dropdown-menu-radio-item"][data-highlighted],
+[data-slot="dropdown-menu-content"] [data-slot="dropdown-menu-sub-trigger"]:hover,
+[data-slot="dropdown-menu-content"] [data-slot="dropdown-menu-sub-trigger"][data-highlighted] {
+  background-color: var(--muted);
+  color: var(--foreground);
+}
+
+/* Select dropdown item highlight */
+[data-slot="select-content"] [data-slot="select-item"]:hover,
+[data-slot="select-content"] [data-slot="select-item"][data-highlighted] {
+  background-color: var(--muted);
+  color: var(--foreground);
 }
 
 body,
