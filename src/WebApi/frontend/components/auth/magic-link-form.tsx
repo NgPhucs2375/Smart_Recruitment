@@ -43,7 +43,7 @@ export function MagicLinkForm({
       )}
 
       <div className="space-y-1.5">
-        <Label htmlFor="magic-email-input" className="text-xs font-medium uppercase tracking-wider text-[#69727a]">
+        <Label htmlFor="magic-email-input" className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
           {label}
         </Label>
         <div className="relative">
@@ -56,7 +56,7 @@ export function MagicLinkForm({
             onChange={(e) => setEmail(e.target.value)}
             disabled={loading}
             required
-            className="h-11 rounded-xl border-[#d8d5ce] bg-white pl-10 text-sm transition focus-visible:ring-1 focus-visible:ring-[#151515]"
+            className="h-11 rounded-xl border-input bg-white pl-10 text-sm transition focus-visible:ring-1 focus-visible:ring-primary"
           />
         </div>
       </div>
@@ -65,12 +65,12 @@ export function MagicLinkForm({
         type="submit"
         disabled={loading || !email.trim()}
         variant="outline"
-        className="h-11 w-full rounded-xl border-[#d8d5ce] bg-white font-medium text-[#151515] transition hover:bg-[#f4f2ed]"
+        className="h-11 w-full rounded-xl border-border bg-white font-medium text-foreground transition hover:bg-muted"
       >
         {loading ? (
           <Loader2 className="mr-2 size-4 animate-spin" />
         ) : (
-          <Sparkles className="mr-2 size-4 text-amber-500" />
+          <Sparkles className="mr-2 size-4 text-lavender" />
         )}
         {loading ? "Đang gửi..." : buttonText}
       </Button>

@@ -12,14 +12,15 @@ interface JobCardProps {
   job: Job;
 }
 
-const levelColors: Record<string, string> = {
-  Intern: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
-  Fresher: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
-  Junior: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400",
-  Mid: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400",
-  Senior: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
-  Lead: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400",
-  Manager: "bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-400",
+/* Level pills — 3 calm groups instead of rainbow */
+const levelStyles: Record<string, string> = {
+  Intern: "bg-teal/10 text-navy",
+  Fresher: "bg-teal/10 text-navy",
+  Junior: "bg-teal/10 text-navy",
+  Mid: "bg-mist/20 text-navy",
+  Senior: "bg-navy text-white",
+  Lead: "bg-navy text-white",
+  Manager: "bg-sand/25 text-charcoal",
 };
 
 const workModeConfig: Record<string, { label: string; icon: typeof Building2 }> = {
@@ -45,23 +46,23 @@ export function JobCard({ job }: JobCardProps) {
   }
 
   return (
-    <Card className="group cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5">
-      <CardContent className="p-5">
+    <Card className="group cursor-pointer rounded-[1.5rem] border-linen bg-card transition-all duration-200 hover:-translate-y-0.5 hover:border-marine/25 hover:shadow-[0_18px_44px_rgba(53,92,140,0.10)]">
+      <CardContent className="p-6">
         <div className="flex items-start gap-4">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary font-bold text-sm">
+          <div className="flex size-13 shrink-0 items-center justify-center rounded-2xl bg-frost font-mono text-sm font-bold text-navy">
             {job.logo}
           </div>
           <div className="flex-1 min-w-0">
-            <div className="flex items-start justify-between gap-2">
+            <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <h3 className="font-semibold text-foreground truncate group-hover:text-primary transition-colors">
+                <h3 className="font-semibold text-charcoal truncate text-[17px] tracking-[-0.01em] group-hover:text-navy transition-colors">
                   {job.title}
                 </h3>
-                <p className="text-sm text-muted-foreground mt-0.5">{job.company}</p>
+                <p className="text-sm text-charcoal/60 mt-1">{job.company}</p>
               </div>
-              <div className="flex items-center gap-1.5 shrink-0">
+              <div className="flex items-center gap-2 shrink-0">
                 {job.isHot && (
-                  <Badge variant="destructive" className="gap-1">
+                  <Badge className="gap-1 border-0 bg-sand font-bold text-charcoal">
                     <Flame className="h-3 w-3" />
                     Hot
                   </Badge>
@@ -72,10 +73,10 @@ export function JobCard({ job }: JobCardProps) {
                   aria-label={bookmarked ? "Bỏ lưu" : "Lưu việc làm"}
                   aria-pressed={bookmarked}
                   className={cn(
-                    "flex size-8 items-center justify-center rounded-full border transition",
+                    "flex size-9 items-center justify-center rounded-full border transition",
                     bookmarked
-                      ? "border-primary bg-primary text-primary-foreground shadow-sm"
-                      : "border-border bg-background text-muted-foreground hover:border-foreground/20 hover:text-foreground hover:bg-muted"
+                      ? "border-navy bg-navy text-white shadow-sm"
+                      : "border-linen bg-card text-mist hover:border-marine/40 hover:text-marine hover:bg-frost"
                   )}
                 >
                   <Bookmark className={cn("h-4 w-4", bookmarked && "fill-current")} />
@@ -83,51 +84,49 @@ export function JobCard({ job }: JobCardProps) {
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2 mt-3">
-              <span className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">{job.salary}</span>
-              <span className="text-muted-foreground">·</span>
-              <span className="flex items-center gap-1 text-sm text-muted-foreground">
-                <MapPin className="h-3.5 w-3.5" />
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-2 mt-4">
+              <span className="rounded-full bg-teal/15 px-3 py-1.5 text-[13px] font-bold text-navy">{job.salary}</span>
+              <span className="flex items-center gap-1.5 text-sm text-charcoal/60">
+                <MapPin className="h-3.5 w-3.5 text-marine" />
                 {job.location}
               </span>
-              <span className="text-muted-foreground">·</span>
-              <span className="inline-flex items-center gap-1 rounded-full border border-border bg-muted/50 px-2 py-0.5 text-xs font-medium text-muted-foreground">
-                <workMode.icon className="h-3 w-3" />
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-linen bg-ivory px-2.5 py-1 text-xs font-medium text-charcoal/65">
+                <workMode.icon className="h-3 w-3 text-teal" />
                 {workMode.label}
               </span>
             </div>
 
-            <div className="flex flex-wrap gap-1.5 mt-3">
-              <Badge variant="secondary" className={cn("text-xs", levelColors[job.level])}>
+            <div className="flex flex-wrap gap-1.5 mt-3.5">
+              <Badge className={cn("border-0 text-xs font-semibold", levelStyles[job.level] ?? "bg-mist/20 text-navy")}>
                 {job.level}
               </Badge>
-              <Badge variant="outline" className="text-xs">
+              <Badge variant="outline" className="text-xs border-linen text-charcoal/65">
                 {job.employmentType}
               </Badge>
               {job.skills.slice(0, 3).map((skill) => (
-                <Badge key={skill} variant="outline" className="text-xs">
+                <Badge key={skill} variant="outline" className="text-xs border-linen text-charcoal/65">
                   {skill}
                 </Badge>
               ))}
               {job.skills.length > 3 && (
-                <Badge variant="outline" className="text-xs">
+                <Badge variant="outline" className="text-xs border-linen text-charcoal/55">
                   +{job.skills.length - 3}
                 </Badge>
               )}
             </div>
 
-            <div className="flex items-center gap-4 mt-4 pt-3 border-t border-border text-xs text-muted-foreground">
-              <span className="flex items-center gap-1">
-                <Clock className="h-3.5 w-3.5" />
+            <div className="flex items-center gap-5 mt-4 pt-4 border-t border-linen text-xs text-charcoal/55">
+              <span className="flex items-center gap-1.5">
+                <Clock className="h-3.5 w-3.5 text-mist" />
                 {job.postedAt}
               </span>
-              <span className="flex items-center gap-1">
-                <Users className="h-3.5 w-3.5" />
+              <span className="flex items-center gap-1.5">
+                <Users className="h-3.5 w-3.5 text-mist" />
                 {job.applicants} ứng viên
               </span>
               {bookmarked && (
-                <span className="ml-auto inline-flex items-center gap-1 text-primary font-medium">
-                  <Bookmark className="h-3 w-3 fill-primary" /> Đã lưu
+                <span className="ml-auto inline-flex items-center gap-1 font-semibold text-marine">
+                  <Bookmark className="h-3 w-3 fill-marine" /> Đã lưu
                 </span>
               )}
             </div>

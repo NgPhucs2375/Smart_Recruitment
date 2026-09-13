@@ -10,7 +10,7 @@ interface RoleSelectorProps {
 export function RoleSelector({ value, onChange, disabled }: RoleSelectorProps) {
   return (
     <div className="space-y-1.5">
-      <Label className="text-xs font-medium uppercase tracking-wider text-[#69727a]">
+      <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
         Bạn tham gia với tư cách
       </Label>
       <div className="grid grid-cols-2 gap-2.5">
@@ -20,8 +20,8 @@ export function RoleSelector({ value, onChange, disabled }: RoleSelectorProps) {
           disabled={disabled}
           className={`flex items-center justify-center gap-2 rounded-xl border py-2.5 transition-all ${
             value === "UNG_VIEN"
-              ? "border-[#151515] bg-[#151515] text-white shadow-sm"
-              : "border-[#d8d5ce] bg-white text-[#69727a] hover:border-[#151515]"
+              ? "border-primary bg-primary text-white shadow-sm"
+              : "border-border bg-white text-muted-foreground hover:border-primary"
           }`}
         >
           <User className="size-4" />
@@ -33,8 +33,8 @@ export function RoleSelector({ value, onChange, disabled }: RoleSelectorProps) {
           disabled={disabled}
           className={`flex items-center justify-center gap-2 rounded-xl border py-2.5 transition-all ${
             value === "NGUOI_DAI_DIEN"
-              ? "border-[#151515] bg-[#151515] text-white shadow-sm"
-              : "border-[#d8d5ce] bg-white text-[#69727a] hover:border-[#151515]"
+              ? "border-primary bg-primary text-white shadow-sm"
+              : "border-border bg-white text-muted-foreground hover:border-primary"
           }`}
         >
           <Briefcase className="size-4" />

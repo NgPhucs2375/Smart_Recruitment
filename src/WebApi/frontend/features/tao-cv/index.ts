@@ -6,3 +6,6 @@ export { CvForm } from "./components/cv-form";
 export { CvPreview } from "./components/cv-preview";
 export { AiAgent } from "./components/ai-agent";
 export { TaoCvView } from "./components/tao-cv-view";
+export { CvImportDialog } from "./components/cv-import-dialog";
+export { parseCvFile, CvImportError, SUPPORTED_IMPORT_EXTENSIONS, MAX_IMPORT_BYTES, formatBytes } from "./cv-import";
+export type { CvImportErrorCode } from "./cv-import";

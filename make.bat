@@ -27,6 +27,9 @@ if /I "%~1"=="db-sh" goto db_sh
 if /I "%~1"=="clean" goto clean
 if /I "%~1"=="help" goto help
 
+if /I "%~1"=="rsFE" goto rs_fe
+if /I "%~1"=="rsBE" goto rs_be
+
 echo Lenh khong hop le: %~1
 goto help
 
@@ -119,6 +122,13 @@ goto end
 docker compose exec postgres psql -U postgres -d smart_recruitment_db
 goto end
 
+:rs_fe
+docker compose restart frontend
+goto end
+
+:rs_be
+docker compose restart backend
+goto end
 
 :clean
 echo.
@@ -161,6 +171,9 @@ echo   make db-sh             - Vao PostgreSQL
 echo.
 echo   make clean             - Xoa container + volume, RESET DATABASE
 echo   make help              - Hien thi danh sach lenh
+echo.
+echo   make rsFE             - Restart Frontend
+echo   make rsBE             - Restart Backend
 echo.
 
 goto end

@@ -87,11 +87,11 @@ export default function LoginPage() {
   return (
     <AuthLayout leftPanel={leftPanelContent}>
       <div className="mb-6 text-center">
-        <div className="mx-auto mb-4 flex w-fit items-center gap-2 rounded-full border border-[#d8d5ce] bg-[#f4f2ed]/80 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-[#69727a]">
-          <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" /> Cổng truy cập bảo mật
+        <div className="mx-auto mb-4 flex w-fit items-center gap-2 rounded-full border border-border bg-muted/80 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+          <span className="size-1.5 rounded-full bg-sage animate-pulse" /> Cổng truy cập bảo mật
         </div>
-        <h2 className="text-3xl font-semibold tracking-tight text-[#151515]">Chào mừng trở lại</h2>
-        <p className="mt-2 text-sm text-[#69727a]">Chọn phương thức phù hợp để đăng nhập vào tài khoản</p>
+        <h2 className="text-3xl font-semibold tracking-tight text-foreground">Chào mừng trở lại</h2>
+        <p className="mt-2 text-sm text-muted-foreground">Chọn phương thức phù hợp để đăng nhập vào tài khoản</p>
       </div>
 
       {/* Tab Switcher */}
@@ -115,7 +115,7 @@ export default function LoginPage() {
           )}
 
           <div className="space-y-1.5">
-            <Label htmlFor="email" className="text-xs font-medium uppercase tracking-wider text-[#69727a]">
+            <Label htmlFor="email" className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
               Email công việc hoặc cá nhân
             </Label>
             <div className="relative">
@@ -126,7 +126,7 @@ export default function LoginPage() {
                 placeholder="name@company.com"
                 {...register("email")}
                 disabled={isPending}
-                className="h-11 rounded-xl border-[#d8d5ce] bg-white pl-10 text-sm transition focus-visible:ring-1 focus-visible:ring-[#151515]"
+                className="h-11 rounded-xl border-input bg-white pl-10 text-sm transition focus-visible:ring-1 focus-visible:ring-primary"
               />
             </div>
             {errors.email && <p className="text-xs text-red-500">{errors.email.message}</p>}
@@ -134,10 +134,10 @@ export default function LoginPage() {
 
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
-              <Label htmlFor="password" className="text-xs font-medium uppercase tracking-wider text-[#69727a]">
+              <Label htmlFor="password" className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
                 Mật khẩu
               </Label>
-              <Link href="/forgot-password" className="text-xs text-[#69727a] transition hover:text-[#151515] hover:underline">
+              <Link href="/forgot-password" className="text-xs text-muted-foreground transition hover:text-foreground hover:underline">
                 Quên mật khẩu?
               </Link>
             </div>
@@ -150,7 +150,7 @@ export default function LoginPage() {
                 placeholder="••••••••"
                 {...register("password")}
                 disabled={isPending}
-                className="h-11 rounded-xl border-[#d8d5ce] bg-white pl-10 text-sm transition focus-visible:ring-1 focus-visible:ring-[#151515]"
+                className="h-11 rounded-xl border-input bg-white pl-10 text-sm transition focus-visible:ring-1 focus-visible:ring-primary"
               />
             </div>
             {errors.password && <p className="text-xs text-red-500">{errors.password.message}</p>}
@@ -163,7 +163,7 @@ export default function LoginPage() {
               onCheckedChange={(checked) => setValue("remember", checked === true)}
               disabled={isPending}
             />
-            <Label htmlFor="remember" className="cursor-pointer text-xs text-[#69727a]">
+            <Label htmlFor="remember" className="cursor-pointer text-xs text-muted-foreground">
               Lưu thông tin đăng nhập trên thiết bị này
             </Label>
           </div>
@@ -171,16 +171,16 @@ export default function LoginPage() {
           <Button
             type="submit"
             disabled={isPending}
-            className="mt-2 h-11 w-full rounded-xl bg-[#151515] font-medium text-white transition hover:bg-black"
+            className="mt-2 h-11 w-full rounded-xl bg-primary font-medium text-white transition hover:bg-primary-hover"
           >
             {isPending ? <Loader2 className="mr-2 size-4 animate-spin" /> : <ArrowRight className="mr-2 size-4" />}
             {isPending ? "Đang xác thực..." : "Tiếp tục với Mật khẩu"}
           </Button>
 
           {/* Integrated Quick Google Section inside Password Form */}
-          <div className="relative my-4 text-center text-xs text-[#69727a]">
-            <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-[#d8d5ce]" /></div>
-            <span className="relative bg-[#f4f2ed]/90 px-3 uppercase tracking-wider">hoặc</span>
+          <div className="relative my-4 text-center text-xs text-muted-foreground">
+            <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-border" /></div>
+            <span className="relative bg-muted/90 px-3 uppercase tracking-wider">hoặc</span>
           </div>
 
           <GoogleAuthSection
@@ -217,10 +217,10 @@ export default function LoginPage() {
         />
       )}
 
-      <div className="mt-8 border-t border-[#d8d5ce]/60 pt-5 text-center">
-        <p className="text-xs text-[#69727a]">
+      <div className="mt-8 border-t border-border/60 pt-5 text-center">
+        <p className="text-xs text-muted-foreground">
           Chưa có tài khoản HIRE//AI?{" "}
-          <Link href="/register" className="font-semibold text-[#151515] underline underline-offset-4 hover:opacity-80">
+          <Link href="/register" className="font-semibold text-foreground underline underline-offset-4 hover:opacity-80">
             Đăng ký tài khoản mới
           </Link>
         </p>

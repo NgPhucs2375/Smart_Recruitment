@@ -1,37 +1,143 @@
 @import "tailwindcss";
 
+/* ============================================================
+   SMART RECRUITMENT — DESIGN TOKENS (Phase 1)
+   - Semantic tokens use `@theme inline` so utilities emit
+     `var(--...)` and keep following `:root` / `.dark` overrides
+     at runtime (theme toggle keeps working).
+   - Brand tokens are static values for direct use
+     (bg-ivory, text-charcoal, bg-marine, ...).
+   ============================================================ */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-primary-hover: var(--primary-hover);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  /* Semantic workspace layer (role-aware shells consume these) */
+  --color-workspace: var(--workspace-bg);
+  --color-workspace-surface: var(--workspace-surface);
+  --color-workspace-soft: var(--workspace-surface-soft);
+  --color-workspace-sidebar: var(--workspace-sidebar);
+  --color-workspace-topbar: var(--workspace-topbar);
+  --color-workspace-primary: var(--workspace-primary);
+  --color-workspace-primary-hover: var(--workspace-primary-hover);
+  --color-workspace-primary-soft: var(--workspace-primary-soft);
+  --color-workspace-on-primary: var(--workspace-on-primary);
+  --color-workspace-secondary: var(--workspace-secondary);
+  --color-workspace-secondary-soft: var(--workspace-secondary-soft);
+  --color-workspace-on-secondary: var(--workspace-on-secondary);
+  --color-workspace-text: var(--workspace-text);
+  --color-workspace-muted: var(--workspace-muted);
+  --color-workspace-border: var(--workspace-border);
+}
+
+@theme {
+  /* Surfaces */
+  --color-ivory: #faf8f3;
+  --color-parchment: #f7f5f1;
+  --color-cream: #f1eadf;
+  /* Text + lines */
+  --color-charcoal: #2f3440;
+  --color-linen: #ddd4c7;
+  /* Brand accents (unified navy + beige identity) */
+  --color-navy: #355c8c;
+  --color-marine: #35638f;
+  --color-mist: #8fb3cf;
+  --color-teal: #7fae9b;
+  --color-sand: #d7b98e;
+  /* Unified brand palette (single identity across public + workspaces) */
+  --color-brand: #355c8c;
+  --color-brand-hover: #2d4f79;
+  --color-brand-soft: #eaf1f8;
+  --color-sage: #7fae9b;
+  --color-soft-sage: #eaf4ef;
+  --color-sandgold: #d7b98e;
+  --color-soft-gold: #f6ebdd;
+  --color-lavender: #8e80c7;
+  --color-soft-lavender: #f1ecfa;
+  /* Soft directional tints (shared, sparing use) */
+  --color-frost: #eaf1f7;
+  --color-blush: #f7ece3;
+  --color-sandsoft: #f7eddc;
+  /* Type */
+  --font-heading: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
 :root {
-  --background: oklch(0.985 0.004 95);
-  --foreground: oklch(0.19 0.02 260);
+  --background: #f7f3ec;
+  --foreground: #2f3440;
 
   /* CopilotKit V2 theme variables */
-  --card: oklch(0.998 0.002 95);
-  --card-foreground: oklch(0.19 0.02 260);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.19 0.02 260);
-  --primary: oklch(0.31 0.09 255);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.95 0.015 255);
-  --secondary-foreground: oklch(0.26 0.04 255);
-  --muted: oklch(0.955 0.008 95);
-  --muted-foreground: oklch(0.52 0.025 260);
-  --accent: oklch(0.94 0.025 255);
-  --accent-foreground: oklch(0.24 0.05 255);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(0.89 0.012 260);
-  --input: oklch(0.87 0.015 260);
-  --ring: oklch(0.62 0.13 255);
+  --card: #fffdf9;
+  --card-foreground: #2f3440;
+  --popover: #fffdf9;
+  --popover-foreground: #2f3440;
+  --primary: #355c8c;
+  --primary-foreground: #ffffff;
+  --primary-hover: #2d4f79;
+  --secondary: #eaf1f8;
+  --secondary-foreground: #2d4f79;
+  --muted: #f0eee8;
+  --muted-foreground: #6d7480;
+  --accent: #eaf1f8;
+  --accent-foreground: #2d4f79;
+  --destructive: #b3362b;
+  --destructive-foreground: #ffffff;
+  --border: #ddd4c7;
+  --input: #d8d3c8;
+  --ring: #355c8c;
 
   /* Sidebar colors */
-  --sidebar: oklch(0.985 0.004 255);
-  --sidebar-foreground: oklch(0.22 0.025 260);
-  --sidebar-primary: oklch(0.31 0.09 255);
-  --sidebar-primary-foreground: oklch(0.99 0.005 95);
-  --sidebar-accent: oklch(0.94 0.025 255);
-  --sidebar-accent-foreground: oklch(0.24 0.05 255);
-  --sidebar-border: oklch(0.89 0.012 260);
-  --sidebar-ring: oklch(0.62 0.13 255);
+  --sidebar: #f7f5f1;
+  --sidebar-foreground: #2f3440;
+  --sidebar-primary: #355c8c;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #eaf1f8;
+  --sidebar-accent-foreground: #2d4f79;
+  --sidebar-border: #ddd4c7;
+  --sidebar-ring: #355c8c;
+
+  /* Workspace layer defaults = shared warm-neutral foundation (light).
+     Role tone classes (.tone-*) override these per workspace. */
+  --workspace-bg: #f7f3ec;
+  --workspace-surface: #fffdf9;
+  --workspace-surface-soft: #f1eadf;
+  --workspace-sidebar: #f7f5f1;
+  --workspace-topbar: #f7f3ec;
+  --workspace-primary: #355c8c;
+  --workspace-primary-hover: #2d4f79;
+  --workspace-primary-soft: #eaf1f8;
+  --workspace-on-primary: #ffffff;
+  --workspace-secondary: #9a938a;
+  --workspace-secondary-soft: #efe9df;
+  --workspace-on-secondary: #2f3440;
+  --workspace-text: #2f3440;
+  --workspace-muted: #6d7480;
+  --workspace-border: #ddd4c7;
 
   --radius: 0.625rem;
   --radius-sm: calc(var(--radius) - 4px);
@@ -43,45 +149,341 @@
   --font-code: "SFMono-Regular", Menlo, Monaco, Consolas, monospace;
 }
 
-/* Dark theme: admin content area uses forced light bg (#f5f5f3).
-   Tokens below are tuned for readability on that light bg.
-   Sidebar uses --sidebar-* (dark). Header uses bg-[#0a0a0a]/80 (hardcoded in header-v2). */
-.dark {
-  --background: #f5f5f3;
-  --foreground: oklch(0.19 0.02 260);
-  --card: oklch(0.998 0.002 95);
-  --card-foreground: oklch(0.19 0.02 260);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.19 0.02 260);
-  --primary: oklch(0.488 0.243 264.376);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.95 0.015 255);
-  --secondary-foreground: oklch(0.26 0.04 255);
-  --muted: oklch(0.955 0.008 95);
-  --muted-foreground: oklch(0.45 0.025 260);
-  --accent: oklch(0.94 0.025 255);
-  --accent-foreground: oklch(0.24 0.05 255);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(0.89 0.012 260);
-  --input: oklch(0.87 0.015 260);
-  --ring: oklch(0.62 0.13 255);
-  --sidebar: oklch(0.145 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(0.269 0 0);
-  --sidebar-ring: oklch(0.439 0 0);
+/* ============================================================
+   ROLE TONES (LIGHT) — final role color system.
+   One shared warm-neutral foundation; role color is accent /
+   system identity only, never a full-page paint.
+   Scoped wrappers rendered by AppLayout (.tone-* with `contents`
+   so layout is untouched).
+   Contrast pairs: white text on role primaries, charcoal on
+   light role surfaces. No pure black anywhere.
+   ============================================================ */
+.tone-candidate {
+  /* Candidate: brand navy primary + sage secondary (growth/career
+     accents only). Warm neutral chrome, beige content — youthful
+     but one product with the rest of the system. */
+  --primary: #355c8c;
+  --primary-foreground: #ffffff;
+  --secondary: #eaf1f8;
+  --secondary-foreground: #2d4f79;
+  --accent: #eaf1f8;
+  --accent-foreground: #2d4f79;
+  --ring: #355c8c;
+  --sidebar: #f5f1e8;
+  --sidebar-foreground: #2f3440;
+  --sidebar-primary: #355c8c;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #eaf1f8;
+  --sidebar-accent-foreground: #2d4f79;
+  --sidebar-border: #ddd4c7;
+  --sidebar-ring: #355c8c;
+  --workspace-bg: #f7f3ec;
+  --workspace-surface: #fffdf9;
+  --workspace-surface-soft: #f1eadf;
+  --workspace-sidebar: #f5f1e8;
+  --workspace-topbar: #fbf8f1;
+  --workspace-primary: #355c8c;
+  --workspace-primary-hover: #2d4f79;
+  --workspace-primary-soft: #eaf1f8;
+  --workspace-on-primary: #ffffff;
+  --workspace-secondary: #7fae9b;
+  --workspace-secondary-soft: #eaf4ef;
+  --workspace-on-secondary: #2f3440;
+  --workspace-text: #2f3440;
+  --workspace-muted: #6d7480;
+  --workspace-border: #ddd4c7;
 }
 
-/* Header: keep dark in dark mode via .dark class */
-.dark header,
-.dark [data-slot="sidebar-inset"] > header {
-  background-color: #0a0a0a !important;
-  color: #ededed !important;
+.tone-recruiter {
+  /* Recruiter: brand navy primary + sage secondary (KPI/priority/
+     attention accents only). Warm neutral chrome, beige content —
+     sage is an accent, never a full-page paint. */
+  --primary: #355c8c;
+  --primary-foreground: #ffffff;
+  --secondary: #eaf1f8;
+  --secondary-foreground: #2d4f79;
+  --accent: #eaf1f8;
+  --accent-foreground: #2d4f79;
+  --ring: #355c8c;
+  --sidebar: #f1efe6;
+  --sidebar-foreground: #2f3440;
+  --sidebar-primary: #355c8c;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #eaf1f8;
+  --sidebar-accent-foreground: #2d4f79;
+  --sidebar-border: #ddd4c7;
+  --sidebar-ring: #355c8c;
+  --workspace-bg: #f7f3ec;
+  --workspace-surface: #fffdf9;
+  --workspace-surface-soft: #f1eadf;
+  --workspace-sidebar: #f1efe6;
+  --workspace-topbar: #faf6ef;
+  --workspace-primary: #355c8c;
+  --workspace-primary-hover: #2d4f79;
+  --workspace-primary-soft: #eaf1f8;
+  --workspace-on-primary: #ffffff;
+  --workspace-secondary: #7fae9b;
+  --workspace-secondary-soft: #eaf4ef;
+  --workspace-on-secondary: #2f3440;
+  --workspace-text: #2f3440;
+  --workspace-muted: #6d7480;
+  --workspace-border: #ddd4c7;
 }
+
+.tone-admin {
+  /* Admin: brand navy primary + soft navy chrome (a touch deeper
+     than public). Content stays beige/ivory — structured, not cold. */
+  --primary: #355c8c;
+  --primary-foreground: #ffffff;
+  --secondary: #eaf1f8;
+  --secondary-foreground: #2d4f79;
+  --accent: #eaf1f8;
+  --accent-foreground: #2d4f79;
+  --ring: #355c8c;
+  --sidebar: #e2e8f2;
+  --sidebar-foreground: #2f3440;
+  --sidebar-primary: #2d4f79;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #eaf1f8;
+  --sidebar-accent-foreground: #2d4f79;
+  --sidebar-border: #cfd8e4;
+  --sidebar-ring: #355c8c;
+  --workspace-bg: #f7f3ec;
+  --workspace-surface: #fffdf9;
+  --workspace-surface-soft: #f1eadf;
+  --workspace-sidebar: #e2e8f2;
+  --workspace-topbar: #e7edf5;
+  --workspace-primary: #355c8c;
+  --workspace-primary-hover: #2d4f79;
+  --workspace-primary-soft: #eaf1f8;
+  --workspace-on-primary: #ffffff;
+  --workspace-secondary: #7fae9b;
+  --workspace-secondary-soft: #eaf4ef;
+  --workspace-on-secondary: #2f3440;
+  --workspace-text: #2f3440;
+  --workspace-muted: #6d7480;
+  --workspace-border: #ddd4c7;
+}
+
+/* Dark foundation: warm-tinted charcoal (beige identity transformed,
+   never generic navy, never pure black). Role tones below refine it
+   per workspace via `.dark .tone-*` (higher specificity, so dark mode
+   can never collapse roles back into one theme). */
+.dark {
+  --background: #242321;
+  --foreground: #ede6d8;
+  --card: #2d2b28;
+  --card-foreground: #ede6d8;
+  --popover: #2d2b28;
+  --popover-foreground: #ede6d8;
+  --primary: #b0a696;
+  --primary-foreground: #242321;
+  --primary-hover: #c2b8a6;
+  --secondary: #38342e;
+  --secondary-foreground: #d8d2c4;
+  --muted: #34312d;
+  --muted-foreground: #a49d90;
+  --accent: #38342e;
+  --accent-foreground: #d8d2c4;
+  --destructive: #e07a6a;
+  --destructive-foreground: #242321;
+  --border: #3e3a34;
+  --input: #3e3a34;
+  --ring: #b0a696;
+  --sidebar: #2b2925;
+  --sidebar-foreground: #ede6d8;
+  --sidebar-primary: #b0a696;
+  --sidebar-primary-foreground: #242321;
+  --sidebar-accent: #38342e;
+  --sidebar-accent-foreground: #d8d2c4;
+  --sidebar-border: #3e3a34;
+  --sidebar-ring: #b0a696;
+  --workspace-bg: #242321;
+  --workspace-surface: #2d2b28;
+  --workspace-surface-soft: #34312d;
+  --workspace-sidebar: #2b2925;
+  --workspace-topbar: #2b2925;
+  --workspace-primary: #b0a696;
+  --workspace-primary-hover: #bfb5a4;
+  --workspace-primary-soft: #34312d;
+  --workspace-on-primary: #242321;
+  --workspace-secondary: #8e887e;
+  --workspace-secondary-soft: #38342e;
+  --workspace-on-secondary: #ede6d8;
+  --workspace-text: #ede6d8;
+  --workspace-muted: #a49d90;
+  --workspace-border: #3e3a34;
+}
+
+/* ============================================================
+   ROLE TONES (DARK) — each role keeps its identity in dark mode.
+   `.dark .tone-*` (0,2,0) outranks both `.dark` and `.tone-*`
+   (0,1,0), so switching dark/light never changes the role.
+   ============================================================ */
+.dark .tone-candidate {
+  /* Candidate dark: warm charcoal base, navy-tinted chrome.
+     Lavender reserved for AI/insight accents only. */
+  --primary: #8ea6cf;
+  --primary-foreground: #23262e;
+  --secondary: #33364a;
+  --secondary-foreground: #d3d9e8;
+  --accent: #33364a;
+  --accent-foreground: #d3d9e8;
+  --ring: #8ea6cf;
+  --sidebar: #2a2c33;
+  --sidebar-foreground: #ede6da;
+  --sidebar-primary: #8ea6cf;
+  --sidebar-primary-foreground: #23262e;
+  --sidebar-accent: #33364a;
+  --sidebar-accent-foreground: #dcd2e8;
+  --sidebar-border: #3a3f4d;
+  --sidebar-ring: #8ea6cf;
+  --workspace-bg: #242321;
+  --workspace-surface: #2d2b28;
+  --workspace-surface-soft: #34312d;
+  --workspace-sidebar: #2a2c33;
+  --workspace-topbar: #2a2c33;
+  --workspace-primary: #8ea6cf;
+  --workspace-primary-hover: #9db4d8;
+  --workspace-primary-soft: #33364a;
+  --workspace-on-primary: #23262e;
+  --workspace-secondary: #8e80c7;
+  --workspace-secondary-soft: #33364a;
+  --workspace-on-secondary: #e6eaf2;
+  --workspace-text: #ede6da;
+  --workspace-muted: #a49d90;
+  --workspace-border: #3e3a34;
+}
+
+/* ============================================================
+   AUTH THEME BOUNDARY — public auth pages (login/register) always
+   render the light public theme, even when `.dark` persists on
+   <html> from a previous protected session (e.g. after logout).
+   The stored theme preference and <html> class are untouched, so
+   logging back in restores the workspace theme.
+   Same specificity as `.dark` (0,1,0); placed later so it wins
+   for descendants. No tone classes ever apply inside auth.
+   ============================================================ */
+.theme-auth {
+  color-scheme: light;
+  --background: #f7f3ec;
+  --foreground: #2f3440;
+  --card: #fffdf9;
+  --card-foreground: #2f3440;
+  --popover: #fffdf9;
+  --popover-foreground: #2f3440;
+  --primary: #355c8c;
+  --primary-foreground: #ffffff;
+  --primary-hover: #2d4f79;
+  --secondary: #eaf1f8;
+  --secondary-foreground: #2d4f79;
+  --muted: #f0eee8;
+  --muted-foreground: #6d7480;
+  --accent: #eaf1f8;
+  --accent-foreground: #2d4f79;
+  --destructive: #b3362b;
+  --destructive-foreground: #ffffff;
+  --border: #ddd4c7;
+  --input: #d8d3c8;
+  --ring: #355c8c;
+  --sidebar: #f7f5f1;
+  --sidebar-foreground: #2f3440;
+  --sidebar-primary: #355c8c;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #eaf1f8;
+  --sidebar-accent-foreground: #2d4f79;
+  --sidebar-border: #ddd4c7;
+  --sidebar-ring: #355c8c;
+  --workspace-bg: #f7f3ec;
+  --workspace-surface: #fffdf9;
+  --workspace-surface-soft: #f1eadf;
+  --workspace-sidebar: #f7f5f1;
+  --workspace-topbar: #f7f3ec;
+  --workspace-primary: #355c8c;
+  --workspace-primary-hover: #2d4f79;
+  --workspace-primary-soft: #eaf1f8;
+  --workspace-on-primary: #ffffff;
+  --workspace-secondary: #9a938a;
+  --workspace-secondary-soft: #efe9df;
+  --workspace-on-secondary: #2f3440;
+  --workspace-text: #2f3440;
+  --workspace-muted: #6d7480;
+  --workspace-border: #ddd4c7;
+}
+
+.dark .tone-recruiter {
+  /* Recruiter dark: navy-dominant like light mode; sage kept ONLY as
+     secondary accent (dots/highlights). Chrome is neutral warm
+     charcoal — no green wash, matching the unified brand. */
+  --primary: #8ea6cf;
+  --primary-foreground: #23262e;
+  --secondary: #33364a;
+  --secondary-foreground: #d3d9e8;
+  --accent: #33364a;
+  --accent-foreground: #d3d9e8;
+  --ring: #8ea6cf;
+  --sidebar: #262b33;
+  --sidebar-foreground: #e8ede9;
+  --sidebar-primary: #8ea6cf;
+  --sidebar-primary-foreground: #23262e;
+  --sidebar-accent: #33364a;
+  --sidebar-accent-foreground: #d3d9e8;
+  --sidebar-border: #3a4152;
+  --sidebar-ring: #8ea6cf;
+  --workspace-bg: #242321;
+  --workspace-surface: #2d2b28;
+  --workspace-surface-soft: #34312d;
+  --workspace-sidebar: #262b33;
+  --workspace-topbar: #262b33;
+  --workspace-primary: #8ea6cf;
+  --workspace-primary-hover: #9db4d8;
+  --workspace-primary-soft: #33364a;
+  --workspace-on-primary: #23262e;
+  --workspace-secondary: #7fae9b;
+  --workspace-secondary-soft: #323a35;
+  --workspace-on-secondary: #ede6da;
+  --workspace-text: #e8ede9;
+  --workspace-muted: #9aa5a0;
+  --workspace-border: #3a4152;
+}
+
+.dark .tone-admin {
+  /* Admin dark: shared neutral base, shell tinted slate-navy.
+     Coolest of the three, but never saturated full-navy. */
+  --primary: #829bc5;
+  --primary-foreground: #23262e;
+  --secondary: #33364a;
+  --secondary-foreground: #d3d9e8;
+  --accent: #33364a;
+  --accent-foreground: #d3d9e8;
+  --ring: #829bc5;
+  --sidebar: #28303d;
+  --sidebar-foreground: #e6eaf2;
+  --sidebar-primary: #829bc5;
+  --sidebar-primary-foreground: #23262e;
+  --sidebar-accent: #33364a;
+  --sidebar-accent-foreground: #d3d9e8;
+  --sidebar-border: #3a4152;
+  --sidebar-ring: #829bc5;
+  --workspace-bg: #242321;
+  --workspace-surface: #2d2b28;
+  --workspace-surface-soft: #34312d;
+  --workspace-sidebar: #28303d;
+  --workspace-topbar: #28303d;
+  --workspace-primary: #829bc5;
+  --workspace-primary-hover: #8ea7cf;
+  --workspace-primary-soft: #33364a;
+  --workspace-on-primary: #23262e;
+  --workspace-secondary: #9a8fc4;
+  --workspace-secondary-soft: #33364a;
+  --workspace-on-secondary: #e6eaf2;
+  --workspace-text: #e6eaf2;
+  --workspace-muted: #9aa0b4;
+  --workspace-border: #3a4152;
+}
+
+/* Dark header: neutral warm overlays only — the background itself is
+   driven by --workspace-topbar so each role keeps its identity. */
 .dark header .text-muted-foreground {
   color: rgba(255, 255, 255, 0.6) !important;
 }
@@ -107,38 +509,15 @@
 .dark header .text-foreground {
   color: #ededed !important;
 }
-.dark header .rounded-full.bg-primary {
-  background-color: oklch(0.488 0.243 264.376) !important;
-  color: #ffffff !important;
-  box-shadow: 0 0 0 2px #0a0a0a !important;
-}
 
-/* Sidebar: ensure dark bg + light text in dark mode */
-.dark [data-slot="sidebar-inner"] {
-  background-color: oklch(0.145 0 0) !important;
-  color: oklch(0.985 0 0) !important;
-}
-.dark [data-slot="sidebar-inner"] .text-sidebar-foreground {
-  color: oklch(0.985 0 0) !important;
-}
-.dark [data-slot="sidebar-inner"] .text-sidebar-primary-foreground {
-  color: oklch(0.985 0 0) !important;
-}
-.dark [data-slot="sidebar-inner"] .text-muted-foreground {
-  color: rgba(255, 255, 255, 0.5) !important;
-}
-.dark [data-slot="sidebar-inner"] .bg-sidebar-primary {
-  background-color: oklch(0.488 0.243 264.376) !important;
-}
+/* Sidebar in dark mode: neutral overlays only — background, active
+   item and borders are driven by role tone variables. */
 .dark [data-slot="sidebar-inner"] .hover\:bg-accent:hover {
   background-color: rgba(255, 255, 255, 0.08) !important;
 }
 .dark [data-slot="sidebar-inner"] .hover\:text-foreground:hover,
 .dark [data-slot="sidebar-inner"] .hover\:text-destructive:hover {
   color: inherit !important;
-}
-.dark [data-slot="sidebar-inner"] .border-sidebar-border {
-  border-color: rgba(255, 255, 255, 0.08) !important;
 }
 
 body {
@@ -183,13 +562,16 @@ html {
   height: 100%;
 }
 
-/* Give Adam a distinct floating assistant presence without taking workspace space. */
+/* Give Adam a distinct floating assistant presence without taking workspace space.
+   Single motion contract: CopilotKit unmounts the popup 200ms after close
+   (see CopilotPopupViewInternal) with a 200ms exit, so every Adam-side
+   transition below uses the same 200ms — one duration, no split layers. */
 [data-testid="copilot-chat-toggle"].adam-chat-toggle {
   border-radius: 9999px !important;
   border: 1px solid color-mix(in oklab, var(--primary) 65%, white) !important;
   background: var(--primary) !important;
   box-shadow: 0 12px 28px color-mix(in oklab, var(--primary) 30%, transparent), 0 0 0 6px color-mix(in oklab, var(--primary) 9%, transparent) !important;
-  transition: transform 180ms ease, box-shadow 180ms ease !important;
+  transition: transform 200ms ease, box-shadow 200ms ease !important;
 }
 
 [data-testid="copilot-chat-toggle"].adam-chat-toggle::after {
@@ -210,8 +592,40 @@ html {
 }
 
 [data-copilot-popup="true"] {
+  /* Theme scoping (root cause of the "foreign frame" look): CopilotKit
+     ships its own cold oklch token scope, which painted the panel as a
+     detached slab. Re-point its internals at our warm workspace tokens
+     (fallbacks keep it safe outside a tone wrapper). */
+  --background: var(--workspace-surface, var(--card));
+  --foreground: var(--workspace-text, var(--foreground));
+  --card: var(--workspace-surface, var(--card));
+  --card-foreground: var(--workspace-text, var(--card-foreground));
+  --popover: var(--workspace-surface, var(--popover));
+  --popover-foreground: var(--workspace-text, var(--popover-foreground));
+  --primary: var(--workspace-primary, var(--primary));
+  --primary-foreground: var(--workspace-on-primary, var(--primary-foreground));
+  --secondary: var(--workspace-primary-soft, var(--secondary));
+  --secondary-foreground: var(--workspace-primary, var(--secondary-foreground));
+  --muted: var(--workspace-surface-soft, var(--muted));
+  --muted-foreground: var(--workspace-muted, var(--muted-foreground));
+  --accent: var(--workspace-primary-soft, var(--accent));
+  --accent-foreground: var(--workspace-primary, var(--accent-foreground));
+  --border: var(--workspace-border, var(--border));
+  --input: var(--workspace-border, var(--input));
+  --ring: var(--workspace-primary, var(--ring));
+  color-scheme: light;
   border-color: color-mix(in oklab, var(--primary) 28%, var(--border)) !important;
-  box-shadow: 0 24px 70px color-mix(in oklab, var(--foreground) 18%, transparent), 0 0 0 1px color-mix(in oklab, var(--primary) 8%, transparent) !important;
+  border-radius: 22px !important;
+  overflow: hidden;
+  box-shadow: 0 18px 50px color-mix(in oklab, var(--foreground) 14%, transparent), 0 0 0 1px color-mix(in oklab, var(--primary) 8%, transparent) !important;
+}
+
+/* Dark mode: calm dark-tinted shadow instead so the
+   popup doesn't glare like a white LED on dark backgrounds. */
+.dark [data-copilot-popup="true"] {
+  color-scheme: dark;
+  border-color: rgba(255, 255, 255, 0.09) !important;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.06) !important;
 }
 
 [data-testid="copilot-modal-header"].adam-chat-header {
@@ -305,13 +719,13 @@ html {
 
 /* CV Builder Styles */
 :root {
-  --cv-accent: #376c5e;
+  --cv-accent: #35638f;
 }
 
 .cv-builder-shell { 
   min-height: calc(100vh - 2rem); 
-  background: #f5f5f2; 
-  color: #151817; 
+  background: #faf8f3; 
+  color: #3f454a; 
   padding: 1.5rem clamp(1rem, 3vw, 3.5rem) 4rem; 
 }
 
@@ -326,9 +740,9 @@ html {
   display: flex; 
   justify-content: space-between; 
   align-items: center; 
-  border-bottom: 1px solid #d7dad6; 
+  border-bottom: 1px solid #e6e0d6; 
   padding-bottom: .9rem; 
-  color: #69736e; 
+  color: #6b6660; 
   font-family: var(--font-code); 
   font-size: .68rem; 
   letter-spacing: .12em; 
@@ -342,7 +756,7 @@ html {
 }
 
 .cv-breadcrumb strong { 
-  color: #151817; 
+  color: #3f454a; 
 }
 
 .cv-save-state { 
@@ -357,8 +771,8 @@ html {
   width: 6px; 
   height: 6px; 
   border-radius: 50%; 
-  background: #1ca273; 
-  box-shadow: 0 0 0 4px #1ca2731c; 
+  background: #6f9e9a; 
+  box-shadow: 0 0 0 4px #6f9e9a1c; 
 }
 
 .cv-builder-header { 
@@ -371,7 +785,7 @@ html {
 
 .cv-eyebrow { 
   margin: 0 0 .7rem; 
-  color: #708079; 
+  color: #6b6660; 
   font-family: var(--font-code); 
   font-size: .68rem; 
   letter-spacing: .18em; 
@@ -387,14 +801,14 @@ html {
 }
 
 .cv-builder-header h1 em { 
-  color: #376c5e; 
+  color: #35638f; 
   font-style: normal; 
 }
 
 .cv-builder-subtitle { 
   max-width: 520px; 
   margin: 1.1rem 0 0; 
-  color: #65706b; 
+  color: #6b6660; 
   font-size: .95rem; 
 }
 
@@ -409,8 +823,8 @@ html {
   align-items: center; 
   gap: 1rem; 
   padding: 1rem 0; 
-  border-top: 1px solid #d7dad6; 
-  border-bottom: 1px solid #d7dad6; 
+  border-top: 1px solid #e6e0d6; 
+  border-bottom: 1px solid #e6e0d6; 
   margin-bottom: 1.75rem; 
 }
 
@@ -422,11 +836,11 @@ html {
   font-family: var(--font-code); 
   font-size: .66rem; 
   letter-spacing: .1em; 
-  color: #68736e; 
+  color: #6b6660; 
 }
 
 .cv-progress-label strong { 
-  color: #151817; 
+  color: #3f454a; 
 }
 
 .cv-progress-track { 
@@ -434,18 +848,18 @@ html {
   flex: 1; 
   overflow: hidden; 
   border-radius: 999px; 
-  background: #dfe4df; 
+  background: #eaf1f7; 
 }
 
 .cv-progress-track div { 
   height: 100%; 
   border-radius: inherit; 
-  background: #376c5e; 
+  background: #6f9e9a; 
   transition: width .3s ease; 
 }
 
 .cv-progress-note { 
-  color: #79837e; 
+  color: #6b6660; 
   font-size: .78rem; 
   white-space: nowrap; 
 }
@@ -486,7 +900,7 @@ html {
   display: flex; 
   align-items: center; 
   gap: .35rem; 
-  color: #31866a; 
+  color: #6f9e9a; 
   font-family: var(--font-code); 
   font-size: .68rem; 
   text-transform: uppercase; 
@@ -499,15 +913,15 @@ html {
 }
 
 .cv-form-card { 
-  border: 1px solid #d9ded9; 
+  border: 1px solid #e6e0d6; 
   border-radius: 1.2rem; 
-  background: #fbfbf9; 
+  background: #ffffff; 
   box-shadow: 0 2px 10px #26352b08; 
 }
 
 .cv-form-card [data-slot="card-header"] { 
   padding: 1rem 1rem 0.8rem; 
-  border-bottom: 1px solid #dfe3df;
+  border-bottom: 1px solid #e6e0d6;
 }
 
 .cv-form-card [data-slot="card-title"] { 
@@ -516,15 +930,15 @@ html {
   gap: .55rem; 
   font-size: 1rem; 
   font-weight: 600; 
-  color: #151817;
+  color: #3f454a;
 }
 
 .cv-form-card [data-slot="card-title"] svg { 
-  color: #376c5e; 
+  color: #35638f; 
 }
 
 .cv-form-card label { 
-  color: #65706b; 
+  color: #6b6660; 
   font-family: var(--font-code); 
   font-size: .67rem; 
   letter-spacing: .08em; 
@@ -533,7 +947,7 @@ html {
 
 .cv-form-card input, 
 .cv-form-card textarea { 
-  border-color: #d8ded9; 
+  border-color: #e6e0d6; 
   border-radius: .7rem; 
   background: white; 
 }
@@ -541,7 +955,7 @@ html {
 .cv-required, 
 .cv-card-helper { 
   margin-left: auto; 
-  color: #82908a; 
+  color: #6b6660; 
   font-family: var(--font-code); 
   font-size: .62rem; 
   font-weight: 400; 
@@ -552,7 +966,7 @@ html {
   display: grid; 
   gap: .75rem; 
   padding: 1rem; 
-  border: 1px solid #dfe3df; 
+  border: 1px solid #e6e0d6; 
   border-radius: .9rem; 
   background: #fff; 
 }
@@ -563,15 +977,15 @@ html {
   justify-content: center; 
   gap: .6rem; 
   min-height: 5rem; 
-  border: 1px dashed #cbd4ce; 
+  border: 1px dashed #d8d3c8; 
   border-radius: .8rem; 
-  color: #76827c; 
+  color: #6b6660; 
   font-size: .82rem; 
   text-align: center; 
 }
 
 .cv-empty-form svg { 
-  color: #376c5e; 
+  color: #35638f; 
 }
 
 .cv-preview-toolbar { 
@@ -582,9 +996,9 @@ html {
   position: sticky; 
   top: 1.5rem; 
   padding: clamp(.8rem, 2vw, 1.5rem); 
-  border: 1px solid #d5dbd6; 
+  border: 1px solid #e6e0d6; 
   border-radius: 1.35rem; 
-  background: #e8ebe7; 
+  background: #eaf1f7; 
   box-shadow: inset 0 0 0 1px #fff, 0 12px 30px #29362b0b; 
 }
 
@@ -593,7 +1007,7 @@ html {
   align-items: center; 
   gap: .45rem; 
   justify-content: center; 
-  color: #75817b; 
+  color: #6b6660; 
   font-size: .76rem; 
   margin-top: 1rem;
 }
@@ -601,7 +1015,7 @@ html {
 .cv-paper { 
   overflow: hidden; 
   background: #fff; 
-  color: #1c211f; 
+  color: #3f454a; 
   box-shadow: 0 8px 25px #26352b16; 
   font-family: Arial, sans-serif; 
 }
@@ -660,7 +1074,7 @@ html {
 
 .cv-paper-sidebar { 
   padding: 1.5rem 1rem 2rem 1.5rem; 
-  background: #f1f4f0; 
+  background: #f7f5f1; 
 }
 
 .cv-paper-main { 
@@ -682,7 +1096,7 @@ html {
   align-items: flex-start; 
   gap: .35rem; 
   margin: .55rem 0; 
-  color: #59645f; 
+  color: #6b6660; 
   font-size: .6rem; 
   line-height: 1.35; 
   overflow-wrap: anywhere; 

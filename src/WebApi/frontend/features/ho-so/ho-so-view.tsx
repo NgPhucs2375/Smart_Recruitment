@@ -266,19 +266,19 @@ export function HoSoView() {
       {/* Edit / Create Form Mode */}
       {isEditing && (
         <form onSubmit={handleSave}>
-          <Card className="border-[#d8d5ce]/70 shadow-sm">
-            <CardHeader className="border-b border-[#d8d5ce]/40 bg-[#f4f2ed]/40 pb-4">
-              <CardTitle className="text-xl font-semibold text-[#151515]">
+          <Card className="border-border/70 shadow-sm">
+            <CardHeader className="border-b border-border/40 bg-muted/40 pb-4">
+              <CardTitle className="text-xl font-semibold text-foreground">
                 {hoSo ? "Chỉnh sửa thông tin hồ sơ" : "Tạo hồ sơ ứng viên mới"}
               </CardTitle>
-              <CardDescription className="text-xs text-[#69727a]">
+              <CardDescription className="text-xs text-muted-foreground">
                 Điền đầy đủ thông tin cá nhân và vị trí mong muốn để nhà tuyển dụng tiếp cận bạn.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6 pt-6">
               {/* Thông tin cá nhân */}
               <div className="space-y-4">
-                <h3 className="text-xs font-semibold uppercase tracking-wider text-[#69727a]">
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                   1. Thông tin cá nhân
                 </h3>
                 <div className="grid gap-4 sm:grid-cols-2">
@@ -293,7 +293,7 @@ export function HoSoView() {
                         value={hoTen}
                         onChange={(e) => setHoTen(e.target.value)}
                         required
-                        className="h-10 rounded-xl border-[#d8d5ce] bg-white pl-10 text-sm"
+                        className="h-10 rounded-xl border-input bg-white pl-10 text-sm"
                       />
                     </div>
                   </div>
@@ -306,7 +306,7 @@ export function HoSoView() {
                         placeholder="0912345678"
                         value={sdt}
                         onChange={(e) => setSdt(e.target.value)}
-                        className="h-10 rounded-xl border-[#d8d5ce] bg-white pl-10 text-sm"
+                        className="h-10 rounded-xl border-input bg-white pl-10 text-sm"
                       />
                     </div>
                   </div>
@@ -321,7 +321,7 @@ export function HoSoView() {
                         type="date"
                         value={ngaySinh}
                         onChange={(e) => setNgaySinh(e.target.value)}
-                        className="h-10 rounded-xl border-[#d8d5ce] bg-white pl-10 text-sm"
+                        className="h-10 rounded-xl border-input bg-white pl-10 text-sm"
                       />
                     </div>
                   </div>
@@ -331,7 +331,7 @@ export function HoSoView() {
                     <div className="relative">
                       <User className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
                       <select
-                        className="flex h-10 w-full rounded-xl border border-[#d8d5ce] bg-white pl-10 pr-3 text-sm text-gray-900 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#151515]"
+                        className="flex h-10 w-full rounded-xl border border-input bg-white pl-10 pr-3 text-sm text-gray-900 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                         value={gioiTinh}
                         onChange={(e) => setGioiTinh(e.target.value)}
                       >
@@ -351,7 +351,7 @@ export function HoSoView() {
                       placeholder="Quận 1, TP. Hồ Chí Minh"
                       value={diaChi}
                       onChange={(e) => setDiaChi(e.target.value)}
-                      className="h-10 rounded-xl border-[#d8d5ce] bg-white pl-10 text-sm"
+                      className="h-10 rounded-xl border-input bg-white pl-10 text-sm"
                     />
                   </div>
                 </div>
@@ -359,7 +359,7 @@ export function HoSoView() {
 
               {/* Vị trí & Định hướng */}
               <div className="space-y-4 pt-2">
-                <h3 className="text-xs font-semibold uppercase tracking-wider text-[#69727a]">
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                   2. Định hướng nghề nghiệp & Mong muốn
                 </h3>
                 <div className="grid gap-4 sm:grid-cols-2">
@@ -371,7 +371,7 @@ export function HoSoView() {
                         placeholder="Fullstack .NET Developer"
                         value={viTriUngTuyen}
                         onChange={(e) => setViTriUngTuyen(e.target.value)}
-                        className="h-10 rounded-xl border-[#d8d5ce] bg-white pl-10 text-sm"
+                        className="h-10 rounded-xl border-input bg-white pl-10 text-sm"
                       />
                     </div>
                   </div>
@@ -389,18 +389,18 @@ export function HoSoView() {
                         onChange={(e) =>
                           setMucLuongMongMuon(e.target.value === "" ? "" : Number(e.target.value))
                         }
-                        className="h-10 rounded-xl border-[#d8d5ce] bg-white pl-10 text-sm"
+                        className="h-10 rounded-xl border-input bg-white pl-10 text-sm"
                       />
                     </div>
                   </div>
                 </div>
 
                 {/* Trạng thái tìm việc */}
-                <div className="flex items-center gap-3 rounded-xl border border-[#d8d5ce] bg-[#f4f2ed]/50 p-4">
+                <div className="flex items-center gap-3 rounded-xl border border-border bg-muted/50 p-4">
                   <input
                     type="checkbox"
                     id="isTimViec"
-                    className="size-4 rounded border-gray-300 text-[#151515] focus:ring-[#151515]"
+                    className="size-4 rounded border-gray-300 accent-primary focus:ring-ring"
                     checked={isTimViec}
                     onChange={(e) => setIsTimViec(e.target.checked)}
                   />
@@ -419,13 +419,13 @@ export function HoSoView() {
                     placeholder="Tóm tắt kinh nghiệm làm việc, kỹ năng nổi bật và định hướng phát triển sự nghiệp..."
                     value={gioiThieu}
                     onChange={(e) => setGioiThieu(e.target.value)}
-                    className="rounded-xl border-[#d8d5ce] bg-white text-sm"
+                    className="rounded-xl border-input bg-white text-sm"
                   />
                 </div>
               </div>
 
               {/* Action buttons */}
-              <div className="flex items-center justify-end gap-3 pt-4 border-t border-[#d8d5ce]/40">
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-border/40">
                 {hoSo && (
                   <Button
                     type="button"
@@ -434,12 +434,12 @@ export function HoSoView() {
                       populateForm(hoSo);
                       setIsEditing(false);
                     }}
-                    className="h-10 rounded-xl border-[#d8d5ce]"
+                    className="h-10 rounded-xl border-input"
                   >
                     Hủy bỏ
                   </Button>
                 )}
-                <Button type="submit" disabled={saving} className="h-10 rounded-xl bg-[#151515] text-white hover:bg-black">
+                <Button type="submit" disabled={saving} className="h-10 rounded-xl bg-primary text-primary-foreground hover:bg-primary-hover">
                   {saving ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />

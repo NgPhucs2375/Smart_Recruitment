@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { FileText, Save, Eye, Pencil, Plus, Trash2, Printer } from "lucide-react";
+import { FileText, Save, Eye, Pencil, Plus, Trash2, Printer, Check, ListChecks, Sparkles, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -10,10 +10,60 @@ import { CvForm } from "./cv-form";
 import { CvPreview } from "./cv-preview";
 import { TemplateSelector } from "./template-selector";
 import { AiAgent } from "./ai-agent";
+import { CvImportDialog } from "./cv-import-dialog";
 import { defaultCvData } from "../constants";
 import type { CvFormData } from "../types";
 import { cvDataFromJson, toCvPayload, isoToVnDate } from "../types";
 import { cvApi, type CvVm, type HoSoVm } from "@/lib/cv-api";
+
+export function ChecklistCard({ items, doneCount }: { items: { label: string; done: boolean }[]; doneCount: number }) {
+  return (
+    <div className="rounded-3xl border border-linen bg-card p-5 shadow-sm">
+      <div className="flex items-center justify-between gap-2">
+        <p className="flex items-center gap-2 text-sm font-semibold text-charcoal">
+          <ListChecks className="size-4 text-marine" /> Checklist hoàn thiện
+        </p>
+        <span className="rounded-full bg-teal/10 px-2.5 py-1 text-xs font-bold text-navy">
+          {doneCount}/{items.length}
+        </span>
+      </div>
+      <ul className="mt-4 space-y-2">
+        {items.map((item) => (
+          <li key={item.label} className="flex items-center gap-2.5 text-sm">
+            <span
+              className={`flex size-5 shrink-0 items-center justify-center rounded-full border transition ${
+                item.done ? "border-teal bg-teal text-white" : "border-linen bg-ivory text-transparent"
+              }`}
+            >
+              <Check className="size-3" />
+            </span>
+            <span className={item.done ? "font-medium text-charcoal" : "text-charcoal/55"}>{item.label}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+export function QualityCard({ progress, label, note }: { progress: number; label: string; note: string }) {
+  return (
+    <div className="rounded-3xl border border-linen bg-card p-5 shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="flex items-center gap-2 text-sm font-semibold text-charcoal">
+          <Sparkles className="size-4 text-teal" /> Chất lượng CV
+          <strong className="font-mono text-navy">{progress}%</strong>
+        </p>
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-navy px-3 py-1 text-xs font-semibold text-white">
+          <span className="size-1.5 rounded-full bg-teal" /> {label}
+        </span>
+      </div>
+      <div className="mt-3 h-2 overflow-hidden rounded-full bg-frost">
+        <div className="h-full rounded-full bg-teal transition-all duration-500" style={{ width: `${progress}%` }} />
+      </div>
+      <p className="mt-2.5 text-xs text-charcoal/55">{note}</p>
+    </div>
+  );
+}
 
 export function TaoCvView() {
   const [cvData, setCvData] = useState<CvFormData>(defaultCvData);
@@ -22,6 +72,7 @@ export function TaoCvView() {
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
 
   const loadAll = useCallback(async () => {
     setLoading(true);
@@ -130,6 +181,22 @@ export function TaoCvView() {
     toast.success("Đã đổ thông tin từ hồ sơ");
   };
 
+  // Merge imported content into the working copy. Only content fields are
+  // taken; templateId/tenFile/selectedId stay untouched so the visual
+  // template choice and save target never change implicitly.
+  const handleImported = (partial: Partial<CvFormData>) => {
+    setCvData((prev) => ({
+      ...prev,
+      thongTinLienHe: { ...prev.thongTinLienHe, ...(partial.thongTinLienHe ?? {}) },
+      hocVan: partial.hocVan ?? prev.hocVan,
+      kinhNghiemLamViec: partial.kinhNghiemLamViec ?? prev.kinhNghiemLamViec,
+      duAn: partial.duAn ?? prev.duAn,
+      kyNang: partial.kyNang ?? prev.kyNang,
+      chungChi: partial.chungChi ?? prev.chungChi,
+    }));
+    toast.success("Đã nhập CV", { description: "Kiểm tra lại các trường rồi bấm Lưu CV." });
+  };
+
   const progress = useMemo(() => {
     const lh = cvData.thongTinLienHe;
     let done = 0;
@@ -143,68 +210,91 @@ export function TaoCvView() {
     return Math.round((done / total) * 100);
   }, [cvData]);
 
+  const quality = useMemo(() => {
+    const lh = cvData.thongTinLienHe;
+    const items = [
+      { label: "Thông tin liên hệ (tên, email, SĐT)", done: Boolean(lh.hoTen && lh.email && lh.sdt) },
+      { label: "Giới thiệu bản thân", done: Boolean(lh.gioiThieuBanThan) },
+      { label: "Kinh nghiệm làm việc", done: cvData.kinhNghiemLamViec.length > 0 },
+      { label: "Học vấn", done: cvData.hocVan.length > 0 },
+      { label: "Kỹ năng", done: cvData.kyNang.length > 0 },
+      { label: "Dự án hoặc chứng chỉ", done: cvData.duAn.length > 0 || cvData.chungChi.length > 0 },
+    ];
+    const doneCount = items.filter((i) => i.done).length;
+    const label =
+      progress >= 100 ? "Xuất sắc" : progress >= 70 ? "Gần xong rồi" : progress >= 40 ? "Đang hoàn thiện" : "Mới bắt đầu";
+    return { items, doneCount, label };
+  }, [cvData, progress]);
+
   return (
-    <div className="cv-builder-shell">
-      {/* Top line with breadcrumb and save state */}
-      <div className="cv-builder-topline">
-        <div className="cv-breadcrumb">
-          <span>
-            <FileText className="inline h-3.5 w-3.5 mr-1" />
-            Tạo CV
-          </span>
-          <strong>/</strong>
-          <span>{selectedId ? "Chỉnh sửa CV" : "CV mới"}</span>
-        </div>
-        <div className="cv-save-state">
-          <div className="cv-live-dot"></div>
-          <span>{loading ? "Đang tải..." : selectedId ? `CV #${selectedId}` : "Đang soạn"}</span>
-        </div>
+    <div className="mx-auto w-full max-w-[1440px] space-y-5 px-4 py-6 sm:px-6 sm:py-8">
+      {/* Breadcrumb + save state */}
+      <div className="flex items-center justify-between gap-3 text-xs text-charcoal/55">
+        <p className="flex items-center gap-1.5">
+          <FileText className="size-3.5 text-marine" />
+          Tạo CV <span className="text-linen">/</span> {selectedId ? "Chỉnh sửa CV" : "CV mới"}
+        </p>
+        <p className="flex items-center gap-1.5 rounded-full border border-linen bg-card px-3 py-1 font-medium">
+          <span className="size-1.5 rounded-full bg-teal" />
+          {loading ? "Đang tải..." : selectedId ? `CV #${selectedId}` : "Đang soạn"}
+        </p>
       </div>
 
-      {/* Header section */}
-      <div className="cv-builder-header">
+      {/* Header */}
+      <div className="flex flex-col gap-5 rounded-[2rem] border border-linen bg-card p-6 shadow-sm sm:p-8 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <p className="cv-eyebrow">Bước 1: Nhập liệu</p>
-          <h1>Xây dựng CV <em>chuyên nghiệp</em></h1>
-          <p className="cv-builder-subtitle">
-            Nhập thông tin, lưu về server và xem trước kết quả ngay lập tức.
+          <p className="inline-flex items-center gap-2 rounded-full border border-teal/25 bg-teal/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-navy">
+            <span className="size-1.5 rounded-full bg-teal" /> Tạo CV thông minh
+          </p>
+          <h1 className="mt-3 text-3xl font-semibold tracking-tight text-charcoal sm:text-4xl">
+            Xây dựng CV <span className="text-marine">chuyên nghiệp</span>
+          </h1>
+          <p className="mt-2 max-w-xl text-sm leading-6 text-charcoal/60">
+            Nhập thông tin, lưu về server và xem trước kết quả ngay lập tức. Checklist bên dưới giúp bạn không bỏ sót mục nào.
           </p>
         </div>
-        <div className="cv-header-actions">
-          <Button variant="outline" size="sm" onClick={handleNew}>
-            <Plus className="h-4 w-4 mr-2" />
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" size="sm" className="rounded-full" onClick={handleNew}>
+            <Plus className="h-4 w-4 mr-1.5" />
             CV mới
           </Button>
-          <Button variant="outline" size="sm" onClick={fillFromHoSo} disabled={!hoSo}>
+          <Button variant="outline" size="sm" className="rounded-full" onClick={fillFromHoSo} disabled={!hoSo}>
             Đổ từ hồ sơ
           </Button>
+          <Button variant="outline" size="sm" className="rounded-full" onClick={() => setImportOpen(true)}>
+            <Upload className="h-4 w-4 mr-1.5" />
+            Tải CV lên
+          </Button>
           {selectedId && (
-            <Button variant="outline" size="sm" onClick={handleDelete}>
-              <Trash2 className="h-4 w-4 mr-2" />
+            <Button variant="outline" size="sm" className="rounded-full" onClick={handleDelete}>
+              <Trash2 className="h-4 w-4 mr-1.5" />
               Xóa
             </Button>
           )}
-          <Button variant="outline" size="sm" onClick={handleSave} disabled={saving || loading}>
-            <Save className="h-4 w-4 mr-2" />
+          <Button size="sm" className="rounded-full" onClick={handleSave} disabled={saving || loading}>
+            <Save className="h-4 w-4 mr-1.5" />
             {saving ? "Đang lưu..." : "Lưu CV"}
           </Button>
-          <Button size="sm" onClick={() => window.print()}>
-            <Printer className="h-4 w-4 mr-2" />
+          <Button variant="outline" size="sm" className="rounded-full" onClick={() => window.print()}>
+            <Printer className="h-4 w-4 mr-1.5" />
             In / PDF
           </Button>
         </div>
       </div>
 
+      <CvImportDialog open={importOpen} onOpenChange={setImportOpen} onImported={handleImported} />
+
       {/* CV selector */}
       {cvList.length > 0 && (
-        <div style={{ display: "flex", gap: "0.75rem", alignItems: "center", flexWrap: "wrap" }}>
-          <span className="text-sm text-muted-foreground">CV của tôi ({cvList.length}):</span>
-          <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+        <div className="flex flex-wrap items-center gap-3 rounded-3xl border border-linen bg-card px-4 py-3.5 shadow-sm">
+          <span className="text-sm font-medium text-charcoal/60">CV của tôi ({cvList.length}):</span>
+          <div className="flex flex-wrap gap-2">
             {cvList.map((c) => (
               <Button
                 key={c.id}
                 variant={c.id === selectedId ? "default" : "outline"}
                 size="sm"
+                className="rounded-full"
                 onClick={() => handleSelect(c.id)}
               >
                 {c.tenFile || `CV #${c.id}`}
@@ -212,29 +302,24 @@ export function TaoCvView() {
               </Button>
             ))}
           </div>
-          <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
-            <span className="text-sm text-muted-foreground">Tên file:</span>
+          <div className="ml-auto flex items-center gap-2">
+            <span className="text-sm text-charcoal/60">Tên file:</span>
             <Input
               value={cvData.tenFile}
               onChange={(e) => setCvData({ ...cvData, tenFile: e.target.value })}
               placeholder="CV-Backend-2026"
-              style={{ width: "220px" }}
+              className="w-[200px] rounded-full"
             />
           </div>
         </div>
       )}
 
-      {/* Progress row */}
-      <div className="cv-progress-row">
-        <div className="cv-progress-label">
-          <span>Tiến độ</span>
-          <strong>{progress}%</strong>
-        </div>
-        <div className="cv-progress-track">
-          <div style={{ width: `${progress}%` }}></div>
-        </div>
-        <div className="cv-progress-note">{selectedId ? `Đang sửa CV #${selectedId}` : "CV mới chưa lưu"}</div>
-      </div>
+      {/* Quality feedback */}
+      <QualityCard
+        progress={progress}
+        label={quality.label}
+        note={selectedId ? `Đang sửa CV #${selectedId}` : "CV mới chưa lưu — hoàn thành checklist để đạt 100%"}
+      />
 
       {/* Mobile/tablet: Tabs layout */}
       <div className="xl:hidden">
@@ -250,6 +335,7 @@ export function TaoCvView() {
             </TabsTrigger>
           </TabsList>
           <TabsContent value="form" className="mt-4 space-y-4">
+            <ChecklistCard items={quality.items} doneCount={quality.doneCount} />
             <TemplateSelector
               selectedId={cvData.templateId}
               onSelect={(id) => setCvData({ ...cvData, templateId: id })}
@@ -267,17 +353,18 @@ export function TaoCvView() {
 
       {/* Desktop: 2-column layout */}
       <div className="hidden xl:block">
-        <div className="cv-builder-grid" style={{ display: "grid" }}>
+        <div className="grid gap-6" style={{ gridTemplateColumns: "minmax(0, 5fr) minmax(420px, 7fr)" }}>
           {/* Editor column */}
-          <div className="cv-editor-column">
-            <div className="cv-section-heading">
-              <h2>Thông tin CV</h2>
-              <span>
-                <FileText className="inline h-3 w-3 mr-1" />
+          <div className="min-w-0">
+            <div className="mb-4 flex items-end justify-between">
+              <h2 className="text-xl font-semibold tracking-tight text-charcoal">Thông tin CV</h2>
+              <span className="flex items-center gap-1.5 rounded-full bg-teal/10 px-2.5 py-1 text-xs font-semibold text-navy">
+                <FileText className="size-3 text-teal" />
                 6 mục
               </span>
             </div>
-            <div style={{ overflowY: "auto", maxHeight: "calc(100vh - 280px)" }}>
+            <div className="space-y-4" style={{ overflowY: "auto", maxHeight: "calc(100vh - 280px)" }}>
+              <ChecklistCard items={quality.items} doneCount={quality.doneCount} />
               <TemplateSelector
                 selectedId={cvData.templateId}
                 onSelect={(id) => setCvData({ ...cvData, templateId: id })}
@@ -288,18 +375,19 @@ export function TaoCvView() {
           </div>
 
           {/* Preview column */}
-          <div className="cv-preview-column">
-            <div className="cv-preview-toolbar">
-              <h2>Xem trước</h2>
-              <div className="cv-preview-status">
-                <Eye className="h-3 w-3" />
+          <div className="min-w-0">
+            <div className="mb-4 flex items-end justify-between">
+              <h2 className="text-xl font-semibold tracking-tight text-charcoal">Xem trước</h2>
+              <span className="flex items-center gap-1.5 rounded-full bg-navy px-2.5 py-1 text-xs font-semibold text-white">
+                <Eye className="size-3" />
                 Thời gian thực
-              </div>
+              </span>
             </div>
             <div className="cv-preview-frame">
               <CvPreview data={cvData} />
               <div className="cv-preview-hint">
-                <span>💡 Gợi ý: Điều chỉnh thông tin bên trái để cập nhật xem trước</span>
+                <Sparkles className="size-3.5 text-teal" />
+                <span>Gợi ý: hoàn thành checklist bên trái để CV đạt 100%</span>
               </div>
             </div>
           </div>
