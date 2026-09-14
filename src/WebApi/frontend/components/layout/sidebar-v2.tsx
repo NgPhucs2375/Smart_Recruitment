@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LogOut, Menu, Sparkles, X } from "lucide-react";
+import { LogOut, Menu, X } from "lucide-react";
+import { BrandLogo } from "@/components/brand-logo";
 import { useLogout } from "@refinedev/core";
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarRail, SidebarSeparator, useSidebar } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
@@ -29,16 +30,18 @@ export function AppSidebarV2() {
       <SidebarRail />
       <SidebarHeader className="border-b border-workspace-border p-3">
         <div className={cn("flex items-center gap-3 rounded-xl px-2 py-2", !open && "justify-center px-0")}>
-          <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-workspace-primary text-workspace-on-primary shadow-sm">
-            <Sparkles className="size-4" />
-          </div>
+          {open ? (
+            <BrandLogo
+              href="/dashboard"
+              variant="workspace"
+              size="md"
+              showTagline
+            />
+          ) : (
+            <BrandLogo href="/dashboard" variant="workspace" size="sm" className="[&_span:last-child]:hidden" />
+          )}
           {open && (
-            <div className="min-w-0">
-              <p className="truncate text-sm font-semibold tracking-tight text-workspace-text">HIRE<span className="text-workspace-primary">AI</span></p>
-              <p className="truncate text-[10px] uppercase tracking-[0.16em] text-workspace-muted">
-                {isAdministrator ? "Admin workspace" : "Recruiter workspace"}
-              </p>
-            </div>
+            <p className="sr-only">{isAdministrator ? "Admin workspace" : "Recruiter workspace"}</p>
           )}
         </div>
       </SidebarHeader>

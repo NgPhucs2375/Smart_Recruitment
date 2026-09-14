@@ -17,6 +17,8 @@ import {
   PlusCircle,
   Pencil,
   ArrowRight,
+  Mail,
+  Printer,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,7 +26,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { hoSoApi, type HoSoVm } from "@/lib/cv-api";
+import { hoSoApi, cvApi, type HoSoVm, type CvVm } from "@/lib/cv-api";
 import { useStoredIdentity } from "@/hooks/use-stored-identity";
 
 export function HoSoView() {
@@ -44,6 +46,8 @@ export function HoSoView() {
   const [viTriUngTuyen, setViTriUngTuyen] = useState("");
   const [mucLuongMongMuon, setMucLuongMongMuon] = useState<number | "">(0);
   const [isTimViec, setIsTimViec] = useState(true);
+  const [cvs, setCvs] = useState<CvVm[]>([]);
+  const [cvsLoading, setCvsLoading] = useState(false);
 
   const loadData = async () => {
     setLoading(true);
@@ -79,6 +83,27 @@ export function HoSoView() {
   useEffect(() => {
     void loadData();
   }, []);
+
+  // CV của tôi — reuse existing CV list API, no duplicate storage.
+  useEffect(() => {
+    if (!hoSo || hoSo.id <= 0 || isEditing) return;
+    let cancelled = false;
+    setCvsLoading(true);
+    cvApi
+      .listCvs(hoSo.id)
+      .then((list) => {
+        if (!cancelled) setCvs(list.filter((cv) => !cv.isDaXoa));
+      })
+      .catch(() => {
+        if (!cancelled) setCvs([]);
+      })
+      .finally(() => {
+        if (!cancelled) setCvsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [hoSo?.id, isEditing]);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -181,9 +206,9 @@ export function HoSoView() {
 
       {/* View Mode */}
       {hoSo && !isEditing && (
-        <div className="grid gap-6 md:grid-cols-3">
+        <div className="grid items-stretch gap-6 md:grid-cols-3">
           {/* Card Thông tin chính */}
-          <Card className="md:col-span-1">
+          <Card className="h-full md:col-span-1">
             <CardHeader className="text-center">
               <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-primary/10 text-2xl font-bold text-primary">
                 {hoSo.hoTen
@@ -201,9 +226,16 @@ export function HoSoView() {
                 <Badge variant={hoSo.isTimViec ? "default" : "secondary"}>
                   {hoSo.isTimViec ? "Đang tìm việc" : "Đã có việc / Tạm dừng"}
                 </Badge>
+                <p className="mt-2 text-[11px] text-muted-foreground">
+                  Ảnh đại diện hiện dùng chữ cái đầu — chưa hỗ trợ tải ảnh lên.
+                </p>
               </div>
             </CardHeader>
             <CardContent className="space-y-3 text-sm">
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <Mail className="h-4 w-4 shrink-0 text-primary" />
+                <span className="min-w-0 truncate">{identity?.email || "Chưa có email"}</span>
+              </div>
               <div className="flex items-center gap-2 text-muted-foreground">
                 <Phone className="h-4 w-4 shrink-0 text-primary" />
                 <span>{hoSo.sdt || "Chưa có SĐT"}</span>
@@ -232,7 +264,7 @@ export function HoSoView() {
           </Card>
 
           {/* Chi tiết Giới thiệu & Mục tiêu */}
-          <Card className="md:col-span-2">
+          <Card className="h-full md:col-span-2">
             <CardHeader>
               <CardTitle>Giới thiệu bản thân & Mục tiêu</CardTitle>
             </CardHeader>
@@ -261,6 +293,91 @@ export function HoSoView() {
             </CardContent>
           </Card>
         </div>
+      )}
+
+      {/* SECTION 2 — CV của tôi (existing created CV list) */}
+      {hoSo && !isEditing && (
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between gap-3">
+            <div>
+              <CardTitle className="text-lg">CV của tôi</CardTitle>
+              <CardDescription>
+                Các CV bạn đã tạo — mở, chỉnh sửa hoặc in từ trình quản lý CV.
+              </CardDescription>
+            </div>
+            <Link href="/tao-cv">
+              <Button size="sm">
+                <PlusCircle className="mr-2 h-4 w-4" />
+                Tạo CV
+              </Button>
+            </Link>
+          </CardHeader>
+          <CardContent>
+            {cvsLoading ? (
+              <div className="flex items-center gap-2 py-6 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Đang tải danh sách CV...
+              </div>
+            ) : cvs.length === 0 ? (
+              <div className="flex flex-col items-center py-8 text-center">
+                <span className="flex size-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
+                  <FileText className="h-6 w-6" />
+                </span>
+                <p className="mt-3 text-sm font-medium text-foreground">Bạn chưa có CV</p>
+                <p className="mt-1 max-w-sm text-xs text-muted-foreground">
+                  Tạo CV đầu tiên từ hồ sơ của bạn để bắt đầu ứng tuyển.
+                </p>
+                <Link href="/tao-cv" className="mt-4">
+                  <Button>
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    Tạo CV ngay
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </Link>
+              </div>
+            ) : (
+              <ul className="divide-y divide-border">
+                {cvs.map((cv) => (
+                  <li key={cv.id} className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex min-w-0 items-center gap-3">
+                      <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                        <FileText className="h-5 w-5" />
+                      </span>
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium text-foreground">
+                          {cv.tenFile || `CV #${cv.id}`}
+                          {cv.isDefault && (
+                            <Badge variant="secondary" className="ml-2">Mặc định</Badge>
+                          )}
+                        </p>
+                        <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                          {cv.templateId ? `Mẫu ${cv.templateId}` : "Mẫu chuẩn"}
+                          {cv.ngayUpload
+                            ? ` • Cập nhật ${new Date(cv.ngayUpload).toLocaleDateString("vi-VN")}`
+                            : ""}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-2">
+                      <Link href="/tao-cv">
+                        <Button variant="outline" size="sm">
+                          <Pencil className="mr-1.5 h-3.5 w-3.5" />
+                          Mở / Sửa
+                        </Button>
+                      </Link>
+                      <Link href="/tao-cv">
+                        <Button variant="ghost" size="sm">
+                          <Printer className="mr-1.5 h-3.5 w-3.5" />
+                          In / PDF
+                        </Button>
+                      </Link>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
       )}
 
       {/* Edit / Create Form Mode */}

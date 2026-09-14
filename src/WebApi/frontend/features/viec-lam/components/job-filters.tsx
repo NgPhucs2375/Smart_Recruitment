@@ -10,7 +10,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { locations, jobLevels, employmentTypes, salaryRanges } from "../constants";
+import { jobLevels, employmentTypes, salaryRanges } from "../constants";
+import { LocationSelect } from "@/components/ui/location-select";
 import type { JobFilters } from "../types";
 
 interface JobFiltersBarProps {
@@ -59,16 +60,10 @@ export function JobFiltersBar({ filters, onFilterChange, totalJobs }: JobFilters
         <span className="mr-1 hidden items-center gap-1.5 text-xs font-medium text-charcoal/50 sm:inline-flex">
           <SlidersHorizontal className="h-3.5 w-3.5" /> Lọc theo
         </span>
-        <Select value={filters.location} onValueChange={(v) => updateFilter("location", v ?? "")}>
-          <SelectTrigger className="h-10 w-auto min-w-[150px] rounded-full border-linen bg-ivory px-4 text-[13px] shadow-none">
-            <SelectValue placeholder="Địa điểm" />
-          </SelectTrigger>
-          <SelectContent>
-            {locations.map((loc) => (
-              <SelectItem key={loc} value={loc}>{loc}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <LocationSelect
+          value={filters.location}
+          onValueChange={(v) => updateFilter("location", v)}
+        />
 
         <Select value={filters.level} onValueChange={(v) => updateFilter("level", v ?? "")}>
           <SelectTrigger className="h-10 w-auto min-w-[130px] rounded-full border-linen bg-ivory px-4 text-[13px] shadow-none">

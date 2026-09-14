@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ChevronDown, LogOut, Sparkles } from "lucide-react";
+import { ChevronDown, LogOut } from "lucide-react";
+import { BrandLogo } from "@/components/brand-logo";
 import { useLogout } from "@refinedev/core";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { ModeToggle } from "@/components/mode-toggle";
@@ -59,12 +60,7 @@ export function CandidateHeader() {
   return (
     <header className="sticky top-0 z-40 border-b border-workspace-border/70 bg-workspace-topbar/90 backdrop-blur-xl">
       <div className="mx-auto flex h-16 max-w-[1600px] items-center gap-5 px-4 md:px-8">
-        <Link href="/dashboard" className="flex shrink-0 items-center gap-2.5" aria-label="HIREAI - Tổng quan">
-          <span className="flex size-9 items-center justify-center rounded-xl bg-workspace-primary text-workspace-on-primary shadow-sm">
-            <Sparkles className="size-4" />
-          </span>
-          <span className="hidden text-sm font-bold tracking-tight text-workspace-text sm:inline">HIRE<span className="text-workspace-primary">AI</span></span>
-        </Link>
+        <BrandLogo href="/dashboard" variant="workspace" size="md" />
 
         <nav className="hidden min-w-0 flex-1 items-center gap-1 lg:flex" aria-label="Điều hướng ứng viên">
           <CandidateLink href="/dashboard" active={pathname === "/dashboard"}>Tổng quan</CandidateLink>

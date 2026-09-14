@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import { useLogin } from "@refinedev/core";
 import { ArrowUpRight, Bookmark, Building2, Check, ChevronRight, Clock, Code2, FileText, Flame, Home, Laptop, Layers, Loader2, Lock, Mail, MapPin, Phone, Search, Shield, Sparkles, Users, X } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { BrandLogo } from "@/components/brand-logo";
+import { locations, jobLevels } from "@/features/viec-lam/constants";
 import { useBookmarks } from "@/hooks/use-bookmarks";
 import { toast } from "sonner";
 
@@ -50,8 +52,12 @@ const publicNavLinks = [
 
 const popularTechTags = [".NET Core", "React", "Python", "AWS", "Node.js", "Next.js", "Java", "Golang", "TypeScript", "Docker", "Kubernetes", "AI/ML"];
 
-const landingLocations = ["Hà Nội", "Hồ Chí Minh", "Đà Nẵng", "Remote"] as const;
-const landingLevels = ["Fresher", "Junior", "Mid", "Senior", "Lead", "Manager"] as const;
+// Landing search subsets — derived from the single shared dataset in
+// `@/features/viec-lam/constants` (no separate location/level dataset here).
+const landingLocations = locations.filter(
+  (l) => l === "Hà Nội" || l === "Hồ Chí Minh" || l === "Đà Nẵng" || l === "Remote"
+);
+const landingLevels = jobLevels.filter((l) => l !== "Intern");
 
 const workModeMeta: Record<string, { label: string; icon: typeof Building2 }> = {
   Remote: { label: "Remote", icon: Home },
@@ -223,9 +229,7 @@ export default function LandingPage() {
         <div className="relative mx-auto max-w-7xl px-4 pb-16 pt-4 sm:px-10 sm:pt-6 lg:px-16">
           <nav aria-label="Điều hướng chính" className="fixed inset-x-0 top-0 z-50 border-b border-linen/70 bg-white/85 backdrop-blur-md">
             <div className="mx-auto flex h-16 max-w-7xl items-center gap-2 px-4 sm:px-10 lg:px-16">
-              <Link href="/" className="shrink-0 text-sm font-semibold tracking-[-0.03em] text-navy" aria-label="HIREAI - Trang chủ">
-                HIRE<span className="text-marine">AI</span>
-              </Link>
+              <BrandLogo href="/" variant="workspace" size="sm" className="shrink-0" />
               <div className="hidden min-w-0 flex-1 items-center justify-center gap-1 md:flex">
                 {publicNavLinks.map((link) => (
                   <Link
@@ -290,7 +294,7 @@ export default function LandingPage() {
               <dl className="mt-8 grid max-w-xl grid-cols-1 gap-3 sm:mt-10 sm:grid-cols-3">
                 {[
                   { icon: Building2, tint: "bg-frost", iconColor: "text-marine", value: "1.200+", label: "Việc làm đang mở" },
-                  { icon: Users, tint: "bg-blush", iconColor: "text-[#8A6A3B]", value: "8.500+", label: "Kết nối thành công" },
+                  { icon: Users, tint: "bg-blush", iconColor: "text-bronze", value: "8.500+", label: "Kết nối thành công" },
                   { icon: Sparkles, tint: "bg-teal/10", iconColor: "text-teal", value: "92%", label: "Độ khớp AI" },
                 ].map((stat) => (
                   <div key={stat.label} className="flex items-center gap-3 rounded-2xl border border-linen bg-ivory px-4 py-3">
@@ -524,7 +528,7 @@ export default function LandingPage() {
 
           {/* Tag phổ biến — pills */}
           <div className="mt-6 flex flex-wrap items-center gap-2">
-            <span className="mr-1 inline-flex items-center gap-1.5 rounded-full bg-sand/20 px-3 py-1.5 text-xs font-semibold text-charcoal"><Flame className="size-3.5 text-[#8A6A3B]" /> Thử ngay:</span>
+            <span className="mr-1 inline-flex items-center gap-1.5 rounded-full bg-sand/20 px-3 py-1.5 text-xs font-semibold text-charcoal"><Flame className="size-3.5 text-bronze" /> Thử ngay:</span>
             {popularTechTags.map((tag) => {
               const active = searchKeyword.toLowerCase() === tag.toLowerCase();
               return (
@@ -890,7 +894,7 @@ export default function LandingPage() {
             {[
               { title: "Website tuyển dụng", desc: "Quản lý toàn diện", icon: Code2, chip: "bg-frost", iconColor: "text-marine" },
               { title: "Ứng dụng Android / iOS", desc: "Thông báo tức thì", icon: Phone, chip: "bg-teal/10", iconColor: "text-teal" },
-              { title: "Bảng điều hành", desc: "Báo cáo, thống kê", icon: Layers, chip: "bg-sand/20", iconColor: "text-[#8A6A3B]" },
+              { title: "Bảng điều hành", desc: "Báo cáo, thống kê", icon: Layers, chip: "bg-sand/20", iconColor: "text-bronze" },
             ].map((item, index) => (
               <div key={item.title} className="rounded-[1.75rem] border border-linen bg-white p-6 transition hover:-translate-y-1 hover:shadow-[0_20px_48px_rgba(53,92,140,0.10)]">
                 <span className={`flex size-11 items-center justify-center rounded-2xl ${item.chip}`}>
