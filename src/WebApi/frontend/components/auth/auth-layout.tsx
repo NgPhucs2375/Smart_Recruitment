@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { Sparkles, ShieldCheck } from "lucide-react";
+import { ShieldCheck } from "lucide-react";
+import { BrandLogo } from "@/components/brand-logo";
 
 interface AuthLayoutProps {
   children: React.ReactNode;
@@ -15,10 +16,9 @@ export function AuthLayout({ children, leftPanel }: AuthLayoutProps) {
 
         {/* Top brand */}
         <div className="relative z-10">
-          <Link href="/" className="mb-12 flex items-center gap-3 text-white">
-            <div className="size-3 rounded-full bg-white" />
-            <span className="font-mono text-sm tracking-[0.25em]">HIRE//AI</span>
-          </Link>
+          <div className="mb-12">
+            <BrandLogo href="/" variant="light" size="md" showTagline />
+          </div>
           {leftPanel}
         </div>
 
@@ -33,11 +33,8 @@ export function AuthLayout({ children, leftPanel }: AuthLayoutProps) {
       <div className="flex min-h-screen items-center justify-center px-6 py-12 lg:px-16">
         <div className="w-full max-w-md rounded-[2rem] border border-border bg-white/70 p-6 shadow-[0_24px_80px_rgba(47,52,64,.06)] backdrop-blur-md sm:p-10">
           {/* Mobile Logo */}
-          <div className="mb-8 text-center lg:hidden">
-            <Link href="/" className="inline-flex size-12 items-center justify-center rounded-2xl bg-primary text-white">
-              <Sparkles className="size-6" />
-            </Link>
-            <h1 className="mt-3 text-2xl font-semibold tracking-tight text-foreground">HIRE//AI</h1>
+          <div className="mb-8 flex justify-center lg:hidden">
+            <BrandLogo href="/" variant="workspace" size="auth" showTagline />
           </div>
 
           {children}

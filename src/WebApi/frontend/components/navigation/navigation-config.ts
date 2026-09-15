@@ -41,7 +41,6 @@ export const adminNavigation: NavigationItem[] = [
   { title: "Quản lý CV/mẫu CV", href: "/CV", icon: FileCheck },
   { title: "Báo cáo và thống kê", href: "/reports", icon: BarChart3 },
   { title: "Phân quyền", href: "/permission-matrix", icon: ShieldCheck, permission: { resource: "roleclaims", action: "list" } },
-  { title: "Hóa đơn", href: "/invoices", icon: FileCheck },
   { title: "Cài đặt hệ thống", href: "/settings", icon: Settings },
 ];
 

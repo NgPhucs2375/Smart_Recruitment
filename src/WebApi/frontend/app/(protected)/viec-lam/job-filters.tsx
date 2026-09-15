@@ -10,7 +10,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { locations, jobLevels, employmentTypes, salaryRanges } from "./constants";
+import { jobLevels, employmentTypes, salaryRanges } from "./constants";
+import { LocationSelect } from "@/components/ui/location-select";
 import type { JobFilters } from "./types";
 
 interface JobFiltersProps {
@@ -56,16 +57,10 @@ export function JobFiltersBar({ filters, onFilterChange, totalJobs }: JobFilters
 
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-2">
-        <Select value={filters.location} onValueChange={(v) => updateFilter("location", v ?? "")}>
-          <SelectTrigger className="w-[160px]">
-            <SelectValue placeholder="Địa điểm" />
-          </SelectTrigger>
-          <SelectContent>
-            {locations.map((loc) => (
-              <SelectItem key={loc} value={loc}>{loc}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <LocationSelect
+          value={filters.location}
+          onValueChange={(v) => updateFilter("location", v)}
+        />
 
         <Select value={filters.level} onValueChange={(v) => updateFilter("level", v ?? "")}>
           <SelectTrigger className="w-[140px]">

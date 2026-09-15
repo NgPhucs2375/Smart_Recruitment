@@ -55,10 +55,10 @@ export function JobCard({ job }: JobCardProps) {
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <h3 className="font-semibold text-charcoal truncate text-[17px] tracking-[-0.01em] group-hover:text-navy transition-colors">
+                <h3 className="font-semibold text-charcoal truncate text-lg tracking-[-0.01em] group-hover:text-navy transition-colors">
                   {job.title}
                 </h3>
-                <p className="text-sm text-charcoal/60 mt-1">{job.company}</p>
+                <p className="mt-0.5 truncate text-[13px] font-medium text-charcoal/55">{job.company}</p>
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 {job.isHot && (

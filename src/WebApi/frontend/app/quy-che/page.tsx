@@ -54,7 +54,7 @@ export default function QuyChePage() {
             <p className="mt-2 text-sm leading-6 text-muted-foreground">Tùy mức độ: cảnh cáo, gỡ tin, khóa tài khoản 30–180 ngày, chuyển cơ quan chức năng. Người bị hại được bồi thường theo thỏa thuận và pháp luật.</p>
           </section>
 
-          <section className="rounded-xl border border-border/10 bg-[#0a0a0a] p-4 text-white">
+          <section className="rounded-xl border border-border/10 bg-charcoal p-4 text-white">
             <p className="text-sm font-medium">Thông tin sàn giao dịch</p>
             <p className="mt-2 text-xs leading-5 text-white/60">Công ty TNHH HIREAI VN • Tầng 8, 123 Nguyễn Huệ, Q.1, TP.HCM • MST 0312345678 • Đã thông báo Bộ Công Thương • Liên hệ pháp chế: legal@hireai.vn</p>
           </section>

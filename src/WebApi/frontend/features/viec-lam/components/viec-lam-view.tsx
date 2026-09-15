@@ -132,7 +132,7 @@ function ViecLamContent() {
         ) : showSavedOnly ? (
           <div className="flex flex-col items-center justify-center rounded-[2rem] border border-linen bg-card px-6 py-20 text-center">
             <div className="flex size-16 items-center justify-center rounded-full bg-sandsoft">
-              <Bookmark className="size-7 text-[#8A6A3B]" />
+              <Bookmark className="size-7 text-bronze" />
             </div>
             <h3 className="mt-5 text-lg font-semibold text-charcoal">Chưa có việc làm đã lưu</h3>
             <p className="mt-2 text-sm leading-6 text-charcoal/60 max-w-md">
@@ -180,7 +180,7 @@ function DaLuuContent() {
     <div className="mx-auto w-full max-w-4xl space-y-6 sm:space-y-8">
       <div className="flex items-center gap-3.5">
         <div className="flex size-11 items-center justify-center rounded-2xl bg-sandsoft">
-          <Bookmark className="size-5 text-[#8A6A3B]" />
+          <Bookmark className="size-5 text-bronze" />
         </div>
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-charcoal sm:text-[28px]">Việc làm đã lưu</h1>
@@ -207,7 +207,7 @@ function DaLuuContent() {
       ) : (
         <div className="flex flex-col items-center justify-center rounded-[2rem] border border-dashed border-linen bg-card px-6 py-20 text-center">
           <div className="flex size-16 items-center justify-center rounded-full bg-sandsoft">
-            <Bookmark className="size-7 text-[#8A6A3B]" />
+            <Bookmark className="size-7 text-bronze" />
           </div>
           <h3 className="mt-5 text-lg font-semibold text-charcoal">Chưa có việc làm nào được lưu</h3>
           <p className="mt-2 max-w-md text-sm leading-6 text-charcoal/60">

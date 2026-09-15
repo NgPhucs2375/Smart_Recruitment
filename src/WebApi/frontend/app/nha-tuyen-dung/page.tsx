@@ -38,7 +38,7 @@ const features = [
   {
     icon: Users,
     tint: "bg-sand/20",
-    iconColor: "text-[#8A6A3B]",
+    iconColor: "text-bronze",
     title: "Đề xuất ứng viên theo seniority",
     description:
       "Nhận danh sách ứng viên xếp hạng theo độ phù hợp — từ Fresher đến Manager — kèm điểm match rõ ràng cho từng người.",
@@ -88,10 +88,10 @@ export default function RecruiterLandingPage() {
             ))}
           </div>
           <div className="ml-auto flex shrink-0 items-center gap-2">
-            <Link href="/login" className="hidden rounded-full px-3.5 py-1.5 text-xs font-medium text-charcoal/70 transition hover:text-navy sm:inline-flex">
+            <Link href="/employer/login" className="hidden rounded-full px-3.5 py-1.5 text-xs font-medium text-charcoal/70 transition hover:text-navy sm:inline-flex">
               Đăng nhập
             </Link>
-            <Link href="/register" className="inline-flex shrink-0 rounded-full bg-navy px-4 py-2 text-xs font-semibold text-white transition hover:bg-marine">
+            <Link href="/employer/register" className="inline-flex shrink-0 rounded-full bg-navy px-4 py-2 text-xs font-semibold text-white transition hover:bg-marine">
               Đăng tuyển ngay
             </Link>
           </div>
@@ -113,7 +113,7 @@ export default function RecruiterLandingPage() {
               Đăng tin theo skill stack, nhận hồ sơ đã được AI chấm điểm và quản lý toàn bộ pipeline trên một bảng điều hành duy nhất.
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <Link href="/register" className="group inline-flex items-center justify-center gap-2 rounded-full bg-navy px-6 py-3.5 text-sm font-semibold text-white shadow-[0_10px_24px_rgba(53,92,140,0.30)] transition hover:bg-marine">
+              <Link href="/employer/register" className="group inline-flex items-center justify-center gap-2 rounded-full bg-navy px-6 py-3.5 text-sm font-semibold text-white shadow-[0_10px_24px_rgba(53,92,140,0.30)] transition hover:bg-marine">
                 Bắt đầu tuyển dụng <ArrowRight className="size-4 transition group-hover:translate-x-0.5" />
               </Link>
               <Link href="/lien-he" className="inline-flex items-center justify-center gap-2 rounded-full border border-linen bg-white px-6 py-3.5 text-sm font-medium text-navy transition hover:border-marine/40 hover:bg-frost">
@@ -240,7 +240,7 @@ export default function RecruiterLandingPage() {
             </p>
           </div>
           <div className="flex shrink-0 flex-col gap-3 sm:flex-row lg:flex-col lg:items-end">
-            <Link href="/register" className="inline-flex items-center justify-center gap-2 rounded-full bg-sand px-6 py-3.5 text-sm font-semibold text-navy transition hover:bg-white">
+            <Link href="/employer/register" className="inline-flex items-center justify-center gap-2 rounded-full bg-sand px-6 py-3.5 text-sm font-semibold text-navy transition hover:bg-white">
               Đăng ký tài khoản doanh nghiệp <ArrowUpRight className="size-4" />
             </Link>
             <Link href="/lien-he" className="inline-flex items-center justify-center gap-2 rounded-full border border-white/20 px-6 py-3.5 text-sm font-medium text-white transition hover:bg-white/10">
