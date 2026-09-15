@@ -6,7 +6,7 @@ interface TabSwitcherProps {
 
 export function TabSwitcher({ tabs, active, onChange }: TabSwitcherProps) {
   return (
-    <div className="mb-6 grid grid-cols-3 rounded-xl border border-[#d8d5ce] bg-white/80 p-1">
+    <div className="mb-6 grid grid-cols-3 rounded-xl border border-border bg-white/80 p-1">
       {tabs.map((tab) => (
         <button
           key={tab.id}
@@ -14,8 +14,8 @@ export function TabSwitcher({ tabs, active, onChange }: TabSwitcherProps) {
           onClick={() => onChange(tab.id)}
           className={`rounded-lg py-2 text-xs sm:text-sm font-medium transition-all ${
             active === tab.id
-              ? "bg-[#151515] text-white shadow-sm"
-              : "text-[#69727a] hover:text-[#151515]"
+              ? "bg-primary text-white shadow-sm"
+              : "text-muted-foreground hover:text-primary"
           }`}
         >
           {tab.label}

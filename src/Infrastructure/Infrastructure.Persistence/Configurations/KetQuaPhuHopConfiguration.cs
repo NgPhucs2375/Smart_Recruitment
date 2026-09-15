@@ -14,9 +14,14 @@ namespace Infrastructure.Persistence.Configurations
             builder.Property(x => x.PhanLoai).HasConversion<string>().HasMaxLength(50);
 
             builder.HasOne(x => x.HoSoUngVien)
-                   .WithMany()
+                   .WithMany(x => x.KetQuaPhuHops)
                    .HasForeignKey(x => x.HoSoUngVienId)
                    .OnDelete(DeleteBehavior.Cascade);
+
+            builder.HasOne(x => x.CVUngVien)
+                   .WithMany()
+                   .HasForeignKey(x => x.CVUngVienId)
+                   .OnDelete(DeleteBehavior.SetNull);
 
             builder.HasOne(x => x.TinTuyenDung)
                    .WithMany()

@@ -20,5 +20,8 @@ public class NotificationRecipientConfiguration : IEntityTypeConfiguration<Notif
             .WithMany()
             .HasForeignKey(x => x.NguoiDungId)
             .OnDelete(DeleteBehavior.Cascade);
+        
+         builder.Property(x => x.IsRead)
+            .IsRequired();
     }
 }

@@ -85,18 +85,18 @@ export default function RegisterPage() {
         {activeRole === "NGUOI_DAI_DIEN" ? (
           <>
             <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] p-4 backdrop-blur-sm">
-              <Zap className="size-5 shrink-0 text-amber-400" />
+              <Zap className="size-5 shrink-0 text-sandgold" />
               <span className="text-sm text-white/90">Sàng lọc và chấm điểm CV tự động bằng mô hình AI</span>
             </div>
             <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] p-4 backdrop-blur-sm">
-              <TrendingUp className="size-5 shrink-0 text-emerald-400" />
+              <TrendingUp className="size-5 shrink-0 text-sage" />
               <span className="text-sm text-white/90">Đăng tin không giới hạn và tiếp cận kho kỹ sư mở</span>
             </div>
           </>
         ) : (
           <>
             <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] p-4 backdrop-blur-sm">
-              <CheckCircle2 className="size-5 shrink-0 text-emerald-400" />
+              <CheckCircle2 className="size-5 shrink-0 text-sage" />
               <span className="text-sm text-white/90">Trình tạo CV chuẩn Tech-Minimalist hoàn toàn miễn phí</span>
             </div>
             <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] p-4 backdrop-blur-sm">
@@ -112,11 +112,11 @@ export default function RegisterPage() {
   return (
     <AuthLayout leftPanel={leftPanelContent}>
       <div className="mb-6 text-center">
-        <div className="mx-auto mb-3 flex w-fit items-center gap-2 rounded-full border border-[#d8d5ce] bg-[#f4f2ed]/80 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-[#69727a]">
-          <span className="size-1.5 rounded-full bg-emerald-500" /> Bắt đầu miễn phí
+        <div className="mx-auto mb-3 flex w-fit items-center gap-2 rounded-full border border-border bg-muted/80 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+          <span className="size-1.5 rounded-full bg-sage" /> Bắt đầu miễn phí
         </div>
-        <h2 className="text-2xl font-semibold tracking-tight text-[#151515]">Tạo tài khoản mới</h2>
-        <p className="mt-1 text-xs text-[#69727a]">Tham gia hệ sinh thái kết nối công nghệ thông minh</p>
+        <h2 className="text-2xl font-semibold tracking-tight text-foreground">Tạo tài khoản mới</h2>
+        <p className="mt-1 text-xs text-muted-foreground">Tham gia hệ sinh thái kết nối công nghệ thông minh</p>
       </div>
 
       <TabSwitcher
@@ -154,7 +154,7 @@ export default function RegisterPage() {
                     {...registerPwd("tenDoanhNghiep")}
                     disabled={isPwdPending}
                     placeholder="Công ty Công nghệ..."
-                    className="h-10 rounded-xl border-[#d8d5ce] bg-white pl-10 text-sm"
+                    className="h-10 rounded-xl border-input bg-white pl-10 text-sm"
                   />
                 </div>
                 {pwdErrors.tenDoanhNghiep && <p className="text-xs text-red-500">{pwdErrors.tenDoanhNghiep.message}</p>}
@@ -169,7 +169,7 @@ export default function RegisterPage() {
                       {...registerPwd("diaChiDoanhNghiep")}
                       disabled={isPwdPending}
                       placeholder="Số nhà, đường, quận, thành phố..."
-                      className="h-10 rounded-xl border-[#d8d5ce] bg-white pl-10 text-sm"
+                      className="h-10 rounded-xl border-input bg-white pl-10 text-sm"
                     />
                   </div>
                   {pwdErrors.diaChiDoanhNghiep && <p className="text-xs text-red-500">{pwdErrors.diaChiDoanhNghiep.message}</p>}
@@ -183,7 +183,7 @@ export default function RegisterPage() {
                       {...registerPwd("chucVu")}
                       disabled={isPwdPending}
                       placeholder="VD: Giám đốc, Trưởng phòng..."
-                      className="h-10 rounded-xl border-[#d8d5ce] bg-white pl-10 text-sm"
+                      className="h-10 rounded-xl border-input bg-white pl-10 text-sm"
                     />
                   </div>
                   {pwdErrors.chucVu && <p className="text-xs text-red-500">{pwdErrors.chucVu.message}</p>}
@@ -202,7 +202,7 @@ export default function RegisterPage() {
                   {...registerPwd("hoTen")}
                   disabled={isPwdPending}
                   placeholder="Nguyễn Văn A"
-                  className="h-10 rounded-xl border-[#d8d5ce] bg-white pl-10 text-sm"
+                  className="h-10 rounded-xl border-input bg-white pl-10 text-sm"
                 />
               </div>
               {pwdErrors.hoTen && <p className="text-xs text-red-500">{pwdErrors.hoTen.message}</p>}
@@ -217,7 +217,7 @@ export default function RegisterPage() {
                   {...registerPwd("soDienThoai")}
                   disabled={isPwdPending}
                   placeholder="090 123 4567"
-                  className="h-10 rounded-xl border-[#d8d5ce] bg-white pl-10 text-sm"
+                  className="h-10 rounded-xl border-input bg-white pl-10 text-sm"
                 />
               </div>
               {pwdErrors.soDienThoai && <p className="text-xs text-red-500">{pwdErrors.soDienThoai.message}</p>}
@@ -233,7 +233,7 @@ export default function RegisterPage() {
                 {...registerPwd("email")}
                 disabled={isPwdPending}
                 placeholder="name@domain.com"
-                className="h-10 rounded-xl border-[#d8d5ce] bg-white pl-10 text-sm"
+                className="h-10 rounded-xl border-input bg-white pl-10 text-sm"
               />
             </div>
             {pwdErrors.email && <p className="text-xs text-red-500">{pwdErrors.email.message}</p>}
@@ -250,7 +250,7 @@ export default function RegisterPage() {
                   {...registerPwd("password")}
                   disabled={isPwdPending}
                   placeholder="••••••••"
-                  className="h-10 rounded-xl border-[#d8d5ce] bg-white pl-10 pr-9 text-sm"
+                  className="h-10 rounded-xl border-input bg-white pl-10 pr-9 text-sm"
                 />
                 <button
                   type="button"
@@ -273,7 +273,7 @@ export default function RegisterPage() {
                   {...registerPwd("confirmPassword")}
                   disabled={isPwdPending}
                   placeholder="••••••••"
-                  className="h-10 rounded-xl border-[#d8d5ce] bg-white pl-10 text-sm"
+                  className="h-10 rounded-xl border-input bg-white pl-10 text-sm"
                 />
               </div>
               {pwdErrors.confirmPassword && (
@@ -285,7 +285,7 @@ export default function RegisterPage() {
           <Button
             type="submit"
             disabled={isPwdPending}
-            className="mt-2 h-11 w-full rounded-xl bg-[#151515] font-medium text-white transition hover:bg-black"
+            className="mt-2 h-11 w-full rounded-xl bg-primary font-medium text-white transition hover:bg-primary-hover"
           >
             {isPwdPending ? <Loader2 className="mr-2 size-4 animate-spin" /> : <ArrowRight className="mr-2 size-4" />}
             {isPwdPending
@@ -296,9 +296,9 @@ export default function RegisterPage() {
           </Button>
 
           {/* Integrated Quick Google Section inside Password Form */}
-          <div className="relative my-4 text-center text-xs text-[#69727a]">
-            <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-[#d8d5ce]" /></div>
-            <span className="relative bg-[#f4f2ed]/90 px-3 uppercase tracking-wider">hoặc</span>
+          <div className="relative my-4 text-center text-xs text-muted-foreground">
+            <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-border" /></div>
+            <span className="relative bg-muted/90 px-3 uppercase tracking-wider">hoặc</span>
           </div>
 
           <GoogleAuthSection
@@ -307,7 +307,7 @@ export default function RegisterPage() {
             text="Đăng ký nhanh bằng Google"
           />
 
-          <p className="text-center text-[11px] text-[#69727a]">
+          <p className="text-center text-[11px] text-muted-foreground">
             Bằng việc tiếp tục, bạn đồng ý với Điều khoản dịch vụ & Chính sách bảo mật.
           </p>
         </form>
@@ -353,7 +353,7 @@ export default function RegisterPage() {
                     {...registerMagic("hoTen")}
                     disabled={magicLoading}
                     placeholder="Nguyễn Văn A"
-                    className="h-10 rounded-xl border-[#d8d5ce] bg-white pl-10 text-sm"
+                    className="h-10 rounded-xl border-input bg-white pl-10 text-sm"
                   />
                 </div>
                 {magicErrors.hoTen && <p className="text-xs text-red-500">{magicErrors.hoTen.message}</p>}
@@ -368,7 +368,7 @@ export default function RegisterPage() {
                     {...registerMagic("email")}
                     disabled={magicLoading}
                     placeholder="name@domain.com"
-                    className="h-10 rounded-xl border-[#d8d5ce] bg-white pl-10 text-sm"
+                    className="h-10 rounded-xl border-input bg-white pl-10 text-sm"
                   />
                 </div>
                 {magicErrors.email && <p className="text-xs text-red-500">{magicErrors.email.message}</p>}
@@ -383,7 +383,7 @@ export default function RegisterPage() {
                     {...registerMagic("soDienThoai")}
                     disabled={magicLoading}
                     placeholder="090 123 4567"
-                    className="h-10 rounded-xl border-[#d8d5ce] bg-white pl-10 text-sm"
+                    className="h-10 rounded-xl border-input bg-white pl-10 text-sm"
                   />
                 </div>
                 {magicErrors.soDienThoai && <p className="text-xs text-red-500">{magicErrors.soDienThoai.message}</p>}
@@ -392,7 +392,7 @@ export default function RegisterPage() {
               <Button
                 type="submit"
                 disabled={magicLoading}
-                className="mt-2 h-11 w-full rounded-xl bg-[#151515] font-medium text-white transition hover:bg-black"
+                className="mt-2 h-11 w-full rounded-xl bg-primary font-medium text-white transition hover:bg-primary-hover"
               >
                 {magicLoading ? (
                   <Loader2 className="mr-2 size-4 animate-spin" />
@@ -406,10 +406,10 @@ export default function RegisterPage() {
         </form>
       )}
 
-      <div className="mt-6 border-t border-[#d8d5ce]/60 pt-4 text-center">
-        <p className="text-xs text-[#69727a]">
+      <div className="mt-6 border-t border-border/60 pt-4 text-center">
+        <p className="text-xs text-muted-foreground">
           Đã có tài khoản HIRE//AI?{" "}
-          <Link href="/login" className="font-semibold text-[#151515] underline underline-offset-4 hover:opacity-80">
+          <Link href="/login" className="font-semibold text-foreground underline underline-offset-4 hover:opacity-80">
             Đăng nhập ngay
           </Link>
         </p>

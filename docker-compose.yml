@@ -96,16 +96,27 @@ services:
       dockerfile: Dockerfile.dev
     container_name: frontend
     restart: unless-stopped
+    command: sh -c "npm ci && npm run dev"
     ports:
       - "${FRONTEND_PORT:-3000}:3000"
+
     environment:
-      NEXT_PUBLIC_API_URL: http://localhost:${BACKEND_PORT:-5000}
-      NEXT_PUBLIC_COPILOT_AGENT_URL: http://localhost:${AGENT_PORT:-8000}
+      # Next.js server chạy TRONG Docker gọi BE qua Docker network
+      DOTNET_API_URL: http://backend:8080
+
+      # Browser trên Windows gọi BE qua port public
+      NEXT_PUBLIC_API_URL: http://localhost:${BACKEND_PORT:-8000}
+
+      # AI đã tích hợp vào BE, browser cũng gọi public port 8000
+      NEXT_PUBLIC_COPILOT_AGENT_URL: http://localhost:${BACKEND_PORT:-8000}
+
     volumes:
       - ./src/WebApi/frontend:/app
       - frontend_node_modules:/app/node_modules
+
     depends_on:
       - backend
+
     networks:
       - kltn_network
 

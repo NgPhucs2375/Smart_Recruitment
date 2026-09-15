@@ -28,7 +28,7 @@ export function AppHeaderV2() {
 
 function DesktopHeaderV2() {
   return (
-    <header className="sticky top-0 z-[var(--z-header)] flex h-[4.5rem] shrink-0 items-center justify-between gap-4 border-b border-border/70 bg-background/85 px-4 backdrop-blur-xl supports-[backdrop-filter]:bg-background/70 md:px-8">
+    <header className="sticky top-0 z-[var(--z-header)] flex h-[4.5rem] shrink-0 items-center justify-between gap-4 border-b border-workspace-border/70 bg-workspace-topbar/85 px-4 backdrop-blur-xl supports-[backdrop-filter]:bg-workspace-topbar/70 md:px-8">
       <div className="flex flex-1 items-center gap-4 min-w-0">
         <SidebarTrigger
           className="lg:hidden flex h-10 w-10 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
@@ -47,7 +47,7 @@ function DesktopHeaderV2() {
 function MobileHeaderV2() {
   const { open, isMobile } = useSidebar();
   return (
-    <header className="sticky top-0 z-[var(--z-header)] flex h-12 shrink-0 items-center justify-between gap-2 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-3">
+    <header className="sticky top-0 z-[var(--z-header)] flex h-12 shrink-0 items-center justify-between gap-2 border-b border-workspace-border bg-workspace-topbar/95 backdrop-blur supports-[backdrop-filter]:bg-workspace-topbar/60 px-3">
       <SidebarTrigger
         className={cn(
           "text-muted-foreground transition-opacity duration-200",
@@ -75,7 +75,7 @@ function SearchBar() {
         type="search"
         defaultValue={query}
         placeholder="Tìm kiếm trang, nội dung... (⌘K)"
-        className="flex h-10 w-full rounded-xl border border-input/80 bg-muted/45 px-10 py-2 text-sm shadow-sm ring-offset-background transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+        className="flex h-10 w-full rounded-xl border border-input/80 bg-workspace-soft px-10 py-2 text-sm text-workspace-text shadow-sm ring-offset-background transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-workspace-muted focus-visible:bg-workspace-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-workspace-primary focus-visible:ring-offset-2"
         onKeyDown={(e) => {
           if ((e.metaKey || e.ctrlKey) && e.key === "k") {
             e.preventDefault();
@@ -105,7 +105,7 @@ function UserDropdownV2() {
     <DropdownMenu>
       <DropdownMenuTrigger
         aria-label={identity?.name ?? "User menu"}
-        className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-primary-foreground text-sm font-semibold shrink-0 ring-2 ring-background hover:bg-primary/90 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+        className="flex h-9 w-9 items-center justify-center rounded-full bg-workspace-primary text-workspace-on-primary text-sm font-semibold shrink-0 ring-2 ring-workspace-secondary/70 hover:bg-workspace-primary-hover transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-workspace-primary focus-visible:ring-offset-2"
       >
         {identity?.avatar ? (
           <img

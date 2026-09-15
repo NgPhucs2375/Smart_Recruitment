@@ -1,62 +1,127 @@
 using Application.Interfaces;
 using Application.Wrappers;
-using AutoMapper;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
 namespace Application.Features.CVUngVien.Queries.GetAllCVUngViens;
 
-public class GetAllCVUngViensQuery : IRequest<Response<List<GetAllCVUngViensViewModel>>>
+public class GetAllCVUngViensQuery
+    : IRequest<Response<List<GetAllCVUngViensViewModel>>>
 {
     public int _start { get; set; }
 
     public int _end { get; set; }
 
-    public string _order { get; set; }
+    public string? _order { get; set; }
 
-    public string _sort { get; set; }
+    public string? _sort { get; set; }
 
-    public string _filter { get; set; }
-
-    public int? HoSoUngVienId { get; set; }
+    public string? _filter { get; set; }
 }
 
 public class GetAllCVUngViensQueryHandler(
     IApplicationDbContext context,
-    IMapper mapper)
-    : IRequestHandler<GetAllCVUngViensQuery, Response<List<GetAllCVUngViensViewModel>>>
+    ICurrentNguoiDungService currentNguoiDungService)
+    : IRequestHandler<
+        GetAllCVUngViensQuery,
+        Response<List<GetAllCVUngViensViewModel>>>
 {
     public async Task<Response<List<GetAllCVUngViensViewModel>>> Handle(
         GetAllCVUngViensQuery request,
         CancellationToken cancellationToken)
     {
+
+        var currentUser =
+            await currentNguoiDungService.ResolveAsync();
         var query = context.CVUngViens
             .AsNoTracking()
-            .Where(x => !x.IsDaXoa);
+            .Where(x =>
+                !x.IsDaXoa &&
+                x.HoSoUngVien.NguoiDungId ==
+                    currentUser.Id);
 
-        if (request.HoSoUngVienId.HasValue)
+        if (!string.IsNullOrWhiteSpace(request._filter))
         {
-            query = query.Where(x => x.HoSoUngVienId == request.HoSoUngVienId.Value);
+            var filter = request._filter.Trim();
+
+            query = query.Where(x =>
+                x.TenFile.Contains(filter) ||
+                (
+                    x.ThongTinLienHe != null &&
+                    (
+                        x.ThongTinLienHe.HoTen.Contains(filter) ||
+                        (
+                            x.ThongTinLienHe.ViTriUngTuyen != null &&
+                            x.ThongTinLienHe.ViTriUngTuyen.Contains(filter)
+                        )
+                    )
+                ));
         }
 
-        var skip = request._start < 0 ? 0 : request._start;
-        var take = request._end - skip;
+        query = (
+            request._sort?.ToLowerInvariant(),
+            request._order?.ToLowerInvariant())
+            switch
+            {
+                ("tenfile", "asc")
+                    => query.OrderBy(x => x.TenFile),
 
-        if (skip > 0)
-        {
-            query = query.Skip(skip);
-        }
+                ("tenfile", _)
+                    => query.OrderByDescending(x => x.TenFile),
+                _
+                    => query.OrderByDescending(x => x.Created)
+            };
 
-        if (take > 0)
-        {
-            query = query.Take(take);
-        }
+        var skip = Math.Max(
+            0,
+            request._start);
+
+        var take =
+            request._end > skip
+                ? request._end - skip
+                : 20;
 
         var items = await query
-            .OrderByDescending(x => x.NgayUpload)
+            .Skip(skip)
+            .Take(take)
+            .Select(x =>
+                new GetAllCVUngViensViewModel
+                {
+                    Id = x.Id,
+
+                    HoSoUngVienId =
+                        x.HoSoUngVienId,
+
+                    TenFile =
+                        x.TenFile,
+
+                    FileUrl =
+                        x.FileUrl,
+
+                    IsDefault =
+                        x.IsDefault,
+
+                    TemplateId =
+                        x.TemplateId,
+
+                    PhuongThucTao =
+                        x.PhuongThucTao,
+
+                    HoTen =
+                        x.ThongTinLienHe != null
+                            ? x.ThongTinLienHe.HoTen
+                            : null,
+
+                    ViTriUngTuyen =
+                        x.ThongTinLienHe != null
+                            ? x.ThongTinLienHe.ViTriUngTuyen
+                            : null
+                })
             .ToListAsync(cancellationToken);
 
-        return new Response<List<GetAllCVUngViensViewModel>>(
-            mapper.Map<List<GetAllCVUngViensViewModel>>(items));
+        return new Response<
+            List<GetAllCVUngViensViewModel>>(
+            data: items,
+            message: "Lấy danh sách CV thành công.");
     }
 }

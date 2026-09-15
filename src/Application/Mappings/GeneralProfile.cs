@@ -11,7 +11,6 @@ using Application.Features.KetQuaPhuHop.Queries.GetAllKetQuaPhuHops;
 using Domain.Entities;
 using Application.Features.DanhMucNghe.Queries.GetAllDanhMucNghes;
 using Application.Features.DoanhNghiep.Queries.GetAllDoanhNghieps;
-using Application.Features.CVUngVien.Queries.GetAllCVUngViens;
 using Application.Features.DonUngTuyen.Queries.GetAllDonUngTuyens;
 using Application.Features.KetQuaPhanTichCv.Queries.GetAllKetQuaPhanTichCvs;
 using Application.Features.DanhGia.Queries.GetAllDanhGias;
@@ -23,9 +22,6 @@ using Application.Features.DoanhNghiep.Commands.UpdateDoanhNghiep;
 using Application.DTOs.DanhMucNghe;
 using Application.Features.DanhMucNghe.Commands.CreateDanhMucNghe;
 using Application.Features.DanhMucNghe.Commands.UpdateDanhMucNghe;
-using Application.DTOs.CV;
-using Application.Features.CVUngVien.Commands.CreateCVUngVien;
-using Application.Features.CVUngVien.Commands.UpdateCVUngVien;
 using Application.DTOs.DonUngTuyen;
 using Application.Features.DonUngTuyen.Commands.UpdateDonUngTuyen;
 using Application.Features.DonUngTuyen.Commands.CreateDonUngTuyen;
@@ -100,11 +96,6 @@ namespace Application.Mappings
             CreateMap<DoanhNghiep, GetAllDoanhNghiepsViewModel>();
             CreateMap<TaoDoanhNghiepDto, CreateDoanhNghiepCommand>();
             CreateMap<CapNhatDoanhNghiepDto, UpdateDoanhNghiepCommand>();
-
-            // CVUngVien
-            CreateMap<CVUngVien, GetAllCVUngViensViewModel>();
-            CreateMap<TaoCVUngVienDto, CreateCVUngVienCommand>();
-            CreateMap<CapNhatCVUngVienDto, UpdateCVUngVienCommand>();
 
             CreateMap<DonUngTuyen, GetAllDonUngTuyensViewModel>()
                 .ForMember(dest => dest.HoSoUngVienId, opt => opt.MapFrom(src => src.CVUngVien != null ? src.CVUngVien.HoSoUngVienId : 0));

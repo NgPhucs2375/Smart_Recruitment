@@ -41,13 +41,25 @@ export const adminNavigation: NavigationItem[] = [
   { title: "Quản lý CV/mẫu CV", href: "/CV", icon: FileCheck },
   { title: "Báo cáo và thống kê", href: "/reports", icon: BarChart3 },
   { title: "Phân quyền", href: "/permission-matrix", icon: ShieldCheck, permission: { resource: "roleclaims", action: "list" } },
-  { title: "Hóa đơn", href: "/invoices", icon: FileCheck },
   { title: "Cài đặt hệ thống", href: "/settings", icon: Settings },
 ];
 
+// Single shared role resolver — the ONLY place that maps raw role strings
+// to a workspace. Every shell/layout component must use this so the mapping
+// can never drift between files (drift = wrong shell flash).
+export type Workspace = "admin" | "recruiter" | "candidate" | "unknown";
+
+export function resolveWorkspace(roles: readonly string[] | undefined | null): Workspace {
+  const normalized = (roles ?? []).map((role) => role.trim().toUpperCase());
+  if (normalized.includes("QUAN_TRI_VIEN")) return "admin";
+  if (normalized.includes("UNG_VIEN")) return "candidate";
+  if (normalized.includes("NGUOI_DAI_DIEN") || normalized.includes("NHAN_SU")) return "recruiter";
+  return "unknown";
+}
+
 // Roles without an explicit admin role use the recruiter workspace.
 export function getWorkspaceNavigation(roles: string[] = []) {
-  return roles.some((role) => role.trim().toUpperCase() === "QUAN_TRI_VIEN")
+  return resolveWorkspace(roles) === "admin"
     ? adminNavigation
     : recruiterNavigation;
 }

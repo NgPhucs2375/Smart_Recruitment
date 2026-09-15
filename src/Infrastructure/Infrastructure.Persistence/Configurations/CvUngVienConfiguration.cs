@@ -1,49 +1,35 @@
+using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using Domain.Entities;
 
-namespace Infrastructure.Persistence.Configurations
+namespace Infrastructure.Persistence.Configurations;
+
+public class CvUngVienConfiguration : IEntityTypeConfiguration<CVUngVien>
 {
-    public class CvUngVienConfiguration : IEntityTypeConfiguration<CVUngVien>
+    public void Configure(EntityTypeBuilder<CVUngVien> builder)
     {
-        public void Configure(EntityTypeBuilder<CVUngVien> builder)
-        {
-            builder.ToTable("CVUngVien");
-            builder.HasKey(x => x.Id);
+        builder.ToTable("CVUngVien");
+        builder.HasKey(x => x.Id);
 
-            // Tên file và URL có thể null ở thời điểm khởi tạo bằng tay (chưa render PDF)
-            builder.Property(x => x.TenFile)
-                   .IsRequired(false)
-                   .HasMaxLength(255);
+        builder.Property(x => x.TenFile)
+            .IsRequired(false)
+            .HasMaxLength(255);
+        builder.Property(x => x.FileUrl)
+            .IsRequired(false)
+            .HasMaxLength(500);
+        builder.Property(x => x.TemplateId)
+            .IsRequired(false)
+            .HasMaxLength(100);
+        builder.Property(x => x.PhuongThucTao)
+            .HasConversion<string>()
+            .HasMaxLength(50)
+            .IsRequired();
 
-            builder.Property(x => x.FileUrl)
-                   .IsRequired(false)
-                   .HasMaxLength(500);
+        builder.HasOne(x => x.HoSoUngVien)
+            .WithMany(x => x.CVUngViens)
+            .HasForeignKey(x => x.HoSoUngVienId)
+            .OnDelete(DeleteBehavior.Cascade);
 
-            // Cột lưu cấu trúc form CV dạng jsonb của PostgreSQL
-            builder.Property(x => x.NoiDungJson)
-                   .HasColumnType("jsonb")
-                   .IsRequired();
-
-            // Template tùy chọn khi tạo form thủ công
-            builder.Property(x => x.TemplateId)
-                   .IsRequired(false);
-
-            // Quan hệ với Hồ sơ ứng viên
-            builder.HasOne(x => x.HoSoUngVien)
-                   .WithMany(x => x.CVUngViens)
-                   .HasForeignKey(x => x.HoSoUngVienId)
-                   .OnDelete(DeleteBehavior.Cascade);
-
-               builder.Property(x => x.PhuongThucTao)
-                    .HasConversion<string>()
-                    .IsRequired();
-
-               builder.Property(x => x.SemanticText)
-                      .HasColumnType("text");
-
-               builder.Property(x => x.Embedding)
-                      .HasColumnType("vector(768)");
-        }
+        builder.HasIndex(x => new { x.HoSoUngVienId, x.IsDefault });
     }
 }

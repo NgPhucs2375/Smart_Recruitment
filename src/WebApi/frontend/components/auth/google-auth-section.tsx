@@ -18,7 +18,7 @@ export function GoogleAuthSection({
   return (
     <div className="space-y-3">
       {description && (
-        <p className="text-center text-xs text-[#69727a]">{description}</p>
+        <p className="text-center text-xs text-muted-foreground">{description}</p>
       )}
       <GoogleLoginButton
         onSuccess={onGoogleLogin}

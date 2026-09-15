@@ -1,11 +1,9 @@
-﻿using Microsoft.Extensions.Configuration;
+﻿using System;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Application.Interfaces.Repositories;
 using Application.Interfaces;
 using Domain.Settings;
 using Infrastructure.Shared.Services;
-using Infrastructure.Shared.Services.Embedding;
-using System;
 
 namespace Infrastructure.Shared
 {
@@ -16,11 +14,10 @@ namespace Infrastructure.Shared
             services.Configure<MailSettings>(_config.GetSection("MailSettings"));
             services.AddTransient<IDateTimeService, DateTimeService>();
             services.AddTransient<IEmailService, EmailService>();
-            services.AddHttpClient<IEmbeddingRepository, GeminiEmbeddingService>(client =>
+            services.AddHttpClient<ICvStructuredParser, GeminiCvStructuredParser>(client =>
             {
-                client.BaseAddress = new Uri(
-                    "https://generativelanguage.googleapis.com"
-                );
+                client.BaseAddress = new Uri("https://generativelanguage.googleapis.com/");
+                client.Timeout = TimeSpan.FromSeconds(90);
             });
         }
     }

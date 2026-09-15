@@ -39,11 +39,6 @@ namespace Infrastructure.Persistence.Configurations
                 .WithMany(x => x.TinTuyenDungs)
                 .HasForeignKey(x => x.NguoiDangTinId)
                 .OnDelete(DeleteBehavior.Restrict);
-
-            builder.Property(x => x.Embedding)
-                .HasColumnType("vector(768)");
-                
-
         }
 
     }

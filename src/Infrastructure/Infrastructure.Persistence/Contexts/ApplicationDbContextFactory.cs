@@ -33,12 +33,11 @@ namespace Infrastructure.Persistence.Contexts
                     $"Connection string 'PostgresConnection' not found. Searched base directory: {baseDir}");
             }
 
-            // 2. Dựng options UseNpgsql bằng tay (cần UseVector cho cột vector(768))
+            // 2. Dựng options UseNpgsql bằng tay
             var options = new DbContextOptionsBuilder<ApplicationDbContext>()
                 .UseNpgsql(conn, b =>
                 {
                     b.MigrationsAssembly(typeof(ApplicationDbContext).Assembly.FullName);
-                    b.UseVector();
                 })
                 .Options;
 

@@ -84,7 +84,6 @@ namespace Infrastructure.Persistence.Contexts
         };
         protected override void OnModelCreating(ModelBuilder builder)
         {
-            builder.HasPostgresExtension("vector");
             builder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
             
             //tat ca cac cot decimal co kieu du lieu la decimal(18,6)

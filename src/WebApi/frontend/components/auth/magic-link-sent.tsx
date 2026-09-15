@@ -13,12 +13,12 @@ export function MagicLinkSentSuccess({
   title = "Kiểm tra hòm thư của bạn",
 }: MagicLinkSentSuccessProps) {
   return (
-    <div className="rounded-2xl border border-[#d8d5ce] bg-white/80 p-6 text-center">
-      <div className="mx-auto mb-3 flex size-12 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
+    <div className="rounded-2xl border border-border bg-white/80 p-6 text-center">
+      <div className="mx-auto mb-3 flex size-12 items-center justify-center rounded-full bg-soft-sage text-primary">
         <CheckCircle2 className="size-6" />
       </div>
-      <h3 className="text-base font-semibold text-[#151515]">{title}</h3>
-      <p className="mt-2 text-xs leading-5 text-[#69727a]">
+      <h3 className="text-base font-semibold text-foreground">{title}</h3>
+      <p className="mt-2 text-xs leading-5 text-muted-foreground">
         Liên kết đã được gửi tới <b>{email}</b>. Vui lòng kiểm tra cả thư mục Spam.
       </p>
       <Button

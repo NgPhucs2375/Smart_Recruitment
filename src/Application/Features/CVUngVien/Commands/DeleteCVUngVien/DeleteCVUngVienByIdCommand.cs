@@ -1,6 +1,5 @@
 using Application.Interfaces;
 using Application.Wrappers;
-using Domain.Enums;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -20,33 +19,19 @@ public class DeleteCVUngVienByIdCommandHandler(
         DeleteCVUngVienByIdCommand request,
         CancellationToken cancellationToken)
     {
+        var currentUser = await current.ResolveAsync();
+
         var entity = await context.CVUngViens
-            .AsTracking()
             .FirstOrDefaultAsync(
-                x => x.Id == request.Id && !x.IsDaXoa,
+                x => x.Id == request.Id &&
+                     !x.IsDaXoa &&
+                     x.HoSoUngVien.NguoiDungId == currentUser.Id,
                 cancellationToken);
 
         if (entity == null)
         {
             return new Response<int>(
                 "Không tìm thấy CV.");
-        }
-
-        var ctx = await current.ResolveAsync();
-
-        if (ctx.VaiTro != VaiTroNguoiDung.QUAN_TRI_VIEN)
-        {
-            var isOwner = await context.HoSoUngViens
-                .AsNoTracking()
-                .AnyAsync(
-                    x => x.Id == entity.HoSoUngVienId && x.NguoiDungId == ctx.Id,
-                    cancellationToken);
-
-            if (!isOwner)
-            {
-                return new Response<int>(
-                    "Bạn không có quyền thao tác trên CV này.");
-            }
         }
 
         // Xóa mềm: giữ record để DonUngTuyen cũ vẫn tham chiếu được (FK CVUngVienId).
@@ -62,7 +47,7 @@ public class DeleteCVUngVienByIdCommandHandler(
                 .Where(x => x.HoSoUngVienId == entity.HoSoUngVienId
                     && x.Id != entity.Id
                     && !x.IsDaXoa)
-                .OrderByDescending(x => x.NgayUpload)
+                .OrderByDescending(x => x.Created)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (replacement != null)

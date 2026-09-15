@@ -80,6 +80,12 @@ _services.AddEndpointsApiExplorer();
 
 // trước Build() dùng Add sau dùng Use
 var app = builder.Build();
+if (string.IsNullOrWhiteSpace(app.Configuration["GEMINI_API_KEY"]))
+{
+    app.Logger.LogWarning(
+        "GEMINI_API_KEY chưa được khai báo — tính năng parse CV sẽ báo lỗi. "
+        + "Thêm key vào src/WebApi/WebApp.Server/.env (cùng file với GROQ_API_KEY) rồi restart backend.");
+}
 var jsonOptions = app.Services.GetRequiredService<IOptions<JsonOptions>>();
 using (var scope = app.Services.CreateScope())
 {

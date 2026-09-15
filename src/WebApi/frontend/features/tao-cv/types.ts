@@ -115,6 +115,13 @@ export function cvDataFromJson(json: string | null | undefined, fallback: CvForm
   }
 }
 
+/** Bỏ id client-side trước khi gửi lên server. */
+function stripId<T extends { id: string }>(item: T): Omit<T, "id"> {
+  const next = { ...item };
+  delete (next as { id?: unknown }).id;
+  return next;
+}
+
 /** Build body POST / PUT cvungviens từ form (ngày dd/mm/yyyy -> ISO). */
 export function toCvPayload(hoSoUngVienId: number, data: CvFormData, isDefault: boolean) {
   const vnDateOrNull = (v: string) => {
@@ -132,22 +139,75 @@ export function toCvPayload(hoSoUngVienId: number, data: CvFormData, isDefault: 
         ...data.thongTinLienHe,
         ngaySinh: vnDateOrNull(data.thongTinLienHe.ngaySinh),
       },
-      hocVan: data.hocVan.map(({ id: _id, ...h }) => ({
-        ...h,
+      hocVan: data.hocVan.map((h) => ({
+        ...stripId(h),
         tuNgay: vnDateOrNull(h.tuNgay),
         denNgay: vnDateOrNull(h.denNgay),
       })),
-      kinhNghiemLamViec: data.kinhNghiemLamViec.map(({ id: _id, ...k }) => ({
-        ...k,
+      kinhNghiemLamViec: data.kinhNghiemLamViec.map((k) => ({
+        ...stripId(k),
         tuNgay: vnDateOrNull(k.tuNgay),
         denNgay: k.isHienTai ? null : vnDateOrNull(k.denNgay),
       })),
-      duAn: data.duAn.map(({ id: _id, ...d }) => d),
-      kyNang: data.kyNang.map(({ id: _id, ...k }) => k),
-      chungChi: data.chungChi.map(({ id: _id, ...c }) => ({
-        ...c,
+      duAn: data.duAn.map((d) => stripId(d)),
+      kyNang: data.kyNang.map((k) => stripId(k)),
+      chungChi: data.chungChi.map((c) => ({
+        ...stripId(c),
         ngayCap: vnDateOrNull(c.ngayCap),
       })),
+    },
+  };
+}
+
+/** Build the confirmation payload consumed by ImportCvCommand. */
+export function toCvImportPayload(data: CvFormData, isDefault: boolean) {
+  const levels: Record<string, number> = {
+    CoBan: 0,
+    TrungBinh: 1,
+    ThanhThao: 2,
+    ChuyenGia: 3,
+  };
+  const levelValue = (value: string) => {
+    if (value in levels) return levels[value];
+    const parsed = Number(value);
+    return Number.isInteger(parsed) && parsed >= 0 && parsed <= 3 ? parsed : null;
+  };
+
+  return {
+    tenFile: data.tenFile?.trim() || `CV-${new Date().toISOString().slice(0, 10)}`,
+    fileUrl: null,
+    templateId: data.templateId,
+    isDefault,
+    noiDung: {
+      thongTinLienHe: {
+        ...data.thongTinLienHe,
+        mucLuongMongMuon: data.thongTinLienHe.mucLuongMongMuon
+          ? Number(data.thongTinLienHe.mucLuongMongMuon)
+          : null,
+      },
+      hocVan: data.hocVan.map((item, index) => ({ ...stripId(item), thuTu: index })),
+      kinhNghiemLamViec: data.kinhNghiemLamViec.map((item, index) => {
+        const { congTy, kyNangSuDung, ...rest } = stripId(item);
+        return {
+          ...rest,
+          tenCongTy: congTy,
+          kyNangSuDung: kyNangSuDung.map((tenKyNang) => ({ kyNangId: null, tenKyNang })),
+          thuTu: index,
+        };
+      }),
+      duAn: data.duAn.map((item, index) => ({
+        ...stripId(item),
+        congNghe: item.congNghe.map((tenKyNang) => ({ kyNangId: null, tenKyNang })),
+        thuTu: index,
+      })),
+      kyNang: data.kyNang.map((item, index) => ({
+        ...stripId(item),
+        kyNangId: null,
+        mucDoThanhThao: levelValue(item.mucDoThanhThao),
+        soNamKinhNghiem: item.soNamKinhNghiem ? Number(item.soNamKinhNghiem) : null,
+        thuTu: index,
+      })),
+      chungChi: data.chungChi.map((item, index) => ({ ...stripId(item), thuTu: index })),
     },
   };
 }

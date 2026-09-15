@@ -8,6 +8,8 @@ using Application.Services.StateMachineDonUngTuyen;
 using Application.Services.StateMachineLoiMoi;
 using Application.Services.StateMachineTinTuyenDung;
 using System.Reflection;
+using Application.Interfaces.Repositories;
+using Application.Mappings;
 
 namespace Application
 {
@@ -31,6 +33,7 @@ namespace Application
             #region State Machine LoiMoiNhanSu
             services.AddScoped<ILoiMoiNhanSuWorkflowService, LoiMoiNhanSuWorkflowService>();
             #endregion
+            services.AddScoped<ICvReadMapper, CvReadMapper>();
         }
     }
 }

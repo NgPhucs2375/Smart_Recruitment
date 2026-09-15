@@ -10,11 +10,19 @@ namespace Domain.Entities
     /// Danh mục kỹ năng chuan hoa.
     /// </summary>
     public class KyNang : AuditableBaseEntity
-    {
-        public string TenKyNang { get; set; }
-        public string MoTa { get; set; }
+{
+    public string TenKyNang { get; set; }
 
-        // ===   === //
-        public ICollection<KyNangTinTuyenDung> KyNangTinTuyenDungs { get; set; }
-    }
+    public string? MoTa { get; set; }
+
+    public ICollection<KyNangUngVien> KyNangUngViens { get; set; }
+
+    public ICollection<KyNangTinTuyenDung> KyNangTinTuyenDungs { get; set; }
+
+    public ICollection<CVKyNang> CVKyNangs { get; set; }
+
+    public ICollection<CVDuAnCongNghe> CVDuAnCongNghes { get; set; }
+
+    public ICollection<CVKinhNghiemKyNang> CVKinhNghiemKyNangs { get; set; }
+}
 }

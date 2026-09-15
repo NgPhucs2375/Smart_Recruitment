@@ -1,10 +1,11 @@
 using Application.DTOs.CV;
 using Application.Features.CVUngVien.Commands.CreateCVUngVien;
 using Application.Features.CVUngVien.Commands.DeleteCVUngVien;
+using Application.Features.CVUngVien.Commands.ImportCvUngVien;
+using Application.Features.CVUngVien.Commands.ParseCvText;
 using Application.Features.CVUngVien.Commands.UpdateCVUngVien;
 using Application.Features.CVUngVien.Queries.GetAllCVUngViens;
 using Application.Features.CVUngVien.Queries.GetCVUngVienById;
-using AutoMapper;
 using Casbin;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -15,15 +16,11 @@ namespace WebApp.Server.Controllers.v1
     [Route("api/cvungviens")]
     public class CVUngVienController : BaseApiController
     {
-        private readonly IMapper _mapper;
-
         public CVUngVienController(
             Microsoft.AspNetCore.Hosting.IWebHostEnvironment hostingEnvironment,
-            Enforcer enforcer,
-            IMapper mapper)
+            Enforcer enforcer)
             : base(hostingEnvironment, enforcer)
         {
-            _mapper = mapper;
         }
 
         // GET: api/cvungviens
@@ -41,7 +38,6 @@ namespace WebApp.Server.Controllers.v1
                         {
                             _start = filter._start,
                             _end = filter._end,
-                            HoSoUngVienId = filter.HoSoUngVienId,
                             _filter = filter._filter,
                             _sort = filter._sort,
                             _order = filter._order
@@ -69,16 +65,13 @@ namespace WebApp.Server.Controllers.v1
         // POST: api/cvungviens
         [HttpPost]
         public async Task<IActionResult> Create(
-            [FromBody] TaoCVUngVienDto dto)
+            [FromBody] CreateCVUngVienCommand command)
         {
             return await EnforcePermissionAndExecute(
                 "cvungviens",
                 "create",
                 async () =>
                 {
-                    var command =
-                        _mapper.Map<CreateCVUngVienCommand>(dto);
-
                     return Ok(await Mediator.Send(command));
                 });
         }
@@ -87,23 +80,29 @@ namespace WebApp.Server.Controllers.v1
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(
             int id,
-            [FromBody] CapNhatCVUngVienDto dto)
+            [FromBody] UpdateCVUngVienCommand command)
         {
             return await EnforcePermissionAndExecute(
                 "cvungviens",
                 "edit",
                 async () =>
                 {
-                    if (id != dto.Id)
+                    if (id != command.Id)
                     {
                         return BadRequest();
                     }
 
-                    var command =
-                        _mapper.Map<UpdateCVUngVienCommand>(dto);
-
                     return Ok(await Mediator.Send(command));
                 });
+        }
+
+        [HttpPost("import")]
+        public async Task<IActionResult> Import([FromBody] ImportCvCommand command)
+        {
+            return await EnforcePermissionAndExecute(
+                "cvungviens",
+                "create",
+                async () => Ok(await Mediator.Send(command)));
         }
 
         // DELETE: api/cvungviens/5
@@ -123,5 +122,17 @@ namespace WebApp.Server.Controllers.v1
                 });
         }
 
+        [HttpPost("parse-text")]
+        public async Task<IActionResult> ParseText(
+            [FromBody] ParseCvTextCommand command)
+        {
+            return await EnforcePermissionAndExecute(
+                "cvungviens",
+                "create",
+                async () =>
+                {
+                    return Ok(await Mediator.Send(command));
+                });
+        }
     }
 }

@@ -60,3 +60,4 @@ export type ApiResponse<T> = {
   Errors?: string[];
   Data?: T;
 };
+

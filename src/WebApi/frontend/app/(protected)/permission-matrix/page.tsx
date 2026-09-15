@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ShieldCheck, Save, RotateCcw, Search, CheckSquare, Square } from "lucide-react";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,7 +26,7 @@ interface MatrixResponse {
   matrix: Matrix;
 }
 
-const ALL_ACTIONS = ["list", "show", "create", "edit", "delete", "assign", "remove"] as const;
+const ALL_ACTIONS = ["list", "show", "create", "edit", "delete"] as const;
 
 function extractData(body: unknown): MatrixResponse | null {
   if (!body || typeof body !== "object") return null;
@@ -217,7 +216,7 @@ export default function PermissionMatrixPage() {
       const acts = draft[role.name]?.[resource] ?? data.matrix[role.name]?.[resource] ?? [];
       for (const a of acts) set.add(a);
     }
-    if (set.size === 0) return ["list", "show", "create", "edit", "delete"];
+    if (set.size === 0) return [...ALL_ACTIONS];
     return ALL_ACTIONS.filter((a) => set.has(a));
   };
 
@@ -261,8 +260,9 @@ export default function PermissionMatrixPage() {
         </AdminInfoBanner>
       )}
 
-      <AdminCard>
-        <div className="flex items-center justify-between gap-3 px-5 pt-4 pb-3">
+      <AdminCard className="flex flex-col overflow-hidden">
+        {/* ── 1. Toolbar (fixed) ── */}
+        <div className="flex items-center justify-between gap-3 px-5 py-3.5 border-b border-border shrink-0">
           <div className="relative flex-1 max-w-xs">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
             <Input
@@ -272,88 +272,87 @@ export default function PermissionMatrixPage() {
               className="h-8 pl-8 text-xs"
             />
           </div>
-          <div className="text-xs text-muted-foreground">
+          <div className="text-xs text-muted-foreground whitespace-nowrap">
             {resourcesSorted.length} resource{resourcesSorted.length !== 1 ? "s" : ""}
           </div>
         </div>
 
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow className="hover:bg-transparent">
-                <TableHead className="min-w-[160px] sticky left-0 bg-card z-20 border-r">
-                  Resource
-                </TableHead>
-                {data.roles.map((r) => (
-                  <TableHead key={r.id} className="text-center min-w-[170px] sticky top-0 z-10 bg-card border-l border-border/50">
-                      <div className="flex flex-col items-center gap-1">
-                        <span className="font-semibold text-xs">{r.name}</span>
-                        {canEdit && (
-                          <div className="flex gap-1">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                resourcesSorted.forEach((res) => {
-                                  const actions = getActionsForResource(res);
-                                  toggleAllForRole(r.name, res, actions, true);
-                                });
-                              }}
-                              className="inline-flex items-center gap-0.5 text-[10px] text-muted-foreground hover:text-foreground transition-colors"
-                              title="Chọn tất cả"
-                            >
-                              <CheckSquare className="size-3" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                resourcesSorted.forEach((res) => {
-                                  toggleAllForRole(r.name, res, [], false);
-                                });
-                              }}
-                              className="inline-flex items-center gap-0.5 text-[10px] text-muted-foreground hover:text-foreground transition-colors"
-                              title="Bỏ tất cả"
-                            >
-                              <Square className="size-3" />
-                            </button>
-                          </div>
-                        )}
+        {/* ── 2. Matrix header (fixed, outside scroll) ── */}
+        <div className="grid grid-cols-[220px_repeat(4,minmax(270px,1fr))] border-b border-border bg-popover text-popover-foreground shadow-sm shrink-0">
+          <div className="px-4 py-3 font-medium text-xs text-muted-foreground border-r border-border">
+            Resource
+          </div>
+          {data.roles.map((r) => (
+            <div key={r.id} className="px-4 py-3 border-l border-border text-center">
+              <div className="flex flex-col items-center gap-1">
+                <span className="font-semibold text-xs text-foreground">{r.name}</span>
+                {canEdit && (
+                  <div className="flex gap-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        resourcesSorted.forEach((res) => {
+                          const actions = getActionsForResource(res);
+                          toggleAllForRole(r.name, res, actions, true);
+                        });
+                      }}
+                      className="inline-flex items-center text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+                      title="Chọn tất cả"
+                    >
+                      <CheckSquare className="size-3" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        resourcesSorted.forEach((res) => {
+                          toggleAllForRole(r.name, res, [], false);
+                        });
+                      }}
+                      className="inline-flex items-center text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+                      title="Bỏ tất cả"
+                    >
+                      <Square className="size-3" />
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* ── 3. Matrix body (only this scrolls) ── */}
+        <div className="overflow-auto max-h-[calc(100vh-22rem)]">
+          <div className="min-w-[1300px]">
+            {resourcesSorted.map((resource, idx) => (
+              <div
+                key={resource}
+                className={`grid grid-cols-[220px_repeat(4,minmax(270px,1fr))] border-b border-border transition-colors hover:bg-muted/50 ${idx % 2 === 1 ? "bg-muted/20" : ""}`}
+              >
+                <div className="px-4 py-3 font-medium text-xs text-foreground border-r border-border flex items-start">
+                  {resource}
+                </div>
+                {data.roles.map((role) => {
+                  const checkedSet = new Set(draft[role.name]?.[resource] ?? []);
+                  return (
+                    <div key={role.id + resource} className="px-4 py-3 border-l border-border/50">
+                      <div className="grid grid-cols-3 gap-x-4 gap-y-2">
+                        {ALL_ACTIONS.map((act) => {
+                          const checked = checkedSet.has(act);
+                          const id = `${role.name}-${resource}-${act}`;
+                          return (
+                            <Label key={id} htmlFor={id} className="grid grid-cols-[16px_auto] items-center gap-2 text-[11px] font-normal cursor-pointer">
+                              <Checkbox id={id} checked={checked} disabled={!canEdit} onCheckedChange={(v) => toggleAction(role.name, resource, act, Boolean(v))} />
+                              <span className="truncate">{act}</span>
+                            </Label>
+                          );
+                        })}
                       </div>
-                    </TableHead>
-                  ))}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {resourcesSorted.map((resource) => {
-                const actions = getActionsForResource(resource);
-                return (
-                  <TableRow key={resource}>
-                    <TableCell className="font-medium text-xs sticky left-0 bg-card z-10 border-r py-1.5">
-                      {resource}
-                    </TableCell>
-                    {data.roles.map((role) => {
-                      const checkedSet = new Set(draft[role.name]?.[resource] ?? []);
-                      return (
-                        <TableCell key={role.id + resource} className="border-l border-border/50 py-1.5">
-                          <div className="flex flex-nowrap gap-x-2 gap-y-0.5">
-                            {actions.map((act) => {
-                              const checked = checkedSet.has(act);
-                              const id = `${role.name}-${resource}-${act}`;
-                              return (
-                                <Label key={id} htmlFor={id} className="flex items-center gap-1 text-[11px] font-normal cursor-pointer whitespace-nowrap">
-                                  <Checkbox id={id} checked={checked} disabled={!canEdit} onCheckedChange={(v) => toggleAction(role.name, resource, act, Boolean(v))} />
-                                  {act}
-                                </Label>
-                              );
-                            })}
-                          </div>
-                        </TableCell>
-                      );
-                    })}
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
+                    </div>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
         </div>
       </AdminCard>
 

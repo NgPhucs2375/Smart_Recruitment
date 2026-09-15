@@ -17,6 +17,8 @@ import {
   PlusCircle,
   Pencil,
   ArrowRight,
+  Mail,
+  Printer,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,7 +26,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { hoSoApi, type HoSoVm } from "@/lib/cv-api";
+import { hoSoApi, cvApi, type HoSoVm, type CvVm } from "@/lib/api/cv-api";
 import { useStoredIdentity } from "@/hooks/use-stored-identity";
 
 export function HoSoView() {
@@ -44,6 +46,8 @@ export function HoSoView() {
   const [viTriUngTuyen, setViTriUngTuyen] = useState("");
   const [mucLuongMongMuon, setMucLuongMongMuon] = useState<number | "">(0);
   const [isTimViec, setIsTimViec] = useState(true);
+  const [cvs, setCvs] = useState<CvVm[]>([]);
+  const [cvsLoading, setCvsLoading] = useState(false);
 
   const loadData = async () => {
     setLoading(true);
@@ -79,6 +83,27 @@ export function HoSoView() {
   useEffect(() => {
     void loadData();
   }, []);
+
+  // CV của tôi — reuse existing CV list API, no duplicate storage.
+  useEffect(() => {
+    if (!hoSo || hoSo.id <= 0 || isEditing) return;
+    let cancelled = false;
+    setCvsLoading(true);
+    cvApi
+      .listCvs(hoSo.id)
+      .then((list) => {
+        if (!cancelled) setCvs(list.filter((cv) => !cv.isDaXoa));
+      })
+      .catch(() => {
+        if (!cancelled) setCvs([]);
+      })
+      .finally(() => {
+        if (!cancelled) setCvsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [hoSo?.id, isEditing]);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -181,9 +206,9 @@ export function HoSoView() {
 
       {/* View Mode */}
       {hoSo && !isEditing && (
-        <div className="grid gap-6 md:grid-cols-3">
+        <div className="grid items-stretch gap-6 md:grid-cols-3">
           {/* Card Thông tin chính */}
-          <Card className="md:col-span-1">
+          <Card className="h-full md:col-span-1">
             <CardHeader className="text-center">
               <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-primary/10 text-2xl font-bold text-primary">
                 {hoSo.hoTen
@@ -201,9 +226,16 @@ export function HoSoView() {
                 <Badge variant={hoSo.isTimViec ? "default" : "secondary"}>
                   {hoSo.isTimViec ? "Đang tìm việc" : "Đã có việc / Tạm dừng"}
                 </Badge>
+                <p className="mt-2 text-[11px] text-muted-foreground">
+                  Ảnh đại diện hiện dùng chữ cái đầu — chưa hỗ trợ tải ảnh lên.
+                </p>
               </div>
             </CardHeader>
             <CardContent className="space-y-3 text-sm">
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <Mail className="h-4 w-4 shrink-0 text-primary" />
+                <span className="min-w-0 truncate">{identity?.email || "Chưa có email"}</span>
+              </div>
               <div className="flex items-center gap-2 text-muted-foreground">
                 <Phone className="h-4 w-4 shrink-0 text-primary" />
                 <span>{hoSo.sdt || "Chưa có SĐT"}</span>
@@ -232,7 +264,7 @@ export function HoSoView() {
           </Card>
 
           {/* Chi tiết Giới thiệu & Mục tiêu */}
-          <Card className="md:col-span-2">
+          <Card className="h-full md:col-span-2">
             <CardHeader>
               <CardTitle>Giới thiệu bản thân & Mục tiêu</CardTitle>
             </CardHeader>
@@ -263,22 +295,107 @@ export function HoSoView() {
         </div>
       )}
 
+      {/* SECTION 2 — CV của tôi (existing created CV list) */}
+      {hoSo && !isEditing && (
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between gap-3">
+            <div>
+              <CardTitle className="text-lg">CV của tôi</CardTitle>
+              <CardDescription>
+                Các CV bạn đã tạo — mở, chỉnh sửa hoặc in từ trình quản lý CV.
+              </CardDescription>
+            </div>
+            <Link href="/tao-cv">
+              <Button size="sm">
+                <PlusCircle className="mr-2 h-4 w-4" />
+                Tạo CV
+              </Button>
+            </Link>
+          </CardHeader>
+          <CardContent>
+            {cvsLoading ? (
+              <div className="flex items-center gap-2 py-6 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Đang tải danh sách CV...
+              </div>
+            ) : cvs.length === 0 ? (
+              <div className="flex flex-col items-center py-8 text-center">
+                <span className="flex size-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
+                  <FileText className="h-6 w-6" />
+                </span>
+                <p className="mt-3 text-sm font-medium text-foreground">Bạn chưa có CV</p>
+                <p className="mt-1 max-w-sm text-xs text-muted-foreground">
+                  Tạo CV đầu tiên từ hồ sơ của bạn để bắt đầu ứng tuyển.
+                </p>
+                <Link href="/tao-cv" className="mt-4">
+                  <Button>
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    Tạo CV ngay
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </Link>
+              </div>
+            ) : (
+              <ul className="divide-y divide-border">
+                {cvs.map((cv) => (
+                  <li key={cv.id} className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex min-w-0 items-center gap-3">
+                      <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                        <FileText className="h-5 w-5" />
+                      </span>
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium text-foreground">
+                          {cv.tenFile || `CV #${cv.id}`}
+                          {cv.isDefault && (
+                            <Badge variant="secondary" className="ml-2">Mặc định</Badge>
+                          )}
+                        </p>
+                        <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                          {cv.templateId ? `Mẫu ${cv.templateId}` : "Mẫu chuẩn"}
+                          {cv.ngayUpload
+                            ? ` • Cập nhật ${new Date(cv.ngayUpload).toLocaleDateString("vi-VN")}`
+                            : ""}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-2">
+                      <Link href="/tao-cv">
+                        <Button variant="outline" size="sm">
+                          <Pencil className="mr-1.5 h-3.5 w-3.5" />
+                          Mở / Sửa
+                        </Button>
+                      </Link>
+                      <Link href="/tao-cv">
+                        <Button variant="ghost" size="sm">
+                          <Printer className="mr-1.5 h-3.5 w-3.5" />
+                          In / PDF
+                        </Button>
+                      </Link>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       {/* Edit / Create Form Mode */}
       {isEditing && (
         <form onSubmit={handleSave}>
-          <Card className="border-[#d8d5ce]/70 shadow-sm">
-            <CardHeader className="border-b border-[#d8d5ce]/40 bg-[#f4f2ed]/40 pb-4">
-              <CardTitle className="text-xl font-semibold text-[#151515]">
+          <Card className="border-border/70 shadow-sm">
+            <CardHeader className="border-b border-border/40 bg-muted/40 pb-4">
+              <CardTitle className="text-xl font-semibold text-foreground">
                 {hoSo ? "Chỉnh sửa thông tin hồ sơ" : "Tạo hồ sơ ứng viên mới"}
               </CardTitle>
-              <CardDescription className="text-xs text-[#69727a]">
+              <CardDescription className="text-xs text-muted-foreground">
                 Điền đầy đủ thông tin cá nhân và vị trí mong muốn để nhà tuyển dụng tiếp cận bạn.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6 pt-6">
               {/* Thông tin cá nhân */}
               <div className="space-y-4">
-                <h3 className="text-xs font-semibold uppercase tracking-wider text-[#69727a]">
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                   1. Thông tin cá nhân
                 </h3>
                 <div className="grid gap-4 sm:grid-cols-2">
@@ -293,7 +410,7 @@ export function HoSoView() {
                         value={hoTen}
                         onChange={(e) => setHoTen(e.target.value)}
                         required
-                        className="h-10 rounded-xl border-[#d8d5ce] bg-white pl-10 text-sm"
+                        className="h-10 rounded-xl border-input bg-white pl-10 text-sm"
                       />
                     </div>
                   </div>
@@ -306,7 +423,7 @@ export function HoSoView() {
                         placeholder="0912345678"
                         value={sdt}
                         onChange={(e) => setSdt(e.target.value)}
-                        className="h-10 rounded-xl border-[#d8d5ce] bg-white pl-10 text-sm"
+                        className="h-10 rounded-xl border-input bg-white pl-10 text-sm"
                       />
                     </div>
                   </div>
@@ -321,7 +438,7 @@ export function HoSoView() {
                         type="date"
                         value={ngaySinh}
                         onChange={(e) => setNgaySinh(e.target.value)}
-                        className="h-10 rounded-xl border-[#d8d5ce] bg-white pl-10 text-sm"
+                        className="h-10 rounded-xl border-input bg-white pl-10 text-sm"
                       />
                     </div>
                   </div>
@@ -331,7 +448,7 @@ export function HoSoView() {
                     <div className="relative">
                       <User className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
                       <select
-                        className="flex h-10 w-full rounded-xl border border-[#d8d5ce] bg-white pl-10 pr-3 text-sm text-gray-900 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#151515]"
+                        className="flex h-10 w-full rounded-xl border border-input bg-white pl-10 pr-3 text-sm text-gray-900 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                         value={gioiTinh}
                         onChange={(e) => setGioiTinh(e.target.value)}
                       >
@@ -351,7 +468,7 @@ export function HoSoView() {
                       placeholder="Quận 1, TP. Hồ Chí Minh"
                       value={diaChi}
                       onChange={(e) => setDiaChi(e.target.value)}
-                      className="h-10 rounded-xl border-[#d8d5ce] bg-white pl-10 text-sm"
+                      className="h-10 rounded-xl border-input bg-white pl-10 text-sm"
                     />
                   </div>
                 </div>
@@ -359,7 +476,7 @@ export function HoSoView() {
 
               {/* Vị trí & Định hướng */}
               <div className="space-y-4 pt-2">
-                <h3 className="text-xs font-semibold uppercase tracking-wider text-[#69727a]">
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                   2. Định hướng nghề nghiệp & Mong muốn
                 </h3>
                 <div className="grid gap-4 sm:grid-cols-2">
@@ -371,7 +488,7 @@ export function HoSoView() {
                         placeholder="Fullstack .NET Developer"
                         value={viTriUngTuyen}
                         onChange={(e) => setViTriUngTuyen(e.target.value)}
-                        className="h-10 rounded-xl border-[#d8d5ce] bg-white pl-10 text-sm"
+                        className="h-10 rounded-xl border-input bg-white pl-10 text-sm"
                       />
                     </div>
                   </div>
@@ -389,18 +506,18 @@ export function HoSoView() {
                         onChange={(e) =>
                           setMucLuongMongMuon(e.target.value === "" ? "" : Number(e.target.value))
                         }
-                        className="h-10 rounded-xl border-[#d8d5ce] bg-white pl-10 text-sm"
+                        className="h-10 rounded-xl border-input bg-white pl-10 text-sm"
                       />
                     </div>
                   </div>
                 </div>
 
                 {/* Trạng thái tìm việc */}
-                <div className="flex items-center gap-3 rounded-xl border border-[#d8d5ce] bg-[#f4f2ed]/50 p-4">
+                <div className="flex items-center gap-3 rounded-xl border border-border bg-muted/50 p-4">
                   <input
                     type="checkbox"
                     id="isTimViec"
-                    className="size-4 rounded border-gray-300 text-[#151515] focus:ring-[#151515]"
+                    className="size-4 rounded border-gray-300 accent-primary focus:ring-ring"
                     checked={isTimViec}
                     onChange={(e) => setIsTimViec(e.target.checked)}
                   />
@@ -419,13 +536,13 @@ export function HoSoView() {
                     placeholder="Tóm tắt kinh nghiệm làm việc, kỹ năng nổi bật và định hướng phát triển sự nghiệp..."
                     value={gioiThieu}
                     onChange={(e) => setGioiThieu(e.target.value)}
-                    className="rounded-xl border-[#d8d5ce] bg-white text-sm"
+                    className="rounded-xl border-input bg-white text-sm"
                   />
                 </div>
               </div>
 
               {/* Action buttons */}
-              <div className="flex items-center justify-end gap-3 pt-4 border-t border-[#d8d5ce]/40">
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-border/40">
                 {hoSo && (
                   <Button
                     type="button"
@@ -434,12 +551,12 @@ export function HoSoView() {
                       populateForm(hoSo);
                       setIsEditing(false);
                     }}
-                    className="h-10 rounded-xl border-[#d8d5ce]"
+                    className="h-10 rounded-xl border-input"
                   >
                     Hủy bỏ
                   </Button>
                 )}
-                <Button type="submit" disabled={saving} className="h-10 rounded-xl bg-[#151515] text-white hover:bg-black">
+                <Button type="submit" disabled={saving} className="h-10 rounded-xl bg-primary text-primary-foreground hover:bg-primary-hover">
                   {saving ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
