@@ -86,10 +86,17 @@ Spec OpenAPI 3.0.4 import từ URL, bật auto-sync. Cấu trúc:
 
 ---
 
-## 6. Kịch bản đã chạy
+## 6. Kịch bản đã chạy (cập nhật cuối: full xanh)
 
-### 6.1. CRUD mẫu (DanhMucNghe, KyNang, DoanhNghiep, NguoiDung) — Pass
-list → show đúng/sai (`200 + Succeeded:false`) → POST + Store id → PUT lệch Id → `400` → DELETE → show lại `false`. Kèm 2 case phân quyền mỗi module: No Auth → `401`, token UngVien → `403`.
+### 6.1. CRUD từng module — Pass (status; verify giá trị sau fix BUG-11)
+`DanhMucNghe`, `KyNang`, `DoanhNghiep`, `NguoiDung`, `HoSoNhaTuyenDung`,
+`HoSoUngVien`, `CVUngVien`, `DonUngTuyen`, `TinTuyenDung` (CRUD + fire thử),
+`NhanSu` (invite/accept/list/delete), `DanhGia`, `KetQuaPhanTichCv`, `KetQuaPhuHop`,
+`KinhNghiemLamViec`, `KyNangUngVien`, `KyNangTinTuyenDung`,
+`Users` (trừ show vỡ BUG-16), `Roles` (+assign/remove), `RoleClaims` (+matrix echo).
+Mẫu chung: list → show đúng/sai (`200 + Succeeded:false`) → POST + Store id →
+PUT lệch Id → `400` → DELETE → show lại. Kèm 2 case phân quyền mỗi module
+(No Auth → `401`, token yếu → `403`).
 
 ### 6.2. Scenario E2E `E2E_UngTuyen` — Pass 9/9
 `POST hosoungviens → POST cvungvien → GET tintuyendungs (lấy tin mẫu Id=3) → POST donungtuyen (token admin) → GET donungtuyen/show (token chính chủ ungvien) → GET Notifications → DELETE don → DELETE cv → DELETE hoso` (dọn ngược thứ tự tạo để qua FK Restrict; scenario chạy lại được nhiều lần).
