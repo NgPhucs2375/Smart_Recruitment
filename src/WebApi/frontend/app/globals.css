@@ -1107,6 +1107,16 @@ html {
   color: var(--cv-accent); 
 }
 
+/* Resume paper: A4 target width, natural growing height (multi-page OK) */
+.cv-paper-a4 {
+  width: 210mm;
+  max-width: 100%;
+}
+
+.cv-section-item {
+  break-inside: avoid;
+}
+
 /* In CV: chỉ in khung xem trước, ẩn toàn bộ app shell */
 @media print {
   @page {
@@ -1140,10 +1150,15 @@ html {
     display: none !important;
   }
 
-  .cv-preview-frame .rounded-xl {
+  .cv-paper {
     border: none !important;
-    box-shadow: none !important;
     border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+
+  .cv-paper-a4 {
+    width: auto;
+    max-width: none;
   }
 
   * {
