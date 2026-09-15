@@ -112,6 +112,7 @@ export async function parseCvFile(file: File): Promise<Partial<CvFormData>> {
       chuyenNganh: pickString(h, ["chuyenNganh"]),
       tuNgay: pickString(h, ["tuNgay"]),
       denNgay: pickString(h, ["denNgay"]),
+      isHienTai: h.isHienTai === true,
       moTa: pickString(h, ["moTa"]),
     }));
 
@@ -135,6 +136,9 @@ export async function parseCvFile(file: File): Promise<Partial<CvFormData>> {
       congNghe: asStringArray(d.congNghe),
       link: pickString(d, ["link"]),
       moTa: pickString(d, ["moTa"]),
+      tuNgay: pickString(d, ["tuNgay"]),
+      denNgay: pickString(d, ["denNgay"]),
+      isHienTai: d.isHienTai === true,
     }));
 
   const kyNang = (Array.isArray(src.kyNang) ? src.kyNang : [])

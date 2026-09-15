@@ -1,5 +1,5 @@
 import type { CvFormData } from "./types";
-import { toDateInput } from "./types";
+import { normalizeCvPartialDate, renderCvDateRange } from "./types";
 
 /**
  * View-only resume model for visual templates.
@@ -49,6 +49,7 @@ export type ResumeProject = {
   link?: string;
   description?: string;
   tech: string[];
+  range?: ResumeDateRange;
 };
 
 export type ResumeCertificate = {
@@ -72,18 +73,16 @@ export type ResumeData = {
   hasContent: boolean;
 };
 
-const fmtMonthYear = (v: string): string => {
-  const d = toDateInput(v);
-  if (!d) return "";
-  const [y, m] = d.split("-");
-  return `${m}/${y}`;
-};
+const fmtPartial = (v: string | null | undefined): string => normalizeCvPartialDate(v);
 
-const toRange = (tu: string, den: string, hienTai?: boolean): ResumeDateRange => ({
-  start: fmtMonthYear(tu),
-  end: hienTai ? "Nay" : fmtMonthYear(den),
-  current: hienTai,
-});
+const toRange = (
+  tu: string | null | undefined,
+  den: string | null | undefined,
+  hienTai?: boolean
+): ResumeDateRange => {
+  const r = renderCvDateRange(tu, den, hienTai);
+  return { start: r.start, end: r.end, current: hienTai };
+};
 
 const asLink = (value: string): string | undefined => {
   const v = value.trim();
@@ -122,7 +121,7 @@ export function toResumeData(data: CvFormData): ResumeData {
     id: h.id,
     school: h.truong,
     degree: h.chuyenNganh || undefined,
-    range: toRange(h.tuNgay, h.denNgay, false),
+    range: toRange(h.tuNgay, h.denNgay, h.isHienTai),
     description: h.moTa || undefined,
   }));
 
@@ -132,20 +131,24 @@ export function toResumeData(data: CvFormData): ResumeData {
     detail: [k.soNamKinhNghiem, k.mucDoThanhThao].filter(Boolean).join(" · ") || undefined,
   }));
 
-  const projects: ResumeProject[] = data.duAn.map((d) => ({
-    id: d.id,
-    name: d.tenDuAn,
-    role: d.vaiTro || undefined,
-    link: d.link || undefined,
-    description: d.moTa || undefined,
-    tech: d.congNghe,
-  }));
+  const projects: ResumeProject[] = data.duAn.map((d) => {
+    const r = renderCvDateRange(d.tuNgay, d.denNgay, d.isHienTai);
+    return {
+      id: d.id,
+      name: d.tenDuAn,
+      role: d.vaiTro || undefined,
+      link: d.link || undefined,
+      description: d.moTa || undefined,
+      tech: d.congNghe,
+      range: r.start || r.end ? { start: r.start, end: r.end, current: d.isHienTai } : undefined,
+    };
+  });
 
   const certificates: ResumeCertificate[] = data.chungChi.map((c) => ({
     id: c.id,
     name: c.tenChungChi,
     issuer: c.donViCap || undefined,
-    date: fmtMonthYear(c.ngayCap) || undefined,
+    date: fmtPartial(c.ngayCap) || undefined,
     code: c.maXacMinh || undefined,
   }));
 

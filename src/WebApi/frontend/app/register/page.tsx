@@ -5,10 +5,10 @@ import Link from "next/link";
 import { usePasswordRegister, useGoogleAuth, useMagicLinkRegister } from "@/hooks";
 import {
   AuthLayout,
-  RoleSelector,
   TabSwitcher,
   GoogleAuthSection,
   MagicLinkSentSuccess,
+  WrongPortalAlert,
 } from "@/components/auth";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,92 +19,69 @@ import {
   Lock,
   User,
   Phone,
-  Building2,
-  MapPin,
-  Briefcase,
   ArrowRight,
   Sparkles,
   CheckCircle2,
   Loader2,
   Eye,
   EyeOff,
-  TrendingUp,
-  Zap,
+  UserRound,
 } from "lucide-react";
 
 export default function RegisterPage() {
-  const [method, setMethod] = useState<"password" | "google" | "magic">("password");
+  const [method, setMethod] = useState<"password" | "magic">("password");
   const [showPassword, setShowPassword] = useState(false);
 
-  // 1. Password Hook
+  // 1. Password Hook (candidate-only, role fixed to UNG_VIEN)
   const {
     register: registerPwd,
     handleSubmit: handlePwdSubmit,
-    setValue: setPwdValue,
     errors: pwdErrors,
     isPending: isPwdPending,
     submitError: pwdSubmitError,
-    selectedRole: pwdRole,
   } = usePasswordRegister();
 
-  // 2. Google Hook
-  const { handleGoogleLogin, isPending: isGooglePending } = useGoogleAuth();
+  // 2. Google — social section only (backend auto-provisions UNG_VIEN)
+  const {
+    handleGoogleLogin,
+    isPending: isGooglePending,
+    error: googleError,
+    setError: setGoogleError,
+    wrongPortal: googleWrongPortal,
+  } = useGoogleAuth("candidate");
 
-  // 3. Magic Link Hook
+  // 3. Magic Link Hook (candidate-only)
   const {
     register: registerMagic,
     handleSubmit: handleMagicSubmit,
-    setValue: setMagicValue,
     errors: magicErrors,
     loading: magicLoading,
     sent: magicSent,
     error: magicError,
-    selectedRole: magicRole,
     reset: resetMagic,
   } = useMagicLinkRegister();
-
-  const activeRole = method === "magic" ? magicRole : pwdRole;
 
   const leftPanelContent = (
     <>
       <p className="font-mono text-xs uppercase tracking-[0.24em] text-white/60">
-        {activeRole === "NGUOI_DAI_DIEN" ? "Enterprise Portal / 2026" : "Talent Network / 2026"}
+        Talent Network / 2026
       </p>
       <h1 className="mt-4 max-w-lg text-4xl font-medium tracking-[-0.05em] text-white xl:text-5xl">
-        {activeRole === "NGUOI_DAI_DIEN"
-          ? "Tuyển dụng nhân sự công nghệ chuẩn xác & tốc độ."
-          : "Khám phá cơ hội IT xứng tầm năng lực."}
+        Khám phá cơ hội IT xứng tầm năng lực.
       </h1>
       <p className="mt-5 max-w-md text-sm leading-6 text-white/65">
-        {activeRole === "NGUOI_DAI_DIEN"
-          ? "Tự động phân loại hồ sơ, đối chiếu Tech Stack và rút ngắn 70% thời gian tuyển chọn dev chất lượng cao."
-          : "Hồ sơ của bạn được AI đối chiếu trực tiếp với các dự án thực tế, nhận cơ hội việc làm đúng tech stack."}
+        Hồ sơ của bạn được AI đối chiếu trực tiếp với các dự án thực tế, nhận cơ hội việc làm đúng tech stack.
       </p>
 
       <div className="mt-8 space-y-3">
-        {activeRole === "NGUOI_DAI_DIEN" ? (
-          <>
-            <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] p-4 backdrop-blur-sm">
-              <Zap className="size-5 shrink-0 text-sandgold" />
-              <span className="text-sm text-white/90">Sàng lọc và chấm điểm CV tự động bằng mô hình AI</span>
-            </div>
-            <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] p-4 backdrop-blur-sm">
-              <TrendingUp className="size-5 shrink-0 text-sage" />
-              <span className="text-sm text-white/90">Đăng tin không giới hạn và tiếp cận kho kỹ sư mở</span>
-            </div>
-          </>
-        ) : (
-          <>
-            <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] p-4 backdrop-blur-sm">
-              <CheckCircle2 className="size-5 shrink-0 text-sage" />
-              <span className="text-sm text-white/90">Trình tạo CV chuẩn Tech-Minimalist hoàn toàn miễn phí</span>
-            </div>
-            <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] p-4 backdrop-blur-sm">
-              <Sparkles className="size-5 shrink-0 text-indigo-400" />
-              <span className="text-sm text-white/90">Gợi ý việc làm chuẩn xác từ AI theo ngôn ngữ & framework</span>
-            </div>
-          </>
-        )}
+        <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] p-4 backdrop-blur-sm">
+          <CheckCircle2 className="size-5 shrink-0 text-sage" />
+          <span className="text-sm text-white/90">Trình tạo CV chuẩn Tech-Minimalist hoàn toàn miễn phí</span>
+        </div>
+        <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] p-4 backdrop-blur-sm">
+          <Sparkles className="size-5 shrink-0 text-indigo-400" />
+          <span className="text-sm text-white/90">Gợi ý việc làm chuẩn xác từ AI theo ngôn ngữ & framework</span>
+        </div>
       </div>
     </>
   );
@@ -113,83 +90,34 @@ export default function RegisterPage() {
     <AuthLayout leftPanel={leftPanelContent}>
       <div className="mb-6 text-center">
         <div className="mx-auto mb-3 flex w-fit items-center gap-2 rounded-full border border-border bg-muted/80 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-          <span className="size-1.5 rounded-full bg-sage" /> Bắt đầu miễn phí
+          <UserRound className="size-3" /> Cổng ứng viên
         </div>
-        <h2 className="text-2xl font-semibold tracking-tight text-foreground">Tạo tài khoản mới</h2>
+        <h2 className="text-2xl font-semibold tracking-tight text-foreground">Tạo tài khoản ứng viên</h2>
         <p className="mt-1 text-xs text-muted-foreground">Tham gia hệ sinh thái kết nối công nghệ thông minh</p>
       </div>
 
       <TabSwitcher
         tabs={[
-          { id: "password", label: "Mật khẩu" },
-          { id: "google", label: "Google" },
+          { id: "password", label: "Email & mật khẩu" },
           { id: "magic", label: "Magic Link" },
         ]}
         active={method}
-        onChange={(id) => setMethod(id as "password" | "google" | "magic")}
+        onChange={(id) => setMethod(id as "password" | "magic")}
       />
 
-      {/* 1. MẬT KHẨU */}
+      {googleWrongPortal && (
+        <div className="mb-3">
+          <WrongPortalAlert portal={googleWrongPortal} />
+        </div>
+      )}
+
+      {/* 1. EMAIL & MẬT KHẨU */}
       {method === "password" && (
         <form onSubmit={handlePwdSubmit} className="space-y-3.5">
           {pwdSubmitError && (
             <Alert variant="destructive" className="border-red-200 bg-red-50 py-2.5">
               <AlertDescription className="text-xs text-red-700">{pwdSubmitError}</AlertDescription>
             </Alert>
-          )}
-
-          <RoleSelector
-            value={pwdRole ?? "UNG_VIEN"}
-            onChange={(role) => setPwdValue("role", role)}
-            disabled={isPwdPending}
-          />
-
-          {pwdRole === "NGUOI_DAI_DIEN" && (
-            <>
-              <div className="space-y-1">
-                <Label className="text-xs font-medium text-gray-700">Tên Doanh nghiệp / Tổ chức</Label>
-                <div className="relative">
-                  <Building2 className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
-                  <Input
-                    {...registerPwd("tenDoanhNghiep")}
-                    disabled={isPwdPending}
-                    placeholder="Công ty Công nghệ..."
-                    className="h-10 rounded-xl border-input bg-white pl-10 text-sm"
-                  />
-                </div>
-                {pwdErrors.tenDoanhNghiep && <p className="text-xs text-red-500">{pwdErrors.tenDoanhNghiep.message}</p>}
-              </div>
-
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div className="space-y-1">
-                  <Label className="text-xs font-medium text-gray-700">Địa chỉ doanh nghiệp</Label>
-                  <div className="relative">
-                    <MapPin className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
-                    <Input
-                      {...registerPwd("diaChiDoanhNghiep")}
-                      disabled={isPwdPending}
-                      placeholder="Số nhà, đường, quận, thành phố..."
-                      className="h-10 rounded-xl border-input bg-white pl-10 text-sm"
-                    />
-                  </div>
-                  {pwdErrors.diaChiDoanhNghiep && <p className="text-xs text-red-500">{pwdErrors.diaChiDoanhNghiep.message}</p>}
-                </div>
-
-                <div className="space-y-1">
-                  <Label className="text-xs font-medium text-gray-700">Chức vụ</Label>
-                  <div className="relative">
-                    <Briefcase className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
-                    <Input
-                      {...registerPwd("chucVu")}
-                      disabled={isPwdPending}
-                      placeholder="VD: Giám đốc, Trưởng phòng..."
-                      className="h-10 rounded-xl border-input bg-white pl-10 text-sm"
-                    />
-                  </div>
-                  {pwdErrors.chucVu && <p className="text-xs text-red-500">{pwdErrors.chucVu.message}</p>}
-                </div>
-              </div>
-            </>
           )}
 
           <div className="grid gap-3 sm:grid-cols-2">
@@ -288,14 +216,10 @@ export default function RegisterPage() {
             className="mt-2 h-11 w-full rounded-xl bg-primary font-medium text-white transition hover:bg-primary-hover"
           >
             {isPwdPending ? <Loader2 className="mr-2 size-4 animate-spin" /> : <ArrowRight className="mr-2 size-4" />}
-            {isPwdPending
-              ? "Đang khởi tạo tài khoản..."
-              : pwdRole === "NGUOI_DAI_DIEN"
-              ? "Đăng ký tuyển dụng miễn phí"
-              : "Tạo tài khoản ứng viên"}
+            {isPwdPending ? "Đang khởi tạo tài khoản..." : "Tạo tài khoản ứng viên"}
           </Button>
 
-          {/* Integrated Quick Google Section inside Password Form */}
+          {/* Social login below the form */}
           <div className="relative my-4 text-center text-xs text-muted-foreground">
             <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-border" /></div>
             <span className="relative bg-muted/90 px-3 uppercase tracking-wider">hoặc</span>
@@ -304,7 +228,9 @@ export default function RegisterPage() {
           <GoogleAuthSection
             onGoogleLogin={handleGoogleLogin}
             disabled={isPwdPending || isGooglePending}
-            text="Đăng ký nhanh bằng Google"
+            text="Đăng ký bằng Google"
+            error={googleError}
+            onError={setGoogleError}
           />
 
           <p className="text-center text-[11px] text-muted-foreground">
@@ -313,19 +239,7 @@ export default function RegisterPage() {
         </form>
       )}
 
-      {/* 2. GOOGLE */}
-      {method === "google" && (
-        <div className="space-y-4">
-          <GoogleAuthSection
-            onGoogleLogin={handleGoogleLogin}
-            disabled={isGooglePending}
-            text="Tiếp tục với Google"
-            description="Đăng ký tài khoản nhanh chóng chỉ với một chạm."
-          />
-        </div>
-      )}
-
-      {/* 3. MAGIC LINK */}
+      {/* 2. MAGIC LINK */}
       {method === "magic" && (
         <form onSubmit={handleMagicSubmit} className="space-y-3.5">
           {magicSent ? (
@@ -337,12 +251,6 @@ export default function RegisterPage() {
                   <AlertDescription className="text-xs text-red-700">{magicError}</AlertDescription>
                 </Alert>
               )}
-
-              <RoleSelector
-                value={magicRole ?? "UNG_VIEN"}
-                onChange={(role) => setMagicValue("role", role)}
-                disabled={magicLoading}
-              />
 
               <div className="space-y-1">
                 <Label className="text-xs font-medium text-gray-700">Họ và tên</Label>
@@ -408,7 +316,7 @@ export default function RegisterPage() {
 
       <div className="mt-6 border-t border-border/60 pt-4 text-center">
         <p className="text-xs text-muted-foreground">
-          Đã có tài khoản HIRE//AI?{" "}
+          Đã có tài khoản HIREAI?{" "}
           <Link href="/login" className="font-semibold text-foreground underline underline-offset-4 hover:opacity-80">
             Đăng nhập ngay
           </Link>

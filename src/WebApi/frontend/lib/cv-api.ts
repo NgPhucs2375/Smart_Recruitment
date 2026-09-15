@@ -68,6 +68,26 @@ function errorMessage(body: unknown, fallback: string): string {
     if (typeof b.Message === "string" && b.Message) return b.Message;
     if (Array.isArray(b.errors) && b.errors.length > 0) return b.errors.join(", ");
     if (Array.isArray(b.Errors) && b.Errors.length > 0) return b.Errors.join(", ");
+    // ASP.NET ProblemDetails (validation 400): { title, detail, errors: { Field: [...] } }
+    if (b.errors && typeof b.errors === "object") {
+      const parts = Object.entries(b.errors as Record<string, unknown>).flatMap(([field, value]) =>
+        Array.isArray(value)
+          ? value.map((m) => `${field}: ${String(m)}`)
+          : [field === "traceId" ? null : `${field}: ${String(value)}`]
+      );
+      const fields = parts.filter((p): p is string => p !== null);
+      if (fields.length > 0) {
+        const title =
+          typeof b.title === "string" && b.title && b.title !== "One or more validation errors occurred."
+            ? `${b.title}: `
+            : "";
+        return `${title}${fields.join("; ")}`;
+      }
+    }
+    if (typeof b.title === "string" && b.title) {
+      return typeof b.detail === "string" && b.detail ? `${b.title}: ${b.detail}` : b.title;
+    }
+    if (typeof b.detail === "string" && b.detail) return b.detail;
   }
   return fallback;
 }
@@ -85,6 +105,9 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   });
   const body = (await res.json().catch(() => null)) as Record<string, unknown> | null;
   if (!res.ok) {
+    if (typeof window !== "undefined" && process.env.NODE_ENV === "development") {
+      console.error("[cv-api]", path, res.status, body);
+    }
     throw new Error(errorMessage(body, `HTTP ${res.status}`));
   }
   const succeeded = (body?.Succeeded ?? body?.succeeded) === true;

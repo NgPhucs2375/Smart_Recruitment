@@ -222,6 +222,9 @@ export function TechModernTemplate({ data }: { data: ResumeData }) {
                     {p.role && (
                       <p className="text-[12.5px] font-semibold" style={{ color: NAVY }}>{p.role}</p>
                     )}
+                    {p.range && (p.range.start || p.range.end) && (
+                      <DateText range={p.range} className="text-[11.5px]" />
+                    )}
                     {p.description && (
                       <p className="mt-1 whitespace-pre-line" style={{ color: SUBTLE }}>{p.description}</p>
                     )}

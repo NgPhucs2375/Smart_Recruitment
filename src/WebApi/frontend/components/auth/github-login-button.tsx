@@ -18,11 +18,11 @@ export function GithubLoginButton({ text = "Tiếp tục với GitHub" }: { text
         disabled
         aria-disabled="true"
         aria-label={`${text} — sắp phát triển`}
-        className="h-11 w-full rounded-xl border-border bg-muted/50 font-medium text-muted-foreground"
+        className="h-10 w-full gap-2 rounded-xl border-border bg-muted/50 text-sm font-medium text-muted-foreground"
       >
-        <Github className="mr-2 size-4" aria-hidden />
+        <Github className="size-4" aria-hidden />
         {text}
-        <span className="ml-2 rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider">
+        <span className="rounded-full bg-muted px-2 py-px text-[10px] font-semibold uppercase tracking-wider">
           Sắp có
         </span>
       </Button>

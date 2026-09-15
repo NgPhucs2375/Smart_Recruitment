@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { FileText, Save, Eye, Pencil, Plus, Trash2, Printer, Check, ListChecks, Sparkles, Upload } from "lucide-react";
+import { useSearchParams } from "next/navigation";
+import { FileText, Save, Eye, Pencil, Plus, Trash2, Printer, Check, ListChecks, Sparkles, Upload, LayoutTemplate, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -12,8 +13,9 @@ import { TemplateSelector } from "./template-selector";
 import { AiAgent } from "./ai-agent";
 import { CvImportDialog } from "./cv-import-dialog";
 import { defaultCvData } from "../constants";
+import { resolveTemplateId, TEMPLATE_REGISTRY } from "../templates/registry";
 import type { CvFormData } from "../types";
-import { cvDataFromJson, toCvPayload, isoToVnDate } from "../types";
+import { cvDataFromJson, toCvPayload, isoToVnDate, normalizeCvPartialDate } from "../types";
 import { cvApi, type CvVm, type HoSoVm } from "@/lib/cv-api";
 
 export function ChecklistCard({ items, doneCount }: { items: { label: string; done: boolean }[]; doneCount: number }) {
@@ -66,6 +68,7 @@ export function QualityCard({ progress, label, note }: { progress: number; label
 }
 
 export function TaoCvView() {
+  const searchParams = useSearchParams();
   const [cvData, setCvData] = useState<CvFormData>(defaultCvData);
   const [hoSo, setHoSo] = useState<HoSoVm | null>(null);
   const [cvList, setCvList] = useState<CvVm[]>([]);
@@ -74,6 +77,14 @@ export function TaoCvView() {
   const [saving, setSaving] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
 
+  // Scroll to the first VISIBLE templates/AI block (mobile tabs + desktop
+  // column both render them; hidden ones are skipped).
+  const scrollToSection = (target: string) => {
+    const els = Array.from(document.querySelectorAll(`[data-scroll-target="${target}"]`));
+    const visible = els.find((el) => (el as HTMLElement).offsetParent !== null) as HTMLElement | undefined;
+    visible?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
   const loadAll = useCallback(async () => {
     setLoading(true);
     try {
@@ -81,21 +92,46 @@ export function TaoCvView() {
       setHoSo(hs);
       const list = await cvApi.listCvs(hs.id);
       setCvList(list);
-      const current = list.find((c) => c.isDefault) ?? list[0];
-      if (current) {
+      // Existing supported mechanism: read the selected template + target CV
+      // safely from the frontend query (?template= / ?cv= / ?import=). Never
+      // rewrites a saved CV's template unless the user explicitly picks one:
+      // ?template= starts a NEW working copy; ?cv= selects a saved CV.
+      const cvParam = searchParams.get("cv");
+      const requested = cvParam ? list.find((c) => c.id === Number(cvParam)) : undefined;
+      const current = requested ?? list.find((c) => c.isDefault) ?? list[0];
+      if (requested) {
+        setSelectedId(requested.id);
+        setCvData((prev) => ({
+          ...cvDataFromJson(requested.noiDungJson, prev),
+          templateId: requested.templateId || prev.templateId,
+          tenFile: requested.tenFile || "",
+        }));
+      } else if (current) {
         setSelectedId(current.id);
         setCvData((prev) => ({
           ...cvDataFromJson(current.noiDungJson, prev),
           templateId: current.templateId || prev.templateId,
           tenFile: current.tenFile || "",
         }));
+      } else {
+        const rawTemplate = searchParams.get("template");
+        if (rawTemplate && TEMPLATE_REGISTRY[resolveTemplateId(rawTemplate)]) {
+          // Explicit template choice from the gallery → fresh working copy so
+          // no saved CV is overwritten implicitly.
+          setSelectedId(null);
+          setCvData({
+            ...(JSON.parse(JSON.stringify(defaultCvData)) as CvFormData),
+            templateId: resolveTemplateId(rawTemplate),
+          });
+        }
       }
+      if (searchParams.get("import") === "1") setImportOpen(true);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Không tải được dữ liệu CV");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [searchParams]);
 
   useEffect(() => {
     void loadAll();
@@ -184,15 +220,30 @@ export function TaoCvView() {
   // Merge imported content into the working copy. Only content fields are
   // taken; templateId/tenFile/selectedId stay untouched so the visual
   // template choice and save target never change implicitly.
+  // Imported dates are normalized to MM/YYYY|YYYY so the partial inputs
+  // and preview render correctly regardless of source format.
   const handleImported = (partial: Partial<CvFormData>) => {
+    const normRange = (it: { tuNgay?: unknown; denNgay?: unknown }) => ({
+      tuNgay: normalizeCvPartialDate(typeof it.tuNgay === "string" ? it.tuNgay : ""),
+      denNgay: normalizeCvPartialDate(typeof it.denNgay === "string" ? it.denNgay : ""),
+    });
     setCvData((prev) => ({
       ...prev,
       thongTinLienHe: { ...prev.thongTinLienHe, ...(partial.thongTinLienHe ?? {}) },
-      hocVan: partial.hocVan ?? prev.hocVan,
-      kinhNghiemLamViec: partial.kinhNghiemLamViec ?? prev.kinhNghiemLamViec,
-      duAn: partial.duAn ?? prev.duAn,
+      hocVan: (partial.hocVan ?? prev.hocVan).map((h) => ({ ...h, ...normRange(h as { tuNgay?: unknown; denNgay?: unknown }) })),
+      kinhNghiemLamViec: (partial.kinhNghiemLamViec ?? prev.kinhNghiemLamViec).map((k) => ({
+        ...k,
+        ...normRange(k as { tuNgay?: unknown; denNgay?: unknown }),
+      })),
+      duAn: (partial.duAn ?? prev.duAn).map((d) => ({
+        ...d,
+        ...normRange(d as { tuNgay?: unknown; denNgay?: unknown }),
+      })),
       kyNang: partial.kyNang ?? prev.kyNang,
-      chungChi: partial.chungChi ?? prev.chungChi,
+      chungChi: (partial.chungChi ?? prev.chungChi).map((c) => ({
+        ...c,
+        ngayCap: normalizeCvPartialDate(typeof c.ngayCap === "string" ? c.ngayCap : ""),
+      })),
     }));
     toast.success("Đã nhập CV", { description: "Kiểm tra lại các trường rồi bấm Lưu CV." });
   };
@@ -247,11 +298,41 @@ export function TaoCvView() {
             <span className="size-1.5 rounded-full bg-teal" /> Tạo CV thông minh
           </p>
           <h1 className="mt-3 text-3xl font-semibold tracking-tight text-charcoal sm:text-4xl">
-            Xây dựng CV <span className="text-marine">chuyên nghiệp</span>
+            Tạo CV <span className="text-marine">chuyên nghiệp</span>
           </h1>
           <p className="mt-2 max-w-xl text-sm leading-6 text-charcoal/60">
-            Nhập thông tin, lưu về server và xem trước kết quả ngay lập tức. Checklist bên dưới giúp bạn không bỏ sót mục nào.
+            Nhập thông tin từng mục, chọn mẫu yêu thích và xem trước trực tiếp.
+            Lưu về tài khoản của bạn bất cứ lúc nào, in PDF khi sẵn sàng.
           </p>
+          <div className="mt-3 flex flex-wrap gap-2 text-xs">
+            <button
+              type="button"
+              onClick={() => scrollToSection("templates")}
+              className="inline-flex items-center gap-1 font-medium text-marine hover:text-navy hover:underline"
+            >
+              <LayoutTemplate className="h-3.5 w-3.5" />
+              Chọn mẫu CV
+            </button>
+            <span aria-hidden="true" className="text-linen">•</span>
+            <button
+              type="button"
+              onClick={fillFromHoSo}
+              disabled={!hoSo}
+              className="inline-flex items-center gap-1 font-medium text-marine hover:text-navy hover:underline disabled:opacity-50"
+            >
+              <UserRound className="h-3.5 w-3.5" />
+              Tạo từ hồ sơ
+            </button>
+            <span aria-hidden="true" className="text-linen">•</span>
+            <button
+              type="button"
+              onClick={() => scrollToSection("ai")}
+              className="inline-flex items-center gap-1 font-medium text-marine hover:text-navy hover:underline"
+            >
+              <Sparkles className="h-3.5 w-3.5" />
+              Viết bằng AI
+            </button>
+          </div>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" size="sm" className="rounded-full" onClick={handleNew}>
@@ -336,12 +417,16 @@ export function TaoCvView() {
           </TabsList>
           <TabsContent value="form" className="mt-4 space-y-4">
             <ChecklistCard items={quality.items} doneCount={quality.doneCount} />
-            <TemplateSelector
-              selectedId={cvData.templateId}
-              onSelect={(id) => setCvData({ ...cvData, templateId: id })}
-            />
+            <div data-scroll-target="templates">
+              <TemplateSelector
+                selectedId={cvData.templateId}
+                onSelect={(id) => setCvData({ ...cvData, templateId: id })}
+              />
+            </div>
             <CvForm data={cvData} onChange={setCvData} />
-            <AiAgent data={cvData} onUpdate={setCvData} />
+            <div data-scroll-target="ai">
+              <AiAgent data={cvData} onUpdate={setCvData} />
+            </div>
           </TabsContent>
           <TabsContent value="preview" className="mt-4">
             <div className="sticky top-20">
@@ -365,12 +450,16 @@ export function TaoCvView() {
             </div>
             <div className="space-y-4" style={{ overflowY: "auto", maxHeight: "calc(100vh - 280px)" }}>
               <ChecklistCard items={quality.items} doneCount={quality.doneCount} />
-              <TemplateSelector
-                selectedId={cvData.templateId}
-                onSelect={(id) => setCvData({ ...cvData, templateId: id })}
-              />
+              <div data-scroll-target="templates">
+                <TemplateSelector
+                  selectedId={cvData.templateId}
+                  onSelect={(id) => setCvData({ ...cvData, templateId: id })}
+                />
+              </div>
               <CvForm data={cvData} onChange={setCvData} />
-              <AiAgent data={cvData} onUpdate={setCvData} />
+              <div data-scroll-target="ai">
+                <AiAgent data={cvData} onUpdate={setCvData} />
+              </div>
             </div>
           </div>
 

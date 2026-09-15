@@ -5,11 +5,15 @@ import { useState, useEffect } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { loginSchema, type LoginFormData } from "@/lib/schemas";
+import type { PortalKind } from "@/lib/portal-roles";
 
 const SAVED_EMAIL_KEY = "saved_login_email";
 
-export function usePasswordLogin() {
+export const WRONG_PORTAL_ERROR = "Sai cổng đăng nhập";
+
+export function usePasswordLogin(portal?: PortalKind) {
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [wrongPortal, setWrongPortal] = useState<PortalKind | null>(null);
   const { mutateAsync: login, isPending } = useLogin<LoginFormData>();
 
   const {
@@ -39,6 +43,7 @@ export function usePasswordLogin() {
 
   async function onSubmit(data: LoginFormData) {
     setSubmitError(null);
+    setWrongPortal(null);
 
     if (data.remember) {
       localStorage.setItem(SAVED_EMAIL_KEY, data.email);
@@ -47,8 +52,11 @@ export function usePasswordLogin() {
     }
 
     try {
-      const result = await login(data);
+      const result = await login({ ...data, portal } as LoginFormData & { portal?: PortalKind });
       if (!result.success && result.error) {
+        if (result.error.name === WRONG_PORTAL_ERROR && portal) {
+          setWrongPortal(portal);
+        }
         setSubmitError(result.error.message ?? "Email hoặc mật khẩu không chính xác");
       }
     } catch (err) {
@@ -64,5 +72,7 @@ export function usePasswordLogin() {
     isPending,
     submitError,
     remember,
+    wrongPortal,
+    clearWrongPortal: () => setWrongPortal(null),
   };
 }

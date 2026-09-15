@@ -15,6 +15,11 @@ interface TemplateSelectorProps {
  * so the layout difference is obvious without screenshot images.
  * Aliases resolve at render time — the stored templateId is untouched.
  */
+const TEMPLATE_BADGES: Record<string, string> = {
+  "minimal-ats": "ATS",
+  "tech-modern": "Phổ biến",
+};
+
 export function TemplateSelector({ selectedId, onSelect }: TemplateSelectorProps) {
   const templates = Object.values(TEMPLATE_REGISTRY);
   const activeId =
@@ -27,18 +32,19 @@ export function TemplateSelector({ selectedId, onSelect }: TemplateSelectorProps
       {templates.map((template) => {
         const { Component } = template;
         const isActive = activeId === template.id;
+        const badge = TEMPLATE_BADGES[template.id];
         return (
           <button
             key={template.id}
             onClick={() => onSelect(template.id)}
             aria-pressed={isActive}
             className={cn(
-              "relative flex flex-col items-center gap-2 rounded-xl border-2 p-3 transition-all",
-              isActive ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
+              "group relative flex flex-col items-center gap-2 rounded-2xl border-2 p-3 text-left transition-all hover:-translate-y-0.5 hover:shadow-[0_10px_28px_rgba(53,92,140,0.12)]",
+              isActive ? "border-primary bg-primary/5 shadow-sm" : "border-border hover:border-primary/50"
             )}
           >
             <div
-              className="h-36 w-full overflow-hidden rounded-lg border border-border bg-white"
+              className="h-44 w-full overflow-hidden rounded-xl border border-border bg-white"
               aria-hidden="true"
             >
               <div
@@ -48,10 +54,20 @@ export function TemplateSelector({ selectedId, onSelect }: TemplateSelectorProps
                 <Component data={SAMPLE_RESUME} />
               </div>
             </div>
-            <div className="text-center">
-              <p className="text-sm font-medium">{template.name}</p>
-              <p className="text-xs text-muted-foreground">{template.description}</p>
+            <div className="w-full">
+              <p className="text-sm font-semibold">{template.name}</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">{template.description}</p>
+              {template.tags.length > 0 && (
+                <p className="mt-1 text-[11px] text-muted-foreground/80">
+                  {template.tags.slice(0, 3).join(" · ")}
+                </p>
+              )}
             </div>
+            {badge && (
+              <span className="absolute left-2 top-2 rounded-full bg-navy px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white">
+                {badge}
+              </span>
+            )}
             {isActive && (
               <div className="absolute top-2 right-2 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground">
                 <Check className="h-3 w-3" />

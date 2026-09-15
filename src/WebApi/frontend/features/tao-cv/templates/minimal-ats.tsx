@@ -129,6 +129,9 @@ export function MinimalAtsTemplate({ data }: { data: ResumeData }) {
                     )}
                   </div>
                   {p.role && <p className="font-medium text-neutral-700">{p.role}</p>}
+                  {p.range && (p.range.start || p.range.end) && (
+                    <DateText range={p.range} className="text-[12px] text-neutral-500" />
+                  )}
                   {p.description && <p className="mt-1 whitespace-pre-line">{p.description}</p>}
                   {p.tech.length > 0 && (
                     <p className="mt-1 text-[12px] text-neutral-600">Công nghệ: {p.tech.join(", ")}</p>

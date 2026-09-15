@@ -1,5 +1,6 @@
 "use client";
 
+import { useRef, useState } from "react";
 import { Plus, Trash2, FileText } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -17,6 +18,14 @@ import type {
   ChungChiItem,
 } from "../types";
 import { newId, maskDateVn, isValidVnDate } from "../types";
+import type { CvDatePrecision } from "../types";
+import {
+  compareCvPartialDates,
+  isValidCvPartialDate,
+  maskMonthYear,
+  maskYearOnly,
+  parseCvPartialDate,
+} from "../types";
 
 interface CvFormProps {
   data: CvFormData;
@@ -27,7 +36,9 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
     <div data-slot="card-header">
       <div data-slot="card-title">
-        <FileText className="h-5 w-5" />
+        <span className="flex size-8 items-center justify-center rounded-lg bg-frost text-marine [&>svg]:size-4">
+          <FileText className="h-4 w-4" />
+        </span>
         {children}
       </div>
     </div>
@@ -52,6 +63,77 @@ function DateField({ label, value, onChange, disabled }: { label: string; value:
   );
 }
 
+/** Month/year-or-year-only input. Precision comes from the item-level toggle. */
+function PartialDateField({ label, value, precision, onChange, disabled }: {
+  label: string;
+  value: string;
+  precision: CvDatePrecision;
+  onChange: (v: string) => void;
+  disabled?: boolean;
+}) {
+  const invalid = !isValidCvPartialDate(value, precision);
+  const hint = precision === "year_only" ? "YYYY" : "MM/YYYY";
+  return (
+    <div>
+      <label style={{ display: "block", marginBottom: "0.5rem" }}>{label}</label>
+      <Input
+        inputMode="numeric"
+        placeholder={hint}
+        value={value}
+        disabled={disabled}
+        onChange={(e) =>
+          onChange(precision === "year_only" ? maskYearOnly(e.target.value) : maskMonthYear(e.target.value))
+        }
+        className={invalid ? "border-destructive" : ""}
+      />
+      {invalid && <p className="text-xs text-destructive mt-1">Ngày không hợp lệ ({hint})</p>}
+    </div>
+  );
+}
+
+/** Per-item date format selector: "Tháng/Năm" | "Năm". Compact segmented control. */
+function PrecisionToggle({ mode, onSwitch }: { mode: CvDatePrecision; onSwitch: (m: CvDatePrecision) => void }) {
+  const renderBtn = (m: CvDatePrecision, label: string) => {
+    const active = mode === m;
+    return (
+      <button
+        key={m}
+        type="button"
+        aria-pressed={active}
+        onClick={() => onSwitch(m)}
+        className={
+          active
+            ? "rounded-full bg-primary px-3 py-1 text-xs font-medium text-primary-foreground shadow-sm"
+            : "rounded-full px-3 py-1 text-xs text-muted-foreground transition hover:text-foreground"
+        }
+      >
+        {label}
+      </button>
+    );
+  };
+  return (
+    <div style={{ marginBottom: "0.75rem" }}>
+      <span style={{ display: "block", marginBottom: "0.5rem", fontSize: "0.875rem" }}>Định dạng thời gian</span>
+      <div
+        role="group"
+        aria-label="Định dạng thời gian"
+        className="inline-flex rounded-full border border-input bg-muted/60 p-0.5"
+      >
+        {renderBtn("month_year", "Tháng/Năm")}
+        {renderBtn("year_only", "Năm")}
+      </div>
+    </div>
+  );
+}
+
+/** "Thời gian bắt đầu phải không sau thời gian kết thúc." or null. Skipped when empty/unparseable/end disabled. */
+function rangeErrorText(tu: string, den: string, endDisabled?: boolean): string | null {
+  if (endDisabled) return null;
+  if (!tu.trim() || !den.trim()) return null;
+  if (!parseCvPartialDate(tu) || !parseCvPartialDate(den)) return null;
+  return compareCvPartialDates(tu, den) > 0 ? "Thời gian bắt đầu phải không sau thời gian kết thúc." : null;
+}
+
 export function CvForm({ data, onChange }: CvFormProps) {
   const lh = data.thongTinLienHe;
   const setLienHe = (field: keyof LienHe, value: string) =>
@@ -68,7 +150,69 @@ export function CvForm({ data, onChange }: CvFormProps) {
 
   const removeFrom = (key: ListKey, id: string) => {
     const list = (data[key] as { id: string }[]).filter((it) => it.id !== id);
+    setDateMode((m) => {
+      if (!(id in m)) return m;
+      const next = { ...m };
+      delete next[id];
+      return next;
+    });
     onChange({ ...data, [key]: list });
+  };
+
+  // Per-item date format (id -> mode). Defaults are section-specific
+  // (see callers); explicit toggles are remembered per item.
+  // monthStash keeps the month form for lossless toggling back from year.
+  const [dateMode, setDateMode] = useState<Record<string, CvDatePrecision>>({});
+  const monthStash = useRef<Record<string, string>>({});
+
+  const modeFor = (
+    id: string,
+    tu: string,
+    den: string,
+    defaultMode: CvDatePrecision = "month_year"
+  ): CvDatePrecision => {
+    const override = dateMode[id];
+    if (override) return override;
+    const t = (tu || "").trim();
+    const d = (den || "").trim();
+    if (/^\d{4}$/.test(t) && (d === "" || /^\d{4}$/.test(d))) return "year_only";
+    return defaultMode;
+  };
+
+  const convertForPrecision = (id: string, field: string, v: string, next: CvDatePrecision): string => {
+    const key = `${id}:${field}`;
+    const t = (v || "").trim();
+    if (next === "year_only") {
+      const d = parseCvPartialDate(t);
+      if (!d) return t === "" ? "" : v;
+      if (!/^\d{4}$/.test(t)) monthStash.current[key] = v;
+      return String(d.year);
+    }
+    if (/^\d{4}$/.test(t)) {
+      const stashed = monthStash.current[key];
+      if (stashed && parseCvPartialDate(stashed)?.year === Number(t)) return stashed;
+      return "";
+    }
+    return v;
+  };
+
+  const switchRangePrecision = (
+    key: ListKey,
+    id: string,
+    tuField: string,
+    denField: string | null,
+    next: CvDatePrecision,
+  ) => {
+    // Single onChange so both fields update atomically.
+    const converted = (data[key] as Record<string, unknown>[]).map((it) => {
+      if ((it as { id: string }).id !== id) return it;
+      const copy = { ...it } as Record<string, unknown>;
+      copy[tuField] = convertForPrecision(id, tuField, String(it[tuField] ?? ""), next);
+      if (denField) copy[denField] = convertForPrecision(id, denField, String(it[denField] ?? ""), next);
+      return copy;
+    });
+    setDateMode((m) => ({ ...m, [id]: next }));
+    onChange({ ...data, [key]: converted } as CvFormData);
   };
 
   return (
@@ -147,7 +291,10 @@ export function CvForm({ data, onChange }: CvFormProps) {
         <div data-slot="card-content" style={{ padding: "1rem" }}>
           {data.kinhNghiemLamViec.length === 0 ? (
             <div className="cv-empty-form"><FileText className="h-4 w-4" /><span>Chưa có kinh nghiệm nào. Nhấn "Thêm" để bắt đầu.</span></div>
-          ) : data.kinhNghiemLamViec.map((k) => (
+          ) : data.kinhNghiemLamViec.map((k) => {
+            const mode = modeFor(k.id, k.tuNgay, k.denNgay);
+            const err = rangeErrorText(k.tuNgay, k.denNgay, k.isHienTai);
+            return (
             <div key={k.id} className="cv-repeat-item" style={{ marginBottom: "0.75rem" }}>
               <div style={{ display: "flex", gap: "1rem", marginBottom: "0.75rem" }}>
                 <Input placeholder="Công ty *" value={k.congTy} onChange={(e) => updateList("kinhNghiemLamViec", k.id, "congTy", e.target.value)} style={{ flex: 1 }} />
@@ -156,10 +303,12 @@ export function CvForm({ data, onChange }: CvFormProps) {
                   <Trash2 className="h-4 w-4" />
                 </Button>
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem", marginBottom: "0.75rem" }}>
-                <DateField label="Từ ngày" value={k.tuNgay} onChange={(v) => updateList("kinhNghiemLamViec", k.id, "tuNgay", v)} />
-                <DateField label="Đến ngày" value={k.denNgay} disabled={k.isHienTai} onChange={(v) => updateList("kinhNghiemLamViec", k.id, "denNgay", v)} />
+              <PrecisionToggle mode={mode} onSwitch={(m) => switchRangePrecision("kinhNghiemLamViec", k.id, "tuNgay", "denNgay", m)} />
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem", marginBottom: err ? "0.25rem" : "0.75rem" }}>
+                <PartialDateField label="Thời gian bắt đầu" precision={mode} value={k.tuNgay} onChange={(v) => updateList("kinhNghiemLamViec", k.id, "tuNgay", v)} />
+                <PartialDateField label="Thời gian kết thúc" precision={mode} value={k.denNgay} disabled={k.isHienTai} onChange={(v) => updateList("kinhNghiemLamViec", k.id, "denNgay", v)} />
               </div>
+              {err && <p className="text-xs text-destructive mt-1" style={{ marginBottom: "0.75rem" }}>{err}</p>}
               <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.75rem", fontSize: "0.875rem" }}>
                 <Checkbox checked={k.isHienTai} onCheckedChange={(v) => updateList("kinhNghiemLamViec", k.id, "isHienTai", v === true)} />
                 Đang làm việc tại đây
@@ -171,7 +320,8 @@ export function CvForm({ data, onChange }: CvFormProps) {
                 placeholder="Kỹ năng sử dụng — gõ rồi Enter"
               />
             </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
@@ -189,7 +339,10 @@ export function CvForm({ data, onChange }: CvFormProps) {
         <div data-slot="card-content" style={{ padding: "1rem" }}>
           {data.hocVan.length === 0 ? (
             <div className="cv-empty-form"><FileText className="h-4 w-4" /><span>Chưa có học vấn nào. Nhấn "Thêm" để bắt đầu.</span></div>
-          ) : data.hocVan.map((h) => (
+          ) : data.hocVan.map((h) => {
+            const mode = modeFor(h.id, h.tuNgay, h.denNgay, "year_only");
+            const err = rangeErrorText(h.tuNgay, h.denNgay, h.isHienTai);
+            return (
             <div key={h.id} className="cv-repeat-item" style={{ marginBottom: "0.75rem" }}>
               <div style={{ display: "flex", gap: "1rem", marginBottom: "0.75rem" }}>
                 <Input placeholder="Trường *" value={h.truong} onChange={(e) => updateList("hocVan", h.id, "truong", e.target.value)} style={{ flex: 1 }} />
@@ -198,13 +351,20 @@ export function CvForm({ data, onChange }: CvFormProps) {
                   <Trash2 className="h-4 w-4" />
                 </Button>
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem", marginBottom: "0.75rem" }}>
-                <DateField label="Từ ngày" value={h.tuNgay} onChange={(v) => updateList("hocVan", h.id, "tuNgay", v)} />
-                <DateField label="Đến ngày" value={h.denNgay} onChange={(v) => updateList("hocVan", h.id, "denNgay", v)} />
+              <PrecisionToggle mode={mode} onSwitch={(m) => switchRangePrecision("hocVan", h.id, "tuNgay", "denNgay", m)} />
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem", marginBottom: err ? "0.25rem" : "0.75rem" }}>
+                <PartialDateField label="Thời gian bắt đầu" precision={mode} value={h.tuNgay} onChange={(v) => updateList("hocVan", h.id, "tuNgay", v)} />
+                <PartialDateField label="Thời gian kết thúc" precision={mode} value={h.denNgay} disabled={h.isHienTai} onChange={(v) => updateList("hocVan", h.id, "denNgay", v)} />
               </div>
+              {err && <p className="text-xs text-destructive mt-1" style={{ marginBottom: "0.75rem" }}>{err}</p>}
+              <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.75rem", fontSize: "0.875rem" }}>
+                <Checkbox checked={h.isHienTai === true} onCheckedChange={(v) => updateList("hocVan", h.id, "isHienTai", v === true)} />
+                Đang học
+              </label>
               <Textarea placeholder="Mô tả thêm..." value={h.moTa} onChange={(e) => updateList("hocVan", h.id, "moTa", e.target.value)} rows={2} />
             </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
@@ -248,7 +408,7 @@ export function CvForm({ data, onChange }: CvFormProps) {
         <div data-slot="card-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div data-slot="card-title"><FileText className="h-5 w-5" />Dự án</div>
           <Button variant="outline" size="sm" onClick={() => {
-            const item: DuAnItem = { id: newId(), tenDuAn: "", vaiTro: "", congNghe: [], link: "", moTa: "" };
+            const item: DuAnItem = { id: newId(), tenDuAn: "", vaiTro: "", congNghe: [], link: "", moTa: "", tuNgay: "", denNgay: "" };
             onChange({ ...data, duAn: [...data.duAn, item] });
           }}>
             <Plus className="h-4 w-4 mr-1" />Thêm
@@ -257,7 +417,10 @@ export function CvForm({ data, onChange }: CvFormProps) {
         <div data-slot="card-content" style={{ padding: "1rem" }}>
           {data.duAn.length === 0 ? (
             <div className="cv-empty-form"><FileText className="h-4 w-4" /><span>Chưa có dự án nào.</span></div>
-          ) : data.duAn.map((d) => (
+          ) : data.duAn.map((d) => {
+            const mode = modeFor(d.id, d.tuNgay, d.denNgay);
+            const err = rangeErrorText(d.tuNgay, d.denNgay, d.isHienTai);
+            return (
             <div key={d.id} className="cv-repeat-item" style={{ marginBottom: "0.75rem" }}>
               <div style={{ display: "flex", gap: "1rem", marginBottom: "0.75rem" }}>
                 <Input placeholder="Tên dự án *" value={d.tenDuAn} onChange={(e) => updateList("duAn", d.id, "tenDuAn", e.target.value)} style={{ flex: 1 }} />
@@ -266,6 +429,16 @@ export function CvForm({ data, onChange }: CvFormProps) {
                   <Trash2 className="h-4 w-4" />
                 </Button>
               </div>
+              <PrecisionToggle mode={mode} onSwitch={(m) => switchRangePrecision("duAn", d.id, "tuNgay", "denNgay", m)} />
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem", marginBottom: err ? "0.25rem" : "0.75rem" }}>
+                <PartialDateField label="Thời gian bắt đầu" precision={mode} value={d.tuNgay} onChange={(v) => updateList("duAn", d.id, "tuNgay", v)} />
+                <PartialDateField label="Thời gian kết thúc" precision={mode} value={d.denNgay} disabled={d.isHienTai} onChange={(v) => updateList("duAn", d.id, "denNgay", v)} />
+              </div>
+              {err && <p className="text-xs text-destructive mt-1" style={{ marginBottom: "0.75rem" }}>{err}</p>}
+              <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.75rem", fontSize: "0.875rem" }}>
+                <Checkbox checked={d.isHienTai === true} onCheckedChange={(v) => updateList("duAn", d.id, "isHienTai", v === true)} />
+                Đang thực hiện
+              </label>
               <ChipInput
                 values={d.congNghe}
                 onChange={(v) => updateList("duAn", d.id, "congNghe", v)}
@@ -274,7 +447,8 @@ export function CvForm({ data, onChange }: CvFormProps) {
               <Input placeholder="Link dự án" value={d.link} onChange={(e) => updateList("duAn", d.id, "link", e.target.value)} style={{ marginBottom: "0.75rem" }} />
               <Textarea placeholder="Mô tả dự án..." value={d.moTa} onChange={(e) => updateList("duAn", d.id, "moTa", e.target.value)} rows={2} />
             </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
@@ -292,7 +466,9 @@ export function CvForm({ data, onChange }: CvFormProps) {
         <div data-slot="card-content" style={{ padding: "1rem" }}>
           {data.chungChi.length === 0 ? (
             <div className="cv-empty-form"><FileText className="h-4 w-4" /><span>Chưa có chứng chỉ nào.</span></div>
-          ) : data.chungChi.map((c) => (
+          ) : data.chungChi.map((c) => {
+            const mode = modeFor(c.id, c.ngayCap, "");
+            return (
             <div key={c.id} className="cv-repeat-item" style={{ marginBottom: "0.75rem" }}>
               <div style={{ display: "flex", gap: "1rem", marginBottom: "0.75rem" }}>
                 <Input placeholder="Tên chứng chỉ *" value={c.tenChungChi} onChange={(e) => updateList("chungChi", c.id, "tenChungChi", e.target.value)} style={{ flex: 1 }} />
@@ -301,15 +477,17 @@ export function CvForm({ data, onChange }: CvFormProps) {
                   <Trash2 className="h-4 w-4" />
                 </Button>
               </div>
+              <PrecisionToggle mode={mode} onSwitch={(m) => switchRangePrecision("chungChi", c.id, "ngayCap", null, m)} />
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
-                <DateField label="Ngày cấp" value={c.ngayCap} onChange={(v) => updateList("chungChi", c.id, "ngayCap", v)} />
+                <PartialDateField label="Ngày cấp" precision={mode} value={c.ngayCap} onChange={(v) => updateList("chungChi", c.id, "ngayCap", v)} />
                 <div>
                   <label style={{ display: "block", marginBottom: "0.5rem" }}>Mã xác minh</label>
                   <Input placeholder="Mã xác minh" value={c.maXacMinh} onChange={(e) => updateList("chungChi", c.id, "maXacMinh", e.target.value)} />
                 </div>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </div>

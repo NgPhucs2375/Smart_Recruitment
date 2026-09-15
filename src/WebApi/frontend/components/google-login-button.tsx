@@ -1,27 +1,79 @@
 "use client";
 import { GoogleLogin } from "@react-oauth/google";
 
-interface Props {
-    onSuccess: (credential: string) => void;
-    disabled?: boolean;
-    text?: string;
+const CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? "";
+
+function GoogleMark() {
+  return (
+    <svg viewBox="0 0 24 24" className="size-4 shrink-0" aria-hidden="true">
+      <path
+        fill="#4285F4"
+        d="M23.5 12.3c0-.9-.1-1.5-.3-2.3H12v4.3h6.5c-.1 1.1-.8 2.7-2.4 3.8l3.6 2.8c2.3-2.1 3.8-5.2 3.8-8.6z"
+      />
+      <path
+        fill="#34A853"
+        d="M12 24c3.2 0 5.9-1.1 7.9-2.9l-3.8-2.9c-1 .7-2.4 1.2-4.1 1.2-3.1 0-5.8-2.1-6.8-5l-3.7 2.9c2 3.9 6 6.7 10.5 6.7z"
+      />
+      <path
+        fill="#FBBC05"
+        d="M5.2 14.4c-.2-.7-.4-1.5-.4-2.4s.1-1.7.4-2.4L1.5 6.7C.5 8.7 0 10.3 0 12s.5 3.3 1.5 4.7l3.7-2.3z"
+      />
+      <path
+        fill="#EA4335"
+        d="M12 4.6c1.8 0 3 .8 3.7 1.4l3.3-3.2C17.9 1.1 15.2 0 12 0 7.5 0 3.5 2.6 1.5 6.6l3.7 2.9c1-2.8 3.7-4.9 6.8-4.9z"
+      />
+    </svg>
+  );
 }
 
-export function GoogleLoginButton({ onSuccess, disabled,text = "Đăng nhập với Google" }: Props) {
+interface Props {
+  onSuccess: (credential: string) => void;
+  disabled?: boolean;
+  text?: string;
+  onError?: (message: string) => void;
+}
+
+/**
+ * Google login CTA. Uses the official widget when a client ID is configured.
+ * Without NEXT_PUBLIC_GOOGLE_CLIENT_ID the widget renders nothing, so we
+ * show an honest same-size fallback button that explains the missing config
+ * instead of leaving an empty gap. Never fakes authentication.
+ */
+export function GoogleLoginButton({
+  onSuccess,
+  disabled,
+  text = "Đăng nhập với Google",
+  onError,
+}: Props) {
+  if (CLIENT_ID) {
     return (
-        <div className={`flex justify-center w-full ${disabled ? "opacity-50 pointer-events-none" : ""}`}>
-            <GoogleLogin
-                onSuccess={(credentialResponse) => {
-                    console.log("[google-login] credentialResponse", !!credentialResponse.credential, credentialResponse.credential?.slice(0,40));
-                    if (credentialResponse.credential) {
-                        onSuccess(credentialResponse.credential);
-                    } else {
-                        console.warn("[google-login] missing credential", credentialResponse);
-                    }
-                }}
-                onError={() => console.error("Đăng nhập Google thất bại - GoogleLogin onError")}
-                useOneTap={false}
-            />
-        </div>
+      <div className={`flex justify-center w-full ${disabled ? "opacity-50 pointer-events-none" : ""}`}>
+        <GoogleLogin
+          onSuccess={(credentialResponse) => {
+            if (credentialResponse.credential) {
+              onSuccess(credentialResponse.credential);
+            } else {
+              onError?.("Đăng nhập Google thất bại (thiếu credential).");
+            }
+          }}
+          onError={() => onError?.("Đăng nhập Google thất bại. Vui lòng thử lại.")}
+          useOneTap={false}
+        />
+      </div>
     );
+  }
+
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={() =>
+        onError?.("Đăng nhập Google chưa được cấu hình (thiếu NEXT_PUBLIC_GOOGLE_CLIENT_ID).")
+      }
+      className="flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-border bg-white px-4 text-sm font-medium text-foreground transition hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
+    >
+      <GoogleMark />
+      {text}
+    </button>
+  );
 }

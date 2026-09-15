@@ -2,8 +2,12 @@
 
 import { useState } from "react";
 import { requestMagicLink } from "@/lib/auth-provider";
+import type { PortalKind } from "@/lib/portal-roles";
 
-export function useMagicLink(purpose: "Login" | "Register") {
+export function useMagicLink(
+  purpose: "Login" | "Register",
+  opts?: { portal?: PortalKind; next?: string | null }
+) {
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -17,6 +21,14 @@ export function useMagicLink(purpose: "Login" | "Register") {
     setError(null);
 
     try {
+      // Preserve portal context frontend-only so /magic-login can gate +
+      // redirect. Backend magic-link payload is unchanged.
+      try {
+        if (opts?.portal) sessionStorage.setItem("hireai.magic.portal", opts.portal);
+        if (opts?.next) sessionStorage.setItem("hireai.magic.next", opts.next);
+      } catch {
+        // ignore storage errors
+      }
       const res = await requestMagicLink({ email, purpose });
       if (res.success) {
         setSent(true);
