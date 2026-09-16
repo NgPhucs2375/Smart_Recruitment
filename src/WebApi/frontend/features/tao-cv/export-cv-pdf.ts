@@ -1,0 +1,65 @@
+const A4_WIDTH_MM = 210;
+const A4_HEIGHT_MM = 297;
+
+export function pdfFileName(value: string, fullName: string): string {
+  const base = value.trim() || `CV-${fullName.trim() || new Date().toISOString().slice(0, 10)}`;
+  const withoutExtension = base.replace(/\.pdf$/i, "");
+  const safeName = withoutExtension
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[<>:"/\\|?*\x00-\x1f]/g, "-")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^[-.]+|[-.]+$/g, "")
+    .slice(0, 100);
+
+  return `${safeName || "CV"}.pdf`;
+}
+
+export async function exportCvElementToPdf(element: HTMLElement, fileName: string): Promise<void> {
+  const [{ toCanvas }, { jsPDF }] = await Promise.all([
+    import("html-to-image"),
+    import("jspdf"),
+  ]);
+
+  const width = element.scrollWidth;
+  const height = element.scrollHeight;
+  const pixelRatio = Math.max(
+    0.5,
+    Math.min(2, 30_000 / height, Math.sqrt(64_000_000 / (width * height))),
+  );
+  const canvas = await toCanvas(element, {
+    backgroundColor: "#ffffff",
+    cacheBust: true,
+    pixelRatio,
+    width,
+    height,
+    style: {
+      left: "0",
+      position: "static",
+      top: "0",
+    },
+  });
+
+  const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4", compress: true });
+  const pageHeightPx = Math.floor((canvas.width * A4_HEIGHT_MM) / A4_WIDTH_MM);
+
+  for (let offset = 0, page = 0; offset < canvas.height; offset += pageHeightPx, page += 1) {
+    const sliceHeight = Math.min(pageHeightPx, canvas.height - offset);
+    const pageCanvas = document.createElement("canvas");
+    pageCanvas.width = canvas.width;
+    pageCanvas.height = sliceHeight;
+    const context = pageCanvas.getContext("2d");
+    if (!context) throw new Error("Trình duyệt không hỗ trợ tạo PDF từ CV");
+
+    context.fillStyle = "#ffffff";
+    context.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
+    context.drawImage(canvas, 0, offset, canvas.width, sliceHeight, 0, 0, canvas.width, sliceHeight);
+
+    if (page > 0) pdf.addPage();
+    const renderedHeight = (sliceHeight * A4_WIDTH_MM) / canvas.width;
+    pdf.addImage(pageCanvas.toDataURL("image/jpeg", 0.96), "JPEG", 0, 0, A4_WIDTH_MM, renderedHeight);
+  }
+
+  pdf.save(fileName);
+}

@@ -21,7 +21,6 @@ using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using DotNetEnv;
 using System.Security.Claims;
 
 
@@ -59,7 +58,6 @@ namespace Infrastructure.Identity
 
         public static void AddIdentityRepositories(this IServiceCollection services, IConfiguration configuration)
         {
-            Env.Load();
             services.AddIdentity<ApplicationUser, IdentityRole>().AddEntityFrameworkStores<IdentityContext>().AddDefaultTokenProviders();
             #region Services
             services.AddScoped<IAccountService, AccountService>();

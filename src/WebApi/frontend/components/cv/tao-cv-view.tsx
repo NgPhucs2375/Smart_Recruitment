@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { FileText, Save, Eye, Pencil, Plus, Trash2, Printer, Check, ListChecks, Sparkles, Upload, ChevronDown } from "lucide-react";
+import { FileText, Save, Eye, Pencil, Plus, Trash2, Download, Check, ListChecks, Sparkles, Upload, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -22,6 +22,7 @@ import { CvImportDialog } from "./cv-import-dialog";
 import { defaultCvData } from "@/features/tao-cv/constants";
 import type { CvFormData } from "@/features/tao-cv/types";
 import { cvDataFromJson, toCvImportPayload, toCvPayload, isoToVnDate } from "@/features/tao-cv/types";
+import { exportCvElementToPdf, pdfFileName } from "@/features/tao-cv/export-cv-pdf";
 import { cvApi, type CvVm, type HoSoVm } from "@/lib/api/cv-api";
 
 export function ChecklistCard({ items, doneCount }: { items: { label: string; done: boolean }[]; doneCount: number }) {
@@ -80,10 +81,12 @@ export function TaoCvView() {
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [importPending, setImportPending] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const disarmTimer = useRef<number | null>(null);
+  const pdfSourceRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     return () => {
@@ -166,6 +169,26 @@ export function TaoCvView() {
     setSelectedId(null);
     setImportPending(false);
     setCvData(JSON.parse(JSON.stringify(defaultCvData)) as CvFormData);
+  };
+
+  const handleExportPdf = async () => {
+    if (!pdfSourceRef.current) return;
+    if (!cvData.thongTinLienHe.hoTen.trim()) {
+      toast.error("Vui lòng nhập họ tên trước khi xuất PDF");
+      return;
+    }
+
+    setExporting(true);
+    try {
+      await document.fonts.ready;
+      const fileName = pdfFileName(cvData.tenFile, cvData.thongTinLienHe.hoTen);
+      await exportCvElementToPdf(pdfSourceRef.current, fileName);
+      toast.success("Đã xuất file PDF", { description: fileName });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Không thể xuất file PDF");
+    } finally {
+      setExporting(false);
+    }
   };
 
   const handleSelect = (id: number) => {
@@ -326,11 +349,12 @@ export function TaoCvView() {
             variant="outline"
             size="sm"
             className="rounded-full"
-            aria-label="In hoặc lưu PDF"
-            onClick={() => window.print()}
+            aria-label="Tải CV dạng PDF"
+            onClick={() => void handleExportPdf()}
+            disabled={loading || exporting}
           >
-            <Printer className="h-4 w-4 mr-1.5" />
-            In / PDF
+            <Download className="h-4 w-4 mr-1.5" />
+            {exporting ? "Đang xuất..." : "Tải PDF"}
           </Button>
           <Button size="sm" className="rounded-full" onClick={handleSave} disabled={saving || loading}>
             <Save className="h-4 w-4 mr-1.5" />
@@ -469,6 +493,10 @@ export function TaoCvView() {
       </div>
         </>
       )}
+
+      <div ref={pdfSourceRef} className="cv-pdf-source" aria-hidden="true">
+        <CvPreview data={cvData} />
+      </div>
     </div>
   );
 }

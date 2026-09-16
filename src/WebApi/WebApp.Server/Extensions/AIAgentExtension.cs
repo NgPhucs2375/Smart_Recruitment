@@ -2,6 +2,7 @@ using System.ClientModel;
 using System.Text.Json;
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
+using Microsoft.Extensions.Configuration;
 using OpenAI;
 using OpenAI.Chat;
 
@@ -9,10 +10,13 @@ namespace WebApp.Server.Extensions;
 
 public static class AIAgentExtension
 {
-    public static AIAgent CreateSmartAgent(JsonSerializerOptions jsonOptions)
+    public static AIAgent CreateSmartAgent(
+        JsonSerializerOptions jsonOptions,
+        IConfiguration configuration)
     {
-        string groqApiKey = Environment.GetEnvironmentVariable("GROQ_API_KEY") 
-                            ?? throw new InvalidOperationException("Chưa khai báo GROQ_API_KEY trong file .env!"); //[cite: 29]
+        string groqApiKey = configuration["Groq:ApiKey"]
+            ?? throw new InvalidOperationException(
+                "Chưa khai báo Groq:ApiKey trong appsettings.Development.json!"); //[cite: 29]
         var groqOptions = new OpenAIClientOptions
         {
             Endpoint = new Uri("https://omniroute.operamind.one/v1") //[cite: 29]

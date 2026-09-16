@@ -25,17 +25,16 @@ public sealed class GeminiCvStructuredParser(
         string rawText,
         CancellationToken cancellationToken = default)
     {
-        var apiKey = configuration["GEMINI_API_KEY"];
+        var apiKey = configuration["Gemini:ApiKey"];
         if (string.IsNullOrWhiteSpace(apiKey))
         {
             logger.LogError(
-                "Thiếu GEMINI_API_KEY. Khai báo key vào src/WebApi/WebApp.Server/.env "
-                + "(cùng file với GROQ_API_KEY) hoặc biến môi trường tiến trình backend, rồi restart backend.");
+                "Thiếu Gemini:ApiKey. Khai báo key vào appsettings.Development.json rồi restart backend.");
             throw new InvalidOperationException(
-                "Chưa khai báo GEMINI_API_KEY (xem log backend để biết cách khắc phục).");
+                "Chưa khai báo Gemini:ApiKey (xem log backend để biết cách khắc phục).");
         }
 
-        var model = configuration["GEMINI_MODEL"] ?? "gemini-2.5-flash";
+        var model = configuration["Gemini:Model"] ?? "gemini-3.6-flash";
         using var request = new HttpRequestMessage(
             HttpMethod.Post,
             $"v1beta/models/{Uri.EscapeDataString(model)}:generateContent");

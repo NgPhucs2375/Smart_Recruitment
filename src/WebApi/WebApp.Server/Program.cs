@@ -18,8 +18,6 @@ using Microsoft.Extensions.Options;
 using Microsoft.AspNetCore.Http.Json;
 using Casbin;
 
-DotNetEnv.Env.Load(); 
-
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddAGUIServer();
 var _config = builder.Configuration;
@@ -80,11 +78,11 @@ _services.AddEndpointsApiExplorer();
 
 // trước Build() dùng Add sau dùng Use
 var app = builder.Build();
-if (string.IsNullOrWhiteSpace(app.Configuration["GEMINI_API_KEY"]))
+if (string.IsNullOrWhiteSpace(app.Configuration["Gemini:ApiKey"]))
 {
     app.Logger.LogWarning(
-        "GEMINI_API_KEY chưa được khai báo — tính năng parse CV sẽ báo lỗi. "
-        + "Thêm key vào src/WebApi/WebApp.Server/.env (cùng file với GROQ_API_KEY) rồi restart backend.");
+        "Gemini:ApiKey chưa được khai báo - tính năng parse CV sẽ báo lỗi. "
+        + "Thêm key vào appsettings.Development.json rồi restart backend.");
 }
 var jsonOptions = app.Services.GetRequiredService<IOptions<JsonOptions>>();
 using (var scope = app.Services.CreateScope())
@@ -121,7 +119,10 @@ app.MapControllers();
 
 app.MapHub<WebApp.Server.Hubs.NotificationsHub>("/api/hubs/notifications").RequireCors("AllowFrontend");
 
-app.MapAGUIServer("/api/copilotkit", AIAgentExtension.CreateSmartAgent(jsonOptions.Value.SerializerOptions)).RequireCors("AllowFrontend");
+app.MapAGUIServer(
+    "/api/copilotkit",
+    AIAgentExtension.CreateSmartAgent(jsonOptions.Value.SerializerOptions, app.Configuration))
+    .RequireCors("AllowFrontend");
 
 
 

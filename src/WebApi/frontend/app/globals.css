@@ -1174,6 +1174,25 @@ html {
   color: var(--cv-accent); 
 }
 
+/* Bản A4 ngoài màn hình dùng riêng để kết xuất PDF tải xuống. */
+.cv-pdf-source {
+  position: fixed;
+  left: -10000px;
+  top: 0;
+  width: 794px;
+  min-height: 1123px;
+  pointer-events: none;
+  z-index: -1;
+  background: #fff;
+}
+
+.cv-pdf-source > div {
+  min-height: 1123px;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
 /* In CV: chỉ in khung xem trước, ẩn toàn bộ app shell */
 @media print {
   @page {
