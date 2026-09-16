@@ -406,8 +406,15 @@ namespace Infrastructure.Identity.Services
             };
 
             await _appContext.HoSoNhaTuyenDungs.AddAsync(hs).ConfigureAwait(false);
-            if (!await _userManager.IsInRoleAsync(user, VaiTroNguoiDung.NHAN_SU.ToString()).ConfigureAwait(false))
-                await _userManager.AddToRoleAsync(user, VaiTroNguoiDung.NHAN_SU.ToString()).ConfigureAwait(false);
+            var nhanSuRole = VaiTroNguoiDung.NHAN_SU.ToString();
+            var currentRoles = await _userManager.GetRolesAsync(user).ConfigureAwait(false);
+            var obsoleteRoles = currentRoles
+                .Where(role => !string.Equals(role, nhanSuRole, StringComparison.OrdinalIgnoreCase))
+                .ToArray();
+            if (obsoleteRoles.Length > 0)
+                await _userManager.RemoveFromRolesAsync(user, obsoleteRoles).ConfigureAwait(false);
+            if (!currentRoles.Any(role => string.Equals(role, nhanSuRole, StringComparison.OrdinalIgnoreCase)))
+                await _userManager.AddToRoleAsync(user, nhanSuRole).ConfigureAwait(false);
 
             invitation.LoiMoi = TrangThaiLoiMoi.DaChapNhan;
             await _appContext.SaveChangesAsync().ConfigureAwait(false);

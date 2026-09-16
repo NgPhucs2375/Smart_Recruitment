@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useEffectEvent, useState } from "react";
 import Link from "next/link";
 import {
   User,
@@ -11,14 +11,15 @@ import {
   DollarSign,
   FileText,
   Save,
-  CheckCircle2,
-  AlertCircle,
   Loader2,
   PlusCircle,
   Pencil,
   ArrowRight,
   Mail,
   Printer,
+  Minus,
+  Plus,
+  ImageIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,8 +27,15 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { hoSoApi, cvApi, type HoSoVm, type CvVm } from "@/lib/api/cv-api";
+import { hoSoApi, cvApi } from "@/lib/api/cv-api";
+import type { HoSoVm, CvVm } from "@/lib/types";
+import { formatVndInput, parseVndInput } from "@/lib/format-vnd";
+import { isoToVnDate, isValidVnDate, maskDateVn, vnToIsoDate } from "@/features/tao-cv/cv-data";
+import { MOCK_CVS, MOCK_HO_SO } from "./mock-preview";
 import { useStoredIdentity } from "@/hooks/use-stored-identity";
+
+/** Stepper step for expected salary (matches previous type=number convention). */
+const SALARY_STEP = 500000;
 
 export function HoSoView() {
   const identity = useStoredIdentity();
@@ -39,17 +47,36 @@ export function HoSoView() {
   // Form state
   const [hoTen, setHoTen] = useState("");
   const [sdt, setSdt] = useState("");
+  // ngaySinh is edited as dd/mm/yyyy text (masked), stored ISO for backend.
   const [ngaySinh, setNgaySinh] = useState("");
   const [gioiTinh, setGioiTinh] = useState("Nam");
   const [diaChi, setDiaChi] = useState("");
   const [gioiThieu, setGioiThieu] = useState("");
+  const [anhDaiDienUrl, setAnhDaiDienUrl] = useState("");
   const [viTriUngTuyen, setViTriUngTuyen] = useState("");
-  const [mucLuongMongMuon, setMucLuongMongMuon] = useState<number | "">(0);
+  // Display string with "." thousands separator; parsed to number on submit.
+  const [mucLuongMongMuon, setMucLuongMongMuon] = useState("");
   const [isTimViec, setIsTimViec] = useState(true);
   const [cvs, setCvs] = useState<CvVm[]>([]);
   const [cvsLoading, setCvsLoading] = useState(false);
+  const [isMock, setIsMock] = useState(false);
 
   const loadData = async () => {
+    // DEV preview (?xem-truoc=1): render view-mode with sample data, no API.
+    // Delete with mock-preview.ts once the real backend works.
+    try {
+      if (new URLSearchParams(window.location.search).get("xem-truoc") === "1") {
+        setHoSo(MOCK_HO_SO);
+        populateForm(MOCK_HO_SO);
+        setCvs(MOCK_CVS);
+        setIsEditing(false);
+        setIsMock(true);
+        setLoading(false);
+        return;
+      }
+    } catch {
+      // ignore location errors, fall through to real load
+    }
     setLoading(true);
     try {
       const data = await hoSoApi.getMyHoSo();
@@ -58,7 +85,7 @@ export function HoSoView() {
         populateForm(data);
         setIsEditing(false);
       }
-    } catch (err: unknown) {
+    } catch {
       // 404 / Bạn chưa có hồ sơ
       setHoSo(null);
       setIsEditing(true);
@@ -71,58 +98,87 @@ export function HoSoView() {
   const populateForm = (data: HoSoVm) => {
     setHoTen(data.hoTen || "");
     setSdt(data.sdt || "");
-    setNgaySinh(data.ngaySinh ? data.ngaySinh.substring(0, 10) : "");
+    setNgaySinh(isoToVnDate(data.ngaySinh));
     setGioiTinh(data.gioiTinh || "Nam");
     setDiaChi(data.diaChi || "");
     setGioiThieu(data.gioiThieu || "");
+    setAnhDaiDienUrl(data.anhDaiDienUrl || "");
     setViTriUngTuyen(data.viTriUngTuyen || "");
-    setMucLuongMongMuon(data.mucLuongMongMuon ?? 0);
+    setMucLuongMongMuon(
+      data.mucLuongMongMuon ? formatVndInput(String(data.mucLuongMongMuon)) : ""
+    );
     setIsTimViec(data.isTimViec !== false);
   };
 
-  useEffect(() => {
+  const loadInitialData = useEffectEvent(() => {
     void loadData();
+  });
+
+  useEffect(() => {
+    const timer = window.setTimeout(loadInitialData, 0);
+    return () => window.clearTimeout(timer);
   }, []);
 
   // CV của tôi — reuse existing CV list API, no duplicate storage.
+  // Skipped in mock preview (sample CVs are already set).
   useEffect(() => {
-    if (!hoSo || hoSo.id <= 0 || isEditing) return;
+    const hoSoId = hoSo?.id;
+    if (!hoSoId || hoSoId <= 0 || isEditing || isMock) return;
     let cancelled = false;
-    setCvsLoading(true);
-    cvApi
-      .listCvs(hoSo.id)
-      .then((list) => {
-        if (!cancelled) setCvs(list.filter((cv) => !cv.isDaXoa));
-      })
-      .catch(() => {
-        if (!cancelled) setCvs([]);
-      })
-      .finally(() => {
-        if (!cancelled) setCvsLoading(false);
-      });
+    const timer = window.setTimeout(() => {
+      if (cancelled) return;
+      setCvsLoading(true);
+      cvApi
+        .listCvs(hoSoId)
+        .then((list) => {
+          if (!cancelled) setCvs(list);
+        })
+        .catch(() => {
+          if (!cancelled) setCvs([]);
+        })
+        .finally(() => {
+          if (!cancelled) setCvsLoading(false);
+        });
+    }, 0);
     return () => {
       cancelled = true;
+      window.clearTimeout(timer);
     };
-  }, [hoSo?.id, isEditing]);
+  }, [hoSo?.id, isEditing, isMock]);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isMock) {
+      toast.info("Chế độ xem trước — kết nối BE để lưu hồ sơ thật.");
+      return;
+    }
     if (!hoTen.trim()) {
       toast.error("Vui lòng nhập họ tên.");
+      return;
+    }
+    if (ngaySinh.trim() !== "" && !isValidVnDate(ngaySinh)) {
+      toast.error("Ngày sinh không hợp lệ (dd/mm/yyyy).");
+      return;
+    }
+    if (anhDaiDienUrl.trim() && !/^https?:\/\//i.test(anhDaiDienUrl.trim())) {
+      toast.error("URL ảnh đại diện phải bắt đầu bằng http:// hoặc https://.");
       return;
     }
 
     setSaving(true);
     try {
+      const isoNgaySinh = vnToIsoDate(ngaySinh);
       const payload = {
         hoTen: hoTen.trim(),
         sdt: sdt.trim(),
-        ngaySinh: ngaySinh ? new Date(ngaySinh).toISOString() : null,
+        // Date-only string parses as UTC midnight, preserving the calendar day.
+        ngaySinh: isoNgaySinh ? new Date(isoNgaySinh).toISOString() : null,
         gioiTinh,
         diaChi: diaChi.trim(),
         gioiThieu: gioiThieu.trim(),
+        anhDaiDienUrl: anhDaiDienUrl.trim(),
         viTriUngTuyen: viTriUngTuyen.trim(),
-        mucLuongMongMuon: typeof mucLuongMongMuon === "number" ? mucLuongMongMuon : 0,
+        mucLuongMongMuon: parseVndInput(mucLuongMongMuon),
         isTimViec,
       };
 
@@ -148,6 +204,11 @@ export function HoSoView() {
     }
   };
 
+  // Mock CVs don't exist on the backend — open them via the gallery
+  // template flow instead of the saved-CV (?cv=) flow.
+  const cvHref = (cv: CvVm) =>
+    isMock && cv.templateId ? `/tao-cv?template=${cv.templateId}` : `/tao-cv?cv=${cv.id}`;
+
   if (loading) {
     return (
       <div className="flex h-96 items-center justify-center">
@@ -159,6 +220,11 @@ export function HoSoView() {
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
+      {isMock && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-xs text-amber-800">
+          Chế độ xem trước giao diện (dữ liệu minh họa) — thao tác lưu và tải danh sách thật bị tắt cho tới khi BE hoạt động. Xóa <span className="font-mono">?xem-truoc=1</span> để dùng dữ liệu thật.
+        </div>
+      )}
       {/* Header Bar */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
@@ -198,7 +264,7 @@ export function HoSoView() {
           <CardContent className="flex justify-center pb-6">
             <Button onClick={() => setIsEditing(true)}>
               <PlusCircle className="mr-2 h-4 w-4" />
-              Tạo hồ sơ ngay
+              Tạo hồ sơ ứng viên
             </Button>
           </CardContent>
         </Card>
@@ -210,25 +276,29 @@ export function HoSoView() {
           {/* Card Thông tin chính */}
           <Card className="h-full md:col-span-1">
             <CardHeader className="text-center">
-              <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-primary/10 text-2xl font-bold text-primary">
-                {hoSo.hoTen
+               <div
+                 className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-primary/10 bg-cover bg-center text-2xl font-bold text-primary ring-2 ring-border"
+                 style={hoSo.anhDaiDienUrl ? { backgroundImage: `url(${hoSo.anhDaiDienUrl})` } : undefined}
+                 role={hoSo.anhDaiDienUrl ? "img" : undefined}
+                 aria-label={hoSo.anhDaiDienUrl ? `Ảnh đại diện của ${hoSo.hoTen}` : undefined}
+               >
+                 <span className={hoSo.anhDaiDienUrl ? "sr-only" : undefined}>
+                 {hoSo.hoTen
                   ? hoSo.hoTen
                       .split(" ")
                       .map((n) => n[0])
                       .slice(-2)
                       .join("")
                       .toUpperCase()
-                  : "UV"}
-              </div>
+                   : "UV"}
+                 </span>
+               </div>
               <CardTitle className="mt-4 text-xl">{hoSo.hoTen}</CardTitle>
               <CardDescription>{hoSo.viTriUngTuyen || "Chưa cập nhật vị trí"}</CardDescription>
               <div className="pt-2">
                 <Badge variant={hoSo.isTimViec ? "default" : "secondary"}>
                   {hoSo.isTimViec ? "Đang tìm việc" : "Đã có việc / Tạm dừng"}
                 </Badge>
-                <p className="mt-2 text-[11px] text-muted-foreground">
-                  Ảnh đại diện hiện dùng chữ cái đầu — chưa hỗ trợ tải ảnh lên.
-                </p>
               </div>
             </CardHeader>
             <CardContent className="space-y-3 text-sm">
@@ -330,7 +400,7 @@ export function HoSoView() {
                 <Link href="/tao-cv" className="mt-4">
                   <Button>
                     <PlusCircle className="mr-2 h-4 w-4" />
-                    Tạo CV ngay
+                    Tạo CV đầu tiên
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                 </Link>
@@ -359,13 +429,13 @@ export function HoSoView() {
                       </div>
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
-                      <Link href="/tao-cv">
+                      <Link href={cvHref(cv)}>
                         <Button variant="outline" size="sm">
                           <Pencil className="mr-1.5 h-3.5 w-3.5" />
                           Mở / Sửa
                         </Button>
                       </Link>
-                      <Link href="/tao-cv">
+                      <Link href={cvHref(cv)}>
                         <Button variant="ghost" size="sm">
                           <Printer className="mr-1.5 h-3.5 w-3.5" />
                           In / PDF
@@ -398,6 +468,30 @@ export function HoSoView() {
                 <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                   1. Thông tin cá nhân
                 </h3>
+                <div className="flex flex-col gap-4 rounded-xl border border-border bg-muted/30 p-4 sm:flex-row sm:items-center">
+                  <div
+                    className="flex size-20 shrink-0 items-center justify-center rounded-full bg-primary/10 bg-cover bg-center text-xl font-semibold text-primary ring-2 ring-border"
+                    style={anhDaiDienUrl ? { backgroundImage: `url(${anhDaiDienUrl})` } : undefined}
+                    role={anhDaiDienUrl ? "img" : undefined}
+                    aria-label={anhDaiDienUrl ? "Xem trước ảnh đại diện" : undefined}
+                  >
+                    {!anhDaiDienUrl && <User className="size-8" />}
+                  </div>
+                  <div className="min-w-0 flex-1 space-y-1.5">
+                    <label className="text-xs font-medium text-gray-700">URL ảnh đại diện</label>
+                    <div className="relative">
+                      <ImageIcon className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
+                      <Input
+                        type="url"
+                        placeholder="https://example.com/avatar.jpg"
+                        value={anhDaiDienUrl}
+                        onChange={(e) => setAnhDaiDienUrl(e.target.value)}
+                        className="h-10 rounded-xl border-input bg-white pl-10 text-sm"
+                      />
+                    </div>
+                    <p className="text-[11px] text-muted-foreground">Dùng đường dẫn ảnh công khai bắt đầu bằng http:// hoặc https://.</p>
+                  </div>
+                </div>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-1.5">
                     <label className="text-xs font-medium text-gray-700">
@@ -435,12 +529,17 @@ export function HoSoView() {
                     <div className="relative">
                       <Calendar className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
                       <Input
-                        type="date"
+                        type="text"
+                        inputMode="numeric"
+                        placeholder="dd/mm/yyyy"
                         value={ngaySinh}
-                        onChange={(e) => setNgaySinh(e.target.value)}
+                        onChange={(e) => setNgaySinh(maskDateVn(e.target.value))}
                         className="h-10 rounded-xl border-input bg-white pl-10 text-sm"
                       />
                     </div>
+                    {ngaySinh.trim() !== "" && !isValidVnDate(ngaySinh) && (
+                      <p className="text-xs text-red-500">Ngày không hợp lệ (dd/mm/yyyy)</p>
+                    )}
                   </div>
 
                   <div className="space-y-1.5">
@@ -498,16 +597,49 @@ export function HoSoView() {
                     <div className="relative">
                       <DollarSign className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
                       <Input
-                        type="number"
-                        min="0"
-                        step="500000"
-                        placeholder="15000000"
+                        type="text"
+                        inputMode="numeric"
+                        placeholder="15.000.000"
+                        aria-label="Mức lương mong muốn (VNĐ)"
                         value={mucLuongMongMuon}
-                        onChange={(e) =>
-                          setMucLuongMongMuon(e.target.value === "" ? "" : Number(e.target.value))
-                        }
-                        className="h-10 rounded-xl border-input bg-white pl-10 text-sm"
+                        onChange={(e) => setMucLuongMongMuon(formatVndInput(e.target.value))}
+                        onKeyDown={(e) => {
+                          if (e.key === "ArrowUp") {
+                            e.preventDefault();
+                            setMucLuongMongMuon(formatVndInput(String(parseVndInput(mucLuongMongMuon) + SALARY_STEP)));
+                          } else if (e.key === "ArrowDown") {
+                            e.preventDefault();
+                            setMucLuongMongMuon(
+                              formatVndInput(String(Math.max(0, parseVndInput(mucLuongMongMuon) - SALARY_STEP)))
+                            );
+                          }
+                        }}
+                        className="h-10 rounded-xl border-input bg-white pl-10 pr-20 text-sm tabular-nums"
                       />
+                      <div className="absolute right-1.5 top-1/2 flex -translate-y-1/2 items-center gap-0.5">
+                        <button
+                          type="button"
+                          aria-label="Giảm mức lương"
+                          onClick={() =>
+                            setMucLuongMongMuon(
+                              formatVndInput(String(Math.max(0, parseVndInput(mucLuongMongMuon) - SALARY_STEP)))
+                            )
+                          }
+                          className="flex size-7 items-center justify-center rounded-lg text-gray-500 transition hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary"
+                        >
+                          <Minus className="size-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          aria-label="Tăng mức lương"
+                          onClick={() =>
+                            setMucLuongMongMuon(formatVndInput(String(parseVndInput(mucLuongMongMuon) + SALARY_STEP)))
+                          }
+                          className="flex size-7 items-center justify-center rounded-lg text-gray-500 transition hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary"
+                        >
+                          <Plus className="size-3.5" />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>

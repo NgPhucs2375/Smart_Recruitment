@@ -7,6 +7,7 @@ import { useLogin } from "@refinedev/core";
 import { ArrowUpRight, Bookmark, Building2, Check, ChevronRight, Clock, Code2, FileText, Flame, Home, Laptop, Layers, Loader2, Lock, Mail, MapPin, Phone, Search, Shield, Sparkles, Users, X } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BrandLogo } from "@/components/brand-logo";
+import { HeroBackgroundIllustration } from "@/features/landing/brand-illustration-card";
 import { locations, jobLevels } from "@/features/viec-lam/constants";
 import { useBookmarks } from "@/hooks/use-bookmarks";
 import { toast } from "sonner";
@@ -223,11 +224,11 @@ export default function LandingPage() {
   }
 
   return (
-    <main id="main-content" className="min-h-dvh overflow-hidden bg-ivory text-charcoal">
+    <main className="min-h-screen overflow-hidden bg-ivory text-charcoal">
       {/* ============ Header + Hero — light, airy, growth-oriented ============ */}
       <section className="relative border-b border-linen/70 bg-ivory pt-28 md:pt-16">
         <div className="relative mx-auto max-w-7xl px-4 pb-16 pt-4 sm:px-10 sm:pt-6 lg:px-16">
-          <nav aria-label="Điều hướng chính" className="fixed inset-x-0 top-0 z-[var(--z-nav)] border-b border-linen/70 bg-white/85 backdrop-blur-md">
+          <nav aria-label="Điều hướng chính" className="fixed inset-x-0 top-0 z-50 border-b border-linen/70 bg-white/85 backdrop-blur-md">
             <div className="mx-auto flex h-16 max-w-7xl items-center gap-2 px-4 sm:px-10 lg:px-16">
               <BrandLogo href="/" variant="workspace" size="sm" className="shrink-0" />
               <div className="hidden min-w-0 flex-1 items-center justify-center gap-1 md:flex">
@@ -271,27 +272,29 @@ export default function LandingPage() {
             </div>
           </nav>
 
-          <div id="overview" className="scroll-mt-24 grid gap-6 pb-8 pt-8 sm:pt-12 lg:grid-cols-[1.05fr_.95fr] lg:items-center lg:gap-14 lg:pt-16">
-            <div className="rounded-[2rem] border border-linen bg-white p-6 shadow-[0_16px_48px_rgba(53,92,140,0.08)] sm:p-10 lg:p-12">
-              <p className="mb-5 inline-flex items-center gap-2 rounded-full border border-teal/25 bg-teal/10 px-3.5 py-1.5 text-xs font-semibold text-navy sm:mb-6">
-                <span className="size-1.5 rounded-full bg-teal" /> Nền tảng việc làm IT cho Gen Z
-              </p>
-              <h1 className="max-w-3xl text-balance text-4xl font-semibold leading-[1.08] tracking-[-0.03em] text-navy sm:text-6xl sm:leading-[1.02]">
+          <div id="overview" className="relative scroll-mt-24 overflow-hidden">
+            <div aria-hidden="true" className="pointer-events-none absolute inset-0">
+              <HeroBackgroundIllustration />
+            </div>
+            <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-gradient-to-b from-ivory/60 via-ivory/40 to-ivory" />
+            <div className="relative mx-auto max-w-3xl px-4 pb-16 pt-14 text-center sm:px-10 sm:pt-20 lg:pt-24">
+              <p className="text-xs font-bold uppercase tracking-[0.32em] text-navy/70">HIREAI</p>
+              <h1 className="mx-auto mt-4 max-w-3xl text-balance text-4xl font-semibold leading-[1.08] tracking-[-0.03em] text-navy sm:text-6xl sm:leading-[1.02]">
                 <span className="block">Đúng người, đúng việc.</span>
                 <span className="block text-marine">Đúng thời điểm.</span>
               </h1>
-              <p className="mt-5 max-w-xl text-base leading-7 text-charcoal/70 sm:mt-6 sm:text-lg">
-                Việc làm IT theo kỹ năng của bạn — lưu tin yêu thích, nhận gợi ý từ AI.
+              <p className="mx-auto mt-5 max-w-xl text-base leading-7 text-charcoal/70 sm:mt-6 sm:text-lg">
+                Nền tảng tuyển dụng IT giúp ứng viên và nhà tuyển dụng kết nối nhanh hơn bằng AI matching.
               </p>
-              <div className="mt-8 flex flex-col gap-3 sm:mt-8 sm:flex-row sm:flex-wrap">
-                <Link href="/register" className="group flex items-center justify-center gap-2 rounded-full bg-marine px-6 py-3.5 text-sm font-semibold text-white shadow-[0_10px_24px_rgba(53,92,140,0.30)] transition hover:bg-navy sm:justify-start">
+              <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row sm:flex-wrap">
+                <Link href="/register" className="group flex items-center justify-center gap-2 rounded-full bg-marine px-6 py-3.5 text-sm font-semibold text-white shadow-[0_10px_24px_rgba(53,92,140,0.30)] transition hover:bg-navy">
                   Tìm việc phù hợp <ArrowUpRight className="size-4 transition group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
                 </Link>
-                <Link href="/nha-tuyen-dung" className="flex items-center justify-center gap-2 rounded-full border border-linen bg-ivory px-6 py-3.5 text-sm font-medium text-navy transition hover:border-marine/40 hover:bg-frost sm:justify-start">
+                <Link href="/nha-tuyen-dung" className="flex items-center justify-center gap-2 rounded-full border border-linen bg-ivory px-6 py-3.5 text-sm font-medium text-navy transition hover:border-marine/40 hover:bg-frost">
                   Dành cho nhà tuyển dụng <ChevronRight className="size-4" />
                 </Link>
               </div>
-              <dl className="mt-8 grid max-w-xl grid-cols-1 gap-3 sm:mt-10 sm:grid-cols-3">
+              <dl className="mx-auto mt-8 grid max-w-2xl grid-cols-1 gap-3 sm:mt-10 sm:grid-cols-3">
                 {[
                   { icon: Building2, tint: "bg-frost", iconColor: "text-marine", value: "1.200+", label: "Việc làm đang mở" },
                   { icon: Users, tint: "bg-blush", iconColor: "text-bronze", value: "8.500+", label: "Kết nối thành công" },
@@ -309,10 +312,22 @@ export default function LandingPage() {
                 ))}
               </dl>
             </div>
+          </div>
 
-            <div className="relative">
+          {/* Lower section: functional cards, clearly detached from hero */}
+          <div className="border-t border-linen/70 py-12 sm:py-16">
+            <div className="mx-auto mb-8 max-w-2xl text-center">
+              <p className="inline-flex items-center gap-2 rounded-full border border-teal/25 bg-teal/10 px-3.5 py-1.5 text-xs font-semibold text-navy">
+                <span className="size-1.5 rounded-full bg-teal" /> Bắt đầu nhanh
+              </p>
+              <h2 className="mt-4 text-balance text-2xl font-semibold tracking-tight text-charcoal sm:text-3xl">
+                AI matching, đăng nhập và bắt đầu — ngay tại đây.
+              </h2>
+            </div>
+            <div className="grid gap-6 lg:grid-cols-[1.1fr_.9fr]">
+              <div className="relative">
               {/* AI Match preview — light card, navy number, teal bars */}
-              <div className="relative overflow-hidden rounded-[2rem] border border-mist/40 bg-white p-6 shadow-[0_20px_56px_rgba(53,92,140,0.12)] sm:p-8">
+              <div className="relative h-full overflow-hidden rounded-[2rem] border border-mist/40 bg-white p-6 shadow-[0_20px_56px_rgba(53,92,140,0.12)] sm:p-8">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-semibold uppercase tracking-[0.18em] text-navy/70">AI match engine</span>
                   <span className="inline-flex items-center gap-1.5 rounded-full border border-teal/30 bg-teal/10 px-2.5 py-1 text-[11px] font-medium text-navy">
@@ -357,49 +372,70 @@ export default function LandingPage() {
                 <p className="mt-2 text-2xl font-semibold tracking-tight text-navy">+38%</p>
                 <p className="mt-1 text-[11px] text-charcoal/60">Tín hiệu phù hợp tuần này</p>
               </div>
-
-              <form onSubmit={handleLandingLogin} className="mt-6 rounded-[2rem] border border-linen bg-white p-5 shadow-[0_12px_32px_rgba(53,92,140,0.08)] sm:p-6">
-                <div className="mb-4 flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-semibold text-charcoal">Đã có tài khoản?</p>
-                    <p className="mt-1 text-xs text-charcoal/60">Đăng nhập để tiếp tục hành trình</p>
-                  </div>
-                  <span className="flex size-9 items-center justify-center rounded-full bg-frost">
-                    <Lock className="size-4 text-marine" />
-                  </span>
+            </div>
+            <div className="flex h-full flex-col justify-center gap-5 rounded-[2rem] border border-linen bg-white p-5 shadow-[0_12px_32px_rgba(53,92,140,0.08)] sm:p-6">
+            <form onSubmit={handleLandingLogin}>
+              <div className="mb-4 flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-charcoal">Đã có tài khoản?</p>
+                  <p className="mt-1 text-xs text-charcoal/60">Đăng nhập để tiếp tục hành trình</p>
                 </div>
-                {loginError && <p className="mb-3 rounded-2xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">{loginError}</p>}
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <label className="relative">
-                    <Mail className="absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-mist" />
-                    <input
-                      type="email"
-                      required
-                      value={loginEmail}
-                      onChange={(event) => setLoginEmail(event.target.value)}
-                      placeholder="Email"
-                      className="h-11 w-full rounded-2xl border border-linen bg-ivory pl-9 pr-3 text-sm text-charcoal outline-none transition placeholder:text-charcoal/40 focus:border-marine/50 focus:ring-2 focus:ring-marine/10"
-                    />
-                  </label>
-                  <label className="relative">
-                    <Lock className="absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-mist" />
-                    <input
-                      type="password"
-                      autoComplete="current-password"
-                      required
-                      value={loginPassword}
-                      onChange={(event) => setLoginPassword(event.target.value)}
-                      placeholder="Mật khẩu"
-                      className="h-11 w-full rounded-2xl border border-linen bg-ivory pl-9 pr-3 text-sm text-charcoal outline-none transition placeholder:text-charcoal/40 focus:border-marine/50 focus:ring-2 focus:ring-marine/10"
-                    />
-                  </label>
-                </div>
-                <button type="submit" disabled={loginPending} className="mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-full bg-marine text-sm font-semibold text-white transition hover:bg-navy disabled:cursor-not-allowed disabled:opacity-60">
-                  {loginPending && <Loader2 className="size-4 animate-spin" />}
-                  {loginPending ? "Đang đăng nhập..." : "Đăng nhập"}
-                </button>
-                <Link href="/register" className="mt-3 block text-center text-xs text-charcoal/60 transition hover:text-marine">Chưa có tài khoản? Đăng ký ngay</Link>
-              </form>
+                <span className="flex size-9 items-center justify-center rounded-full bg-frost">
+                  <Lock className="size-4 text-marine" />
+                </span>
+              </div>
+              {loginError && <p className="mb-3 rounded-2xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">{loginError}</p>}
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label className="relative">
+                  <Mail className="absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-mist" />
+                  <input
+                    type="email"
+                    required
+                    value={loginEmail}
+                    onChange={(event) => setLoginEmail(event.target.value)}
+                    placeholder="Email"
+                    className="h-11 w-full rounded-2xl border border-linen bg-ivory pl-9 pr-3 text-sm text-charcoal outline-none transition placeholder:text-charcoal/40 focus:border-marine/50 focus:ring-2 focus:ring-marine/10"
+                  />
+                </label>
+                <label className="relative">
+                  <Lock className="absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-mist" />
+                  <input
+                    type="password"
+                    autoComplete="current-password"
+                    required
+                    value={loginPassword}
+                    onChange={(event) => setLoginPassword(event.target.value)}
+                    placeholder="Mật khẩu"
+                    className="h-11 w-full rounded-2xl border border-linen bg-ivory pl-9 pr-3 text-sm text-charcoal outline-none transition placeholder:text-charcoal/40 focus:border-marine/50 focus:ring-2 focus:ring-marine/10"
+                  />
+                </label>
+              </div>
+              <button type="submit" disabled={loginPending} className="mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-full bg-marine text-sm font-semibold text-white transition hover:bg-navy disabled:cursor-not-allowed disabled:opacity-60">
+                {loginPending && <Loader2 className="size-4 animate-spin" />}
+                {loginPending ? "Đang đăng nhập..." : "Đăng nhập"}
+              </button>
+              <div className="mt-3 flex items-center justify-between text-xs">
+                <Link href="/forgot-password" className="text-charcoal/60 transition hover:text-marine hover:underline">Quên mật khẩu?</Link>
+                <Link href="/register" className="font-medium text-charcoal/60 transition hover:text-marine hover:underline">Đăng ký ngay</Link>
+              </div>
+            </form>
+            <div>
+              <div className="relative text-center text-[11px] uppercase tracking-wider text-charcoal/45">
+                <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-linen" /></div>
+                <span className="relative bg-white px-3">Hoặc bắt đầu với HIREAI</span>
+              </div>
+              <h3 className="mt-3 text-base font-semibold tracking-tight text-charcoal">Bạn mới đến với HIREAI?</h3>
+              <p className="mt-1 text-xs leading-5 text-charcoal/60">Chọn lối vào phù hợp — miễn phí, bắt đầu trong một phút.</p>
+              <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                <Link href="/register" className="flex h-11 w-full items-center justify-center gap-2 rounded-full bg-marine text-sm font-semibold text-white transition hover:bg-navy">
+                  Tôi tìm việc <ArrowUpRight className="size-4" />
+                </Link>
+                <Link href="/nha-tuyen-dung" className="flex h-11 w-full items-center justify-center gap-2 rounded-full border border-linen bg-ivory text-sm font-medium text-navy transition hover:border-marine/40 hover:bg-frost">
+                  Tôi tuyển dụng <ChevronRight className="size-4" />
+                </Link>
+              </div>
+              </div>
+            </div>
             </div>
           </div>
         </div>

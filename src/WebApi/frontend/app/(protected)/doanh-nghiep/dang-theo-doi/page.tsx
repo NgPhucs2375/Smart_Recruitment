@@ -1,12 +1,5 @@
-import { ComingSoon } from "@/components/coming-soon";
+import { CongTyTheoDoiView } from "@/features/doanh-nghiep/cong-ty-theo-doi-view";
 
 export default function DoanhNghiepDangTheoDoiPage() {
-  return (
-    <ComingSoon
-      title="Công ty đã theo dõi đang phát triển"
-      description="Danh sách công ty bạn theo dõi sẽ sớm được cập nhật."
-      backHref="/doanh-nghiep"
-      backLabel="Về tìm công ty"
-    />
-  );
+  return <CongTyTheoDoiView />;
 }

@@ -28,6 +28,10 @@ namespace Application.DTOs.HoSoUngVien
 
         public string GioiThieu { get; set; }
 
+        [Url(ErrorMessage = "URL ảnh đại diện không hợp lệ.")]
+        [MaxLength(2048)]
+        public string AnhDaiDienUrl { get; set; }
+
         [MaxLength(200)]
         public string ViTriUngTuyen { get; set; }
 

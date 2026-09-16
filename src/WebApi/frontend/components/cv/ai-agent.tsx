@@ -1,208 +1,310 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Sparkles, ArrowRight, CircleCheck, TriangleAlert, Lightbulb } from "lucide-react";
+import {
+  Sparkles,
+  Loader2,
+  AlertCircle,
+  FileText,
+  Wand2,
+  Check,
+  ChevronRight,
+} from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
-import type { CvFormData } from "@/features/tao-cv/types";
+import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
+import type { CvFormData } from "@/lib/types";
+import {
+  summaryTemplates,
+  experienceStarTemplate,
+  popularSkills,
+} from "@/features/tao-cv/content-templates";
 
 interface AiAgentProps {
   data: CvFormData;
+  onUpdate: (data: CvFormData) => void;
 }
 
-type Severity = "missing" | "improve" | "done";
-
-type AssistantItem = {
+type AiSuggestion = {
   id: string;
-  severity: Severity;
+  type: "improvement" | "warning" | "tip";
   message: string;
-  target?: string;
 };
 
-/* Section anchors rendered by CvForm. Clicking "Đi tới mục" scrolls there. */
-const SECTION_IDS = {
-  lienHe: "cv-section-lien-he",
-  kinhNghiem: "cv-section-kinh-nghiem",
-  hocVan: "cv-section-hoc-van",
-  kyNang: "cv-section-ky-nang",
-  duAn: "cv-section-du-an",
-} as const;
+const STEPS = ["Chọn vị trí", "AI gợi ý nội dung", "Chèn vào CV", "Xem trước & xuất PDF"] as const;
 
-function buildChecklist(data: CvFormData): AssistantItem[] {
-  const lh = data.thongTinLienHe;
-  const items: AssistantItem[] = [];
+export function AiAgent({ data, onUpdate }: AiAgentProps) {
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [suggestions, setSuggestions] = useState<AiSuggestion[]>([]);
 
-  if (!lh.hoTen || !lh.email || !lh.sdt) {
-    items.push({
-      id: "contact",
-      severity: "missing",
-      message: "Thiếu thông tin liên hệ bắt buộc (họ tên, email, SĐT). Nhà tuyển dụng không thể liên lạc nếu thiếu mục này.",
-      target: SECTION_IDS.lienHe,
-    });
-  }
-  if (!lh.gioiThieuBanThan) {
-    items.push({
-      id: "intro-empty",
-      severity: "missing",
-      message: "Chưa có giới thiệu bản thân. Viết 3 đến 4 câu về mục tiêu và điểm mạnh nổi bật nhất.",
-      target: SECTION_IDS.lienHe,
-    });
-  } else if (lh.gioiThieuBanThan.trim().length < 50) {
-    items.push({
-      id: "intro-short",
-      severity: "improve",
-      message: "Giới thiệu hơi ngắn. Mở rộng thêm kinh nghiệm và mục tiêu để tạo ấn tượng đầu.",
-      target: SECTION_IDS.lienHe,
-    });
-  }
-  if (data.kinhNghiemLamViec.length === 0 && data.hocVan.length === 0) {
-    items.push({
-      id: "empty-body",
-      severity: "missing",
-      message: "CV cần ít nhất một mục kinh nghiệm làm việc hoặc học vấn.",
-      target: SECTION_IDS.kinhNghiem,
-    });
-  }
-  if (data.kinhNghiemLamViec.length > 0 && !data.kinhNghiemLamViec.some((e) => e.moTa?.trim())) {
-    items.push({
-      id: "exp-desc",
-      severity: "improve",
-      message: "Mô tả chi tiết công việc và thành tựu trong mỗi vị trí. Con số cụ thể luôn thuyết phục hơn tính từ chung chung.",
-      target: SECTION_IDS.kinhNghiem,
-    });
-  }
-  if (data.kyNang.length > 0 && data.kyNang.length < 3) {
-    items.push({
-      id: "skills-few",
-      severity: "improve",
-      message: "Mới có ít kỹ năng. Bổ sung đủ 3 kỹ năng trở lên để tăng khả năng được chú ý.",
-      target: SECTION_IDS.kyNang,
-    });
-  }
-  if (data.kyNang.length === 0) {
-    items.push({
-      id: "skills-empty",
-      severity: "missing",
-      message: "Chưa có kỹ năng nào. Liệt kê kỹ năng khớp với vị trí đang ứng tuyển.",
-      target: SECTION_IDS.kyNang,
-    });
-  }
-  if (data.duAn.length === 0) {
-    items.push({
-      id: "projects",
-      severity: "improve",
-      message: "Thêm dự án đã làm để CV nổi bật hơn, nhất là với ngành IT.",
-      target: SECTION_IDS.duAn,
-    });
-  }
-  return items;
-}
+  const analyzeCv = () => {
+    setIsAnalyzing(true);
 
-const severityStyle: Record<Severity, { icon: typeof CircleCheck; box: string; iconColor: string; label: string; pill: string }> = {
-  missing: {
-    icon: TriangleAlert,
-    box: "border-destructive/30 bg-destructive/[0.04]",
-    iconColor: "text-destructive",
-    label: "Cần bổ sung",
-    pill: "bg-destructive/10 text-destructive",
-  },
-  improve: {
-    icon: Lightbulb,
-    box: "border-sand/60 bg-sandsoft",
-    iconColor: "text-bronze",
-    label: "Nên cải thiện",
-    pill: "bg-sand/25 text-bronze",
-  },
-  done: {
-    icon: CircleCheck,
-    box: "border-teal/30 bg-teal/[0.06]",
-    iconColor: "text-teal",
-    label: "Hoàn tất",
-    pill: "bg-teal/15 text-navy",
-  },
-};
+    setTimeout(() => {
+      const lh = data.thongTinLienHe;
+      const newSuggestions: AiSuggestion[] = [];
 
-function scrollToSection(id: string) {
-  const el = document.getElementById(id);
-  if (!el) return;
-  const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  el.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
-}
+      if (!lh.hoTen || !lh.email || !lh.sdt) {
+        newSuggestions.push({
+          id: "1",
+          type: "warning",
+          message: "Thiếu thông tin liên hệ bắt buộc (họ tên, email, SĐT).",
+        });
+      }
 
-export function AiAgent({ data }: AiAgentProps) {
-  const [scanned, setScanned] = useState(false);
-  const items = useMemo(() => (scanned ? buildChecklist(data) : []), [scanned, data]);
-  const missingCount = items.filter((i) => i.severity === "missing").length;
+      if (!lh.gioiThieuBanThan) {
+        newSuggestions.push({
+          id: "2",
+          type: "warning",
+          message: "CV chưa có phần giới thiệu bản thân. Hãy viết 3-4 câu về mục tiêu và điểm mạnh.",
+        });
+      } else if (lh.gioiThieuBanThan.length < 50) {
+        newSuggestions.push({
+          id: "3",
+          type: "improvement",
+          message: "Giới thiệu quá ngắn. Hãy mở rộng thêm về kinh nghiệm và mục tiêu.",
+        });
+      }
+
+      if (data.kinhNghiemLamViec.length === 0 && data.hocVan.length === 0) {
+        newSuggestions.push({
+          id: "4",
+          type: "warning",
+          message: "CV cần ít nhất một mục kinh nghiệm làm việc hoặc học vấn.",
+        });
+      }
+
+      if (data.kinhNghiemLamViec.length > 0 && !data.kinhNghiemLamViec.some((e) => e.moTa)) {
+        newSuggestions.push({
+          id: "5",
+          type: "tip",
+          message: "Hãy mô tả chi tiết công việc và thành tựu trong mỗi vị trí.",
+        });
+      }
+
+      if (data.kyNang.length < 3) {
+        newSuggestions.push({
+          id: "6",
+          type: "tip",
+          message: "Nên có ít nhất 3 kỹ năng để tăng khả năng được chú ý.",
+        });
+      }
+
+      if (data.duAn.length === 0) {
+        newSuggestions.push({
+          id: "7",
+          type: "tip",
+          message: "Thêm dự án đã làm sẽ giúp CV nổi bật hơn, nhất là với IT.",
+        });
+      }
+
+      if (newSuggestions.length === 0) {
+        newSuggestions.push({
+          id: "8",
+          type: "tip",
+          message: "CV của bạn đã khá đầy đủ! Hãy kiểm tra lại chính tả trước khi lưu.",
+        });
+      }
+
+      setSuggestions(newSuggestions);
+      setIsAnalyzing(false);
+    }, 800);
+  };
+
+  const stepIndex = useMemo(() => {
+    if (!data.thongTinLienHe.viTriUngTuyen.trim()) return 0;
+    if (suggestions.length === 0) return 1;
+    const hasContent =
+      data.thongTinLienHe.gioiThieuBanThan.trim() !== "" ||
+      data.kinhNghiemLamViec.length > 0;
+    if (!hasContent) return 2;
+    return 3;
+  }, [data, suggestions.length]);
+
+  function fillIfEmpty(get: (d: CvFormData) => string, set: (d: CvFormData, v: string) => CvFormData, template: string, label: string) {
+    if (get(data).trim() !== "") {
+      toast.info("Mục đã có nội dung — xóa trước khi chèn mẫu mới.");
+      return;
+    }
+    onUpdate(set(data, template));
+    toast.success(`Đã chèn mẫu ${label}.`);
+  }
+
+  function insertSummary(template: string, label: string) {
+    fillIfEmpty(
+      (d) => d.thongTinLienHe.gioiThieuBanThan,
+      (d, v) => ({ ...d, thongTinLienHe: { ...d.thongTinLienHe, gioiThieuBanThan: v } }),
+      template,
+      label
+    );
+  }
+
+  function insertExperienceTemplate() {
+    const first = data.kinhNghiemLamViec[0];
+    if (!first) {
+      toast.info("Hãy thêm một mục kinh nghiệm trước.");
+      return;
+    }
+    if (first.moTa.trim() !== "") {
+      toast.info("Mục kinh nghiệm đã có mô tả.");
+      return;
+    }
+    onUpdate({
+      ...data,
+      kinhNghiemLamViec: data.kinhNghiemLamViec.map((k, i) =>
+        i === 0 ? { ...k, moTa: experienceStarTemplate } : k
+      ),
+    });
+    toast.success("Đã chèn khung mô tả STAR.");
+  }
+
+  function addPopularSkills(skills: string[], label: string) {
+    const existing = new Set(data.kyNang.map((k) => k.tenKyNang.trim().toLowerCase()));
+    const fresh = skills.filter((s) => !existing.has(s.toLowerCase()));
+    if (fresh.length === 0) {
+      toast.info(`Đã có đủ kỹ năng ${label}.`);
+      return;
+    }
+    onUpdate({
+      ...data,
+      kyNang: [
+        ...data.kyNang,
+        ...fresh.map((s) => ({
+          id: `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
+          tenKyNang: s,
+          mucDoThanhThao: "",
+          soNamKinhNghiem: "",
+        })),
+      ],
+    });
+    toast.success(`Đã thêm ${fresh.length} kỹ năng ${label}.`);
+  }
+
+  const typeConfig = {
+    improvement: { color: "bg-blue-100 text-blue-700", label: "Cải thiện" },
+    warning: { color: "bg-yellow-100 text-yellow-700", label: "Cảnh báo" },
+    tip: { color: "bg-green-100 text-green-700", label: "Gợi ý" },
+  };
 
   return (
-    <section aria-label="Trợ lý CV" className="overflow-hidden rounded-3xl border border-linen bg-card shadow-sm">
-      <div className="bg-navy px-5 py-4 text-white">
-        <p className="flex items-center gap-2 text-sm font-semibold">
-          <Sparkles className="size-4 text-sand" /> Trợ lý CV
-        </p>
-        <p className="mt-1 text-xs leading-5 text-white/70">
-          Quét nhanh các mục còn thiếu và gợi ý cách cải thiện. Kết quả cập nhật theo nội dung bạn đang nhập.
-        </p>
-      </div>
-
-      <div className="space-y-2.5 p-5">
-        {!scanned ? (
+    <Card className="overflow-hidden border-teal/25">
+      <CardHeader className="bg-teal/10 pb-4">
+        <div className="flex items-center gap-3">
+          <span className="flex size-10 items-center justify-center rounded-xl bg-navy text-white">
+            <Sparkles className="h-5 w-5" />
+          </span>
           <div>
-            <p className="text-sm leading-6 text-charcoal/60">
-              Bấm quét để xem CV còn thiếu gì và nên sửa ở đâu. Mỗi gợi ý đều dẫn thẳng tới đúng mục trong form.
-            </p>
-            <Button size="sm" className="mt-3 w-full rounded-full" onClick={() => setScanned(true)}>
-              <Sparkles className="h-4 w-4 mr-1.5" />
-              Quét CV ngay
+            <CardTitle className="text-base">AI hỗ trợ viết CV</CardTitle>
+            <CardDescription>Tối ưu nội dung bằng gợi ý và mẫu có sẵn</CardDescription>
+          </div>
+        </div>
+        <ol className="mt-3 flex items-center gap-1" aria-label="Tiến trình">
+          {STEPS.map((step, i) => (
+            <li key={step} className="flex min-w-0 flex-1 items-center gap-1">
+              <span
+                className={
+                  i < stepIndex
+                    ? "flex size-5 shrink-0 items-center justify-center rounded-full bg-teal text-[10px] font-bold text-white"
+                    : i === stepIndex
+                      ? "flex size-5 shrink-0 items-center justify-center rounded-full bg-navy text-[10px] font-bold text-white"
+                      : "flex size-5 shrink-0 items-center justify-center rounded-full bg-muted text-[10px] font-bold text-muted-foreground"
+                }
+              >
+                {i < stepIndex ? <Check className="h-3 w-3" /> : i + 1}
+              </span>
+              <span className="hidden truncate text-[11px] text-muted-foreground min-[420px]:block">
+                {step}
+              </span>
+              {i < STEPS.length - 1 && <ChevronRight className="h-3 w-3 shrink-0 text-muted-foreground/50" />}
+            </li>
+          ))}
+        </ol>
+      </CardHeader>
+      <CardContent className="space-y-4 pt-4">
+        <div>
+          <p className="mb-2 text-xs font-medium text-muted-foreground">Gợi ý nhanh — bấm để chèn mẫu:</p>
+          <div className="flex flex-wrap gap-1.5">
+            {summaryTemplates.map((t) => (
+              <Button
+                key={t.label}
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-7 rounded-full text-xs"
+                onClick={() => insertSummary(t.text, `tóm tắt ${t.label}`)}
+              >
+                <FileText className="mr-1 h-3 w-3" />
+                Tóm tắt {t.label}
+              </Button>
+            ))}
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-7 rounded-full text-xs"
+              onClick={insertExperienceTemplate}
+            >
+              <Wand2 className="mr-1 h-3 w-3" />
+              Khung STAR
             </Button>
+            {popularSkills.map((g) => (
+              <Button
+                key={g.label}
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-7 rounded-full text-xs"
+                onClick={() => addPopularSkills(g.skills, g.label)}
+              >
+                <FileText className="mr-1 h-3 w-3" />
+                Kỹ năng {g.label}
+              </Button>
+            ))}
           </div>
-        ) : items.length === 0 ? (
-          <div className="flex items-start gap-2.5 rounded-2xl border border-teal/30 bg-teal/[0.06] p-3.5">
-            <CircleCheck className="mt-0.5 size-4 shrink-0 text-teal" />
-            <div>
-              <p className="text-sm font-semibold text-charcoal">CV đã đầy đủ các mục quan trọng</p>
-              <p className="mt-0.5 text-xs leading-5 text-charcoal/60">
-                Kiểm tra lại chính tả rồi bấm Lưu CV. Tiếp tục cập nhật mỗi khi có kinh nghiệm mới.
-              </p>
-            </div>
-          </div>
-        ) : (
-          <div className="space-y-2.5" role="list" aria-label="Gợi ý cải thiện CV">
-            <p className="text-xs font-semibold text-charcoal/60">
-              Tìm thấy {items.length} điểm{missingCount > 0 ? `, trong đó ${missingCount} mục bắt buộc` : ""}:
-            </p>
-            {items.map((item) => {
-              const style = severityStyle[item.severity];
-              const Icon = style.icon;
+        </div>
+
+        <Button
+          onClick={analyzeCv}
+          disabled={isAnalyzing}
+          className="w-full rounded-xl"
+          variant={suggestions.length > 0 ? "outline" : "default"}
+        >
+          {isAnalyzing ? (
+            <>
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              Đang phân tích...
+            </>
+          ) : (
+            <>
+              <Sparkles className="h-4 w-4 mr-2" />
+              {suggestions.length > 0 ? "Phân tích lại" : "Đánh giá CV"}
+            </>
+          )}
+        </Button>
+
+        {suggestions.length > 0 && (
+          <div className="space-y-2">
+            {suggestions.map((s) => {
+              const config = typeConfig[s.type];
               return (
-                <div key={item.id} role="listitem" className={cn("rounded-2xl border p-3.5", style.box)}>
-                  <div className="flex items-start gap-2.5">
-                    <Icon className={cn("mt-0.5 size-4 shrink-0", style.iconColor)} />
-                    <div className="min-w-0 flex-1">
-                      <span className={cn("inline-block rounded-full px-2 py-0.5 text-[11px] font-bold", style.pill)}>
-                        {style.label}
-                      </span>
-                      <p className="mt-1.5 text-sm leading-6 text-charcoal/80">{item.message}</p>
-                      {item.target && (
-                        <button
-                          type="button"
-                          onClick={() => scrollToSection(item.target!)}
-                          className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-marine underline underline-offset-4 hover:text-navy"
-                        >
-                          Đi tới mục này <ArrowRight className="size-3.5" />
-                        </button>
-                      )}
-                    </div>
+                <div
+                  key={s.id}
+                  className="flex items-start gap-2 rounded-xl border border-border bg-muted/40 p-3"
+                >
+                  <AlertCircle className="h-4 w-4 mt-0.5 shrink-0 text-muted-foreground" />
+                  <div className="flex-1">
+                    <Badge variant="secondary" className={`text-xs mb-1 ${config.color}`}>
+                      {config.label}
+                    </Badge>
+                    <p className="text-sm text-muted-foreground">{s.message}</p>
                   </div>
                 </div>
               );
             })}
-            <Button variant="outline" size="sm" className="w-full rounded-full" onClick={() => setScanned(false)}>
-              Ẩn gợi ý
-            </Button>
           </div>
         )}
-      </div>
-    </section>
+      </CardContent>
+    </Card>
   );
 }

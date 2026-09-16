@@ -7,6 +7,7 @@ import {
   AuthLayout,
   GoogleAuthSection,
   GithubLoginButton,
+  WrongPortalAlert,
 } from "@/components/auth";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,8 +22,9 @@ import { Mail, Lock, ArrowRight, Loader2, Building2, Eye, EyeOff } from "lucide-
  */
 export default function EmployerLoginPage() {
   const [showPassword, setShowPassword] = useState(false);
-  const { register, handleSubmit, errors, isPending, submitError } = usePasswordLogin();
-  const { handleGoogleLogin, isPending: isGooglePending } = useGoogleAuth();
+  const { register, handleSubmit, errors, isPending, submitError, wrongPortal: passwordWrongPortal } = usePasswordLogin("employer");
+  const { handleGoogleLogin, isPending: isGooglePending, error: googleError, wrongPortal: googleWrongPortal } = useGoogleAuth("employer");
+  const wrongPortal = passwordWrongPortal ?? googleWrongPortal;
 
   return (
     <AuthLayout
@@ -53,6 +55,7 @@ export default function EmployerLoginPage() {
       </div>
 
       <form onSubmit={handleSubmit} noValidate className="space-y-3">
+        {wrongPortal && <WrongPortalAlert portal={wrongPortal} />}
         {submitError && (
           <Alert variant="destructive" className="border-red-200 bg-red-50 py-2.5">
             <AlertDescription className="text-xs text-red-700">{submitError}</AlertDescription>
@@ -130,6 +133,7 @@ export default function EmployerLoginPage() {
           disabled={isPending || isGooglePending}
           text="Đăng nhập nhanh bằng Google"
         />
+        {googleError && <p className="text-xs text-red-500">{googleError}</p>}
         <GithubLoginButton text="Đăng nhập bằng GitHub" />
       </form>
 

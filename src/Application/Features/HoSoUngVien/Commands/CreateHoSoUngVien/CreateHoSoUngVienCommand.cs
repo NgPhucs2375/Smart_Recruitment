@@ -23,6 +23,8 @@ public class CreateHoSoUngVienCommand : IRequest<Response<int>>
 
     public string GioiThieu { get; set; }
 
+    public string AnhDaiDienUrl { get; set; }
+
     public string ViTriUngTuyen { get; set; }
 
     public double MucLuongMongMuon { get; set; }
@@ -109,6 +111,8 @@ public class CreateHoSoUngVienCommandHandler(
             DiaChi = request.DiaChi?.Trim(),
 
             GioiThieu = request.GioiThieu?.Trim(),
+
+            AnhDaiDienUrl = request.AnhDaiDienUrl?.Trim(),
 
             ViTriUngTuyen = request.ViTriUngTuyen?.Trim(),
 

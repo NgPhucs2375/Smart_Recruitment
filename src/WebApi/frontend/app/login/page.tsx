@@ -1,25 +1,32 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { usePasswordLogin, useGoogleAuth, useMagicLink } from "@/hooks";
 import {
   AuthLayout,
   TabSwitcher,
-  GoogleAuthSection,
-  GithubLoginButton,
+  SocialAuthSection,
   MagicLinkForm,
+  WrongPortalAlert,
 } from "@/components/auth";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Mail, Lock, ArrowRight, Loader2, Quote, Eye, EyeOff } from "lucide-react";
+import { Mail, Lock, ArrowRight, Loader2, UserRound, Eye, EyeOff } from "lucide-react";
+import { sanitizeNext, type PortalKind } from "@/lib/portal-roles";
 
-export default function LoginPage() {
-  const [tab, setTab] = useState<"password" | "google" | "magic">("password");
+function LoginContent() {
+  const [tab, setTab] = useState<"password" | "magic">("password");
   const [showPassword, setShowPassword] = useState(false);
+  const searchParams = useSearchParams();
+  const next = sanitizeNext(searchParams.get("next"));
+  const portal: PortalKind | undefined = next?.startsWith("/accept-invite")
+    ? undefined
+    : "candidate";
 
   const {
     register,
@@ -29,9 +36,16 @@ export default function LoginPage() {
     isPending,
     submitError,
     remember,
-  } = usePasswordLogin();
+    wrongPortal: passwordWrongPortal,
+  } = usePasswordLogin(portal, next);
 
-  const { handleGoogleLogin, isPending: isGooglePending } = useGoogleAuth();
+  const {
+    handleGoogleLogin,
+    isPending: isGooglePending,
+    error: googleError,
+    setError: setGoogleError,
+    wrongPortal: googleWrongPortal,
+  } = useGoogleAuth(portal, next);
 
   const {
     email: magicEmail,
@@ -41,75 +55,57 @@ export default function LoginPage() {
     error: magicError,
     handleSubmit: handleMagicSubmit,
     reset: resetMagic,
-  } = useMagicLink("Login");
+  } = useMagicLink("Login", { portal, next: next ?? "/dashboard" });
+
+  const wrongPortal = passwordWrongPortal ?? googleWrongPortal;
 
   const leftPanelContent = (
     <>
-      <p className="font-mono text-xs uppercase tracking-[0.24em] text-white/60">
-        Platform Access / 2026
+      <p className="text-xs font-bold uppercase tracking-[0.32em] text-white/50">
+        HIREAI
       </p>
-      <h1 className="mt-4 max-w-lg text-4xl font-medium tracking-[-0.05em] text-white xl:text-5xl">
-        Tuyển dụng có dữ liệu. Quyết định có niềm tin.
+      <h1 className="mt-3 max-w-lg text-4xl font-medium tracking-[-0.05em] text-white xl:text-5xl">
+        Chào mừng bạn quay trở lại.
       </h1>
-      <p className="mt-5 max-w-md text-sm leading-6 text-white/65">
-        Không gian kết nối cơ hội công nghệ bằng AI Matching, đối chiếu năng lực theo Tech-stack thực tế.
+      <p className="mt-4 max-w-md text-sm leading-6 text-white/65">
+        Đăng nhập để quản lý hồ sơ, CV và theo dõi hành trình ứng tuyển của bạn.
       </p>
-
-      <div className="mt-8 space-y-4">
-        <div className="rounded-2xl border border-white/10 bg-white/[0.05] p-5 backdrop-blur-md">
-          <Quote className="mb-2 size-5 text-white/40" />
-          <p className="text-sm italic text-white/80">
-            &ldquo;Quy trình bóc tách CV và tính điểm chuẩn xác giúp đội ngũ kỹ thuật tiết kiệm hơn một nửa thời gian lọc ứng viên.&rdquo;
-          </p>
-          <div className="mt-3 flex items-center gap-3 border-t border-white/10 pt-3">
-            <div className="flex size-8 items-center justify-center rounded-full bg-white/20 font-mono text-xs font-semibold text-white">
-              TD
-            </div>
-            <div>
-              <p className="text-xs font-medium text-white">Tech Director</p>
-              <p className="text-[11px] text-white/50">Nexora SaaS Platform</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-3 pt-2">
-          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
-            <p className="text-2xl font-semibold tracking-tight text-white">92%</p>
-            <p className="text-xs text-white/60">Độ khớp kỹ năng đề xuất</p>
-          </div>
-          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
-            <p className="text-2xl font-semibold tracking-tight text-white">&lt; 48h</p>
-            <p className="text-xs text-white/60">Phản hồi hồ sơ trung bình</p>
-          </div>
-        </div>
+      <div className="mt-6 flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] p-4 backdrop-blur-sm">
+        <UserRound className="size-5 shrink-0 text-sandgold" />
+        <span className="text-sm text-white/90">Cổng ứng viên — Nơi kỹ năng gặp đúng cơ hội</span>
       </div>
     </>
   );
 
   return (
     <AuthLayout leftPanel={leftPanelContent}>
-      <div className="mb-5 text-center">
+      <div className="mb-4 text-center">
         <div className="mx-auto mb-3 flex w-fit items-center gap-2 rounded-full border border-border bg-muted/80 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-          <span className="size-1.5 rounded-full bg-sage animate-pulse" /> Cổng truy cập bảo mật
+          <UserRound className="size-3" /> Cổng ứng viên
         </div>
-        <h2 className="text-2xl font-semibold tracking-tight text-foreground">Chào mừng trở lại</h2>
-        <p className="mt-1.5 text-sm text-muted-foreground">Chọn phương thức phù hợp để đăng nhập vào tài khoản</p>
+        <h2 className="text-2xl font-semibold tracking-tight text-foreground">Đăng nhập ứng viên</h2>
+        <p className="mt-1 text-sm text-muted-foreground">Dùng chung hệ thống xác thực HIREAI</p>
       </div>
 
       {/* Tab Switcher */}
       <TabSwitcher
         tabs={[
-          { id: "password", label: "Mật khẩu" },
-          { id: "google", label: "Google" },
+          { id: "password", label: "Email & mật khẩu" },
           { id: "magic", label: "Magic Link" },
         ]}
         active={tab}
-        onChange={(id) => setTab(id as "password" | "google" | "magic")}
+        onChange={(id) => setTab(id as "password" | "magic")}
       />
 
-      {/* 1. MẬT KHẨU */}
+      {wrongPortal && (
+        <div className="mb-3">
+          <WrongPortalAlert portal={wrongPortal} />
+        </div>
+      )}
+
+      {/* 1. EMAIL & MẬT KHẨU */}
       {tab === "password" && (
-        <form onSubmit={handleSubmit} noValidate className="space-y-3">
+        <form onSubmit={handleSubmit} noValidate className="space-y-2.5">
           {submitError && (
             <Alert variant="destructive" className="border-red-200 bg-red-50 py-2.5">
               <AlertDescription className="text-xs text-red-700">{submitError}</AlertDescription>
@@ -168,7 +164,7 @@ export default function LoginPage() {
             {errors.password && <p className="text-xs text-red-500">{errors.password.message}</p>}
           </div>
 
-          <div className="flex items-center gap-2 pt-1">
+          <div className="flex items-center gap-2 pt-0.5">
             <Checkbox
               id="remember"
               checked={remember}
@@ -183,40 +179,23 @@ export default function LoginPage() {
           <Button
             type="submit"
             disabled={isPending}
-            className="mt-2 h-11 w-full rounded-xl bg-primary font-medium text-white transition hover:bg-primary-hover"
+            className="mt-1 h-11 w-full rounded-xl bg-primary font-medium text-white transition hover:bg-primary-hover"
           >
             {isPending ? <Loader2 className="mr-2 size-4 animate-spin" /> : <ArrowRight className="mr-2 size-4" />}
-            {isPending ? "Đang xác thực..." : "Tiếp tục với Mật khẩu"}
+            {isPending ? "Đang xác thực..." : "Tiếp tục với Email & mật khẩu"}
           </Button>
 
-          {/* Integrated Quick Google Section inside Password Form */}
-          <div className="relative my-4 text-center text-xs text-muted-foreground">
-            <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-border" /></div>
-            <span className="relative bg-muted/90 px-3 uppercase tracking-wider">hoặc</span>
-          </div>
-
-          <GoogleAuthSection
+          <SocialAuthSection
+            mode="login"
             onGoogleLogin={handleGoogleLogin}
+            onGoogleError={setGoogleError}
+            googleError={googleError}
             disabled={isPending || isGooglePending}
-            text="Đăng nhập nhanh bằng Google"
           />
-          <GithubLoginButton text="Đăng nhập bằng GitHub" />
         </form>
       )}
 
-      {/* 2. GOOGLE */}
-      {tab === "google" && (
-        <div className="space-y-3">
-          <GoogleAuthSection
-            onGoogleLogin={handleGoogleLogin}
-            disabled={isGooglePending}
-            description="Đăng nhập an toàn không cần ghi nhớ mật khẩu."
-          />
-          <GithubLoginButton text="Tiếp tục với GitHub" />
-        </div>
-      )}
-
-      {/* 3. MAGIC LINK */}
+      {/* 2. MAGIC LINK */}
       {tab === "magic" && (
         <MagicLinkForm
           email={magicEmail}
@@ -231,7 +210,7 @@ export default function LoginPage() {
         />
       )}
 
-      <div className="mt-6 border-t border-border/60 pt-4 text-center">
+      <div className="mt-5 border-t border-border/60 pt-4 text-center">
         <p className="text-xs text-muted-foreground">
           Chưa có tài khoản HIREAI?{" "}
           <Link href="/register" className="font-semibold text-foreground underline underline-offset-4 hover:opacity-80">
@@ -240,5 +219,13 @@ export default function LoginPage() {
         </p>
       </div>
     </AuthLayout>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-background" />}>
+      <LoginContent />
+    </Suspense>
   );
 }

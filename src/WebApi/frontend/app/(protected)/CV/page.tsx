@@ -1,11 +1,11 @@
 "use client";
 
-import { CVEditorV2 } from "@/components/cv-editor-v2";
+import { AiCvWorkspace } from "@/components/cv/ai-cv-workspace";
 
 export default function CVPage() {
   return (
     <div className="min-h-screen bg-background">
-      <CVEditorV2 />
+      <AiCvWorkspace />
     </div>
   );
 }

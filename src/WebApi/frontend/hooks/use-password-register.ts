@@ -1,13 +1,17 @@
 "use client";
 
-import { useLogin, useRegister } from "@refinedev/core";
+import { useRegister } from "@refinedev/core";
 import { useRouter } from "next/navigation";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { registerSchema, type RegisterFormData } from "@/lib/schemas";
 import { useState } from "react";
 
-export function usePasswordRegister() {
+export function usePasswordRegister(options?: {
+  inviteToken?: string | null;
+  email?: string;
+  hoTen?: string;
+}) {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const { mutateAsync: registerMutation, isPending } = useRegister<RegisterFormData>();
   const router = useRouter();
@@ -21,15 +25,16 @@ export function usePasswordRegister() {
   } = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
-      email: "",
+      email: options?.email ?? "",
       password: "",
       confirmPassword: "",
       role: "UNG_VIEN",
-      hoTen: "",
+      hoTen: options?.hoTen ?? "",
       soDienThoai: "",
       tenDoanhNghiep: "",
       diaChiDoanhNghiep: "",
       chucVu: "",
+      inviteToken: options?.inviteToken ?? undefined,
     },
   });
 
@@ -42,7 +47,7 @@ export function usePasswordRegister() {
       if (!result.success && result.error) {
         setSubmitError(result.error.message ?? "Đăng ký thất bại");
       } else if (result.success) {
-        router.replace("/login");
+        router.replace(options?.inviteToken ? "/employer/login" : "/login");
       }
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : "Có lỗi xảy ra");

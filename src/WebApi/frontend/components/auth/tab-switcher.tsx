@@ -5,14 +5,16 @@ interface TabSwitcherProps {
 }
 
 export function TabSwitcher({ tabs, active, onChange }: TabSwitcherProps) {
+  const cols = tabs.length <= 2 ? "grid-cols-2" : "grid-cols-3";
   return (
-    <div className="mb-6 grid grid-cols-3 rounded-xl border border-border bg-white/80 p-1">
+    <div className={`mb-4 grid ${cols} rounded-xl border border-border bg-white/80 p-1`}>
       {tabs.map((tab) => (
         <button
           key={tab.id}
           type="button"
           onClick={() => onChange(tab.id)}
-          className={`rounded-lg py-2 text-xs sm:text-sm font-medium transition-all ${
+          aria-pressed={active === tab.id}
+          className={`rounded-lg px-2 py-2.5 text-xs sm:text-sm font-medium transition-all ${
             active === tab.id
               ? "bg-primary text-white shadow-sm"
               : "text-muted-foreground hover:text-primary"

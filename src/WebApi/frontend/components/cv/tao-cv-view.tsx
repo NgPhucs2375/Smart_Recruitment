@@ -1,18 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { FileText, Save, Eye, Pencil, Plus, Trash2, Download, Check, ListChecks, Sparkles, Upload, ChevronDown } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { FileText, Save, Eye, Pencil, Plus, Trash2, Printer, Check, ListChecks, Sparkles, Upload, LayoutTemplate, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { CvForm } from "./cv-form";
 import { CvPreview } from "./cv-preview";
@@ -20,10 +13,22 @@ import { TemplateSelector } from "./template-selector";
 import { AiAgent } from "./ai-agent";
 import { CvImportDialog } from "./cv-import-dialog";
 import { defaultCvData } from "@/features/tao-cv/constants";
-import type { CvFormData } from "@/features/tao-cv/types";
-import { cvDataFromJson, toCvImportPayload, toCvPayload, isoToVnDate } from "@/features/tao-cv/types";
-import { exportCvElementToPdf, pdfFileName } from "@/features/tao-cv/export-cv-pdf";
-import { cvApi, type CvVm, type HoSoVm } from "@/lib/api/cv-api";
+import { resolveTemplateId, TEMPLATE_REGISTRY } from "@/features/tao-cv/template-registry";
+import type { CvFormData, CvVm, HoSoVm } from "@/lib/types";
+import {
+  isoToVnDate,
+  normalizeCvPartialDate,
+} from "@/features/tao-cv/cv-data";
+import {
+  createManualCvPayload,
+  exportManualCvPdf,
+  manualCvDetailToForm,
+  manualCvPdfFileName,
+  updateManualCvPayload,
+  validateManualCv,
+} from "@/features/tao-cv/manual";
+import { cvApi } from "@/lib/api/cv-api";
+import { cvDataToJsonResume } from "@/features/tao-cv/json-resume";
 
 export function ChecklistCard({ items, doneCount }: { items: { label: string; done: boolean }[]; doneCount: number }) {
   return (
@@ -75,24 +80,23 @@ export function QualityCard({ progress, label, note }: { progress: number; label
 }
 
 export function TaoCvView() {
+  const searchParams = useSearchParams();
   const [cvData, setCvData] = useState<CvFormData>(defaultCvData);
   const [hoSo, setHoSo] = useState<HoSoVm | null>(null);
   const [cvList, setCvList] = useState<CvVm[]>([]);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [exporting, setExporting] = useState(false);
+  const [exportingPdf, setExportingPdf] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
-  const [importPending, setImportPending] = useState(false);
-  const [confirmDelete, setConfirmDelete] = useState(false);
-  const disarmTimer = useRef<number | null>(null);
-  const pdfSourceRef = useRef<HTMLDivElement | null>(null);
 
-  useEffect(() => {
-    return () => {
-      if (disarmTimer.current) window.clearTimeout(disarmTimer.current);
-    };
-  }, []);
+  // Scroll to the first VISIBLE templates/AI block (mobile tabs + desktop
+  // column both render them; hidden ones are skipped).
+  const scrollToSection = (target: string) => {
+    const els = Array.from(document.querySelectorAll(`[data-scroll-target="${target}"]`));
+    const visible = els.find((el) => (el as HTMLElement).offsetParent !== null) as HTMLElement | undefined;
+    visible?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
 
   const loadAll = useCallback(async () => {
     setLoading(true);
@@ -101,26 +105,38 @@ export function TaoCvView() {
       setHoSo(hs);
       const list = await cvApi.listCvs(hs.id);
       setCvList(list);
-      const current = list.find((c) => c.isDefault) ?? list[0];
-      if (current) {
-        setSelectedId(current.id);
-        setCvData((prev) => ({
-          ...cvDataFromJson(current.noiDungJson, prev),
-          templateId: current.templateId || prev.templateId,
-          tenFile: current.tenFile || "",
-        }));
+      // Existing supported mechanism: read the selected template + target CV
+      // safely from the frontend query (?template= / ?cv= / ?import=). Never
+      // rewrites a saved CV's template unless the user explicitly picks one:
+      // ?template= starts a NEW working copy; ?cv= selects a saved CV.
+      const cvParam = searchParams.get("cv");
+      const rawTemplate = searchParams.get("template");
+      if (!cvParam && rawTemplate && TEMPLATE_REGISTRY[resolveTemplateId(rawTemplate)]) {
+        setSelectedId(null);
+        setCvData({
+          ...(JSON.parse(JSON.stringify(defaultCvData)) as CvFormData),
+          templateId: resolveTemplateId(rawTemplate),
+        });
+      } else {
+        const requested = cvParam ? list.find((c) => c.id === Number(cvParam)) : undefined;
+        const current = requested ?? list.find((c) => c.isDefault) ?? list[0];
+        if (current) {
+          const detail = await cvApi.getById(current.id);
+          setSelectedId(current.id);
+          setCvData((prev) => manualCvDetailToForm(detail, prev));
+        }
       }
+      if (searchParams.get("import") === "1") setImportOpen(true);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Không tải được dữ liệu CV");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [searchParams]);
 
-  // Fetch-on-mount: loadAll đồng bộ state từ server, không phải derived state.
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    void loadAll();
+    const timer = window.setTimeout(() => void loadAll(), 0);
+    return () => window.clearTimeout(timer);
   }, [loadAll]);
 
   const handleSave = async () => {
@@ -128,31 +144,18 @@ export function TaoCvView() {
       toast.error("Bạn chưa có hồ sơ ứng viên nên chưa thể lưu CV");
       return;
     }
-    if (!cvData.thongTinLienHe.hoTen.trim() || !cvData.thongTinLienHe.email.trim() || !cvData.thongTinLienHe.sdt.trim()) {
-      toast.error("Vui lòng nhập họ tên, email và SĐT");
-      return;
-    }
-    if (cvData.kinhNghiemLamViec.length + cvData.hocVan.length === 0) {
-      toast.error("CV cần ít nhất một mục kinh nghiệm hoặc học vấn");
+    const validationError = validateManualCv(cvData);
+    if (validationError) {
+      toast.error(validationError);
       return;
     }
     setSaving(true);
     try {
-      if (importPending) {
-        const id = await cvApi.importCv(
-          toCvImportPayload(cvData, true) as unknown as Record<string, unknown>,
-        );
-        setSelectedId(id);
-        setImportPending(false);
-        toast.success("Đã import CV");
-      } else if (selectedId) {
-        await cvApi.updateCv(selectedId, {
-          id: selectedId,
-          ...(toCvPayload(hoSo.id, cvData, true) as unknown as Record<string, unknown>),
-        });
+      if (selectedId) {
+        await cvApi.updateCv(selectedId, updateManualCvPayload(selectedId, cvData, true));
         toast.success("Đã cập nhật CV");
       } else {
-        const id = await cvApi.createCv(toCvPayload(hoSo.id, cvData, true) as unknown as Record<string, unknown>);
+        const id = await cvApi.createCv(createManualCvPayload(hoSo.id, cvData, true));
         setSelectedId(id);
         toast.success("Đã tạo CV mới");
       }
@@ -167,52 +170,24 @@ export function TaoCvView() {
 
   const handleNew = () => {
     setSelectedId(null);
-    setImportPending(false);
     setCvData(JSON.parse(JSON.stringify(defaultCvData)) as CvFormData);
   };
 
-  const handleExportPdf = async () => {
-    if (!pdfSourceRef.current) return;
-    if (!cvData.thongTinLienHe.hoTen.trim()) {
-      toast.error("Vui lòng nhập họ tên trước khi xuất PDF");
-      return;
-    }
-
-    setExporting(true);
-    try {
-      await document.fonts.ready;
-      const fileName = pdfFileName(cvData.tenFile, cvData.thongTinLienHe.hoTen);
-      await exportCvElementToPdf(pdfSourceRef.current, fileName);
-      toast.success("Đã xuất file PDF", { description: fileName });
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Không thể xuất file PDF");
-    } finally {
-      setExporting(false);
-    }
-  };
-
-  const handleSelect = (id: number) => {
+  const handleSelect = async (id: number) => {
     const cv = cvList.find((c) => c.id === id);
     if (!cv) return;
-    setSelectedId(id);
-    setImportPending(false);
-    setCvData((prev) => ({
-      ...cvDataFromJson(cv.noiDungJson, prev),
-      templateId: cv.templateId || prev.templateId,
-      tenFile: cv.tenFile || "",
-    }));
+    try {
+      const detail = await cvApi.getById(id);
+      setSelectedId(id);
+      setCvData((prev) => manualCvDetailToForm(detail, prev));
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Không tải được chi tiết CV");
+    }
   };
 
   const handleDelete = async () => {
     if (!selectedId) return;
-    if (!confirmDelete) {
-      setConfirmDelete(true);
-      if (disarmTimer.current) window.clearTimeout(disarmTimer.current);
-      disarmTimer.current = window.setTimeout(() => setConfirmDelete(false), 3000);
-      return;
-    }
-    if (disarmTimer.current) window.clearTimeout(disarmTimer.current);
-    setConfirmDelete(false);
+    if (!window.confirm("Xóa CV đang chọn?")) return;
     try {
       await cvApi.deleteCv(selectedId);
       toast.success("Đã xóa CV");
@@ -220,6 +195,39 @@ export function TaoCvView() {
       if (hoSo) setCvList(await cvApi.listCvs(hoSo.id));
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Xóa CV thất bại");
+    }
+  };
+
+  const handleExportJsonResume = () => {
+    const blob = new Blob([JSON.stringify(cvDataToJsonResume(cvData), null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `${cvData.tenFile.trim() || "resume"}.json`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleExportPdf = async () => {
+    const previews = Array.from(document.querySelectorAll<HTMLElement>("[data-manual-cv-pdf]"));
+    const preview = previews.find((element) => element.offsetParent !== null) ?? previews[0];
+    if (!preview) {
+      toast.error("Không tìm thấy bản xem trước để xuất PDF.");
+      return;
+    }
+    setExportingPdf(true);
+    try {
+      await exportManualCvPdf(
+        preview,
+        manualCvPdfFileName(cvData.tenFile, cvData.thongTinLienHe.hoTen),
+      );
+      toast.success("Đã xuất file PDF.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Không thể xuất file PDF.");
+    } finally {
+      setExportingPdf(false);
     }
   };
 
@@ -239,18 +247,33 @@ export function TaoCvView() {
     toast.success("Đã đổ thông tin từ hồ sơ");
   };
 
+  // Merge imported content into the working copy. Only content fields are
+  // taken; templateId/tenFile/selectedId stay untouched so the visual
+  // template choice and save target never change implicitly.
+  // Imported dates are normalized to MM/YYYY|YYYY so the partial inputs
+  // and preview render correctly regardless of source format.
   const handleImported = (partial: Partial<CvFormData>) => {
-    setSelectedId(null);
-    setImportPending(true);
+    const normRange = (it: { tuNgay?: unknown; denNgay?: unknown }) => ({
+      tuNgay: normalizeCvPartialDate(typeof it.tuNgay === "string" ? it.tuNgay : ""),
+      denNgay: normalizeCvPartialDate(typeof it.denNgay === "string" ? it.denNgay : ""),
+    });
     setCvData((prev) => ({
       ...prev,
       thongTinLienHe: { ...prev.thongTinLienHe, ...(partial.thongTinLienHe ?? {}) },
-      hocVan: partial.hocVan ?? prev.hocVan,
-      kinhNghiemLamViec: partial.kinhNghiemLamViec ?? prev.kinhNghiemLamViec,
-      duAn: partial.duAn ?? prev.duAn,
+      hocVan: (partial.hocVan ?? prev.hocVan).map((h) => ({ ...h, ...normRange(h as { tuNgay?: unknown; denNgay?: unknown }) })),
+      kinhNghiemLamViec: (partial.kinhNghiemLamViec ?? prev.kinhNghiemLamViec).map((k) => ({
+        ...k,
+        ...normRange(k as { tuNgay?: unknown; denNgay?: unknown }),
+      })),
+      duAn: (partial.duAn ?? prev.duAn).map((d) => ({
+        ...d,
+        ...normRange(d as { tuNgay?: unknown; denNgay?: unknown }),
+      })),
       kyNang: partial.kyNang ?? prev.kyNang,
-      chungChi: partial.chungChi ?? prev.chungChi,
-      tenFile: partial.tenFile ?? prev.tenFile,
+      chungChi: (partial.chungChi ?? prev.chungChi).map((c) => ({
+        ...c,
+        ngayCap: normalizeCvPartialDate(typeof c.ngayCap === "string" ? c.ngayCap : ""),
+      })),
     }));
     toast.success("Đã nhập CV", { description: "Kiểm tra lại các trường rồi bấm Lưu CV." });
   };
@@ -305,60 +328,77 @@ export function TaoCvView() {
             <span className="size-1.5 rounded-full bg-teal" /> Tạo CV thông minh
           </p>
           <h1 className="mt-3 text-3xl font-semibold tracking-tight text-charcoal sm:text-4xl">
-            Xây dựng CV <span className="text-marine">chuyên nghiệp</span>
+            Tạo CV <span className="text-marine">chuyên nghiệp</span>
           </h1>
           <p className="mt-2 max-w-xl text-sm leading-6 text-charcoal/60">
-            Nhập thông tin, lưu về server và xem trước kết quả ngay lập tức. Checklist bên dưới giúp bạn không bỏ sót mục nào.
+            Nhập thông tin từng mục, chọn mẫu yêu thích và xem trước trực tiếp.
+            Lưu về tài khoản của bạn bất cứ lúc nào, in PDF khi sẵn sàng.
           </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <DropdownMenu>
-            <DropdownMenuTrigger
-              className="inline-flex h-8 items-center gap-1 rounded-full border border-linen bg-card px-3.5 text-[13px] font-medium text-charcoal transition hover:border-marine/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              disabled={loading}
+          <div className="mt-3 flex flex-wrap gap-2 text-xs">
+            <button
+              type="button"
+              onClick={() => scrollToSection("templates")}
+              className="inline-flex items-center gap-1 font-medium text-marine hover:text-navy hover:underline"
             >
-              <Plus className="h-4 w-4" />
-              Thêm
-              <ChevronDown className="h-3.5 w-3.5 text-charcoal/55" />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-52">
-              <DropdownMenuItem onClick={handleNew} className="gap-2">
-                <Plus className="h-4 w-4" /> CV mới
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={fillFromHoSo} disabled={!hoSo} className="gap-2">
-                <FileText className="h-4 w-4" /> Đổ từ hồ sơ
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setImportOpen(true)} className="gap-2">
-                <Upload className="h-4 w-4" /> Tải CV lên
-              </DropdownMenuItem>
-              {selectedId && (
-                <>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    onClick={() => void handleDelete()}
-                    className="gap-2 text-destructive focus:text-destructive"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                    {confirmDelete ? "Bấm lại để xóa CV" : "Xóa CV đang chọn"}
-                  </DropdownMenuItem>
-                </>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
+              <LayoutTemplate className="h-3.5 w-3.5" />
+              Chọn mẫu CV
+            </button>
+            <span aria-hidden="true" className="text-linen">•</span>
+            <button
+              type="button"
+              onClick={fillFromHoSo}
+              disabled={!hoSo}
+              className="inline-flex items-center gap-1 font-medium text-marine hover:text-navy hover:underline disabled:opacity-50"
+            >
+              <UserRound className="h-3.5 w-3.5" />
+              Tạo từ hồ sơ
+            </button>
+            <span aria-hidden="true" className="text-linen">•</span>
+            <button
+              type="button"
+              onClick={() => scrollToSection("ai")}
+              className="inline-flex items-center gap-1 font-medium text-marine hover:text-navy hover:underline"
+            >
+              <Sparkles className="h-3.5 w-3.5" />
+              Viết bằng AI
+            </button>
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" size="sm" className="rounded-full" onClick={handleNew}>
+            <Plus className="h-4 w-4 mr-1.5" />
+            CV mới
+          </Button>
+          <Button variant="outline" size="sm" className="rounded-full" onClick={fillFromHoSo} disabled={!hoSo}>
+            Đổ từ hồ sơ
+          </Button>
+          <Button variant="outline" size="sm" className="rounded-full" onClick={() => setImportOpen(true)}>
+            <Upload className="h-4 w-4 mr-1.5" />
+            Tải CV lên
+          </Button>
+          {selectedId && (
+            <Button variant="outline" size="sm" className="rounded-full" onClick={handleDelete}>
+              <Trash2 className="h-4 w-4 mr-1.5" />
+              Xóa
+            </Button>
+          )}
+          <Button size="sm" className="rounded-full" onClick={handleSave} disabled={saving || loading}>
+            <Save className="h-4 w-4 mr-1.5" />
+            {saving ? "Đang lưu..." : "Lưu CV"}
+          </Button>
           <Button
             variant="outline"
             size="sm"
             className="rounded-full"
-            aria-label="Tải CV dạng PDF"
             onClick={() => void handleExportPdf()}
-            disabled={loading || exporting}
+            disabled={exportingPdf || loading}
           >
-            <Download className="h-4 w-4 mr-1.5" />
-            {exporting ? "Đang xuất..." : "Tải PDF"}
+            <Printer className="h-4 w-4 mr-1.5" />
+            {exportingPdf ? "Đang xuất..." : "Xuất PDF"}
           </Button>
-          <Button size="sm" className="rounded-full" onClick={handleSave} disabled={saving || loading}>
-            <Save className="h-4 w-4 mr-1.5" />
-            {saving ? "Đang lưu..." : "Lưu CV"}
+          <Button variant="outline" size="sm" className="rounded-full" onClick={handleExportJsonResume}>
+            <FileText className="h-4 w-4 mr-1.5" />
+            JSON Resume
           </Button>
         </div>
       </div>
@@ -399,26 +439,11 @@ export function TaoCvView() {
       <QualityCard
         progress={progress}
         label={quality.label}
-        note={selectedId ? `Đang sửa CV #${selectedId}` : "CV mới chưa lưu. Hoàn thành checklist để đạt 100%"}
+        note={selectedId ? `Đang sửa CV #${selectedId}` : "CV mới chưa lưu — hoàn thành checklist để đạt 100%"}
       />
 
-      {/* Loading: skeleton đúng hình dáng layout cuối */}
-      {loading && (
-        <div className="grid gap-6 xl:grid-cols-[minmax(0,5fr)_minmax(420px,7fr)]" aria-busy="true" aria-label="Đang tải CV">
-          <div className="space-y-4" aria-hidden="true">
-            <Skeleton className="h-36 rounded-3xl" />
-            <Skeleton className="h-44 rounded-3xl [animation-delay:120ms]" />
-            <Skeleton className="h-64 rounded-3xl [animation-delay:240ms]" />
-          </div>
-          <Skeleton className="hidden h-[640px] rounded-[2rem] xl:block" aria-hidden="true" />
-          <span className="sr-only">Đang tải dữ liệu CV…</span>
-        </div>
-      )}
-
       {/* Mobile/tablet: Tabs layout */}
-      {!loading && (
-        <>
-          <div className="xl:hidden">
+      <div className="xl:hidden">
         <Tabs defaultValue="form" className="w-full">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="form" className="gap-2">
@@ -432,17 +457,22 @@ export function TaoCvView() {
           </TabsList>
           <TabsContent value="form" className="mt-4 space-y-4">
             <ChecklistCard items={quality.items} doneCount={quality.doneCount} />
-            <TemplateSelector
-              selectedId={cvData.templateId}
-              data={cvData}
-              onSelect={(id) => setCvData({ ...cvData, templateId: id })}
-            />
+            <div data-scroll-target="templates">
+              <TemplateSelector
+                selectedId={cvData.templateId}
+                onSelect={(id) => setCvData({ ...cvData, templateId: id })}
+              />
+            </div>
             <CvForm data={cvData} onChange={setCvData} />
-            <AiAgent data={cvData} />
+            <div data-scroll-target="ai">
+              <AiAgent data={cvData} onUpdate={setCvData} />
+            </div>
           </TabsContent>
           <TabsContent value="preview" className="mt-4">
             <div className="sticky top-20">
-              <CvPreview data={cvData} />
+              <div data-manual-cv-pdf>
+                <CvPreview data={cvData} />
+              </div>
             </div>
           </TabsContent>
         </Tabs>
@@ -462,13 +492,16 @@ export function TaoCvView() {
             </div>
             <div className="space-y-4" style={{ overflowY: "auto", maxHeight: "calc(100vh - 280px)" }}>
               <ChecklistCard items={quality.items} doneCount={quality.doneCount} />
-              <TemplateSelector
-                selectedId={cvData.templateId}
-                data={cvData}
-                onSelect={(id) => setCvData({ ...cvData, templateId: id })}
-              />
+              <div data-scroll-target="templates">
+                <TemplateSelector
+                  selectedId={cvData.templateId}
+                  onSelect={(id) => setCvData({ ...cvData, templateId: id })}
+                />
+              </div>
               <CvForm data={cvData} onChange={setCvData} />
-              <AiAgent data={cvData} />
+              <div data-scroll-target="ai">
+                <AiAgent data={cvData} onUpdate={setCvData} />
+              </div>
             </div>
           </div>
 
@@ -482,7 +515,9 @@ export function TaoCvView() {
               </span>
             </div>
             <div className="cv-preview-frame">
-              <CvPreview data={cvData} />
+              <div data-manual-cv-pdf>
+                <CvPreview data={cvData} />
+              </div>
               <div className="cv-preview-hint">
                 <Sparkles className="size-3.5 text-teal" />
                 <span>Gợi ý: hoàn thành checklist bên trái để CV đạt 100%</span>
@@ -490,12 +525,6 @@ export function TaoCvView() {
             </div>
           </div>
         </div>
-      </div>
-        </>
-      )}
-
-      <div ref={pdfSourceRef} className="cv-pdf-source" aria-hidden="true">
-        <CvPreview data={cvData} />
       </div>
     </div>
   );

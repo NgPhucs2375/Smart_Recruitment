@@ -1,5 +1,30 @@
 import type { AuthProvider } from "@refinedev/core";
 import { saveIdentity, loadIdentity, clearIdentity, buildIdentity } from "./access-control-provider";
+import { isPortalAllowed, homePortalFor, sanitizeNext, WRONG_PORTAL_MESSAGE, type PortalKind } from "./portal-roles";
+
+const LOGIN_PORTAL_KEY = "hireai.login.portal";
+
+function rememberLoginPortal(portal: PortalKind | undefined): void {
+  if (typeof window === "undefined") return;
+  try {
+    if (portal === "candidate" || portal === "employer") {
+      sessionStorage.setItem(LOGIN_PORTAL_KEY, portal);
+    }
+  } catch {
+    // ignore storage errors
+  }
+}
+
+function consumeLoginPortal(): PortalKind | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const v = sessionStorage.getItem(LOGIN_PORTAL_KEY);
+    sessionStorage.removeItem(LOGIN_PORTAL_KEY);
+    return v === "candidate" || v === "employer" ? v : null;
+  } catch {
+    return null;
+  }
+}
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -125,6 +150,11 @@ function clearAuth(): void {
   clearIdentity();
 }
 
+/** Clear the frontend session (tokens + cached identity). Reused by portal gates — no JWT logic. */
+export function clearFrontendSession(): void {
+  clearAuth();
+}
+
 // ─── Fetch /me định danh + quyền ─────────────────────────────
 
 async function fetchAndSaveMe(token: string): Promise<MeResponse | null> {
@@ -154,7 +184,7 @@ async function attemptRefresh(): Promise<boolean> {
     const res = await fetch(`${API_URL}/refresh-token`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ refreshToken: CurrentrefreshToken }),
+      body: JSON.stringify({ Token: CurrentrefreshToken }),
     });
     if (!res.ok) return false;
     const body = await res.json();
@@ -207,6 +237,11 @@ export async function refreshIdentity(): Promise<void> {
   if (token) await fetchAndSaveMe(token);
 }
 
+/** Force a new JWT after a server-side role change. */
+export async function refreshSession(): Promise<boolean> {
+  return attemptRefresh();
+}
+
 // ─── AuthProvider ─────────────────────────────────────────────────────────────
 
 export const authProvider: AuthProvider = {
@@ -215,6 +250,7 @@ export const authProvider: AuthProvider = {
   login: async (payload) => {
     clearAuth();
     try {
+      const portal = (payload.portal ?? payload.expectedPortal) as PortalKind | undefined;
       // Nhận diện luồng đăng nhập (Google hay Local) — hỗ trợ cả payload từ useGoogleAuth
       const isExternal = payload.providerName === "google" || payload.provider === "Google" || !!payload.credential || !!payload.idToken;
       
@@ -260,9 +296,26 @@ export const authProvider: AuthProvider = {
       if (jwToken) {
         saveTokens(jwToken, refreshToken);
         await fetchAndSaveMe(jwToken);
+        rememberLoginPortal(portal);
+        // Portal role gate: same auth API, then validate the resolved
+        // identity. Wrong portal → clear the newly created frontend
+        // session so the account cannot enter through this portal.
+        if (portal === "candidate" || portal === "employer") {
+          const roles = loadIdentity()?.roles ?? [];
+          if (!isPortalAllowed(roles, portal)) {
+            clearAuth();
+            return {
+              success: false,
+              error: { name: "Sai cổng đăng nhập", message: WRONG_PORTAL_MESSAGE[portal] },
+            };
+          }
+        }
       }
       
-      return { success: true, redirectTo: "/dashboard" };
+      return {
+        success: true,
+        redirectTo: sanitizeNext(payload.redirectTo ?? payload.next) ?? "/dashboard",
+      };
     } catch (err) {
       return {
         success: false,
@@ -302,8 +355,16 @@ export const authProvider: AuthProvider = {
   },
 
   logout: async () => {
-    clearAuth()
-    return { success: true, redirectTo: "/login" };
+    // Determine the workspace BEFORE clearing identity: candidate goes back
+    // to /login, recruiter/HR to the employer login route. Admin follows the
+    // portal they logged in from (stored at login), else the safe default.
+    const roles = loadIdentity()?.roles ?? [];
+    const storedPortal = consumeLoginPortal();
+    const home = homePortalFor(roles);
+    const portal: PortalKind =
+      storedPortal ?? (home === "employer" ? "employer" : "candidate");
+    clearAuth();
+    return { success: true, redirectTo: portal === "employer" ? "/employer/login" : "/login" };
   },
 
   // Fast local check — no network call
@@ -400,7 +461,8 @@ export async function requestMagicLink(payload: {
 export async function magicLogin(payload: {
   email: string;
   token: string;
-}): Promise<{ success: boolean; error?: string }> {
+  portal?: PortalKind;
+}): Promise<{ success: boolean; error?: string; wrongPortal?: PortalKind }> {
   try {
     const res = await fetch(`${API_URL}/magic-login`, {
       method: "POST",
@@ -428,6 +490,14 @@ export async function magicLogin(payload: {
     if (jwToken) {
       saveTokens(jwToken, refreshToken); // Lưu token vào localStorage[cite: 18]
       await fetchAndSaveMe(jwToken);     // Đồng bộ thông tin định danh và quyền[cite: 18]
+      if (payload.portal === "candidate" || payload.portal === "employer") {
+        const roles = loadIdentity()?.roles ?? [];
+        if (!isPortalAllowed(roles, payload.portal)) {
+          clearAuth();
+          return { success: false, error: WRONG_PORTAL_MESSAGE[payload.portal], wrongPortal: payload.portal };
+        }
+      }
+      rememberLoginPortal(payload.portal);
       return { success: true };
     }
     

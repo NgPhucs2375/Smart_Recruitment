@@ -11,18 +11,20 @@ import { Button } from "@/components/ui/button";
  */
 export function GithubLoginButton({ text = "Tiếp tục với GitHub" }: { text?: string }) {
   return (
-    <span className="block w-full cursor-not-allowed" title="Đăng nhập bằng GitHub đang được phát triển (chờ backend OAuth)">
+    <span className="block w-full cursor-not-allowed" title="GitHub OAuth đang chờ tích hợp phía máy chủ">
       <Button
         type="button"
         variant="outline"
         disabled
         aria-disabled="true"
         aria-label={`${text} — sắp phát triển`}
-        className="h-11 w-full rounded-xl border-border bg-muted/50 font-medium text-muted-foreground"
+        className="relative h-11 w-full justify-start gap-3 rounded-xl border-border bg-white px-4 text-sm font-medium text-foreground opacity-70 shadow-sm disabled:opacity-70"
       >
-        <Github className="mr-2 size-4" aria-hidden />
-        {text}
-        <span className="ml-2 rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider">
+        <span className="flex size-6 items-center justify-center rounded-lg bg-[#24292f] text-white">
+          <Github className="size-3.5" aria-hidden />
+        </span>
+        <span className="flex-1 text-center">{text}</span>
+        <span className="rounded-full border border-border bg-muted px-2 py-px text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">
           Sắp có
         </span>
       </Button>

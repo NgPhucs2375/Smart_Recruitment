@@ -54,6 +54,7 @@ namespace Application.DTOs.Account
         public string QuyMoNhanSu { get; set; }
 
         // Dành riêng cho đăng ký bằng lời mời (NhanSu)
+        [JsonPropertyName("inviteToken")]
         public string InviteToken { get; set; }
     }
 }

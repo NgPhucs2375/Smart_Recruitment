@@ -1,4 +1,4 @@
-import type { CvTemplate, CvFormData } from "./types";
+import type { CvTemplate, CvFormData } from "@/lib/types";
 
 export const cvTemplates: CvTemplate[] = [
   {

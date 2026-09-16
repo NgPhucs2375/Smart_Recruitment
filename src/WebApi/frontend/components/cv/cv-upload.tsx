@@ -28,6 +28,7 @@ export function CvUpload({
     accept: {
       "application/pdf": [".pdf"],
       "application/vnd.openxmlformats-officedocument.wordprocessingml.document": [".docx"],
+      "application/json": [".json"],
     },
     maxSize: MAX_IMPORT_BYTES,
     multiple: false,
@@ -41,7 +42,7 @@ export function CvUpload({
         onError(`File quá lớn. Giới hạn ${formatBytes(MAX_IMPORT_BYTES)}.`);
         return;
       }
-      onError("Chỉ hỗ trợ file PDF hoặc DOCX.");
+      onError("Chỉ hỗ trợ file PDF, DOCX hoặc JSON Resume.");
     },
   });
 

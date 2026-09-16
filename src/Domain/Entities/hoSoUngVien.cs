@@ -25,6 +25,8 @@ namespace Domain.Entities
 
         public string? GioiThieu { get; set; }
 
+        public string? AnhDaiDienUrl { get; set; }
+
         public string? ViTriUngTuyen { get; set; }
 
         public double MucLuongMongMuon { get; set; }

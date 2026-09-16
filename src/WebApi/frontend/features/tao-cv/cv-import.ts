@@ -1,15 +1,18 @@
-import { newId, type CvFormData } from "./types";
+import type { CvFormData, JsonResume } from "@/lib/types";
+import { newId } from "./cv-data";
+import { defaultCvData } from "./constants";
+import { jsonResumeToCvData } from "./json-resume";
 import { cvApi } from "@/lib/api/cv-api";
 import { extractCvText } from "@/lib/cv/extract-cv-text";
 
 /**
  * Client-side CV import.
  *
- * PDF/DOCX is converted to raw text in the browser. Only that text is sent
- * to the backend for structured parsing; the original document stays local.
+ * PDF/DOCX is converted to raw text and parsed by the backend. JSON Resume
+ * is mapped locally to the same normalized form model.
  */
 
-export const SUPPORTED_IMPORT_EXTENSIONS = [".pdf", ".docx"] as const;
+export const SUPPORTED_IMPORT_EXTENSIONS = [".pdf", ".docx", ".json"] as const;
 export const MAX_IMPORT_BYTES = 10 * 1024 * 1024;
 
 export type CvImportErrorCode =
@@ -71,7 +74,7 @@ export async function parseCvFile(file: File): Promise<Partial<CvFormData>> {
   if (!(SUPPORTED_IMPORT_EXTENSIONS as readonly string[]).includes(ext)) {
     throw new CvImportError(
       "unsupported-type",
-      `Định dạng "${ext || "không rõ"}" chưa được hỗ trợ. Chỉ hỗ trợ PDF hoặc DOCX.`
+      `Định dạng "${ext || "không rõ"}" chưa được hỗ trợ. Chỉ hỗ trợ PDF, DOCX hoặc JSON Resume.`
     );
   }
   if (file.size > MAX_IMPORT_BYTES) {
@@ -82,6 +85,24 @@ export async function parseCvFile(file: File): Promise<Partial<CvFormData>> {
   }
   if (file.size === 0) {
     throw new CvImportError("empty", "File rỗng, không có dữ liệu để nhập.");
+  }
+
+  if (ext === ".json") {
+    try {
+      const parsed = JSON.parse(await file.text()) as JsonResume;
+      if (!parsed || typeof parsed !== "object" || (!parsed.basics && !parsed.work && !parsed.education)) {
+        throw new Error("JSON không đúng cấu trúc JSON Resume.");
+      }
+      return {
+        ...jsonResumeToCvData(parsed, defaultCvData),
+        tenFile: file.name.replace(/\.json$/i, ""),
+      };
+    } catch (error) {
+      throw new CvImportError(
+        "invalid-shape",
+        error instanceof Error ? error.message : "Không đọc được JSON Resume.",
+      );
+    }
   }
 
   let raw: unknown;
@@ -132,6 +153,7 @@ export async function parseCvFile(file: File): Promise<Partial<CvFormData>> {
       chuyenNganh: pickString(h, ["chuyenNganh"]),
       tuNgay: pickString(h, ["tuNgay"]),
       denNgay: pickString(h, ["denNgay"]),
+      isHienTai: h.isHienTai === true,
       moTa: pickString(h, ["moTa"]),
     }));
 
@@ -155,6 +177,9 @@ export async function parseCvFile(file: File): Promise<Partial<CvFormData>> {
       congNghe: skillNames(d.congNghe),
       link: pickString(d, ["link"]),
       moTa: pickString(d, ["moTa"]),
+      tuNgay: pickString(d, ["tuNgay"]),
+      denNgay: pickString(d, ["denNgay"]),
+      isHienTai: d.isHienTai === true,
     }));
 
   const kyNang = (Array.isArray(src.kyNang) ? src.kyNang : [])

@@ -17,6 +17,7 @@ namespace Application.Features.HoSoUngVien.Commands.UpdateHoSoUngVien
         public string GioiTinh { get; set; }
         public string DiaChi { get; set; }
         public string GioiThieu { get; set; }
+        public string AnhDaiDienUrl { get; set; }
         public string ViTriUngTuyen { get; set; }
         public double MucLuongMongMuon { get; set; }
         public bool IsTimViec { get; set; } = true;
@@ -55,6 +56,7 @@ namespace Application.Features.HoSoUngVien.Commands.UpdateHoSoUngVien
             entity.GioiTinh = request.GioiTinh?.Trim();
             entity.DiaChi = request.DiaChi?.Trim();
             entity.GioiThieu = request.GioiThieu?.Trim();
+            entity.AnhDaiDienUrl = request.AnhDaiDienUrl?.Trim();
             entity.ViTriUngTuyen = request.ViTriUngTuyen?.Trim();
             entity.MucLuongMongMuon = request.MucLuongMongMuon;
             entity.IsTimViec = request.IsTimViec;

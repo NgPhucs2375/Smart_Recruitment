@@ -6,7 +6,7 @@ import { X, Loader2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CvUpload } from "./cv-upload";
 import { CvImportError, parseCvFile } from "@/features/tao-cv/cv-import";
-import type { CvFormData } from "@/features/tao-cv/types";
+import type { CvFormData } from "@/lib/types";
 
 interface CvImportDialogProps {
   open: boolean;

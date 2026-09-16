@@ -24,29 +24,29 @@ const menus: CandidateMenu[] = [
       ["Việc làm đã lưu", "/viec-lam/da-luu"],
       ["Việc làm đã ứng tuyển", "/viec-lam/da-ung-tuyen"],
       ["Việc làm phù hợp", "/viec-lam/phu-hop"],
-      ["Việc làm theo vị trí", "/viec-lam/theo-vi-tri"],
     ],
   },
   {
+    // Candidate discovery: directory + followed list. "Top doanh nghiệp"
+    // has no backend ranking data, so it is not a standalone nav item
+    // (route file kept, see /doanh-nghiep/top).
     title: "Doanh nghiệp",
     items: [
-      ["Tìm công ty", "/doanh-nghiep"],
-      ["Công ty đã theo dõi", "/doanh-nghiep/dang-theo-doi"],
-      ["Top doanh nghiệp", "/doanh-nghiep/top"],
+      ["Khám phá công ty", "/doanh-nghiep"],
+      ["Công ty đang theo dõi", "/doanh-nghiep/dang-theo-doi"],
     ],
   },
   {
-    // All destinations are existing routes: /tao-cv is the full
-    // builder (create + manage + templates + AI agent), /CV is the
-    // AI-assisted editor. No /tao-cv/ai or /tao-cv/tai-len routes exist
-    // (upload feature does not exist), so they are not listed.
+    // /tao-cv is the full builder (create + templates + AI agent + JSON
+    // import via ?import=1), /CV is the AI-assisted editor, /mau-cv is the
+    // template gallery. /ho-so owns the CV collection. Import lives inside
+    // the creation flow — no separate nav entry.
     title: "Tạo CV",
     items: [
       ["Tạo CV mới", "/tao-cv"],
       ["Tạo CV với AI", "/CV"],
-      ["Mẫu CV", "/tao-cv"],
+      ["Mẫu CV", "/mau-cv"],
       ["Hồ sơ của tôi", "/ho-so"],
-      ["Quản lý CV", "/tao-cv"],
     ],
   },
 ];

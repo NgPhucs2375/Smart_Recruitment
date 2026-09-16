@@ -13,6 +13,7 @@ namespace Application.DTOs.HoSoUngVien
         public string GioiTinh { get; set; }
         public string DiaChi { get; set; }
         public string GioiThieu { get; set; }
+        public string AnhDaiDienUrl { get; set; }
         public string ViTriUngTuyen { get; set; }
         public double MucLuongMongMuon { get; set; }
         public bool IsTimViec { get; set; }
