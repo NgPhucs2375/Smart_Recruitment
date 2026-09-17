@@ -5,7 +5,6 @@ import { Plus, Trash2, FileText } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ChipInput } from "./chip-input";
 import type {
@@ -137,6 +136,9 @@ function rangeErrorText(tu: string, den: string, endDisabled?: boolean): string 
 
 export function CvForm({ data, onChange }: CvFormProps) {
   const lh = data.thongTinLienHe;
+  // UI-only: id of the repeat item added most recently, so only it plays
+  // the enter animation (no mount cascade on pre-filled data).
+  const [freshId, setFreshId] = useState<string | null>(null);
   const setLienHe = (field: keyof LienHe, value: string) =>
     onChange({ ...data, thongTinLienHe: { ...lh, [field]: value } });
 
@@ -291,6 +293,7 @@ export function CvForm({ data, onChange }: CvFormProps) {
           <Button variant="outline" size="sm" onClick={() => {
             const item: KinhNghiemItem = { id: newId(), congTy: "", chucDanh: "", tuNgay: "", denNgay: "", isHienTai: false, moTa: "", kyNangSuDung: [] };
             onChange({ ...data, kinhNghiemLamViec: [...data.kinhNghiemLamViec, item] });
+            setFreshId(item.id);
           }}>
             <Plus className="h-4 w-4 mr-1" />Thêm
           </Button>
@@ -302,7 +305,7 @@ export function CvForm({ data, onChange }: CvFormProps) {
             const mode = modeFor(k.id, k.tuNgay, k.denNgay);
             const err = rangeErrorText(k.tuNgay, k.denNgay, k.isHienTai);
             return (
-            <div key={k.id} className="cv-repeat-item" style={{ marginBottom: "0.75rem" }}>
+            <div key={k.id} className={`cv-repeat-item${freshId === k.id ? " cv-repeat-enter" : ""}`} onAnimationEnd={() => setFreshId((f) => (f === k.id ? null : f))} style={{ marginBottom: "0.75rem" }}>
               <div style={{ display: "flex", gap: "1rem", marginBottom: "0.75rem" }}>
                 <Input placeholder="Công ty *" value={k.congTy} onChange={(e) => updateList("kinhNghiemLamViec", k.id, "congTy", e.target.value)} style={{ flex: 1 }} />
                 <Input placeholder="Chức danh *" value={k.chucDanh} onChange={(e) => updateList("kinhNghiemLamViec", k.id, "chucDanh", e.target.value)} style={{ flex: 1 }} />
@@ -339,6 +342,7 @@ export function CvForm({ data, onChange }: CvFormProps) {
           <Button variant="outline" size="sm" onClick={() => {
             const item: HocVanItem = { id: newId(), truong: "", chuyenNganh: "", tuNgay: "", denNgay: "", moTa: "" };
             onChange({ ...data, hocVan: [...data.hocVan, item] });
+            setFreshId(item.id);
           }}>
             <Plus className="h-4 w-4 mr-1" />Thêm
           </Button>
@@ -350,7 +354,7 @@ export function CvForm({ data, onChange }: CvFormProps) {
             const mode = modeFor(h.id, h.tuNgay, h.denNgay, "year_only");
             const err = rangeErrorText(h.tuNgay, h.denNgay, h.isHienTai);
             return (
-            <div key={h.id} className="cv-repeat-item" style={{ marginBottom: "0.75rem" }}>
+            <div key={h.id} className={`cv-repeat-item${freshId === h.id ? " cv-repeat-enter" : ""}`} onAnimationEnd={() => setFreshId((f) => (f === h.id ? null : f))} style={{ marginBottom: "0.75rem" }}>
               <div style={{ display: "flex", gap: "1rem", marginBottom: "0.75rem" }}>
                 <Input placeholder="Trường *" value={h.truong} onChange={(e) => updateList("hocVan", h.id, "truong", e.target.value)} style={{ flex: 1 }} />
                 <Input placeholder="Chuyên ngành" value={h.chuyenNganh} onChange={(e) => updateList("hocVan", h.id, "chuyenNganh", e.target.value)} style={{ flex: 1 }} />
@@ -410,13 +414,6 @@ export function CvForm({ data, onChange }: CvFormProps) {
               </Button>
             </div>
           ))}
-          {data.kyNang.length > 0 && (
-            <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", marginTop: "0.5rem" }}>
-              {data.kyNang.map((k) => (
-                <Badge key={k.id} variant="secondary">{k.tenKyNang || "(trống)"}</Badge>
-              ))}
-            </div>
-          )}
         </div>
       </div>
 
@@ -427,6 +424,7 @@ export function CvForm({ data, onChange }: CvFormProps) {
           <Button variant="outline" size="sm" onClick={() => {
             const item: DuAnItem = { id: newId(), tenDuAn: "", vaiTro: "", congNghe: [], link: "", moTa: "", tuNgay: "", denNgay: "" };
             onChange({ ...data, duAn: [...data.duAn, item] });
+            setFreshId(item.id);
           }}>
             <Plus className="h-4 w-4 mr-1" />Thêm
           </Button>
@@ -438,7 +436,7 @@ export function CvForm({ data, onChange }: CvFormProps) {
             const mode = modeFor(d.id, d.tuNgay, d.denNgay);
             const err = rangeErrorText(d.tuNgay, d.denNgay, d.isHienTai);
             return (
-            <div key={d.id} className="cv-repeat-item" style={{ marginBottom: "0.75rem" }}>
+            <div key={d.id} className={`cv-repeat-item${freshId === d.id ? " cv-repeat-enter" : ""}`} onAnimationEnd={() => setFreshId((f) => (f === d.id ? null : f))} style={{ marginBottom: "0.75rem" }}>
               <div style={{ display: "flex", gap: "1rem", marginBottom: "0.75rem" }}>
                 <Input placeholder="Tên dự án *" value={d.tenDuAn} onChange={(e) => updateList("duAn", d.id, "tenDuAn", e.target.value)} style={{ flex: 1 }} />
                 <Input placeholder="Vai trò" value={d.vaiTro} onChange={(e) => updateList("duAn", d.id, "vaiTro", e.target.value)} style={{ flex: 1 }} />
@@ -476,6 +474,7 @@ export function CvForm({ data, onChange }: CvFormProps) {
           <Button variant="outline" size="sm" onClick={() => {
             const item: ChungChiItem = { id: newId(), tenChungChi: "", donViCap: "", ngayCap: "", maXacMinh: "" };
             onChange({ ...data, chungChi: [...data.chungChi, item] });
+            setFreshId(item.id);
           }}>
             <Plus className="h-4 w-4 mr-1" />Thêm
           </Button>
@@ -486,7 +485,7 @@ export function CvForm({ data, onChange }: CvFormProps) {
           ) : data.chungChi.map((c) => {
             const mode = modeFor(c.id, c.ngayCap, "");
             return (
-            <div key={c.id} className="cv-repeat-item" style={{ marginBottom: "0.75rem" }}>
+            <div key={c.id} className={`cv-repeat-item${freshId === c.id ? " cv-repeat-enter" : ""}`} onAnimationEnd={() => setFreshId((f) => (f === c.id ? null : f))} style={{ marginBottom: "0.75rem" }}>
               <div style={{ display: "flex", gap: "1rem", marginBottom: "0.75rem" }}>
                 <Input placeholder="Tên chứng chỉ *" value={c.tenChungChi} onChange={(e) => updateList("chungChi", c.id, "tenChungChi", e.target.value)} style={{ flex: 1 }} />
                 <Input placeholder="Đơn vị cấp" value={c.donViCap} onChange={(e) => updateList("chungChi", c.id, "donViCap", e.target.value)} style={{ flex: 1 }} />

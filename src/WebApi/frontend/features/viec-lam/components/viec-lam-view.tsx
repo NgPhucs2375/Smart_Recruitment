@@ -79,12 +79,12 @@ function ViecLamContent() {
 
   return (
     <div className="mx-auto w-full max-w-4xl space-y-6 sm:space-y-8">
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3.5">
-          <div className="flex size-11 items-center justify-center rounded-2xl bg-frost">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-3.5">
+          <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-frost">
             <Briefcase className="size-5 text-marine" />
           </div>
-          <div>
+          <div className="min-w-0">
             <h1 className="text-2xl font-semibold tracking-tight text-charcoal sm:text-[28px]">Tìm Việc Làm</h1>
             <p className="mt-0.5 text-sm text-charcoal/60">
               Khám phá cơ hội nghề nghiệp phù hợp với bạn
@@ -108,6 +108,9 @@ function ViecLamContent() {
         onFilterChange={setFilters}
         totalJobs={filteredJobs.length}
       />
+      <p className="text-xs text-charcoal/50">
+        Danh sách minh họa từ dữ liệu mẫu — kết quả tìm kiếm và ứng tuyển đầy đủ sẽ có khi cổng việc làm chính thức hoạt động.
+      </p>
 
       {showSavedOnly && (
         <div className="flex items-center justify-between rounded-2xl border border-sand/50 bg-sandsoft px-4 py-3 text-sm">
@@ -178,17 +181,17 @@ function DaLuuContent() {
 
   return (
     <div className="mx-auto w-full max-w-4xl space-y-6 sm:space-y-8">
-      <div className="flex items-center gap-3.5">
-        <div className="flex size-11 items-center justify-center rounded-2xl bg-sandsoft">
+      <div className="flex flex-wrap items-center gap-3.5">
+        <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-sandsoft">
           <Bookmark className="size-5 text-bronze" />
         </div>
-        <div>
+        <div className="min-w-0">
           <h1 className="text-2xl font-semibold tracking-tight text-charcoal sm:text-[28px]">Việc làm đã lưu</h1>
           <p className="mt-0.5 text-sm text-charcoal/60">
             {count > 0 ? `Bạn đã lưu ${count} việc làm • Xem lại mà không cần mở chi tiết` : "Bấm bookmark trên thẻ việc làm để lưu nhanh"}
           </p>
         </div>
-        <Link href="/viec-lam" className={cn(buttonVariants({ variant: "outline", size: "sm" }), "ml-auto rounded-full")}>
+        <Link href="/viec-lam" className={cn(buttonVariants({ variant: "outline", size: "sm" }), "ml-auto shrink-0 rounded-full")}>
           Tìm việc làm <ArrowRight className="ml-1 h-4 w-4" />
         </Link>
       </div>
@@ -211,7 +214,7 @@ function DaLuuContent() {
           </div>
           <h3 className="mt-5 text-lg font-semibold text-charcoal">Chưa có việc làm nào được lưu</h3>
           <p className="mt-2 max-w-md text-sm leading-6 text-charcoal/60">
-            Khi duyệt việc làm ở trang chủ hay danh sách việc làm, bấm biểu tượng <Bookmark className="mb-0.5 inline h-3.5 w-3.5" /> để lưu tin nhanh. Việc đã lưu sẽ xuất hiện tại đây và đồng bộ trên mọi thiết bị qua localStorage.
+            Khi duyệt việc làm ở trang chủ hay danh sách việc làm, bấm biểu tượng <Bookmark className="mb-0.5 inline h-3.5 w-3.5" /> để lưu tin nhanh. Việc đã lưu sẽ xuất hiện tại đây và được giữ trên trình duyệt này.
           </p>
           <div className="mt-6 flex flex-col gap-3 sm:flex-row">
             <Link href="/viec-lam" className={cn(buttonVariants({ variant: "default" }), "rounded-full")}>

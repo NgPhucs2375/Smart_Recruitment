@@ -1,8 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { useSearchParams } from "next/navigation";
-import { FileText, Save, Eye, Pencil, Plus, Trash2, Printer, Check, ListChecks, Sparkles, Upload, LayoutTemplate, UserRound, Download } from "lucide-react";
+import { FileText, Save, Eye, Pencil, Plus, Trash2, Printer, Check, ListChecks, Sparkles, Upload, LayoutTemplate, UserRound, Download, ZoomIn, ZoomOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -30,6 +30,99 @@ import {
 import { cvApi } from "@/lib/api/cv-api";
 import { cvDataToJsonResume } from "@/features/tao-cv/json-resume";
 
+const DRAFT_KEY = "hireai:manual-cv-draft";
+const AUTOSAVE_DELAY_MS = 1500;
+
+type SaveStatus = "saving" | "dirty" | "saved";
+
+function formatClock(d: Date | null): string {
+  if (!d) return "";
+  return d.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
+}
+
+/**
+ * Quick actions pinned at the top of the A4 preview pane so the user
+ * never has to scroll back to the page header to save or export.
+ * Mirrors the header buttons — same handlers, no duplicated logic.
+ */
+export function PreviewActionBar({
+  status,
+  savedAt,
+  draftAt,
+  zoom,
+  onZoom,
+  onSave,
+  onExport,
+  saving,
+  exportingPdf,
+  disabled,
+}: {
+  status: SaveStatus;
+  savedAt: Date | null;
+  draftAt: Date | null;
+  zoom: number;
+  onZoom: (next: number) => void;
+  onSave: () => void;
+  onExport: () => void;
+  saving: boolean;
+  exportingPdf: boolean;
+  disabled: boolean;
+}) {
+  const dot =
+    status === "saving" ? "bg-marine" : status === "dirty" ? "bg-bronze" : "bg-teal";
+  const label =
+    status === "saving"
+      ? "Đang lưu..."
+      : status === "dirty"
+        ? draftAt
+          ? `Chưa lưu • Nháp ${formatClock(draftAt)}`
+          : "Chưa lưu"
+        : savedAt
+          ? `Đã lưu ${formatClock(savedAt)}`
+          : "Đã lưu";
+  return (
+    <div className="cv-preview-bar">
+      <p className="flex min-w-0 items-center gap-1.5 text-xs font-medium text-charcoal/70" aria-live="polite">
+        <span className={`size-2 shrink-0 rounded-full ${dot}`} aria-hidden="true" />
+        <span className="truncate">{label}</span>
+      </p>
+      <div className="flex shrink-0 items-center gap-1.5">
+        <div className="flex items-center rounded-full border border-linen bg-white" role="group" aria-label="Phóng to preview">
+          <button
+            type="button"
+            onClick={() => onZoom(Math.max(70, zoom - 10))}
+            disabled={disabled || zoom <= 70}
+            aria-label="Thu nhỏ preview"
+            className="flex size-7 items-center justify-center rounded-full text-charcoal/70 transition hover:bg-frost disabled:opacity-40"
+          >
+            <ZoomOut className="size-3.5" />
+          </button>
+          <span className="min-w-10 text-center font-mono text-[11px] font-semibold text-charcoal/70" aria-live="polite">
+            {zoom}%
+          </span>
+          <button
+            type="button"
+            onClick={() => onZoom(Math.min(130, zoom + 10))}
+            disabled={disabled || zoom >= 130}
+            aria-label="Phóng to preview"
+            className="flex size-7 items-center justify-center rounded-full text-charcoal/70 transition hover:bg-frost disabled:opacity-40"
+          >
+            <ZoomIn className="size-3.5" />
+          </button>
+        </div>
+        <Button type="button" variant="outline" size="sm" className="h-8 rounded-full text-xs" onClick={onExport} disabled={disabled || exportingPdf}>
+          <Printer className="mr-1 size-3.5" />
+          {exportingPdf ? "Đang xuất..." : "Xuất PDF"}
+        </Button>
+        <Button type="button" size="sm" className="h-8 rounded-full text-xs" onClick={onSave} disabled={disabled || saving}>
+          <Save className="mr-1 size-3.5" />
+          {saving ? "Đang lưu..." : "Lưu nháp"}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 export function ChecklistCard({ items, doneCount }: { items: { label: string; done: boolean }[]; doneCount: number }) {
   return (
     <div className="rounded-3xl border border-linen bg-card p-5 shadow-sm">
@@ -45,9 +138,10 @@ export function ChecklistCard({ items, doneCount }: { items: { label: string; do
         {items.map((item) => (
           <li key={item.label} className="flex items-center gap-2.5 text-sm">
             <span
-              className={`flex size-5 shrink-0 items-center justify-center rounded-full border transition ${
+              className={`cv-check-dot flex size-5 shrink-0 items-center justify-center rounded-full border transition ${
                 item.done ? "border-teal bg-teal text-white" : "border-linen bg-ivory text-transparent"
               }`}
+              data-done={item.done}
             >
               <Check className="size-3" />
             </span>
@@ -72,7 +166,7 @@ export function QualityCard({ progress, label, note }: { progress: number; label
         </span>
       </div>
       <div className="mt-3 h-2 overflow-hidden rounded-full bg-frost">
-        <div className="h-full rounded-full bg-teal transition-all duration-500" style={{ width: `${progress}%` }} />
+        <div className="h-full rounded-full bg-teal transition-all duration-300 ease-out" style={{ width: `${progress}%` }} />
       </div>
       <p className="mt-2.5 text-xs text-charcoal/55">{note}</p>
     </div>
@@ -91,6 +185,36 @@ export function TaoCvView() {
   const [importOpen, setImportOpen] = useState(false);
   const [importSessionId, setImportSessionId] = useState<string | null>(null);
   const [versions, setVersions] = useState<CvVersionVm[]>([]);
+  const [pageCount, setPageCount] = useState(1);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [zoom, setZoom] = useState(100);
+  const [dirty, setDirty] = useState(false);
+  const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
+  const [draftAt, setDraftAt] = useState<Date | null>(null);
+  const [pendingDraft, setPendingDraft] = useState<{ savedAt: string; cvData: CvFormData } | null>(null);
+  const lastSavedRef = useRef<string | null>(null);
+  const draftOfferedRef = useRef(false);
+
+function CvBuilderSkeleton() {
+  return (
+    <div className="grid gap-8 xl:grid-cols-[46fr_54fr]" aria-label="Đang tải trình tạo CV" aria-busy="true">
+      <div className="space-y-4">
+        {[0, 1, 2].map((i) => (
+          <div key={i} className="animate-pulse rounded-3xl border border-linen bg-card p-5">
+            <div className="h-4 w-1/3 rounded bg-frost" />
+            <div className="mt-3 space-y-2">
+              <div className="h-9 rounded-xl bg-frost" />
+              <div className="h-9 rounded-xl bg-frost" />
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="animate-pulse rounded-3xl border border-linen bg-card p-6">
+        <div className="mx-auto aspect-[210/297] w-full max-w-md rounded-lg bg-frost" />
+      </div>
+    </div>
+  );
+}
 
   // Scroll to the first VISIBLE templates/AI block (mobile tabs + desktop
   // column both render them; hidden ones are skipped).
@@ -102,6 +226,7 @@ export function TaoCvView() {
 
   const loadAll = useCallback(async () => {
     setLoading(true);
+    setLoadError(null);
     try {
       const hs = await cvApi.getMyHoSo();
       setHoSo(hs);
@@ -131,7 +256,9 @@ export function TaoCvView() {
       }
       if (searchParams.get("import") === "1") setImportOpen(true);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Không tải được dữ liệu CV");
+      const message = e instanceof Error ? e.message : "Không tải được dữ liệu CV";
+      setLoadError(message);
+      toast.error(message);
     } finally {
       setLoading(false);
     }
@@ -141,6 +268,82 @@ export function TaoCvView() {
     const timer = window.setTimeout(() => void loadAll(), 0);
     return () => window.clearTimeout(timer);
   }, [loadAll]);
+
+  // Dirty tracking: compare working copy against the last saved snapshot.
+  useEffect(() => {
+    if (loading) return;
+    const snap = JSON.stringify(cvData);
+    if (lastSavedRef.current === null) {
+      lastSavedRef.current = snap;
+      setDirty(false);
+      return;
+    }
+    setDirty(snap !== lastSavedRef.current);
+  }, [cvData, loading]);
+
+  // Autosave a local draft 1.5s after the user stops typing. Local only:
+  // no PDF render, no API call, no version bump. Skipped silently while
+  // a server save is in flight or the form fails validation.
+  useEffect(() => {
+    if (loading || saving || !dirty) return;
+    if (validateManualCv(cvData)) return;
+    const timer = window.setTimeout(() => {
+      try {
+        localStorage.setItem(DRAFT_KEY, JSON.stringify({ savedAt: new Date().toISOString(), cvData }));
+        setDraftAt(new Date());
+      } catch {
+        // Storage blocked/full — stay silent, manual save still works.
+      }
+    }, AUTOSAVE_DELAY_MS);
+    return () => window.clearTimeout(timer);
+  }, [cvData, dirty, loading, saving]);
+
+  // Offer to restore a local draft once, right after the initial load.
+  useEffect(() => {
+    if (loading || loadError || draftOfferedRef.current) return;
+    draftOfferedRef.current = true;
+    let parsed: { savedAt: string; cvData: CvFormData } | null = null;
+    try {
+      const raw = localStorage.getItem(DRAFT_KEY);
+      if (raw) parsed = JSON.parse(raw) as { savedAt: string; cvData: CvFormData };
+    } catch {
+      parsed = null;
+    }
+    if (!parsed || typeof parsed.cvData !== "object" || !parsed.cvData) return;
+    if (JSON.stringify(parsed.cvData) === JSON.stringify(cvData)) return;
+    setPendingDraft(parsed);
+    if (parsed.savedAt) setDraftAt(new Date(parsed.savedAt));
+  }, [loading, loadError, cvData]);
+
+  const applyDraft = () => {
+    if (!pendingDraft) return;
+    setCvData(pendingDraft.cvData);
+    setPendingDraft(null);
+    toast.success("Đã khôi phục bản nháp tự lưu");
+  };
+
+  const discardDraft = () => {
+    try {
+      localStorage.removeItem(DRAFT_KEY);
+    } catch {
+      // ignore
+    }
+    setPendingDraft(null);
+    setDraftAt(null);
+  };
+
+  const markSaved = (data: CvFormData) => {
+    lastSavedRef.current = JSON.stringify(data);
+    setDirty(false);
+    setLastSavedAt(new Date());
+    setDraftAt(null);
+    setPendingDraft(null);
+    try {
+      localStorage.removeItem(DRAFT_KEY);
+    } catch {
+      // ignore
+    }
+  };
 
   const handleSave = async () => {
     if (!hoSo) {
@@ -170,6 +373,7 @@ export function TaoCvView() {
       setSelectedId(result.cvUngVienId);
       setImportSessionId(null);
       setVersions(await cvApi.getVersions(result.cvUngVienId));
+      markSaved(cvData);
       toast.success(`Đã lưu phiên bản ${result.soPhienBan} của CV`);
       const list = await cvApi.listCvs(hoSo.id);
       setCvList(list);
@@ -184,7 +388,12 @@ export function TaoCvView() {
     setSelectedId(null);
     setImportSessionId(null);
     setVersions([]);
-    setCvData(JSON.parse(JSON.stringify(defaultCvData)) as CvFormData);
+    const fresh = JSON.parse(JSON.stringify(defaultCvData)) as CvFormData;
+    setCvData(fresh);
+    lastSavedRef.current = JSON.stringify(fresh);
+    setDirty(false);
+    setLastSavedAt(null);
+    discardDraft();
   };
 
   const handleSelect = async (id: number) => {
@@ -194,7 +403,13 @@ export function TaoCvView() {
       const detail = await cvApi.getById(id);
       setSelectedId(id);
       setImportSessionId(null);
-      setCvData((prev) => manualCvDetailToForm(detail, prev));
+      setCvData((prev) => {
+        const next = manualCvDetailToForm(detail, prev);
+        lastSavedRef.current = JSON.stringify(next);
+        return next;
+      });
+      setDirty(false);
+      setLastSavedAt(null);
       setVersions(await cvApi.getVersions(id));
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Không tải được chi tiết CV");
@@ -333,6 +548,8 @@ export function TaoCvView() {
       progress >= 100 ? "Xuất sắc" : progress >= 70 ? "Gần xong rồi" : progress >= 40 ? "Đang hoàn thiện" : "Mới bắt đầu";
     return { items, doneCount, label };
   }, [cvData, progress]);
+
+  const saveStatus: SaveStatus = saving ? "saving" : dirty ? "dirty" : "saved";
 
   return (
     <div className="mx-auto w-full max-w-[1440px] space-y-5 px-4 py-6 sm:px-6 sm:py-8">
@@ -504,6 +721,35 @@ export function TaoCvView() {
         note={selectedId ? `Đang sửa CV #${selectedId}` : "CV mới chưa lưu — hoàn thành checklist để đạt 100%"}
       />
 
+      {!loading && !loadError && pendingDraft && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-3xl border border-marine/30 bg-frost px-4 py-3.5" role="status">
+          <p className="text-sm text-charcoal">
+            Đã tìm thấy bản nháp tự lưu
+            {pendingDraft.savedAt ? ` lúc ${formatClock(new Date(pendingDraft.savedAt))}` : ""}. Khôi phục nội dung nháp?
+          </p>
+          <div className="flex shrink-0 gap-2">
+            <Button type="button" variant="outline" size="sm" className="rounded-full" onClick={discardDraft}>
+              Bỏ qua
+            </Button>
+            <Button type="button" size="sm" className="rounded-full" onClick={applyDraft}>
+              Khôi phục nháp
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {loading ? (
+        <CvBuilderSkeleton />
+      ) : loadError ? (
+        <div className="flex flex-col items-center gap-3 rounded-3xl border border-destructive/30 bg-card px-6 py-14 text-center" role="alert">
+          <p className="text-sm font-semibold text-charcoal">Không tải được dữ liệu CV</p>
+          <p className="max-w-sm text-sm text-charcoal/55">{loadError}</p>
+          <Button type="button" variant="outline" className="mt-1 rounded-full" onClick={() => void loadAll()}>
+            Thử lại
+          </Button>
+        </div>
+      ) : (
+      <>
       {/* Mobile/tablet: Tabs layout */}
       <div className="xl:hidden">
         <Tabs defaultValue="form" className="w-full">
@@ -531,18 +777,31 @@ export function TaoCvView() {
             </div>
           </TabsContent>
           <TabsContent value="preview" className="mt-4">
-            <div className="sticky top-20">
-              <div data-manual-cv-pdf>
-                <CvPreview data={cvData} />
+            <div className="sticky top-20 rounded-[1.35rem] border border-linen bg-[#eaf1f7] p-3">
+              <PreviewActionBar
+                status={saveStatus}
+                savedAt={lastSavedAt}
+                draftAt={draftAt}
+                zoom={zoom}
+                onZoom={setZoom}
+                onSave={() => void handleSave()}
+                onExport={() => void handleExportPdf()}
+                saving={saving}
+                exportingPdf={exportingPdf}
+                disabled={loading}
+              />
+              <div data-manual-cv-pdf style={{ zoom: `${zoom}%` } as CSSProperties}>
+                <CvPreview data={cvData} onPageCount={setPageCount} />
               </div>
             </div>
           </TabsContent>
         </Tabs>
       </div>
 
-      {/* Desktop: 2-column layout */}
+      {/* Desktop: 2-column layout — page scrolls naturally, no nested
+          scroll container; preview stays sticky without trapping scroll. */}
       <div className="hidden xl:block">
-        <div className="grid gap-6" style={{ gridTemplateColumns: "minmax(0, 5fr) minmax(420px, 7fr)" }}>
+        <div className="grid gap-8" style={{ gridTemplateColumns: "minmax(0, 46fr) minmax(0, 54fr)" }}>
           {/* Editor column */}
           <div className="min-w-0">
             <div className="mb-4 flex items-end justify-between">
@@ -552,7 +811,7 @@ export function TaoCvView() {
                 6 mục
               </span>
             </div>
-            <div className="space-y-4" style={{ overflowY: "auto", maxHeight: "calc(100vh - 280px)" }}>
+            <div className="space-y-4">
               <ChecklistCard items={quality.items} doneCount={quality.doneCount} />
               <div data-scroll-target="templates">
                 <TemplateSelector
@@ -569,17 +828,43 @@ export function TaoCvView() {
 
           {/* Preview column */}
           <div className="min-w-0">
-            <div className="mb-4 flex items-end justify-between">
+            <div className="mb-4 flex items-end justify-between gap-2">
               <h2 className="text-xl font-semibold tracking-tight text-charcoal">Xem trước</h2>
-              <span className="flex items-center gap-1.5 rounded-full bg-navy px-2.5 py-1 text-xs font-semibold text-white">
-                <Eye className="size-3" />
-                Thời gian thực
-              </span>
+              <div className="flex items-center gap-2">
+                <span
+                  className="rounded-full border border-linen bg-card px-2.5 py-1 font-mono text-xs font-semibold text-charcoal/60"
+                  aria-live="polite"
+                  title="Số trang A4 của bản xem trước"
+                >
+                  {pageCount} trang
+                </span>
+                <span className="flex items-center gap-1.5 rounded-full bg-navy px-2.5 py-1 text-xs font-semibold text-white">
+                  <Eye className="size-3" />
+                  Thời gian thực
+                </span>
+              </div>
             </div>
             <div className="cv-preview-frame">
-              <div data-manual-cv-pdf>
-                <CvPreview data={cvData} />
+              <PreviewActionBar
+                status={saveStatus}
+                savedAt={lastSavedAt}
+                draftAt={draftAt}
+                zoom={zoom}
+                onZoom={setZoom}
+                onSave={() => void handleSave()}
+                onExport={() => void handleExportPdf()}
+                saving={saving}
+                exportingPdf={exportingPdf}
+                disabled={loading}
+              />
+              <div data-manual-cv-pdf style={{ zoom: `${zoom}%` } as CSSProperties}>
+                <CvPreview data={cvData} onPageCount={setPageCount} />
               </div>
+              {pageCount > 2 && (
+                <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-center text-xs leading-5 text-amber-800">
+                  CV đang dài hơn 2 trang. Hãy rút gọn nội dung để dễ đọc hơn.
+                </p>
+              )}
               <div className="cv-preview-hint">
                 <Sparkles className="size-3.5 text-teal" />
                 <span>Gợi ý: hoàn thành checklist bên trái để CV đạt 100%</span>
@@ -588,6 +873,8 @@ export function TaoCvView() {
           </div>
         </div>
       </div>
+      </>
+      )}
     </div>
   );
 }

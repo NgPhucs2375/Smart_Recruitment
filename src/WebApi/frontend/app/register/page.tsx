@@ -67,6 +67,7 @@ function RegisterContent() {
     loading: magicLoading,
     sent: magicSent,
     error: magicError,
+    sentEmail: magicSentEmail,
     reset: resetMagic,
   } = useMagicLinkRegister();
 
@@ -259,7 +260,7 @@ function RegisterContent() {
       {!isInvitation && method === "magic" && (
         <form onSubmit={handleMagicSubmit} className="space-y-3.5">
           {magicSent ? (
-            <MagicLinkSentSuccess email={registerMagic("email").name} onResend={resetMagic} />
+            <MagicLinkSentSuccess email={magicSentEmail} onResend={resetMagic} />
           ) : (
             <>
               {magicError && (
@@ -347,7 +348,7 @@ function RegisterContent() {
 
 export default function RegisterPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-background" />}>
+    <Suspense fallback={<div className="min-h-dvh bg-background" />}>
       <RegisterContent />
     </Suspense>
   );

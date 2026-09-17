@@ -1,29 +1,48 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Dialog as DialogPrimitive } from "@base-ui/react/dialog";
-import { Eye, ArrowRight, X, FileText, Check } from "lucide-react";
+import { Eye, ArrowRight, X, FileText, Check, Search, LayoutGrid } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
 import {
   SAMPLE_RESUME,
+  TEMPLATE_CATEGORIES,
   TEMPLATE_REGISTRY,
   resolveTemplateId,
   type ResumeTemplateMeta,
+  type TemplateCategory,
 } from "@/features/tao-cv/template-registry";
 
 /**
  * Template gallery — renders the ACTUAL registered template components with
  * a fixed SAMPLE ResumeData, scaled into thumbnails. No screenshots, no
- * colored-rectangle placeholders. Registry contract untouched.
+ * colored-rectangle placeholders. Search + category facets keep the
+ * 18-template library browsable. Registry contract untouched.
  */
 export function MauCvGallery() {
-  const templates = Object.values(TEMPLATE_REGISTRY);
+  const templates = useMemo(() => Object.values(TEMPLATE_REGISTRY), []);
   const [previewId, setPreviewId] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
+  const [category, setCategory] = useState<TemplateCategory | "all">("all");
+
   const preview: ResumeTemplateMeta | null = previewId
     ? (TEMPLATE_REGISTRY[resolveTemplateId(previewId)] ?? null)
     : null;
+
+  const filtered = templates.filter((t) => {
+    if (category !== "all" && !(t.categories ?? []).includes(category)) return false;
+    const q = query.trim().toLowerCase();
+    if (!q) return true;
+    return (
+      t.name.toLowerCase().includes(q) ||
+      t.description.toLowerCase().includes(q) ||
+      t.tags.some((tag) => tag.toLowerCase().includes(q))
+    );
+  });
 
   return (
     <div className="mx-auto w-full max-w-6xl space-y-6 px-4 py-6 sm:px-6 sm:py-8">
@@ -40,15 +59,68 @@ export function MauCvGallery() {
         </p>
       </div>
 
-      <div className="grid gap-5 sm:grid-cols-2">
-        {templates.map((template) => (
-          <TemplateCard
-            key={template.id}
-            template={template}
-            onPreview={() => setPreviewId(template.id)}
+      <div className="flex flex-col gap-3 rounded-3xl border border-linen bg-card p-4 shadow-sm sm:flex-row sm:items-center">
+        <div className="relative flex-1">
+          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Tìm mẫu theo tên, thẻ: senior, ats, 2 cột…"
+            aria-label="Tìm mẫu CV"
+            className="rounded-full pl-9"
           />
+        </div>
+        <p className="shrink-0 text-xs font-medium text-charcoal/55" aria-live="polite">
+          {filtered.length}/{templates.length} mẫu
+        </p>
+      </div>
+
+      <div className="flex flex-wrap gap-1.5" role="group" aria-label="Lọc mẫu theo nhóm">
+        {TEMPLATE_CATEGORIES.map((c) => (
+          <button
+            key={c.id}
+            type="button"
+            aria-pressed={category === c.id}
+            onClick={() => setCategory(c.id)}
+            className={cn(
+              "inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-xs font-medium transition",
+              category === c.id
+                ? "border-navy bg-navy text-white"
+                : "border-linen bg-card text-charcoal/65 hover:border-navy/40 hover:text-charcoal",
+            )}
+          >
+            {c.id === "all" && <LayoutGrid className="size-3.5" />}
+            {c.label}
+          </button>
         ))}
       </div>
+
+      {filtered.length === 0 ? (
+        <div className="flex flex-col items-center gap-2 rounded-3xl border border-dashed border-linen bg-card px-6 py-14 text-center">
+          <p className="text-sm font-semibold text-charcoal">Không tìm thấy mẫu phù hợp</p>
+          <p className="max-w-sm text-sm text-charcoal/55">
+            Thử từ khóa khác hoặc chọn nhóm khác để xem toàn bộ thư viện {templates.length} mẫu.
+          </p>
+          <Button
+            type="button"
+            variant="outline"
+            className="mt-2 rounded-full"
+            onClick={() => { setQuery(""); setCategory("all"); }}
+          >
+            Xóa bộ lọc
+          </Button>
+        </div>
+      ) : (
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          {filtered.map((template) => (
+            <TemplateCard
+              key={template.id}
+              template={template}
+              onPreview={() => setPreviewId(template.id)}
+            />
+          ))}
+        </div>
+      )}
 
       <TemplatePreviewModal template={preview} onClose={() => setPreviewId(null)} />
     </div>

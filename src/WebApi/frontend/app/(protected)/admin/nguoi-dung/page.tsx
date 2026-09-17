@@ -150,7 +150,7 @@ export default function AdminNguoiDungPage() {
             </div>
             <div>
               <h1 className="text-xl font-semibold">Quản trị người dùng</h1>
-              <p className="text-sm text-muted-foreground">CRUD hồ sơ NguoiDung, khóa/mở tài khoản đăng nhập</p>
+              <p className="text-sm text-muted-foreground">Quản lý hồ sơ người dùng, khóa/mở tài khoản đăng nhập</p>
             </div>
           </div>
           <div className="flex gap-2">

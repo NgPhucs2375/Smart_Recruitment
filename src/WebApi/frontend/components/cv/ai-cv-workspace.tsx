@@ -77,6 +77,7 @@ const PROMPT_CHIPS: { label: string; prompt: string }[] = [
 export function AiCvWorkspace() {
   const router = useRouter();
   const [prompt, setPrompt] = useState("");
+  const [sendError, setSendError] = useState<string | null>(null);
   const [draft, setDraft] = useState<AiDraftCv>(emptyAiDraft);
   const [liveCv, setLiveCv] = useState<CvFormData>(() =>
     JSON.parse(JSON.stringify(defaultCvData)) as CvFormData
@@ -147,12 +148,13 @@ export function AiCvWorkspace() {
   async function handleGenerate() {
     const text = prompt.trim();
     if (!text || isLoading) return;
+    setSendError(null);
     try {
       await appendMessage(
         new TextMessage({ id: `user-${Date.now()}`, role: MessageRole.User, content: text })
       );
     } catch {
-      toast.error("Không gửi được yêu cầu tới AI. Hãy thử lại.");
+      setSendError("Không gửi được yêu cầu tới AI. Hãy thử lại.");
     }
   }
 
@@ -241,6 +243,14 @@ export function AiCvWorkspace() {
                 </button>
               ))}
             </div>
+            {sendError && (
+              <p role="alert" className="mt-2.5 rounded-2xl border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs leading-5 text-destructive">
+                {sendError}{" "}
+                <button type="button" onClick={handleGenerate} className="font-semibold underline underline-offset-2">
+                  Thử lại
+                </button>
+              </p>
+            )}
             <Button
               type="button"
               onClick={handleGenerate}

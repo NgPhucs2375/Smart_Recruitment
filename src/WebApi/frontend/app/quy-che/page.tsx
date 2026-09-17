@@ -3,7 +3,7 @@ import { ArrowLeft, Scale, Gavel, FileCheck, AlertTriangle } from "lucide-react"
 
 export default function QuyChePage() {
   return (
-    <main className="min-h-screen bg-background text-foreground">
+    <main className="min-h-dvh bg-background text-foreground">
       <header className="border-b border-border/10 bg-white px-6 py-4 sm:px-10">
         <div className="mx-auto flex max-w-4xl items-center justify-between">
           <Link href="/" className="text-lg font-semibold tracking-[-0.04em]">HIRE<span className="text-foreground">AI</span></Link>

@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 
 interface ChipInputProps {
   values: string[];
@@ -37,14 +36,22 @@ export function ChipInput({ values, onChange, placeholder }: ChipInputProps) {
       {values.length > 0 && (
         <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap", marginTop: "0.5rem" }}>
           {values.map((v) => (
-            <Badge
+            <button
               key={v}
-              variant="secondary"
-              className="cursor-pointer hover:bg-destructive/20"
+              type="button"
               onClick={() => onChange(values.filter((x) => x !== v))}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  onChange(values.filter((x) => x !== v));
+                }
+              }}
+              aria-label={`Xóa ${v}`}
+              title="Xóa"
+              className="inline-flex h-5 w-fit shrink-0 cursor-pointer items-center justify-center gap-1 overflow-hidden rounded-md border border-transparent bg-secondary px-2 py-0.5 text-xs font-medium text-secondary-foreground transition-colors hover:bg-destructive/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
-              {v} ✕
-            </Badge>
+              {v} <span aria-hidden="true">✕</span>
+            </button>
           ))}
         </div>
       )}

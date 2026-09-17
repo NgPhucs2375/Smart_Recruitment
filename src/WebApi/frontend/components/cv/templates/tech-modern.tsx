@@ -44,7 +44,7 @@ function SideTitle({ children }: { children: React.ReactNode }) {
 function MainTitle({ children }: { children: React.ReactNode }) {
   return (
     <h2
-      className="mb-3 border-b-2 pb-1.5 text-[12px] font-bold uppercase tracking-[0.14em]"
+      className="mb-2.5 border-b-2 pb-1.5 text-[12px] font-bold uppercase tracking-[0.14em]"
       style={{ color: NAVY, borderColor: NAVY }}
     >
       {children}
@@ -82,15 +82,15 @@ export function TechModernTemplate({ data }: { data: ResumeData }) {
     <div className="cv-paper cv-paper-a4 text-[13px] leading-relaxed" style={{ color: INK }}>
       {/* Slim navy accent bar + header */}
       <div className="h-1.5" style={{ backgroundColor: NAVY }} />
-      <header className="px-8 pb-5 pt-6">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.22em]" style={{ color: NAVY }}>
+      <header className="px-7 pb-4 pt-5">
+        <p className="text-[10.5px] font-semibold uppercase tracking-[0.22em]" style={{ color: NAVY }}>
           Curriculum Vitae
         </p>
-        <h1 className="mt-1 text-[28px] font-bold leading-tight tracking-tight" style={{ color: INK }}>
+        <h1 className="mt-1 text-[25px] font-bold leading-tight tracking-tight" style={{ color: INK }}>
           {data.name || "Họ và tên"}
         </h1>
         {data.title && (
-          <p className="mt-1 text-[14px] font-medium" style={{ color: NAVY }}>
+          <p className="mt-1 text-[13px] font-medium" style={{ color: NAVY }}>
             {data.title}
           </p>
         )}
@@ -98,8 +98,8 @@ export function TechModernTemplate({ data }: { data: ResumeData }) {
 
       <div className="grid grid-cols-[32%_68%]">
         {/* Sidebar */}
-        <aside className="px-6 py-6" style={{ backgroundColor: SIDEBAR_BG }}>
-          <div className="space-y-5">
+        <aside className="px-5 py-5" style={{ backgroundColor: SIDEBAR_BG }}>
+          <div className="space-y-4">
             {data.contacts.length > 0 && (
               <div className="cv-section-item">
                 <SideTitle>Liên hệ</SideTitle>
@@ -114,31 +114,19 @@ export function TechModernTemplate({ data }: { data: ResumeData }) {
             {data.skills.length > 0 && (
               <div className="cv-section-item">
                 <SideTitle>Kỹ năng</SideTitle>
+                {/* Names only — years/proficiency stay in data for AI and
+                    matching, but are never rendered as numeric suffixes. */}
                 <div className="flex flex-wrap gap-1.5">
                   {data.skills.map((s) => (
                     <span
                       key={s.id}
                       className="rounded-md bg-white px-2 py-1 text-[11.5px] font-semibold"
                       style={{ color: NAVY, border: "1px solid #d7e1ee" }}
-                      title={s.detail}
                     >
                       {s.name}
                     </span>
                   ))}
                 </div>
-                {data.skills.some((s) => s.detail) && (
-                  <div className="mt-2 space-y-1">
-                    {data.skills
-                      .filter((s) => s.detail)
-                      .map((s) => (
-                        <p key={s.id} className="text-[11.5px]" style={{ color: SUBTLE }}>
-                          <span className="font-semibold" style={{ color: INK }}>{s.name}</span>
-                          {" · "}
-                          {s.detail}
-                        </p>
-                      ))}
-                  </div>
-                )}
               </div>
             )}
 
@@ -167,7 +155,7 @@ export function TechModernTemplate({ data }: { data: ResumeData }) {
         </aside>
 
         {/* Main column */}
-        <div className="space-y-5 px-8 py-6">
+        <div className="space-y-4 px-7 py-5">
           {data.summary && (
             <SectionShell>
               <MainTitle>Tóm tắt</MainTitle>
@@ -178,7 +166,7 @@ export function TechModernTemplate({ data }: { data: ResumeData }) {
           {data.experience.length > 0 && (
             <SectionShell>
               <MainTitle>Kinh nghiệm</MainTitle>
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {data.experience.map((job) => (
                   <div key={job.id} className="cv-section-item">
                     <div className="flex items-baseline justify-between gap-3">
@@ -204,7 +192,7 @@ export function TechModernTemplate({ data }: { data: ResumeData }) {
           {data.projects.length > 0 && (
             <SectionShell>
               <MainTitle>Dự án</MainTitle>
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {data.projects.map((p) => (
                   <div key={p.id} className="cv-section-item border-l-2 pl-3" style={{ borderColor: NAVY }}>
                     <div className="flex items-baseline justify-between gap-3">

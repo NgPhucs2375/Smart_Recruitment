@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { ChevronDown, LogOut } from "lucide-react";
 import { BrandLogo } from "@/components/brand-logo";
 import { useLogout } from "@refinedev/core";
@@ -53,6 +53,7 @@ const menus: CandidateMenu[] = [
 
 export function CandidateHeader() {
   const pathname = usePathname();
+  const router = useRouter();
   const identity = useStoredIdentity();
   const { mutate: logout, isPending } = useLogout();
   const initials = identity?.name?.split(" ").map((part) => part[0]).join("").toUpperCase().slice(0, 2) ?? "U";
@@ -74,7 +75,7 @@ export function CandidateHeader() {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" className="w-56">
                 {menu.items.map(([label, href]) => (
-                  <DropdownMenuItem key={href} onClick={() => { window.location.href = href; }}>
+                  <DropdownMenuItem key={href} onClick={() => router.push(href)}>
                     {label}
                   </DropdownMenuItem>
                 ))}
@@ -95,8 +96,8 @@ export function CandidateHeader() {
                 <p className="truncate text-sm font-medium">{identity?.name ?? "Người dùng"}</p>
                 <p className="truncate text-xs text-workspace-muted">{identity?.email}</p>
               </div>
-              <DropdownMenuItem onClick={() => { window.location.href = "/ho-so"; }}>Hồ sơ của tôi</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => { window.location.href = "/settings"; }}>Cài đặt tài khoản</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => router.push("/ho-so")}>Hồ sơ của tôi</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => router.push("/settings")}>Cài đặt tài khoản</DropdownMenuItem>
               <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => logout()} disabled={isPending}>
                 <LogOut className="mr-2 size-4" />{isPending ? "Đang đăng xuất…" : "Đăng xuất"}
               </DropdownMenuItem>

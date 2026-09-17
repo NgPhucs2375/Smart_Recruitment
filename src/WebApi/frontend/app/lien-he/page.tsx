@@ -13,7 +13,7 @@ export default function LienHePage() {
     toast.success("Đã gửi liên hệ", { description: "Chúng tôi phản hồi trong 24h qua email." });
   }
   return (
-    <main className="min-h-screen bg-background text-foreground">
+    <main className="min-h-dvh bg-background text-foreground">
       <header className="border-b border-border/10 bg-white px-6 py-4 sm:px-10">
         <div className="mx-auto flex max-w-6xl items-center justify-between">
           <Link href="/" className="text-lg font-semibold tracking-[-0.04em]">HIRE<span className="text-foreground">AI</span></Link>

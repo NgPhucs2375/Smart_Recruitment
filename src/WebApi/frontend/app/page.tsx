@@ -224,7 +224,7 @@ export default function LandingPage() {
   }
 
   return (
-    <main className="min-h-screen overflow-hidden bg-ivory text-charcoal">
+    <main className="min-h-dvh overflow-hidden bg-ivory text-charcoal">
       {/* ============ Header + Hero — light, airy, growth-oriented ============ */}
       <section className="relative border-b border-linen/70 bg-ivory pt-28 md:pt-16">
         <div className="relative mx-auto max-w-7xl px-4 pb-16 pt-4 sm:px-10 sm:pt-6 lg:px-16">
@@ -384,7 +384,7 @@ export default function LandingPage() {
                   <Lock className="size-4 text-marine" />
                 </span>
               </div>
-              {loginError && <p className="mb-3 rounded-2xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">{loginError}</p>}
+              {loginError && <p className="mb-3 rounded-2xl border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs text-destructive">{loginError}</p>}
               <div className="grid gap-3 sm:grid-cols-2">
                 <label className="relative">
                   <Mail className="absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-mist" />
@@ -537,7 +537,7 @@ export default function LandingPage() {
                   <span className="flex size-4 items-center justify-center rounded bg-navy text-[10px] font-bold text-white">/</span> để tìm nhanh
                 </span>
                 <span className="hidden sm:inline text-linen">•</span>
-                <span>1.200+ việc làm đang mở</span>
+                <span>{landingFeaturedJobs.length} vị trí nổi bật</span>
               </p>
               {hasActiveSearch && (
                 <div className="flex items-center gap-2">

@@ -22,7 +22,7 @@ function InvitationContent() {
   const pending = invitation?.trangThai === "ChoXacNhan";
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-background px-4 py-12">
+    <main className="flex min-h-dvh items-center justify-center bg-background px-4 py-12">
       <Card className="w-full max-w-lg rounded-2xl shadow-xl">
         <CardHeader className="space-y-3 text-center">
           <div className="mx-auto flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
@@ -103,7 +103,7 @@ function InvitationContent() {
 
 export default function AcceptInvitePage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-background" />}>
+    <Suspense fallback={<div className="min-h-dvh bg-background" />}>
       <InvitationContent />
     </Suspense>
   );

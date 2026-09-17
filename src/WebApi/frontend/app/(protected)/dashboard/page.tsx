@@ -2,10 +2,12 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { FileText, Send, Bookmark, ArrowUpRight, ArrowRight, Sparkles, Building2, Clock, ChevronRight, TrendingUp, LayoutDashboard, Briefcase, Users, Plus, UserPlus, CalendarClock, ListTodo } from "lucide-react";
+import { FileText, Send, Bookmark, ArrowUpRight, ArrowRight, Sparkles, Building2, Clock, ChevronRight, TrendingUp, LayoutDashboard, Briefcase, Users, Plus, UserPlus, Eye, ListTodo } from "lucide-react";
 import { AdminPageLayout, AdminPageHeader, AdminCard, AdminCardHeader, AdminEmptyState, AdminLoadingState, AdminErrorState } from "@/components/admin/admin-page-layout";
 import { Badge } from "@/components/ui/badge";
 import { useStoredIdentity } from "@/hooks/use-stored-identity";
+import { useBookmarks } from "@/hooks/use-bookmarks";
+import { cvApi } from "@/lib/api/cv-api";
 
 type ApiResponse<T> = { Succeeded?: boolean; succeeded?: boolean; Message?: string; message?: string; Data?: T; data?: T };
 type DonUngTuyen = { id: number; tinTuyenDungId: number; trangThai: number; ngayUngTuyen: string };
@@ -26,10 +28,15 @@ const extractArray = <T,>(r: ApiResponse<T>): unknown[] => {
 
 const TRANG_THAI: Record<number, { label: string; color: string }> = {
   0: { label: "Khởi tạo", color: "text-muted-foreground bg-muted border-border" },
-  2: { label: "Chờ xử lý", color: "text-blue-600 bg-blue-50 border-blue-200" },
-  3: { label: "Đã xem", color: "text-blue-600 bg-blue-50 border-blue-200" },
-  4: { label: "Phù hợp", color: "text-emerald-700 bg-emerald-50 border-emerald-200" },
+  1: { label: "Lỗi xử lý hồ sơ", color: "text-destructive bg-destructive/5 border-destructive/30" },
+  2: { label: "Chờ xử lý", color: "text-primary bg-primary/10 border-primary/30" },
+  3: { label: "Đã xem", color: "text-teal bg-teal/10 border-teal/30" },
+  4: { label: "Phù hợp", color: "text-primary bg-primary/10 border-primary/30" },
   5: { label: "Từ chối", color: "text-destructive bg-destructive/5 border-destructive/30" },
+  6: { label: "Ứng viên rút đơn", color: "text-muted-foreground bg-muted border-border" },
+  7: { label: "Quá hạn xử lý", color: "text-bronze bg-soft-gold border-bronze/30" },
+  8: { label: "Tin tuyển dụng đã đóng", color: "text-muted-foreground bg-muted border-border" },
+  9: { label: "Vô hiệu hóa", color: "text-muted-foreground bg-muted border-border" },
 };
 
 function fmtDate(d: string) {
@@ -59,6 +66,9 @@ function CandidateDashboard() {
   const [recentApplied, setRecentApplied] = useState<DonUngTuyen[]>([]);
   const [profileName, setProfileName] = useState("bạn");
   const [matchCount, setMatchCount] = useState(0);
+  const [cvCount, setCvCount] = useState<number | null>(null);
+  const [jobTitles, setJobTitles] = useState<Record<number, string>>({});
+  const { count: savedCount } = useBookmarks();
 
   const apiFetch = useCallback(async (url: string) => {
     const token = localStorage.getItem("access_token");
@@ -70,10 +80,11 @@ function CandidateDashboard() {
 
   useEffect(() => {
     void (async () => {
-      const [donRes, hsRes, pqRes] = await Promise.all([
+      const [donRes, hsRes, pqRes, tinRes] = await Promise.all([
         apiFetch("/api/dotnet/donungtuyen"),
         apiFetch("/api/dotnet/hosoungviens"),
         apiFetch("/api/dotnet/ketquaphuhop"),
+        apiFetch("/api/dotnet/tintuyendungs"),
       ]);
 
       if (donRes && ok(donRes)) {
@@ -95,6 +106,25 @@ function CandidateDashboard() {
 
       if (pqRes && ok(pqRes)) {
         setMatchCount(extractArray(pqRes).length);
+      }
+
+      if (tinRes && ok(tinRes)) {
+        const titles: Record<number, string> = {};
+        for (const v of extractArray(tinRes)) {
+          const r = v as Record<string, unknown>;
+          const id = Number(r.id ?? r.Id ?? 0);
+          const title = `${r.tieuDe ?? r.TieuDe ?? ""}`.trim();
+          if (id && title) titles[id] = title;
+        }
+        setJobTitles(titles);
+      }
+
+      try {
+        const hs = await cvApi.getMyHoSo();
+        const list = await cvApi.listCvs(hs.id);
+        setCvCount(list.length);
+      } catch {
+        setCvCount(null);
       }
     })();
   }, [apiFetch]);
@@ -120,12 +150,12 @@ function CandidateDashboard() {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Link href="/CV" className="group rounded-3xl border border-border bg-card p-6 shadow-sm transition hover:-translate-y-1 hover:border-foreground/30">
+        <Link href="/CV" className="group rounded-3xl border border-border bg-card p-6 shadow-sm transition hover:border-foreground/30">
           <div className="flex items-center justify-between text-muted-foreground">
             <span className="text-xs uppercase tracking-wider">CV đã tạo</span>
             <FileText className="size-5" />
           </div>
-          <div className="mt-6 text-4xl font-semibold tracking-tight">—</div>
+          <div className="mt-6 text-4xl font-semibold tracking-tight">{cvCount ?? "—"}</div>
           <p className="mt-2 text-xs text-muted-foreground">Quản lý CV của bạn</p>
         </Link>
 
@@ -138,7 +168,7 @@ function CandidateDashboard() {
           <p className="mt-2 text-xs text-muted-foreground">{recentApplied.length} đơn gần đây</p>
         </div>
 
-        <Link href="/viec-lam/phu-hop" className="group rounded-3xl border border-border bg-card p-6 shadow-sm transition hover:-translate-y-1 hover:border-foreground/30">
+        <Link href="/viec-lam/phu-hop" className="group rounded-3xl border border-border bg-card p-6 shadow-sm transition hover:border-foreground/30">
           <div className="flex items-center justify-between text-muted-foreground">
             <span className="text-xs uppercase tracking-wider">Việc phù hợp</span>
             <TrendingUp className="size-5" />
@@ -147,12 +177,12 @@ function CandidateDashboard() {
           <p className="mt-2 text-xs text-muted-foreground">Kết quả AI gợi ý</p>
         </Link>
 
-        <Link href="/viec-lam/da-luu" className="group rounded-3xl border border-border bg-card p-6 shadow-sm transition hover:-translate-y-1 hover:border-foreground/30">
+        <Link href="/viec-lam/da-luu" className="group rounded-3xl border border-border bg-card p-6 shadow-sm transition hover:border-foreground/30">
           <div className="flex items-center justify-between text-muted-foreground">
             <span className="text-xs uppercase tracking-wider">Việc đã lưu</span>
             <Bookmark className="size-5" />
           </div>
-          <div className="mt-6 text-4xl font-semibold tracking-tight">—</div>
+          <div className="mt-6 text-4xl font-semibold tracking-tight">{savedCount}</div>
           <p className="mt-2 text-xs text-muted-foreground">Xem lại sau</p>
         </Link>
       </div>
@@ -179,10 +209,11 @@ function CandidateDashboard() {
             <div className="mt-6 divide-y divide-border">
               {recentApplied.map(item => {
                 const st = TRANG_THAI[item.trangThai] ?? { label: `#${item.trangThai}`, color: "text-muted-foreground bg-muted border-border" };
+                const jobTitle = jobTitles[item.tinTuyenDungId];
                 return (
                   <div key={item.id} className="flex flex-col justify-between gap-4 py-4 sm:flex-row sm:items-center">
                     <div>
-                      <h3 className="font-medium">Đơn #{item.id} — Tin #{item.tinTuyenDungId}</h3>
+                      <h3 className="font-medium">{jobTitle ?? `Tin #${item.tinTuyenDungId}`}</h3>
                       <div className="mt-1 flex items-center gap-3 text-xs text-muted-foreground">
                         <span className="flex items-center gap-1"><Clock className="size-3.5" /> {fmtDate(item.ngayUngTuyen)}</span>
                       </div>
@@ -452,16 +483,15 @@ function RecruiterControlCenter() {
   const kpis = [
     { icon: Briefcase, label: "Tin đang tuyển", value: `${activeJobs.length}`, sub: "đang hiển thị", href: "/tin-tuyen-dung" },
     { icon: Users, label: "Đơn mới chờ xem", value: `${unviewed.length}`, sub: "chưa mở hồ sơ", href: "/ung-vien" },
-    { icon: CalendarClock, label: "Phỏng vấn sắp tới", value: "—", sub: "chưa có dữ liệu lịch", href: null as string | null },
+    { icon: Eye, label: "Đã xem / Phù hợp", value: `${stageScreen}`, sub: "đã mở hoặc đánh giá", href: "/ung-vien" },
     { icon: ListTodo, label: "Việc cần xử lý", value: `${attentionCount}`, sub: `${unviewed.length} đơn • ${expiringJobs.length} tin sắp hết hạn`, href: "/ung-vien" },
   ];
 
+  // Only stages backed by real TrangThaiDonUngTuyen values. The system has
+  // no interview/offer/hired statuses, so no such columns are rendered.
   const stages = [
     { label: "Mới", count: stageNew },
     { label: "Sàng lọc", count: stageScreen },
-    { label: "Phỏng vấn", count: null as number | null },
-    { label: "Offer", count: null as number | null },
-    { label: "Đã tuyển", count: null as number | null },
   ];
 
   return (
@@ -490,7 +520,7 @@ function RecruiterControlCenter() {
       {/* B. KPI row */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {kpis.map((kpi) => (
-          <div key={kpi.label} className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+          <Link key={kpi.label} href={kpi.href} className="rounded-2xl border border-border bg-card p-5 shadow-sm transition hover:border-foreground/30">
             <div className="flex items-center justify-between">
               <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{kpi.label}</span>
               <span className="flex size-8 items-center justify-center rounded-lg bg-primary/10">
@@ -499,23 +529,23 @@ function RecruiterControlCenter() {
             </div>
             <p className="mt-4 text-3xl font-semibold tracking-tight">{kpi.value}</p>
             <p className="mt-1 text-xs text-muted-foreground">{kpi.sub}</p>
-          </div>
+          </Link>
         ))}
       </div>
 
-      {/* C. Recruitment pipeline */}
+      {/* C. Recruitment pipeline — real stages only */}
       <AdminCard className="p-5 sm:p-6">
         <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
           <h2 className="text-base font-medium tracking-tight">Pipeline tuyển dụng</h2>
-          <p className="text-xs text-muted-foreground">Phỏng vấn / Offer / Đã tuyển chưa có trạng thái trên hệ thống</p>
+          <p className="text-xs text-muted-foreground">Dựa trên trạng thái thực của đơn ứng tuyển</p>
         </div>
-        <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-5">
+        <div className="mt-4 grid grid-cols-2 gap-3">
           {stages.map((stage, i) => (
             <div key={stage.label} className="relative rounded-xl border border-border bg-background px-3 py-4 text-center">
               <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
                 {i + 1}. {stage.label}
               </p>
-              <p className="mt-1.5 text-2xl font-semibold tracking-tight">{stage.count ?? "—"}</p>
+              <p className="mt-1.5 text-2xl font-semibold tracking-tight">{stage.count}</p>
             </div>
           ))}
         </div>
@@ -603,19 +633,6 @@ function RecruiterControlCenter() {
                 })}
               </ul>
             )}
-          </AdminCard>
-
-          {/* F. Upcoming interviews — no interview data source exists yet */}
-          <AdminCard className="p-5">
-            <div className="flex items-center gap-2.5">
-              <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-                <CalendarClock className="size-4 text-primary" />
-              </span>
-              <div>
-                <h3 className="text-sm font-medium">Lịch phỏng vấn sắp tới</h3>
-                <p className="mt-0.5 text-xs text-muted-foreground">Chưa có dữ liệu lịch phỏng vấn trên hệ thống.</p>
-              </div>
-            </div>
           </AdminCard>
         </div>
       </div>

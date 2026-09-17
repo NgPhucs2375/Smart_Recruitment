@@ -65,7 +65,7 @@ const steps = [
 
 export default function RecruiterLandingPage() {
   return (
-    <main className="min-h-screen bg-ivory text-charcoal">
+    <main className="min-h-dvh bg-ivory text-charcoal">
       {/* Top nav */}
       <nav aria-label="Điều hướng chính" className="fixed inset-x-0 top-0 z-50 border-b border-linen/70 bg-white/85 backdrop-blur-md">
         <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-3 sm:px-10 lg:px-16">
