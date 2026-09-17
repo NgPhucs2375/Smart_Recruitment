@@ -460,6 +460,7 @@ function CvBuilderSkeleton() {
     }
     setExportingPdf(true);
     try {
+      await document.fonts.ready;
       await exportManualCvPdf(
         preview,
         manualCvPdfFileName(cvData.tenFile, cvData.thongTinLienHe.hoTen),
