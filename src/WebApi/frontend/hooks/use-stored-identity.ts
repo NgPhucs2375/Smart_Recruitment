@@ -25,10 +25,10 @@ export function notifyIdentityChanged() {
 
 function getSnapshot() {
   const raw = localStorage.getItem("user_identity");
+  hydrated = true;
   if (raw === snapshotRaw) return snapshot;
   snapshotRaw = raw;
   snapshot = loadIdentity();
-  hydrated = true;
   return snapshot;
 }
 

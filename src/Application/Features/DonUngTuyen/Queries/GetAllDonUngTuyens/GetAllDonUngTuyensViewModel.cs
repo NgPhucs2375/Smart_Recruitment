@@ -9,6 +9,7 @@ namespace Application.Features.DonUngTuyen.Queries.GetAllDonUngTuyens
         public int HoSoUngVienId { get; set; }
         public int TinTuyenDungId { get; set; }
         public int CVUngVienId { get; set; }
+        public int? CVPhienBanId { get; set; }
         public TrangThaiDonUngTuyen TrangThai { get; set; }
         public string GhiChu { get; set; }
     }

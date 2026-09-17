@@ -22,6 +22,9 @@ namespace Application.Interfaces
         DbSet<DoanhNghiep> DoanhNghieps { get; set; }
         DbSet<DanhMucNghe> DanhMucNghes { get; set; }
         DbSet<CVUngVien> CVUngViens { get; set; }
+        DbSet<CVImportSession> CVImportSessions { get; set; }
+        DbSet<CVTepTin> CVTepTins { get; set; }
+        DbSet<CVPhienBan> CVPhienBans { get; set; }
         DbSet<DanhGia> DanhGias { get; set; }
         Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
     }

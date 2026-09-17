@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useEffectEvent, useState } from "react";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
 import Link from "next/link";
 import {
   User,
@@ -19,7 +19,8 @@ import {
   Printer,
   Minus,
   Plus,
-  ImageIcon,
+  ImagePlus,
+  Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -60,6 +61,54 @@ export function HoSoView() {
   const [cvs, setCvs] = useState<CvVm[]>([]);
   const [cvsLoading, setCvsLoading] = useState(false);
   const [isMock, setIsMock] = useState(false);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarRemoved, setAvatarRemoved] = useState(false);
+  const avatarPreviewRef = useRef<string | null>(null);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+  const nativeDateRef = useRef<HTMLInputElement>(null);
+
+  const handleAvatarFile = (file: File | undefined | null) => {
+    if (!file) return;
+    if (!["image/jpeg", "image/png", "image/webp", "image/gif"].includes(file.type)) {
+      toast.error("Chỉ hỗ trợ ảnh JPG, PNG, WEBP hoặc GIF.");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Ảnh quá lớn, vui lòng chọn ảnh dưới 5MB.");
+      return;
+    }
+    if (avatarPreviewRef.current) URL.revokeObjectURL(avatarPreviewRef.current);
+    const previewUrl = URL.createObjectURL(file);
+    avatarPreviewRef.current = previewUrl;
+    setAvatarFile(file);
+    setAvatarRemoved(false);
+    setAnhDaiDienUrl(previewUrl);
+  };
+
+  const removeAvatar = () => {
+    if (avatarPreviewRef.current) URL.revokeObjectURL(avatarPreviewRef.current);
+    avatarPreviewRef.current = null;
+    setAvatarFile(null);
+    setAvatarRemoved(true);
+    setAnhDaiDienUrl("");
+  };
+
+  // Gõ ngày sinh: cho gõ tự do (chỉ số + "/"), format chuẩn khi blur
+  // để caret không bị nhảy như mask-on-change cũ.
+  const handleNgaySinhChange = (v: string) => {
+    setNgaySinh(v.replace(/[^0-9/]/g, "").slice(0, 10));
+  };
+
+  const handleNgaySinhBlur = () => {
+    setNgaySinh((prev) => {
+      const t = prev.trim();
+      if (t === "") return "";
+      // Đã đúng dd/mm/yyyy thì giữ nguyên, còn lại thử mask (vd 01012000 -> 01/01/2000).
+      if (/^\d{2}\/\d{2}\/\d{4}$/.test(t)) return t;
+      const masked = maskDateVn(t);
+      return /^\d{2}\/\d{2}\/\d{4}$/.test(masked) ? masked : t;
+    });
+  };
 
   const loadData = async () => {
     // DEV preview (?xem-truoc=1): render view-mode with sample data, no API.
@@ -96,6 +145,10 @@ export function HoSoView() {
   };
 
   const populateForm = (data: HoSoVm) => {
+    if (avatarPreviewRef.current) URL.revokeObjectURL(avatarPreviewRef.current);
+    avatarPreviewRef.current = null;
+    setAvatarFile(null);
+    setAvatarRemoved(false);
     setHoTen(data.hoTen || "");
     setSdt(data.sdt || "");
     setNgaySinh(isoToVnDate(data.ngaySinh));
@@ -117,6 +170,10 @@ export function HoSoView() {
   useEffect(() => {
     const timer = window.setTimeout(loadInitialData, 0);
     return () => window.clearTimeout(timer);
+  }, []);
+
+  useEffect(() => () => {
+    if (avatarPreviewRef.current) URL.revokeObjectURL(avatarPreviewRef.current);
   }, []);
 
   // CV của tôi — reuse existing CV list API, no duplicate storage.
@@ -160,11 +217,6 @@ export function HoSoView() {
       toast.error("Ngày sinh không hợp lệ (dd/mm/yyyy).");
       return;
     }
-    if (anhDaiDienUrl.trim() && !/^https?:\/\//i.test(anhDaiDienUrl.trim())) {
-      toast.error("URL ảnh đại diện phải bắt đầu bằng http:// hoặc https://.");
-      return;
-    }
-
     setSaving(true);
     try {
       const isoNgaySinh = vnToIsoDate(ngaySinh);
@@ -176,25 +228,29 @@ export function HoSoView() {
         gioiTinh,
         diaChi: diaChi.trim(),
         gioiThieu: gioiThieu.trim(),
-        anhDaiDienUrl: anhDaiDienUrl.trim(),
         viTriUngTuyen: viTriUngTuyen.trim(),
         mucLuongMongMuon: parseVndInput(mucLuongMongMuon),
         isTimViec,
       };
 
+      let profileId: number;
       if (hoSo && hoSo.id > 0) {
         await hoSoApi.update(hoSo.id, {
           id: hoSo.id,
           ...payload,
         });
-        toast.success("Cập nhật hồ sơ thành công!");
+        profileId = hoSo.id;
       } else {
-        await hoSoApi.create({
+        profileId = await hoSoApi.create({
           nguoiDungId: 0,
           ...payload,
         });
-        toast.success("Tạo mới hồ sơ ứng viên thành công!");
       }
+
+      if (avatarFile) await hoSoApi.uploadAvatar(profileId, avatarFile);
+      else if (avatarRemoved && hoSo?.anhDaiDienUrl) await hoSoApi.deleteAvatar(profileId);
+
+      toast.success(hoSo ? "Cập nhật hồ sơ thành công!" : "Tạo mới hồ sơ ứng viên thành công!");
 
       await loadData();
     } catch (error: unknown) {
@@ -278,7 +334,7 @@ export function HoSoView() {
             <CardHeader className="text-center">
                <div
                  className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-primary/10 bg-cover bg-center text-2xl font-bold text-primary ring-2 ring-border"
-                 style={hoSo.anhDaiDienUrl ? { backgroundImage: `url(${hoSo.anhDaiDienUrl})` } : undefined}
+                 style={hoSo.anhDaiDienUrl ? { backgroundImage: `url("${hoSo.anhDaiDienUrl}")` } : undefined}
                  role={hoSo.anhDaiDienUrl ? "img" : undefined}
                  aria-label={hoSo.anhDaiDienUrl ? `Ảnh đại diện của ${hoSo.hoTen}` : undefined}
                >
@@ -470,26 +526,50 @@ export function HoSoView() {
                 </h3>
                 <div className="flex flex-col gap-4 rounded-xl border border-border bg-muted/30 p-4 sm:flex-row sm:items-center">
                   <div
-                    className="flex size-20 shrink-0 items-center justify-center rounded-full bg-primary/10 bg-cover bg-center text-xl font-semibold text-primary ring-2 ring-border"
-                    style={anhDaiDienUrl ? { backgroundImage: `url(${anhDaiDienUrl})` } : undefined}
+                    className="flex size-20 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary/10 bg-cover bg-center text-xl font-semibold text-primary ring-2 ring-border"
+                    style={anhDaiDienUrl ? { backgroundImage: `url("${anhDaiDienUrl}")` } : undefined}
                     role={anhDaiDienUrl ? "img" : undefined}
                     aria-label={anhDaiDienUrl ? "Xem trước ảnh đại diện" : undefined}
                   >
                     {!anhDaiDienUrl && <User className="size-8" />}
                   </div>
-                  <div className="min-w-0 flex-1 space-y-1.5">
-                    <label className="text-xs font-medium text-gray-700">URL ảnh đại diện</label>
-                    <div className="relative">
-                      <ImageIcon className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
-                      <Input
-                        type="url"
-                        placeholder="https://example.com/avatar.jpg"
-                        value={anhDaiDienUrl}
-                        onChange={(e) => setAnhDaiDienUrl(e.target.value)}
-                        className="h-10 rounded-xl border-input bg-white pl-10 text-sm"
-                      />
+                  <div className="min-w-0 flex-1 space-y-2">
+                    <label className="text-xs font-medium text-gray-700">Ảnh đại diện</label>
+                    <input
+                      ref={avatarInputRef}
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp,image/gif"
+                      className="hidden"
+                      onChange={(e) => {
+                        handleAvatarFile(e.target.files?.[0]);
+                        e.target.value = "";
+                      }}
+                    />
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => avatarInputRef.current?.click()}
+                        className="h-9 rounded-xl"
+                      >
+                        <ImagePlus className="mr-2 size-4" />
+                        {anhDaiDienUrl ? "Đổi ảnh" : "Chọn ảnh từ thiết bị"}
+                      </Button>
+                      {anhDaiDienUrl && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          onClick={removeAvatar}
+                          className="h-9 rounded-xl text-destructive hover:text-destructive"
+                        >
+                          <Trash2 className="mr-2 size-4" />
+                          Xóa ảnh
+                        </Button>
+                      )}
                     </div>
-                    <p className="text-[11px] text-muted-foreground">Dùng đường dẫn ảnh công khai bắt đầu bằng http:// hoặc https://.</p>
+                    <p className="text-[11px] text-muted-foreground">
+                      JPG, PNG, WEBP hoặc GIF, tối đa 5MB. Ảnh được lưu an toàn trên MinIO.
+                    </p>
                   </div>
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2">
@@ -532,10 +612,38 @@ export function HoSoView() {
                         type="text"
                         inputMode="numeric"
                         placeholder="dd/mm/yyyy"
+                        autoComplete="bday"
                         value={ngaySinh}
-                        onChange={(e) => setNgaySinh(maskDateVn(e.target.value))}
-                        className="h-10 rounded-xl border-input bg-white pl-10 text-sm"
+                        onChange={(e) => handleNgaySinhChange(e.target.value)}
+                        onBlur={handleNgaySinhBlur}
+                        className="h-10 rounded-xl border-input bg-white pl-10 pr-10 text-sm"
                       />
+                      {/* Date picker ẩn: bấm icon lịch để chọn ngày, gõ tay không bị nhảy số */}
+                      <input
+                        ref={nativeDateRef}
+                        type="date"
+                        tabIndex={-1}
+                        aria-hidden
+                        className="pointer-events-none absolute bottom-0 right-10 h-0 w-0 opacity-0"
+                        value={vnToIsoDate(ngaySinh) || ""}
+                        max={new Date().toISOString().slice(0, 10)}
+                        onChange={(e) => {
+                          if (e.target.value) setNgaySinh(isoToVnDate(e.target.value));
+                        }}
+                      />
+                      <button
+                        type="button"
+                        aria-label="Chọn ngày sinh từ lịch"
+                        onClick={() => {
+                          const el = nativeDateRef.current as (HTMLInputElement & { showPicker?: () => void }) | null;
+                          if (!el) return;
+                          if (typeof el.showPicker === "function") el.showPicker();
+                          else el.focus();
+                        }}
+                        className="absolute right-2 top-1/2 flex size-7 -translate-y-1/2 items-center justify-center rounded-lg text-gray-400 transition hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary"
+                      >
+                        <Calendar className="size-4" />
+                      </button>
                     </div>
                     {ngaySinh.trim() !== "" && !isValidVnDate(ngaySinh) && (
                       <p className="text-xs text-red-500">Ngày không hợp lệ (dd/mm/yyyy)</p>

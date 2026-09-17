@@ -25,7 +25,7 @@ import { CvPreview } from "@/components/cv/cv-preview";
 import { TEMPLATE_REGISTRY, DEFAULT_TEMPLATE_ID } from "@/features/tao-cv/template-registry";
 import { defaultCvData } from "@/features/tao-cv/constants";
 import type { CvFormData } from "@/lib/types";
-import { createManualCvPayload } from "@/features/tao-cv/manual";
+import { createManualCvPayload, createManualCvPdfBlob, manualCvPdfFileName } from "@/features/tao-cv/manual";
 import { cvApi } from "@/lib/api/cv-api";
 import {
   emptyAiDraft,
@@ -90,6 +90,7 @@ export function AiCvWorkspace() {
   // so every .length/.map below is safe without scattering guards.
   const visibleMessages = rawVisibleMessages ?? [];
 
+  // Client-side actions cho BE smart-agent gọi ngược qua AG-UI.
   // AI tool calls land in the DRAFT — never in live CV state.
   useCopilotAction({
     name: "updateAiDraftSection",
@@ -170,11 +171,16 @@ export function AiCvWorkspace() {
     setSaving(true);
     try {
       const hs = await cvApi.getMyHoSo();
-      const id = await cvApi.createCv(
-        createManualCvPayload(hs.id, liveCv, true)
-      );
+      const preview = document.querySelector<HTMLElement>("[data-ai-cv-pdf]");
+      if (!preview) throw new Error("Không tìm thấy bản xem trước để lưu PDF.");
+      const fileName = manualCvPdfFileName(liveCv.tenFile, liveCv.thongTinLienHe.hoTen);
+      const pdf = await createManualCvPdfBlob(preview);
+      const result = await cvApi.saveVersion({
+        ...createManualCvPayload(hs.id, liveCv, true),
+        phuongThucTao: 3,
+      }, pdf, fileName);
       toast.success("Đã lưu CV.");
-      if (edit) router.push(`/tao-cv?cv=${id}`);
+      if (edit) router.push(`/tao-cv?cv=${result.cvUngVienId}`);
     } catch (e) {
       toast.error(
         e instanceof Error ? e.message : "Lưu CV thất bại. Hãy tạo hồ sơ ứng viên trước."
@@ -396,7 +402,9 @@ export function AiCvWorkspace() {
                 className="origin-top overflow-hidden rounded-2xl border border-linen bg-white shadow-[0_12px_32px_rgba(53,92,140,0.10)]"
                 style={{ transform: `scale(${previewZoom})`, width: `${100 / previewZoom}%` }}
               >
-                <CvPreview data={liveCv} />
+                <div data-ai-cv-pdf>
+                  <CvPreview data={liveCv} />
+                </div>
               </div>
             ) : (
               <div className="flex flex-col items-center rounded-2xl border border-dashed border-linen bg-white/70 px-4 py-14 text-center">

@@ -31,6 +31,7 @@ function consumeLoginPortal(): PortalKind | null {
 const API_URL = "/api/dotnet/account";
 const TOKEN_KEY = "access_token";
 const REFRESH_KEY = "refresh_token";
+const AUTH_REQUEST_TIMEOUT_MS = 15_000;
 
 // ─── ASP.NET Core Identity API response types ─────────────────────────────────
 
@@ -161,6 +162,7 @@ async function fetchAndSaveMe(token: string): Promise<MeResponse | null> {
   try {
     const res = await fetch(`${API_URL}/me`, {
       headers: { Authorization: `Bearer ${token}` },
+      signal: AbortSignal.timeout(AUTH_REQUEST_TIMEOUT_MS),
     });
     if (!res.ok) return null;
     const body = (await res.json()) as Record<string, unknown>;
@@ -272,6 +274,7 @@ export const authProvider: AuthProvider = {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(requestBody),
+        signal: AbortSignal.timeout(AUTH_REQUEST_TIMEOUT_MS),
       });
 
       if (!res.ok) {
@@ -293,22 +296,38 @@ export const authProvider: AuthProvider = {
       const jwToken = data?.JWToken ?? data?.jwToken;
       const refreshToken = data?.RefreshToken ?? data?.refreshToken;
       
-      if (jwToken) {
-        saveTokens(jwToken, refreshToken);
-        await fetchAndSaveMe(jwToken);
-        rememberLoginPortal(portal);
-        // Portal role gate: same auth API, then validate the resolved
-        // identity. Wrong portal → clear the newly created frontend
-        // session so the account cannot enter through this portal.
-        if (portal === "candidate" || portal === "employer") {
-          const roles = loadIdentity()?.roles ?? [];
-          if (!isPortalAllowed(roles, portal)) {
-            clearAuth();
-            return {
-              success: false,
-              error: { name: "Sai cổng đăng nhập", message: WRONG_PORTAL_MESSAGE[portal] },
-            };
-          }
+      if (!jwToken) {
+        clearAuth();
+        return {
+          success: false,
+          error: { name: "Đăng nhập thất bại", message: "Máy chủ không trả về access token." },
+        };
+      }
+
+      saveTokens(jwToken, refreshToken);
+      const me = await fetchAndSaveMe(jwToken);
+      if (!me) {
+        clearAuth();
+        return {
+          success: false,
+          error: {
+            name: "Không tải được tài khoản",
+            message: "Đăng nhập thành công nhưng không tải được thông tin người dùng. Vui lòng thử lại.",
+          },
+        };
+      }
+
+      rememberLoginPortal(portal);
+      // Portal role gate: same auth API, then validate the resolved
+      // identity. Wrong portal → clear the newly created frontend
+      // session so the account cannot enter through this portal.
+      if (portal === "candidate" || portal === "employer") {
+        if (!isPortalAllowed(me.roles, portal)) {
+          clearAuth();
+          return {
+            success: false,
+            error: { name: "Sai cổng đăng nhập", message: WRONG_PORTAL_MESSAGE[portal] },
+          };
         }
       }
       

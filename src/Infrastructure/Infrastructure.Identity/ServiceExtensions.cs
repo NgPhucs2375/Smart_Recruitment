@@ -58,6 +58,28 @@ namespace Infrastructure.Identity
 
         public static void AddIdentityRepositories(this IServiceCollection services, IConfiguration configuration)
         {
+            var jwtKey = configuration["JWTSettings:Key"];
+            if (string.IsNullOrWhiteSpace(jwtKey))
+                throw new InvalidOperationException("JWTSettings:Key is required and must be a Base64-encoded key of at least 32 bytes.");
+
+            byte[] jwtKeyBytes;
+            try
+            {
+                jwtKeyBytes = Convert.FromBase64String(jwtKey);
+            }
+            catch (FormatException exception)
+            {
+                throw new InvalidOperationException("JWTSettings:Key must be valid Base64.", exception);
+            }
+
+            if (jwtKeyBytes.Length < 32)
+                throw new InvalidOperationException("JWTSettings:Key must decode to at least 32 bytes.");
+
+            var jwtIssuer = configuration["JWTSettings:Issuer"];
+            var jwtAudience = configuration["JWTSettings:Audience"];
+            if (string.IsNullOrWhiteSpace(jwtIssuer) || string.IsNullOrWhiteSpace(jwtAudience))
+                throw new InvalidOperationException("JWTSettings:Issuer and JWTSettings:Audience are required.");
+
             services.AddIdentity<ApplicationUser, IdentityRole>().AddEntityFrameworkStores<IdentityContext>().AddDefaultTokenProviders();
             #region Services
             services.AddScoped<IAccountService, AccountService>();
@@ -81,9 +103,9 @@ namespace Infrastructure.Identity
                         ValidateAudience = true,
                         ValidateLifetime = true,
                         ClockSkew = TimeSpan.Zero,
-                        ValidIssuer = configuration["JWTSettings:Issuer"],
-                        ValidAudience = configuration["JWTSettings:Audience"],
-                        IssuerSigningKey = new SymmetricSecurityKey(Convert.FromBase64String(configuration["JWTSettings:Key"])),
+                        ValidIssuer = jwtIssuer,
+                        ValidAudience = jwtAudience,
+                        IssuerSigningKey = new SymmetricSecurityKey(jwtKeyBytes),
                         RoleClaimType = ClaimTypes.Role
                     };
                     o.Events = new JwtBearerEvents

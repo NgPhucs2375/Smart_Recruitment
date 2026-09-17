@@ -98,6 +98,7 @@ namespace Application.Features.DonUngTuyen.Queries.GetAllDonUngTuyens
                 HoSoUngVienId = d.CVUngVien.HoSoUngVienId,
                 TinTuyenDungId = d.TinTuyenDungId,
                 CVUngVienId = d.CVUngVienId,
+                CVPhienBanId = d.CVPhienBanId,
                 TrangThai = d.TrangThai,
                 GhiChu = d.GhiChu
             }).ToListAsync(cancellationToken);

@@ -56,7 +56,7 @@ namespace Application.Features.HoSoUngVien.Commands.UpdateHoSoUngVien
             entity.GioiTinh = request.GioiTinh?.Trim();
             entity.DiaChi = request.DiaChi?.Trim();
             entity.GioiThieu = request.GioiThieu?.Trim();
-            entity.AnhDaiDienUrl = request.AnhDaiDienUrl?.Trim();
+            // Ảnh đại diện được quản lý riêng qua endpoint multipart và lưu trên MinIO.
             entity.ViTriUngTuyen = request.ViTriUngTuyen?.Trim();
             entity.MucLuongMongMuon = request.MucLuongMongMuon;
             entity.IsTimViec = request.IsTimViec;

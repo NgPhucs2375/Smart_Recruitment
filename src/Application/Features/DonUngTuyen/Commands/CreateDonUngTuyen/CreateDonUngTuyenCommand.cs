@@ -61,10 +61,17 @@ public class CreateDonUngTuyenCommandHandler(
             return new Response<int>("Ứng viên đã nộp đơn cho tin này.");
         }
 
+        var latestVersionId = await context.CVPhienBans.AsNoTracking()
+            .Where(x => x.CVUngVienId == cv.Id)
+            .OrderByDescending(x => x.SoPhienBan)
+            .Select(x => (int?)x.Id)
+            .FirstOrDefaultAsync(cancellationToken);
+
         var entity = new DonUngTuyenEntity
         {
             TinTuyenDungId = request.TinTuyenDungId,
             CVUngVienId = request.CVUngVienId,
+            CVPhienBanId = latestVersionId,
             // State machine: đơn mới bắt đầu ở KhoiTao, CV đã pass gate SanSang ở trên
             // nên tiếp nhận hệ thống cho vào hàng đợi ChoXuLy ngay.
             TrangThai = TrangThaiDonUngTuyen.KhoiTao,

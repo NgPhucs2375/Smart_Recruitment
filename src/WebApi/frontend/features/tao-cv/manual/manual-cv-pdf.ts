@@ -15,7 +15,7 @@ export function manualCvPdfFileName(value: string, fullName: string): string {
   return `${safeName || "CV"}.pdf`;
 }
 
-export async function exportManualCvPdf(element: HTMLElement, fileName: string): Promise<void> {
+export async function createManualCvPdfBlob(element: HTMLElement): Promise<Blob> {
   const [{ toCanvas }, { jsPDF }] = await Promise.all([import("html-to-image"), import("jspdf")]);
   const width = element.scrollWidth;
   const height = element.scrollHeight;
@@ -50,5 +50,15 @@ export async function exportManualCvPdf(element: HTMLElement, fileName: string):
       (sliceHeight * A4_WIDTH_MM) / canvas.width,
     );
   }
-  pdf.save(fileName);
+  return pdf.output("blob");
+}
+
+export async function exportManualCvPdf(element: HTMLElement, fileName: string): Promise<void> {
+  const blob = await createManualCvPdfBlob(element);
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = fileName;
+  anchor.click();
+  URL.revokeObjectURL(url);
 }

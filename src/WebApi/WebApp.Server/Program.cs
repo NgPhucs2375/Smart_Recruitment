@@ -1,22 +1,12 @@
 using Application;
-using Application.Interfaces;
-using Application.Interfaces.Repositories;
 using Infrastructure.Identity;
 using Infrastructure.Persistence;
 using Infrastructure.Shared;
+using WebApp.Server.Agent.CvAssistant;
 using WebApp.Server.Extensions;
 using WebApp.Server.Initializer;
-using WebApp.Server.Services;
-using System.ComponentModel;
-using Microsoft.Agents.AI;
-using Microsoft.Agents.AI.Hosting.AGUI.AspNetCore;
-using OpenAI;
-using OpenAI.Chat;
-using System.ClientModel;
-using Microsoft.Extensions.AI;
-using Microsoft.Extensions.Options;
-using Microsoft.AspNetCore.Http.Json;
 using Casbin;
+using Minio;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddAGUIServer();
@@ -63,16 +53,15 @@ if (_env.IsDevelopment())
 _services.AddControllers().AddJsonOptions(opts =>
 {
     opts.JsonSerializerOptions.PropertyNamingPolicy = null;
-    opts.JsonSerializerOptions.TypeInfoResolverChain.Add(SmartAgentSerializerContext.Default);
+    opts.JsonSerializerOptions.TypeInfoResolverChain.Add(CvAssistantJsonContext.Default);
 });
 _services.AddApiVersioningExtension();
 _services.AddHealthChecks();
 _services.AddSignalR();
-_services.AddScoped<INotificationService, NotificationService>();
-_services.AddScoped<Application.Interfaces.INotificationPushService, NotificationPushService>();
-_services.AddScoped<IAuthenticatedUserService, AuthenticatedUserService>();
-_services.AddScoped<ICurrentNguoiDungService,CurrentNguoiDungService>();
+_services.AddWebAppServices();
+_services.AddCvAssistantAgent();
 _services.AddHostedService<WebApp.Server.Jobs.TinTuyenDungHetHanJob>();
+_services.AddHostedService<WebApp.Server.Jobs.CvImportSessionCleanupJob>();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 _services.AddEndpointsApiExplorer();
 
@@ -84,7 +73,6 @@ if (string.IsNullOrWhiteSpace(app.Configuration["Gemini:ApiKey"]))
         "Gemini:ApiKey chưa được khai báo - tính năng parse CV sẽ báo lỗi. "
         + "Thêm key vào appsettings.Development.json rồi restart backend.");
 }
-var jsonOptions = app.Services.GetRequiredService<IOptions<JsonOptions>>();
 using (var scope = app.Services.CreateScope())
 {
     var initializer = new ApplicationInitializer(scope.ServiceProvider);
@@ -119,9 +107,9 @@ app.MapControllers();
 
 app.MapHub<WebApp.Server.Hubs.NotificationsHub>("/api/hubs/notifications").RequireCors("AllowFrontend");
 
-app.MapAGUIServer(
-    "/api/copilotkit",
-    AIAgentExtension.CreateSmartAgent(jsonOptions.Value.SerializerOptions, app.Configuration))
+// BE-first: một agent duy nhất ở BE (LLM + tool backend scoped).
+// FE chỉ giữ các action client-side (useCopilotAction) và trỏ runtimeUrl về endpoint này.
+app.MapCvAssistantAgent("/api/copilotkit")
     .RequireCors("AllowFrontend");
 
 

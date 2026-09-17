@@ -61,6 +61,7 @@ namespace Application.Features.DonUngTuyen.Queries.GetDonUngTuyenById
                     : 0,
                 TinTuyenDungId = entity.TinTuyenDungId,
                 CVUngVienId = entity.CVUngVienId,
+                CVPhienBanId = entity.CVPhienBanId,
                 TrangThai = entity.TrangThai,
                 GhiChu = entity.GhiChu
             };

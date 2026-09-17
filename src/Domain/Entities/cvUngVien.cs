@@ -23,12 +23,17 @@ namespace Domain.Entities
         public bool IsDefault { get; set; } = true;
 
         public bool IsDaXoa { get; set; } = false;
+        public string StorageKey { get; set; }
+
+        public string FileMimeType { get; set; }
+
+        public long FileSize { get; set; }
 
 
         
 
         // ===   === //
-    public HoSoUngVien HoSoUngVien { get; set; }
+        public HoSoUngVien HoSoUngVien { get; set; }
 
         public CVThongTinLienHe ThongTinLienHe { get; set; }
 
@@ -49,5 +54,11 @@ namespace Domain.Entities
 
         public ICollection<KetQuaPhanTichCv> KetQuaPhanTichCvs { get; set; }
             = new List<KetQuaPhanTichCv>();
+
+        public ICollection<CVTepTin> TepTins { get; set; }
+            = new List<CVTepTin>();
+
+        public ICollection<CVPhienBan> PhienBans { get; set; }
+            = new List<CVPhienBan>();
     }
 }

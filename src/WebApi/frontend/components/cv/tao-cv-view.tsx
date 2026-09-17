@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { FileText, Save, Eye, Pencil, Plus, Trash2, Printer, Check, ListChecks, Sparkles, Upload, LayoutTemplate, UserRound } from "lucide-react";
+import { FileText, Save, Eye, Pencil, Plus, Trash2, Printer, Check, ListChecks, Sparkles, Upload, LayoutTemplate, UserRound, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -14,17 +14,17 @@ import { AiAgent } from "./ai-agent";
 import { CvImportDialog } from "./cv-import-dialog";
 import { defaultCvData } from "@/features/tao-cv/constants";
 import { resolveTemplateId, TEMPLATE_REGISTRY } from "@/features/tao-cv/template-registry";
-import type { CvFormData, CvVm, HoSoVm } from "@/lib/types";
+import type { CvFormData, CvVersionVm, CvVm, HoSoVm } from "@/lib/types";
 import {
   isoToVnDate,
   normalizeCvPartialDate,
 } from "@/features/tao-cv/cv-data";
 import {
   createManualCvPayload,
+  createManualCvPdfBlob,
   exportManualCvPdf,
   manualCvDetailToForm,
   manualCvPdfFileName,
-  updateManualCvPayload,
   validateManualCv,
 } from "@/features/tao-cv/manual";
 import { cvApi } from "@/lib/api/cv-api";
@@ -89,6 +89,8 @@ export function TaoCvView() {
   const [saving, setSaving] = useState(false);
   const [exportingPdf, setExportingPdf] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
+  const [importSessionId, setImportSessionId] = useState<string | null>(null);
+  const [versions, setVersions] = useState<CvVersionVm[]>([]);
 
   // Scroll to the first VISIBLE templates/AI block (mobile tabs + desktop
   // column both render them; hidden ones are skipped).
@@ -124,6 +126,7 @@ export function TaoCvView() {
           const detail = await cvApi.getById(current.id);
           setSelectedId(current.id);
           setCvData((prev) => manualCvDetailToForm(detail, prev));
+          setVersions(await cvApi.getVersions(current.id));
         }
       }
       if (searchParams.get("import") === "1") setImportOpen(true);
@@ -151,14 +154,23 @@ export function TaoCvView() {
     }
     setSaving(true);
     try {
-      if (selectedId) {
-        await cvApi.updateCv(selectedId, updateManualCvPayload(selectedId, cvData, true));
-        toast.success("Đã cập nhật CV");
-      } else {
-        const id = await cvApi.createCv(createManualCvPayload(hoSo.id, cvData, true));
-        setSelectedId(id);
-        toast.success("Đã tạo CV mới");
-      }
+      const previews = Array.from(document.querySelectorAll<HTMLElement>("[data-manual-cv-pdf]"));
+      const preview = previews.find((element) => element.offsetParent !== null) ?? previews[0];
+      if (!preview) throw new Error("Không tìm thấy bản xem trước để lưu PDF.");
+
+      const basePayload = createManualCvPayload(hoSo.id, cvData, true);
+      const fileName = manualCvPdfFileName(cvData.tenFile, cvData.thongTinLienHe.hoTen);
+      const pdf = await createManualCvPdfBlob(preview);
+      const result = await cvApi.saveVersion({
+        ...basePayload,
+        cvUngVienId: selectedId,
+        importSessionId,
+        phuongThucTao: importSessionId ? 2 : basePayload.phuongThucTao,
+      }, pdf, fileName);
+      setSelectedId(result.cvUngVienId);
+      setImportSessionId(null);
+      setVersions(await cvApi.getVersions(result.cvUngVienId));
+      toast.success(`Đã lưu phiên bản ${result.soPhienBan} của CV`);
       const list = await cvApi.listCvs(hoSo.id);
       setCvList(list);
     } catch (e) {
@@ -170,6 +182,8 @@ export function TaoCvView() {
 
   const handleNew = () => {
     setSelectedId(null);
+    setImportSessionId(null);
+    setVersions([]);
     setCvData(JSON.parse(JSON.stringify(defaultCvData)) as CvFormData);
   };
 
@@ -179,7 +193,9 @@ export function TaoCvView() {
     try {
       const detail = await cvApi.getById(id);
       setSelectedId(id);
+      setImportSessionId(null);
       setCvData((prev) => manualCvDetailToForm(detail, prev));
+      setVersions(await cvApi.getVersions(id));
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Không tải được chi tiết CV");
     }
@@ -208,6 +224,16 @@ export function TaoCvView() {
     anchor.download = `${cvData.tenFile.trim() || "resume"}.json`;
     anchor.click();
     URL.revokeObjectURL(url);
+  };
+
+  const handleDownloadStoredFile = async (versionId?: number, original = false) => {
+    if (!selectedId) return;
+    try {
+      const file = await cvApi.getDownloadUrl(selectedId, versionId, original);
+      window.open(file.url, "_blank", "noopener,noreferrer");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Không thể tải file CV.");
+    }
   };
 
   const handleExportPdf = async () => {
@@ -252,7 +278,7 @@ export function TaoCvView() {
   // template choice and save target never change implicitly.
   // Imported dates are normalized to MM/YYYY|YYYY so the partial inputs
   // and preview render correctly regardless of source format.
-  const handleImported = (partial: Partial<CvFormData>) => {
+  const handleImported = (partial: Partial<CvFormData>, sessionId: string) => {
     const normRange = (it: { tuNgay?: unknown; denNgay?: unknown }) => ({
       tuNgay: normalizeCvPartialDate(typeof it.tuNgay === "string" ? it.tuNgay : ""),
       denNgay: normalizeCvPartialDate(typeof it.denNgay === "string" ? it.denNgay : ""),
@@ -275,6 +301,7 @@ export function TaoCvView() {
         ngayCap: normalizeCvPartialDate(typeof c.ngayCap === "string" ? c.ngayCap : ""),
       })),
     }));
+    setImportSessionId(sessionId);
     toast.success("Đã nhập CV", { description: "Kiểm tra lại các trường rồi bấm Lưu CV." });
   };
 
@@ -403,7 +430,12 @@ export function TaoCvView() {
         </div>
       </div>
 
-      <CvImportDialog open={importOpen} onOpenChange={setImportOpen} onImported={handleImported} />
+      <CvImportDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        hoSoUngVienId={hoSo?.id ?? null}
+        onImported={handleImported}
+      />
 
       {/* CV selector */}
       {cvList.length > 0 && (
@@ -432,6 +464,36 @@ export function TaoCvView() {
               className="w-[200px] rounded-full"
             />
           </div>
+        </div>
+      )}
+
+      {selectedId && versions.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2 rounded-3xl border border-linen bg-card px-4 py-3 shadow-sm">
+          <span className="mr-1 text-sm font-medium text-charcoal/60">Lịch sử:</span>
+          {versions.map((version) => (
+            <Button
+              key={version.id}
+              type="button"
+              variant="outline"
+              size="sm"
+              className="rounded-full"
+              onClick={() => void handleDownloadStoredFile(version.id)}
+            >
+              <Download className="mr-1.5 size-3.5" />
+              Bản {version.soPhienBan}
+            </Button>
+          ))}
+          {versions.some((version) => version.hasOriginal) && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="rounded-full"
+              onClick={() => void handleDownloadStoredFile(undefined, true)}
+            >
+              <Upload className="mr-1.5 size-3.5" /> File gốc
+            </Button>
+          )}
         </div>
       )}
 

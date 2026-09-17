@@ -18,6 +18,13 @@ export async function POST(
 ) {
   const { path } = await ctx.params;
   const search = new URL(req.url).search;
+  if (req.headers.get("content-type")?.includes("multipart/form-data")) {
+    const rawBody = await req.arrayBuffer();
+    return proxyDotnet(req, `/api/${path.join("/")}${search}`, `dotnet/${path.join("/")}`, {
+      method: "POST",
+      rawBody,
+    });
+  }
   const body = await req.json().catch(() => undefined);
   return proxyDotnet(req, `/api/${path.join("/")}${search}`, `dotnet/${path.join("/")}`, { method: "POST", body });
 }

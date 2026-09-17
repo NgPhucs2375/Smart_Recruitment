@@ -206,6 +206,26 @@ export type ParseCvTextInput = {
   rawText: string;
 };
 
+export type CvImportSessionVm = {
+  sessionId: string;
+  expiresAt: string;
+};
+
+export type SaveCvVersionVm = {
+  cvUngVienId: number;
+  cvPhienBanId: number;
+  soPhienBan: number;
+};
+
+export type CvVersionVm = {
+  id: number;
+  soPhienBan: number;
+  tenFile: string;
+  templateId: string | null;
+  created: string;
+  hasOriginal: boolean;
+};
+
 // JSON Resume schema adapter types. Data remains normalized in backend entities.
 export type JsonResume = {
   $schema?: string;

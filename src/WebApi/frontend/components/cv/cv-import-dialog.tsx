@@ -7,14 +7,16 @@ import { Button } from "@/components/ui/button";
 import { CvUpload } from "./cv-upload";
 import { CvImportError, parseCvFile } from "@/features/tao-cv/cv-import";
 import type { CvFormData } from "@/lib/types";
+import { cvApi } from "@/lib/api/cv-api";
 
 interface CvImportDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onImported: (data: Partial<CvFormData>) => void;
+  hoSoUngVienId: number | null;
+  onImported: (data: Partial<CvFormData>, importSessionId: string) => void;
 }
 
-export function CvImportDialog({ open, onOpenChange, onImported }: CvImportDialogProps) {
+export function CvImportDialog({ open, onOpenChange, hoSoUngVienId, onImported }: CvImportDialogProps) {
   const [file, setFile] = React.useState<File | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const [importing, setImporting] = React.useState(false);
@@ -31,12 +33,15 @@ export function CvImportDialog({ open, onOpenChange, onImported }: CvImportDialo
   };
 
   const handleImport = async () => {
-    if (!file || importing) return;
+    if (!file || !hoSoUngVienId || importing) return;
     setError(null);
     setImporting(true);
     try {
-      const partial = await parseCvFile(file);
-      onImported(partial);
+      const [partial, session] = await Promise.all([
+        parseCvFile(file),
+        cvApi.prepareImport(hoSoUngVienId, file),
+      ]);
+      onImported(partial, session.sessionId);
       handleOpenChange(false);
     } catch (e) {
       setError(e instanceof CvImportError ? e.message : "Không đọc được file, vui lòng thử lại.");
@@ -93,7 +98,7 @@ export function CvImportDialog({ open, onOpenChange, onImported }: CvImportDialo
               <DialogPrimitive.Close className="rounded-full px-4 py-2 text-sm font-medium text-charcoal/70 transition hover:bg-ivory hover:text-charcoal">
                 Huỷ
               </DialogPrimitive.Close>
-              <Button size="sm" className="rounded-full" onClick={handleImport} disabled={!file || importing}>
+              <Button size="sm" className="rounded-full" onClick={handleImport} disabled={!file || !hoSoUngVienId || importing}>
                 {importing && <Loader2 className="mr-1.5 size-4 animate-spin" />}
                 {importing ? "Đang nhập..." : "Nhập CV"}
               </Button>

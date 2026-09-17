@@ -1,10 +1,12 @@
 using System;
 using System.Net.Http;
 using System.Net.Http.Json;
+using System.Net;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Application.DTOs.CV;
+using Application.Exceptions;
 using Application.Interfaces;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -16,6 +18,7 @@ public sealed class GeminiCvStructuredParser(
     IConfiguration configuration,
     ILogger<GeminiCvStructuredParser> logger) : ICvStructuredParser
 {
+    private const int MaxAttempts = 3;
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNameCaseInsensitive = true
@@ -35,11 +38,7 @@ public sealed class GeminiCvStructuredParser(
         }
 
         var model = configuration["Gemini:Model"] ?? "gemini-3.6-flash";
-        using var request = new HttpRequestMessage(
-            HttpMethod.Post,
-            $"v1beta/models/{Uri.EscapeDataString(model)}:generateContent");
-        request.Headers.Add("x-goog-api-key", apiKey);
-        request.Content = JsonContent.Create(new
+        var requestBody = new
         {
             contents = new[]
             {
@@ -56,44 +55,79 @@ public sealed class GeminiCvStructuredParser(
                 responseMimeType = "application/json",
                 temperature = 0.1
             }
-        });
+        };
 
-        using var response = await httpClient.SendAsync(request, cancellationToken);
-        var responseJson = await response.Content.ReadAsStringAsync(cancellationToken);
-        if (!response.IsSuccessStatusCode)
+        for (var attempt = 1; attempt <= MaxAttempts; attempt++)
         {
-            logger.LogError(
-                "Gemini parse CV thất bại. Status={Status}. Body={Body}",
-                (int)response.StatusCode,
-                responseJson.Length > 500 ? responseJson[..500] : responseJson);
-            throw new InvalidOperationException(
-                $"Gemini không thể phân tích CV ({(int)response.StatusCode}).");
+            using var request = new HttpRequestMessage(
+                HttpMethod.Post,
+                $"v1beta/models/{Uri.EscapeDataString(model)}:generateContent");
+            request.Headers.Add("x-goog-api-key", apiKey);
+            request.Content = JsonContent.Create(requestBody);
+
+            using var response = await httpClient.SendAsync(request, cancellationToken);
+            var responseJson = await response.Content.ReadAsStringAsync(cancellationToken);
+            if (!response.IsSuccessStatusCode)
+            {
+                var isTransient = response.StatusCode is
+                    HttpStatusCode.TooManyRequests or
+                    HttpStatusCode.BadGateway or
+                    HttpStatusCode.ServiceUnavailable or
+                    HttpStatusCode.GatewayTimeout;
+
+                if (isTransient && attempt < MaxAttempts)
+                {
+                    var delay = response.Headers.RetryAfter?.Delta
+                        ?? TimeSpan.FromSeconds(attempt);
+                    if (delay > TimeSpan.FromSeconds(5))
+                        delay = TimeSpan.FromSeconds(5);
+
+                    logger.LogWarning(
+                        "Gemini parse CV tạm thời thất bại. Status={Status}, lần={Attempt}/{MaxAttempts}. Thử lại sau {DelayMs}ms.",
+                        (int)response.StatusCode,
+                        attempt,
+                        MaxAttempts,
+                        delay.TotalMilliseconds);
+                    await Task.Delay(delay, cancellationToken);
+                    continue;
+                }
+
+                logger.LogError(
+                    "Gemini parse CV thất bại. Status={Status}. Body={Body}",
+                    (int)response.StatusCode,
+                    responseJson.Length > 500 ? responseJson[..500] : responseJson);
+                throw new ApiException(
+                    isTransient
+                        ? "Gemini đang quá tải. Vui lòng thử lại sau ít phút."
+                        : $"Gemini không thể phân tích CV ({(int)response.StatusCode}).",
+                    isTransient ? (int)HttpStatusCode.ServiceUnavailable : (int)HttpStatusCode.BadGateway);
+            }
+
+            using var document = JsonDocument.Parse(responseJson);
+            var json = document.RootElement
+                .GetProperty("candidates")[0]
+                .GetProperty("content")
+                .GetProperty("parts")[0]
+                .GetProperty("text")
+                .GetString();
+
+            var parsed = string.IsNullOrWhiteSpace(json)
+                ? null
+                : JsonSerializer.Deserialize<ParsedCvDto>(json, JsonOptions);
+
+            if (parsed is null)
+                throw new ApiException("Gemini trả về dữ liệu CV không hợp lệ.", (int)HttpStatusCode.BadGateway);
+
+            parsed.ThongTinLienHe ??= new ParsedThongTinLienHeDto();
+            parsed.HocVan ??= [];
+            parsed.KinhNghiemLamViec ??= [];
+            parsed.DuAn ??= [];
+            parsed.KyNang ??= [];
+            parsed.ChungChi ??= [];
+            return parsed;
         }
 
-        using var document = JsonDocument.Parse(responseJson);
-        var json = document.RootElement
-            .GetProperty("candidates")[0]
-            .GetProperty("content")
-            .GetProperty("parts")[0]
-            .GetProperty("text")
-            .GetString();
-
-        var parsed = string.IsNullOrWhiteSpace(json)
-            ? null
-            : JsonSerializer.Deserialize<ParsedCvDto>(json, JsonOptions);
-
-        if (parsed is null)
-        {
-            throw new InvalidOperationException("Gemini trả về dữ liệu CV không hợp lệ.");
-        }
-
-        parsed.ThongTinLienHe ??= new ParsedThongTinLienHeDto();
-        parsed.HocVan ??= [];
-        parsed.KinhNghiemLamViec ??= [];
-        parsed.DuAn ??= [];
-        parsed.KyNang ??= [];
-        parsed.ChungChi ??= [];
-        return parsed;
+        throw new ApiException("Gemini đang quá tải. Vui lòng thử lại sau ít phút.", (int)HttpStatusCode.ServiceUnavailable);
     }
 
     private static string BuildPrompt(string rawText) => $$"""

@@ -1,6 +1,9 @@
 import { getAuthToken } from "../auth-provider";
 import type {
   CapNhatHoSoInput,
+  CvImportSessionVm,
+  CvVersionVm,
+  SaveCvVersionVm,
   CvDetailVm,
   CvVm,
   HoSoVm,
@@ -52,11 +55,12 @@ function errorMessage(body: unknown, fallback: string): string {
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const token = getAuthToken();
+  const isFormData = typeof FormData !== "undefined" && init?.body instanceof FormData;
   const res = await fetch(`/api/dotnet/${path}`, {
     ...init,
     headers: {
       Accept: "application/json",
-      ...(init?.body ? { "Content-Type": "application/json" } : {}),
+      ...(init?.body && !isFormData ? { "Content-Type": "application/json" } : {}),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...init?.headers,
     },
@@ -80,6 +84,7 @@ export function normalizeHoSo(raw: unknown): HoSoVm | null {
   const r = raw as Record<string, unknown>;
   const id = (r.id ?? r.Id ?? 0) as number;
   if (!id && !r.hoTen && !r.HoTen) return null;
+  const avatarValue = (r.anhDaiDienUrl ?? r.AnhDaiDienUrl ?? "") as string;
   return {
     id,
     nguoiDungId: (r.nguoiDungId ?? r.NguoiDungId ?? 0) as number,
@@ -89,7 +94,9 @@ export function normalizeHoSo(raw: unknown): HoSoVm | null {
     gioiTinh: (r.gioiTinh ?? r.GioiTinh ?? "Nam") as string,
     diaChi: (r.diaChi ?? r.DiaChi ?? "") as string,
     gioiThieu: (r.gioiThieu ?? r.GioiThieu ?? "") as string,
-    anhDaiDienUrl: (r.anhDaiDienUrl ?? r.AnhDaiDienUrl ?? "") as string,
+    anhDaiDienUrl: avatarValue.startsWith("avatars/")
+      ? `/api/dotnet/hosoungviens/${id}/avatar?key=${encodeURIComponent(avatarValue)}`
+      : avatarValue,
     viTriUngTuyen: (r.viTriUngTuyen ?? r.ViTriUngTuyen ?? "") as string,
     mucLuongMongMuon: (r.mucLuongMongMuon ?? r.MucLuongMongMuon ?? 0) as number,
     isTimViec: (r.isTimViec ?? r.IsTimViec ?? true) as boolean,
@@ -224,6 +231,13 @@ export const hoSoApi = {
     request<number>("hosoungviens", { method: "POST", body: JSON.stringify(data) }),
   update: (id: number, data: CapNhatHoSoInput) =>
     request<number>(`hosoungviens/${id}`, { method: "PUT", body: JSON.stringify(data) }),
+  uploadAvatar: (id: number, file: File) => {
+    const form = new FormData();
+    form.append("file", file);
+    return request<string>(`hosoungviens/${id}/avatar`, { method: "POST", body: form });
+  },
+  deleteAvatar: (id: number) =>
+    request<number>(`hosoungviens/${id}/avatar`, { method: "DELETE" }),
 };
 
 export const cvApi = {
@@ -246,4 +260,48 @@ export const cvApi = {
     }),
   importCv: (payload: Record<string, unknown>) =>
     request<number>("cvungviens/import", { method: "POST", body: JSON.stringify(payload) }),
+  prepareImport: (hoSoUngVienId: number, file: File) => {
+    const form = new FormData();
+    form.append("HoSoUngVienId", String(hoSoUngVienId));
+    form.append("File", file);
+    return request<Record<string, unknown>>("cvungviens/import/prepare", { method: "POST", body: form })
+      .then((raw): CvImportSessionVm => ({
+        sessionId: String(raw.sessionId ?? raw.SessionId ?? ""),
+        expiresAt: String(raw.expiresAt ?? raw.ExpiresAt ?? ""),
+      }));
+  },
+  saveVersion: (payload: object, pdf: Blob, fileName: string) => {
+    const form = new FormData();
+    form.append("Payload", JSON.stringify(payload));
+    form.append("GeneratedPdf", pdf, fileName);
+    return request<Record<string, unknown>>("cvungviens/save-version", { method: "POST", body: form })
+      .then((raw): SaveCvVersionVm => ({
+        cvUngVienId: Number(raw.cvUngVienId ?? raw.CVUngVienId),
+        cvPhienBanId: Number(raw.cvPhienBanId ?? raw.CVPhienBanId),
+        soPhienBan: Number(raw.soPhienBan ?? raw.SoPhienBan),
+      }));
+  },
+  getVersions: async (cvUngVienId: number): Promise<CvVersionVm[]> => {
+    const rows = await request<Record<string, unknown>[]>(`cvungviens/${cvUngVienId}/versions`);
+    return rows.map((raw) => ({
+      id: Number(raw.id ?? raw.Id),
+      soPhienBan: Number(raw.soPhienBan ?? raw.SoPhienBan),
+      tenFile: String(raw.tenFile ?? raw.TenFile ?? ""),
+      templateId: (raw.templateId ?? raw.TemplateId ?? null) as string | null,
+      created: String(raw.created ?? raw.Created ?? ""),
+      hasOriginal: Boolean(raw.hasOriginal ?? raw.HasOriginal),
+    }));
+  },
+  getDownloadUrl: async (cvUngVienId: number, versionId?: number, original = false) => {
+    const path = original
+      ? `cvungviens/${cvUngVienId}/original/download-url`
+      : versionId
+        ? `cvungviens/${cvUngVienId}/versions/${versionId}/download-url`
+        : `cvungviens/${cvUngVienId}/download-url`;
+    const raw = await request<Record<string, unknown>>(path);
+    return {
+      url: String(raw.url ?? raw.Url ?? ""),
+      tenFile: String(raw.tenFile ?? raw.TenFile ?? ""),
+    };
+  },
 };

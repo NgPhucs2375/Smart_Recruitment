@@ -18,7 +18,7 @@ export async function proxyDotnet(
   req: NextRequest,
   path: string,
   label: string,
-  opts: { method?: string; body?: unknown } = {},
+  opts: { method?: string; body?: unknown; rawBody?: ArrayBuffer } = {},
 ): Promise<NextResponse> {
   const reqId = nextReqId();
 
@@ -40,9 +40,13 @@ export async function proxyDotnet(
   const origin = req.headers.get("Origin");
   if (origin) headers["Origin"] = origin;
 
-  let bodyStr: string | undefined;
-  if (opts.body !== undefined && opts.body !== null) {
-    bodyStr = JSON.stringify(opts.body);
+  let requestBody: BodyInit | undefined;
+  if (opts.rawBody) {
+    requestBody = opts.rawBody;
+    const ct = req.headers.get("Content-Type");
+    if (ct) headers["Content-Type"] = ct;
+  } else if (opts.body !== undefined && opts.body !== null) {
+    requestBody = JSON.stringify(opts.body);
     headers["Content-Type"] = "application/json";
   } else {
     const ct = req.headers.get("Content-Type");
@@ -53,7 +57,7 @@ export async function proxyDotnet(
     const r = await fetch(url, {
       method,
       headers,
-      body: bodyStr,
+      body: requestBody,
       cache: "no-store",
     });
 

@@ -3,9 +3,13 @@ using Application.Features.CVUngVien.Commands.CreateCVUngVien;
 using Application.Features.CVUngVien.Commands.DeleteCVUngVien;
 using Application.Features.CVUngVien.Commands.ImportCvUngVien;
 using Application.Features.CVUngVien.Commands.ParseCvText;
+using Application.Features.CVUngVien.Commands.PrepareCvImport;
+using Application.Features.CVUngVien.Commands.SaveCvVersion;
 using Application.Features.CVUngVien.Commands.UpdateCVUngVien;
 using Application.Features.CVUngVien.Queries.GetAllCVUngViens;
+using Application.Features.CVUngVien.Queries.GetCVDownloadUrl;
 using Application.Features.CVUngVien.Queries.GetCVUngVienById;
+using Application.Features.CVUngVien.Queries.GetCvVersions;
 using Casbin;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -133,6 +137,98 @@ namespace WebApp.Server.Controllers.v1
                 {
                     return Ok(await Mediator.Send(command));
                 });
+        }
+
+        [HttpPost("import/prepare")]
+        [Consumes("multipart/form-data")]
+        public async Task<IActionResult> PrepareImport(
+            [FromForm] PrepareCvImportCommand command,
+            CancellationToken cancellationToken)
+        {
+            return await EnforcePermissionAndExecute(
+                "cvungviens",
+                "create",
+                async () => Ok(await Mediator.Send(command, cancellationToken)));
+        }
+
+        [HttpPost("save-version")]
+        [Consumes("multipart/form-data")]
+        public async Task<IActionResult> SaveVersion(
+            [FromForm] SaveCvVersionCommand command,
+            CancellationToken cancellationToken)
+        {
+            return await EnforcePermissionAndExecute(
+                "cvungviens",
+                "create",
+                async () => Ok(await Mediator.Send(command, cancellationToken)));
+        }
+
+        [HttpGet("{id:int}/versions")]
+        public async Task<IActionResult> GetVersions(int id, CancellationToken cancellationToken)
+        {
+            return await EnforcePermissionAndExecute(
+                "cvungviens",
+                "show",
+                async () => Ok(await Mediator.Send(
+                    new GetCvVersionsQuery { CVUngVienId = id }, cancellationToken)));
+        }
+
+        [HttpPost]
+        [Consumes("multipart/form-data")]
+        public async Task<IActionResult> Form_Data(
+            [FromForm] CreateCVUngVienCommand command)
+        {
+            var result = await Mediator.Send(command);
+            return Ok(result);
+        }
+
+        [HttpGet("{Id:int}/download-url")]
+        public async Task<IActionResult> GetDownloadUrl(
+            [FromRoute] GetCVDownloadUrlQuery query,
+            CancellationToken cancellationToken)
+        {
+            return await EnforcePermissionAndExecute(
+                "cvungviens",
+                "download",
+                async () =>
+                {
+                    var result = await Mediator.Send(
+                        query,
+                        cancellationToken);
+
+                    return Ok(result);
+                });
+        }
+
+        [HttpGet("{id:int}/versions/{versionId:int}/download-url")]
+        public async Task<IActionResult> GetVersionDownloadUrl(
+            int id,
+            int versionId,
+            CancellationToken cancellationToken)
+        {
+            return await EnforcePermissionAndExecute(
+                "cvungviens",
+                "download",
+                async () => Ok(await Mediator.Send(new GetCVDownloadUrlQuery
+                {
+                    Id = id,
+                    VersionId = versionId
+                }, cancellationToken)));
+        }
+
+        [HttpGet("{id:int}/original/download-url")]
+        public async Task<IActionResult> GetOriginalDownloadUrl(
+            int id,
+            CancellationToken cancellationToken)
+        {
+            return await EnforcePermissionAndExecute(
+                "cvungviens",
+                "download",
+                async () => Ok(await Mediator.Send(new GetCVDownloadUrlQuery
+                {
+                    Id = id,
+                    Original = true
+                }, cancellationToken)));
         }
     }
 }
