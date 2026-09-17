@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+/* Layout CV dùng một document duy nhất; mobile chỉ đổi thứ tự hai panel. */
+
 /* ============================================================
    SMART RECRUITMENT — DESIGN TOKENS (Phase 1)
    - Semantic tokens use `@theme inline` so utilities emit
@@ -1003,6 +1005,33 @@ html {
   box-shadow: inset 0 0 0 1px #fff, 0 12px 30px #29362b0b;
 }
 
+.cv-builder-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(420px, 7fr);
+  gap: 1.5rem;
+}
+
+.cv-document-shell {
+  width: 210mm;
+  min-width: 210mm;
+  background: #fff;
+}
+
+@media (max-width: 1279px) {
+  .cv-builder-layout {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .cv-editor-panel {
+    order: 1;
+  }
+
+  .cv-preview-panel {
+    order: 2;
+  }
+}
+
 .cv-preview-hint {
   display: flex;
   align-items: center;
@@ -1111,7 +1140,8 @@ html {
 /* Resume paper: A4 target width, natural growing height (multi-page OK) */
 .cv-paper-a4 {
   width: 210mm;
-  max-width: 100%;
+  min-width: 210mm;
+  max-width: none;
 }
 
 .cv-section-item {

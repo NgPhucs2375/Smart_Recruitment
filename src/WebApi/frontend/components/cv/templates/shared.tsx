@@ -1,7 +1,11 @@
 "use client";
 
+// Kiểu props dùng chung cho mọi template, bảo đảm template chỉ nhận ResumeData.
 import type { ReactNode } from "react";
 import type { ResumeDateRange } from "@/features/tao-cv/resume-data";
+import type { ResumeData } from "@/features/tao-cv/resume-data";
+
+export type ResumeTemplateProps = { data: ResumeData };
 
 /**
  * Shared template primitives — only what genuinely repeats across

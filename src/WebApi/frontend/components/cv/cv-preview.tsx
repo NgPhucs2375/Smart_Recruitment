@@ -1,21 +1,13 @@
 "use client";
 
+// Wrapper giao diện preview; nội dung CV được render duy nhất bởi CvDocument.
 import type { CvFormData } from "@/lib/types";
-import { toResumeData } from "@/features/tao-cv/resume-data";
-import { resolveTemplate } from "@/features/tao-cv/template-registry";
+import { CvDocument } from "./cv-document";
 
 interface CvPreviewProps {
   data: CvFormData;
 }
 
-/**
- * Dispatcher: CvFormData -> ResumeData -> registered template component.
- * Contains no CV layout itself; changing templateId re-renders the same
- * content through a different template without touching form data.
- */
 export function CvPreview({ data }: CvPreviewProps) {
-  const resume = toResumeData(data);
-  const template = resolveTemplate(data.templateId);
-  const { Component } = template;
-  return <Component data={resume} />;
+  return <CvDocument data={data} />;
 }

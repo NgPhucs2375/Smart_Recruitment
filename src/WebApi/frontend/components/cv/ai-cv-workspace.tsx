@@ -1,5 +1,6 @@
 "use client";
 
+// Workspace AI dùng cùng CvDocument với trình tạo CV để preview và export đồng nhất.
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useCopilotAction, useCopilotChat } from "@copilotkit/react-core";
@@ -21,7 +22,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { CvPreview } from "@/components/cv/cv-preview";
+import { CvDocument } from "@/components/cv/cv-document";
 import { TEMPLATE_REGISTRY, DEFAULT_TEMPLATE_ID } from "@/features/tao-cv/template-registry";
 import { defaultCvData } from "@/features/tao-cv/constants";
 import type { CvFormData } from "@/lib/types";
@@ -84,6 +85,7 @@ export function AiCvWorkspace() {
   const [previewZoom, setPreviewZoom] = useState(1);
   const [saving, setSaving] = useState(false);
   const promptRef = useRef<HTMLTextAreaElement>(null);
+  const documentRef = useRef<HTMLDivElement>(null);
 
   const { visibleMessages: rawVisibleMessages, appendMessage, isLoading } = useCopilotChat();
   // v1 hook yields undefined before chat state initializes — normalize once
@@ -171,7 +173,7 @@ export function AiCvWorkspace() {
     setSaving(true);
     try {
       const hs = await cvApi.getMyHoSo();
-      const preview = document.querySelector<HTMLElement>("[data-ai-cv-pdf]");
+      const preview = documentRef.current;
       if (!preview) throw new Error("Không tìm thấy bản xem trước để lưu PDF.");
       const fileName = manualCvPdfFileName(liveCv.tenFile, liveCv.thongTinLienHe.hoTen);
       const pdf = await createManualCvPdfBlob(preview);
@@ -402,9 +404,7 @@ export function AiCvWorkspace() {
                 className="origin-top overflow-hidden rounded-2xl border border-linen bg-white shadow-[0_12px_32px_rgba(53,92,140,0.10)]"
                 style={{ transform: `scale(${previewZoom})`, width: `${100 / previewZoom}%` }}
               >
-                <div data-ai-cv-pdf>
-                  <CvPreview data={liveCv} />
-                </div>
+                <CvDocument data={liveCv} documentRef={documentRef} />
               </div>
             ) : (
               <div className="flex flex-col items-center rounded-2xl border border-dashed border-linen bg-white/70 px-4 py-14 text-center">

@@ -24,7 +24,11 @@ internal sealed class CvAssistantAgentFactory
 
     public AIAgent CreateAgent()
     {
-        var innerAgent = new ChatClientAgent(
+        // Form ở frontend là source of truth duy nhất — backend không giữ
+        // bản mirror state nào (không snapshot). Agent đọc/ghi DB qua tool
+        // backend, điền form/preview qua frontend tool của CopilotKit (AG-UI
+        // tự forward về browser).
+        return new ChatClientAgent(
             _chatClient,
             instructions: CvAssistantInstructions.SystemPrompt,
             name: CvAssistantInstructions.AgentName,
@@ -40,7 +44,5 @@ internal sealed class CvAssistantAgentFactory
                     _commandTools.CreateCvAsync,
                     new AIFunctionFactoryOptions { Name = "create_cv" })
             ]);
-
-        return new CvStateAgent(innerAgent);
     }
 }

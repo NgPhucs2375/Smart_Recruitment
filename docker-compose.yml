@@ -113,6 +113,7 @@ services:
       - "${FRONTEND_PORT:-3000}:3000"
     environment:
       DOTNET_API_URL: http://backend:8080
+      DOTNET_AGENT_URL: http://backend:8080/api/copilotkit
       NEXT_PUBLIC_API_URL: http://localhost:${BACKEND_PORT:-8000}
       NEXT_PUBLIC_COPILOT_AGENT_URL: http://localhost:${BACKEND_PORT:-8000}
     volumes:

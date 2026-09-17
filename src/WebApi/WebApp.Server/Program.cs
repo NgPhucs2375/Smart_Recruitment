@@ -2,7 +2,6 @@ using Application;
 using Infrastructure.Identity;
 using Infrastructure.Persistence;
 using Infrastructure.Shared;
-using WebApp.Server.Agent.CvAssistant;
 using WebApp.Server.Extensions;
 using WebApp.Server.Initializer;
 using Casbin;
@@ -53,7 +52,6 @@ if (_env.IsDevelopment())
 _services.AddControllers().AddJsonOptions(opts =>
 {
     opts.JsonSerializerOptions.PropertyNamingPolicy = null;
-    opts.JsonSerializerOptions.TypeInfoResolverChain.Add(CvAssistantJsonContext.Default);
 });
 _services.AddApiVersioningExtension();
 _services.AddHealthChecks();

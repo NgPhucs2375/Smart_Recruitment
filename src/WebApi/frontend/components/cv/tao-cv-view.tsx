@@ -1,16 +1,15 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+// Màn hình biên tập CV: chỉ giữ một tài liệu CV trong DOM cho mọi kích thước màn hình.
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { FileText, Save, Eye, Pencil, Plus, Trash2, Printer, Check, ListChecks, Sparkles, Upload, LayoutTemplate, UserRound, Download } from "lucide-react";
+import { FileText, Save, Eye, Plus, Trash2, Printer, Check, ListChecks, Sparkles, Upload, LayoutTemplate, UserRound, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { CvForm } from "./cv-form";
-import { CvPreview } from "./cv-preview";
+import { CvDocument } from "./cv-document";
 import { TemplateSelector } from "./template-selector";
-import { AiAgent } from "./ai-agent";
 import { CvImportDialog } from "./cv-import-dialog";
 import { defaultCvData } from "@/features/tao-cv/constants";
 import { resolveTemplateId, TEMPLATE_REGISTRY } from "@/features/tao-cv/template-registry";
@@ -29,6 +28,7 @@ import {
 } from "@/features/tao-cv/manual";
 import { cvApi } from "@/lib/api/cv-api";
 import { cvDataToJsonResume } from "@/features/tao-cv/json-resume";
+import { useCvAssistant } from "@/hooks/use-cv-assistant";
 
 export function ChecklistCard({ items, doneCount }: { items: { label: string; done: boolean }[]; doneCount: number }) {
   return (
@@ -91,6 +91,11 @@ export function TaoCvView() {
   const [importOpen, setImportOpen] = useState(false);
   const [importSessionId, setImportSessionId] = useState<string | null>(null);
   const [versions, setVersions] = useState<CvVersionVm[]>([]);
+  const documentRef = useRef<HTMLDivElement>(null);
+
+  // Adam (CopilotKit agent): đọc snapshot form + ghi qua frontend tool,
+  // preview realtime, mỗi lần ghi có toast Hoàn tác.
+  useCvAssistant({ data: cvData, onChange: setCvData, ready: !loading });
 
   // Scroll to the first VISIBLE templates/AI block (mobile tabs + desktop
   // column both render them; hidden ones are skipped).
@@ -154,8 +159,7 @@ export function TaoCvView() {
     }
     setSaving(true);
     try {
-      const previews = Array.from(document.querySelectorAll<HTMLElement>("[data-manual-cv-pdf]"));
-      const preview = previews.find((element) => element.offsetParent !== null) ?? previews[0];
+      const preview = documentRef.current;
       if (!preview) throw new Error("Không tìm thấy bản xem trước để lưu PDF.");
 
       const basePayload = createManualCvPayload(hoSo.id, cvData, true);
@@ -237,8 +241,7 @@ export function TaoCvView() {
   };
 
   const handleExportPdf = async () => {
-    const previews = Array.from(document.querySelectorAll<HTMLElement>("[data-manual-cv-pdf]"));
-    const preview = previews.find((element) => element.offsetParent !== null) ?? previews[0];
+    const preview = documentRef.current;
     if (!preview) {
       toast.error("Không tìm thấy bản xem trước để xuất PDF.");
       return;
@@ -380,15 +383,6 @@ export function TaoCvView() {
               <UserRound className="h-3.5 w-3.5" />
               Tạo từ hồ sơ
             </button>
-            <span aria-hidden="true" className="text-linen">•</span>
-            <button
-              type="button"
-              onClick={() => scrollToSection("ai")}
-              className="inline-flex items-center gap-1 font-medium text-marine hover:text-navy hover:underline"
-            >
-              <Sparkles className="h-3.5 w-3.5" />
-              Viết bằng AI
-            </button>
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -504,20 +498,17 @@ export function TaoCvView() {
         note={selectedId ? `Đang sửa CV #${selectedId}` : "CV mới chưa lưu — hoàn thành checklist để đạt 100%"}
       />
 
-      {/* Mobile/tablet: Tabs layout */}
-      <div className="xl:hidden">
-        <Tabs defaultValue="form" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="form" className="gap-2">
-              <Pencil className="h-4 w-4" />
-              Nhập liệu
-            </TabsTrigger>
-            <TabsTrigger value="preview" className="gap-2">
-              <Eye className="h-4 w-4" />
-              Xem trước
-            </TabsTrigger>
-          </TabsList>
-          <TabsContent value="form" className="mt-4 space-y-4">
+      {/* Chỉ render một editor và một tài liệu CV; responsive chỉ đổi thứ tự bằng CSS. */}
+      <div className="cv-builder-layout">
+        <section className="cv-editor-panel min-w-0">
+          <div className="mb-4 flex items-end justify-between">
+            <h2 className="text-xl font-semibold tracking-tight text-charcoal">Thông tin CV</h2>
+            <span className="flex items-center gap-1.5 rounded-full bg-teal/10 px-2.5 py-1 text-xs font-semibold text-navy">
+              <FileText className="size-3 text-teal" />
+              6 mục
+            </span>
+          </div>
+          <div className="space-y-4">
             <ChecklistCard items={quality.items} doneCount={quality.doneCount} />
             <div data-scroll-target="templates">
               <TemplateSelector
@@ -526,67 +517,25 @@ export function TaoCvView() {
               />
             </div>
             <CvForm data={cvData} onChange={setCvData} />
-            <div data-scroll-target="ai">
-              <AiAgent data={cvData} onUpdate={setCvData} />
-            </div>
-          </TabsContent>
-          <TabsContent value="preview" className="mt-4">
-            <div className="sticky top-20">
-              <div data-manual-cv-pdf>
-                <CvPreview data={cvData} />
-              </div>
-            </div>
-          </TabsContent>
-        </Tabs>
-      </div>
+          </div>
+        </section>
 
-      {/* Desktop: 2-column layout */}
-      <div className="hidden xl:block">
-        <div className="grid gap-6" style={{ gridTemplateColumns: "minmax(0, 5fr) minmax(420px, 7fr)" }}>
-          {/* Editor column */}
-          <div className="min-w-0">
-            <div className="mb-4 flex items-end justify-between">
-              <h2 className="text-xl font-semibold tracking-tight text-charcoal">Thông tin CV</h2>
-              <span className="flex items-center gap-1.5 rounded-full bg-teal/10 px-2.5 py-1 text-xs font-semibold text-navy">
-                <FileText className="size-3 text-teal" />
-                6 mục
-              </span>
-            </div>
-            <div className="space-y-4" style={{ overflowY: "auto", maxHeight: "calc(100vh - 280px)" }}>
-              <ChecklistCard items={quality.items} doneCount={quality.doneCount} />
-              <div data-scroll-target="templates">
-                <TemplateSelector
-                  selectedId={cvData.templateId}
-                  onSelect={(id) => setCvData({ ...cvData, templateId: id })}
-                />
-              </div>
-              <CvForm data={cvData} onChange={setCvData} />
-              <div data-scroll-target="ai">
-                <AiAgent data={cvData} onUpdate={setCvData} />
-              </div>
+        <section className="cv-preview-panel min-w-0">
+          <div className="mb-4 flex items-end justify-between">
+            <h2 className="text-xl font-semibold tracking-tight text-charcoal">Xem trước</h2>
+            <span className="flex items-center gap-1.5 rounded-full bg-navy px-2.5 py-1 text-xs font-semibold text-white">
+              <Eye className="size-3" />
+              Thời gian thực
+            </span>
+          </div>
+          <div className="cv-preview-frame">
+            <CvDocument data={cvData} documentRef={documentRef} />
+            <div className="cv-preview-hint">
+              <Sparkles className="size-3.5 text-teal" />
+              <span>Gợi ý: hoàn thành checklist bên trái để CV đạt 100%</span>
             </div>
           </div>
-
-          {/* Preview column */}
-          <div className="min-w-0">
-            <div className="mb-4 flex items-end justify-between">
-              <h2 className="text-xl font-semibold tracking-tight text-charcoal">Xem trước</h2>
-              <span className="flex items-center gap-1.5 rounded-full bg-navy px-2.5 py-1 text-xs font-semibold text-white">
-                <Eye className="size-3" />
-                Thời gian thực
-              </span>
-            </div>
-            <div className="cv-preview-frame">
-              <div data-manual-cv-pdf>
-                <CvPreview data={cvData} />
-              </div>
-              <div className="cv-preview-hint">
-                <Sparkles className="size-3.5 text-teal" />
-                <span>Gợi ý: hoàn thành checklist bên trái để CV đạt 100%</span>
-              </div>
-            </div>
-          </div>
-        </div>
+        </section>
       </div>
     </div>
   );

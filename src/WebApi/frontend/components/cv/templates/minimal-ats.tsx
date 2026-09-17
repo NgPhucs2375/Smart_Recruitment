@@ -1,6 +1,7 @@
 "use client";
 
-import type { ResumeData } from "@/features/tao-cv/resume-data";
+// Template ATS chỉ nhận dữ liệu trình bày đã chuẩn hóa, không đọc form/API.
+import type { ResumeTemplateProps } from "./shared";
 import { DateText, EmptyPaper, SectionShell } from "./shared";
 
 /**
@@ -17,7 +18,7 @@ function AtsTitle({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function MinimalAtsTemplate({ data }: { data: ResumeData }) {
+export function MinimalAtsTemplate({ data }: ResumeTemplateProps) {
   if (!data.hasContent) {
     return (
       <div className="cv-paper cv-paper-a4">

@@ -1,7 +1,9 @@
 "use client";
 
+// Template hiện đại chỉ nhận dữ liệu trình bày đã chuẩn hóa, không đọc form/API.
 import { Mail, Phone, MapPin, Linkedin, Github, Globe, Award } from "lucide-react";
-import type { ResumeData, ResumeContact } from "@/features/tao-cv/resume-data";
+import type { ResumeContact } from "@/features/tao-cv/resume-data";
+import type { ResumeTemplateProps } from "./shared";
 import { DateText, EmptyPaper, SectionShell } from "./shared";
 
 /**
@@ -69,7 +71,7 @@ function SidebarContact({ contact }: { contact: ResumeContact }) {
   );
 }
 
-export function TechModernTemplate({ data }: { data: ResumeData }) {
+export function TechModernTemplate({ data }: ResumeTemplateProps) {
   if (!data.hasContent) {
     return (
       <div className="cv-paper cv-paper-a4">

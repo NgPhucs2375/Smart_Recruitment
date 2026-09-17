@@ -1,5 +1,6 @@
 "use client";
 
+// Frontend luôn gọi Runtime nội bộ; Runtime sẽ adapter request sang AG-UI .NET.
 import { CopilotKit } from "@copilotkit/react-core/v2";
 import { CopilotPopup } from "@copilotkit/react-core/v2";
 import "@copilotkit/react-core/v2/styles.css";
@@ -10,15 +11,12 @@ export function CopilotProvider({ children }: { children: React.ReactNode }) {
     typeof window === "undefined" ? null : localStorage.getItem("accessToken"),
   );
 
-  // BE-first: LLM + tool backend (hồ sơ, CV) chạy ở .NET smart-agent.
-  // FE chỉ expose action client-side (useCopilotAction ghi nháp vào form) để BE gọi ngược qua AG-UI.
-  // Trỏ thẳng browser -> BE để giữ SSE streaming (không proxy qua Next route).
-  const runtimeUrl =
-    process.env.NEXT_PUBLIC_AGENT_URL ?? "http://localhost:8000/api/copilotkit";
+  const runtimeUrl = "/api/copilotkit";
 
   return (
     <CopilotKit
       runtimeUrl={runtimeUrl}
+      useSingleEndpoint={false}
       headers={{
         Authorization: token ? `Bearer ${token}` : "",
       }}
