@@ -352,6 +352,7 @@ namespace Infrastructure.Persistence.Migrations
                     END IF;
                 END $$;
             ");
+        }
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
