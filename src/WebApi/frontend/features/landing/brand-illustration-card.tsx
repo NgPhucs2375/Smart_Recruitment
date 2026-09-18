@@ -15,9 +15,11 @@ export function HeroBackgroundIllustration() {
       aria-label="Minh họa hành trình kết nối kỹ năng và cơ hội"
     >
       <rect x="0" y="0" width="1440" height="620" fill="#faf8f3" />
-        {/* soft suns */}
-        <circle cx="1230" cy="110" r="72" fill="#d7b98e" opacity="0.35" />
-        <circle cx="1230" cy="110" r="44" fill="#d7b98e" opacity="0.50" />
+        {/* soft suns — very subtle pulse */}
+        <g className="animate-pulse-soft">
+          <circle cx="1230" cy="110" r="72" fill="#d7b98e" opacity="0.35" />
+          <circle cx="1230" cy="110" r="44" fill="#d7b98e" opacity="0.50" />
+        </g>
         <circle cx="180" cy="120" r="30" fill="#8fb3cf" opacity="0.35" />
         <circle cx="180" cy="120" r="17" fill="#8fb3cf" opacity="0.42" />
         {/* sage arcs */}

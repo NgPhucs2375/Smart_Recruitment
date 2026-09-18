@@ -123,7 +123,9 @@ export default function EmployerRegisterPage() {
         } catch {
           // Storage unavailable — continue without intent carry-over.
         }
-        router.replace("/tin-tuyen-dung");
+        // Employer portal: registration does not sign in, so land on the
+        // employer login page (never the candidate /login).
+        router.replace("/employer/login");
       }
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : "Có lỗi xảy ra");

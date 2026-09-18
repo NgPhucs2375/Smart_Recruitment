@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import { Toaster } from "sonner";
 import { useStoredIdentity, useIdentityResolved } from "@/hooks/use-stored-identity";
 import { resolveWorkspace } from "@/components/navigation/navigation-config";
+import { loginRouteForPortal } from "@/lib/auth-provider";
 
 function NeutralShell() {
   return (
@@ -45,9 +46,9 @@ export function AppLayout({ children }: PropsWithChildren) {
 
   // Token present but identity missing/unreadable (e.g. /me failed to
   // normalize after login, corrupted storage): the session is unusable.
-  // Send back to the shared login flow instead of defaulting to Admin.
+  // Send back to the portal login flow instead of defaulting to Admin.
   if (!identity) {
-    return <RedirectShell to="/login" />;
+    return <RedirectShell to={loginRouteForPortal()} />;
   }
 
   const workspace = resolveWorkspace(identity.roles);

@@ -248,6 +248,16 @@ export function resolveTemplateId(rawId: string | null | undefined): string {
   return LEGACY_ALIASES[rawId] ?? DEFAULT_TEMPLATE_ID;
 }
 
+/**
+ * True only for canonical IDs and known legacy aliases — used to tell
+ * a deliberate deep-link apart from garbage (?template=xyz must be
+ * ignored, never wipe the working copy to default).
+ */
+export function isKnownTemplateId(rawId: string | null | undefined): boolean {
+  if (!rawId) return false;
+  return Boolean(TEMPLATE_REGISTRY[rawId] ?? LEGACY_ALIASES[rawId]);
+}
+
 export function resolveTemplate(rawId: string | null | undefined): ResumeTemplateMeta {
   return TEMPLATE_REGISTRY[resolveTemplateId(rawId)];
 }

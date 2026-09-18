@@ -43,13 +43,13 @@ export function CongTyTheoDoiView() {
   return (
     <div className="mx-auto w-full max-w-6xl space-y-5 px-4 py-6 sm:px-6 sm:py-8">
       <div>
-        <p className="inline-flex items-center gap-2 rounded-full border border-teal/25 bg-teal/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-navy">
+        <p className="inline-flex items-center gap-2 rounded-full border border-teal/25 bg-teal/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-primary">
           <BellRing className="size-3.5" /> Theo dõi
         </p>
-        <h1 className="mt-3 text-3xl font-semibold tracking-tight text-charcoal sm:text-4xl">
+        <h1 className="mt-3 text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
           Công ty đang theo dõi
         </h1>
-        <p className="mt-2 max-w-2xl text-sm leading-6 text-charcoal/60">
+        <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
           {hydrated && followedIds.size > 0
             ? `Bạn đang theo dõi ${followedIds.size} công ty.`
             : "Nhấn Theo dõi ở danh bạ công ty, công ty sẽ hiện ở đây."}
@@ -66,7 +66,7 @@ export function CongTyTheoDoiView() {
           Không tải được danh bạ công ty lúc này.
         </div>
       ) : followed.length === 0 ? (
-        <div className="flex flex-col items-center gap-2 rounded-2xl border border-dashed border-linen bg-card px-4 py-12 text-center">
+        <div className="flex flex-col items-center gap-2 rounded-2xl border border-dashed border-border bg-card px-4 py-12 text-center">
           <span className="flex size-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
             <Building2 className="size-6" />
           </span>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useEffectEvent, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useRef, useState, type ChangeEvent } from "react";
 import Link from "next/link";
 import {
   User,
@@ -93,10 +93,36 @@ export function HoSoView() {
     setAnhDaiDienUrl("");
   };
 
-  // Gõ ngày sinh: cho gõ tự do (chỉ số + "/"), format chuẩn khi blur
-  // để caret không bị nhảy như mask-on-change cũ.
-  const handleNgaySinhChange = (v: string) => {
-    setNgaySinh(v.replace(/[^0-9/]/g, "").slice(0, 10));
+  // Gõ ngày sinh: mask caret-aware — strip chữ, tối đa 8 số, tự chèn "/"
+  // sau ngày và tháng, giữ caret đúng chỗ (backspace/select/replace tự nhiên).
+  const handleNgaySinhChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const el = e.target;
+    const raw = el.value;
+    const caret = el.selectionStart ?? raw.length;
+    const digitsBeforeCaret = raw.slice(0, caret).replace(/\D/g, "").length;
+    const digits = raw.replace(/\D/g, "").slice(0, 8);
+    let out = digits;
+    if (digits.length > 4) out = `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
+    else if (digits.length > 2) out = `${digits.slice(0, 2)}/${digits.slice(2)}`;
+    setNgaySinh(out);
+    // Đặt lại caret sau render: đếm qua số digit + dấu "/" đã chèn.
+    requestAnimationFrame(() => {
+      const target = el;
+      let seen = 0;
+      let pos = out.length;
+      for (let i = 0; i < out.length; i += 1) {
+        if (/\d/.test(out[i])) seen += 1;
+        if (seen >= digitsBeforeCaret) {
+          pos = i + 1;
+          break;
+        }
+      }
+      try {
+        target.setSelectionRange(pos, pos);
+      } catch {
+        // input không hỗ trợ selection — bỏ qua
+      }
+    });
   };
 
   const handleNgaySinhBlur = () => {
@@ -277,7 +303,7 @@ export function HoSoView() {
   return (
     <div className="mx-auto max-w-5xl space-y-6">
       {isMock && (
-        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-xs text-amber-800">
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-xs text-amber-800 dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-200">
           Chế độ xem trước giao diện (dữ liệu minh họa) — thao tác lưu và tải danh sách thật bị tắt cho tới khi BE hoạt động. Xóa <span className="font-mono">?xem-truoc=1</span> để dùng dữ liệu thật.
         </div>
       )}
@@ -614,7 +640,7 @@ export function HoSoView() {
                         placeholder="dd/mm/yyyy"
                         autoComplete="bday"
                         value={ngaySinh}
-                        onChange={(e) => handleNgaySinhChange(e.target.value)}
+                        onChange={handleNgaySinhChange}
                         onBlur={handleNgaySinhBlur}
                         className="h-10 rounded-xl border-input bg-card pl-10 pr-10 text-sm"
                       />

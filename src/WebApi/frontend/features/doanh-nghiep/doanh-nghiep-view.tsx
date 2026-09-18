@@ -91,19 +91,19 @@ export function DoanhNghiepView() {
   return (
     <div className="mx-auto w-full max-w-6xl space-y-5 px-4 py-6 sm:px-6 sm:py-8">
       <div>
-        <p className="inline-flex items-center gap-2 rounded-full border border-teal/25 bg-teal/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-navy">
+        <p className="inline-flex items-center gap-2 rounded-full border border-teal/25 bg-teal/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-primary">
           <Building2 className="size-3.5" /> Doanh nghiệp
         </p>
-        <h1 className="mt-3 text-3xl font-semibold tracking-tight text-charcoal sm:text-4xl">
+        <h1 className="mt-3 text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
           Khám phá công ty
         </h1>
-        <p className="mt-2 max-w-2xl text-sm leading-6 text-charcoal/60">
+        <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
           Duyệt danh bạ công ty, theo dõi để nhận tin tuyển dụng mới từ họ.
         </p>
       </div>
 
       <form
-        className="flex flex-col gap-2.5 rounded-2xl border border-linen bg-card p-4 shadow-sm"
+        className="flex flex-col gap-2.5 rounded-2xl border border-border bg-card p-4 shadow-sm"
         onSubmit={(e) => {
           e.preventDefault();
           setAppliedKeyword(keyword);
@@ -116,12 +116,12 @@ export function DoanhNghiepView() {
             onChange={(e) => setKeyword(e.target.value)}
             placeholder="Tên công ty, lĩnh vực, địa điểm..."
             aria-label="Tìm công ty"
-            className="h-11 rounded-xl border-input bg-white pl-10 text-sm"
+            className="h-11 rounded-xl border-input bg-card pl-10 text-sm"
           />
         </div>
         <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
           <Select value={field} onValueChange={(v) => setField(v ?? "all")}>
-            <SelectTrigger aria-label="Lĩnh vực" className="h-10 rounded-xl bg-white">
+            <SelectTrigger aria-label="Lĩnh vực" className="h-10 rounded-xl bg-card">
               <SelectValue placeholder="Lĩnh vực" />
             </SelectTrigger>
             <SelectContent>
@@ -132,7 +132,7 @@ export function DoanhNghiepView() {
             </SelectContent>
           </Select>
           <Select value={location} onValueChange={(v) => setLocation(v ?? "all")}>
-            <SelectTrigger aria-label="Địa điểm" className="h-10 rounded-xl bg-white">
+            <SelectTrigger aria-label="Địa điểm" className="h-10 rounded-xl bg-card">
               <SelectValue placeholder="Địa điểm" />
             </SelectTrigger>
             <SelectContent>
@@ -143,7 +143,7 @@ export function DoanhNghiepView() {
             </SelectContent>
           </Select>
           <Select value={size} onValueChange={(v) => setSize(v ?? "all")}>
-            <SelectTrigger aria-label="Quy mô" className="h-10 rounded-xl bg-white">
+            <SelectTrigger aria-label="Quy mô" className="h-10 rounded-xl bg-card">
               <SelectValue placeholder="Quy mô" />
             </SelectTrigger>
             <SelectContent>
@@ -154,7 +154,7 @@ export function DoanhNghiepView() {
             </SelectContent>
           </Select>
           <Select value={sort} onValueChange={(v) => setSort((v as SortKey) ?? "name")}>
-            <SelectTrigger aria-label="Sắp xếp" className="h-10 rounded-xl bg-white">
+            <SelectTrigger aria-label="Sắp xếp" className="h-10 rounded-xl bg-card">
               <SelectValue placeholder="Sắp xếp" />
             </SelectTrigger>
             <SelectContent>
@@ -184,7 +184,7 @@ export function DoanhNghiepView() {
           {loadError}
         </div>
       ) : visible.length === 0 ? (
-        <div className="flex flex-col items-center gap-2 rounded-2xl border border-dashed border-linen bg-card px-4 py-12 text-center">
+        <div className="flex flex-col items-center gap-2 rounded-2xl border border-dashed border-border bg-card px-4 py-12 text-center">
           <span className="flex size-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
             <Building2 className="size-6" />
           </span>

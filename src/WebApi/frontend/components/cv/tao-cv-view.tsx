@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, usePathname } from "next/navigation";
 import { FileText, Save, Eye, Pencil, Plus, Trash2, Printer, Check, ListChecks, Sparkles, Upload, LayoutTemplate, UserRound, Download, ZoomIn, ZoomOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,11 +9,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { CvForm } from "./cv-form";
 import { CvPreview } from "./cv-preview";
-import { TemplateSelector } from "./template-selector";
+import { TemplatePicker } from "./template-selector";
 import { AiAgent } from "./ai-agent";
 import { CvImportDialog } from "./cv-import-dialog";
 import { defaultCvData } from "@/features/tao-cv/constants";
-import { resolveTemplateId, TEMPLATE_REGISTRY } from "@/features/tao-cv/template-registry";
+import { resolveTemplateId, isKnownTemplateId } from "@/features/tao-cv/template-registry";
 import type { CvFormData, CvVersionVm, CvVm, HoSoVm } from "@/lib/types";
 import {
   isoToVnDate,
@@ -69,7 +69,7 @@ export function PreviewActionBar({
   disabled: boolean;
 }) {
   const dot =
-    status === "saving" ? "bg-marine" : status === "dirty" ? "bg-bronze" : "bg-teal";
+    status === "saving" ? "bg-primary" : status === "dirty" ? "bg-bronze" : "bg-teal";
   const label =
     status === "saving"
       ? "Đang lưu..."
@@ -82,22 +82,22 @@ export function PreviewActionBar({
           : "Đã lưu";
   return (
     <div className="cv-preview-bar">
-      <p className="flex min-w-0 items-center gap-1.5 text-xs font-medium text-charcoal/70" aria-live="polite">
+      <p className="flex min-w-0 items-center gap-1.5 text-xs font-medium text-muted-foreground" aria-live="polite">
         <span className={`size-2 shrink-0 rounded-full ${dot}`} aria-hidden="true" />
         <span className="truncate">{label}</span>
       </p>
       <div className="flex shrink-0 items-center gap-1.5">
-        <div className="flex items-center rounded-full border border-linen bg-white" role="group" aria-label="Phóng to preview">
+        <div className="flex items-center rounded-full border border-border bg-card" role="group" aria-label="Phóng to preview">
           <button
             type="button"
             onClick={() => onZoom(Math.max(70, zoom - 10))}
             disabled={disabled || zoom <= 70}
             aria-label="Thu nhỏ preview"
-            className="flex size-7 items-center justify-center rounded-full text-charcoal/70 transition hover:bg-frost disabled:opacity-40"
+            className="flex size-7 items-center justify-center rounded-full text-muted-foreground transition hover:bg-muted disabled:opacity-40"
           >
             <ZoomOut className="size-3.5" />
           </button>
-          <span className="min-w-10 text-center font-mono text-[11px] font-semibold text-charcoal/70" aria-live="polite">
+          <span className="min-w-10 text-center font-mono text-[11px] font-semibold text-muted-foreground" aria-live="polite">
             {zoom}%
           </span>
           <button
@@ -105,7 +105,7 @@ export function PreviewActionBar({
             onClick={() => onZoom(Math.min(130, zoom + 10))}
             disabled={disabled || zoom >= 130}
             aria-label="Phóng to preview"
-            className="flex size-7 items-center justify-center rounded-full text-charcoal/70 transition hover:bg-frost disabled:opacity-40"
+            className="flex size-7 items-center justify-center rounded-full text-muted-foreground transition hover:bg-muted disabled:opacity-40"
           >
             <ZoomIn className="size-3.5" />
           </button>
@@ -125,12 +125,12 @@ export function PreviewActionBar({
 
 export function ChecklistCard({ items, doneCount }: { items: { label: string; done: boolean }[]; doneCount: number }) {
   return (
-    <div className="rounded-3xl border border-linen bg-card p-5 shadow-sm">
+    <div className="rounded-3xl border border-border bg-card p-5 shadow-sm">
       <div className="flex items-center justify-between gap-2">
-        <p className="flex items-center gap-2 text-sm font-semibold text-charcoal">
-          <ListChecks className="size-4 text-marine" /> Checklist hoàn thiện
+        <p className="flex items-center gap-2 text-sm font-semibold text-foreground">
+          <ListChecks className="size-4 text-primary" /> Checklist hoàn thiện
         </p>
-        <span className="rounded-full bg-teal/10 px-2.5 py-1 text-xs font-bold text-navy">
+        <span className="rounded-full bg-teal/10 px-2.5 py-1 text-xs font-bold text-primary">
           {doneCount}/{items.length}
         </span>
       </div>
@@ -139,13 +139,13 @@ export function ChecklistCard({ items, doneCount }: { items: { label: string; do
           <li key={item.label} className="flex items-center gap-2.5 text-sm">
             <span
               className={`cv-check-dot flex size-5 shrink-0 items-center justify-center rounded-full border transition ${
-                item.done ? "border-teal bg-teal text-white" : "border-linen bg-ivory text-transparent"
+                item.done ? "border-teal bg-teal text-white" : "border-border bg-muted text-transparent"
               }`}
               data-done={item.done}
             >
               <Check className="size-3" />
             </span>
-            <span className={item.done ? "font-medium text-charcoal" : "text-charcoal/55"}>{item.label}</span>
+            <span className={item.done ? "font-medium text-foreground" : "text-muted-foreground"}>{item.label}</span>
           </li>
         ))}
       </ul>
@@ -155,26 +155,27 @@ export function ChecklistCard({ items, doneCount }: { items: { label: string; do
 
 export function QualityCard({ progress, label, note }: { progress: number; label: string; note: string }) {
   return (
-    <div className="rounded-3xl border border-linen bg-card p-5 shadow-sm">
+    <div className="rounded-3xl border border-border bg-card p-5 shadow-sm">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="flex items-center gap-2 text-sm font-semibold text-charcoal">
+        <p className="flex items-center gap-2 text-sm font-semibold text-foreground">
           <Sparkles className="size-4 text-teal" /> Chất lượng CV
-          <strong className="font-mono text-navy">{progress}%</strong>
+          <strong className="font-mono text-primary">{progress}%</strong>
         </p>
         <span className="inline-flex items-center gap-1.5 rounded-full bg-navy px-3 py-1 text-xs font-semibold text-white">
           <span className="size-1.5 rounded-full bg-teal" /> {label}
         </span>
       </div>
-      <div className="mt-3 h-2 overflow-hidden rounded-full bg-frost">
+      <div className="mt-3 h-2 overflow-hidden rounded-full bg-muted">
         <div className="h-full rounded-full bg-teal transition-all duration-300 ease-out" style={{ width: `${progress}%` }} />
       </div>
-      <p className="mt-2.5 text-xs text-charcoal/55">{note}</p>
+      <p className="mt-2.5 text-xs text-muted-foreground">{note}</p>
     </div>
   );
 }
 
 export function TaoCvView() {
   const searchParams = useSearchParams();
+  const pathname = usePathname();
   const [cvData, setCvData] = useState<CvFormData>(defaultCvData);
   const [hoSo, setHoSo] = useState<HoSoVm | null>(null);
   const [cvList, setCvList] = useState<CvVm[]>([]);
@@ -200,21 +201,34 @@ function CvBuilderSkeleton() {
     <div className="grid gap-8 xl:grid-cols-[46fr_54fr]" aria-label="Đang tải trình tạo CV" aria-busy="true">
       <div className="space-y-4">
         {[0, 1, 2].map((i) => (
-          <div key={i} className="animate-pulse rounded-3xl border border-linen bg-card p-5">
-            <div className="h-4 w-1/3 rounded bg-frost" />
+          <div key={i} className="animate-pulse rounded-3xl border border-border bg-card p-5">
+            <div className="h-4 w-1/3 rounded bg-muted" />
             <div className="mt-3 space-y-2">
-              <div className="h-9 rounded-xl bg-frost" />
-              <div className="h-9 rounded-xl bg-frost" />
+              <div className="h-9 rounded-xl bg-muted" />
+              <div className="h-9 rounded-xl bg-muted" />
             </div>
           </div>
         ))}
       </div>
-      <div className="animate-pulse rounded-3xl border border-linen bg-card p-6">
-        <div className="mx-auto aspect-[210/297] w-full max-w-md rounded-lg bg-frost" />
+      <div className="animate-pulse rounded-3xl border border-border bg-card p-6">
+        <div className="mx-auto aspect-[210/297] w-full max-w-md rounded-lg bg-muted" />
       </div>
     </div>
   );
 }
+
+  // Pick a template without touching form content, and sync the choice
+  // into ?template= so refresh/share keeps the selection (?cv= preserved).
+  // Uses history.replaceState (not router.replace) so the URL updates
+  // WITHOUT re-running loadAll: router navigation would flip `loading`,
+  // flash the skeleton, refetch the CV and remount the preview + picker
+  // (the list jump / repeated-click bug).
+  const selectTemplate = (id: string) => {
+    setCvData((prev) => ({ ...prev, templateId: id }));
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("template", id);
+    window.history.replaceState(null, "", `${pathname}?${params.toString()}`);
+  };
 
   // Scroll to the first VISIBLE templates/AI block (mobile tabs + desktop
   // column both render them; hidden ones are skipped).
@@ -238,7 +252,7 @@ function CvBuilderSkeleton() {
       // ?template= starts a NEW working copy; ?cv= selects a saved CV.
       const cvParam = searchParams.get("cv");
       const rawTemplate = searchParams.get("template");
-      if (!cvParam && rawTemplate && TEMPLATE_REGISTRY[resolveTemplateId(rawTemplate)]) {
+      if (!cvParam && rawTemplate && isKnownTemplateId(rawTemplate)) {
         setSelectedId(null);
         setCvData({
           ...(JSON.parse(JSON.stringify(defaultCvData)) as CvFormData),
@@ -555,27 +569,27 @@ function CvBuilderSkeleton() {
   return (
     <div className="mx-auto w-full max-w-[1440px] space-y-5 px-4 py-6 sm:px-6 sm:py-8">
       {/* Breadcrumb + save state */}
-      <div className="flex items-center justify-between gap-3 text-xs text-charcoal/55">
+      <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
         <p className="flex items-center gap-1.5">
-          <FileText className="size-3.5 text-marine" />
-          Tạo CV <span className="text-linen">/</span> {selectedId ? "Chỉnh sửa CV" : "CV mới"}
+          <FileText className="size-3.5 text-primary" />
+          Tạo CV <span className="text-muted-foreground">/</span> {selectedId ? "Chỉnh sửa CV" : "CV mới"}
         </p>
-        <p className="flex items-center gap-1.5 rounded-full border border-linen bg-card px-3 py-1 font-medium">
+        <p className="flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1 font-medium">
           <span className="size-1.5 rounded-full bg-teal" />
           {loading ? "Đang tải..." : selectedId ? `CV #${selectedId}` : "Đang soạn"}
         </p>
       </div>
 
       {/* Header */}
-      <div className="flex flex-col gap-5 rounded-[2rem] border border-linen bg-card p-6 shadow-sm sm:p-8 lg:flex-row lg:items-end lg:justify-between">
+      <div className="flex flex-col gap-5 rounded-[2rem] border border-border bg-card p-6 shadow-sm sm:p-8 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <p className="inline-flex items-center gap-2 rounded-full border border-teal/25 bg-teal/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-navy">
+          <p className="inline-flex items-center gap-2 rounded-full border border-teal/25 bg-teal/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-primary">
             <span className="size-1.5 rounded-full bg-teal" /> Tạo CV thông minh
           </p>
-          <h1 className="mt-3 text-3xl font-semibold tracking-tight text-charcoal sm:text-4xl">
-            Tạo CV <span className="text-marine">chuyên nghiệp</span>
+          <h1 className="mt-3 text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
+            Tạo CV <span className="text-primary">chuyên nghiệp</span>
           </h1>
-          <p className="mt-2 max-w-xl text-sm leading-6 text-charcoal/60">
+          <p className="mt-2 max-w-xl text-sm leading-6 text-muted-foreground">
             Nhập thông tin từng mục, chọn mẫu yêu thích và xem trước trực tiếp.
             Lưu về tài khoản của bạn bất cứ lúc nào, in PDF khi sẵn sàng.
           </p>
@@ -583,26 +597,26 @@ function CvBuilderSkeleton() {
             <button
               type="button"
               onClick={() => scrollToSection("templates")}
-              className="inline-flex items-center gap-1 font-medium text-marine hover:text-navy hover:underline"
+              className="inline-flex items-center gap-1 font-medium text-primary hover:text-primary hover:underline"
             >
               <LayoutTemplate className="h-3.5 w-3.5" />
               Chọn mẫu CV
             </button>
-            <span aria-hidden="true" className="text-linen">•</span>
+            <span aria-hidden="true" className="text-muted-foreground">•</span>
             <button
               type="button"
               onClick={fillFromHoSo}
               disabled={!hoSo}
-              className="inline-flex items-center gap-1 font-medium text-marine hover:text-navy hover:underline disabled:opacity-50"
+              className="inline-flex items-center gap-1 font-medium text-primary hover:text-primary hover:underline disabled:opacity-50"
             >
               <UserRound className="h-3.5 w-3.5" />
               Tạo từ hồ sơ
             </button>
-            <span aria-hidden="true" className="text-linen">•</span>
+            <span aria-hidden="true" className="text-muted-foreground">•</span>
             <button
               type="button"
               onClick={() => scrollToSection("ai")}
-              className="inline-flex items-center gap-1 font-medium text-marine hover:text-navy hover:underline"
+              className="inline-flex items-center gap-1 font-medium text-primary hover:text-primary hover:underline"
             >
               <Sparkles className="h-3.5 w-3.5" />
               Viết bằng AI
@@ -657,8 +671,8 @@ function CvBuilderSkeleton() {
 
       {/* CV selector */}
       {cvList.length > 0 && (
-        <div className="flex flex-wrap items-center gap-3 rounded-3xl border border-linen bg-card px-4 py-3.5 shadow-sm">
-          <span className="text-sm font-medium text-charcoal/60">CV của tôi ({cvList.length}):</span>
+        <div className="flex flex-wrap items-center gap-3 rounded-3xl border border-border bg-card px-4 py-3.5 shadow-sm">
+          <span className="text-sm font-medium text-muted-foreground">CV của tôi ({cvList.length}):</span>
           <div className="flex flex-wrap gap-2">
             {cvList.map((c) => (
               <Button
@@ -674,7 +688,7 @@ function CvBuilderSkeleton() {
             ))}
           </div>
           <div className="ml-auto flex items-center gap-2">
-            <span className="text-sm text-charcoal/60">Tên file:</span>
+            <span className="text-sm text-muted-foreground">Tên file:</span>
             <Input
               value={cvData.tenFile}
               onChange={(e) => setCvData({ ...cvData, tenFile: e.target.value })}
@@ -686,8 +700,8 @@ function CvBuilderSkeleton() {
       )}
 
       {selectedId && versions.length > 0 && (
-        <div className="flex flex-wrap items-center gap-2 rounded-3xl border border-linen bg-card px-4 py-3 shadow-sm">
-          <span className="mr-1 text-sm font-medium text-charcoal/60">Lịch sử:</span>
+        <div className="flex flex-wrap items-center gap-2 rounded-3xl border border-border bg-card px-4 py-3 shadow-sm">
+          <span className="mr-1 text-sm font-medium text-muted-foreground">Lịch sử:</span>
           {versions.map((version) => (
             <Button
               key={version.id}
@@ -723,8 +737,8 @@ function CvBuilderSkeleton() {
       />
 
       {!loading && !loadError && pendingDraft && (
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-3xl border border-marine/30 bg-frost px-4 py-3.5" role="status">
-          <p className="text-sm text-charcoal">
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-3xl border border-marine/30 bg-muted px-4 py-3.5" role="status">
+          <p className="text-sm text-foreground">
             Đã tìm thấy bản nháp tự lưu
             {pendingDraft.savedAt ? ` lúc ${formatClock(new Date(pendingDraft.savedAt))}` : ""}. Khôi phục nội dung nháp?
           </p>
@@ -743,8 +757,8 @@ function CvBuilderSkeleton() {
         <CvBuilderSkeleton />
       ) : loadError ? (
         <div className="flex flex-col items-center gap-3 rounded-3xl border border-destructive/30 bg-card px-6 py-14 text-center" role="alert">
-          <p className="text-sm font-semibold text-charcoal">Không tải được dữ liệu CV</p>
-          <p className="max-w-sm text-sm text-charcoal/55">{loadError}</p>
+          <p className="text-sm font-semibold text-foreground">Không tải được dữ liệu CV</p>
+          <p className="max-w-sm text-sm text-muted-foreground">{loadError}</p>
           <Button type="button" variant="outline" className="mt-1 rounded-full" onClick={() => void loadAll()}>
             Thử lại
           </Button>
@@ -767,10 +781,7 @@ function CvBuilderSkeleton() {
           <TabsContent value="form" className="mt-4 space-y-4">
             <ChecklistCard items={quality.items} doneCount={quality.doneCount} />
             <div data-scroll-target="templates">
-              <TemplateSelector
-                selectedId={cvData.templateId}
-                onSelect={(id) => setCvData({ ...cvData, templateId: id })}
-              />
+              <TemplatePicker selectedId={cvData.templateId} onSelect={selectTemplate} />
             </div>
             <CvForm data={cvData} onChange={setCvData} />
             <div data-scroll-target="ai">
@@ -778,7 +789,7 @@ function CvBuilderSkeleton() {
             </div>
           </TabsContent>
           <TabsContent value="preview" className="mt-4">
-            <div className="sticky top-20 rounded-[1.35rem] border border-linen bg-[#eaf1f7] p-3">
+            <div className="sticky top-20 rounded-[1.35rem] border border-border bg-muted p-3">
               <PreviewActionBar
                 status={saveStatus}
                 savedAt={lastSavedAt}
@@ -806,8 +817,8 @@ function CvBuilderSkeleton() {
           {/* Editor column */}
           <div className="min-w-0">
             <div className="mb-4 flex items-end justify-between">
-              <h2 className="text-xl font-semibold tracking-tight text-charcoal">Thông tin CV</h2>
-              <span className="flex items-center gap-1.5 rounded-full bg-teal/10 px-2.5 py-1 text-xs font-semibold text-navy">
+              <h2 className="text-xl font-semibold tracking-tight text-foreground">Thông tin CV</h2>
+              <span className="flex items-center gap-1.5 rounded-full bg-teal/10 px-2.5 py-1 text-xs font-semibold text-primary">
                 <FileText className="size-3 text-teal" />
                 6 mục
               </span>
@@ -815,10 +826,7 @@ function CvBuilderSkeleton() {
             <div className="space-y-4">
               <ChecklistCard items={quality.items} doneCount={quality.doneCount} />
               <div data-scroll-target="templates">
-                <TemplateSelector
-                  selectedId={cvData.templateId}
-                  onSelect={(id) => setCvData({ ...cvData, templateId: id })}
-                />
+                <TemplatePicker selectedId={cvData.templateId} onSelect={selectTemplate} />
               </div>
               <CvForm data={cvData} onChange={setCvData} />
               <div data-scroll-target="ai">
@@ -830,10 +838,10 @@ function CvBuilderSkeleton() {
           {/* Preview column */}
           <div className="min-w-0">
             <div className="mb-4 flex items-end justify-between gap-2">
-              <h2 className="text-xl font-semibold tracking-tight text-charcoal">Xem trước</h2>
+              <h2 className="text-xl font-semibold tracking-tight text-foreground">Xem trước</h2>
               <div className="flex items-center gap-2">
                 <span
-                  className="rounded-full border border-linen bg-card px-2.5 py-1 font-mono text-xs font-semibold text-charcoal/60"
+                  className="rounded-full border border-border bg-card px-2.5 py-1 font-mono text-xs font-semibold text-muted-foreground"
                   aria-live="polite"
                   title="Số trang A4 của bản xem trước"
                 >
@@ -862,7 +870,7 @@ function CvBuilderSkeleton() {
                 <CvPreview data={cvData} onPageCount={setPageCount} />
               </div>
               {pageCount > 2 && (
-                <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-center text-xs leading-5 text-amber-800">
+                <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-center text-xs leading-5 text-amber-800 dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-200">
                   CV đang dài hơn 2 trang. Hãy rút gọn nội dung để dễ đọc hơn.
                 </p>
               )}

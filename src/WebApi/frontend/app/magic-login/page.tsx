@@ -52,7 +52,7 @@ function MagicLoginContent() {
 
         {status === "error" && !wrongPortal && (
           <div className="w-full mt-6">
-            <Link href="/login" className="block w-full">
+            <Link href={portal === "employer" ? "/employer/login" : "/login"} className="block w-full">
               <Button className="w-full h-11 rounded-xl bg-primary text-primary-foreground hover:bg-primary-hover">
                 Quay lại trang Đăng nhập
               </Button>

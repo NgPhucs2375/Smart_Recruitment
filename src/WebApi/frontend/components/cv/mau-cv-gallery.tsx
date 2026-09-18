@@ -47,19 +47,19 @@ export function MauCvGallery() {
   return (
     <div className="mx-auto w-full max-w-6xl space-y-6 px-4 py-6 sm:px-6 sm:py-8">
       <div className="flex flex-col gap-2">
-        <p className="inline-flex w-fit items-center gap-2 rounded-full border border-teal/25 bg-teal/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-navy">
+        <p className="inline-flex w-fit items-center gap-2 rounded-full border border-teal/25 bg-teal/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-primary">
           <FileText className="size-3.5" /> Mẫu CV
         </p>
-        <h1 className="text-3xl font-semibold tracking-tight text-charcoal sm:text-4xl">
+        <h1 className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
           Chọn mẫu cho CV của bạn
         </h1>
-        <p className="max-w-2xl text-sm leading-6 text-charcoal/60">
+        <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
           Xem trước bố cục thật với dữ liệu mẫu. Chọn “Dùng mẫu này” để mở trình tạo CV với mẫu đã chọn —
           bạn nhập dữ liệu thật của mình ở bước tiếp theo.
         </p>
       </div>
 
-      <div className="flex flex-col gap-3 rounded-3xl border border-linen bg-card p-4 shadow-sm sm:flex-row sm:items-center">
+      <div className="flex flex-col gap-3 rounded-3xl border border-border bg-card p-4 shadow-sm sm:flex-row sm:items-center">
         <div className="relative flex-1">
           <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -70,7 +70,7 @@ export function MauCvGallery() {
             className="rounded-full pl-9"
           />
         </div>
-        <p className="shrink-0 text-xs font-medium text-charcoal/55" aria-live="polite">
+        <p className="shrink-0 text-xs font-medium text-muted-foreground" aria-live="polite">
           {filtered.length}/{templates.length} mẫu
         </p>
       </div>
@@ -86,7 +86,7 @@ export function MauCvGallery() {
               "inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-xs font-medium transition",
               category === c.id
                 ? "border-navy bg-navy text-white"
-                : "border-linen bg-card text-charcoal/65 hover:border-navy/40 hover:text-charcoal",
+                : "border-border bg-card text-muted-foreground hover:border-navy/40 hover:text-foreground",
             )}
           >
             {c.id === "all" && <LayoutGrid className="size-3.5" />}
@@ -96,9 +96,9 @@ export function MauCvGallery() {
       </div>
 
       {filtered.length === 0 ? (
-        <div className="flex flex-col items-center gap-2 rounded-3xl border border-dashed border-linen bg-card px-6 py-14 text-center">
-          <p className="text-sm font-semibold text-charcoal">Không tìm thấy mẫu phù hợp</p>
-          <p className="max-w-sm text-sm text-charcoal/55">
+        <div className="flex flex-col items-center gap-2 rounded-3xl border border-dashed border-border bg-card px-6 py-14 text-center">
+          <p className="text-sm font-semibold text-foreground">Không tìm thấy mẫu phù hợp</p>
+          <p className="max-w-sm text-sm text-muted-foreground">
             Thử từ khóa khác hoặc chọn nhóm khác để xem toàn bộ thư viện {templates.length} mẫu.
           </p>
           <Button
@@ -136,12 +136,12 @@ function TemplateCard({
 }) {
   const { Component } = template;
   return (
-    <article className="flex flex-col overflow-hidden rounded-3xl border border-linen bg-card shadow-sm transition hover:shadow-md">
+    <article className="flex flex-col overflow-hidden rounded-3xl border border-border bg-card shadow-sm transition hover:shadow-md">
       <button
         type="button"
         onClick={onPreview}
         aria-label={`Xem trước mẫu ${template.name}`}
-        className="group relative block h-64 w-full cursor-pointer overflow-hidden bg-white text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+        className="group relative block h-64 w-full cursor-pointer overflow-hidden bg-card text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
       >
         <div aria-hidden="true" className="origin-top-left" style={{ width: "640px", transform: "scale(0.5)", pointerEvents: "none" }}>
           <Component data={SAMPLE_RESUME} />
@@ -153,7 +153,7 @@ function TemplateCard({
 
       <div className="flex flex-1 flex-col gap-2.5 p-5">
         <div className="flex items-start justify-between gap-2">
-          <h2 className="text-lg font-semibold tracking-tight text-charcoal">{template.name}</h2>
+          <h2 className="text-lg font-semibold tracking-tight text-foreground">{template.name}</h2>
           <Check className="mt-1 size-4 shrink-0 text-teal" aria-label="Mẫu khả dụng" />
         </div>
         <div className="flex flex-wrap gap-1.5" aria-label="Thẻ phù hợp">
@@ -163,7 +163,7 @@ function TemplateCard({
             </Badge>
           ))}
         </div>
-        <p className="text-sm leading-6 text-charcoal/60">{template.description}</p>
+        <p className="text-sm leading-6 text-muted-foreground">{template.description}</p>
         <div className="mt-auto flex gap-2 pt-2">
           <Button type="button" variant="outline" className="h-10 flex-1 rounded-xl" onClick={onPreview}>
             <Eye className="mr-2 size-4" />
@@ -193,15 +193,15 @@ function TemplatePreviewModal({
   return (
     <DialogPrimitive.Root open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
       <DialogPrimitive.Portal>
-        <DialogPrimitive.Backdrop className="fixed inset-0 z-50 bg-charcoal/40 backdrop-blur-[2px]" />
+        <DialogPrimitive.Backdrop className="fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px]" />
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <DialogPrimitive.Popup className="flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-3xl border border-linen bg-card shadow-xl">
+          <DialogPrimitive.Popup className="flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-3xl border border-border bg-card shadow-xl">
             <div className="flex items-start justify-between gap-3 border-b border-border/60 p-5">
               <div>
-                <DialogPrimitive.Title className="text-lg font-semibold tracking-tight text-charcoal">
+                <DialogPrimitive.Title className="text-lg font-semibold tracking-tight text-foreground">
                   {template?.name ?? "Xem trước mẫu"}
                 </DialogPrimitive.Title>
-                <DialogPrimitive.Description className="mt-1 text-sm leading-6 text-charcoal/60">
+                <DialogPrimitive.Description className="mt-1 text-sm leading-6 text-muted-foreground">
                   {template?.description ?? ""}
                 </DialogPrimitive.Description>
                 {template && (
@@ -218,17 +218,17 @@ function TemplatePreviewModal({
                 type="button"
                 onClick={onClose}
                 aria-label="Đóng xem trước"
-                className="flex size-8 shrink-0 items-center justify-center rounded-full text-charcoal/60 transition hover:bg-ivory hover:text-charcoal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                className="flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               >
                 <X className="size-4" />
               </button>
             </div>
 
-            <div className="min-h-0 flex-1 overflow-y-auto bg-ivory p-5">
-              <div className="overflow-hidden rounded-2xl border border-linen bg-white shadow-sm">
+            <div className="min-h-0 flex-1 overflow-y-auto bg-muted p-5">
+              <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
                 {Component && template && <Component data={SAMPLE_RESUME} />}
               </div>
-              <p className="mt-3 text-xs text-charcoal/50">
+              <p className="mt-3 text-xs text-muted-foreground">
                 Minh họa bằng dữ liệu mẫu. Khi dùng mẫu, bạn sẽ nhập thông tin thật của mình trong trình tạo CV.
               </p>
             </div>
