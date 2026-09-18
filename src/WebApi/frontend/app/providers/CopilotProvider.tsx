@@ -19,6 +19,10 @@ export function CopilotProvider({ children }: { children: React.ReactNode }) {
     typeof window === "undefined" ? null : localStorage.getItem("access_token"),
   );
 
+  // BE-first: LLM + tool backend (hồ sơ, CV) chạy ở .NET smart-agent.
+  // FE chỉ expose action client-side (useCopilotAction ghi nháp vào form) để BE gọi ngược qua AG-UI.
+  // Đi qua Next proxy cùng origin để giữ SSE streaming, sanitize event hỏng
+  // và không phụ thuộc browser -> BE direct (hết CORS/localhost staging).
   const runtimeUrl = "/api/copilotkit";
 
   return (

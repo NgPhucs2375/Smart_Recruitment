@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Mail, Lock, ArrowRight, Loader2, Building2, Eye, EyeOff } from "lucide-react";
+import { Mail, Lock, ArrowRight, Loader2, Building2, Eye, EyeOff, Sparkles, KanbanSquare, ShieldCheck, LockKeyhole } from "lucide-react";
 
 /**
  * Employer login PRESENTATION.
@@ -29,7 +29,10 @@ export default function EmployerLoginPage() {
   return (
     <AuthLayout
       leftPanel={
-        <>
+        <div className="relative">
+          {/* Single restrained glow (aria-hidden, static) */}
+          <div aria-hidden="true" className="pointer-events-none absolute -right-12 top-24 size-52 rounded-full bg-marine/20 blur-3xl" />
+
           <p className="font-mono text-xs uppercase tracking-[0.24em] text-white/60">
             Enterprise Portal / 2026
           </p>
@@ -39,11 +42,56 @@ export default function EmployerLoginPage() {
           <p className="mt-5 max-w-md text-sm leading-6 text-white/65">
             Đăng nhập để quản lý tin tuyển dụng, pipeline ứng viên và hồ sơ doanh nghiệp của bạn.
           </p>
-          <div className="mt-8 flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] p-4 backdrop-blur-sm">
-            <Building2 className="size-5 shrink-0 text-sandgold" />
-            <span className="text-sm text-white/90">Dành cho tài khoản Nhà tuyển dụng (Người đại diện / Nhân sự)</span>
+
+          {/* Illustrative pipeline snapshot: numbers are placeholders, not live data */}
+          <div className="mt-7 max-w-md rounded-2xl border border-white/15 bg-white/[0.06] p-4 shadow-[0_16px_48px_rgba(0,0,0,0.25)] backdrop-blur-sm">
+            <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-white/60">
+              <KanbanSquare className="size-3.5 text-sandgold" /> Pipeline tuần này
+            </p>
+            <div className="mt-3 grid grid-cols-4 gap-2 text-center">
+              {[
+                { stage: "Mới", count: "24" },
+                { stage: "Sàng lọc", count: "18" },
+                { stage: "Phỏng vấn", count: "6" },
+                { stage: "Offer", count: "2" },
+              ].map((s) => (
+                <div key={s.stage} className="rounded-xl bg-white/[0.05] px-2 py-2.5">
+                  <p className="font-mono text-lg font-bold text-white">{s.count}</p>
+                  <p className="mt-0.5 text-[10px] uppercase tracking-wider text-white/55">{s.stage}</p>
+                </div>
+              ))}
+            </div>
+            <div className="mt-3">
+              <div className="flex items-center justify-between text-[11px] text-white/60">
+                <span>Tỷ lệ lấp đầy vị trí</span>
+                <span className="font-mono font-bold text-white/85">78%</span>
+              </div>
+              <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-white/10">
+                <div className="h-full w-[78%] rounded-full bg-sandgold" />
+              </div>
+            </div>
           </div>
-        </>
+
+          <div className="mt-5 max-w-md space-y-2.5">
+            <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] p-3.5 backdrop-blur-sm">
+              <Sparkles className="size-5 shrink-0 text-teal" />
+              <span className="text-sm text-white/90">AI đối chiếu CV với yêu cầu tuyển dụng theo thời gian thực</span>
+            </div>
+            <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] p-3.5 backdrop-blur-sm">
+              <KanbanSquare className="size-5 shrink-0 text-sandgold" />
+              <span className="text-sm text-white/90">Pipeline, lịch phỏng vấn và nhắc việc tập trung một nơi</span>
+            </div>
+            <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] p-3.5 backdrop-blur-sm">
+              <ShieldCheck className="size-5 shrink-0 text-sage" />
+              <span className="text-sm text-white/90">Phân quyền Người đại diện / Nhân sự rõ ràng, an toàn</span>
+            </div>
+          </div>
+
+          <p className="mt-5 flex max-w-md items-center gap-2 text-xs leading-5 text-white/45">
+            <LockKeyhole className="size-3.5 shrink-0" />
+            SSO doanh nghiệp • Nhật ký audit đầy đủ • Dữ liệu lưu trữ trong nước
+          </p>
+        </div>
       }
     >
       <div className="mb-5 text-center">

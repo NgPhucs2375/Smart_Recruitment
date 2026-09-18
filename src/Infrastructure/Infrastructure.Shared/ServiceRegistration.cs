@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Net.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Application.Interfaces;
@@ -32,6 +33,14 @@ namespace Infrastructure.Shared
             {
                 client.BaseAddress = new Uri("https://generativelanguage.googleapis.com/");
                 client.Timeout = TimeSpan.FromSeconds(90);
+            })
+            .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
+            {
+                // DNS/mạng trong Docker hay treo connect; ConnectTimeout ngắn để
+                // lỗi lộ sớm và được parser retry, PooledConnectionLifetime để
+                // connection pool nhận kết quả DNS mới.
+                ConnectTimeout = TimeSpan.FromSeconds(15),
+                PooledConnectionLifetime = TimeSpan.FromMinutes(5)
             });
         }
     }

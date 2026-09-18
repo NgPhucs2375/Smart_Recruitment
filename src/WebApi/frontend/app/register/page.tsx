@@ -27,6 +27,8 @@ import {
   Eye,
   EyeOff,
   UserRound,
+  FileText,
+  BellRing,
 } from "lucide-react";
 
 function RegisterContent() {
@@ -67,11 +69,19 @@ function RegisterContent() {
     loading: magicLoading,
     sent: magicSent,
     error: magicError,
+    sentEmail: magicSentEmail,
     reset: resetMagic,
   } = useMagicLinkRegister();
 
   const leftPanelContent = (
-    <>
+    <div className="relative">
+      {/* Decorative glows + floating chips (illustrative, aria-hidden) */}
+      <div aria-hidden="true" className="pointer-events-none absolute -right-10 -top-16 size-56 rounded-full bg-teal/20 blur-3xl animate-pulse-soft" />
+      <div aria-hidden="true" className="pointer-events-none absolute -left-16 top-64 size-44 rounded-full bg-sandgold/10 blur-3xl" />
+      <div aria-hidden="true" className="pointer-events-none absolute right-6 top-2 hidden rounded-full border border-white/15 bg-white/[0.06] px-3 py-1 font-mono text-[11px] text-white/80 backdrop-blur-sm animate-float xl:block">
+        React • 92% khớp
+      </div>
+
       <p className="font-mono text-xs uppercase tracking-[0.24em] text-white/60">
         Talent Network / 2026
       </p>
@@ -82,17 +92,65 @@ function RegisterContent() {
         Hồ sơ của bạn được AI đối chiếu trực tiếp với các dự án thực tế, nhận cơ hội việc làm đúng tech stack.
       </p>
 
-      <div className="mt-8 space-y-3">
-        <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] p-4 backdrop-blur-sm">
+      {/* Illustrative product mock: numbers are placeholders, not live data */}
+      <div className="animate-float mt-8 max-w-md rounded-2xl border border-white/10 bg-white/[0.06] p-4 backdrop-blur-sm">
+        <div className="flex items-center justify-between">
+          <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-white/60">
+            <Sparkles className="size-3.5 text-teal" /> AI Match
+          </p>
+          <span className="rounded-full bg-teal/20 px-2.5 py-0.5 font-mono text-[11px] font-bold text-teal">
+            92%
+          </span>
+        </div>
+        <div className="mt-3">
+          <div className="flex items-center justify-between text-[11px] text-white/60">
+            <span className="flex items-center gap-1.5">
+              <FileText className="size-3.5" /> CV của bạn
+            </span>
+            <span className="font-mono">85%</span>
+          </div>
+          <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-white/10">
+            <div className="h-full w-[85%] rounded-full bg-teal" />
+          </div>
+        </div>
+        <div className="mt-3 space-y-2">
+          {[
+            { title: "Backend Developer", meta: "React • .NET", match: "94%" },
+            { title: "Frontend Developer", meta: "TypeScript • Tailwind", match: "89%" },
+          ].map((job) => (
+            <div key={job.title} className="flex items-center justify-between gap-2 rounded-xl bg-white/[0.05] px-3 py-2">
+              <div className="min-w-0">
+                <p className="truncate text-xs font-semibold text-white/90">{job.title}</p>
+                <p className="truncate font-mono text-[10px] text-white/50">{job.meta}</p>
+              </div>
+              <span className="shrink-0 font-mono text-[11px] font-bold text-teal">{job.match}</span>
+            </div>
+          ))}
+        </div>
+        <p className="mt-3 border-t border-white/10 pt-2.5 font-mono text-[10px] uppercase tracking-[0.14em] text-white/45">
+          18 mẫu CV • ATS-friendly
+        </p>
+      </div>
+
+      <div className="mt-5 max-w-md space-y-2.5">
+        <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] p-3.5 backdrop-blur-sm">
           <CheckCircle2 className="size-5 shrink-0 text-sage" />
           <span className="text-sm text-white/90">Trình tạo CV chuẩn Tech-Minimalist hoàn toàn miễn phí</span>
         </div>
-        <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] p-4 backdrop-blur-sm">
-          <Sparkles className="size-5 shrink-0 text-indigo-400" />
+        <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] p-3.5 backdrop-blur-sm">
+          <Sparkles className="size-5 shrink-0 text-teal" />
           <span className="text-sm text-white/90">Gợi ý việc làm chuẩn xác từ AI theo ngôn ngữ & framework</span>
         </div>
+        <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] p-3.5 backdrop-blur-sm">
+          <BellRing className="size-5 shrink-0 text-sandgold" />
+          <span className="text-sm text-white/90">Theo dõi trạng thái ứng tuyển theo thời gian thực</span>
+        </div>
       </div>
-    </>
+
+      <p className="mt-5 max-w-md text-xs leading-5 text-white/45">
+        Miễn phí cho ứng viên • Không cần thẻ tín dụng • Xóa tài khoản bất cứ lúc nào
+      </p>
+    </div>
   );
 
   return (
@@ -259,7 +317,7 @@ function RegisterContent() {
       {!isInvitation && method === "magic" && (
         <form onSubmit={handleMagicSubmit} className="space-y-3.5">
           {magicSent ? (
-            <MagicLinkSentSuccess email={registerMagic("email").name} onResend={resetMagic} />
+            <MagicLinkSentSuccess email={magicSentEmail} onResend={resetMagic} />
           ) : (
             <>
               {magicError && (
@@ -347,7 +405,7 @@ function RegisterContent() {
 
 export default function RegisterPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-background" />}>
+    <Suspense fallback={<div className="min-h-dvh bg-background" />}>
       <RegisterContent />
     </Suspense>
   );

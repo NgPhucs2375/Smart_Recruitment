@@ -1,13 +1,31 @@
 "use client";
 
-// Wrapper giao diện preview; nội dung CV được render duy nhất bởi CvDocument.
+// Wrapper giao diện preview; nội dung CV render qua Template Registry + phân trang A4.
 import type { CvFormData } from "@/lib/types";
-import { CvDocument } from "./cv-document";
+import { toResumeData } from "@/features/tao-cv/resume-data";
+import { resolveTemplate } from "@/features/tao-cv/template-registry";
+import { CvPaginatedPreview } from "./cv-paginated-preview";
 
 interface CvPreviewProps {
   data: CvFormData;
+  onPageCount?: (count: number) => void;
 }
 
-export function CvPreview({ data }: CvPreviewProps) {
-  return <CvDocument data={data} />;
+/**
+ * Dispatcher: CvFormData -> ResumeData -> registered template component.
+ * Contains no CV layout itself; changing templateId re-renders the same
+ * content through a different template without touching form data.
+ * Pagination is a pure visual wrapper — ResumeData is passed through.
+ */
+export function CvPreview({ data, onPageCount }: CvPreviewProps) {
+  const resume = toResumeData(data);
+  const template = resolveTemplate(data.templateId);
+  return (
+    <CvPaginatedPreview
+      resume={resume}
+      Component={template.Component}
+      templateKey={template.id}
+      onPageCount={onPageCount}
+    />
+  );
 }

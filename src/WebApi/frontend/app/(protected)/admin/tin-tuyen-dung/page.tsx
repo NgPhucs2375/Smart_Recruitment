@@ -24,6 +24,20 @@ interface TinRow {
   DoanhNghiepId: number;
 }
 
+// Display labels + badge variants for the 9 real TrangThaiTinTuyenDung
+// values (0 Nhap … 8 BiKhoa). Backend strings untouched.
+const TIN_TRANG_THAI: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
+  Nhap: { label: "Nháp", variant: "outline" },
+  ChoDuyetHeThong: { label: "Chờ duyệt hệ thống", variant: "secondary" },
+  ChoAdminDuyet: { label: "Chờ admin duyệt", variant: "secondary" },
+  DangTuyen: { label: "Đang tuyển", variant: "default" },
+  TamDung: { label: "Tạm dừng", variant: "outline" },
+  HetHan: { label: "Hết hạn", variant: "secondary" },
+  DaDong: { label: "Đã đóng", variant: "secondary" },
+  TuChoi: { label: "Bị từ chối", variant: "destructive" },
+  BiKhoa: { label: "Bị khóa", variant: "destructive" },
+};
+
 export default function AdminTinTuyenDungPage() {
   const [rows, setRows] = useState<TinRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -142,13 +156,14 @@ export default function AdminTinTuyenDungPage() {
                   <TableBody>
                     {rows.map((row) => {
                       const busy = busyId === row.Id;
+                      const st = TIN_TRANG_THAI[row.TrangThai] ?? { label: row.TrangThai, variant: "secondary" as const };
                       return (
                         <TableRow key={row.Id}>
                           <TableCell>{row.Id}</TableCell>
                           <TableCell className="max-w-[280px] truncate font-medium">{row.TieuDe}</TableCell>
                           <TableCell>
-                            <Badge variant={row.TrangThai === "DangTuyen" ? "default" : "secondary"}>
-                              {row.TrangThai}
+                            <Badge variant={st.variant}>
+                              {st.label}
                             </Badge>
                           </TableCell>
                           <TableCell>#{row.DoanhNghiepId}</TableCell>
@@ -159,7 +174,7 @@ export default function AdminTinTuyenDungPage() {
                                 variant="ghost"
                                 title="Duyệt tin"
                                 disabled={busy}
-                                className="text-green-600"
+                                className="text-teal"
                                 onClick={() => void handleFire(row, TRIGGER_TIN.AdminDuyet, "Duyệt")}
                               >
                                 <CheckCircle2 className="size-4" />
@@ -169,7 +184,7 @@ export default function AdminTinTuyenDungPage() {
                                 variant="ghost"
                                 title="Từ chối tin"
                                 disabled={busy}
-                                className="text-amber-600"
+                                className="text-bronze"
                                 onClick={() => void handleFire(row, TRIGGER_TIN.AdminTuChoi, "Từ chối")}
                               >
                                 <XCircle className="size-4" />
@@ -179,7 +194,7 @@ export default function AdminTinTuyenDungPage() {
                                 variant="ghost"
                                 title="Cưỡng chế khóa (vi phạm)"
                                 disabled={busy}
-                                className="text-orange-600"
+                                className="text-destructive"
                                 onClick={() => void handleFire(row, TRIGGER_TIN.AdminCuongCheKhoa, "Cưỡng chế khóa")}
                               >
                                 <Ban className="size-4" />

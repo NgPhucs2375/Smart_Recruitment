@@ -23,6 +23,7 @@ export function useMagicLinkRegister() {
   });
 
   const selectedRole = useWatch({ control, name: "role" });
+  const sentEmail = useWatch({ control, name: "email" });
 
   async function onSubmit(data: MagicLinkFormData) {
     setLoading(true);
@@ -61,6 +62,7 @@ export function useMagicLinkRegister() {
     sent,
     error,
     selectedRole,
+    sentEmail,
     reset,
   };
 }

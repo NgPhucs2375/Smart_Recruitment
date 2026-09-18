@@ -4,6 +4,7 @@ using Application.Features.CVUngVien.Queries.GetAllCVUngViens;
 using Application.Features.CVUngVien.Queries.GetCVUngVienById;
 using Application.Features.HoSoUngVien.Queries.GetAllHoSoUngViens;
 using Application.Features.HoSoUngVien.Queries.GetMyHoSoUngVien;
+using Application.Features.KetQuaPhuHop.Queries.SuggestJobsForCv;
 using Application.Wrappers;
 using MediatR;
 
@@ -49,6 +50,19 @@ internal sealed class CvQueryTools
     {
         return _sender.Send(
             new GetAllCVUngViensQuery { _start = 0, _end = 20 },
+            cancellationToken);
+    }
+
+    [Description(
+        "Gợi ý các tin tuyển dụng đang tuyển phù hợp với CV của ứng viên (ưu tiên CV mặc định). " +
+        "Trả về top tin kèm điểm phù hợp, kỹ năng đã khớp và kỹ năng còn thiếu. " +
+        "Dùng khi người dùng hỏi 'gợi ý việc làm', 'tôi phù hợp với công việc nào'.")]
+    public Task<Response<List<SuggestedJobViewModel>>> SuggestJobsForMyCvAsync(
+        [Description("ID CV cụ thể cần so khớp; bỏ trống để dùng CV mặc định")] int? cvId,
+        CancellationToken cancellationToken = default)
+    {
+        return _sender.Send(
+            new GetSuggestedJobsForCvQuery { CvUngVienId = cvId, TopN = 10 },
             cancellationToken);
     }
 }

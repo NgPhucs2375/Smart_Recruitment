@@ -1,15 +1,16 @@
 import Link from "next/link";
 import {
-  ArrowRight,
   ArrowUpRight,
-  Building2,
   Check,
   FileSearch,
   Layers,
-  Shield,
   Sparkles,
   Users,
 } from "lucide-react";
+import { EmployerHeroSection, EmployerValueCards } from "@/components/employer/employer-hero-section";
+import { EmployerNavLinks } from "@/components/landing/employer-nav-links";
+import { PublicHeader } from "@/components/landing/public-header";
+import { Reveal } from "@/components/landing/reveal";
 
 const metrics = [
   { value: "3.2x", label: "Nhanh hơn khi sàng lọc hồ sơ" },
@@ -65,117 +66,32 @@ const steps = [
 
 export default function RecruiterLandingPage() {
   return (
-    <main className="min-h-screen bg-ivory text-charcoal">
+    <main className="min-h-dvh bg-ivory text-charcoal">
       {/* Top nav */}
-      <nav aria-label="Điều hướng chính" className="fixed inset-x-0 top-0 z-50 border-b border-linen/70 bg-white/85 backdrop-blur-md">
-        <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-3 sm:px-10 lg:px-16">
-          <Link href="/" className="shrink-0 text-sm font-semibold tracking-[-0.03em] text-navy">
-            HIRE<span className="text-marine">AI</span>
-          </Link>
-          <div className="hidden min-w-0 flex-1 items-center gap-1 md:flex">
-            {[
-              ["Tính năng", "#tinh-nang"],
-              ["Quy trình", "#quy-trinh"],
-              ["Bảng giá", "#lien-he"],
-            ].map(([label, href]) => (
-              <a
-                key={label}
-                href={href}
-                className="whitespace-nowrap rounded-full px-3 py-1.5 text-xs text-charcoal/60 transition hover:bg-mist/20 hover:text-navy"
-              >
-                {label}
-              </a>
-            ))}
-          </div>
-          <div className="ml-auto flex shrink-0 items-center gap-2">
-            <Link href="/employer/login" className="hidden rounded-full px-3.5 py-1.5 text-xs font-medium text-charcoal/70 transition hover:text-navy sm:inline-flex">
-              Đăng nhập
-            </Link>
-            <Link href="/employer/register" className="inline-flex shrink-0 rounded-full bg-navy px-4 py-2 text-xs font-semibold text-white transition hover:bg-marine">
-              Đăng tuyển ngay
-            </Link>
-          </div>
-        </div>
-      </nav>
+      <PublicHeader
+        nav={<EmployerNavLinks large />}
+        mobileNav={<EmployerNavLinks />}
+        loginHref="/employer/login"
+        ctaHref="/employer/register"
+        ctaLabel="Đăng tuyển ngay"
+      />
 
       {/* Hero */}
-      <section className="border-b border-linen/70 px-4 pb-16 pt-28 sm:px-10 sm:pt-32 lg:px-16">
-        <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[1.05fr_.95fr] lg:items-center lg:gap-14">
-          <div>
-            <p className="inline-flex items-center gap-2 rounded-full border border-marine/20 bg-frost px-3.5 py-1.5 text-xs font-semibold text-navy">
-              <Building2 className="size-3.5 text-marine" /> Dành cho nhà tuyển dụng IT
-            </p>
-            <h1 className="mt-6 max-w-2xl text-balance text-4xl font-semibold leading-[1.06] tracking-[-0.03em] text-navy sm:text-6xl">
-              Tuyển đúng người IT,{" "}
-              <span className="text-marine">không cần lọc hàng trăm CV.</span>
-            </h1>
-            <p className="mt-6 max-w-xl text-base leading-7 text-charcoal/70 sm:text-lg">
-              Đăng tin theo skill stack, nhận hồ sơ đã được AI chấm điểm và quản lý toàn bộ pipeline trên một bảng điều hành duy nhất.
-            </p>
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <Link href="/employer/register" className="group inline-flex items-center justify-center gap-2 rounded-full bg-navy px-6 py-3.5 text-sm font-semibold text-white shadow-[0_10px_24px_rgba(53,92,140,0.30)] transition hover:bg-marine">
-                Bắt đầu tuyển dụng <ArrowRight className="size-4 transition group-hover:translate-x-0.5" />
-              </Link>
-              <Link href="/lien-he" className="inline-flex items-center justify-center gap-2 rounded-full border border-linen bg-white px-6 py-3.5 text-sm font-medium text-navy transition hover:border-marine/40 hover:bg-frost">
-                Đặt lịch demo
-              </Link>
-            </div>
-            <p className="mt-5 flex items-center gap-2 text-xs text-charcoal/55">
-              <Shield className="size-3.5 text-teal" /> Tin tuyển dụng được kiểm duyệt • Dữ liệu mã hóa TLS 1.3
-            </p>
-          </div>
+      <EmployerHeroSection />
 
-          {/* Pipeline preview card */}
-          <div className="rounded-[2rem] border border-linen bg-white p-6 shadow-[0_20px_56px_rgba(53,92,140,0.10)] sm:p-8">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold uppercase tracking-[0.18em] text-navy/70">Pipeline tuyển dụng</span>
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-teal/10 px-2.5 py-1 text-[11px] font-medium text-navy">
-                <span className="size-1.5 rounded-full bg-teal" /> Senior Frontend • 24 hồ sơ
-              </span>
-            </div>
-            <div className="mt-5 space-y-3">
-              {[
-                { name: "Nguyễn Văn A — 96% khớp", stage: "Phỏng vấn vòng 2", width: "w-[96%]", bar: "bg-teal" },
-                { name: "Trần Thị B — 89% khớp", stage: "Phỏng vấn vòng 1", width: "w-[89%]", bar: "bg-marine" },
-                { name: "Lê Văn C — 84% khớp", stage: "Chờ phản hồi", width: "w-[84%]", bar: "bg-mist" },
-              ].map((row) => (
-                <div key={row.name} className="rounded-2xl border border-linen bg-ivory px-4 py-3.5">
-                  <div className="flex items-center justify-between gap-2 text-sm">
-                    <span className="font-medium text-charcoal">{row.name}</span>
-                    <span className="shrink-0 text-xs text-charcoal/55">{row.stage}</span>
-                  </div>
-                  <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-white">
-                    <div className={`h-full rounded-full ${row.bar} ${row.width}`} />
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div className="mt-5 grid grid-cols-3 gap-3 border-t border-linen pt-5">
-              {[
-                ["38", "Hồ sơ mới"],
-                ["12", "Đã phỏng vấn"],
-                ["4", "Chờ offer"],
-              ].map(([value, label]) => (
-                <div key={label} className="rounded-2xl bg-frost px-3 py-3 text-center">
-                  <p className="text-xl font-semibold text-navy">{value}</p>
-                  <p className="mt-0.5 text-[11px] text-charcoal/60">{label}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* Quick value cards */}
+      <EmployerValueCards />
 
       {/* Metrics */}
       <section className="border-b border-linen/70 bg-white px-4 py-12 sm:px-10 lg:px-16">
-        <div className="mx-auto grid max-w-7xl grid-cols-2 gap-4 md:grid-cols-4 md:gap-6">
+        <Reveal stagger className="mx-auto grid max-w-7xl grid-cols-2 gap-4 md:grid-cols-4 md:gap-6">
           {metrics.map((m) => (
             <div key={m.label} className="rounded-3xl border border-linen bg-ivory px-5 py-5">
               <p className="font-mono text-3xl font-semibold tracking-tight text-navy">{m.value}</p>
               <p className="mt-1.5 text-xs leading-5 text-charcoal/60">{m.label}</p>
             </div>
           ))}
-        </div>
+        </Reveal>
       </section>
 
       {/* Features */}
@@ -187,7 +103,7 @@ export default function RecruiterLandingPage() {
           <h2 className="mt-5 max-w-3xl text-4xl font-semibold leading-[1.05] tracking-[-0.03em] text-navy sm:text-5xl">
             Mọi thứ nhà tuyển dụng cần, gói gọn trong một nơi.
           </h2>
-          <div className="mt-10 grid gap-5 md:grid-cols-3">
+          <Reveal stagger className="mt-10 grid gap-5 md:grid-cols-3">
             {features.map((f) => (
               <article key={f.title} className="rounded-[1.75rem] border border-linen bg-white p-7 transition hover:-translate-y-1 hover:shadow-[0_20px_48px_rgba(53,92,140,0.10)] sm:p-8">
                 <span className={`flex size-12 items-center justify-center rounded-2xl ${f.tint}`}>
@@ -200,7 +116,7 @@ export default function RecruiterLandingPage() {
                 </p>
               </article>
             ))}
-          </div>
+          </Reveal>
         </div>
       </section>
 
@@ -213,7 +129,7 @@ export default function RecruiterLandingPage() {
           <h2 className="mt-5 max-w-3xl text-4xl font-semibold leading-[1.05] tracking-[-0.03em] text-navy sm:text-5xl">
             Từ tin tuyển dụng đến offer trong 3 bước.
           </h2>
-          <div className="mt-10 grid gap-5 md:grid-cols-3">
+          <Reveal stagger className="mt-10 grid gap-5 md:grid-cols-3">
             {steps.map((s) => (
               <div key={s.number} className="rounded-[1.75rem] border border-linen bg-white p-7 sm:p-8">
                 <p className="font-mono text-sm font-bold text-marine">{s.number}</p>
@@ -221,7 +137,7 @@ export default function RecruiterLandingPage() {
                 <p className="mt-2 text-sm leading-6 text-charcoal/60">{s.description}</p>
               </div>
             ))}
-          </div>
+          </Reveal>
         </div>
       </section>
 

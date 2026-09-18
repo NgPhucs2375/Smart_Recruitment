@@ -53,21 +53,21 @@ export function CvImportDialog({ open, onOpenChange, hoSoUngVienId, onImported }
   return (
     <DialogPrimitive.Root open={open} onOpenChange={handleOpenChange}>
       <DialogPrimitive.Portal>
-        <DialogPrimitive.Backdrop className="fixed inset-0 z-50 bg-charcoal/40 backdrop-blur-[2px] transition-opacity" />
+        <DialogPrimitive.Backdrop className="fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px] transition-opacity" />
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <DialogPrimitive.Popup className="w-full max-w-md rounded-3xl border border-linen bg-card p-6 shadow-xl outline-none">
+          <DialogPrimitive.Popup className="w-full max-w-md rounded-3xl border border-border bg-card p-6 shadow-xl outline-none">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <DialogPrimitive.Title className="text-lg font-semibold tracking-tight text-charcoal">
+                <DialogPrimitive.Title className="text-lg font-semibold tracking-tight text-foreground">
                   Tải CV hiện có
                 </DialogPrimitive.Title>
-                <DialogPrimitive.Description className="mt-1 text-sm leading-6 text-charcoal/60">
+                <DialogPrimitive.Description className="mt-1 text-sm leading-6 text-muted-foreground">
                   Tải CV của bạn để sử dụng làm dữ liệu khởi đầu. Bạn vẫn có thể chỉnh sửa toàn bộ nội dung sau khi nhập.
                 </DialogPrimitive.Description>
               </div>
               <DialogPrimitive.Close
                 aria-label="Đóng"
-                className="flex size-8 shrink-0 items-center justify-center rounded-full text-charcoal/50 transition hover:bg-ivory hover:text-charcoal"
+                className="flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition hover:bg-muted hover:text-foreground"
               >
                 <X className="size-4" />
               </DialogPrimitive.Close>
@@ -95,7 +95,7 @@ export function CvImportDialog({ open, onOpenChange, hoSoUngVienId, onImported }
             )}
 
             <div className="mt-5 flex justify-end gap-2">
-              <DialogPrimitive.Close className="rounded-full px-4 py-2 text-sm font-medium text-charcoal/70 transition hover:bg-ivory hover:text-charcoal">
+              <DialogPrimitive.Close className="rounded-full px-4 py-2 text-sm font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground">
                 Huỷ
               </DialogPrimitive.Close>
               <Button size="sm" className="rounded-full" onClick={handleImport} disabled={!file || !hoSoUngVienId || importing}>

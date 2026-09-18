@@ -62,35 +62,35 @@ export function CvUpload({
           "flex flex-col items-center justify-center rounded-2xl border border-dashed px-4 py-8 text-center transition",
           disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer",
           isDragActive
-            ? "border-marine bg-frost"
-            : "border-linen bg-ivory hover:border-marine/60 hover:bg-frost/60",
+            ? "border-primary bg-muted"
+            : "border-border bg-muted hover:border-marine/60 hover:bg-muted",
         )}
       >
         <span className="flex size-11 items-center justify-center rounded-full bg-navy text-white">
           <UploadCloud className="size-5" />
         </span>
-        <p className="mt-3 text-sm font-medium text-charcoal">
+        <p className="mt-3 text-sm font-medium text-foreground">
           Kéo thả file vào đây hoặc bấm để chọn
         </p>
-        <p className="mt-1 text-xs text-charcoal/55">
+        <p className="mt-1 text-xs text-muted-foreground">
           Chỉ hỗ trợ {SUPPORTED_IMPORT_EXTENSIONS.join(", ")} • tối đa {formatBytes(MAX_IMPORT_BYTES)}
         </p>
         <input {...getInputProps()} />
       </div>
 
       {file && (
-        <div className="mt-3 flex items-center gap-3 rounded-2xl border border-linen bg-ivory px-4 py-3">
-          <FileText className="size-4 shrink-0 text-marine" />
+        <div className="mt-3 flex items-center gap-3 rounded-2xl border border-border bg-muted px-4 py-3">
+          <FileText className="size-4 shrink-0 text-primary" />
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-medium text-charcoal">{file.name}</p>
-            <p className="text-xs text-charcoal/55">{formatBytes(file.size)}</p>
+            <p className="truncate text-sm font-medium text-foreground">{file.name}</p>
+            <p className="text-xs text-muted-foreground">{formatBytes(file.size)}</p>
           </div>
           <button
             type="button"
             disabled={disabled}
             onClick={() => onFileChange(null)}
             aria-label="Xóa file đã chọn"
-            className="flex size-7 shrink-0 items-center justify-center rounded-full text-charcoal/50 transition hover:bg-linen/60 hover:text-charcoal disabled:pointer-events-none"
+            className="flex size-7 shrink-0 items-center justify-center rounded-full text-muted-foreground transition hover:bg-muted hover:text-foreground disabled:pointer-events-none"
           >
             <X className="size-3.5" />
           </button>

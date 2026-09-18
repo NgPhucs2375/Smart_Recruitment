@@ -161,7 +161,9 @@ export default function NhanSuPage() {
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
                     <h3 className="font-medium truncate">{item.hoTen || "—"}</h3>
-                    <Badge variant={item.vaiTro === "NGUOI_DAI_DIEN" ? "default" : "secondary"}>{item.vaiTro}</Badge>
+                    <Badge variant={item.vaiTro === "NGUOI_DAI_DIEN" ? "default" : "secondary"}>
+                      {item.vaiTro === "NGUOI_DAI_DIEN" ? "Người đại diện" : item.vaiTro === "NHAN_SU" ? "Nhân sự" : item.vaiTro}
+                    </Badge>
                   </div>
                   <p className="mt-1 text-sm text-muted-foreground">{item.chucVu || "Chưa có chức vụ"}</p>
                 </div>

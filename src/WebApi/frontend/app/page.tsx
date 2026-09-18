@@ -1,16 +1,53 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { useLogin } from "@refinedev/core";
 import { ArrowUpRight, Bookmark, Building2, Check, ChevronRight, Clock, Code2, FileText, Flame, Home, Laptop, Layers, Loader2, Lock, Mail, MapPin, Phone, Search, Shield, Sparkles, Users, X } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { BrandLogo } from "@/components/brand-logo";
 import { HeroBackgroundIllustration } from "@/features/landing/brand-illustration-card";
+import { PublicHeader } from "@/components/landing/public-header";
 import { locations, jobLevels } from "@/features/viec-lam/constants";
 import { useBookmarks } from "@/hooks/use-bookmarks";
 import { toast } from "sonner";
+import { Reveal, useActiveSection } from "@/components/landing/reveal";
+
+type NavLink = { label: string; href: string };
+
+/** Section links with subtle active highlight. Isolated component so the
+ *  IntersectionObserver state never re-renders the whole landing page. */
+function SectionNavLinks({
+  links,
+  linkClassName,
+}: {
+  links: readonly NavLink[];
+  linkClassName: string;
+}) {
+  const ids = useMemo(
+    () => links.filter((l) => l.href.startsWith("/#")).map((l) => l.href.slice(2)),
+    [links],
+  );
+  const active = useActiveSection(ids);
+  return (
+    <>
+      {links.map((link) => {
+        const id = link.href.startsWith("/#") ? link.href.slice(2) : null;
+        const isActive = id !== null && id === active;
+        return (
+          <Link
+            key={link.href + link.label}
+            href={link.href}
+            aria-current={isActive ? "true" : undefined}
+            className={`${linkClassName}${isActive ? " bg-mist/20 text-navy" : ""}`}
+          >
+            {link.label}
+          </Link>
+        );
+      })}
+    </>
+  );
+}
 
 const capabilities = [
   {
@@ -224,53 +261,35 @@ export default function LandingPage() {
   }
 
   return (
-    <main className="min-h-screen overflow-hidden bg-ivory text-charcoal">
+    <main className="min-h-dvh overflow-hidden bg-ivory text-charcoal">
       {/* ============ Header + Hero — light, airy, growth-oriented ============ */}
       <section className="relative border-b border-linen/70 bg-ivory pt-28 md:pt-16">
         <div className="relative mx-auto max-w-7xl px-4 pb-16 pt-4 sm:px-10 sm:pt-6 lg:px-16">
-          <nav aria-label="Điều hướng chính" className="fixed inset-x-0 top-0 z-50 border-b border-linen/70 bg-white/85 backdrop-blur-md">
-            <div className="mx-auto flex h-16 max-w-7xl items-center gap-2 px-4 sm:px-10 lg:px-16">
-              <BrandLogo href="/" variant="workspace" size="sm" className="shrink-0" />
-              <div className="hidden min-w-0 flex-1 items-center justify-center gap-1 md:flex">
-                {publicNavLinks.map((link) => (
-                  <Link
-                    key={link.href + link.label}
-                    href={link.href}
-                    className="whitespace-nowrap rounded-full px-3.5 py-2 text-sm font-medium text-charcoal/65 transition hover:bg-mist/20 hover:text-navy"
-                  >
-                    {link.label}
-                  </Link>
-                ))}
-              </div>
-              <div className="ml-auto flex shrink-0 items-center gap-2">
-                <Link href="/login" className="hidden whitespace-nowrap rounded-full px-3.5 py-2 text-sm font-medium text-charcoal/70 transition hover:bg-mist/20 hover:text-navy sm:inline-flex">
-                  Đăng nhập
-                </Link>
-                <Link href="/register" className="inline-flex shrink-0 items-center whitespace-nowrap rounded-full bg-marine px-4 py-2 text-sm font-medium text-white transition hover:bg-navy">
-                  Bắt đầu ngay
-                </Link>
-              </div>
-            </div>
-            <div className="border-t border-linen/60 md:hidden">
-              <div className="flex gap-1 overflow-x-auto px-4 py-2">
-                {publicNavLinks.map((link) => (
-                  <Link
-                    key={link.href + link.label}
-                    href={link.href}
-                    className="shrink-0 whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-medium text-charcoal/65 transition hover:bg-mist/20 hover:text-navy"
-                  >
-                    {link.label}
-                  </Link>
-                ))}
+          <PublicHeader
+            nav={
+              <SectionNavLinks
+                links={publicNavLinks}
+                linkClassName="whitespace-nowrap rounded-full px-3.5 py-2 text-sm font-medium text-charcoal/65 transition hover:bg-mist/20 hover:text-navy"
+              />
+            }
+            mobileNav={
+              <>
+                <SectionNavLinks
+                  links={publicNavLinks}
+                  linkClassName="shrink-0 whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-medium text-charcoal/65 transition hover:bg-mist/20 hover:text-navy"
+                />
                 <Link
                   href="/login"
                   className="shrink-0 whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-semibold text-marine transition hover:bg-mist/20 sm:hidden"
                 >
                   Đăng nhập
                 </Link>
-              </div>
-            </div>
-          </nav>
+              </>
+            }
+            loginHref="/login"
+            ctaHref="/register"
+            ctaLabel="Bắt đầu ngay"
+          />
 
           <div id="overview" className="relative scroll-mt-24 overflow-hidden">
             <div aria-hidden="true" className="pointer-events-none absolute inset-0">
@@ -278,15 +297,15 @@ export default function LandingPage() {
             </div>
             <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-gradient-to-b from-ivory/60 via-ivory/40 to-ivory" />
             <div className="relative mx-auto max-w-3xl px-4 pb-16 pt-14 text-center sm:px-10 sm:pt-20 lg:pt-24">
-              <p className="text-xs font-bold uppercase tracking-[0.32em] text-navy/70">HIREAI</p>
-              <h1 className="mx-auto mt-4 max-w-3xl text-balance text-4xl font-semibold leading-[1.08] tracking-[-0.03em] text-navy sm:text-6xl sm:leading-[1.02]">
+              <p className="animate-hero-fade-up text-xs font-bold uppercase tracking-[0.32em] text-navy/70">HIREAI</p>
+              <h1 className="animate-hero-fade-up mx-auto mt-4 max-w-3xl text-balance text-4xl font-semibold leading-[1.08] tracking-[-0.03em] text-navy sm:text-6xl sm:leading-[1.02]">
                 <span className="block">Đúng người, đúng việc.</span>
                 <span className="block text-marine">Đúng thời điểm.</span>
               </h1>
-              <p className="mx-auto mt-5 max-w-xl text-base leading-7 text-charcoal/70 sm:mt-6 sm:text-lg">
+              <p className="animate-hero-fade-up animate-hero-delay-1 mx-auto mt-5 max-w-xl text-base leading-7 text-charcoal/70 sm:mt-6 sm:text-lg">
                 Nền tảng tuyển dụng IT giúp ứng viên và nhà tuyển dụng kết nối nhanh hơn bằng AI matching.
               </p>
-              <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row sm:flex-wrap">
+              <div className="animate-hero-fade-up animate-hero-delay-2 mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row sm:flex-wrap">
                 <Link href="/register" className="group flex items-center justify-center gap-2 rounded-full bg-marine px-6 py-3.5 text-sm font-semibold text-white shadow-[0_10px_24px_rgba(53,92,140,0.30)] transition hover:bg-navy">
                   Tìm việc phù hợp <ArrowUpRight className="size-4 transition group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
                 </Link>
@@ -294,7 +313,7 @@ export default function LandingPage() {
                   Dành cho nhà tuyển dụng <ChevronRight className="size-4" />
                 </Link>
               </div>
-              <dl className="mx-auto mt-8 grid max-w-2xl grid-cols-1 gap-3 sm:mt-10 sm:grid-cols-3">
+              <dl className="animate-hero-scale animate-hero-delay-3 mx-auto mt-8 grid max-w-2xl grid-cols-1 gap-3 sm:mt-10 sm:grid-cols-3">
                 {[
                   { icon: Building2, tint: "bg-frost", iconColor: "text-marine", value: "1.200+", label: "Việc làm đang mở" },
                   { icon: Users, tint: "bg-blush", iconColor: "text-bronze", value: "8.500+", label: "Kết nối thành công" },
@@ -384,7 +403,7 @@ export default function LandingPage() {
                   <Lock className="size-4 text-marine" />
                 </span>
               </div>
-              {loginError && <p className="mb-3 rounded-2xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">{loginError}</p>}
+              {loginError && <p className="mb-3 rounded-2xl border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs text-destructive">{loginError}</p>}
               <div className="grid gap-3 sm:grid-cols-2">
                 <label className="relative">
                   <Mail className="absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-mist" />
@@ -537,7 +556,7 @@ export default function LandingPage() {
                   <span className="flex size-4 items-center justify-center rounded bg-navy text-[10px] font-bold text-white">/</span> để tìm nhanh
                 </span>
                 <span className="hidden sm:inline text-linen">•</span>
-                <span>1.200+ việc làm đang mở</span>
+                <span>{landingFeaturedJobs.length} vị trí nổi bật</span>
               </p>
               {hasActiveSearch && (
                 <div className="flex items-center gap-2">
@@ -586,7 +605,7 @@ export default function LandingPage() {
           </div>
 
           {/* === Job cards — fewer per view, airier === */}
-          <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <Reveal stagger className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {landingFeaturedJobs.map((job) => {
               const bookmarked = isBookmarked(job.id);
               const wm = workModeMeta[job.workMode];
@@ -662,7 +681,7 @@ export default function LandingPage() {
                 </article>
               );
             })}
-          </div>
+          </Reveal>
           <div className="mt-10 flex flex-col items-center justify-between gap-4 sm:flex-row">
             <p className="text-xs text-charcoal/60">
               Hiển thị <span className="font-semibold text-navy">6</span> việc nổi bật •{" "}
@@ -774,7 +793,7 @@ export default function LandingPage() {
             </div>
             <p className="max-w-xs text-sm leading-6 text-charcoal/60">Khám phá cơ hội theo chuyên môn thay vì những danh mục nghề nghiệp chung chung.</p>
           </div>
-          <div className="mt-10 grid gap-5 sm:grid-cols-2">
+          <Reveal stagger className="mt-10 grid gap-5 sm:grid-cols-2">
             {techTracks.map(([number, title, roles], trackIndex) => (
               <Link href="/register" key={title} className="group flex items-end justify-between rounded-[1.75rem] border border-linen bg-white p-7 transition duration-300 hover:-translate-y-1 hover:border-marine/30 hover:shadow-[0_20px_48px_rgba(53,92,140,0.10)] sm:p-8">
                 <div>
@@ -787,7 +806,7 @@ export default function LandingPage() {
                 </span>
               </Link>
             ))}
-          </div>
+          </Reveal>
         </div>
       </section>
 
@@ -803,7 +822,7 @@ export default function LandingPage() {
             </div>
             <Link href="/register" className="inline-flex items-center gap-2 self-start rounded-full border border-navy/20 bg-white px-4 py-2 text-sm font-medium text-navy transition hover:border-navy hover:bg-navy hover:text-white md:self-auto">Xem tất cả công ty <ArrowUpRight className="size-4" /></Link>
           </div>
-          <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          <Reveal stagger className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
             {techCompanies.map(([name, field, openings], companyIndex) => (
               <Link href="/register" key={name} className="group rounded-[1.75rem] border border-linen bg-white p-6 transition duration-300 hover:-translate-y-1 hover:border-marine/30 hover:shadow-[0_20px_48px_rgba(53,92,140,0.10)]">
                 <div className={`flex size-12 items-center justify-center rounded-2xl font-mono text-[10px] font-bold text-white ${companyIndex % 2 === 0 ? "bg-navy" : "bg-marine"}`}>{name.slice(0, 2)}</div>
@@ -815,7 +834,7 @@ export default function LandingPage() {
                 </p>
               </Link>
             ))}
-          </div>
+          </Reveal>
         </div>
       </section>
 
@@ -829,7 +848,7 @@ export default function LandingPage() {
             Một nền tảng, hai hành trình trong thế giới công nghệ.
           </h2>
         </div>
-        <div className="mt-10 grid gap-5 md:grid-cols-2">
+        <Reveal stagger className="mt-10 grid gap-5 md:grid-cols-2">
           <div id="candidates" className="scroll-mt-24 rounded-[2rem] border border-mist/30 bg-blush p-7 sm:p-10">
             <p className="mb-8 inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-marine">
               <span className="size-1.5 rounded-full bg-marine" /> 01 / Ứng viên
@@ -874,7 +893,7 @@ export default function LandingPage() {
               Khám phá giải pháp tuyển dụng <ArrowUpRight className="size-4" />
             </Link>
           </div>
-        </div>
+        </Reveal>
       </section>
 
       {/* === AI / Intelligence — deep navy anchor === */}
@@ -926,7 +945,7 @@ export default function LandingPage() {
               Khám phá nền tảng <ArrowUpRight className="size-4" />
             </Link>
           </div>
-          <div className="grid gap-5 sm:grid-cols-3 lg:pt-12">
+          <Reveal stagger className="grid gap-5 sm:grid-cols-3 lg:pt-12">
             {[
               { title: "Website tuyển dụng", desc: "Quản lý toàn diện", icon: Code2, chip: "bg-frost", iconColor: "text-marine" },
               { title: "Ứng dụng Android / iOS", desc: "Thông báo tức thì", icon: Phone, chip: "bg-teal/10", iconColor: "text-teal" },
@@ -941,7 +960,7 @@ export default function LandingPage() {
                 <p className="mt-1.5 text-sm text-charcoal/60">{item.desc}</p>
               </div>
             ))}
-          </div>
+          </Reveal>
         </div>
       </section>
 

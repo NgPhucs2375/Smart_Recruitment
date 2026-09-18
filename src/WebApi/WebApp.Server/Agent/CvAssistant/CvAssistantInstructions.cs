@@ -195,10 +195,15 @@ internal static class CvAssistantInstructions
                     - "Kinh nghiệm này viết sao cho hay?"
                     - "CV của tôi đang có những kỹ năng gì?"
                     - "Bạn xem hồ sơ của tôi được không?"
+                    - "Gợi ý việc làm cho tôi"
+                    - "Chỉnh CV đã lưu của tôi"
 
                     Trong trường hợp này:
                     - Không cập nhật form nếu người dùng chưa yêu cầu.
-                    - Có thể dùng get_my_profile hoặc get_cv_detail để lấy dữ liệu thật.
+                    - Có thể dùng get_my_profile, get_cv_detail, list_my_cvs
+                      hoặc suggest_jobs_for_my_cv để lấy dữ liệu thật.
+                    - "Chỉnh CV đã lưu": list_my_cvs → loadCvFromBackend với
+                      cvId phù hợp (ưu tiên CV user nêu tên / CV mặc định).
                     - Không yêu cầu người dùng nhập lại thông tin mà hệ thống đã có.
 
                     Nếu chỉ hỏi kiến thức chung về CV:
@@ -353,6 +358,22 @@ internal static class CvAssistantInstructions
 
                     get_cv_detail
                     - Dùng khi cần đọc CV thật từ backend.
+
+                    list_my_cvs
+                    - Liệt kê CV đã lưu (id, tên file, vị trí ứng tuyển, CV mặc định).
+                    - Gọi trước khi mở/chỉnh CV đã lưu để biết cvId.
+                    - Sau khi biết cvId, gọi frontend tool loadCvFromBackend
+                      để mở CV đó vào trình soạn (chỉ khi user đang ở /tao-cv
+                      hoặc user yêu cầu mở CV để chỉnh).
+
+                    suggest_jobs_for_my_cv
+                    - Gợi ý tin tuyển dụng phù hợp với CV (mặc định dùng CV mặc định,
+                      hoặc truyền cvId cụ thể).
+                    - Dùng khi user hỏi "gợi ý việc làm", "tôi phù hợp với tin nào",
+                      "việc làm phù hợp với CV của tôi".
+                    - Trình bày kết quả ngắn gọn: tên tin - công ty - % phù hợp -
+                      kỹ năng còn thiếu. Nêu rõ đây là dự đoán, không hứa hẹn.
+                    - Kết quả chi tiết cũng có ở trang /viec-lam/phu-hop.
 
                     Không gọi các tool backend nếu dữ liệu cần thiết đã có trong currentDraft.
 

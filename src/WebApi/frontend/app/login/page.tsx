@@ -16,7 +16,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Mail, Lock, ArrowRight, Loader2, UserRound, Eye, EyeOff } from "lucide-react";
+import { Mail, Lock, ArrowRight, Loader2, UserRound, Eye, EyeOff, Briefcase, Sparkles, Users } from "lucide-react";
 import { sanitizeNext, type PortalKind } from "@/lib/portal-roles";
 
 function LoginContent() {
@@ -60,7 +60,13 @@ function LoginContent() {
   const wrongPortal = passwordWrongPortal ?? googleWrongPortal;
 
   const leftPanelContent = (
-    <>
+    <div className="relative">
+      {/* Floating accents (illustrative, aria-hidden) */}
+      <div aria-hidden="true" className="pointer-events-none absolute -right-8 -top-14 hidden rounded-full border border-white/15 bg-white/[0.06] px-3 py-1 font-mono text-[11px] text-white/80 backdrop-blur-sm animate-float xl:block">
+        TypeScript • 94% khớp
+      </div>
+      <div aria-hidden="true" className="pointer-events-none absolute -left-12 top-72 size-24 rounded-full bg-sandgold/15 blur-3xl animate-pulse-soft" />
+
       <p className="text-xs font-bold uppercase tracking-[0.32em] text-white/50">
         HIREAI
       </p>
@@ -70,11 +76,36 @@ function LoginContent() {
       <p className="mt-4 max-w-md text-sm leading-6 text-white/65">
         Đăng nhập để quản lý hồ sơ, CV và theo dõi hành trình ứng tuyển của bạn.
       </p>
-      <div className="mt-6 flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] p-4 backdrop-blur-sm">
-        <UserRound className="size-5 shrink-0 text-sandgold" />
-        <span className="text-sm text-white/90">Cổng ứng viên — Nơi kỹ năng gặp đúng cơ hội</span>
+
+      {/* Illustrative stats: placeholders in landing stat-card language */}
+      <div className="mt-7 grid max-w-md grid-cols-3 gap-2.5">
+        {[
+          { icon: Briefcase, tint: "bg-teal/20", iconColor: "text-teal", value: "1.200+", label: "Việc làm IT" },
+          { icon: Sparkles, tint: "bg-sandgold/20", iconColor: "text-sandgold", value: "92%", label: "AI match" },
+          { icon: Users, tint: "bg-white/10", iconColor: "text-white/80", value: "8.500+", label: "Kết nối" },
+        ].map((stat) => (
+          <div key={stat.label} className="rounded-2xl border border-white/10 bg-white/[0.05] px-3 py-3 backdrop-blur-sm">
+            <span className={`flex size-8 items-center justify-center rounded-full ${stat.tint}`}>
+              <stat.icon className={`size-4 ${stat.iconColor}`} aria-hidden="true" />
+            </span>
+            <p className="mt-2 font-mono text-base font-bold text-white">{stat.value}</p>
+            <p className="mt-0.5 text-[11px] text-white/55">{stat.label}</p>
+          </div>
+        ))}
       </div>
-    </>
+
+      <div className="mt-5 flex max-w-md items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] p-4 backdrop-blur-sm">
+        <UserRound className="size-5 shrink-0 text-sandgold" />
+        <span className="flex-1 text-sm text-white/90">Cổng ứng viên — Nơi kỹ năng gặp đúng cơ hội</span>
+      </div>
+
+      <Link
+        href="/tao-cv"
+        className="mt-4 inline-flex max-w-md items-center gap-2 rounded-full border border-white/20 bg-white/[0.06] px-5 py-2.5 text-sm font-semibold text-white backdrop-blur-sm transition hover:border-white/40 hover:bg-white/[0.10]"
+      >
+        Tạo CV miễn phí <ArrowRight className="size-4" aria-hidden="true" />
+      </Link>
+    </div>
   );
 
   return (
@@ -224,7 +255,7 @@ function LoginContent() {
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-background" />}>
+    <Suspense fallback={<div className="min-h-dvh bg-background" />}>
       <LoginContent />
     </Suspense>
   );

@@ -1,6 +1,9 @@
 @import "tailwindcss";
 
 /* Layout CV dùng một document duy nhất; mobile chỉ đổi thứ tự hai panel. */
+html {
+  scroll-behavior: smooth;
+}
 
 /* ============================================================
    SMART RECRUITMENT — DESIGN TOKENS (Phase 1)
@@ -147,6 +150,11 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+
+  /* System layer order (single source of truth for sticky/chrome z). */
+  --z-header: 40;
+  --z-modal: 50;
+  --z-dropdown: 100;
 
   --font-body: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-code: "SFMono-Regular", Menlo, Monaco, Consolas, monospace;
@@ -669,6 +677,94 @@ html {
   animation: slide-in 0.3s ease-out;
 }
 
+/* Hero load-in sequence: fade + slight rise, staggered via delay utils.
+   Transform/opacity only, runs once on mount. */
+@keyframes hero-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-hero-fade-up {
+  animation: hero-fade-up 0.5s ease-out both;
+}
+
+.animate-hero-delay-1 {
+  animation-delay: 0.08s;
+}
+
+.animate-hero-delay-2 {
+  animation-delay: 0.16s;
+}
+
+.animate-hero-delay-3 {
+  animation-delay: 0.24s;
+}
+
+@keyframes hero-scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-hero-scale {
+  animation: hero-scale-in 0.5s ease-out both;
+}
+
+/* Scroll reveal for landing sections: one-time fade + rise, staggered
+   via --reveal-delay on children. Initial hidden state gated behind
+   no-preference so content stays visible with reduced motion or no JS. */
+@media (prefers-reduced-motion: no-preference) {
+  .reveal {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+}
+
+.reveal.is-visible {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 0.5s ease-out,
+    transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  transition-delay: var(--reveal-delay, 0ms);
+}
+
+/* Staggered children: grid cards enter in sequence without wrappers.
+   Transform-only, so grid layout never shifts. */
+@media (prefers-reduced-motion: no-preference) {
+  .reveal-stagger > * {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+}
+
+.reveal-stagger.is-visible > * {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 0.45s ease-out,
+    transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.reveal-stagger.is-visible > *:nth-child(2) { transition-delay: 70ms; }
+.reveal-stagger.is-visible > *:nth-child(3) { transition-delay: 140ms; }
+.reveal-stagger.is-visible > *:nth-child(4) { transition-delay: 210ms; }
+.reveal-stagger.is-visible > *:nth-child(5) { transition-delay: 280ms; }
+.reveal-stagger.is-visible > *:nth-child(6) { transition-delay: 350ms; }
+.reveal-stagger.is-visible > *:nth-child(7) { transition-delay: 420ms; }
+.reveal-stagger.is-visible > *:nth-child(8) { transition-delay: 490ms; }
+
 @keyframes float-card {
   0%,
   100% {
@@ -709,12 +805,27 @@ html {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
   .animate-float,
   .animate-pulse-soft,
-  .animate-slide-in {
+  .animate-slide-in,
+  .animate-hero-fade-up,
+  .animate-hero-scale,
+  .animate-spin,
+  .animate-pulse,
+  .cv-preview-crossfade,
+  .cv-check-dot[data-done="true"],
+  .cv-repeat-enter {
     animation: none;
   }
-  [style*="marquee"] {
+  .template-card,
+  .cv-check-dot {
+    transition: none;
+  }
+  [style*="marquee"],
+  [class*="marquee"] {
     animation: none !important;
     transform: none !important;
   }
@@ -723,6 +834,15 @@ html {
 /* CV Builder Styles */
 :root {
   --cv-accent: #35638f;
+  /* HIREAI paper tokens shared by all CV templates (no per-file hex). */
+  --hire-navy: #274b73;
+  --hire-navy-soft: #eaf1f8;
+  --hire-ink: #1f2a37;
+  --hire-subtle: #5b6470;
+  --hire-ivory: #f7f5f1;
+  --hire-line: #e6e0d6;
+  --hire-chip-border: #d7e1ee;
+  --hire-burgundy: #7a3b4d;
 }
 
 .cv-builder-shell {
@@ -916,15 +1036,15 @@ html {
 }
 
 .cv-form-card {
-  border: 1px solid #e6e0d6;
+  border: 1px solid var(--border);
   border-radius: 1.2rem;
-  background: #ffffff;
+  background: var(--card);
   box-shadow: 0 2px 10px #26352b08;
 }
 
 .cv-form-card [data-slot="card-header"] {
   padding: 1rem 1rem 0.8rem;
-  border-bottom: 1px solid #e6e0d6;
+  border-bottom: 1px solid var(--border);
 }
 
 .cv-form-card [data-slot="card-title"] {
@@ -933,15 +1053,15 @@ html {
   gap: .55rem;
   font-size: 1rem;
   font-weight: 600;
-  color: #3f454a;
+  color: var(--foreground);
 }
 
 .cv-form-card [data-slot="card-title"] svg {
-  color: #35638f;
+  color: var(--primary);
 }
 
 .cv-form-card label {
-  color: #6b6660;
+  color: var(--muted-foreground);
   font-family: var(--font-code);
   font-size: .67rem;
   letter-spacing: .08em;
@@ -950,15 +1070,15 @@ html {
 
 .cv-form-card input,
 .cv-form-card textarea {
-  border-color: #e6e0d6;
+  border-color: var(--input);
   border-radius: .7rem;
-  background: white;
+  background: var(--card);
 }
 
 .cv-required,
 .cv-card-helper {
   margin-left: auto;
-  color: #6b6660;
+  color: var(--muted-foreground);
   font-family: var(--font-code);
   font-size: .62rem;
   font-weight: 400;
@@ -969,9 +1089,9 @@ html {
   display: grid;
   gap: .75rem;
   padding: 1rem;
-  border: 1px solid #e6e0d6;
+  border: 1px solid var(--border);
   border-radius: .9rem;
-  background: #fff;
+  background: var(--card);
 }
 
 .cv-empty-form {
@@ -980,15 +1100,15 @@ html {
   justify-content: center;
   gap: .6rem;
   min-height: 5rem;
-  border: 1px dashed #d8d3c8;
+  border: 1px dashed var(--border);
   border-radius: .8rem;
-  color: #6b6660;
+  color: var(--muted-foreground);
   font-size: .82rem;
   text-align: center;
 }
 
 .cv-empty-form svg {
-  color: #35638f;
+  color: var(--primary);
 }
 
 .cv-preview-toolbar {
@@ -997,12 +1117,12 @@ html {
 
 .cv-preview-frame {
   position: sticky;
-  top: 1.5rem;
+  top: 5.5rem;
   padding: clamp(.8rem, 2vw, 1.5rem);
-  border: 1px solid #e6e0d6;
+  border: 1px solid var(--border);
   border-radius: 1.35rem;
-  background: #eaf1f7;
-  box-shadow: inset 0 0 0 1px #fff, 0 12px 30px #29362b0b;
+  background: var(--muted);
+  box-shadow: inset 0 0 0 1px var(--card), 0 12px 30px #29362b0b;
 }
 
 .cv-builder-layout {
@@ -1040,6 +1160,20 @@ html {
   color: #6b6660;
   font-size: .76rem;
   margin-top: 1rem;
+}
+
+/* Quick actions pinned at the top of the A4 preview pane. The frame
+   itself is sticky, so the bar stays visible while scrolling the long
+   editor column. Never captured into PDF/print output. */
+.cv-preview-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .5rem .75rem;
+  flex-wrap: wrap;
+  margin-bottom: .75rem;
+  padding: 0 .25rem .75rem;
+  border-bottom: 1px solid var(--border);
 }
 
 .cv-paper {
@@ -1137,11 +1271,38 @@ html {
   color: var(--cv-accent);
 }
 
-/* Resume paper: A4 target width, natural growing height (multi-page OK) */
+/* Resume paper: real A4 sheets. Each .cv-paper-a4 is one physical page
+   (210mm wide, 297/210 aspect as minimum height, grows only if a single
+   unbreakable block overflows). Sheets stack with a gap on the neutral
+   frame background — never one infinitely long white surface. */
 .cv-paper-a4 {
   width: 210mm;
-  min-width: 210mm;
-  max-width: none;
+  max-width: 100%;
+  aspect-ratio: 210 / 297;
+}
+
+.cv-pages-root {
+  position: relative;
+}
+
+.cv-pages {
+  display: grid;
+  gap: 1rem;
+  align-content: start;
+}
+
+.cv-sheet {
+  min-width: 0;
+}
+
+/* Hidden measurement pass: same width as the visible sheets, out of flow. */
+.cv-measure {
+  position: absolute;
+  inset: 0 0 auto 0;
+  visibility: hidden;
+  pointer-events: none;
+  z-index: -1;
+  overflow: hidden;
 }
 
 .cv-section-item {
@@ -1151,6 +1312,62 @@ html {
 /* In CV: chỉ in tài liệu CV (window.print -> Save as PDF), ẩn toàn bộ app shell.
    Quy tắc break: CHỈ item đơn lẻ avoid-split; section dài phải tách qua trang
    (tránh khoảng trống lớn cuối trang + trang trắng khi section dài hơn 1 trang). */
+/* ── Restrained micro-interactions (transform/opacity only, 150–250ms) ── */
+.cv-preview-crossfade {
+  animation: cv-fade 180ms ease-out;
+}
+
+@keyframes cv-fade {
+  from { opacity: 0.35; }
+  to { opacity: 1; }
+}
+
+.template-card {
+  transition: border-color 200ms ease, box-shadow 200ms ease, background-color 200ms ease;
+}
+
+.cv-check-dot {
+  transition: transform 200ms ease, background-color 200ms ease, border-color 200ms ease;
+}
+
+.cv-check-dot[data-done="true"] {
+  animation: cv-pop 200ms ease-out;
+}
+
+@keyframes cv-pop {
+  from { transform: scale(0.6); }
+  to { transform: scale(1); }
+}
+
+.cv-repeat-enter {
+  animation: cv-rise 200ms ease-out;
+}
+
+/* Thin themed scrollbar for single-scroll regions (e.g. template list).
+   Keeps wheel/touch scrolling, avoids heavy native scrollbars. */
+.cv-thin-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+.cv-thin-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+.cv-thin-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.cv-thin-scroll::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 9999px;
+}
+.cv-thin-scroll::-webkit-scrollbar-thumb:hover {
+  background: var(--muted-foreground);
+}
+
+@keyframes cv-rise {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 @media print {
   @page {
     size: A4;
@@ -1160,6 +1377,56 @@ html {
   html,
   body {
     background: #fff !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .cv-preview-hint {
+    display: none !important;
+  }
+
+  .cv-preview-bar {
+    display: none !important;
+  }
+
+  /* Screen stacking gap must not leak blank space into paged output. */
+  .cv-pages {
+    gap: 0;
+  }
+
+  /* Each sheet is one printed page; the last sheet must not force a
+     trailing blank page. Compact vertical rhythm for print density. */
+  .cv-pages > .cv-sheet {
+    break-after: page;
+  }
+
+  .cv-pages > .cv-sheet:last-child {
+    break-after: auto;
+  }
+
+  .cv-paper {
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+
+  .cv-paper-a4 {
+    width: auto;
+    max-width: none;
+    aspect-ratio: auto;
+  }
+
+  .cv-sidebar-block,
+  .cv-paper-section {
+    margin-bottom: 1.1rem;
+  }
+
+  .cv-section-item {
+    break-inside: avoid;
+    break-after: auto;
+  }
+
+  * {
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
@@ -1224,5 +1491,10 @@ html {
   .cv-preview-frame > * {
     transform: none !important;
     width: auto !important;
+  }
+
+  /* Tao-cv-view dùng CSS `zoom` cho preview — reset khi in để đủ cỡ A4. */
+  [data-manual-cv-pdf] {
+    zoom: 1 !important;
   }
 }

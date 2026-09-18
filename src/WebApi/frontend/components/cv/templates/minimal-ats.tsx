@@ -28,13 +28,13 @@ export function MinimalAtsTemplate({ data }: ResumeTemplateProps) {
   }
 
   return (
-    <div className="cv-paper cv-paper-a4 px-10 py-9 text-[13px] leading-relaxed text-neutral-800">
+    <div className="cv-paper cv-paper-a4 px-9 py-7 text-[13px] leading-relaxed text-neutral-800">
       {/* Header */}
       <header>
-        <h1 className="text-[26px] font-bold leading-tight tracking-tight text-neutral-950">
+        <h1 className="text-[24px] font-bold leading-tight tracking-tight text-neutral-950">
           {data.name || "Họ và tên"}
         </h1>
-        {data.title && <p className="mt-1 text-[14px] font-medium text-neutral-700">{data.title}</p>}
+        {data.title && <p className="mt-1 text-[13px] font-medium text-neutral-700">{data.title}</p>}
         {data.contacts.length > 0 && (
           <p className="mt-2 text-[12px] text-neutral-600">
             {data.contacts.map((c, i) => (
@@ -53,7 +53,7 @@ export function MinimalAtsTemplate({ data }: ResumeTemplateProps) {
         )}
       </header>
 
-      <div className="mt-6 space-y-5">
+      <div className="mt-5 space-y-4">
         {data.summary && (
           <SectionShell>
             <AtsTitle>Tóm tắt</AtsTitle>
@@ -64,7 +64,7 @@ export function MinimalAtsTemplate({ data }: ResumeTemplateProps) {
         {data.experience.length > 0 && (
           <SectionShell>
             <AtsTitle>Kinh nghiệm làm việc</AtsTitle>
-            <div className="space-y-4">
+            <div className="space-y-3">
               {data.experience.map((job) => (
                 <div key={job.id} className="cv-section-item">
                   <div className="flex items-baseline justify-between gap-3">
@@ -103,12 +103,12 @@ export function MinimalAtsTemplate({ data }: ResumeTemplateProps) {
         {data.skills.length > 0 && (
           <SectionShell>
             <AtsTitle>Kỹ năng</AtsTitle>
-            <p>
+            {/* Names only — no years, no proficiency suffixes. */}
+            <p className="leading-relaxed">
               {data.skills.map((s, i) => (
                 <span key={s.id}>
                   {i > 0 && <span className="mx-1.5 text-neutral-400">·</span>}
                   <span className="font-medium text-neutral-800">{s.name}</span>
-                  {s.detail && <span className="text-neutral-600"> ({s.detail})</span>}
                 </span>
               ))}
             </p>
@@ -118,7 +118,7 @@ export function MinimalAtsTemplate({ data }: ResumeTemplateProps) {
         {data.projects.length > 0 && (
           <SectionShell>
             <AtsTitle>Dự án</AtsTitle>
-            <div className="space-y-4">
+            <div className="space-y-3">
               {data.projects.map((p) => (
                 <div key={p.id} className="cv-section-item">
                   <div className="flex items-baseline justify-between gap-3">

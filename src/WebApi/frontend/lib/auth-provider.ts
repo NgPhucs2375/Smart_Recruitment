@@ -26,6 +26,25 @@ function consumeLoginPortal(): PortalKind | null {
   }
 }
 
+/** Non-consuming peek at the stored login portal (for redirect fallbacks). */
+function peekLoginPortal(): PortalKind | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const v = sessionStorage.getItem(LOGIN_PORTAL_KEY);
+    return v === "candidate" || v === "employer" ? v : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Portal-aware login route: employer deep-links fall back to employer login. */
+export function loginRouteForPortal(): "/employer/login" | "/login" {
+  const stored = peekLoginPortal();
+  if (stored) return stored === "employer" ? "/employer/login" : "/login";
+  const home = homePortalFor(loadIdentity()?.roles ?? []);
+  return home === "employer" ? "/employer/login" : "/login";
+}
+
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const API_URL = "/api/dotnet/account";
@@ -390,7 +409,7 @@ export const authProvider: AuthProvider = {
   check: async () => {
     const token = getToken();
     if (!token) {
-      return { authenticated: false, logout: true, redirectTo: "/login" };
+      return { authenticated: false, logout: true, redirectTo: loginRouteForPortal() };
     }
     return { authenticated: true };
   },
@@ -406,7 +425,7 @@ export const authProvider: AuthProvider = {
       clearAuth();
       return {
         logout: true,
-        redirectTo: "/login",
+        redirectTo: loginRouteForPortal(),
         error: { name: "Unauthorized", message: "Phiên đăng nhập hết hạn" },
       };
     }

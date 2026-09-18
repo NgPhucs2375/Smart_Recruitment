@@ -123,6 +123,9 @@ services:
       DOTNET_AGENT_URL: http://backend:8080/api/copilotkit
       NEXT_PUBLIC_API_URL: http://localhost:${BACKEND_PORT:-8000}
       NEXT_PUBLIC_COPILOT_AGENT_URL: http://localhost:${BACKEND_PORT:-8000}
+      # Chặn Turbopack/Node phình bộ nhớ làm host cạn RAM (trước đây gây
+      # "Out of memory (os error 12)" -> module resolve lỗi ngẫu nhiên -> 500).
+      NODE_OPTIONS: --max-old-space-size=2048
     volumes:
       - ./src/WebApi/frontend:/app
       - frontend_node_modules:/app/node_modules
