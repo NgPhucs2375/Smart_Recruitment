@@ -14,16 +14,10 @@ import { CvImportDialog } from "./cv-import-dialog";
 import { defaultCvData } from "@/features/tao-cv/constants";
 import { resolveTemplateId, TEMPLATE_REGISTRY } from "@/features/tao-cv/template-registry";
 import type { CvFormData, CvVersionVm, CvVm, HoSoVm } from "@/lib/types";
-import {
-  isoToVnDate,
-  normalizeCvPartialDate,
-} from "@/features/tao-cv/cv-data";
+import { isoToVnDate, normalizeCvPartialDate } from "@/features/tao-cv/cv-data";
 import {
   createManualCvPayload,
-  createManualCvPdfBlob,
-  exportManualCvPdf,
   manualCvDetailToForm,
-  manualCvPdfFileName,
   validateManualCv,
 } from "@/features/tao-cv/manual";
 import { cvApi } from "@/lib/api/cv-api";
@@ -87,7 +81,8 @@ export function TaoCvView() {
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [exportingPdf, setExportingPdf] = useState(false);
+  // exportingPdf giữ để tương thích UI hiện tại; xuất PDF giờ dùng window.print() nên không cần loading async.
+  const [exportingPdf] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [importSessionId, setImportSessionId] = useState<string | null>(null);
   const [versions, setVersions] = useState<CvVersionVm[]>([]);
@@ -159,18 +154,14 @@ export function TaoCvView() {
     }
     setSaving(true);
     try {
-      const preview = documentRef.current;
-      if (!preview) throw new Error("Không tìm thấy bản xem trước để lưu PDF.");
-
+      // Lưu CV: chỉ JSON + templateId/templateVersion, KHÔNG chụp màn hình.
       const basePayload = createManualCvPayload(hoSo.id, cvData, true);
-      const fileName = manualCvPdfFileName(cvData.tenFile, cvData.thongTinLienHe.hoTen);
-      const pdf = await createManualCvPdfBlob(preview);
       const result = await cvApi.saveVersion({
         ...basePayload,
         cvUngVienId: selectedId,
         importSessionId,
         phuongThucTao: importSessionId ? 2 : basePayload.phuongThucTao,
-      }, pdf, fileName);
+      });
       setSelectedId(result.cvUngVienId);
       setImportSessionId(null);
       setVersions(await cvApi.getVersions(result.cvUngVienId));
@@ -243,21 +234,13 @@ export function TaoCvView() {
   const handleExportPdf = async () => {
     const preview = documentRef.current;
     if (!preview) {
-      toast.error("Không tìm thấy bản xem trước để xuất PDF.");
+      toast.error("Không tìm thấy bản xem trước để in.");
       return;
     }
-    setExportingPdf(true);
-    try {
-      await exportManualCvPdf(
-        preview,
-        manualCvPdfFileName(cvData.tenFile, cvData.thongTinLienHe.hoTen),
-      );
-      toast.success("Đã xuất file PDF.");
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Không thể xuất file PDF.");
-    } finally {
-      setExportingPdf(false);
-    }
+    // Xuất PDF: dùng window.print() + CSS @media print (chữ thật, nét, @page A4).
+    // Fallback cách cũ (image PDF) giữ trong manual-cv-pdf.ts cho trường hợp cần.
+    await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+    window.print();
   };
 
   const fillFromHoSo = () => {

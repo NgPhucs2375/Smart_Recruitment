@@ -74,6 +74,8 @@ export type CreateManualCvPayload = {
   tenFile: string;
   fileUrl: null;
   templateId: string;
+  /** Version tĩnh của template lúc lưu — để render lại đúng bản dù template đã đổi. */
+  templateVersion: string;
   isDefault: boolean;
   phuongThucTao: 1;
   noiDung: ManualCvContentPayload;

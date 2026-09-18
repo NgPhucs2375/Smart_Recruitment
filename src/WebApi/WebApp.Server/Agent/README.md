@@ -16,9 +16,15 @@ Agent/
     CvStateSnapshot.cs               # State contract shared with the client
     CvAssistantJsonContext.cs        # Source-generated JSON metadata
     Tools/
-      CvQueryTools.cs                # Read-only tool adapters
-      CvCommandTools.cs              # Side-effecting tool adapters
+      CvQueryTools.cs                # Read-only tool adapters (exposed to LLM)
+      CvCommandTools.cs              # DEPRECATED, not exposed (ghi qua nút Lưu /tao-cv)
 ```
+
+> Frontend (CopilotKit v2, `frontend/hooks/use-global-cv-assistant.ts` +
+> `frontend/hooks/use-cv-assistant.ts`): `navigateToCvEditor` (global, mọi trang) +
+> `updateCvContact`/`updateCvMeta`/`upsertCvSectionItem`/`removeCvSectionItem`/
+> `setCvTemplate`/`getCvFormSnapshot` (chỉ /tao-cv). Chat từ trang khác lưu
+> `sessionStorage hireai.cv-pending-patch` rồi `router.push("/tao-cv")`.
 
 Business use cases stay under `Application/Features`. Tools are thin adapters:
 they translate a model tool call into one MediatR command/query and contain no

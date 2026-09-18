@@ -122,14 +122,22 @@ export type PendingCvPatch = {
   contact?: Record<string, string>;
   sections?: PendingSectionPatch[];
   templateId?: string;
+  /** Tên file CV (tenFile, top-level, khác hoTen trong contact). */
+  tenFile?: string;
   savedAt: number;
 };
 
 const PENDING_KEY = "hireai.cv-pending-patch";
 
+/** Event nội bộ cùng-tab: báo cho form /tao-cv đang mở đổ patch ngay, khỏi chờ reload. */
+export const CV_PENDING_PATCH_EVENT = "hireai:cv-pending-patch";
+
 export function savePendingCvPatch(patch: Omit<PendingCvPatch, "savedAt">): void {
   try {
     sessionStorage.setItem(PENDING_KEY, JSON.stringify({ ...patch, savedAt: Date.now() }));
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new Event(CV_PENDING_PATCH_EVENT));
+    }
   } catch {
     // Bộ nhớ đầy hoặc SSR: bỏ qua, chat vẫn hoạt động.
   }
@@ -145,6 +153,7 @@ export function loadPendingCvPatch(): PendingCvPatch | null {
       contact: parsed.contact && typeof parsed.contact === "object" ? (parsed.contact as Record<string, string>) : undefined,
       sections: Array.isArray(parsed.sections) ? (parsed.sections as PendingSectionPatch[]) : undefined,
       templateId: typeof parsed.templateId === "string" ? parsed.templateId : undefined,
+      tenFile: typeof parsed.tenFile === "string" ? parsed.tenFile : undefined,
       savedAt: typeof parsed.savedAt === "number" ? parsed.savedAt : 0,
     };
   } catch {

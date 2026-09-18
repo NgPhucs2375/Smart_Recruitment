@@ -5,6 +5,12 @@ import { CopilotKit } from "@copilotkit/react-core/v2";
 import { CopilotPopup } from "@copilotkit/react-core/v2";
 import "@copilotkit/react-core/v2/styles.css";
 import React, { useState } from "react";
+import { useGlobalCvAssistant } from "@/hooks/use-global-cv-assistant";
+
+function GlobalCvAssistantMount() {
+  useGlobalCvAssistant({ enabled: true });
+  return null;
+}
 
 export function CopilotProvider({ children }: { children: React.ReactNode }) {
   const [token] = useState<string | null>(() =>
@@ -25,10 +31,11 @@ export function CopilotProvider({ children }: { children: React.ReactNode }) {
       }}
     >
       {children}
+      <GlobalCvAssistantMount />
       <CopilotPopup
         defaultOpen={false}
-        width="min(92vw, 420px)"
-        height="min(72vh, 650px)"
+        width="min(92vw, 550px)"
+        height="min(72vh, 750px)"
         clickOutsideToClose
         toggleButton={{
           className: "adam-chat-toggle",
@@ -37,10 +44,10 @@ export function CopilotProvider({ children }: { children: React.ReactNode }) {
           className: "adam-chat-header",
         }}
         labels={{
-          modalHeaderTitle: "Adam - Trợ lý nghề nghiệp",
-          chatToggleOpenLabel: "Mở Adam",
-          chatToggleCloseLabel: "Đóng Adam",
-          welcomeMessageText: "Xin chào, tôi là Adam. Tôi có thể giúp bạn hoàn thiện CV, tìm việc phù hợp và luyện phỏng vấn.",
+          modalHeaderTitle: "Adam - Trợ lý thông minh",
+          chatToggleOpenLabel: "Trò chuyện với Adam",
+          chatToggleCloseLabel: "Tạm biệt Adam",
+          welcomeMessageText: "Xin chào, tôi là Adam. Tôi có thể giúp gì cho bạn?",
           chatInputPlaceholder: "Nhắn cho Adam...",
         }}
       />

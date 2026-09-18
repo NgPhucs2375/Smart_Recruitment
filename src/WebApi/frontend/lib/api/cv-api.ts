@@ -270,7 +270,19 @@ export const cvApi = {
         expiresAt: String(raw.expiresAt ?? raw.ExpiresAt ?? ""),
       }));
   },
-  saveVersion: (payload: object, pdf: Blob, fileName: string) => {
+  /** Lưu CV: JSON + templateId/templateVersion, KHÔNG chụp màn hình. Backend nhận multipart/form-data với Payload (GeneratedPdf optional). Xuất PDF dùng window.print(). */
+  saveVersion: (payload: object) => {
+    const form = new FormData();
+    form.append("Payload", JSON.stringify(payload));
+    return request<Record<string, unknown>>("cvungviens/save-version", { method: "POST", body: form })
+      .then((raw): SaveCvVersionVm => ({
+        cvUngVienId: Number(raw.cvUngVienId ?? raw.CVUngVienId),
+        cvPhienBanId: Number(raw.cvPhienBanId ?? raw.CVPhienBanId),
+        soPhienBan: Number(raw.soPhienBan ?? raw.SoPhienBan),
+      }));
+  },
+  /** Giữ để tương thích: gửi kèm PDF nếu có (legacy/Playwright). */
+  saveVersionWithPdf: (payload: object, pdf: Blob, fileName: string) => {
     const form = new FormData();
     form.append("Payload", JSON.stringify(payload));
     form.append("GeneratedPdf", pdf, fileName);

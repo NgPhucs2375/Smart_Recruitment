@@ -12,6 +12,8 @@ export type ResumeTemplateMeta = {
   name: string;
   description: string;
   tags: string[];
+  /** Version tĩnh để lưu cùng CV — render lại đúng bản dù template đã đổi. */
+  version: string;
   Component: ComponentType<ResumeTemplateProps>;
 };
 
@@ -25,6 +27,7 @@ export const TEMPLATE_REGISTRY: Record<string, ResumeTemplateMeta> = {
     name: "Minimal ATS",
     description: "Một cột, tương thích hệ thống lọc hồ sơ",
     tags: ["ATS", "Professional"],
+    version: "1.0",
     Component: MinimalAtsTemplate,
   },
   "tech-modern": {
@@ -32,6 +35,7 @@ export const TEMPLATE_REGISTRY: Record<string, ResumeTemplateMeta> = {
     name: "Tech Modern",
     description: "Hai cột, dành cho IT / Developer",
     tags: ["IT", "Developer"],
+    version: "1.0",
     Component: TechModernTemplate,
   },
 };

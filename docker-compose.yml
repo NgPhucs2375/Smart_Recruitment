@@ -82,6 +82,11 @@ services:
 
       GROQ_API_KEY: ${GROQ_API_KEY:-dev-placeholder}
 
+      # 9Router chạy ngoài compose (network bridge), backend ở kltn_network nên
+      # localhost:20128 trong container != host. Dùng host-gateway để tới 9Router.
+      Ai__Endpoint: http://host.docker.internal:20128/v1
+      Ai__Model: Ahihi
+
       Minio__Endpoint: minio:9000
       Minio__PublicEndpoint: localhost:9000
       Minio__AccessKey: smartadmin
@@ -91,6 +96,8 @@ services:
 
     ports:
       - "${BACKEND_PORT:-8000}:8080"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       postgres:
         condition: service_healthy

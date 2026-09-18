@@ -241,6 +241,30 @@ export function removeSectionItem(
   return { next, removed: true, report: `Đã xóa ${SECTION_LABEL[section]}: ${label}.` };
 }
 
+// ---- Tên file (tenFile, top-level, khác hoTen) ----
+
+export function applyTenFilePatch(
+  data: CvFormData,
+  tenFile: string,
+): { next: CvFormData; applied: boolean; report: string } {
+  const v = tenFile.trim();
+  if (v === "") {
+    return { next: data, applied: false, report: "Bỏ qua tenFile vì giá trị rỗng." };
+  }
+  if (data.tenFile.trim() === v) {
+    return { next: data, applied: false, report: `Tên file đã là "${v}" rồi.` };
+  }
+  const next = clone(data);
+  const prev = next.tenFile.trim();
+  next.tenFile = v;
+  return {
+    next,
+    applied: true,
+    report:
+      prev === "" ? `Đã đặt tên file CV là "${v}".` : `Đã đổi tên file từ "${prev}" thành "${v}".`,
+  };
+}
+
 // ---- Template ----
 
 export function applyTemplatePatch(

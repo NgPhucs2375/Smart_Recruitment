@@ -18,7 +18,7 @@ internal sealed class ScopedCvAssistantAgent : AIAgent
 
     public override string? Name => CvAssistantInstructions.AgentName;
 
-    public override string? Description => "Trợ lý tư vấn hướng nghiệp và xây dựng CV.";
+    public override string? Description => "Trợ lý tư vấn và xây dựng CV.";
 
     protected override Task<AgentResponse> RunCoreAsync(
         IEnumerable<ChatMessage> messages,

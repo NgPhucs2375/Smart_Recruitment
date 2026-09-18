@@ -1148,52 +1148,81 @@ html {
   break-inside: avoid;
 }
 
-/* In CV: chỉ in khung xem trước, ẩn toàn bộ app shell */
+/* In CV: chỉ in tài liệu CV (window.print -> Save as PDF), ẩn toàn bộ app shell.
+   Quy tắc break: CHỈ item đơn lẻ avoid-split; section dài phải tách qua trang
+   (tránh khoảng trống lớn cuối trang + trang trắng khi section dài hơn 1 trang). */
 @media print {
   @page {
     size: A4;
     margin: 8mm;
   }
 
+  html,
   body {
-    background: #fff;
+    background: #fff !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
 
-  body * {
-    visibility: hidden;
-  }
-
-  .cv-preview-frame,
-  .cv-preview-frame * {
-    visibility: visible;
-  }
-
-  .cv-preview-frame {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    margin: 0;
-    overflow: visible;
-  }
-
-  .cv-preview-hint {
+  /* Ẩn BẰNG display:none (không phải visibility — visibility giữ layout,
+     app shell vẫn chiếm nhiều trang -> in ra trang trắng phía sau).
+     Giữ nguyên chuỗi tổ tiên của tài liệu qua :has(), tài liệu + con cháu
+     được miễn; mọi thứ khác collapse khỏi layout -> không còn trang trắng. */
+  body *:not([data-cv-document]):not([data-cv-document] *):not(:has([data-cv-document])) {
     display: none !important;
   }
 
-  .cv-paper {
+  /* Tài liệu về dòng chảy tự nhiên (bỏ absolute trick) để fragment
+     qua nhiều trang đúng; grid 2 cột của builder về block để CV dùng
+     trọn chiều rộng trang in. */
+  .cv-preview-frame {
+    position: static !important;
+    inset: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
     border: none !important;
-    border-radius: 0 !important;
+    background: #fff !important;
+    overflow: visible !important;
     box-shadow: none !important;
   }
 
-  .cv-paper-a4 {
-    width: auto;
-    max-width: none;
+  .cv-builder-layout {
+    display: block !important;
   }
 
-  * {
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
+  .cv-paper,
+  .cv-paper-a4 {
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    /* overflow:hidden ở screen (bo góc) sẽ cắt nội dung khi fragment qua trang */
+    overflow: visible !important;
+  }
+
+  .cv-document-shell {
+    width: auto !important;
+    min-width: 0 !important;
+  }
+
+  .cv-paper-a4 {
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+  }
+
+  /* Chỉ item đơn lẻ tránh tách giữa 2 trang; section vẫn tách được. */
+  .cv-section-item {
+    break-inside: avoid;
+  }
+
+  /* Heading không ở cuối trang một mình (orphan protection). */
+  .cv-section-shell > h2 {
+    break-after: avoid;
+  }
+
+  /* Khung preview có inline transform:scale (zoom) — vô hiệu khi in. */
+  .cv-preview-frame > * {
+    transform: none !important;
+    width: auto !important;
   }
 }

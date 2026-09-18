@@ -13,7 +13,8 @@ namespace Application.Features.CVUngVien.Commands.SaveCvVersion;
 public class SaveCvVersionCommand : IRequest<Response<SaveCvVersionResult>>
 {
     public string Payload { get; set; }
-    public IFormFile GeneratedPdf { get; set; }
+    /// <summary>PDF đã chụp (legacy). Lưu JSON-only thì null — không bắt buộc nữa.</summary>
+    public IFormFile? GeneratedPdf { get; set; }
 }
 
 public class SaveCvVersionPayload
@@ -23,6 +24,7 @@ public class SaveCvVersionPayload
     public Guid? ImportSessionId { get; set; }
     public string TenFile { get; set; }
     public string? TemplateId { get; set; }
+    public string? TemplateVersion { get; set; }
     public bool IsDefault { get; set; } = true;
     public PhuongThucTaoCV PhuongThucTao { get; set; } = PhuongThucTaoCV.ThuCongTemplate;
     public ParsedCvDto NoiDung { get; set; }
@@ -45,9 +47,8 @@ public class SaveCvVersionCommandHandler(
         SaveCvVersionCommand request,
         CancellationToken cancellationToken)
     {
-        if (request.GeneratedPdf == null || request.GeneratedPdf.Length == 0)
-            return new Response<SaveCvVersionResult>("PDF đã sinh không được để trống.");
-        if (request.GeneratedPdf.Length > 20 * 1024 * 1024)
+        // Lưu JSON-only (không chụp màn hình) là luồng chính. GeneratedPdf chỉ còn legacy/Playwright.
+        if (request.GeneratedPdf != null && request.GeneratedPdf.Length > 20 * 1024 * 1024)
             return new Response<SaveCvVersionResult>("PDF đã sinh không được vượt quá 20 MB.");
 
         SaveCvVersionPayload? payload;
@@ -145,24 +146,29 @@ public class SaveCvVersionCommandHandler(
             ? await context.CVPhienBans.Where(x => x.CVUngVienId == cv.Id)
                 .Select(x => (int?)x.SoPhienBan).MaxAsync(cancellationToken) + 1 ?? 1
             : 1;
-        var generatedKey = $"cvs/{hoSo.Id}/versions/{Guid.NewGuid():N}.pdf";
-        await using var pdfStream = request.GeneratedPdf.OpenReadStream();
-        await fileStorageService.UploadAsync(
-            pdfStream,
-            generatedKey,
-            "application/pdf",
-            request.GeneratedPdf.Length,
-            cancellationToken);
-
-        var generatedFile = new CVTepTin
+        // JSON-only: không bắt buộc PDF. Khi có PDF (legacy/Playwright) thì lưu file, không thì bỏ qua.
+        string? generatedKey = null;
+        CVTepTin? generatedFile = null;
+        if (request.GeneratedPdf != null && request.GeneratedPdf.Length > 0)
         {
-            CVUngVien = cv,
-            LoaiTep = LoaiTepCv.BanDaSinh,
-            ObjectKey = generatedKey,
-            TenFile = Path.GetFileName(request.GeneratedPdf.FileName),
-            ContentType = "application/pdf",
-            KichThuoc = request.GeneratedPdf.Length
-        };
+            generatedKey = $"cvs/{hoSo.Id}/versions/{Guid.NewGuid():N}.pdf";
+            await using var pdfStream = request.GeneratedPdf.OpenReadStream();
+            await fileStorageService.UploadAsync(
+                pdfStream,
+                generatedKey,
+                "application/pdf",
+                request.GeneratedPdf.Length,
+                cancellationToken);
+            generatedFile = new CVTepTin
+            {
+                CVUngVien = cv,
+                LoaiTep = LoaiTepCv.BanDaSinh,
+                ObjectKey = generatedKey,
+                TenFile = Path.GetFileName(request.GeneratedPdf.FileName),
+                ContentType = "application/pdf",
+                KichThuoc = request.GeneratedPdf.Length
+            };
+        }
         CVTepTin? originalFile = null;
         int? originalFileId = null;
         if (importSession != null)
@@ -193,11 +199,16 @@ public class SaveCvVersionCommandHandler(
             TepGoc = originalFile,
             TepGocId = originalFileId,
             TepDaSinh = generatedFile,
-            TemplateId = payload.TemplateId
+            TepDaSinhId = generatedFile != null ? generatedFile.Id : null,
+            TemplateId = payload.TemplateId,
+            TemplateVersion = payload.TemplateVersion
         };
-        cv.StorageKey = generatedKey;
-        cv.FileMimeType = "application/pdf";
-        cv.FileSize = request.GeneratedPdf.Length;
+        if (generatedFile != null)
+        {
+            cv.StorageKey = generatedKey!;
+            cv.FileMimeType = "application/pdf";
+            cv.FileSize = request.GeneratedPdf!.Length;
+        }
         cv.FileUrl = null;
 
         if (!payload.CVUngVienId.HasValue)
@@ -217,7 +228,8 @@ public class SaveCvVersionCommandHandler(
         }
         catch
         {
-            await fileStorageService.DeleteAsync(generatedKey, cancellationToken);
+            if (generatedKey != null)
+                await fileStorageService.DeleteAsync(generatedKey, cancellationToken);
             throw;
         }
 

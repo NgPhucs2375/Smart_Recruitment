@@ -19,7 +19,7 @@ internal sealed class CvQueryTools
     }
 
     [Description(
-        "Lấy hồ sơ của ứng viên đang đăng nhập. " +
+        "Lấy hồ sơ ứng viên - Profile của ứng viên đang đăng nhập hiện tại. " +
         "Gọi trước khi tư vấn hoặc tạo nội dung CV cần dữ liệu hồ sơ thật.")]
     public Task<Response<GetAllHoSoUngViensViewModel>> GetMyProfileAsync(
         CancellationToken cancellationToken = default)
@@ -28,7 +28,7 @@ internal sealed class CvQueryTools
     }
 
     [Description(
-        "Lấy chi tiết đầy đủ của một CV thuộc ứng viên đang đăng nhập. " +
+        "Lấy chi tiết đầy đủ của một CV thuộc ứng viên đang đăng nhập hiện tại. " +
         "Dùng khi người dùng yêu cầu xem, phân tích hoặc chỉnh một CV đã tồn tại.")]
     public Task<Response<CvDetailDto>> GetCvDetailAsync(
         [Description("ID của CV cần lấy chi tiết")] int cvId,
