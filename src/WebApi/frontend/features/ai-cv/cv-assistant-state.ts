@@ -63,17 +63,40 @@ export function missingRequiredFields(data: CvFormData): string[] {
   return missing;
 }
 
-export type AssistantItemRef = { id: string; label: string };
+export type AssistantItemRef = {
+  id: string;
+  label: string;
+  /** Đủ field của item (ngày, moTa, arrays...) để agent đọc và viết lại nội dung có sẵn. */
+  fields: Record<string, string | string[]>;
+};
 
 export type AssistantSnapshot = {
   contact: Record<string, string>;
   counts: Record<CvSectionKey, number>;
-  /** id + tên gợi nhớ để agent truyền id khi muốn SỬA item đã có. */
+  /** id + tên gợi nhớ + toàn bộ field: agent dùng id khi SỬA, đọc fields khi viết lại nội dung. */
   items: Record<CvSectionKey, AssistantItemRef[]>;
   templateId: string;
   tenFile: string;
   missing: string[];
 };
+
+/** Đóng gói field của một item: bỏ id, bỏ rỗng, mảng lọc trống, bool rút gọn thành nhãn. */
+function itemFields(it: object): Record<string, string | string[]> {
+  const out: Record<string, string | string[]> = {};
+  for (const [k, v] of Object.entries(it)) {
+    if (k === "id") continue;
+    if (Array.isArray(v)) {
+      const arr = v.map((x) => String(x).trim()).filter(Boolean);
+      if (arr.length > 0) out[k] = arr;
+    } else if (typeof v === "string") {
+      const s = v.trim();
+      if (s) out[k] = s;
+    } else if (typeof v === "boolean") {
+      if (v) out[k] = k === "isHienTai" ? "đang làm" : "có";
+    }
+  }
+  return out;
+}
 
 /** Snapshot JSON-safe cho useAgentContext: agent đọc, không bao giờ ghi ngược. */
 export function buildAssistantSnapshot(data: CvFormData): AssistantSnapshot {
@@ -90,11 +113,11 @@ export function buildAssistantSnapshot(data: CvFormData): AssistantSnapshot {
     chungChi: data.chungChi.length,
   } satisfies Record<CvSectionKey, number>;
   const items = {
-    hocVan: data.hocVan.map((it) => ({ id: it.id, label: [it.truong, it.chuyenNganh].filter(Boolean).join(" — ") })),
-    kinhNghiemLamViec: data.kinhNghiemLamViec.map((it) => ({ id: it.id, label: [it.chucDanh, it.congTy].filter(Boolean).join(" @ ") })),
-    duAn: data.duAn.map((it) => ({ id: it.id, label: it.tenDuAn })),
-    kyNang: data.kyNang.map((it) => ({ id: it.id, label: it.tenKyNang })),
-    chungChi: data.chungChi.map((it) => ({ id: it.id, label: it.tenChungChi })),
+    hocVan: data.hocVan.map((it) => ({ id: it.id, label: [it.truong, it.chuyenNganh].filter(Boolean).join(" — "), fields: itemFields(it) })),
+    kinhNghiemLamViec: data.kinhNghiemLamViec.map((it) => ({ id: it.id, label: [it.chucDanh, it.congTy].filter(Boolean).join(" @ "), fields: itemFields(it) })),
+    duAn: data.duAn.map((it) => ({ id: it.id, label: it.tenDuAn, fields: itemFields(it) })),
+    kyNang: data.kyNang.map((it) => ({ id: it.id, label: it.tenKyNang, fields: itemFields(it) })),
+    chungChi: data.chungChi.map((it) => ({ id: it.id, label: it.tenChungChi, fields: itemFields(it) })),
   } satisfies Record<CvSectionKey, AssistantItemRef[]>;
   return {
     contact,

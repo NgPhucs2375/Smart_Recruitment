@@ -37,7 +37,10 @@ internal sealed class CvAssistantAgentFactory
                     new AIFunctionFactoryOptions { Name = "get_my_profile" }),
                 AIFunctionFactory.Create(
                     _queryTools.GetCvDetailAsync,
-                    new AIFunctionFactoryOptions { Name = "get_cv_detail" })
+                    new AIFunctionFactoryOptions { Name = "get_cv_detail" }),
+                AIFunctionFactory.Create(
+                    _queryTools.GetMyCvsAsync,
+                    new AIFunctionFactoryOptions { Name = "list_my_cvs" })
             ]);
     }
 }

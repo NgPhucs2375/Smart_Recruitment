@@ -124,7 +124,8 @@ app.UseMiddleware<WebApp.Server.Middlewares.AguiReasoningRoleMiddleware>();
 // FE giữ frontend tool v2 (useFrontendTool/useAgentContext) và trỏ runtimeUrl về endpoint này.
 // Ghi CV duy nhất qua nút "Lưu CV" ở /tao-cv; chat từ trang khác dùng navigateToCvEditor + pending-patch.
 app.MapCvAssistantAgent("/api/copilotkit")
-    .RequireCors("AllowFrontend");
+    .RequireCors("AllowFrontend")
+    .RequireAuthorization();
 
 
 

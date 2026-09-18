@@ -90,7 +90,13 @@ export function TaoCvView() {
 
   // Adam (CopilotKit agent): đọc snapshot form + ghi qua frontend tool,
   // preview realtime, mỗi lần ghi có toast Hoàn tác.
-  useCvAssistant({ data: cvData, onChange: setCvData, ready: !loading });
+  // selectCv truyền hàm vì handleSelect (const) khai báo sau dòng này.
+  useCvAssistant({
+    data: cvData,
+    onChange: setCvData,
+    ready: !loading,
+    selectCv: (id) => handleSelect(id),
+  });
 
   // Scroll to the first VISIBLE templates/AI block (mobile tabs + desktop
   // column both render them; hidden ones are skipped).
@@ -182,17 +188,17 @@ export function TaoCvView() {
     setCvData(JSON.parse(JSON.stringify(defaultCvData)) as CvFormData);
   };
 
-  const handleSelect = async (id: number) => {
-    const cv = cvList.find((c) => c.id === id);
-    if (!cv) return;
+  const handleSelect = async (id: number): Promise<boolean> => {
     try {
       const detail = await cvApi.getById(id);
       setSelectedId(id);
       setImportSessionId(null);
       setCvData((prev) => manualCvDetailToForm(detail, prev));
       setVersions(await cvApi.getVersions(id));
+      return true;
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Không tải được chi tiết CV");
+      return false;
     }
   };
 

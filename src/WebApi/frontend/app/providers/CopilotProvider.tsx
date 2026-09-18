@@ -13,8 +13,10 @@ function GlobalCvAssistantMount() {
 }
 
 export function CopilotProvider({ children }: { children: React.ReactNode }) {
+  // Key chuẩn của app là "access_token" (auth-provider.ts TOKEN_KEY) —
+  // đọc sai key trước đây khiến header Authorization luôn rỗng.
   const [token] = useState<string | null>(() =>
-    typeof window === "undefined" ? null : localStorage.getItem("accessToken"),
+    typeof window === "undefined" ? null : localStorage.getItem("access_token"),
   );
 
   const runtimeUrl = "/api/copilotkit";

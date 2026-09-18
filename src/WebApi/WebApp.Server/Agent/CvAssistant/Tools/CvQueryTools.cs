@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using Application.DTOs.CV;
+using Application.Features.CVUngVien.Queries.GetAllCVUngViens;
 using Application.Features.CVUngVien.Queries.GetCVUngVienById;
 using Application.Features.HoSoUngVien.Queries.GetAllHoSoUngViens;
 using Application.Features.HoSoUngVien.Queries.GetMyHoSoUngVien;
@@ -36,6 +37,18 @@ internal sealed class CvQueryTools
     {
         return _sender.Send(
             new GetCVUngVienByIdQuery { Id = cvId },
+            cancellationToken);
+    }
+
+    [Description(
+        "Lấy danh sách CV đã lưu của ứng viên đang đăng nhập (mới nhất trước), " +
+        "kèm id, tên file, vị trí ứng tuyển, template và CV mặc định. " +
+        "Gọi tool này trước khi mở/chỉnh một CV đã lưu để biết cvId.")]
+    public Task<Response<List<GetAllCVUngViensViewModel>>> GetMyCvsAsync(
+        CancellationToken cancellationToken = default)
+    {
+        return _sender.Send(
+            new GetAllCVUngViensQuery { _start = 0, _end = 20 },
             cancellationToken);
     }
 }

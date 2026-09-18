@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { useAgentContext, useFrontendTool } from "@copilotkit/react-core/v2";
 import { z } from "zod";
 import { toast } from "sonner";
@@ -33,6 +34,8 @@ type UseCvAssistantOpts = {
   ready?: boolean;
   /** Tắt tool khi rời khỏi màn hình soạn CV. */
   enabled?: boolean;
+  /** Mở một CV đã lưu vào form (handleSelect của TaoCvView). Trả true nếu thành công. */
+  selectCv?: (id: number) => Promise<boolean>;
 };
 
 const contactSchema = z.object({
@@ -72,6 +75,10 @@ const templateSchema = z.object({
   templateId: z.string().describe("ID mẫu: minimal-ats (1 cột, chuẩn ATS) hoặc tech-modern (2 cột, cho IT)"),
 });
 
+const loadCvSchema = z.object({
+  cvId: z.number().int().describe("ID của CV đã lưu cần mở vào form (lấy từ kết quả list_my_cvs của backend tool)"),
+});
+
 const metaSchema = z.object({
   tenFile: z
     .string()
@@ -82,20 +89,29 @@ const metaSchema = z.object({
 });
 
 /**
- * Gắn Adam vào form CV: expose snapshot đọc + 7 frontend tool ghi.
+ * Gắn Adam vào form CV: expose snapshot đọc + 8 frontend tool (7 ghi + 1 mở CV đã lưu).
  * Ghi thẳng vào form live (preview realtime), mỗi lần ghi có toast Hoàn tác.
  * Chỉ mount trong /tao-cv. Chat từ trang khác dùng useGlobalCvAssistant
  * (navigateToCvEditor + pending-patch) rồi đổ vào đây.
  */
-export function useCvAssistant({ data, onChange, ready = true, enabled = true }: UseCvAssistantOpts) {
+export function useCvAssistant({
+  data,
+  onChange,
+  ready = true,
+  enabled = true,
+  selectCv,
+}: UseCvAssistantOpts) {
+  const router = useRouter();
   const dataRef = useRef(data);
   const onChangeRef = useRef(onChange);
+  const selectCvRef = useRef(selectCv);
   const undoRef = useRef<CvFormData | null>(null);
   const pendingDoneRef = useRef(false);
 
   useEffect(() => {
     dataRef.current = data;
     onChangeRef.current = onChange;
+    selectCvRef.current = selectCv;
   });
 
   const undo = () => {
@@ -278,6 +294,31 @@ export function useCvAssistant({ data, onChange, ready = true, enabled = true }:
           },
           items: toJsonSafe(buildAssistantSnapshot(d).items),
         });
+      },
+    },
+    [enabled],
+  );
+
+  useFrontendTool(
+    {
+      name: "loadCvFromBackend",
+      description:
+        "Mở MỘT CV đã lưu vào trình soạn /tao-cv để chỉnh tiếp (thay toàn bộ form hiện tại). " +
+        "cvId lấy từ backend tool list_my_cvs. Nếu form đang có thay đổi chưa lưu, nhắc user trước khi gọi. " +
+        "Sau khi mở, đọc lại trạng thái form bằng getCvFormSnapshot trước khi sửa.",
+      parameters: loadCvSchema,
+      available: enabled,
+      handler: async ({ cvId }) => {
+        if (selectCvRef.current) {
+          const ok = await selectCvRef.current(cvId);
+          if (ok) {
+            toast.success(`Adam đã mở CV #${cvId} vào trình soạn`);
+            return `Đã mở CV ${cvId} vào form. Dữ liệu form bây giờ là của CV này.`;
+          }
+          return `Không tải được CV ${cvId}. Báo người dùng thử lại hoặc mở thủ công từ hồ sơ.`;
+        }
+        router.push(`/tao-cv?cv=${cvId}`);
+        return `Đang chuyển sang /tao-cv để mở CV ${cvId}. Form sẽ tự load CV khi đến nơi.`;
       },
     },
     [enabled],

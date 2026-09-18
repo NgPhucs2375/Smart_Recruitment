@@ -3,6 +3,7 @@ import {
   createCopilotRuntimeHandler,
 } from "@copilotkit/runtime/v2";
 import { HttpAgent, type HttpAgentFetchFn } from "@ag-ui/client";
+import { AsyncLocalStorage } from "node:async_hooks";
 import { sanitizeSseLine } from "./sanitize-agui";
 
 // Adapter CopilotKit Runtime: chuyển luồng hội thoại sang AG-UI agent .NET.
@@ -11,9 +12,17 @@ import { sanitizeSseLine } from "./sanitize-agui";
 const agentUrl =
   process.env.DOTNET_AGENT_URL ?? "http://backend:8080/api/copilotkit";
 
+// Backend .NET đã bật RequireAuthorization cho /api/copilotkit nên proxy phải
+// chuyển tiếp Authorization từ request browser; HttpAgent tự xây requestInit
+// nên ta bơm header qua ALS thay vì đụng vào runtime singleton.
+const authHeaderStorage = new AsyncLocalStorage<string>();
+
 /** fetch bọc SSE: chỉ chạm vào dòng data-JSON, byte khác giữ nguyên. */
 const agentFetch: HttpAgentFetchFn = async (url, requestInit) => {
-  const res = await fetch(url, requestInit);
+  const auth = authHeaderStorage.getStore();
+  const headers = new Headers(requestInit?.headers);
+  if (auth) headers.set("Authorization", auth);
+  const res = await fetch(url, { ...requestInit, headers });
   const contentType = res.headers.get("content-type") ?? "";
   if (!res.ok || !res.body || !contentType.includes("text/event-stream")) {
     return res;
@@ -50,7 +59,12 @@ const runtime = new CopilotRuntime({
 } as unknown as ConstructorParameters<typeof CopilotRuntime>[0]);
 
 /** Handler dùng chung cho route bare và catch-all [...path]. */
-export const agentRouteHandler = createCopilotRuntimeHandler({
+const copilotHandler = createCopilotRuntimeHandler({
   runtime,
   basePath: "/api/copilotkit",
 });
+
+export const agentRouteHandler = (req: Request): Promise<Response> => {
+  const auth = req.headers.get("authorization") ?? "";
+  return authHeaderStorage.run(auth, () => copilotHandler(req));
+};
