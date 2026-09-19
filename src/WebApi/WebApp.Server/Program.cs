@@ -40,8 +40,8 @@ _services.AddSingleton(opts=>
 _services.AddEnvironmentVariablesExtension();
 _services.AddIdentityLayer();
 _services.AddApplicationLayer();
-_services.AddNpgSqlIdentityInfrastructure();
-_services.AddNpgSqlPersistenceInfrastructure();
+_services.AddNpgSqlIdentityInfrastructure(_config);
+_services.AddNpgSqlPersistenceInfrastructure(_config);
 _services.AddIdentityRepositories(_config);
 _services.AddPersistenceRepositories();
 _services.AddSharedInfrastructure(_config);

@@ -15,7 +15,6 @@ using Domain.Settings;
 using Infrastructure.Identity.Contexts;
 using Infrastructure.Identity.Models;
 using Infrastructure.Identity.Services;
-using Infrastructure.Shared.Environments;
 using System;
 using System.Reflection;
 using System.Text;
@@ -34,26 +33,30 @@ namespace Infrastructure.Identity
                 options.UseInMemoryDatabase("IdentityDb"));
         }
 
-        public static void AddNpgSqlIdentityInfrastructure(this IServiceCollection services)
+        public static void AddNpgSqlIdentityInfrastructure(this IServiceCollection services, IConfiguration configuration)
         {
-            var sp = services.BuildServiceProvider();
-            using (var scope = sp.CreateScope())
+            // Config first, raw env var as backward-compatible fallback.
+            // Fail fast here instead of silently skipping AddDbContext, which
+            // used to surface later as "Unable to resolve IdentityContext".
+            var appConnStr = configuration.GetConnectionString("PostgresConnection");
+            if (string.IsNullOrWhiteSpace(appConnStr))
             {
-                var _dbSetting = scope.ServiceProvider.GetRequiredService<IDatabaseSettingsProvider>();
-                string appConnStr = _dbSetting.GetPostgresConnectionString();
-                if (!string.IsNullOrWhiteSpace(appConnStr))
-                {
-                    services.AddDbContext<IdentityContext>(options =>
-                    options.UseNpgsql(
-                    appConnStr,
-                    b =>
-                    {
-                        b.MigrationsAssembly(typeof(IdentityContext).Assembly.FullName);
-                        b.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery);
-                    }));
-                }
+                appConnStr = Environment.GetEnvironmentVariable("POSTGRES_CONNECTION_STRING");
             }
-            sp.Dispose();
+            if (string.IsNullOrWhiteSpace(appConnStr))
+            {
+                throw new InvalidOperationException(
+                    "PostgreSQL connection string is missing. Set ConnectionStrings:PostgresConnection " +
+                    "(or the POSTGRES_CONNECTION_STRING environment variable) before starting the application.");
+            }
+            services.AddDbContext<IdentityContext>(options =>
+                options.UseNpgsql(
+                appConnStr,
+                b =>
+                {
+                    b.MigrationsAssembly(typeof(IdentityContext).Assembly.FullName);
+                    b.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery);
+                }));
         }
 
         public static void AddIdentityRepositories(this IServiceCollection services, IConfiguration configuration)
