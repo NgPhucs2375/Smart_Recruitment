@@ -10,12 +10,12 @@ COPY ["src/Infrastructure/Infrastructure.Shared/Infrastructure.Shared.csproj", "
 RUN dotnet restore "src/WebApi/WebApp.Server/WebApp.Server.csproj"
 COPY . .
 WORKDIR "/src/src/WebApi/WebApp.Server"
-RUN dotnet build "WebApp.Server.csproj" -c Release -o /app/build
-RUN dotnet publish "WebApp.Server.csproj" -c Release -o /app/publish
+RUN dotnet publish "WebApp.Server.csproj" -c Release -o /app/publish --no-restore /p:UseAppHost=false
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 WORKDIR /app
-COPY --from=build /app/publish .
+COPY --chown=app:app --from=build /app/publish .
+USER app
 EXPOSE 8080
 ENTRYPOINT ["dotnet", "WebApp.Server.dll"]
 

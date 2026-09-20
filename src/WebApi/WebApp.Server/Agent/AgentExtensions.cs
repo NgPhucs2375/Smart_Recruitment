@@ -1,3 +1,4 @@
+using System;
 using System.ClientModel;
 using Microsoft.Agents.AI.Hosting.AGUI.AspNetCore;
 using Microsoft.Extensions.AI;
@@ -18,9 +19,12 @@ public static class AgentExtensions
             (serviceProvider, _) =>
             {
                 var configuration = serviceProvider.GetRequiredService<IConfiguration>();
+                // Chấp nhận cả 2 tên: Groq:ApiKey (env Groq__ApiKey, chuẩn của dự án)
+                // và GROQ_API_KEY (tương thích docker-compose local hiện tại).
                 var apiKey = configuration["Groq:ApiKey"]
+                    ?? Environment.GetEnvironmentVariable("GROQ_API_KEY")
                     ?? throw new InvalidOperationException(
-                        "Chưa khai báo Groq:ApiKey trong appsettings.Development.json!");
+                        "Chưa khai báo Groq API key. Set Groq__ApiKey (hoặc GROQ_API_KEY).");
                 var clientOptions = new OpenAIClientOptions
                 {
                     Endpoint = new Uri("https://omniroute.operamind.one/v1")

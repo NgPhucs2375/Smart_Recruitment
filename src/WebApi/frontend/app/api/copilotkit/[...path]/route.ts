@@ -1,7 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 // Server-only env var — không có NEXT_PUBLIC_ prefix, không bao giờ lọt vào client bundle.
-const DOTNET_API_URL = process.env.DOTNET_API_URL ?? "https://localhost:5001";
+// BẮT BUỘC ở production: thiếu thì trả 500 rõ ràng, không fallback localhost.
+const DOTNET_API_URL = process.env.DOTNET_API_URL;
 
 /**
  * CopilotKit/Ag-UI proxy: browser POST /api/copilotkit → .NET /api/copilotkit.

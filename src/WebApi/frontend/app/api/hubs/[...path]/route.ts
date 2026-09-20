@@ -1,12 +1,16 @@
 import { type NextRequest, NextResponse } from "next/server";
 
 // Proxy /api/hubs/* → .NET /hubs/* (streaming — supports SSE + long polling)
-const DOTNET_API_URL = process.env.DOTNET_API_URL ?? "https://localhost:5001";
+// DOTNET_API_URL bắt buộc: thiếu thì trả 500 rõ ràng, không fallback localhost.
+const DOTNET_API_URL = process.env.DOTNET_API_URL;
 
 let reqCounter = 0;
 const nextReqId = () => `hub-${Date.now().toString(36)}-${(++reqCounter).toString(36)}`;
 
 async function proxyHub(req: NextRequest, path: string[]): Promise<NextResponse> {
+  if (!DOTNET_API_URL) {
+    return NextResponse.json({ error: "dotnet_api_not_configured" }, { status: 500 });
+  }
   const reqId = nextReqId();
   const search = new URL(req.url).search;
   const url = `${DOTNET_API_URL}/api/hubs/${path.join("/")}${search}`;
