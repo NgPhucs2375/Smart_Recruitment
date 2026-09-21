@@ -1,0 +1,392 @@
+"use client";
+
+import { useCallback, useEffect, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
+import { Dialog as DialogPrimitive } from "@base-ui/react/dialog";
+import {
+  ArrowLeft,
+  BadgeCheck,
+  Briefcase,
+  Building2,
+  CalendarClock,
+  CircleAlert,
+  FileText,
+  Loader2,
+  MapPin,
+  Send,
+  Wallet,
+} from "lucide-react";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import {
+  AdminPageLayout,
+  AdminEmptyState,
+  AdminLoadingState,
+} from "@/components/admin/admin-page-layout";
+import { cvApi } from "@/lib/api/cv-api";
+import type { CvVm } from "@/lib/types";
+
+type TinChiTiet = {
+  id: number;
+  tieuDe: string;
+  moTaCongViec: string;
+  kinhNghiemYeuCau: string;
+  yeuCauCongViec: string;
+  quyenLoi: string;
+  diaDiemLamViec: string;
+  luongToiThieu: number;
+  luongToiDa: number;
+  trangThai: string;
+  ngayHetHan: string;
+  doanhNghiepId: number;
+};
+
+type ApiResponse<T> = {
+  Succeeded?: boolean;
+  succeeded?: boolean;
+  Message?: string;
+  message?: string;
+  Data?: T;
+  data?: T;
+};
+
+const ok = (r: ApiResponse<unknown>): boolean => r.Succeeded ?? r.succeeded ?? true;
+const msg = (r: ApiResponse<unknown>): string => r.Message ?? r.message ?? "";
+const extractData = <T,>(r: ApiResponse<T>): T | undefined => r.Data ?? r.data;
+
+function fmtMoney(min: number, max: number) {
+  if (!min && !max) return "Thỏa thuận";
+  const f = (n: number) => new Intl.NumberFormat("vi-VN").format(n) + " đ";
+  if (min && max && min !== max) return `${f(min)} – ${f(max)}`;
+  return f(max || min);
+}
+
+function fmtDate(d: string) {
+  if (!d) return "—";
+  const t = new Date(d);
+  return Number.isNaN(t.getTime()) ? d : t.toLocaleDateString("vi-VN");
+}
+
+function isExpired(ngayHetHan: string) {
+  if (!ngayHetHan) return false;
+  const t = new Date(ngayHetHan).getTime();
+  return !Number.isNaN(t) && t < Date.now();
+}
+
+function Section({ title, body }: { title: string; body: string }) {
+  if (!body?.trim()) return null;
+  return (
+    <section className="rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6">
+      <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">{title}</h2>
+      <p className="mt-2 whitespace-pre-line text-sm leading-6 text-foreground">{body}</p>
+    </section>
+  );
+}
+
+export default function ViecLamChiTietPage() {
+  const params = useParams<{ id: string }>();
+  const router = useRouter();
+  const tinId = Number(params.id);
+
+  const [tin, setTin] = useState<TinChiTiet | null>(null);
+  const [tenDoanhNghiep, setTenDoanhNghiep] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+  const [daUngTuyen, setDaUngTuyen] = useState(false);
+
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [cvs, setCvs] = useState<CvVm[]>([]);
+  const [loadingCvs, setLoadingCvs] = useState(false);
+  const [selectedCvId, setSelectedCvId] = useState<number | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  const apiFetch = useCallback(async (url: string, opts?: RequestInit) => {
+    const token = localStorage.getItem("access_token");
+    const res = await fetch(url, {
+      ...opts,
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...opts?.headers,
+      },
+    });
+    const body = (await res.json().catch(() => null)) as ApiResponse<unknown> | null;
+    if (!res.ok) throw new Error(body ? msg(body) : `HTTP ${res.status}`);
+    return body;
+  }, []);
+
+  const load = useCallback(async () => {
+    if (!Number.isFinite(tinId) || tinId <= 0) {
+      setLoadError("Tin tuyển dụng không hợp lệ.");
+      setLoading(false);
+      return;
+    }
+    try {
+      setLoading(true);
+      setLoadError("");
+      const res = await apiFetch(`/api/dotnet/tintuyendungs/show/${tinId}`);
+      if (!res || !ok(res)) throw new Error(res ? msg(res) : "Không tải được tin tuyển dụng.");
+      const d = (extractData(res) ?? {}) as Record<string, unknown>;
+      const detail: TinChiTiet = {
+        id: Number(d.id ?? d.Id ?? tinId),
+        tieuDe: `${d.tieuDe ?? d.TieuDe ?? ""}`,
+        moTaCongViec: `${d.moTaCongViec ?? d.MoTaCongViec ?? ""}`,
+        kinhNghiemYeuCau: `${d.kinhNghiemYeuCau ?? d.KinhNghiemYeuCau ?? ""}`,
+        yeuCauCongViec: `${d.yeuCauCongViec ?? d.YeuCauCongViec ?? ""}`,
+        quyenLoi: `${d.quyenLoi ?? d.QuyenLoi ?? ""}`,
+        diaDiemLamViec: `${d.diaDiemLamViec ?? d.DiaDiemLamViec ?? ""}`,
+        luongToiThieu: Number(d.luongToiThieu ?? d.LuongToiThieu ?? 0),
+        luongToiDa: Number(d.luongToiDa ?? d.LuongToiDa ?? 0),
+        trangThai: `${d.trangThai ?? d.TrangThai ?? ""}`,
+        ngayHetHan: `${d.ngayHetHan ?? d.NgayHetHan ?? ""}`,
+        doanhNghiepId: Number(d.doanhNghiepId ?? d.DoanhNghiepId ?? 0),
+      };
+      setTin(detail);
+
+      // Tên doanh nghiệp (tùy quyền show): lỗi thì bỏ qua, vẫn hiện tin.
+      if (detail.doanhNghiepId > 0) {
+        try {
+          const cRes = await apiFetch(`/api/dotnet/doanhnghieps/show/${detail.doanhNghiepId}`);
+          const c = (extractData(cRes ?? {}) ?? {}) as Record<string, unknown>;
+          const name = `${c.tenDoanhNghiep ?? c.TenDoanhNghiep ?? ""}`.trim();
+          if (name) setTenDoanhNghiep(name);
+        } catch {
+          // bỏ qua
+        }
+      }
+
+      // Đã nộp đơn này chưa? (BE lọc theo chính user + TinTuyenDungId)
+      try {
+        const donRes = await apiFetch(`/api/dotnet/donungtuyens?TinTuyenDungId=${detail.id}&_start=0&_end=5`);
+        const arr = extractData<unknown>(donRes ?? {});
+        if (Array.isArray(arr) && arr.length > 0) setDaUngTuyen(true);
+      } catch {
+        // bỏ qua — nút Ứng tuyển vẫn hiện để thử
+      }
+    } catch (e) {
+      setLoadError(e instanceof Error ? e.message : "Không tải được tin tuyển dụng.");
+    } finally {
+      setLoading(false);
+    }
+  }, [apiFetch, tinId]);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void load();
+  }, [load]);
+
+  const openPicker = async () => {
+    setPickerOpen(true);
+    setSelectedCvId(null);
+    try {
+      setLoadingCvs(true);
+      const hoSo = await cvApi.getMyHoSo();
+      const list = await cvApi.listCvs(hoSo.id);
+      setCvs(list);
+      if (list.length === 1) setSelectedCvId(list[0].id);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Không tải được danh sách CV.");
+      setPickerOpen(false);
+    } finally {
+      setLoadingCvs(false);
+    }
+  };
+
+  const handleApply = async () => {
+    if (!tin || !selectedCvId || submitting) return;
+    try {
+      setSubmitting(true);
+      const res = await apiFetch("/api/dotnet/donungtuyens", {
+        method: "POST",
+        body: JSON.stringify({ TinTuyenDungId: tin.id, CVUngVienId: selectedCvId }),
+      });
+      if (!res || !ok(res)) throw new Error(res ? msg(res) : "Nộp đơn không thành công.");
+      setPickerOpen(false);
+      setDaUngTuyen(true);
+      toast.success(res ? msg(res) || "Nộp đơn ứng tuyển thành công." : "Nộp đơn ứng tuyển thành công.");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Nộp đơn không thành công.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const hetHan = tin ? isExpired(tin.ngayHetHan) : false;
+  const conNhanHoSo = !!tin && (tin.trangThai === "DangTuyen" || tin.trangThai === "3") && !hetHan;
+  const lyDoKhoa = !tin
+    ? ""
+    : daUngTuyen
+      ? "Bạn đã nộp đơn cho tin này."
+      : tin.trangThai !== "DangTuyen" && tin.trangThai !== "3"
+        ? "Tin hiện không ở trạng thái đang tuyển."
+        : hetHan
+          ? "Tin đã hết hạn nhận hồ sơ."
+          : "";
+
+  return (
+    <AdminPageLayout>
+      <Link
+        href="/viec-lam"
+        className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+      >
+        <ArrowLeft className="size-3.5" /> Về tìm việc làm
+      </Link>
+
+      {loading ? (
+        <AdminLoadingState />
+      ) : loadError || !tin ? (
+        <AdminEmptyState
+          icon={CircleAlert}
+          title="Không tải được tin tuyển dụng"
+          description={loadError || "Tin không tồn tại."}
+        />
+      ) : (
+        <div className="space-y-5">
+          <div className="rounded-[2rem] border border-border bg-card p-6 shadow-sm sm:p-8">
+            <div className="flex items-start gap-4">
+              <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-muted">
+                <Building2 className="size-6 text-primary" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
+                  {tin.tieuDe || `Tin tuyển dụng #${tin.id}`}
+                </h1>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {tenDoanhNghiep || (tin.doanhNghiepId > 0 ? `Doanh nghiệp #${tin.doanhNghiepId}` : "Nhà tuyển dụng")}
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2 text-xs">
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-teal/15 px-3 py-1.5 font-bold text-primary">
+                    <Wallet className="size-3.5" /> {fmtMoney(tin.luongToiThieu, tin.luongToiDa)}
+                  </span>
+                  {tin.diaDiemLamViec && (
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted px-3 py-1.5 font-medium text-muted-foreground">
+                      <MapPin className="size-3.5" /> {tin.diaDiemLamViec}
+                    </span>
+                  )}
+                  {tin.ngayHetHan && (
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted px-3 py-1.5 font-medium text-muted-foreground">
+                      <CalendarClock className="size-3.5" /> Hạn nộp: {fmtDate(tin.ngayHetHan)}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-5 flex flex-wrap items-center gap-2">
+              {daUngTuyen ? (
+                <p className="inline-flex items-center gap-1.5 rounded-full bg-teal/10 px-4 py-2 text-sm font-semibold text-primary">
+                  <BadgeCheck className="size-4" /> Bạn đã ứng tuyển tin này
+                </p>
+              ) : (
+                <Button
+                  type="button"
+                  className="rounded-full"
+                  disabled={!conNhanHoSo}
+                  onClick={() => void openPicker()}
+                >
+                  <Send className="mr-1.5 size-4" /> Ứng tuyển ngay
+                </Button>
+              )}
+              {!conNhanHoSo && !daUngTuyen && lyDoKhoa && (
+                <span className="text-xs text-muted-foreground">{lyDoKhoa}</span>
+              )}
+              <Link href="/viec-lam/da-ung-tuyen" className="ml-auto text-xs font-semibold text-primary hover:underline">
+                Xem việc đã ứng tuyển
+              </Link>
+            </div>
+          </div>
+
+          <Section title="Mô tả công việc" body={tin.moTaCongViec} />
+          <Section title="Yêu cầu công việc" body={tin.yeuCauCongViec} />
+          <Section title="Kinh nghiệm yêu cầu" body={tin.kinhNghiemYeuCau} />
+          <Section title="Quyền lợi" body={tin.quyenLoi} />
+        </div>
+      )}
+
+      <DialogPrimitive.Root open={pickerOpen} onOpenChange={setPickerOpen}>
+        <DialogPrimitive.Portal>
+          <DialogPrimitive.Backdrop className="fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px]" />
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <DialogPrimitive.Popup className="w-full max-w-md rounded-3xl border border-border bg-card p-6 shadow-xl outline-none">
+              <DialogPrimitive.Title className="flex items-center gap-2 text-lg font-semibold tracking-tight text-foreground">
+                <FileText className="size-5 text-primary" /> Chọn CV để ứng tuyển
+              </DialogPrimitive.Title>
+              <DialogPrimitive.Description className="mt-1 text-sm leading-6 text-muted-foreground">
+                Đơn sẽ đính kèm bản mới nhất của CV bạn chọn. Mỗi hồ sơ chỉ nộp 1 đơn cho mỗi tin.
+              </DialogPrimitive.Description>
+
+              <div className="mt-4 space-y-2">
+                {loadingCvs ? (
+                  <p className="flex items-center gap-2 py-4 text-sm text-muted-foreground">
+                    <Loader2 className="size-4 animate-spin" /> Đang tải danh sách CV...
+                  </p>
+                ) : cvs.length === 0 ? (
+                  <div className="rounded-2xl border border-dashed border-border px-4 py-6 text-center">
+                    <Briefcase className="mx-auto size-6 text-muted-foreground" />
+                    <p className="mt-2 text-sm font-medium text-foreground">Bạn chưa có CV nào</p>
+                    <p className="mt-1 text-xs text-muted-foreground">Tạo CV trước rồi quay lại nộp đơn.</p>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="mt-3 rounded-full"
+                      onClick={() => router.push("/tao-cv")}
+                    >
+                      Tạo CV ngay
+                    </Button>
+                  </div>
+                ) : (
+                  cvs.map((c) => (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={() => setSelectedCvId(c.id)}
+                      aria-pressed={selectedCvId === c.id}
+                      className={`flex w-full items-center gap-3 rounded-2xl border p-3 text-left transition ${
+                        selectedCvId === c.id
+                          ? "border-primary bg-primary/5"
+                          : "border-border hover:border-primary/50"
+                      }`}
+                    >
+                      <FileText className="size-4 shrink-0 text-primary" />
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm font-semibold text-foreground">
+                          {c.tenFile || `CV #${c.id}`}
+                        </span>
+                        {c.viTriUngTuyen && (
+                          <span className="block truncate text-xs text-muted-foreground">{c.viTriUngTuyen}</span>
+                        )}
+                      </span>
+                      {c.isDefault && (
+                        <span className="shrink-0 rounded-full bg-navy px-2 py-0.5 text-[10px] font-semibold text-white">
+                          Mặc định
+                        </span>
+                      )}
+                    </button>
+                  ))
+                )}
+              </div>
+
+              <div className="mt-5 flex justify-end gap-2">
+                <DialogPrimitive.Close className="rounded-full px-4 py-2 text-sm font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground">
+                  Huỷ
+                </DialogPrimitive.Close>
+                <Button
+                  type="button"
+                  size="sm"
+                  className="rounded-full"
+                  disabled={!selectedCvId || submitting || loadingCvs}
+                  onClick={() => void handleApply()}
+                >
+                  {submitting && <Loader2 className="mr-1.5 size-4 animate-spin" />}
+                  {submitting ? "Đang nộp..." : "Xác nhận nộp đơn"}
+                </Button>
+              </div>
+            </DialogPrimitive.Popup>
+          </div>
+        </DialogPrimitive.Portal>
+      </DialogPrimitive.Root>
+    </AdminPageLayout>
+  );
+}

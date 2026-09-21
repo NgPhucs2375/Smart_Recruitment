@@ -1,8 +1,11 @@
 using Application.DTOs.HoSoNhaTuyenDung;
 using Application.Features.HoSoNhaTuyenDung.Queries.GetAllHoSoNhaTuyenDungs;
 using Application.Features.HoSoNhaTuyenDung.Queries.GetHoSoNhaTuyenDungById;
+using Application.Features.HoSoNhaTuyenDung.Queries.GetMyHoSoNhaTuyenDung;
 using Application.Features.HoSoNhaTuyenDung.Commands.CreateHoSoNhaTuyenDung;
+using Application.Features.HoSoNhaTuyenDung.Commands.CreateMyHoSoNhaTuyenDung;
 using Application.Features.HoSoNhaTuyenDung.Commands.UpdateHoSoNhaTuyenDung;
+using Application.Features.HoSoNhaTuyenDung.Commands.UpdateMyHoSoNhaTuyenDung;
 using Application.Features.HoSoNhaTuyenDung.Commands.DeleteHoSoNhaTuyenDung;
 using AutoMapper;
 using Casbin;
@@ -62,6 +65,50 @@ namespace WebApp.Server.Controllers.v1
                         {
                             Id = id
                         }));
+                });
+        }
+
+        // GET: api/hosonhatuyendungs/mine — hồ sơ của chính user (self-service)
+        [HttpGet("mine")]
+        public async Task<IActionResult> GetMine()
+        {
+            return await EnforcePermissionAndExecute(
+                "hosonhatuyendungs",
+                "show",
+                async () =>
+                {
+                    return Ok(await Mediator.Send(
+                        new GetMyHoSoNhaTuyenDungQuery()));
+                });
+        }
+
+        // PUT: api/hosonhatuyendungs/mine — tự cập nhật hồ sơ của chính mình
+        // (chỉ HoTen/SDT/ChucVu, không đổi liên kết doanh nghiệp)
+        [HttpPut("mine")]
+        public async Task<IActionResult> UpdateMine(
+            [FromBody] UpdateMyHoSoNhaTuyenDungCommand command)
+        {
+            return await EnforcePermissionAndExecute(
+                "hosonhatuyendungs",
+                "edit",
+                async () =>
+                {
+                    return Ok(await Mediator.Send(command));
+                });
+        }
+
+        // POST: api/hosonhatuyendungs/self — người đại diện tự tạo hồ sơ
+        // của chính mình (doanh nghiệp lấy từ ngữ cảnh hiện tại).
+        [HttpPost("self")]
+        public async Task<IActionResult> CreateSelf(
+            [FromBody] CreateMyHoSoNhaTuyenDungCommand command)
+        {
+            return await EnforcePermissionAndExecute(
+                "hosonhatuyendungs",
+                "create",
+                async () =>
+                {
+                    return Ok(await Mediator.Send(command));
                 });
         }
 

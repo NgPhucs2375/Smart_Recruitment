@@ -1,9 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Send } from "lucide-react";
+import Link from "next/link";
+import { Send, Undo2 } from "lucide-react";
 import { AdminPageLayout, AdminPageHeader, AdminCard, AdminCardHeader, AdminEmptyState, AdminLoadingState } from "@/components/admin/admin-page-layout";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 type DonUngTuyen = {
   id: number;
@@ -28,13 +30,15 @@ const TRANG_THAI: Record<number, { label: string; variant: "default" | "secondar
   9: { label: "Vô hiệu", variant: "secondary" },
 };
 
-const API = "/api/dotnet/donungtuyen";
+const API = "/api/dotnet/donungtuyens";
+const DG_API = "/api/dotnet/danhgias";
 const ok = (r: ApiResponse<unknown>): boolean => r.Succeeded ?? r.succeeded ?? true;
 const msg = (r: ApiResponse<unknown>): string => r.Message ?? r.message ?? "";
 const extractData = <T,>(r: ApiResponse<T>): T | undefined => r.Data ?? r.data;
 
 export default function DaUngTuyenPage() {
   const [items, setItems] = useState<DonUngTuyen[]>([]);
+  const [ketLuans, setKetLuans] = useState<Record<number, string>>({});
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
 
@@ -69,6 +73,29 @@ export default function DaUngTuyenPage() {
           ghiChu: `${r.ghiChu ?? r.GhiChu ?? ""}`,
         };
       }));
+      // Kết quả đánh giá cuối vòng của NTD (nếu có) cho từng đơn.
+      const dgMap: Record<number, string> = {};
+      await Promise.all(
+        rawItems.map(async (v: unknown) => {
+          const r = v as Record<string, unknown>;
+          const donId = Number(r.id ?? r.Id ?? 0);
+          if (!donId) return;
+          try {
+            const gRes: ApiResponse<unknown> = await apiFetch(`${DG_API}?DonUngTuyenId=${donId}&_start=0&_end=1`);
+            if (!ok(gRes)) return;
+            const gd = extractData(gRes);
+            const gArr = Array.isArray(gd) ? gd : [];
+            if (gArr.length > 0) {
+              const g = gArr[0] as Record<string, unknown>;
+              const kl = `${g.ketLuan ?? g.KetLuan ?? ""}`.trim();
+              if (kl) dgMap[donId] = kl;
+            }
+          } catch {
+            // bỏ qua từng đơn lỗi
+          }
+        }),
+      );
+      setKetLuans(dgMap);
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Lỗi tải dữ liệu");
     } finally {
@@ -78,6 +105,29 @@ export default function DaUngTuyenPage() {
 
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { void load(); }, [load]);
+
+  const [withdrawingId, setWithdrawingId] = useState<number | null>(null);
+
+  // Rút đơn (trigger RutDon=8): chỉ khi đơn còn ở Chờ xử lý / Đã xem / Phù hợp.
+  async function handleRutDon(item: DonUngTuyen) {
+    if (!window.confirm(`Rút đơn #${item.id}? Bạn sẽ không xét lại được đơn này.`)) return;
+    try {
+      setWithdrawingId(item.id);
+      setErr("");
+      const res: ApiResponse<unknown> = await apiFetch(`${API}/${item.id}`, {
+        method: "PUT",
+        body: JSON.stringify({ id: item.id, trigger: 8, ghiChu: "Ứng viên rút đơn" }),
+      });
+      if (!ok(res)) throw new Error(msg(res) || "Không thể rút đơn");
+      await load();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Không thể rút đơn");
+    } finally {
+      setWithdrawingId(null);
+    }
+  }
+
+  const canRutDon = (s: number) => s === 2 || s === 3 || s === 4;
 
   function fmtDate(d: string) {
     if (!d) return "—";
@@ -107,6 +157,31 @@ export default function DaUngTuyenPage() {
                     </div>
                     <p className="mt-1 text-xs text-muted-foreground">Tin tuyển dụng #{item.tinTuyenDungId} — {fmtDate(item.ngayUngTuyen)}</p>
                     {item.ghiChu && <p className="mt-1 text-sm text-muted-foreground line-clamp-1">{item.ghiChu}</p>}
+                    {ketLuans[item.id] && (
+                      <p className="mt-1 text-xs">
+                        <span className="font-semibold text-muted-foreground">Kết quả từ NTD: </span>
+                        <span className="font-semibold text-primary">{ketLuans[item.id]}</span>
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex shrink-0 flex-wrap gap-2">
+                    <Link
+                      href={`/viec-lam/${item.tinTuyenDungId}`}
+                      className="inline-flex items-center rounded-md border border-border px-3 py-1.5 text-xs font-semibold text-foreground transition hover:border-primary/50 hover:text-primary"
+                    >
+                      Xem tin
+                    </Link>
+                    {canRutDon(item.trangThai) && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-destructive hover:text-destructive"
+                        disabled={withdrawingId === item.id}
+                        onClick={() => void handleRutDon(item)}
+                      >
+                        <Undo2 className="size-4" /> Rút đơn
+                      </Button>
+                    )}
                   </div>
                 </div>
               );

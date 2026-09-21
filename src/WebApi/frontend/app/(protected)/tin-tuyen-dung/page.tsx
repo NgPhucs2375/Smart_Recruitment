@@ -1,7 +1,8 @@
 "use client";
 
 import { FormEvent, useCallback, useEffect, useState } from "react";
-import { Briefcase, Plus, Pencil, Trash2, X, Send, Pause, Play, Lock } from "lucide-react";
+import Link from "next/link";
+import { Briefcase, Plus, Pencil, Trash2, X, Send, Pause, Play, Lock, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -57,6 +58,7 @@ const TRIGGER = { GuiDuyet: 0, TamDungTin: 6, MoLaiTin: 7, DongTin: 9 } as const
 
 const API = "/api/dotnet/tintuyendungs";
 const DM_API = "/api/dotnet/danhmucnghes";
+const DON_API = "/api/dotnet/donungtuyens";
 const ok = (r: ApiResponse<unknown>): boolean => r.Succeeded ?? r.succeeded ?? true;
 const msg = (r: ApiResponse<unknown>): string => r.Message ?? r.message ?? "";
 const extractData = <T,>(r: ApiResponse<T>): T | undefined => r.Data ?? r.data;
@@ -82,6 +84,16 @@ function fmtMoney(n: number) {
   if (!n) return "Thỏa thuận";
   return new Intl.NumberFormat("vi-VN").format(n) + " đ";
 }
+// Hiển thị số tiền có phân nhóm hàng nghìn khi nhập (25,000,000 -> 25.000.000)
+function fmtMoneyInput(n: number) {
+  if (!n) return "";
+  return new Intl.NumberFormat("vi-VN").format(n);
+}
+// Bóc chữ số từ chuỗi có dấu chấm phân nhóm để lưu giá trị thô
+function parseMoney(s: string): number {
+  const digits = s.replace(/[^\d]/g, "");
+  return digits ? Number(digits) : 0;
+}
 
 export default function TinTuyenDungPage() {
   const [items, setItems] = useState<TinTuyenDung[]>([]);
@@ -94,6 +106,7 @@ export default function TinTuyenDungPage() {
   const [successMsg, setSuccessMsg] = useState("");
   const [err, setErr] = useState("");
   const [search, setSearch] = useState("");
+  const [donCounts, setDonCounts] = useState<Record<number, number>>({});
 
   const [form, setForm] = useState({ ...EMPTY_FORM });
 
@@ -139,6 +152,24 @@ export default function TinTuyenDungPage() {
       setErr(e instanceof Error ? e.message : "Lỗi tải dữ liệu");
     } finally {
       setLoading(false);
+    }
+    // Đếm đơn ứng tuyển theo tin (BE đã lọc theo quyền: chỉ tin mình được xem).
+    // Lỗi thì bỏ qua — danh sách tin vẫn hiện, nút Ứng viên hiện 0.
+    try {
+      const donRes: ApiResponse<unknown> = await apiFetch(`${DON_API}?_start=0&_end=1000`);
+      if (ok(donRes)) {
+        const dd = extractData(donRes);
+        const arr = Array.isArray(dd) ? dd : [];
+        const counts: Record<number, number> = {};
+        for (const v of arr) {
+          const r = v as Record<string, unknown>;
+          const tid = Number(r.tinTuyenDungId ?? r.TinTuyenDungId ?? 0);
+          if (tid > 0) counts[tid] = (counts[tid] ?? 0) + 1;
+        }
+        setDonCounts(counts);
+      }
+    } catch {
+      // bỏ qua
     }
   }, [apiFetch]);
 
@@ -245,7 +276,8 @@ export default function TinTuyenDungPage() {
         body: JSON.stringify({ id: item.id, trigger, ghiChu: `${label} từ trang quản lý tin` }),
       });
       if (!ok(res)) throw new Error(msg(res) || "Không thể cập nhật trạng thái");
-      setSuccessMsg(`Đã ${label.toLowerCase()} tin.`);
+      // Backend trả về kết quả funnel (pass/vùng xám/từ chối) trong Message — ưu tiên hiển thị nó.
+      setSuccessMsg(msg(res) || `Đã ${label.toLowerCase()} tin.`);
       await load();
     } catch (e) { setErr(e instanceof Error ? e.message : "Không thể cập nhật trạng thái"); } finally { setFiringId(null); }
   }
@@ -305,11 +337,21 @@ export default function TinTuyenDungPage() {
             </div>
             <div className="space-y-2">
               <Label>Lương tối thiểu (VND)</Label>
-              <Input type="number" min={0} value={form.luongToiThieu} onChange={e => setForm(f => ({ ...f, luongToiThieu: Number(e.target.value) }))} />
+              <Input
+                inputMode="numeric"
+                value={fmtMoneyInput(form.luongToiThieu)}
+                onChange={e => setForm(f => ({ ...f, luongToiThieu: parseMoney(e.target.value) }))}
+                placeholder="VD: 10.000.000"
+              />
             </div>
             <div className="space-y-2">
               <Label>Lương tối đa (VND)</Label>
-              <Input type="number" min={0} value={form.luongToiDa} onChange={e => setForm(f => ({ ...f, luongToiDa: Number(e.target.value) }))} />
+              <Input
+                inputMode="numeric"
+                value={fmtMoneyInput(form.luongToiDa)}
+                onChange={e => setForm(f => ({ ...f, luongToiDa: parseMoney(e.target.value) }))}
+                placeholder="VD: 20.000.000"
+              />
             </div>
             <div className="space-y-2 md:col-span-2">
               <Label>Mô tả công việc *</Label>
@@ -361,6 +403,12 @@ export default function TinTuyenDungPage() {
                     </div>
                   </div>
                   <div className="flex shrink-0 flex-wrap justify-end gap-2">
+                    <Link
+                      href={`/tin-tuyen-dung/${item.id}/ung-vien`}
+                      className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-xs font-semibold text-foreground transition hover:border-primary/50 hover:text-primary"
+                    >
+                      <Users className="size-4" /> {donCounts[item.id] ?? 0} ứng viên
+                    </Link>
                     {canGuiDuyet && (
                       <Button variant="default" size="sm" disabled={busy} onClick={() => void handleFire(item, TRIGGER.GuiDuyet, "Gửi duyệt")}><Send className="size-4" /> Gửi duyệt</Button>
                     )}

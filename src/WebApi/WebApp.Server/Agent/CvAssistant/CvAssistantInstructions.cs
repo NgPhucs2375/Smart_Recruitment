@@ -5,7 +5,7 @@ namespace WebApp.Server.Agent.CvAssistant;
 /// </summary>
 internal static class CvAssistantInstructions
 {
-    public const string AgentName = "cv-assistant";
+    public const string AgentName = "Adam";
     public const string ChatClientKey = "cv-assistant";
 
     public const string SystemPrompt = """

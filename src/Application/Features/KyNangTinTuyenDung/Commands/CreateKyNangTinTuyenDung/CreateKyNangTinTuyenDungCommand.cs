@@ -17,13 +17,34 @@ public class CreateKyNangTinTuyenDungCommand : IRequest<Response<int>>
 }
 
 public class CreateKyNangTinTuyenDungCommandHandler(
-    IApplicationDbContext context)
+    IApplicationDbContext context,
+    ICurrentNguoiDungService current)
     : IRequestHandler<CreateKyNangTinTuyenDungCommand, Response<int>>
 {
     public async Task<Response<int>> Handle(
         CreateKyNangTinTuyenDungCommand request,
         CancellationToken cancellationToken)
     {
+        // Nhân sự / Người đại diện chỉ gắn kỹ năng cho tin trong phạm vi mình.
+        var ctx = await current.ResolveAsync();
+        if (ctx.VaiTro == VaiTroNguoiDung.NHAN_SU ||
+            ctx.VaiTro == VaiTroNguoiDung.NGUOI_DAI_DIEN)
+        {
+            var trongPhamVi = await context.TinTuyenDungs
+                .AsNoTracking()
+                .AnyAsync(
+                    x => x.Id == request.TinTuyenDungId &&
+                        (ctx.VaiTro == VaiTroNguoiDung.NHAN_SU
+                            ? x.NguoiDangTinId == ctx.Id
+                            : x.DoanhNghiepId == ctx.DoanhNghiepId),
+                    cancellationToken);
+            if (!trongPhamVi)
+            {
+                return new Response<int>(
+                    "Bạn không có quyền thao tác kỹ năng trên tin tuyển dụng này.");
+            }
+        }
+
         var tinTonTai = await context.TinTuyenDungs
             .AsNoTracking()
             .AnyAsync(

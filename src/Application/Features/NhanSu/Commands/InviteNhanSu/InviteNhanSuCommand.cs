@@ -97,16 +97,30 @@ namespace Application.Features.NhanSu.Commands.InviteNhanSu
 
             var link = $"{request.Origin?.TrimEnd('/')}/accept-invite?token={invitation.Token}";
 
-            await email.SendAsync(new EmailRequest
+            string emailError = null;
+            try
             {
-                To = emailMoi,
-                Subject = "Lời mời tham gia doanh nghiệp",
-                Body = $"Bạn được mời trở thành nhân sự của doanh nghiệp. Nhấn vào liên kết sau để chấp nhận: {link}"
-            });
+                await email.SendAsync(new EmailRequest
+                {
+                    To = emailMoi,
+                    Subject = "Lời mời tham gia doanh nghiệp",
+                    Body = $"Bạn được mời trở thành nhân sự của doanh nghiệp. Nhấn vào liên kết sau để chấp nhận: {link}"
+                });
+            }
+            catch (Exception ex)
+            {
+                // SMTP chưa cấu hình / email lỗi: giữ lời mời trong DB và trả link
+                // để người đại diện copy tay — không ném exception gây bế tắc.
+                emailError = ex.Message;
+            }
+
+            var msg = emailError == null
+                ? "Đã gửi lời mời qua email."
+                : $"Đã tạo lời mời nhưng gửi email thất bại ({emailError}). Link mời: {link}";
 
             return new Response<string>(
                 invitation.Token,
-                "Đã gửi lời mời qua email.");
+                msg);
         }
     }
 }

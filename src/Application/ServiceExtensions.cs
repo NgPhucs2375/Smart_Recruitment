@@ -28,6 +28,7 @@ namespace Application
 
             #region State Machine TinTuyenDung
             services.AddScoped<ITinTuyenDungWorkflowService, TinTuyenDungWorkflowService>();
+            services.AddScoped<ITinTuyenDungFunnelService, TinTuyenDungFunnelService>();
             #endregion
 
             #region State Machine LoiMoiNhanSu

@@ -4,6 +4,7 @@ using Application.Features.DoanhNghiep.Commands.DeleteDoanhNghiep;
 using Application.Features.DoanhNghiep.Commands.UpdateDoanhNghiep;
 using Application.Features.DoanhNghiep.Queries.GetAllDoanhNghieps;
 using Application.Features.DoanhNghiep.Queries.GetDoanhNghiepById;
+using Application.Features.DoanhNghiep.Queries.GetMyDoanhNghiep;
 using AutoMapper;
 using Casbin;
 using Microsoft.AspNetCore.Authorization;
@@ -45,6 +46,20 @@ namespace WebApp.Server.Controllers.v1
                             _sort = filter._sort,
                             _filter = filter._filter
                         }));
+                });
+        }
+
+        // GET: api/doanhnghieps/mine — doanh nghiệp của người dùng hiện tại.
+        // FE /doanh-nghiep/ho-so dùng endpoint này thay vì lấy items[0] từ list tất cả.
+        [HttpGet("mine")]
+        public async Task<IActionResult> GetMine()
+        {
+            return await EnforcePermissionAndExecute(
+                "doanhnghieps",
+                "show",
+                async () =>
+                {
+                    return Ok(await Mediator.Send(new GetMyDoanhNghiepQuery()));
                 });
         }
 

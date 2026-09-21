@@ -479,7 +479,10 @@ namespace Infrastructure.Persistence.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
-                    b.Property<int>("TepDaSinhId")
+                    b.Property<string>("TemplateVersion")
+                        .HasColumnType("text");
+
+                    b.Property<int?>("TepDaSinhId")
                         .HasColumnType("integer");
 
                     b.Property<int?>("TepGocId")
@@ -1701,8 +1704,7 @@ namespace Infrastructure.Persistence.Migrations
                     b.HasOne("Domain.Entities.CVTepTin", "TepDaSinh")
                         .WithMany()
                         .HasForeignKey("TepDaSinhId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("Domain.Entities.CVTepTin", "TepGoc")
                         .WithMany()

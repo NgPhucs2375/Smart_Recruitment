@@ -24,6 +24,7 @@ type ApiResponse<T> = { Succeeded?: boolean; succeeded?: boolean; Message?: stri
 // Employer workspace: manage MY company profile (editable).
 // Candidate discovery lives at /doanh-nghiep (read-only directory).
 const API = "/api/dotnet/doanhnghieps";
+const API_MINE = "/api/dotnet/doanhnghieps/mine";
 const ok = (r: ApiResponse<unknown>): boolean => r.Succeeded ?? r.succeeded ?? true;
 const msg = (r: ApiResponse<unknown>): string => r.Message ?? r.message ?? "";
 const extractData = <T,>(r: ApiResponse<T>): T | undefined => r.Data ?? r.data;
@@ -44,9 +45,36 @@ export default function HoSoDoanhNghiepPage() {
     return body;
   }, []);
 
+  const mapCompany = (raw: Record<string, unknown>): DoanhNghiep => ({
+    id: Number(raw.id ?? raw.Id),
+    tenDoanhNghiep: `${raw.tenDoanhNghiep ?? raw.TenDoanhNghiep ?? ""}`,
+    moTa: `${raw.moTa ?? raw.MoTa ?? ""}`,
+    website: `${raw.website ?? raw.Website ?? ""}`,
+    diaChi: `${raw.diaChi ?? raw.DiaChi ?? ""}`,
+    logoUrl: `${raw.logoUrl ?? raw.LogoUrl ?? ""}`,
+    maSoThue: `${raw.maSoThue ?? raw.MaSoThue ?? ""}`,
+    linhVucHoatDong: `${raw.linhVucHoatDong ?? raw.LinhVucHoatDong ?? ""}`,
+    quyMoNhanSu: `${raw.quyMoNhanSu ?? raw.QuyMoNhanSu ?? ""}`,
+  });
+
   const load = useCallback(async () => {
     try {
       setLoading(true); setErr("");
+      // Ưu tiên /mine (doanh nghiệp của chính user) — tránh lấy items[0] từ list tất cả.
+      try {
+        const mine: ApiResponse<unknown> = await apiFetch(API_MINE);
+        if (ok(mine)) {
+          const d = extractData(mine) as Record<string, unknown> | undefined;
+          if (d && (d.id !== undefined || d.Id !== undefined)) {
+            const c = mapCompany(d);
+            setCompany(c);
+            setForm(c);
+            return;
+          }
+        }
+      } catch {
+        // fallback sang list khi thiếu quyền /mine
+      }
       const res: ApiResponse<unknown> = await apiFetch(API);
       if (!ok(res)) throw new Error(msg(res));
       const d = extractData(res);
@@ -58,18 +86,7 @@ export default function HoSoDoanhNghiepPage() {
         else if (Array.isArray(obj.Items)) items = obj.Items;
       }
       if (items.length > 0) {
-        const raw = items[0] as Record<string, unknown>;
-        const c: DoanhNghiep = {
-          id: Number(raw.id ?? raw.Id),
-          tenDoanhNghiep: `${raw.tenDoanhNghiep ?? raw.TenDoanhNghiep ?? ""}`,
-          moTa: `${raw.moTa ?? raw.MoTa ?? ""}`,
-          website: `${raw.website ?? raw.Website ?? ""}`,
-          diaChi: `${raw.diaChi ?? raw.DiaChi ?? ""}`,
-          logoUrl: `${raw.logoUrl ?? raw.LogoUrl ?? ""}`,
-          maSoThue: `${raw.maSoThue ?? raw.MaSoThue ?? ""}`,
-          linhVucHoatDong: `${raw.linhVucHoatDong ?? raw.LinhVucHoatDong ?? ""}`,
-          quyMoNhanSu: `${raw.quyMoNhanSu ?? raw.QuyMoNhanSu ?? ""}`,
-        };
+        const c = mapCompany(items[0] as Record<string, unknown>);
         setCompany(c);
         setForm(c);
       }

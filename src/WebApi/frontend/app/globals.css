@@ -577,11 +577,18 @@ html {
    Single motion contract: CopilotKit unmounts the popup 200ms after close
    (see CopilotPopupViewInternal) with a 200ms exit, so every Adam-side
    transition below uses the same 200ms — one duration, no split layers. */
+/* ─── Adam chat: giao diện xanh dương, độc lập với theme app ────────────────
+   Root cause của "2 khung / khung đen đứng sau": CopilotKit v2 tự định nghĩa
+   token scope riêng ([data-copilotkit] light + .dark [data-copilotkit] dark,
+   specificity cao hơn override cũ (0,1,0)) → khung popup bị tô đen thành một
+   slab đen. Fix: re-point TOÀN BỘ token của CopilotKit vào palette xanh
+   dương tường minh với specificity cao hơn mọi scope của CopilotKit, cùng
+   một palette cho cả light + dark → một khung duy nhất, không còn slab đen. */
 [data-testid="copilot-chat-toggle"].adam-chat-toggle {
   border-radius: 9999px !important;
-  border: 1px solid color-mix(in oklab, var(--primary) 65%, white) !important;
-  background: var(--primary) !important;
-  box-shadow: 0 12px 28px color-mix(in oklab, var(--primary) 30%, transparent), 0 0 0 6px color-mix(in oklab, var(--primary) 9%, transparent) !important;
+  border: 1px solid #1d4ed8 !important;
+  background: linear-gradient(135deg, #3b82f6, #2563eb) !important;
+  box-shadow: 0 12px 28px rgba(37, 99, 235, 0.35), 0 0 0 6px rgba(37, 99, 235, 0.12) !important;
   transition: transform 200ms ease, box-shadow 200ms ease !important;
 }
 
@@ -591,7 +598,7 @@ html {
   bottom: 1px;
   width: 11px;
   height: 11px;
-  border: 2px solid var(--background);
+  border: 2px solid #ffffff;
   border-radius: 9999px;
   background: #22c55e;
   content: "";
@@ -599,49 +606,59 @@ html {
 
 [data-testid="copilot-chat-toggle"].adam-chat-toggle:hover {
   transform: translateY(-2px) scale(1.03);
-  box-shadow: 0 16px 34px color-mix(in oklab, var(--primary) 38%, transparent), 0 0 0 8px color-mix(in oklab, var(--primary) 11%, transparent) !important;
+  box-shadow: 0 16px 34px rgba(37, 99, 235, 0.42), 0 0 0 8px rgba(37, 99, 235, 0.14) !important;
 }
 
-[data-copilot-popup="true"] {
-  /* Theme scoping (root cause of the "foreign frame" look): CopilotKit
-     ships its own cold oklch token scope, which painted the panel as a
-     detached slab. Re-point its internals at our warm workspace tokens
-     (fallbacks keep it safe outside a tone wrapper). */
-  --background: var(--workspace-surface, var(--card));
-  --foreground: var(--workspace-text, var(--foreground));
-  --card: var(--workspace-surface, var(--card));
-  --card-foreground: var(--workspace-text, var(--card-foreground));
-  --popover: var(--workspace-surface, var(--popover));
-  --popover-foreground: var(--workspace-text, var(--popover-foreground));
-  --primary: var(--workspace-primary, var(--primary));
-  --primary-foreground: var(--workspace-on-primary, var(--primary-foreground));
-  --secondary: var(--workspace-primary-soft, var(--secondary));
-  --secondary-foreground: var(--workspace-primary, var(--secondary-foreground));
-  --muted: var(--workspace-surface-soft, var(--muted));
-  --muted-foreground: var(--workspace-muted, var(--muted-foreground));
-  --accent: var(--workspace-primary-soft, var(--accent));
-  --accent-foreground: var(--workspace-primary, var(--accent-foreground));
-  --border: var(--workspace-border, var(--border));
-  --input: var(--workspace-border, var(--input));
-  --ring: var(--workspace-primary, var(--ring));
+/* CopilotPopup v2 đặt panel trong một wrapper fixed inset-0 có data-copilotkit.
+   Reset background của wrapper để nó không thành một lớp full-screen phía sau
+   panel thật; chỉ panel [data-copilot-popup] được phép có nền. */
+[data-copilotkit]:has(> [data-copilot-popup]) {
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+/* Popup: (0,2,0)/(0,3,0) — thắng cả scope light lẫn dark của CopilotKit. */
+[data-copilotkit] [data-copilot-popup="true"],
+.dark [data-copilotkit] [data-copilot-popup="true"],
+[data-copilotkit].dark [data-copilot-popup="true"] {
+  --background: #ffffff;
+  --foreground: #1e293b;
+  --card: #ffffff;
+  --card-foreground: #1e293b;
+  --popover: #ffffff;
+  --popover-foreground: #1e293b;
+  --primary: #2563eb;
+  --primary-foreground: #ffffff;
+  --primary-hover: #1d4ed8;
+  --secondary: #eff6ff;
+  --secondary-foreground: #1d4ed8;
+  --muted: #f1f5f9;
+  --muted-foreground: #64748b;
+  --accent: #eff6ff;
+  --accent-foreground: #1d4ed8;
+  --destructive: #dc2626;
+  --destructive-foreground: #ffffff;
+  --border: #dbeafe;
+  --input: #bfdbfe;
+  --ring: #2563eb;
   color-scheme: light;
-  border-color: color-mix(in oklab, var(--primary) 28%, var(--border)) !important;
+  border-color: color-mix(in oklab, #2563eb 30%, #dbeafe) !important;
   border-radius: 22px !important;
   overflow: hidden;
-  box-shadow: 0 18px 50px color-mix(in oklab, var(--foreground) 14%, transparent), 0 0 0 1px color-mix(in oklab, var(--primary) 8%, transparent) !important;
+  background: #ffffff !important;
+  box-shadow: 0 18px 50px rgba(37, 99, 235, 0.16), 0 0 0 1px rgba(37, 99, 235, 0.1) !important;
 }
 
-/* Dark mode: calm dark-tinted shadow instead so the
-   popup doesn't glare like a white LED on dark backgrounds. */
-.dark [data-copilot-popup="true"] {
-  color-scheme: dark;
-  border-color: rgba(255, 255, 255, 0.09) !important;
-  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.06) !important;
+/* Dark mode của app: popup vẫn giữ theme xanh dương sáng — một khung duy nhất,
+   không để scope dark của CopilotKit tô đen. */
+.dark [data-copilotkit] [data-copilot-popup="true"] {
+  background: #ffffff !important;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(37, 99, 235, 0.12) !important;
 }
 
 [data-testid="copilot-modal-header"].adam-chat-header {
-  background: linear-gradient(135deg, color-mix(in oklab, var(--primary) 12%, var(--background)), var(--background)) !important;
-  border-bottom-color: color-mix(in oklab, var(--primary) 18%, var(--border)) !important;
+  background: linear-gradient(135deg, #eff6ff, #ffffff) !important;
+  border-bottom-color: #dbeafe !important;
 }
 
 [data-testid="copilot-header-title"] {

@@ -1,8 +1,11 @@
 using Application.DTOs.NhanSu;
+using Application.Features.NhanSu.Commands.CancelLoiMoi;
 using Application.Features.NhanSu.Commands.DeleteNhanSu;
 using Application.Features.NhanSu.Commands.InviteNhanSu;
+using Application.Features.NhanSu.Commands.RejectLoiMoi;
 using Application.Features.NhanSu.Queries.GetAllNhanSus;
 using Application.Features.NhanSu.Queries.GetLoiMoiByToken;
+using Application.Features.NhanSu.Queries.GetPendingLoiMoi;
 using Application.Interfaces;
 using Casbin;
 using Microsoft.AspNetCore.Authorization;
@@ -57,11 +60,43 @@ namespace WebApp.Server.Controllers.v1
             });
         }
 
+        // GET: api/nhansus/invites/pending — lời mời đang chờ của DN hiện tại (kèm link copy)
+        [HttpGet("invites/pending")]
+        public async Task<IActionResult> GetPendingInvites()
+        {
+            return await EnforcePermissionAndExecute("loimoinhansus", "list", async () =>
+            {
+                var frontendOrigin = Request.Headers.Origin.ToString();
+                var origin = string.IsNullOrWhiteSpace(frontendOrigin)
+                    ? $"{Request.Scheme}://{Request.Host}"
+                    : frontendOrigin;
+                return Ok(await Mediator.Send(new GetPendingLoiMoiQuery { Origin = origin }));
+            });
+        }
+
         // POST: api/NhanSu/accept
         [HttpPost("accept")]
         public async Task<IActionResult> Accept(YeuCauChapNhanLoiMoi request)
         {
             return Ok(await _accountService.AcceptInviteAsync(request.Token));
+        }
+
+        // POST: api/nhansus/invite/reject — người được mời từ chối qua token (anonymous)
+        [AllowAnonymous]
+        [HttpPost("invite/reject")]
+        public async Task<IActionResult> Reject(YeuCauChapNhanLoiMoi request)
+        {
+            return Ok(await Mediator.Send(new RejectLoiMoiCommand { Token = request.Token }));
+        }
+
+        // DELETE: api/nhansus/invite/{id} — người đại diện thu hồi lời mời
+        [HttpDelete("invite/{id}")]
+        public async Task<IActionResult> CancelInvite(int id)
+        {
+            return await EnforcePermissionAndExecute("loimoinhansus", "delete", async () =>
+            {
+                return Ok(await Mediator.Send(new CancelLoiMoiCommand { Id = id }));
+            });
         }
 
         // DELETE: api/NhanSu/{id}

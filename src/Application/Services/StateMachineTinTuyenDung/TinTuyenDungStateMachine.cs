@@ -179,11 +179,14 @@ namespace Application.Services.StateMachineTinTuyenDung
                 .Permit(TriggerTinTuyenDung.GuiDuyet, TrangThaiTinTuyenDung.ChoDuyetHeThong);
 
             // Funnel hệ thống: pass -> công khai | nghi vấn -> Admin | dính luật cứng -> từ chối
+            // Admin được phép cứu tin kẹt ở ChoDuyetHeThong (fallback khi funnel lỗi/job chưa chạy).
             _machine.Configure(TrangThaiTinTuyenDung.ChoDuyetHeThong)
                 .OnEntryAsync(OnTransitedAsync)
                 .Permit(TriggerTinTuyenDung.HeThongTuDongDuyet, TrangThaiTinTuyenDung.DangTuyen)
                 .Permit(TriggerTinTuyenDung.PhatHienNghiVan, TrangThaiTinTuyenDung.ChoAdminDuyet)
-                .Permit(TriggerTinTuyenDung.HeThongTuChoi, TrangThaiTinTuyenDung.TuChoi);
+                .Permit(TriggerTinTuyenDung.HeThongTuChoi, TrangThaiTinTuyenDung.TuChoi)
+                .Permit(TriggerTinTuyenDung.AdminDuyet, TrangThaiTinTuyenDung.DangTuyen)
+                .Permit(TriggerTinTuyenDung.AdminTuChoi, TrangThaiTinTuyenDung.TuChoi);
 
             // Admin kiểm duyệt tay các tin vùng xám
             _machine.Configure(TrangThaiTinTuyenDung.ChoAdminDuyet)

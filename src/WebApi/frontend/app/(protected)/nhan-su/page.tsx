@@ -1,12 +1,13 @@
 ﻿"use client";
 
 import { FormEvent, useCallback, useEffect, useState } from "react";
-import { Users, UserPlus, Trash2, Mail, Briefcase, X } from "lucide-react";
+import { Users, UserPlus, Trash2, Mail, Briefcase, X, Copy, Link2, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AdminPageLayout, AdminPageHeader, AdminCard, AdminCardHeader, AdminEmptyState, AdminLoadingState } from "@/components/admin/admin-page-layout";
 import { Badge } from "@/components/ui/badge";
+import { getPendingLoiMoi, cancelLoiMoi, type LoiMoiPending } from "@/lib/api/nhan-su-api";
 
 type NhanSu = {
   nguoiDungId: number;
@@ -23,11 +24,14 @@ const API_INVITE = "/api/dotnet/nhansus/invite";
 
 export default function NhanSuPage() {
   const [items, setItems] = useState<NhanSu[]>([]);
+  const [pending, setPending] = useState<LoiMoiPending[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingPending, setLoadingPending] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showInvite, setShowInvite] = useState(false);
   const [err, setErr] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
+  const [inviteLink, setInviteLink] = useState("");
   const [form, setForm] = useState({ email: "", hoTen: "", chucVu: "" });
 
   const apiFetch = useCallback(async (url: string, opts?: RequestInit) => {
@@ -71,23 +75,43 @@ export default function NhanSuPage() {
     }
   }, [apiFetch]);
 
-  useEffect(() => { void load(); }, [load]);
+  const loadPending = useCallback(async () => {
+    try {
+      setLoadingPending(true);
+      setPending(await getPendingLoiMoi());
+    } catch {
+      // Không chặn luồng chính nếu thiếu quyền xem lời mời
+      setPending([]);
+    } finally {
+      setLoadingPending(false);
+    }
+  }, []);
+
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => { void load(); void loadPending(); }, [load, loadPending]);
 
   async function handleInvite(e: FormEvent) {
     e.preventDefault();
     if (!form.email.trim()) { setErr("Email không được để trống"); return; }
     try {
-      setSaving(true); setErr(""); setSuccessMsg("");
+      setSaving(true); setErr(""); setSuccessMsg(""); setInviteLink("");
       const res: ApiResponse<unknown> = await apiFetch(API_INVITE, {
         method: "POST",
         body: JSON.stringify({ Email: form.email.trim(), HoTen: form.hoTen.trim(), ChucVu: form.chucVu.trim() }),
       });
       const ok = (res as Record<string, unknown>).Succeeded ?? (res as Record<string, unknown>).succeeded ?? true;
       if (!ok) throw new Error((res as Record<string, unknown>).Message as string ?? "Không thể gửi lời mời");
-      setSuccessMsg(`Đã gửi lời mời tới ${form.email}. Link mời đã gửi qua email.`);
+      // Backend trả token trong Data + link trong Message khi SMTP lỗi — hiện link để copy tay.
+      const token = String((res as Record<string, unknown>).Data ?? (res as Record<string, unknown>).data ?? "");
+      const message = String((res as Record<string, unknown>).Message ?? (res as Record<string, unknown>).message ?? "");
+      const linkMatch = message.match(/https?:\/\/\S+/);
+      const link = linkMatch ? linkMatch[0].replace(/[).,;]+$/, "") : (token ? `${window.location.origin}/accept-invite?token=${token}` : "");
+      setSuccessMsg(message || `Đã gửi lời mời tới ${form.email}.`);
+      setInviteLink(link);
       setForm({ email: "", hoTen: "", chucVu: "" });
       setShowInvite(false);
       await load();
+      await loadPending();
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Không thể gửi lời mời");
     } finally {
@@ -95,11 +119,34 @@ export default function NhanSuPage() {
     }
   }
 
+  async function handleCopyLink(link: string) {
+    try {
+      await navigator.clipboard.writeText(link);
+      setSuccessMsg("Đã sao chép link lời mời.");
+    } catch {
+      setErr("Không thể sao chép link.");
+    }
+  }
+
+  async function handleCancelInvite(id: number, email: string) {
+    if (!window.confirm(`Hủy lời mời tới "${email}"?`)) return;
+    try {
+      setErr(""); setSuccessMsg("");
+      const message = await cancelLoiMoi(id);
+      setSuccessMsg(message);
+      await loadPending();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Không thể hủy lời mời");
+    }
+  }
+
   async function handleDelete(item: NhanSu) {
     if (!window.confirm(`Xóa nhân sự "${item.hoTen}"?`)) return;
     try {
       setErr(""); setSuccessMsg("");
-      await apiFetch(`${API_LIST}/${item.nguoiDungId}`, { method: "DELETE" });
+      // Backend tra theo HoSo.Id (fallback NguoiDungId) — luôn gửi hoSoId để tránh xóa nhầm.
+      const id = item.hoSoId || item.nguoiDungId;
+      await apiFetch(`${API_LIST}/${id}`, { method: "DELETE" });
       setSuccessMsg("Đã xóa nhân sự.");
       await load();
     } catch (e) {
@@ -149,6 +196,42 @@ export default function NhanSuPage() {
           </div>
         </form>
       )}
+
+      {inviteLink && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          <div className="flex items-center gap-2 font-medium"><Link2 className="size-4" /> Link lời mời (gửi tay khi email lỗi)</div>
+          <div className="mt-1 break-all font-mono text-xs">{inviteLink}</div>
+          <Button size="sm" variant="outline" className="mt-2" onClick={() => void handleCopyLink(inviteLink)}><Copy className="size-4" /> Sao chép link</Button>
+        </div>
+      )}
+
+      <AdminCard>
+        <AdminCardHeader title="Lời mời đang chờ" description={loadingPending ? "Đang tải..." : `${pending.length} lời mời`} />
+        {loadingPending ? <AdminLoadingState /> : pending.length === 0 ? (
+          <div className="p-5 text-sm text-muted-foreground">Không có lời mời nào đang chờ xác nhận.</div>
+        ) : (
+          <div className="divide-y divide-border">
+            {pending.map((inv) => (
+              <div key={inv.id} className="flex items-center justify-between gap-4 p-5">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-medium truncate">{inv.email}</h3>
+                    <Badge variant="outline"><Clock className="mr-1 size-3" /> Chờ xác nhận</Badge>
+                  </div>
+                  <p className="mt-1 truncate text-sm text-muted-foreground">
+                    {[inv.hoTen, inv.chucVu].filter(Boolean).join(" • ") || "Chưa có thông tin"}
+                  </p>
+                  {inv.inviteLink && <p className="mt-1 truncate font-mono text-xs text-muted-foreground">{inv.inviteLink}</p>}
+                </div>
+                <div className="flex shrink-0 gap-2">
+                  {inv.inviteLink && <Button variant="outline" size="sm" onClick={() => void handleCopyLink(inv.inviteLink)}><Copy className="size-4" /> Copy link</Button>}
+                  <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => void handleCancelInvite(inv.id, inv.email)}>Hủy</Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </AdminCard>
 
       <AdminCard>
         <AdminCardHeader title="Danh sách nhân sự" description={`${items.length} thành viên`} />

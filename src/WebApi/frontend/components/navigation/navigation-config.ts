@@ -9,6 +9,7 @@ import {
   ShieldCheck,
   Tags,
   UserCog,
+  UserRound,
   Users,
 } from "lucide-react";
 
@@ -27,6 +28,7 @@ export const recruiterNavigation: NavigationItem[] = [
   { title: "Tin nhắn", href: "/tin-nhan", icon: FileText },
   { title: "Báo cáo", href: "/reports", icon: BarChart3 },
   { title: "Hồ sơ doanh nghiệp", href: "/doanh-nghiep/ho-so", icon: Building2 },
+  { title: "Hồ sơ của tôi", href: "/ho-so-nha-tuyen-dung", icon: UserRound, permission: { resource: "hosonhatuyendungs", action: "show" } },
   { title: "Cài đặt", href: "/settings", icon: Settings },
 ];
 

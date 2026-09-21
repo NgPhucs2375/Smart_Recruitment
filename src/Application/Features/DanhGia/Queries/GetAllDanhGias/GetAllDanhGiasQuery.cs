@@ -1,6 +1,7 @@
 using Application.Interfaces;
 using Application.Wrappers;
 using AutoMapper;
+using Domain.Enums;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -21,16 +22,47 @@ public class GetAllDanhGiasQuery : IRequest<Response<List<GetAllDanhGiasViewMode
     public int? DonUngTuyenId { get; set; }
 }
 
-public class GetAllDanhGiasQueryHandler(
-    IApplicationDbContext context,
-    IMapper mapper)
-    : IRequestHandler<GetAllDanhGiasQuery, Response<List<GetAllDanhGiasViewModel>>>
-{
-    public async Task<Response<List<GetAllDanhGiasViewModel>>> Handle(
-        GetAllDanhGiasQuery request,
-        CancellationToken cancellationToken)
+    public class GetAllDanhGiasQueryHandler(
+        IApplicationDbContext context,
+        IMapper mapper,
+        ICurrentNguoiDungService current)
+        : IRequestHandler<GetAllDanhGiasQuery, Response<List<GetAllDanhGiasViewModel>>>
     {
-        var query = context.DanhGias.AsNoTracking();
+        public async Task<Response<List<GetAllDanhGiasViewModel>>> Handle(
+            GetAllDanhGiasQuery request,
+            CancellationToken cancellationToken)
+        {
+            var ctx = await current.ResolveAsync();
+
+            // Nhân sự / Người đại diện chỉ được xem đánh giá theo từng đơn
+            // thuộc phạm vi mình phụ trách (chống quét toàn bộ).
+            if (ctx.VaiTro == VaiTroNguoiDung.NHAN_SU ||
+                ctx.VaiTro == VaiTroNguoiDung.NGUOI_DAI_DIEN)
+            {
+                if (!request.DonUngTuyenId.HasValue)
+                {
+                    return new Response<List<GetAllDanhGiasViewModel>>(
+                        new List<GetAllDanhGiasViewModel>());
+                }
+
+                var trongPhamVi = await context.DonUngTuyens
+                    .AsNoTracking()
+                    .AnyAsync(
+                        d =>
+                            d.Id == request.DonUngTuyenId.Value &&
+                            (ctx.VaiTro == VaiTroNguoiDung.NHAN_SU
+                                ? d.TinTuyenDung.NguoiDangTinId == ctx.Id
+                                : d.TinTuyenDung.DoanhNghiepId == ctx.DoanhNghiepId),
+                        cancellationToken);
+
+                if (!trongPhamVi)
+                {
+                    return new Response<List<GetAllDanhGiasViewModel>>(
+                        new List<GetAllDanhGiasViewModel>());
+                }
+            }
+
+            var query = context.DanhGias.AsNoTracking();
 
         if (request.DonUngTuyenId.HasValue)
         {

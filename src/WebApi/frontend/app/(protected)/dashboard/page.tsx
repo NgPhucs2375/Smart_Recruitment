@@ -81,9 +81,9 @@ function CandidateDashboard() {
   useEffect(() => {
     void (async () => {
       const [donRes, hsRes, pqRes, tinRes] = await Promise.all([
-        apiFetch("/api/dotnet/donungtuyen"),
+        apiFetch("/api/dotnet/donungtuyens"),
         apiFetch("/api/dotnet/hosoungviens"),
-        apiFetch("/api/dotnet/ketquaphuhop"),
+        apiFetch("/api/dotnet/ketquaphuhops"),
         apiFetch("/api/dotnet/tintuyendungs"),
       ]);
 
@@ -362,7 +362,7 @@ function RecruiterControlCenter() {
     try {
       const [jobRes, donRes, hsRes] = await Promise.all([
         apiFetch("/api/dotnet/tintuyendungs"),
-        apiFetch("/api/dotnet/donungtuyen"),
+        apiFetch("/api/dotnet/donungtuyens"),
         apiFetch("/api/dotnet/hosoungviens"),
       ]);
       if (jobRes && ok(jobRes)) {

@@ -14,6 +14,7 @@ namespace Application.Interfaces
         Task<Response<string>> RegisterAsync(YeuCauDangKy request, string origin);
         Task<Response<string>> ConfirmEmailAsync(string userId, string code);
         Task<Response<string>> AcceptInviteAsync(string token);
+        Task<Response<string>> RemoveNhanSuRoleAsync(string applicationUserId);
         Task ForgotPassword(YeuCauQuenMatKhau model, string origin);
         Task<Response<string>> ResetPassword(YeuCauGuiLaiXacMinh model);
         // Task ResendVerificationEmailAsync(string email, string origin);

@@ -41,7 +41,9 @@ namespace WebApp.Server.Initializer
 
                 await Infrastructure.Identity.Seeds.DefaultRoles.SeedAsync(userManager, roleManager, env.WebRootPath);
                 await Infrastructure.Identity.Seeds.DefaultSuperAdmin.SeedAsync(userManager, roleManager, appContext);
+                await Infrastructure.Identity.Seeds.DefaultNguoiDaiDien.SeedAsync(userManager, roleManager, appContext);
                 await Infrastructure.Identity.Seeds.DefaultBasicUser.SeedAsync(userManager, roleManager, appContext);
+                await Infrastructure.Identity.Seeds.DefaultDemoData.SeedAsync(userManager, appContext);
 
                 // Regenerate wwwroot/policy.csv cache từ DB (DB là truth, file là cache RAM) — chỉ 4 role chuẩn VaiTroNguoiDung.cs
                 try

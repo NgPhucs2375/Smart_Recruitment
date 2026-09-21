@@ -106,18 +106,27 @@ namespace Application.Services.StateMachineTinTuyenDung
                 }
             }
 
-            // 2) Email cho HR khi có kết quả kiểm duyệt / tin bị khóa
+            // 2) Email cho HR khi có kết quả kiểm duyệt / tin bị khóa.
+            // Email là side-effect phụ (SMTP có thể chưa cấu hình ở dev) — lỗi gửi thư
+            // không được làm hỏng transition, kết quả kiểm duyệt vẫn phải lưu lại.
             if (CanGuiEmail(trigger) && entity.NguoiDangTinId > 0)
             {
-                var emailHr = await _emailResolver.GetEmailByNguoiDungIdAsync(entity.NguoiDangTinId, ct);
-                if (!string.IsNullOrWhiteSpace(emailHr))
+                try
                 {
-                    await _email.SendAsync(new EmailRequest
+                    var emailHr = await _emailResolver.GetEmailByNguoiDungIdAsync(entity.NguoiDangTinId, ct);
+                    if (!string.IsNullOrWhiteSpace(emailHr))
                     {
-                        To = emailHr,
-                        Subject = TieuDeThongBao(trigger),
-                        Body = NoiDungThongBao(trigger, tieuDe)
-                    });
+                        await _email.SendAsync(new EmailRequest
+                        {
+                            To = emailHr,
+                            Subject = TieuDeThongBao(trigger),
+                            Body = NoiDungThongBao(trigger, tieuDe)
+                        });
+                    }
+                }
+                catch (Exception)
+                {
+                    // Bỏ qua lỗi email (SMTP xuống/chưa cấu hình) — thông báo in-app đã đủ.
                 }
             }
 

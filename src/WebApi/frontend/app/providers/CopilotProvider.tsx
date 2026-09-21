@@ -1,14 +1,30 @@
 "use client";
 
 // Frontend luôn gọi Runtime nội bộ; Runtime sẽ adapter request sang AG-UI .NET.
-import { CopilotKit } from "@copilotkit/react-core/v2";
-import { CopilotPopup } from "@copilotkit/react-core/v2";
+import {
+  CopilotKit,
+  CopilotPopup,
+  useCopilotChatConfiguration,
+} from "@copilotkit/react-core/v2";
 import "@copilotkit/react-core/v2/styles.css";
-import React, { useState } from "react";
+import React, { useLayoutEffect, useRef, useState } from "react";
 import { useGlobalCvAssistant } from "@/hooks/use-global-cv-assistant";
 
 function GlobalCvAssistantMount() {
   useGlobalCvAssistant({ enabled: true });
+  return null;
+}
+
+function InitialPopupState() {
+  const configuration = useCopilotChatConfiguration();
+  const initialized = useRef(false);
+
+  useLayoutEffect(() => {
+    if (initialized.current || !configuration) return;
+    initialized.current = true;
+    configuration.setModalOpen(false);
+  }, [configuration]);
+
   return null;
 }
 
@@ -24,7 +40,6 @@ export function CopilotProvider({ children }: { children: React.ReactNode }) {
   // Đi qua Next proxy cùng origin để giữ SSE streaming, sanitize event hỏng
   // và không phụ thuộc browser -> BE direct (hết CORS/localhost staging).
   const runtimeUrl = "/api/copilotkit";
-
   return (
     <CopilotKit
       runtimeUrl={runtimeUrl}
@@ -37,6 +52,7 @@ export function CopilotProvider({ children }: { children: React.ReactNode }) {
       }}
     >
       {children}
+      <InitialPopupState />
       <GlobalCvAssistantMount />
       <CopilotPopup
         defaultOpen={false}

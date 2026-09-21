@@ -42,9 +42,24 @@ const TYPE_META: Record<number, { icon: React.ReactNode; color: string }> = {
 function fmt(iso: string) {
   const d = new Date(iso);
   const diff = Date.now() - d.getTime();
-  if (diff < 60_000)   return "just now";
-  if (diff < 3600_000) return `${Math.floor(diff / 60_000)}m ago`;
+  if (diff < 60_000)   return "Vừa xong";
+  if (diff < 3600_000) return `${Math.floor(diff / 60_000)} phút trước`;
   return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
+// BE trả JSON PascalCase ({ Notifications, UnreadCount }, item { Id, Message, ... }) —
+// bóc tách cả hai dạng casing, nếu không bell luôn rỗng dù BE có dữ liệu.
+function normalizeNotification(raw: unknown): NotificationDto {
+  const r = (raw ?? {}) as Record<string, unknown>;
+  return {
+    id: Number(r.id ?? r.Id ?? 0),
+    message: `${r.message ?? r.Message ?? ""}`,
+    type: Number(r.type ?? r.Type ?? 0),
+    isRead: Boolean(r.isRead ?? r.IsRead ?? false),
+    invoiceId: (r.invoiceId ?? r.InvoiceId ?? null) as number | null,
+    approverGroup: (r.approverGroup ?? r.ApproverGroup ?? null) as string | null,
+    created: `${r.created ?? r.Created ?? ""}`,
+  };
 }
 
 export function NotificationBell() {
@@ -75,8 +90,14 @@ function NotificationBellInner({
 
   const { mutate: markRead } = useCustomMutation();
 
-  const notifications = result?.data?.notifications ?? [];
-  const unreadCount   = result?.data?.unreadCount   ?? 0;
+  const rawData = result?.data as {
+    notifications?: unknown[];
+    Notifications?: unknown[];
+    unreadCount?: number;
+    UnreadCount?: number;
+  } | undefined;
+  const notifications = (rawData?.notifications ?? rawData?.Notifications ?? []).map(normalizeNotification);
+  const unreadCount   = rawData?.unreadCount ?? rawData?.UnreadCount ?? 0;
   const is404 = query?.error?.statusCode === 404;
 
   // Stable refetch reference — avoids infinite-loop dependency on the full query object

@@ -37,7 +37,7 @@ type ApiResponse<T> = {
   data?: T;
 };
 
-const API_URL = "/api/dotnet/kynang";
+const API_URL = "/api/dotnet/kynangs";
 
 function getResponseData<T>(response: ApiResponse<T>): T | undefined {
   return response.Data ?? response.data;

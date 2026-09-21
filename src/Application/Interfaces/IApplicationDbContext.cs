@@ -13,6 +13,7 @@ namespace Application.Interfaces
         DbSet<TinTuyenDung> TinTuyenDungs { get; set; }
         DbSet<KyNang> KyNangs { get; set; }
         DbSet<KyNangTinTuyenDung> KyNangTinTuyenDungs { get; set; }
+        DbSet<global::KyNangUngVien> KyNangUngViens { get; set; }
         DbSet<KetQuaPhanTichCv> KetQuaPhanTichCvs { get; set; }
         DbSet<KetQuaPhuHop> KetQuaPhuHops { get; set; }
         DbSet<HoSoUngVien> HoSoUngViens { get; set; }

@@ -11,8 +11,8 @@ type KyNang = { id: number; tenKyNang: string; moTa: string };
 type KyNangUngVien = { id: number; hoSoUngVienId: number; kyNangId: number; soNamKinhNghiem: number | null };
 type ApiResponse<T> = { Succeeded?: boolean; succeeded?: boolean; Message?: string; message?: string; Data?: T; data?: T };
 
-const API_KN = "/api/dotnet/kynang";
-const API_KNUV = "/api/dotnet/kynangungvien";
+const API_KN = "/api/dotnet/kynangs";
+const API_KNUV = "/api/dotnet/kynangungviens";
 
 const ok = (r: ApiResponse<unknown>): boolean => r.Succeeded ?? r.succeeded ?? true;
 const msg = (r: ApiResponse<unknown>): string => r.Message ?? r.message ?? "";

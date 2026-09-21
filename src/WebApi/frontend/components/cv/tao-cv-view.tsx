@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { useSearchParams, usePathname } from "next/navigation";
 import { FileText, Save, Eye, Pencil, Plus, Trash2, Printer, Check, ListChecks, Sparkles, Upload, LayoutTemplate, UserRound, Download, ZoomIn, ZoomOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -35,6 +35,40 @@ type SaveStatus = "saving" | "dirty" | "saved";
 function formatClock(d: Date | null): string {
   if (!d) return "";
   return d.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
+}
+
+type DraftPayload = {
+  savedAt: string;
+  cvData: CvFormData;
+  /** CV đang soạn lúc autosave; null = bản mới chưa lưu. Draft cũ thiếu field này sẽ bị loại. */
+  selectedId: number | null;
+};
+
+/** Draft lạ shape (lưu từ bản cũ) thì bỏ — tránh crash `.map` khi đổ vào form/preview. */
+function isDraftCvData(v: unknown): v is CvFormData {
+  if (!v || typeof v !== "object") return false;
+  const d = v as Record<string, unknown>;
+  return (
+    !!d.thongTinLienHe &&
+    typeof d.thongTinLienHe === "object" &&
+    Array.isArray(d.hocVan) &&
+    Array.isArray(d.kinhNghiemLamViec) &&
+    Array.isArray(d.duAn) &&
+    Array.isArray(d.kyNang) &&
+    Array.isArray(d.chungChi) &&
+    typeof d.templateId === "string" &&
+    typeof d.tenFile === "string"
+  );
+}
+
+/** true khi bản soạn không có gì ngoài mặc định (bỏ qua templateId). */
+function isBlankWorkingCopy(d: CvFormData): boolean {
+  const a = { ...d, templateId: "" };
+  const b = {
+    ...(JSON.parse(JSON.stringify(defaultCvData)) as CvFormData),
+    templateId: "",
+  };
+  return JSON.stringify(a) === JSON.stringify(b);
 }
 
 /**
@@ -173,6 +207,7 @@ export function QualityCard({ progress, label, note }: { progress: number; label
 export function TaoCvView() {
   const searchParams = useSearchParams();
   const pathname = usePathname();
+  const queryString = searchParams.toString();
   const [cvData, setCvData] = useState<CvFormData>(defaultCvData);
   const [hoSo, setHoSo] = useState<HoSoVm | null>(null);
   const [cvList, setCvList] = useState<CvVm[]>([]);
@@ -190,9 +225,22 @@ export function TaoCvView() {
   const [dirty, setDirty] = useState(false);
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
   const [draftAt, setDraftAt] = useState<Date | null>(null);
-  const [pendingDraft, setPendingDraft] = useState<{ savedAt: string; cvData: CvFormData } | null>(null);
+  const [pendingDraft, setPendingDraft] = useState<DraftPayload | null>(null);
   const lastSavedRef = useRef<string | null>(null);
   const draftOfferedRef = useRef(false);
+  // Chống race: chọn CV khác trong lúc request cũ còn bay → bỏ kết quả cũ.
+  const selectReqRef = useRef(0);
+  // Mọi tương tác (CV mới / chọn CV) đều làm loadAll đang bay thành stale.
+  const loadSeqRef = useRef(0);
+  // Mirror mới nhất của form để loadAll phân biệt "trang trắng" với
+  // "form đã có dữ liệu" khi navigation đổi query (?template=).
+  const cvDataRef = useRef(cvData);
+  useEffect(() => {
+    cvDataRef.current = cvData;
+  }, [cvData]);
+  // Preview render theo bản deferred: gõ phím không bị render 2-3 trang A4
+  // chặn luồng chính, preview tự bắt kịp ngay sau đó (vẫn realtime).
+  const deferredCvData = useDeferredValue(cvData);
 
   // Adam (CopilotKit agent v2): đọc snapshot form + ghi qua frontend tool,
   // preview realtime, mỗi lần ghi có toast Hoàn tác.
@@ -238,6 +286,19 @@ function CvBuilderSkeleton() {
     window.history.replaceState(null, "", `${pathname}?${params.toString()}`);
   };
 
+  // Giữ ?cv= đồng bộ với CV đang soạn bằng history.replaceState (giống
+  // selectTemplate): reload/share mở đúng CV mà KHÔNG trigger loadAll chạy lại.
+  const syncCvParam = useCallback(
+    (id: number | null) => {
+      const params = new URLSearchParams(queryString);
+      if (id == null) params.delete("cv");
+      else params.set("cv", String(id));
+      const qs = params.toString();
+      window.history.replaceState(null, "", qs ? `${pathname}?${qs}` : pathname);
+    },
+    [pathname, queryString],
+  );
+
   // Scroll to the first VISIBLE templates/AI block (mobile tabs + desktop
   // column both render them; hidden ones are skipped).
   const scrollToSection = (target: string) => {
@@ -247,44 +308,137 @@ function CvBuilderSkeleton() {
   };
 
   const loadAll = useCallback(async () => {
+    const seq = loadSeqRef.current;
+    const stale = () => seq !== loadSeqRef.current;
     setLoading(true);
     setLoadError(null);
     try {
       const hs = await cvApi.getMyHoSo();
+      if (stale()) return;
       setHoSo(hs);
       const list = await cvApi.listCvs(hs.id);
+      if (stale()) return;
       setCvList(list);
-      // Existing supported mechanism: read the selected template + target CV
-      // safely from the frontend query (?template= / ?cv= / ?import=). Never
-      // rewrites a saved CV's template unless the user explicitly picks one:
-      // ?template= starts a NEW working copy; ?cv= selects a saved CV.
-      const cvParam = searchParams.get("cv");
-      const rawTemplate = searchParams.get("template");
-      if (!cvParam && rawTemplate && isKnownTemplateId(rawTemplate)) {
-        setSelectedId(null);
-        setCvData({
+      // Đọc CV/mẫu an toàn từ query (?template= / ?cv= / ?import=). Nguyên tắc:
+      // ĐỔI TEMPLATE KHÔNG BAO GIỜ XÓA NỘI DUNG — ?template= chỉ đổi mẫu,
+      // dữ liệu đang soạn (hoặc draft autosave) luôn được giữ lại.
+      const params = new URLSearchParams(queryString);
+      const cvParam = params.get("cv");
+      const rawTemplate = params.get("template");
+      const tid =
+        rawTemplate && isKnownTemplateId(rawTemplate) ? resolveTemplateId(rawTemplate) : null;
+      const blankOf = (templateId: string) =>
+        ({
           ...(JSON.parse(JSON.stringify(defaultCvData)) as CvFormData),
-          templateId: resolveTemplateId(rawTemplate),
-        });
-      } else {
-        const requested = cvParam ? list.find((c) => c.id === Number(cvParam)) : undefined;
+          templateId,
+        }) as CvFormData;
+
+      if (cvParam) {
+        // Mở CV đã lưu; nếu kèm ?template= thì đổi mẫu trên cùng nội dung đó.
+        const requested = list.find((c) => c.id === Number(cvParam));
         const current = requested ?? list.find((c) => c.isDefault) ?? list[0];
         if (current) {
-          const detail = await cvApi.getById(current.id);
+          const [detail, vers] = await Promise.all([
+            cvApi.getById(current.id),
+            cvApi.getVersions(current.id),
+          ]);
+          if (stale()) return;
+          // Fallback = form trắng mặc định (không dùng form hiện tại) để
+          // nội dung đang soạn dở tuyệt đối không lẫn sang CV vừa tải.
+          const next = manualCvDetailToForm(
+            detail,
+            blankOf(tid ?? (defaultCvData as CvFormData).templateId),
+          );
+          if (tid) next.templateId = tid;
+          lastSavedRef.current = JSON.stringify(next);
           setSelectedId(current.id);
-          setCvData((prev) => manualCvDetailToForm(detail, prev));
-          setVersions(await cvApi.getVersions(current.id));
+          setCvData(next);
+          syncCvParam(current.id);
+          setVersions(vers);
+          if (tid) toast.success("Đã đổi mẫu CV — nội dung được giữ nguyên.");
         }
+      } else if (tid) {
+        // ?template= nhưng không có ?cv=: ĐỔI MẪU — tuyệt đối không reset form.
+        if (lastSavedRef.current === null) {
+          // Mở trang mới (từ gallery / reload / share link): cứu dữ liệu từ
+          // draft autosave nếu có, thay vì mở bản trắng mất hết nội dung.
+          let rescued: CvFormData | null = null;
+          let rescuedOwner: number | null = null;
+          try {
+            const raw = localStorage.getItem(DRAFT_KEY);
+            if (raw) {
+              const p = JSON.parse(raw) as Partial<DraftPayload>;
+              if (isDraftCvData(p.cvData) && "selectedId" in (p as object)) {
+                rescued = p.cvData;
+                rescuedOwner = (p.selectedId ?? null) as number | null;
+              }
+            }
+          } catch {
+            // ignore
+          }
+          const ownerTarget =
+            rescuedOwner != null ? list.find((c) => c.id === rescuedOwner) : undefined;
+          if (ownerTarget) {
+            // Draft thuộc CV đã lưu: tải CV đó rồi áp mẫu mới; effect khôi
+            // phục nháp sẽ offer lại sửa đổi chưa lưu (khớp selectedId).
+            const [detail, vers] = await Promise.all([
+              cvApi.getById(ownerTarget.id),
+              cvApi.getVersions(ownerTarget.id),
+            ]);
+            if (stale()) return;
+            const next = manualCvDetailToForm(detail, blankOf(tid));
+            next.templateId = tid;
+            lastSavedRef.current = JSON.stringify(next);
+            setSelectedId(ownerTarget.id);
+            setCvData(next);
+            syncCvParam(ownerTarget.id);
+            setVersions(vers);
+            toast.success("Đã đổi mẫu CV — nội dung được giữ nguyên.");
+          } else {
+            // Draft của bản mới chưa lưu (hoặc không có draft): dựng form từ
+            // draft + mẫu mới; baseline là bản trắng để dirty tracking đúng.
+            const next = rescued ? { ...rescued, templateId: tid } : blankOf(tid);
+            lastSavedRef.current = JSON.stringify(blankOf(tid));
+            draftOfferedRef.current = true; // đã dựng từ draft, không offer lại
+            if (rescued) {
+              try {
+                localStorage.removeItem(DRAFT_KEY);
+              } catch {
+                // ignore
+              }
+              toast.success("Đã đổi mẫu CV — nội dung đã nhập được giữ nguyên.");
+            }
+            setSelectedId(null);
+            setCvData(next);
+            syncCvParam(null);
+            setVersions([]);
+          }
+        } else {
+          // Navigation nội bộ khi form đã có dữ liệu: chỉ đổi templateId.
+          setCvData((prev) => (prev.templateId === tid ? prev : { ...prev, templateId: tid }));
+          if (!isBlankWorkingCopy(cvDataRef.current)) {
+            toast.success("Đã đổi mẫu CV — nội dung đã nhập được giữ nguyên.");
+          }
+        }
+      } else {
+        // Mở /tao-cv không có ?cv= là tạo CV mới. Không tự chọn CV mặc định
+        // hoặc CV đầu tiên; người dùng phải bấm chọn rõ ràng trong danh sách.
+        setSelectedId(null);
+        setVersions([]);
+        setCvData(blankOf(tid ?? (defaultCvData as CvFormData).templateId));
+        lastSavedRef.current = null;
       }
-      if (searchParams.get("import") === "1") setImportOpen(true);
+      if (stale()) return;
+      if (params.get("import") === "1") setImportOpen(true);
     } catch (e) {
+      if (stale()) return;
       const message = e instanceof Error ? e.message : "Không tải được dữ liệu CV";
       setLoadError(message);
       toast.error(message);
     } finally {
-      setLoading(false);
+      if (!stale()) setLoading(false);
     }
-  }, [searchParams]);
+  }, [queryString, syncCvParam]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => void loadAll(), 0);
@@ -306,36 +460,70 @@ function CvBuilderSkeleton() {
   // Autosave a local draft 1.5s after the user stops typing. Local only:
   // no PDF render, no API call, no version bump. Skipped silently while
   // a server save is in flight or the form fails validation.
+  // Draft luôn gắn selectedId của CV đang soạn để lần mở sau chỉ offer
+  // đúng CV đó — draft của CV khác không bao giờ được đè lên form hiện tại.
   useEffect(() => {
     if (loading || saving || !dirty) return;
     if (validateManualCv(cvData)) return;
+    const ownerId = selectedId;
     const timer = window.setTimeout(() => {
       try {
-        localStorage.setItem(DRAFT_KEY, JSON.stringify({ savedAt: new Date().toISOString(), cvData }));
+        const payload: DraftPayload = {
+          savedAt: new Date().toISOString(),
+          cvData,
+          selectedId: ownerId,
+        };
+        localStorage.setItem(DRAFT_KEY, JSON.stringify(payload));
         setDraftAt(new Date());
       } catch {
         // Storage blocked/full — stay silent, manual save still works.
       }
     }, AUTOSAVE_DELAY_MS);
     return () => window.clearTimeout(timer);
-  }, [cvData, dirty, loading, saving]);
+  }, [cvData, dirty, loading, saving, selectedId]);
 
   // Offer to restore a local draft once, right after the initial load.
+  // Chỉ offer khi draft thuộc đúng CV đang mở (so khớp selectedId) và đúng
+  // shape; draft lạ/của CV khác thì bỏ qua (draft cũ thiếu selectedId bị xóa
+  // một lần cho sạch) để nội dung CV cũ không bao giờ đè lên form hiện tại.
   useEffect(() => {
     if (loading || loadError || draftOfferedRef.current) return;
     draftOfferedRef.current = true;
-    let parsed: { savedAt: string; cvData: CvFormData } | null = null;
+    let parsed: Partial<DraftPayload> | null = null;
     try {
       const raw = localStorage.getItem(DRAFT_KEY);
-      if (raw) parsed = JSON.parse(raw) as { savedAt: string; cvData: CvFormData };
+      if (raw) parsed = JSON.parse(raw) as Partial<DraftPayload>;
     } catch {
       parsed = null;
     }
-    if (!parsed || typeof parsed.cvData !== "object" || !parsed.cvData) return;
+    const drop = () => {
+      try {
+        localStorage.removeItem(DRAFT_KEY);
+      } catch {
+        // ignore
+      }
+    };
+    if (!parsed || !isDraftCvData(parsed.cvData)) {
+      if (parsed) drop();
+      return;
+    }
+    if (!("selectedId" in (parsed as object))) {
+      drop();
+      return;
+    }
+    const draftOwner = (parsed.selectedId ?? null) as number | null;
+    if (draftOwner !== selectedId) return;
     if (JSON.stringify(parsed.cvData) === JSON.stringify(cvData)) return;
-    setPendingDraft(parsed);
-    if (parsed.savedAt) setDraftAt(new Date(parsed.savedAt));
-  }, [loading, loadError, cvData]);
+    setPendingDraft({
+      savedAt: typeof parsed.savedAt === "string" ? parsed.savedAt : new Date().toISOString(),
+      cvData: parsed.cvData,
+      selectedId: draftOwner,
+    });
+    if (typeof parsed.savedAt === "string" && parsed.savedAt) {
+      const t = new Date(parsed.savedAt);
+      if (!Number.isNaN(t.getTime())) setDraftAt(t);
+    }
+  }, [loading, loadError, cvData, selectedId]);
 
   const applyDraft = () => {
     if (!pendingDraft) return;
@@ -391,6 +579,8 @@ function CvBuilderSkeleton() {
       setImportSessionId(null);
       setVersions(await cvApi.getVersions(result.cvUngVienId));
       markSaved(cvData);
+      // Lưu xong là đang sửa CV vừa lưu — sync URL để reload mở đúng nó.
+      syncCvParam(result.cvUngVienId);
       toast.success(`Đã lưu phiên bản ${result.soPhienBan} của CV`);
       const list = await cvApi.listCvs(hoSo.id);
       setCvList(list);
@@ -402,32 +592,72 @@ function CvBuilderSkeleton() {
   };
 
   const handleNew = () => {
+    // Vô hiệu loadAll đang bay (nếu có) để nó không đè CV cũ lên form trắng.
+    loadSeqRef.current += 1;
+    selectReqRef.current += 1;
     setSelectedId(null);
     setImportSessionId(null);
     setVersions([]);
     const fresh = JSON.parse(JSON.stringify(defaultCvData)) as CvFormData;
+    // Giữ mẫu từ ?template= (flow chọn mẫu ở gallery) khi tạo bản mới.
+    const rawTemplate = searchParams.get("template");
+    if (rawTemplate && isKnownTemplateId(rawTemplate)) {
+      fresh.templateId = resolveTemplateId(rawTemplate);
+    }
     setCvData(fresh);
     lastSavedRef.current = JSON.stringify(fresh);
     setDirty(false);
     setLastSavedAt(null);
-    discardDraft();
+    // Chỉ xóa nháp của "bản mới chưa lưu"; nháp của CV đã lưu (selectedId số)
+    // được giữ lại để lần mở CV đó vẫn offer được.
+    try {
+      const raw = localStorage.getItem(DRAFT_KEY);
+      let drop = true;
+      if (raw) {
+        try {
+          const p = JSON.parse(raw) as Partial<DraftPayload>;
+          if (isDraftCvData(p.cvData) && "selectedId" in (p as object) && typeof p.selectedId === "number") {
+            drop = false;
+          }
+        } catch {
+          // draft hỏng → xóa
+        }
+      }
+      if (drop) localStorage.removeItem(DRAFT_KEY);
+    } catch {
+      // ignore
+    }
+    setPendingDraft(null);
+    setDraftAt(null);
+    syncCvParam(null);
   };
 
   const handleSelect = async (id: number): Promise<boolean> => {
+    const req = ++selectReqRef.current;
+    loadSeqRef.current += 1;
+    // Ẩn ngay banner nháp của CV trước đó — nó không được bám theo sang CV này.
+    setPendingDraft(null);
     try {
       const detail = await cvApi.getById(id);
+      // Bỏ kết quả cũ nếu user đã bấm sang CV khác trong lúc chờ.
+      if (req !== selectReqRef.current) return false;
+      // Fallback = form trắng mặc định (không dùng form hiện tại) để nội
+      // dung CV trước đó tuyệt đối không lẫn sang CV vừa chọn. Không có
+      // side-effect trong updater (StrictMode gọi updater 2 lần).
+      const fresh = JSON.parse(JSON.stringify(defaultCvData)) as CvFormData;
+      const next = manualCvDetailToForm(detail, fresh);
+      lastSavedRef.current = JSON.stringify(next);
       setSelectedId(id);
       setImportSessionId(null);
-      setCvData((prev) => {
-        const next = manualCvDetailToForm(detail, prev);
-        lastSavedRef.current = JSON.stringify(next);
-        return next;
-      });
+      setCvData(next);
       setDirty(false);
       setLastSavedAt(null);
+      syncCvParam(id);
+      if (req !== selectReqRef.current) return false;
       setVersions(await cvApi.getVersions(id));
-      return true;
+      return req === selectReqRef.current;
     } catch (error) {
+      if (req !== selectReqRef.current) return false;
       toast.error(error instanceof Error ? error.message : "Không tải được chi tiết CV");
       return false;
     }
@@ -718,7 +948,8 @@ function CvBuilderSkeleton() {
       {!loading && !loadError && pendingDraft && (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-3xl border border-marine/30 bg-muted px-4 py-3.5" role="status">
           <p className="text-sm text-foreground">
-            Đã tìm thấy bản nháp tự lưu
+            Đã tìm thấy bản nháp tự lưu (chưa lưu lên server) của{" "}
+            {pendingDraft.selectedId != null ? `CV #${pendingDraft.selectedId}` : "CV mới đang soạn"}
             {pendingDraft.savedAt ? ` lúc ${formatClock(new Date(pendingDraft.savedAt))}` : ""}. Khôi phục nội dung nháp?
           </p>
           <div className="flex shrink-0 gap-2">
@@ -760,7 +991,7 @@ function CvBuilderSkeleton() {
           <TabsContent value="form" className="mt-4 space-y-4">
             <ChecklistCard items={quality.items} doneCount={quality.doneCount} />
             <div data-scroll-target="templates">
-              <TemplatePicker selectedId={cvData.templateId} onSelect={selectTemplate} />
+              <TemplatePicker selectedId={cvData.templateId} onSelect={selectTemplate} cvId={selectedId} />
             </div>
             <CvForm data={cvData} onChange={setCvData} />
           </TabsContent>
@@ -779,7 +1010,7 @@ function CvBuilderSkeleton() {
                 disabled={loading}
               />
               <div data-manual-cv-pdf style={{ zoom: `${zoom}%` } as CSSProperties}>
-                <CvPreview data={cvData} onPageCount={setPageCount} />
+                <CvPreview data={deferredCvData} onPageCount={setPageCount} />
               </div>
             </div>
           </TabsContent>
@@ -802,7 +1033,7 @@ function CvBuilderSkeleton() {
             <div className="space-y-4">
               <ChecklistCard items={quality.items} doneCount={quality.doneCount} />
               <div data-scroll-target="templates">
-                <TemplatePicker selectedId={cvData.templateId} onSelect={selectTemplate} />
+                <TemplatePicker selectedId={cvData.templateId} onSelect={selectTemplate} cvId={selectedId} />
               </div>
               <CvForm data={cvData} onChange={setCvData} />
             </div>
@@ -840,7 +1071,7 @@ function CvBuilderSkeleton() {
                 disabled={loading}
               />
               <div data-manual-cv-pdf style={{ zoom: `${zoom}%` } as CSSProperties}>
-                <CvPreview data={cvData} onPageCount={setPageCount} />
+                <CvPreview data={deferredCvData} onPageCount={setPageCount} />
               </div>
               {pageCount > 2 && (
                 <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-center text-xs leading-5 text-amber-800 dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-200">
