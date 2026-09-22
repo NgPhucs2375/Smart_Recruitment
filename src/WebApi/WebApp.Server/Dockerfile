@@ -14,6 +14,9 @@ RUN dotnet publish "WebApp.Server.csproj" -c Release -o /app/publish --no-restor
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 WORKDIR /app
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends libgssapi-krb5-2 \
+    && rm -rf /var/lib/apt/lists/*
 COPY --chown=app:app --from=build /app/publish .
 USER app
 EXPOSE 8080
