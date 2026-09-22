@@ -1,11 +1,20 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Send, Undo2 } from "lucide-react";
+import { Send, Undo2, MapPin, Wallet, ChevronLeft, ChevronRight } from "lucide-react";
 import { AdminPageLayout, AdminPageHeader, AdminCard, AdminCardHeader, AdminEmptyState, AdminLoadingState } from "@/components/admin/admin-page-layout";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { jobsApi } from "@/lib/api/jobs-api";
+import { formatSalaryFull } from "@/features/viec-lam/salary";
 
 type DonUngTuyen = {
   id: number;
@@ -13,9 +22,27 @@ type DonUngTuyen = {
   trangThai: number;
   ngayUngTuyen: string;
   ghiChu: string;
+  tieuDe?: string;
+  tenDoanhNghiep?: string;
+  diaDiemLamViec?: string;
+  luongToiThieu?: number;
+  luongToiDa?: number;
 };
 
-type ApiResponse<T> = { Succeeded?: boolean; succeeded?: boolean; Message?: string; message?: string; Data?: T; data?: T };
+type ApiResponse<T> = {
+  Succeeded?: boolean;
+  succeeded?: boolean;
+  Message?: string;
+  message?: string;
+  Data?: T;
+  data?: T;
+  TotalCount?: number;
+  totalCount?: number;
+  TotalPages?: number;
+  totalPages?: number;
+};
+
+const PAGE_SIZE = 10;
 
 const TRANG_THAI: Record<number, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   0: { label: "Khởi tạo", variant: "secondary" },
@@ -41,6 +68,10 @@ export default function DaUngTuyenPage() {
   const [ketLuans, setKetLuans] = useState<Record<number, string>>({});
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
+  const [page, setPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [statusFilter, setStatusFilter] = useState<string>("all");
 
   const apiFetch = useCallback(async (url: string, opts?: RequestInit) => {
     const token = localStorage.getItem("access_token");
@@ -53,17 +84,17 @@ export default function DaUngTuyenPage() {
   const load = useCallback(async () => {
     try {
       setLoading(true); setErr("");
-      const res: ApiResponse<unknown> = await apiFetch(API);
+      const params = new URLSearchParams();
+      params.set("_start", String((page - 1) * PAGE_SIZE));
+      params.set("_end", String(page * PAGE_SIZE));
+      params.set("_sort", "ngayungtuyen");
+      params.set("_order", "desc");
+      if (statusFilter !== "all") params.set("TrangThai", statusFilter);
+      const res: ApiResponse<unknown> = await apiFetch(`${API}?${params.toString()}`);
       if (!ok(res)) throw new Error(msg(res) || "Không thể tải danh sách");
       const d = extractData(res);
-      let rawItems: unknown[] = [];
-      if (Array.isArray(d)) rawItems = d;
-      else if (d && typeof d === "object") {
-        const obj = d as Record<string, unknown>;
-        if (Array.isArray(obj.items)) rawItems = obj.items;
-        else if (Array.isArray(obj.Items)) rawItems = obj.Items;
-      }
-      setItems(rawItems.map((v: unknown) => {
+      const rawItems: unknown[] = Array.isArray(d) ? d : [];
+      const parsed: DonUngTuyen[] = rawItems.map((v: unknown) => {
         const r = v as Record<string, unknown>;
         return {
           id: Number(r.id ?? r.Id),
@@ -71,24 +102,60 @@ export default function DaUngTuyenPage() {
           trangThai: Number(r.trangThai ?? r.TrangThai ?? 0),
           ngayUngTuyen: `${r.ngayUngTuyen ?? r.NgayUngTuyen ?? ""}`,
           ghiChu: `${r.ghiChu ?? r.GhiChu ?? ""}`,
+          tieuDe: `${r.tieuDe ?? r.TieuDe ?? ""}` || undefined,
+          tenDoanhNghiep: `${r.tenDoanhNghiep ?? r.TenDoanhNghiep ?? ""}` || undefined,
+          diaDiemLamViec: `${r.diaDiemLamViec ?? r.DiaDiemLamViec ?? ""}` || undefined,
+          luongToiThieu: r.luongToiThieu ?? r.LuongToiThieu !== undefined ? Number(r.luongToiThieu ?? r.LuongToiThieu) : undefined,
+          luongToiDa: r.luongToiDa ?? r.LuongToiDa !== undefined ? Number(r.luongToiDa ?? r.LuongToiDa) : undefined,
         };
-      }));
+      });
+      setTotalCount(Number(res.TotalCount ?? res.totalCount ?? parsed.length));
+      setTotalPages(Number(res.TotalPages ?? res.totalPages ?? 1) || 1);
+
+      // Enrich job info cho đơn thiếu (BE cũ / cache): gọi jobsApi theo tinId, gom nhóm để tránh N+1 trùng.
+      const missingIds = [...new Set(parsed.filter((p) => !p.tieuDe && p.tinTuyenDungId > 0).map((p) => p.tinTuyenDungId))];
+      if (missingIds.length > 0) {
+        const fetched = await Promise.allSettled(missingIds.map((id) => jobsApi.getJobById(String(id))));
+        const map = new Map<number, { title: string; company: string; location: string; salaryMin: number; salaryMax: number }>();
+        missingIds.forEach((id, i) => {
+          const r = fetched[i];
+          if (r.status === "fulfilled" && r.value) {
+            map.set(id, {
+              title: r.value.title,
+              company: r.value.company,
+              location: r.value.location,
+              salaryMin: r.value.salaryMin ?? 0,
+              salaryMax: r.value.salaryMax ?? 0,
+            });
+          }
+        });
+        parsed.forEach((p) => {
+          const info = map.get(p.tinTuyenDungId);
+          if (info && !p.tieuDe) {
+            p.tieuDe = info.title;
+            p.tenDoanhNghiep = info.company;
+            p.diaDiemLamViec = info.location;
+            p.luongToiThieu = info.salaryMin;
+            p.luongToiDa = info.salaryMax;
+          }
+        });
+      }
+      setItems(parsed);
+
       // Kết quả đánh giá cuối vòng của NTD (nếu có) cho từng đơn.
       const dgMap: Record<number, string> = {};
       await Promise.all(
-        rawItems.map(async (v: unknown) => {
-          const r = v as Record<string, unknown>;
-          const donId = Number(r.id ?? r.Id ?? 0);
-          if (!donId) return;
+        parsed.map(async (p) => {
+          if (!p.id) return;
           try {
-            const gRes: ApiResponse<unknown> = await apiFetch(`${DG_API}?DonUngTuyenId=${donId}&_start=0&_end=1`);
+            const gRes: ApiResponse<unknown> = await apiFetch(`${DG_API}?DonUngTuyenId=${p.id}&_start=0&_end=1`);
             if (!ok(gRes)) return;
             const gd = extractData(gRes);
             const gArr = Array.isArray(gd) ? gd : [];
             if (gArr.length > 0) {
               const g = gArr[0] as Record<string, unknown>;
               const kl = `${g.ketLuan ?? g.KetLuan ?? ""}`.trim();
-              if (kl) dgMap[donId] = kl;
+              if (kl) dgMap[p.id] = kl;
             }
           } catch {
             // bỏ qua từng đơn lỗi
@@ -101,7 +168,7 @@ export default function DaUngTuyenPage() {
     } finally {
       setLoading(false);
     }
-  }, [apiFetch]);
+  }, [apiFetch, page, statusFilter]);
 
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { void load(); }, [load]);
@@ -129,6 +196,11 @@ export default function DaUngTuyenPage() {
 
   const canRutDon = (s: number) => s === 2 || s === 3 || s === 4;
 
+  const statusOptions = useMemo(
+    () => Object.entries(TRANG_THAI).map(([v, s]) => ({ value: v, label: s.label })),
+    []
+  );
+
   function fmtDate(d: string) {
     if (!d) return "—";
     try { return new Date(d).toLocaleDateString("vi-VN"); } catch { return d; }
@@ -140,8 +212,23 @@ export default function DaUngTuyenPage() {
 
       {err && <div className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">{err}</div>}
 
+      <div className="flex flex-wrap items-center gap-2">
+        <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v ?? "all"); setPage(1); }}>
+          <SelectTrigger className="h-10 w-auto min-w-[170px] rounded-full border-border bg-card px-4 text-[13px]">
+            <SelectValue placeholder="Trạng thái đơn" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tất cả trạng thái</SelectItem>
+            {statusOptions.map((o) => (
+              <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <p className="text-xs text-muted-foreground">Trang {page}/{totalPages} • Tổng {totalCount} đơn</p>
+      </div>
+
       <AdminCard>
-        <AdminCardHeader title="Đơn ứng tuyển" description={`${items.length} đơn đã gửi`} />
+        <AdminCardHeader title="Đơn ứng tuyển" description={`${totalCount || items.length} đơn đã gửi`} />
         {loading ? <AdminLoadingState /> : items.length === 0 ? (
           <AdminEmptyState icon={Send} title="Chưa có đơn ứng tuyển" description="Bạn chưa ứng tuyển vào tin tuyển dụng nào. Hãy tìm việc phù hợp!" />
         ) : (
@@ -149,14 +236,37 @@ export default function DaUngTuyenPage() {
             {items.map(item => {
               const st = TRANG_THAI[item.trangThai] ?? { label: `#${item.trangThai}`, variant: "secondary" as const };
               return (
-                <div key={item.id} className="flex items-center justify-between gap-4 p-5">
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium text-foreground">Đơn #{item.id}</span>
+                <div key={item.id} className="flex flex-col gap-3 p-5 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-sm font-medium text-muted-foreground">Đơn #{item.id}</span>
                       <Badge variant={st.variant}>{st.label}</Badge>
                     </div>
-                    <p className="mt-1 text-xs text-muted-foreground">Tin tuyển dụng #{item.tinTuyenDungId} — {fmtDate(item.ngayUngTuyen)}</p>
-                    {item.ghiChu && <p className="mt-1 text-sm text-muted-foreground line-clamp-1">{item.ghiChu}</p>}
+                    <Link
+                      href={`/viec-lam/${item.tinTuyenDungId}`}
+                      className="mt-1.5 block truncate text-[15px] font-semibold text-foreground hover:text-primary"
+                    >
+                      {item.tieuDe || `Tin tuyển dụng #${item.tinTuyenDungId}`}
+                    </Link>
+                    <p className="mt-0.5 truncate text-[13px] text-muted-foreground">
+                      {item.tenDoanhNghiep || "Nhà tuyển dụng"}
+                      {item.diaDiemLamViec && ` • ${item.diaDiemLamViec}`}
+                      {` • Nộp ${fmtDate(item.ngayUngTuyen)}`}
+                    </p>
+                    {(item.luongToiThieu || item.luongToiDa) && (
+                      <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-teal/15 px-2.5 py-1 font-bold text-primary">
+                          <Wallet className="size-3" />
+                          {formatSalaryFull(item.luongToiThieu ?? 0, item.luongToiDa ?? 0)}
+                        </span>
+                        {item.diaDiemLamViec && (
+                          <span className="inline-flex items-center gap-1 text-muted-foreground">
+                            <MapPin className="size-3" /> {item.diaDiemLamViec}
+                          </span>
+                        )}
+                      </p>
+                    )}
+                    {item.ghiChu && <p className="mt-1.5 text-sm text-muted-foreground line-clamp-1">{item.ghiChu}</p>}
                     {ketLuans[item.id] && (
                       <p className="mt-1 text-xs">
                         <span className="font-semibold text-muted-foreground">Kết quả từ NTD: </span>
@@ -189,6 +299,18 @@ export default function DaUngTuyenPage() {
           </div>
         )}
       </AdminCard>
+
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2">
+          <Button variant="outline" size="sm" className="rounded-full" disabled={page <= 1 || loading} onClick={() => setPage((p) => Math.max(1, p - 1))}>
+            <ChevronLeft className="size-4" /> Trước
+          </Button>
+          <span className="text-xs text-muted-foreground">Trang {page}/{totalPages}</span>
+          <Button variant="outline" size="sm" className="rounded-full" disabled={page >= totalPages || loading} onClick={() => setPage((p) => p + 1)}>
+            Sau <ChevronRight className="size-4" />
+          </Button>
+        </div>
+      )}
     </AdminPageLayout>
   );
 }

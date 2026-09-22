@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Dialog as DialogPrimitive } from "@base-ui/react/dialog";
 import { ArrowLeft, CheckCheck, Eye, FileText, Loader2, Star, UserX, X } from "lucide-react";
@@ -76,6 +76,7 @@ function fmtDate(d: string) {
 
 export default function UngVienTheoTinPage() {
   const params = useParams<{ id: string }>();
+  const router = useRouter();
   const tinId = Number(params.id);
 
   const [tieuDe, setTieuDe] = useState("");
@@ -223,6 +224,32 @@ export default function UngVienTheoTinPage() {
     }
   }
 
+  async function handleViewCv(item: DonUngTuyen) {
+    if (actingId === item.id) return;
+
+    // Mở CV chính là hành động XemDon. Chỉ fire một lần khi đơn còn chờ xử lý;
+    // các trạng thái sau đó chỉ cần mở CV, không tạo thông báo lặp lại.
+    if (!canXem(item.trangThai)) {
+      router.push(`/tin-tuyen-dung/${tinId}/ung-vien/cv/${item.cvUngVienId}`);
+      return;
+    }
+
+    try {
+      setActingId(item.id);
+      setErr("");
+      setSuccessMsg("");
+      const res: ApiResponse<unknown> = await apiFetch(`${API}/${item.id}`, {
+        method: "PUT",
+        body: JSON.stringify({ id: item.id, trigger: TRIGGER.XemDon, ghiChu: "" }),
+      });
+      if (!ok(res)) throw new Error(msg(res) || "Không thể ghi nhận đã xem hồ sơ");
+      router.push(`/tin-tuyen-dung/${tinId}/ung-vien/cv/${item.cvUngVienId}`);
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Không thể mở hồ sơ ứng viên");
+      setActingId(null);
+    }
+  }
+
   // Quyền fire theo state machine: XemDon từ Chờ xử lý, Phù hợp từ Đã xem, Từ chối ở các bước HR.
   const canXem = (s: number) => s === 2;
   const canPhuHop = (s: number) => s === 3;
@@ -332,17 +359,9 @@ export default function UngVienTheoTinPage() {
                     )}
                   </div>
                   <div className="flex shrink-0 flex-wrap gap-2">
-                    <Link
-                      href={`/tin-tuyen-dung/${tinId}/ung-vien/cv/${item.cvUngVienId}`}
-                      className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-xs font-semibold text-foreground transition hover:border-primary/50 hover:text-primary"
-                    >
-                      <FileText className="size-4" /> Xem CV
-                    </Link>
-                    {canXem(item.trangThai) && (
-                      <Button variant="outline" size="sm" disabled={busy} onClick={() => void handleAction(item, TRIGGER.XemDon, "Đánh dấu đã xem")}>
-                        <Eye className="size-4" /> Đã xem
-                      </Button>
-                    )}
+                    <Button variant="outline" size="sm" disabled={busy} onClick={() => void handleViewCv(item)}>
+                      <Eye className="size-4" /> Xem CV
+                    </Button>
                     {canPhuHop(item.trangThai) && (
                       <Button variant="default" size="sm" disabled={busy} onClick={() => void handleAction(item, TRIGGER.DanhGiaPhuHop, "Đánh giá phù hợp")}>
                         <CheckCheck className="size-4" /> Phù hợp

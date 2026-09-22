@@ -1322,6 +1322,17 @@ html {
   overflow: hidden;
 }
 
+/* Keep a fully laid-out copy for printing so pagination can be measured even
+   when the responsive screen preview is inside an inactive tab. */
+.cv-print-root {
+  position: absolute;
+  left: -100000px;
+  top: 0;
+  width: 210mm;
+  visibility: hidden;
+  pointer-events: none;
+}
+
 .cv-section-item {
   break-inside: avoid;
 }
@@ -1448,12 +1459,24 @@ html {
     print-color-adjust: exact;
   }
 
-  /* Ẩn BẰNG display:none (không phải visibility — visibility giữ layout,
-     app shell vẫn chiếm nhiều trang -> in ra trang trắng phía sau).
-     Giữ nguyên chuỗi tổ tiên của tài liệu qua :has(), tài liệu + con cháu
-     được miễn; mọi thứ khác collapse khỏi layout -> không còn trang trắng. */
-  body *:not([data-cv-document]):not([data-cv-document] *):not(:has([data-cv-document])) {
+  /* Chỉ giữ bản render dành riêng cho in và chuỗi tổ tiên của nó. Preview
+     trên màn hình có thể nằm trong tab ẩn hoặc wrapper responsive. */
+  body *:not([data-cv-print-root]):not([data-cv-print-root] *):not(:has([data-cv-print-root])) {
     display: none !important;
+  }
+
+  .cv-builder-print-host {
+    width: auto !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .cv-print-root {
+    position: static !important;
+    width: auto !important;
+    visibility: visible !important;
+    pointer-events: auto;
   }
 
   /* Tài liệu về dòng chảy tự nhiên (bỏ absolute trick) để fragment

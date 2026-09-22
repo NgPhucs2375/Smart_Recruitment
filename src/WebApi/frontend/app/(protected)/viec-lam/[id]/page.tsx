@@ -11,21 +11,24 @@ import {
   Building2,
   CalendarClock,
   CircleAlert,
+  Eye,
   FileText,
   Loader2,
   MapPin,
   Send,
+  Users,
   Wallet,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   AdminPageLayout,
   AdminEmptyState,
   AdminLoadingState,
 } from "@/components/admin/admin-page-layout";
 import { cvApi } from "@/lib/api/cv-api";
-import type { CvVm } from "@/lib/types";
+import type { CvDetailVm, CvVm } from "@/lib/types";
 
 type TinChiTiet = {
   id: number;
@@ -40,6 +43,12 @@ type TinChiTiet = {
   trangThai: string;
   ngayHetHan: string;
   doanhNghiepId: number;
+  tenDoanhNghiep: string;
+  kyNangs: string[];
+  workMode: string;
+  level: string;
+  employmentType: string;
+  soLuongUngVien: number;
 };
 
 type ApiResponse<T> = {
@@ -100,6 +109,9 @@ export default function ViecLamChiTietPage() {
   const [loadingCvs, setLoadingCvs] = useState(false);
   const [selectedCvId, setSelectedCvId] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [previewCvId, setPreviewCvId] = useState<number | null>(null);
+  const [previewDetail, setPreviewDetail] = useState<CvDetailVm | null>(null);
+  const [loadingPreview, setLoadingPreview] = useState(false);
 
   const apiFetch = useCallback(async (url: string, opts?: RequestInit) => {
     const token = localStorage.getItem("access_token");
@@ -128,6 +140,7 @@ export default function ViecLamChiTietPage() {
       const res = await apiFetch(`/api/dotnet/tintuyendungs/show/${tinId}`);
       if (!res || !ok(res)) throw new Error(res ? msg(res) : "Không tải được tin tuyển dụng.");
       const d = (extractData(res) ?? {}) as Record<string, unknown>;
+      const rawSkills: unknown = d.kyNangs ?? d.KyNangs;
       const detail: TinChiTiet = {
         id: Number(d.id ?? d.Id ?? tinId),
         tieuDe: `${d.tieuDe ?? d.TieuDe ?? ""}`,
@@ -141,11 +154,18 @@ export default function ViecLamChiTietPage() {
         trangThai: `${d.trangThai ?? d.TrangThai ?? ""}`,
         ngayHetHan: `${d.ngayHetHan ?? d.NgayHetHan ?? ""}`,
         doanhNghiepId: Number(d.doanhNghiepId ?? d.DoanhNghiepId ?? 0),
+        tenDoanhNghiep: `${d.tenDoanhNghiep ?? d.TenDoanhNghiep ?? ""}`.trim(),
+        kyNangs: Array.isArray(rawSkills) ? rawSkills.map(String).filter(Boolean) : [],
+        workMode: `${d.workMode ?? d.WorkMode ?? ""}`.trim(),
+        level: `${d.level ?? d.Level ?? ""}`.trim(),
+        employmentType: `${d.employmentType ?? d.EmploymentType ?? ""}`.trim(),
+        soLuongUngVien: Number(d.soLuongUngVien ?? d.SoLuongUngVien ?? 0),
       };
       setTin(detail);
+      if (detail.tenDoanhNghiep) setTenDoanhNghiep(detail.tenDoanhNghiep);
 
-      // Tên doanh nghiệp (tùy quyền show): lỗi thì bỏ qua, vẫn hiện tin.
-      if (detail.doanhNghiepId > 0) {
+      // Fallback tên doanh nghiệp (tùy quyền show): lỗi thì bỏ qua, vẫn hiện tin.
+      if (!detail.tenDoanhNghiep && detail.doanhNghiepId > 0) {
         try {
           const cRes = await apiFetch(`/api/dotnet/doanhnghieps/show/${detail.doanhNghiepId}`);
           const c = (extractData(cRes ?? {}) ?? {}) as Record<string, unknown>;
@@ -179,6 +199,8 @@ export default function ViecLamChiTietPage() {
   const openPicker = async () => {
     setPickerOpen(true);
     setSelectedCvId(null);
+    setPreviewCvId(null);
+    setPreviewDetail(null);
     try {
       setLoadingCvs(true);
       const hoSo = await cvApi.getMyHoSo();
@@ -190,6 +212,25 @@ export default function ViecLamChiTietPage() {
       setPickerOpen(false);
     } finally {
       setLoadingCvs(false);
+    }
+  };
+
+  const togglePreview = async (cv: CvVm) => {
+    if (previewCvId === cv.id) {
+      setPreviewCvId(null);
+      return;
+    }
+    setPreviewCvId(cv.id);
+    setPreviewDetail(null);
+    try {
+      setLoadingPreview(true);
+      const detail = await cvApi.getById(cv.id);
+      setPreviewDetail(detail);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Không tải được preview CV.");
+      setPreviewCvId(null);
+    } finally {
+      setLoadingPreview(false);
     }
   };
 
@@ -269,7 +310,37 @@ export default function ViecLamChiTietPage() {
                       <CalendarClock className="size-3.5" /> Hạn nộp: {fmtDate(tin.ngayHetHan)}
                     </span>
                   )}
+                  {tin.soLuongUngVien > 0 && (
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted px-3 py-1.5 font-medium text-muted-foreground">
+                      <Users className="size-3.5" /> {tin.soLuongUngVien} ứng viên
+                    </span>
+                  )}
                 </div>
+                {(tin.level || tin.employmentType || tin.workMode || tin.kyNangs.length > 0) && (
+                  <div className="mt-3 flex flex-wrap gap-1.5">
+                    {tin.level && <Badge className="border-0 text-xs font-semibold">{tin.level}</Badge>}
+                    {tin.employmentType && (
+                      <Badge variant="outline" className="text-xs border-border text-muted-foreground">
+                        {tin.employmentType}
+                      </Badge>
+                    )}
+                    {tin.workMode && (
+                      <Badge variant="outline" className="text-xs border-border text-muted-foreground">
+                        {tin.workMode}
+                      </Badge>
+                    )}
+                    {tin.kyNangs.slice(0, 6).map((s) => (
+                      <Badge key={s} variant="outline" className="text-xs border-border text-muted-foreground">
+                        {s}
+                      </Badge>
+                    ))}
+                    {tin.kyNangs.length > 6 && (
+                      <Badge variant="outline" className="text-xs border-border text-muted-foreground">
+                        +{tin.kyNangs.length - 6}
+                      </Badge>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -308,7 +379,7 @@ export default function ViecLamChiTietPage() {
         <DialogPrimitive.Portal>
           <DialogPrimitive.Backdrop className="fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px]" />
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <DialogPrimitive.Popup className="w-full max-w-md rounded-3xl border border-border bg-card p-6 shadow-xl outline-none">
+            <DialogPrimitive.Popup className="max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-3xl border border-border bg-card p-6 shadow-xl outline-none">
               <DialogPrimitive.Title className="flex items-center gap-2 text-lg font-semibold tracking-tight text-foreground">
                 <FileText className="size-5 text-primary" /> Chọn CV để ứng tuyển
               </DialogPrimitive.Title>
@@ -338,32 +409,95 @@ export default function ViecLamChiTietPage() {
                   </div>
                 ) : (
                   cvs.map((c) => (
-                    <button
+                    <div
                       key={c.id}
-                      type="button"
-                      onClick={() => setSelectedCvId(c.id)}
-                      aria-pressed={selectedCvId === c.id}
-                      className={`flex w-full items-center gap-3 rounded-2xl border p-3 text-left transition ${
+                      className={`rounded-2xl border transition ${
                         selectedCvId === c.id
                           ? "border-primary bg-primary/5"
                           : "border-border hover:border-primary/50"
                       }`}
                     >
-                      <FileText className="size-4 shrink-0 text-primary" />
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate text-sm font-semibold text-foreground">
-                          {c.tenFile || `CV #${c.id}`}
-                        </span>
-                        {c.viTriUngTuyen && (
-                          <span className="block truncate text-xs text-muted-foreground">{c.viTriUngTuyen}</span>
-                        )}
-                      </span>
-                      {c.isDefault && (
-                        <span className="shrink-0 rounded-full bg-navy px-2 py-0.5 text-[10px] font-semibold text-white">
-                          Mặc định
-                        </span>
+                      <div className="flex w-full items-center gap-3 p-3">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedCvId(c.id)}
+                          aria-pressed={selectedCvId === c.id}
+                          className="flex min-w-0 flex-1 items-center gap-3 text-left"
+                        >
+                          <FileText className="size-4 shrink-0 text-primary" />
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate text-sm font-semibold text-foreground">
+                              {c.tenFile || `CV #${c.id}`}
+                            </span>
+                            {c.viTriUngTuyen && (
+                              <span className="block truncate text-xs text-muted-foreground">{c.viTriUngTuyen}</span>
+                            )}
+                          </span>
+                          {c.isDefault && (
+                            <span className="shrink-0 rounded-full bg-navy px-2 py-0.5 text-[10px] font-semibold text-white">
+                              Mặc định
+                            </span>
+                          )}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void togglePreview(c)}
+                          aria-expanded={previewCvId === c.id}
+                          aria-label={previewCvId === c.id ? "Ẩn preview" : "Xem trước CV"}
+                          className="flex size-8 shrink-0 items-center justify-center rounded-full border border-border text-muted-foreground transition hover:border-primary/50 hover:text-primary"
+                        >
+                          {loadingPreview && previewCvId === c.id ? (
+                            <Loader2 className="size-4 animate-spin" />
+                          ) : (
+                            <Eye className="size-4" />
+                          )}
+                        </button>
+                      </div>
+                      {previewCvId === c.id && (
+                        <div className="border-t border-border px-4 py-3">
+                          {loadingPreview && !previewDetail ? (
+                            <p className="flex items-center gap-2 text-xs text-muted-foreground">
+                              <Loader2 className="size-3.5 animate-spin" /> Đang tải preview...
+                            </p>
+                          ) : previewDetail ? (
+                            <div className="space-y-2 text-xs leading-5">
+                              <p className="font-semibold text-foreground">
+                                {previewDetail.noiDung.thongTinLienHe.hoTen || c.hoTen || c.tenFile}
+                                {previewDetail.noiDung.thongTinLienHe.viTriUngTuyen && (
+                                  <span className="ml-2 font-normal text-muted-foreground">
+                                    • {previewDetail.noiDung.thongTinLienHe.viTriUngTuyen}
+                                  </span>
+                                )}
+                              </p>
+                              {previewDetail.noiDung.thongTinLienHe.gioiThieuBanThan && (
+                                <p className="text-muted-foreground line-clamp-2">
+                                  {previewDetail.noiDung.thongTinLienHe.gioiThieuBanThan}
+                                </p>
+                              )}
+                              <div className="flex flex-wrap gap-x-4 gap-y-1 text-muted-foreground">
+                                <span>Kinh nghiệm: {previewDetail.noiDung.kinhNghiemLamViec.length}</span>
+                                <span>Kỹ năng: {previewDetail.noiDung.kyNang.length}</span>
+                                <span>Dự án: {previewDetail.noiDung.duAn.length}</span>
+                              </div>
+                              {previewDetail.noiDung.kyNang.length > 0 && (
+                                <div className="flex flex-wrap gap-1.5 pt-1">
+                                  {previewDetail.noiDung.kyNang.slice(0, 6).map((k) => (
+                                    <span
+                                      key={k.tenKyNang}
+                                      className="rounded-full bg-muted px-2 py-0.5 font-medium text-muted-foreground"
+                                    >
+                                      {k.tenKyNang}
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            <p className="text-xs text-muted-foreground">Không tải được preview.</p>
+                          )}
+                        </div>
                       )}
-                    </button>
+                    </div>
                   ))
                 )}
               </div>

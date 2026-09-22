@@ -2,7 +2,8 @@
 
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { Briefcase, Plus, Pencil, Trash2, X, Send, Pause, Play, Lock, Users } from "lucide-react";
+import { useGetIdentity } from "@refinedev/core";
+import { Briefcase, Plus, Pencil, Trash2, X, Send, Pause, Play, Lock, Users, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -42,6 +43,7 @@ const TRANG_THAI: Record<string, { label: string; variant: "default" | "secondar
   DaDong: { label: "Đã đóng", variant: "secondary" },
   TuChoi: { label: "Bị từ chối", variant: "destructive" },
   BiKhoa: { label: "Bị khóa", variant: "destructive" },
+  ChoNguoiDaiDienDuyet: { label: "Chờ Người đại diện duyệt", variant: "outline" },
   "0": { label: "Nháp", variant: "secondary" },
   "1": { label: "Chờ duyệt hệ thống", variant: "outline" },
   "2": { label: "Chờ admin duyệt", variant: "default" },
@@ -51,15 +53,16 @@ const TRANG_THAI: Record<string, { label: string; variant: "default" | "secondar
   "6": { label: "Đã đóng", variant: "secondary" },
   "7": { label: "Bị từ chối", variant: "destructive" },
   "8": { label: "Bị khóa", variant: "destructive" },
+  "9": { label: "Chờ Người đại diện duyệt", variant: "outline" },
 };
 
 // Trigger enum số của backend (Domain/Enums/TriggerTinTuyenDung.cs)
-const TRIGGER = { GuiDuyet: 0, TamDungTin: 6, MoLaiTin: 7, DongTin: 9 } as const;
+const TRIGGER = { GuiDuyet: 0, TamDungTin: 6, MoLaiTin: 7, DongTin: 9, NguoiDaiDienDuyet: 13, NguoiDaiDienTuChoi: 14 } as const;
 
 const API = "/api/dotnet/tintuyendungs";
 const DM_API = "/api/dotnet/danhmucnghes";
 const DON_API = "/api/dotnet/donungtuyens";
-const ok = (r: ApiResponse<unknown>): boolean => r.Succeeded ?? r.succeeded ?? true;
+const ok = (r: ApiResponse<unknown>): boolean => r.Succeeded ?? r.succeeded ?? false;
 const msg = (r: ApiResponse<unknown>): string => r.Message ?? r.message ?? "";
 const extractData = <T,>(r: ApiResponse<T>): T | undefined => r.Data ?? r.data;
 
@@ -96,6 +99,8 @@ function parseMoney(s: string): number {
 }
 
 export default function TinTuyenDungPage() {
+  const { data: identity } = useGetIdentity<{ roles?: string[] }>();
+  const isNguoiDaiDien = identity?.roles?.some(role => role.trim().toUpperCase() === "NGUOI_DAI_DIEN") ?? false;
   const [items, setItems] = useState<TinTuyenDung[]>([]);
   const [danhMucs, setDanhMucs] = useState<DanhMucNghe[]>([]);
   const [loading, setLoading] = useState(true);
@@ -112,7 +117,7 @@ export default function TinTuyenDungPage() {
 
   const apiFetch = useCallback(async (url: string, opts?: RequestInit) => {
     const token = localStorage.getItem("access_token");
-    const res = await fetch(url, { ...opts, headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}), ...opts?.headers } });
+    const res = await fetch(url, { cache: "no-store", ...opts, headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}), ...opts?.headers } });
     const body = await res.json().catch(() => null);
     if (!res.ok) throw new Error(body?.Message ?? body?.message ?? `HTTP ${res.status}`);
     return body;
@@ -278,6 +283,20 @@ export default function TinTuyenDungPage() {
       if (!ok(res)) throw new Error(msg(res) || "Không thể cập nhật trạng thái");
       // Backend trả về kết quả funnel (pass/vùng xám/từ chối) trong Message — ưu tiên hiển thị nó.
       setSuccessMsg(msg(res) || `Đã ${label.toLowerCase()} tin.`);
+      const nextState = trigger === TRIGGER.TamDungTin
+        ? "TamDung"
+        : trigger === TRIGGER.MoLaiTin
+          ? "DangTuyen"
+          : trigger === TRIGGER.DongTin
+            ? "DaDong"
+            : trigger === TRIGGER.NguoiDaiDienDuyet
+              ? "DangTuyen"
+              : trigger === TRIGGER.NguoiDaiDienTuChoi
+                ? "TuChoi"
+                : null;
+      if (nextState) {
+        setItems(current => current.map(value => value.id === item.id ? { ...value, trangThai: nextState } : value));
+      }
       await load();
     } catch (e) { setErr(e instanceof Error ? e.message : "Không thể cập nhật trạng thái"); } finally { setFiringId(null); }
   }
@@ -386,9 +405,13 @@ export default function TinTuyenDungPage() {
             {filtered.map(item => {
               const st = TRANG_THAI[item.trangThai] ?? { label: item.trangThai, variant: "secondary" as const };
               const busy = firingId === item.id;
+              // Gửi duyệt hiện cho cả Nhân sự lẫn Người đại diện (fallback khi auto-duyệt
+              // lúc tạo/sửa thất bại — tránh tin chết ở Nháp mà không gửi lại được).
               const canGuiDuyet = item.trangThai === "Nhap" || item.trangThai === "0" || item.trangThai === "TuChoi" || item.trangThai === "7";
               const isDangTuyen = item.trangThai === "DangTuyen" || item.trangThai === "3";
               const isTamDung = item.trangThai === "TamDung" || item.trangThai === "4";
+              // Tin nhân sự đăng đã qua funnel, chờ chủ doanh nghiệp duyệt — chỉ NDD thấy nút.
+              const choNguoiDaiDienDuyet = isNguoiDaiDien && (item.trangThai === "ChoNguoiDaiDienDuyet" || item.trangThai === "9");
               return (
                 <div key={item.id} className="flex items-center justify-between gap-4 p-5">
                   <div className="min-w-0">
@@ -411,6 +434,12 @@ export default function TinTuyenDungPage() {
                     </Link>
                     {canGuiDuyet && (
                       <Button variant="default" size="sm" disabled={busy} onClick={() => void handleFire(item, TRIGGER.GuiDuyet, "Gửi duyệt")}><Send className="size-4" /> Gửi duyệt</Button>
+                    )}
+                    {choNguoiDaiDienDuyet && (
+                      <Button variant="default" size="sm" disabled={busy} onClick={() => void handleFire(item, TRIGGER.NguoiDaiDienDuyet, "Duyệt")}><CheckCircle2 className="size-4" /> Duyệt tin</Button>
+                    )}
+                    {choNguoiDaiDienDuyet && (
+                      <Button variant="outline" size="sm" disabled={busy} onClick={() => void handleFire(item, TRIGGER.NguoiDaiDienTuChoi, "Từ chối", `Từ chối tin "${item.tieuDe}"?`)}><X className="size-4" /> Từ chối</Button>
                     )}
                     {isDangTuyen && (
                       <Button variant="outline" size="sm" disabled={busy} onClick={() => void handleFire(item, TRIGGER.TamDungTin, "Tạm dừng")}><Pause className="size-4" /> Tạm dừng</Button>

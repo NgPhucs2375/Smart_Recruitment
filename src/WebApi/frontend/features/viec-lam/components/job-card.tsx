@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { useBookmarks } from "@/hooks/use-bookmarks";
 import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 import type { Job } from "../types";
 
 interface JobCardProps {
@@ -30,6 +31,7 @@ const workModeConfig: Record<string, { label: string; icon: typeof Building2 }> 
 };
 
 export function JobCard({ job }: JobCardProps) {
+  const router = useRouter();
   const { isBookmarked, toggle } = useBookmarks();
   const bookmarked = isBookmarked(job.id);
   const workMode = workModeConfig[job.workMode] ?? workModeConfig.Onsite;
@@ -46,7 +48,20 @@ export function JobCard({ job }: JobCardProps) {
   }
 
   return (
-    <Card className="group cursor-pointer rounded-[1.5rem] border-border bg-card transition-all duration-200 hover:-translate-y-0.5 hover:border-marine/25 hover:shadow-[0_18px_44px_rgba(53,92,140,0.10)]">
+    <Card
+      role="link"
+      tabIndex={0}
+      aria-label={`Xem chi tiết ${job.title}`}
+      onClick={() => router.push(`/viec-lam/${job.id}`)}
+      onKeyDown={(event) => {
+        if (event.target !== event.currentTarget) return;
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          router.push(`/viec-lam/${job.id}`);
+        }
+      }}
+      className="group cursor-pointer rounded-[1.5rem] border-border bg-card transition-all duration-200 hover:-translate-y-0.5 hover:border-marine/25 hover:shadow-[0_18px_44px_rgba(53,92,140,0.10)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+    >
       <CardContent className="p-6">
         <div className="flex items-start gap-4">
           <div className="flex size-13 shrink-0 items-center justify-center rounded-2xl bg-muted font-mono text-sm font-bold text-primary">
@@ -133,6 +148,49 @@ export function JobCard({ job }: JobCardProps) {
           </div>
         </div>
       </CardContent>
+    </Card>
+  );
+}
+
+/* Skeleton theo phong cách shimmer (tham khảo codepen hexagoncircle/XWbWKwL):
+   khối xám + lớp quét sáng chạy ngang, đúng layout JobCard để không giật layout. */
+export function JobCardSkeleton() {
+  return (
+    <Card aria-hidden className="rounded-[1.5rem] border-border bg-card overflow-hidden">
+      <CardContent className="p-6">
+        <div className="relative flex items-start gap-4">
+          <div className="size-13 shrink-0 rounded-2xl bg-muted animate-pulse" />
+          <div className="flex-1 min-w-0 space-y-3">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex-1 space-y-2">
+                <div className="h-5 w-3/4 rounded-full bg-muted animate-pulse" />
+                <div className="h-3.5 w-1/3 rounded-full bg-muted animate-pulse" />
+              </div>
+              <div className="h-9 w-9 shrink-0 rounded-full bg-muted animate-pulse" />
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <div className="h-7 w-32 rounded-full bg-muted animate-pulse" />
+              <div className="h-7 w-24 rounded-full bg-muted animate-pulse" />
+              <div className="h-7 w-20 rounded-full bg-muted animate-pulse" />
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              <div className="h-6 w-16 rounded-full bg-muted animate-pulse" />
+              <div className="h-6 w-20 rounded-full bg-muted animate-pulse" />
+              <div className="h-6 w-14 rounded-full bg-muted animate-pulse" />
+            </div>
+            <div className="flex gap-5 border-t border-border pt-4">
+              <div className="h-3.5 w-24 rounded-full bg-muted animate-pulse" />
+              <div className="h-3.5 w-20 rounded-full bg-muted animate-pulse" />
+            </div>
+          </div>
+          {/* lớp quét sáng */}
+          <div
+            className="pointer-events-none absolute inset-0 -translate-x-full animate-[shimmer_1.6s_infinite] bg-gradient-to-r from-transparent via-white/40 to-transparent"
+            style={{ animationName: "job-skeleton-shimmer" }}
+          />
+        </div>
+      </CardContent>
+      <style>{`@keyframes job-skeleton-shimmer { 100% { transform: translateX(100%); } }`}</style>
     </Card>
   );
 }

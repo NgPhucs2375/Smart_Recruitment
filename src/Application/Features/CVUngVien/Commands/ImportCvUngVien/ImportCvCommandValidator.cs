@@ -6,7 +6,7 @@ namespace Application.Features.CVUngVien.Commands.ImportCvUngVien;
 public class ImportCvCommandValidator : AbstractValidator<ImportCvCommand>
 {
     private const string DatePattern =
-        @"^(?:(?:0[1-9]|[12]\d|3[01])/(?:0[1-9]|1[0-2])/\d{4}|(?:0[1-9]|1[0-2])/\d{4})$";
+        @"^(?:(?:0[1-9]|[12]\d|3[01])/(?:0[1-9]|1[0-2])/\d{4}|(?:0[1-9]|1[0-2])/\d{4}|\d{4})$";
 
     public ImportCvCommandValidator()
     {

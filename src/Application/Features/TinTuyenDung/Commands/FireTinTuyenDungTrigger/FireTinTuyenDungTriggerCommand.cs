@@ -4,6 +4,8 @@ using Application.Services.StateMachineTinTuyenDung;
 using Application.Wrappers;
 using Domain.Enums;
 using MediatR;
+using Microsoft.EntityFrameworkCore;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -47,11 +49,23 @@ namespace Application.Features.TinTuyenDung.Commands.FireTinTuyenDungTrigger
             }
 
             var machine = new TinTuyenDungStateMachine(workflow, current, entity);
+            var trigger = request.Trigger;
+
+            if (trigger == TriggerTinTuyenDung.AdminDuyet)
+            {
+                var vaiTroNguoiDang = await context.NguoiDungs
+                    .AsNoTracking()
+                    .Where(x => x.Id == entity.NguoiDangTinId)
+                    .Select(x => x.VaiTro)
+                    .FirstOrDefaultAsync(cancellationToken);
+                if (vaiTroNguoiDang == VaiTroNguoiDung.NHAN_SU)
+                    trigger = TriggerTinTuyenDung.AdminDuyetChoNguoiDaiDien;
+            }
 
             try
             {
                 await machine.FireAsync(
-                    request.Trigger,
+                    trigger,
                     request.GhiChu ?? string.Empty,
                     cancellationToken);
             }
@@ -79,6 +93,8 @@ namespace Application.Features.TinTuyenDung.Commands.FireTinTuyenDungTrigger
                     {
                         TriggerTinTuyenDung.HeThongTuDongDuyet =>
                             $"Tin đã qua funnel kiểm duyệt tự động và đang công khai. ({ketQua.Note})",
+                        TriggerTinTuyenDung.HeThongDuyetChoNguoiDaiDien =>
+                            $"Tin đã qua kiểm duyệt hệ thống và đang chờ Người đại diện duyệt. ({ketQua.Note})",
                         TriggerTinTuyenDung.PhatHienNghiVan =>
                             $"Tin rơi vào vùng nghi vấn, chờ Admin kiểm tra. ({ketQua.Note})",
                         TriggerTinTuyenDung.HeThongTuChoi =>
@@ -90,6 +106,7 @@ namespace Application.Features.TinTuyenDung.Commands.FireTinTuyenDungTrigger
                 {
                     // Funnel lỗi → tin vẫn ở ChoDuyetHeThong (state đã fire ở trên), lưu lại
                     // và báo rõ lỗi — không mất trạng thái gửi duyệt của HR.
+                    context.TinTuyenDungs.Update(entity);
                     await context.SaveChangesAsync(cancellationToken);
                     return new Response<int>(
                         data: entity.Id,
@@ -97,8 +114,23 @@ namespace Application.Features.TinTuyenDung.Commands.FireTinTuyenDungTrigger
                 }
             }
 
+            // Context mặc định dùng NoTracking. Đánh dấu rõ entity đã đổi để trạng thái
+            // không chỉ thay đổi trong state machine mà chắc chắn được ghi xuống database.
+            context.TinTuyenDungs.Update(entity);
             await context.SaveChangesAsync(
                 cancellationToken);
+
+            var persistedState = await context.TinTuyenDungs
+                .AsNoTracking()
+                .Where(x => x.Id == entity.Id)
+                .Select(x => x.TrangThai)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (persistedState != entity.TrangThai)
+            {
+                return new Response<int>(
+                    $"Không thể lưu trạng thái tin. Trạng thái hiện tại vẫn là '{persistedState}'.");
+            }
 
             return new Response<int>(
                 data: entity.Id,

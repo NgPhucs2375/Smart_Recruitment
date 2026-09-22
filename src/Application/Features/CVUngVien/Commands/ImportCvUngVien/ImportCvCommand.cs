@@ -92,7 +92,7 @@ public class ImportCvCommandHandler(
 
 internal static class CvImportDateParser
 {
-    private static readonly string[] Formats = ["dd/MM/yyyy", "MM/yyyy"];
+    private static readonly string[] Formats = ["dd/MM/yyyy", "MM/yyyy", "yyyy"];
 
     public static bool IsValid(string? value) =>
         string.IsNullOrWhiteSpace(value) ||
@@ -114,6 +114,16 @@ internal static class CvImportDateParser
 
     public static (short? Month, short? Year) ParseMonthYear(string? value)
     {
+        if (DateTime.TryParseExact(
+                value,
+                "yyyy",
+                CultureInfo.InvariantCulture,
+                DateTimeStyles.None,
+                out var yearOnly))
+        {
+            return (null, (short)yearOnly.Year);
+        }
+
         var date = ParseDate(value);
         return date.HasValue
             ? ((short)date.Value.Month, (short)date.Value.Year)

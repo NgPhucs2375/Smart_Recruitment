@@ -10,7 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { jobLevels, employmentTypes, salaryRanges } from "../constants";
+import { jobLevels, employmentTypes, salaryRanges, workModes, type SalaryRange } from "../constants";
 import { LocationSelect } from "@/components/ui/location-select";
 import type { JobFilters } from "../types";
 
@@ -21,8 +21,28 @@ interface JobFiltersBarProps {
 }
 
 export function JobFiltersBar({ filters, onFilterChange, totalJobs }: JobFiltersBarProps) {
-  const updateFilter = (key: keyof JobFilters, value: string) => {
-    onFilterChange({ ...filters, [key]: value });
+  const updateFilter = (key: keyof JobFilters, value: string | number | undefined) => {
+    onFilterChange({ ...filters, [key]: value } as JobFilters);
+  };
+
+  const salaryValue =
+    filters.salaryMin !== undefined || filters.salaryMax !== undefined
+      ? `${filters.salaryMin ?? ""}-${filters.salaryMax ?? ""}`
+      : "all";
+
+  const handleSalaryChange = (v: string | null) => {
+    if (!v || v === "all") {
+      onFilterChange({ ...filters, salaryMin: undefined, salaryMax: undefined });
+    } else {
+      const [minStr, maxStr] = v.split("-");
+      const min = minStr === "" ? undefined : Number(minStr);
+      const max = !maxStr ? undefined : Number(maxStr);
+      onFilterChange({
+        ...filters,
+        salaryMin: Number.isFinite(min) ? min : undefined,
+        salaryMax: Number.isFinite(max) && (max as number) > 0 ? (max as number) : undefined,
+      });
+    }
   };
 
   const clearFilters = () => {
@@ -31,11 +51,20 @@ export function JobFiltersBar({ filters, onFilterChange, totalJobs }: JobFilters
       location: "",
       level: "",
       employmentType: "",
-      salary: "",
+      salaryMin: undefined,
+      salaryMax: undefined,
+      workMode: undefined,
     });
   };
 
-  const activeCount = [filters.location, filters.level, filters.employmentType, filters.salary].filter(Boolean).length;
+  const activeCount = [
+    filters.location,
+    filters.level,
+    filters.employmentType,
+    filters.workMode,
+    filters.salaryMin !== undefined,
+    filters.salaryMax !== undefined,
+  ].filter(Boolean).length;
 
   return (
     <div className="rounded-[1.75rem] border border-border bg-card p-4 shadow-[0_12px_36px_rgba(53,92,140,0.06)] sm:p-5">
@@ -87,13 +116,25 @@ export function JobFiltersBar({ filters, onFilterChange, totalJobs }: JobFilters
           </SelectContent>
         </Select>
 
-        <Select value={filters.salary} onValueChange={(v) => updateFilter("salary", v ?? "")}>
+        <Select value={filters.workMode} onValueChange={(v) => updateFilter("workMode", v ?? "")}>
+          <SelectTrigger className="h-10 w-auto min-w-[130px] rounded-full border-border bg-muted px-4 text-[13px] shadow-none">
+            <SelectValue placeholder="Cách thức" />
+          </SelectTrigger>
+          <SelectContent>
+            {workModes.map((mode) => (
+              <SelectItem key={mode} value={mode}>{mode}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select value={salaryValue} onValueChange={handleSalaryChange}>
           <SelectTrigger className="h-10 w-auto min-w-[150px] rounded-full border-border bg-muted px-4 text-[13px] shadow-none">
             <SelectValue placeholder="Mức lương" />
           </SelectTrigger>
           <SelectContent>
-            {salaryRanges.map((range) => (
-              <SelectItem key={range} value={range}>{range}</SelectItem>
+            <SelectItem key="all" value="all">Tất cả</SelectItem>
+            {salaryRanges.map((range: SalaryRange) => (
+              <SelectItem key={range.label} value={`${range.min}-${range.max ?? ""}`}>{range.label}</SelectItem>
             ))}
           </SelectContent>
         </Select>

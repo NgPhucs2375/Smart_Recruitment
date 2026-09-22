@@ -1,5 +1,7 @@
+using Application.Interfaces;
 using Domain.Entities;
 using Domain.Enums;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -29,7 +31,7 @@ namespace Application.Services.StateMachineTinTuyenDung
 
     /// <summary>
     /// Funnel kiểm duyệt 2 lớp (chạy đồng bộ, thuần logic — không gọi dịch vụ ngoài):
-    ///   Lớp 1: luật cứng theo regex (scam/đa cấp, thu phí ứng viên, phân biệt đối xử) → HeThongTuChoi.
+    ///   Lớp 1: từ khóa cấm do Admin cấu hình → HeThongTuChoi.
     ///   Lớp 2: chấm điểm an toàn 0-100 từ các tín hiệu rủi ro:
     ///          >= 85 pass → HeThongTuDongDuyet | 30-84 vùng xám → PhatHienNghiVan | &lt; 30 → HeThongTuChoi.
     /// </summary>
@@ -38,64 +40,39 @@ namespace Application.Services.StateMachineTinTuyenDung
         private const int DiemPass = 85;
         private const int DiemVungXamToiThieu = 30;
 
-        // Lớp 1 — cụm từ cấm (so khớp trên văn bản đã bỏ dấu, 'đ' -> 'd', viết thường)
-        private static readonly string[] TuCam =
-        {
-            // Lừa đảo / đa cấp / thu phí ứng viên
-            "viec nhe luong cao",
-            "dat coc",
-            "phi tham gia",
-            "phi giu cho",
-            "phi dao tao",
-            "phi ho so",
-            "phi tuyen dung",
-            "phi nhap hoc",
-            "nop tien truoc",
-            "chuyen tien truoc",
-            "pyramid scheme",
-            "multi level marketing",
-            // Phân biệt đối xử
-            "chi nhan nam",
-            "chi nhan nu",
-            "chi tuyen nam",
-            "chi tuyen nu",
-            "khong nhan nam",
-            "khong nhan nu",
-            "khong tuyen nam",
-            "khong tuyen nu",
-            "khong tuyen phu nu"
-        };
-
-        // Lớp 2 — tín hiệu từ khóa: (cụm từ, điểm trừ)
-        private static readonly (string Tu, int Tru)[] TinHieuTuKhoa =
-        {
-            ("thu nhap khong gioi han", 25),
-            ("co hoi lam giau", 25),
-            ("kiem tien nhanh", 25),
-            ("kiem tien online", 25),
-            ("khong can hop dong", 15),
-            ("khong can cv", 15),
-            ("nhan tien ngay", 15),
-            ("tra tien ngay", 15)
-        };
-
         private static readonly Regex SoDienThoai = new(@"(?:\+?84|0)(?:[\s.\-]?\d){8,10}", RegexOptions.Compiled);
         private static readonly Regex EmailLienHe = new(@"[\w.+-]+@[\w-]+\.[\w.-]+", RegexOptions.Compiled);
 
-        public Task<KetQuaFunnel> ChayAsync(TinTuyenDung entity, CancellationToken ct = default)
+        private readonly IApplicationDbContext _context;
+
+        public TinTuyenDungFunnelService(IApplicationDbContext context)
+        {
+            _context = context;
+        }
+
+        public async Task<KetQuaFunnel> ChayAsync(TinTuyenDung entity, CancellationToken ct = default)
         {
             string vanBan = ChuanHoa(string.Join(" ",
                 entity.TieuDe, entity.MoTaCongViec, entity.YeuCauCongViec,
                 entity.KinhNghiemYeuCau, entity.QuyenLoi, entity.DiaDiemLamViec));
 
+            var quyTacs = await _context.QuyTacKiemDuyetTins
+                .AsNoTracking()
+                .Where(x => x.IsActive)
+                .ToListAsync(ct);
+
             // ── Lớp 1: luật cứng ──
-            var tuBat = TuCam.Where(t => vanBan.Contains(t, StringComparison.Ordinal)).ToList();
+            var tuBat = quyTacs
+                .Where(x => x.Loai == LoaiQuyTacKiemDuyet.TuKhoaCam)
+                .Where(x => vanBan.Contains(ChuanHoa(x.TuKhoa), StringComparison.Ordinal))
+                .Select(x => x.TuKhoa)
+                .ToList();
             if (tuBat.Count > 0)
             {
                 string lietKe = string.Join(", ", tuBat.Select(t => $"'{t}'"));
-                return Task.FromResult(new KetQuaFunnel(
+                return new KetQuaFunnel(
                     TriggerTinTuyenDung.HeThongTuChoi,
-                    $"Lớp 1 vi phạm luật cứng — cụm từ cấm: {lietKe}."));
+                    $"Lớp 1 vi phạm luật cứng — cụm từ cấm: {lietKe}.");
             }
 
             // ── Lớp 2: chấm điểm an toàn ──
@@ -120,11 +97,12 @@ namespace Application.Services.StateMachineTinTuyenDung
                 tinHieu.Add(("nội dung quá ngắn, thiếu chi tiết công việc", 15));
             }
 
-            foreach (var (tu, tru) in TinHieuTuKhoa)
+            foreach (var rule in quyTacs.Where(x => x.Loai == LoaiQuyTacKiemDuyet.TinHieuRuiRo))
             {
+                var tu = ChuanHoa(rule.TuKhoa);
                 if (vanBan.Contains(tu, StringComparison.Ordinal))
                 {
-                    tinHieu.Add(($"cam kết thu nhập/thủ tục phi thực tế: '{tu}'", tru));
+                    tinHieu.Add(($"{rule.MoTa ?? "tín hiệu rủi ro"}: '{rule.TuKhoa}'", rule.DiemTru));
                 }
             }
 
@@ -135,22 +113,30 @@ namespace Application.Services.StateMachineTinTuyenDung
                 string chiTiet = tinHieu.Count == 0
                     ? "không có tín hiệu rủi ro đáng kể."
                     : "tín hiệu nhỏ: " + LietKeTinHieu(tinHieu);
-                return Task.FromResult(new KetQuaFunnel(
-                    TriggerTinTuyenDung.HeThongTuDongDuyet,
-                    $"Lớp 1 đạt; Lớp 2 điểm an toàn {diem}/100 — {chiTiet}"));
+                var vaiTroNguoiDang = await _context.NguoiDungs
+                    .AsNoTracking()
+                    .Where(x => x.Id == entity.NguoiDangTinId)
+                    .Select(x => x.VaiTro)
+                    .FirstOrDefaultAsync(ct);
+                var trigger = vaiTroNguoiDang == VaiTroNguoiDung.NHAN_SU
+                    ? TriggerTinTuyenDung.HeThongDuyetChoNguoiDaiDien
+                    : TriggerTinTuyenDung.HeThongTuDongDuyet;
+                return new KetQuaFunnel(
+                    trigger,
+                    $"Lớp 1 đạt; Lớp 2 điểm an toàn {diem}/100 — {chiTiet}");
             }
 
             string danhSach = LietKeTinHieu(tinHieu);
             if (diem >= DiemVungXamToiThieu)
             {
-                return Task.FromResult(new KetQuaFunnel(
+                return new KetQuaFunnel(
                     TriggerTinTuyenDung.PhatHienNghiVan,
-                    $"Lớp 1 đạt; Lớp 2 điểm an toàn {diem}/100 (vùng xám) — {danhSach}. Chuyển Admin kiểm tra."));
+                    $"Lớp 1 đạt; Lớp 2 điểm an toàn {diem}/100 (vùng xám) — {danhSach}. Chuyển Admin kiểm tra.");
             }
 
-            return Task.FromResult(new KetQuaFunnel(
+            return new KetQuaFunnel(
                 TriggerTinTuyenDung.HeThongTuChoi,
-                $"Lớp 1 đạt nhưng Lớp 2 điểm an toàn quá thấp ({diem}/100) — {danhSach}."));
+                $"Lớp 1 đạt nhưng Lớp 2 điểm an toàn quá thấp ({diem}/100) — {danhSach}.");
         }
 
         private static string LietKeTinHieu(List<(string MoTa, int Tru)> tinHieu)

@@ -753,6 +753,17 @@ function CvBuilderSkeleton() {
     toast.success("Đã nhập CV", { description: "Kiểm tra lại các trường rồi bấm Lưu CV." });
   };
 
+  const handleManualImported = (sessionId: string, fileName: string) => {
+    setImportSessionId(sessionId);
+    const baseName = fileName.replace(/\.(pdf|docx|json)$/i, "").trim();
+    if (baseName) {
+      setCvData((prev) => (prev.tenFile.trim() ? prev : { ...prev, tenFile: baseName }));
+    }
+    toast.success("Đã lưu file CV gốc", {
+      description: "AI đang bận nên bạn nhập nội dung thủ công, file gốc vẫn được đính kèm khi lưu.",
+    });
+  };
+
   const progress = useMemo(() => {
     const lh = cvData.thongTinLienHe;
     let done = 0;
@@ -785,7 +796,7 @@ function CvBuilderSkeleton() {
   const saveStatus: SaveStatus = saving ? "saving" : dirty ? "dirty" : "saved";
 
   return (
-    <div className="mx-auto w-full max-w-[1440px] space-y-5 px-4 py-6 sm:px-6 sm:py-8">
+    <div className="cv-builder-print-host mx-auto w-full max-w-[1440px] space-y-5 px-4 py-6 sm:px-6 sm:py-8">
       {/* Breadcrumb + save state */}
       <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
         <p className="flex items-center gap-1.5">
@@ -876,6 +887,7 @@ function CvBuilderSkeleton() {
         onOpenChange={setImportOpen}
         hoSoUngVienId={hoSo?.id ?? null}
         onImported={handleImported}
+        onManualImported={handleManualImported}
       />
 
       {/* CV selector */}
@@ -1087,6 +1099,13 @@ function CvBuilderSkeleton() {
         </div>
       </div>
       </>
+      )}
+
+      {/* Render riêng cho bản in để không phụ thuộc tab/breakpoint đang hiển thị. */}
+      {!loading && !loadError && (
+        <div className="cv-print-root" data-cv-print-root aria-hidden="true">
+          <CvPreview data={deferredCvData} />
+        </div>
       )}
     </div>
   );

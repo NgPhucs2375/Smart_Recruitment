@@ -125,8 +125,10 @@ function NotificationBellInner({
         .withUrl("/api/hubs/notifications", {
           // Factory async: mỗi lần reconnect đều lấy token mới nhất.
           accessTokenFactory: () => getValidToken().then((t) => t ?? ""),
-          // SSE preferred; LongPolling as automatic fallback if SSE fails through proxy
-          transport: signalR.HttpTransportType.ServerSentEvents | signalR.HttpTransportType.LongPolling,
+          // Next's route handler can buffer/close SSE responses, causing the
+          // negotiated connection ID to disappear before the client connects.
+          // Long Polling is reliable through the same-origin proxy.
+          transport: signalR.HttpTransportType.LongPolling,
         })
         .withAutomaticReconnect()
         .configureLogging({

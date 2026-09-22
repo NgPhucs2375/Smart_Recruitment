@@ -29,12 +29,10 @@ public class UpdateDoanhNghiepCommandHandler(IApplicationDbContext context, ICur
         var entity = await context.DoanhNghieps.AsTracking().FirstOrDefaultAsync(x => x.Id == request.Id, cancellationToken);
         if (entity == null) return new Response<int>("Không tìm thấy doanh nghiệp.");
 
-        // Chỉ owner hoặc ADMIN được sửa. Không cho đổi owner qua API này (giữ 1-1).
+        // Chỉ chủ doanh nghiệp hoặc ADMIN được sửa. Nhân sự chỉ được xem.
         var isOwner = entity.NguoiDaiDienId.HasValue && entity.NguoiDaiDienId.Value == ctx.Id;
         var isAdmin = ctx.VaiTro == VaiTroNguoiDung.QUAN_TRI_VIEN;
-        var isMemberViaHoSo = ctx.DoanhNghiepId.HasValue && ctx.DoanhNghiepId.Value == entity.Id &&
-                              (ctx.VaiTro == VaiTroNguoiDung.NGUOI_DAI_DIEN || ctx.VaiTro == VaiTroNguoiDung.NHAN_SU);
-        if (!isOwner && !isAdmin && !isMemberViaHoSo)
+        if (!isOwner && !isAdmin)
             throw new ApiException("Bạn không có quyền cập nhật doanh nghiệp này.", 403);
 
         if (!string.IsNullOrWhiteSpace(request.MaSoThue) &&

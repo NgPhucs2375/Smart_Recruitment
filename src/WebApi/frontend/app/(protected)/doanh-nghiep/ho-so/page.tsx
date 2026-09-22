@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useGetIdentity } from "@refinedev/core";
 import { Building2, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,6 +31,8 @@ const msg = (r: ApiResponse<unknown>): string => r.Message ?? r.message ?? "";
 const extractData = <T,>(r: ApiResponse<T>): T | undefined => r.Data ?? r.data;
 
 export default function HoSoDoanhNghiepPage() {
+  const { data: identity } = useGetIdentity<{ roles?: string[] }>();
+  const canEdit = (identity?.roles ?? []).some((role) => role.trim().toUpperCase() === "NGUOI_DAI_DIEN");
   const [company, setCompany] = useState<DoanhNghiep | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -102,6 +105,7 @@ export default function HoSoDoanhNghiepPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!canEdit) return;
     try {
       setSaving(true); setErr(""); setSuccessMsg("");
       if (company) {
@@ -124,51 +128,53 @@ export default function HoSoDoanhNghiepPage() {
 
   return (
     <AdminPageLayout>
-      <AdminPageHeader icon={Building2} title="Hồ sơ doanh nghiệp" description="Quản lý thông tin doanh nghiệp trên hệ thống." />
+       <AdminPageHeader icon={Building2} title="Hồ sơ doanh nghiệp" description={canEdit ? "Quản lý thông tin doanh nghiệp trên hệ thống." : "Thông tin doanh nghiệp bạn đang thuộc về."} />
 
       {successMsg && <div className="rounded-xl border border-border bg-card px-4 py-3 text-sm text-foreground shadow-sm">{successMsg}</div>}
       {err && <div className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">{err}</div>}
 
       <AdminCard>
-        <AdminCardHeader title="Thông tin doanh nghiệp" description="Cập nhật thông tin để ứng viên và đối tác biết đến bạn" />
+         <AdminCardHeader title="Thông tin doanh nghiệp" description={canEdit ? "Cập nhật thông tin để ứng viên và đối tác biết đến bạn" : "Bạn chỉ có quyền xem thông tin doanh nghiệp."} />
         <form onSubmit={handleSubmit} className="space-y-5 p-5">
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <Label>Tên doanh nghiệp *</Label>
-              <Input value={form.tenDoanhNghiep} onChange={e => setForm(f => ({ ...f, tenDoanhNghiep: e.target.value }))} required />
+               <Input disabled={!canEdit} value={form.tenDoanhNghiep} onChange={e => setForm(f => ({ ...f, tenDoanhNghiep: e.target.value }))} required />
             </div>
             <div className="space-y-2">
               <Label>Website</Label>
-              <Input value={form.website} onChange={e => setForm(f => ({ ...f, website: e.target.value }))} placeholder="https://..." />
+               <Input disabled={!canEdit} value={form.website} onChange={e => setForm(f => ({ ...f, website: e.target.value }))} placeholder="https://..." />
             </div>
             <div className="space-y-2">
               <Label>Mã số thuế</Label>
-              <Input value={form.maSoThue} onChange={e => setForm(f => ({ ...f, maSoThue: e.target.value }))} />
+               <Input disabled={!canEdit} value={form.maSoThue} onChange={e => setForm(f => ({ ...f, maSoThue: e.target.value }))} />
             </div>
             <div className="space-y-2">
               <Label>Lĩnh vực hoạt động</Label>
-              <Input value={form.linhVucHoatDong} onChange={e => setForm(f => ({ ...f, linhVucHoatDong: e.target.value }))} placeholder="VD: Công nghệ thông tin" />
+               <Input disabled={!canEdit} value={form.linhVucHoatDong} onChange={e => setForm(f => ({ ...f, linhVucHoatDong: e.target.value }))} placeholder="VD: Công nghệ thông tin" />
             </div>
             <div className="space-y-2">
               <Label>Quy mô nhân sự</Label>
-              <Input value={form.quyMoNhanSu} onChange={e => setForm(f => ({ ...f, quyMoNhanSu: e.target.value }))} placeholder="VD: 50-100 nhân viên" />
+               <Input disabled={!canEdit} value={form.quyMoNhanSu} onChange={e => setForm(f => ({ ...f, quyMoNhanSu: e.target.value }))} placeholder="VD: 50-100 nhân viên" />
             </div>
             <div className="space-y-2">
               <Label>Logo URL</Label>
-              <Input value={form.logoUrl} onChange={e => setForm(f => ({ ...f, logoUrl: e.target.value }))} placeholder="https://..." />
+               <Input disabled={!canEdit} value={form.logoUrl} onChange={e => setForm(f => ({ ...f, logoUrl: e.target.value }))} placeholder="https://..." />
             </div>
           </div>
           <div className="space-y-2">
             <Label>Địa chỉ</Label>
-            <Input value={form.diaChi} onChange={e => setForm(f => ({ ...f, diaChi: e.target.value }))} />
+             <Input disabled={!canEdit} value={form.diaChi} onChange={e => setForm(f => ({ ...f, diaChi: e.target.value }))} />
           </div>
           <div className="space-y-2">
             <Label>Mô tả doanh nghiệp</Label>
-            <textarea value={form.moTa} onChange={e => setForm(f => ({ ...f, moTa: e.target.value }))} rows={4} className="flex w-full rounded-lg border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" placeholder="Giới thiệu về doanh nghiệp..." />
+             <textarea disabled={!canEdit} value={form.moTa} onChange={e => setForm(f => ({ ...f, moTa: e.target.value }))} rows={4} className="flex w-full rounded-lg border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60" placeholder="Giới thiệu về doanh nghiệp..." />
           </div>
-          <div className="flex justify-end">
-            <Button type="submit" disabled={saving}><Save className="mr-2 size-4" />{saving ? "Đang lưu..." : "Lưu thay đổi"}</Button>
-          </div>
+           {canEdit && (
+             <div className="flex justify-end">
+               <Button type="submit" disabled={saving}><Save className="mr-2 size-4" />{saving ? "Đang lưu..." : "Lưu thay đổi"}</Button>
+             </div>
+           )}
         </form>
       </AdminCard>
     </AdminPageLayout>

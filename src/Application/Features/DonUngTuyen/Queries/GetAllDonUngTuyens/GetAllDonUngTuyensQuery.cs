@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace Application.Features.DonUngTuyen.Queries.GetAllDonUngTuyens
 {
-    public class GetAllDonUngTuyensQuery : IRequest<Response<List<GetAllDonUngTuyensViewModel>>>
+    public class GetAllDonUngTuyensQuery : IRequest<PagedResponse<List<GetAllDonUngTuyensViewModel>>>
     {
         public int _start { get; set; }
         public int _end { get; set; }
@@ -20,14 +20,15 @@ namespace Application.Features.DonUngTuyen.Queries.GetAllDonUngTuyens
         public int? HoSoUngVienId { get; set; }
         public int? CVUngVienId { get; set; }
         public int? TinTuyenDungId { get; set; }
+        public int? TrangThai { get; set; }
     }
 
     public class GetAllDonUngTuyensQueryHandler(
         IApplicationDbContext context,
         ICurrentNguoiDungService current)
-        : IRequestHandler<GetAllDonUngTuyensQuery, Response<List<GetAllDonUngTuyensViewModel>>>
+        : IRequestHandler<GetAllDonUngTuyensQuery, PagedResponse<List<GetAllDonUngTuyensViewModel>>>
     {
-        public async Task<Response<List<GetAllDonUngTuyensViewModel>>> Handle(
+        public async Task<PagedResponse<List<GetAllDonUngTuyensViewModel>>> Handle(
             GetAllDonUngTuyensQuery request,
             CancellationToken cancellationToken)
         {
@@ -64,11 +65,20 @@ namespace Application.Features.DonUngTuyen.Queries.GetAllDonUngTuyens
                 query = query.Where(x => x.TinTuyenDungId == request.TinTuyenDungId.Value);
             }
 
+            if (request.TrangThai.HasValue)
+            {
+                var st = (TrangThaiDonUngTuyen)request.TrangThai.Value;
+                query = query.Where(x => x.TrangThai == st);
+            }
+
             var filter = request._filter?.Trim();
 
             if (!string.IsNullOrWhiteSpace(filter))
             {
-                query = query.Where(d => d.GhiChu != null && d.GhiChu.Contains(filter));
+                query = query.Where(d =>
+                    (d.GhiChu != null && d.GhiChu.Contains(filter))
+                    || d.TinTuyenDung.TieuDe.Contains(filter)
+                    || d.TinTuyenDung.DoanhNghiep.TenDoanhNghiep.Contains(filter));
             }
 
             query = request._sort?.ToLower() switch
@@ -76,34 +86,44 @@ namespace Application.Features.DonUngTuyen.Queries.GetAllDonUngTuyens
                 "trangthai" => request._order?.ToLower() == "desc"
                     ? query.OrderByDescending(d => d.TrangThai)
                     : query.OrderBy(d => d.TrangThai),
+                "ngayungtuyen" => request._order?.ToLower() == "desc"
+                    ? query.OrderByDescending(d => d.NgayUngTuyen)
+                    : query.OrderBy(d => d.NgayUngTuyen),
                 _ => query.OrderByDescending(d => d.Id)
             };
 
-            var skip = request._start < 0 ? 0 : request._start;
-            var take = request._end - skip;
+            var start = request._start < 0 ? 0 : request._start;
+            var end = request._end <= start ? start + 20 : request._end;
+            var pageSize = end - start;
+            if (pageSize < 1) pageSize = 20;
+            if (pageSize > 100) pageSize = 100;
+            var pageNumber = (start / pageSize) + 1;
+            if (pageNumber < 1) pageNumber = 1;
 
-            if (skip > 0)
-            {
-                query = query.Skip(skip);
-            }
+            var pagedList = await PagedList<GetAllDonUngTuyensViewModel>.ToPagedListByPage(
+                query.Select(d => new GetAllDonUngTuyensViewModel
+                {
+                    Id = d.Id,
+                    HoSoUngVienId = d.CVUngVien.HoSoUngVienId,
+                    TinTuyenDungId = d.TinTuyenDungId,
+                    CVUngVienId = d.CVUngVienId,
+                    CVPhienBanId = d.CVPhienBanId,
+                    TrangThai = d.TrangThai,
+                    GhiChu = d.GhiChu,
+                    NgayUngTuyen = d.NgayUngTuyen,
+                    TieuDe = d.TinTuyenDung.TieuDe,
+                    TenDoanhNghiep = d.TinTuyenDung.DoanhNghiep.TenDoanhNghiep,
+                    DiaDiemLamViec = d.TinTuyenDung.DiaDiemLamViec,
+                    LuongToiThieu = d.TinTuyenDung.LuongToiThieu,
+                    LuongToiDa = d.TinTuyenDung.LuongToiDa
+                }), pageNumber, pageSize, cancellationToken);
 
-            if (take > 0)
-            {
-                query = query.Take(take);
-            }
-
-            var items = await query.Select(d => new GetAllDonUngTuyensViewModel
-            {
-                Id = d.Id,
-                HoSoUngVienId = d.CVUngVien.HoSoUngVienId,
-                TinTuyenDungId = d.TinTuyenDungId,
-                CVUngVienId = d.CVUngVienId,
-                CVPhienBanId = d.CVPhienBanId,
-                TrangThai = d.TrangThai,
-                GhiChu = d.GhiChu
-            }).ToListAsync(cancellationToken);
-
-            return new Response<List<GetAllDonUngTuyensViewModel>>(items);
+            return new PagedResponse<List<GetAllDonUngTuyensViewModel>>(
+                pagedList.ToList(),
+                pagedList.PageNumber,
+                pagedList.PageSize,
+                pagedList.TotalCount,
+                pagedList.TotalPages);
         }
     }
 }

@@ -46,7 +46,8 @@ namespace WebApp.Server.Controllers.v1
                             _order = filter._order,
                             HoSoUngVienId = filter.HoSoUngVienId,
                             CVUngVienId = filter.CVUngVienId,
-                            TinTuyenDungId = filter.TinTuyenDungId
+                            TinTuyenDungId = filter.TinTuyenDungId,
+                            TrangThai = filter.TrangThai
                         }));
                 });
         }

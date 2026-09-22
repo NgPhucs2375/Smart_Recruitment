@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 
 // Proxy /api/hubs/* → .NET /hubs/* (streaming — supports SSE + long polling)
-const DOTNET_API_URL = process.env.DOTNET_API_URL ?? "https://localhost:5001";
+const DOTNET_API_URL = process.env.DOTNET_API_URL ?? "http://127.0.0.1:8000";
 
 let reqCounter = 0;
 const nextReqId = () => `hub-${Date.now().toString(36)}-${(++reqCounter).toString(36)}`;

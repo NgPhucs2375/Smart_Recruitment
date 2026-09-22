@@ -31,6 +31,7 @@ namespace Application.Services.StateMachineTinTuyenDung
         /// </summary>
         public static bool LaTriggerHeThong(TriggerTinTuyenDung trigger)
             => trigger == TriggerTinTuyenDung.HeThongTuDongDuyet
+            || trigger == TriggerTinTuyenDung.HeThongDuyetChoNguoiDaiDien
             || trigger == TriggerTinTuyenDung.PhatHienNghiVan
             || trigger == TriggerTinTuyenDung.HeThongTuChoi
             || trigger == TriggerTinTuyenDung.HetHanNop;
@@ -127,10 +128,19 @@ namespace Application.Services.StateMachineTinTuyenDung
             {
                 // Admin kiểm duyệt tay / cưỡng chế khóa
                 case TriggerTinTuyenDung.AdminDuyet:
+                case TriggerTinTuyenDung.AdminDuyetChoNguoiDaiDien:
                 case TriggerTinTuyenDung.AdminTuChoi:
                 case TriggerTinTuyenDung.AdminCuongCheKhoa:
                     if (ctx.VaiTro != VaiTroNguoiDung.QUAN_TRI_VIEN)
                         throw new ApiException("Chỉ Quản trị viên được thực hiện hành động này.");
+                    break;
+
+                case TriggerTinTuyenDung.NguoiDaiDienDuyet:
+                case TriggerTinTuyenDung.NguoiDaiDienTuChoi:
+                    if (ctx.VaiTro != VaiTroNguoiDung.NGUOI_DAI_DIEN)
+                        throw new ApiException("Chỉ Người đại diện được duyệt tin do Nhân sự đăng.", 403);
+                    if (_entity.DoanhNghiepId != ctx.DoanhNghiepId)
+                        throw new ApiException("Bạn không có quyền duyệt tin của doanh nghiệp khác.", 403);
                     break;
 
                 // HR thao tác tin: NguoiDaiDien theo công ty, NhanSu chỉ tin mình đăng
@@ -183,16 +193,24 @@ namespace Application.Services.StateMachineTinTuyenDung
             _machine.Configure(TrangThaiTinTuyenDung.ChoDuyetHeThong)
                 .OnEntryAsync(OnTransitedAsync)
                 .Permit(TriggerTinTuyenDung.HeThongTuDongDuyet, TrangThaiTinTuyenDung.DangTuyen)
+                .Permit(TriggerTinTuyenDung.HeThongDuyetChoNguoiDaiDien, TrangThaiTinTuyenDung.ChoNguoiDaiDienDuyet)
                 .Permit(TriggerTinTuyenDung.PhatHienNghiVan, TrangThaiTinTuyenDung.ChoAdminDuyet)
                 .Permit(TriggerTinTuyenDung.HeThongTuChoi, TrangThaiTinTuyenDung.TuChoi)
                 .Permit(TriggerTinTuyenDung.AdminDuyet, TrangThaiTinTuyenDung.DangTuyen)
+                .Permit(TriggerTinTuyenDung.AdminDuyetChoNguoiDaiDien, TrangThaiTinTuyenDung.ChoNguoiDaiDienDuyet)
                 .Permit(TriggerTinTuyenDung.AdminTuChoi, TrangThaiTinTuyenDung.TuChoi);
 
             // Admin kiểm duyệt tay các tin vùng xám
             _machine.Configure(TrangThaiTinTuyenDung.ChoAdminDuyet)
                 .OnEntryAsync(OnTransitedAsync)
                 .Permit(TriggerTinTuyenDung.AdminDuyet, TrangThaiTinTuyenDung.DangTuyen)
+                .Permit(TriggerTinTuyenDung.AdminDuyetChoNguoiDaiDien, TrangThaiTinTuyenDung.ChoNguoiDaiDienDuyet)
                 .Permit(TriggerTinTuyenDung.AdminTuChoi, TrangThaiTinTuyenDung.TuChoi);
+
+            _machine.Configure(TrangThaiTinTuyenDung.ChoNguoiDaiDienDuyet)
+                .OnEntryAsync(OnTransitedAsync)
+                .Permit(TriggerTinTuyenDung.NguoiDaiDienDuyet, TrangThaiTinTuyenDung.DangTuyen)
+                .Permit(TriggerTinTuyenDung.NguoiDaiDienTuChoi, TrangThaiTinTuyenDung.TuChoi);
 
             // Đang tuyển: tạm dừng / đóng / hết hạn / bị khóa
             _machine.Configure(TrangThaiTinTuyenDung.DangTuyen)
@@ -205,6 +223,7 @@ namespace Application.Services.StateMachineTinTuyenDung
             // Tạm dừng: mở lại / đóng luôn / hết hạn khi đang dừng / bị khóa
             _machine.Configure(TrangThaiTinTuyenDung.TamDung)
                 .OnEntryAsync(OnTransitedAsync)
+                .Permit(TriggerTinTuyenDung.GuiDuyet, TrangThaiTinTuyenDung.ChoDuyetHeThong)
                 .Permit(TriggerTinTuyenDung.MoLaiTin, TrangThaiTinTuyenDung.DangTuyen)
                 .Permit(TriggerTinTuyenDung.DongTin, TrangThaiTinTuyenDung.DaDong)
                 .Permit(TriggerTinTuyenDung.HetHanNop, TrangThaiTinTuyenDung.HetHan)

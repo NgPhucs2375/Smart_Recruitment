@@ -22,6 +22,7 @@ namespace Application.Interfaces
         DbSet<DonUngTuyen> DonUngTuyens { get; set; }
         DbSet<DoanhNghiep> DoanhNghieps { get; set; }
         DbSet<DanhMucNghe> DanhMucNghes { get; set; }
+        DbSet<QuyTacKiemDuyetTin> QuyTacKiemDuyetTins { get; set; }
         DbSet<CVUngVien> CVUngViens { get; set; }
         DbSet<CVImportSession> CVImportSessions { get; set; }
         DbSet<CVTepTin> CVTepTins { get; set; }

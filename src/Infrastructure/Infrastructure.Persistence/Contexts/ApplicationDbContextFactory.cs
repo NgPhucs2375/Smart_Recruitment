@@ -25,6 +25,7 @@ namespace Infrastructure.Persistence.Contexts
                 .SetBasePath(baseDir)
                 .AddJsonFile("appsettings.json", optional: true)
                 .AddJsonFile($"appsettings.{Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Development"}.json", optional: true)
+                .AddEnvironmentVariables()
                 .Build();
             var conn = config.GetConnectionString("PostgresConnection");
             if (string.IsNullOrEmpty(conn))

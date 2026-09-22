@@ -1,5 +1,8 @@
 "use client";
 
+// hiện tại chỉ nhận .pdf, .docx,.json
+// check size <= 10mb
+// return ve cv-import-dialog
 import { FileText, UploadCloud, X } from "lucide-react";
 import { useDropzone } from "react-dropzone";
 import { cn } from "@/lib/utils";

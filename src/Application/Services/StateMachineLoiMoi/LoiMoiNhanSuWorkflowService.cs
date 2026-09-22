@@ -3,6 +3,8 @@ using Application.DTOs.ThongBao;
 using Application.Interfaces;
 using Domain.Entities;
 using Domain.Enums;
+using Microsoft.Extensions.Logging;
+using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -24,17 +26,20 @@ namespace Application.Services.StateMachineLoiMoi
         private readonly IEmailService _email;
         private readonly IUserEmailResolver _emailResolver;
         private readonly INotificationPushService _push;
+        private readonly ILogger<LoiMoiNhanSuWorkflowService> _logger;
 
         public LoiMoiNhanSuWorkflowService(
             IApplicationDbContext context,
             IEmailService email,
             IUserEmailResolver emailResolver,
-            INotificationPushService push)
+            INotificationPushService push,
+            ILogger<LoiMoiNhanSuWorkflowService> logger)
         {
             _context = context;
             _email = email;
             _emailResolver = emailResolver;
             _push = push;
+            _logger = logger;
         }
 
         /// <summary>
@@ -52,64 +57,88 @@ namespace Application.Services.StateMachineLoiMoi
                 : $"{entity.HoTen} ({entity.Email})";
 
             // 1) Thông báo trong app cho Người đại diện + đẩy realtime.
-            if (entity.NguoiDaiDienId > 0)
+            // Push/email là side-effect ngoài giao dịch chính: lỗi không được làm fail
+            // transition (tránh lời mời đã chuyển trạng thái mà API trả lỗi,
+            // hoặc hủy không persist mà UI báo thành công).
+            try
             {
-                var tieuDe = TieuDeThongBao(trigger);
-                var noiDung = string.IsNullOrWhiteSpace(note) || note == trigger.ToString()
-                    ? NoiDungThongBao(trigger, tenDn, nguoiDuocMoi)
-                    : $"{NoiDungThongBao(trigger, tenDn, nguoiDuocMoi)}\n\nGhi chú: {note}";
-
-                _context.Notifications.Add(new Notification
+                if (entity.NguoiDaiDienId > 0)
                 {
-                    LoaiThongBao = LoaiThongBao.LoiMoiNhanSu,
-                    TieuDe = tieuDe,
-                    NoiDung = noiDung,
-                    ReferenceType = nameof(LoiMoiNhanSu),
-                    ReferenceId = entity.Id,
-                    Recipients = new List<NotificationRecipient>
-                    {
-                        new() { NguoiDungId = entity.NguoiDaiDienId, IsRead = false } // lúc này mới tạo chưa đã đọc
-                    }
-                });
+                    var tieuDe = TieuDeThongBao(trigger);
+                    var noiDung = string.IsNullOrWhiteSpace(note) || note == trigger.ToString()
+                        ? NoiDungThongBao(trigger, tenDn, nguoiDuocMoi)
+                        : $"{NoiDungThongBao(trigger, tenDn, nguoiDuocMoi)}\n\nGhi chú: {note}";
 
-                await _push.PushToUserAsync(
-                    entity.NguoiDaiDienId,
-                    new ThongBaoDTO
+                    _context.Notifications.Add(new Notification
                     {
+                        LoaiThongBao = LoaiThongBao.LoiMoiNhanSu,
                         TieuDe = tieuDe,
                         NoiDung = noiDung,
-                        LoaiThongBao = LoaiThongBao.LoiMoiNhanSu,
                         ReferenceType = nameof(LoiMoiNhanSu),
-                        ReferenceId = entity.Id
-                    },
-                    ct);
+                        ReferenceId = entity.Id,
+                        Recipients = new List<NotificationRecipient>
+                        {
+                            new() { NguoiDungId = entity.NguoiDaiDienId, IsRead = false } // lúc này mới tạo chưa đã đọc
+                        }
+                    });
+
+                    await _push.PushToUserAsync(
+                        entity.NguoiDaiDienId,
+                        new ThongBaoDTO
+                        {
+                            TieuDe = tieuDe,
+                            NoiDung = noiDung,
+                            LoaiThongBao = LoaiThongBao.LoiMoiNhanSu,
+                            ReferenceType = nameof(LoiMoiNhanSu),
+                            ReferenceId = entity.Id
+                        },
+                        ct);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Đẩy realtime lời mời nhân sự {LoiMoiId} thất bại.", entity.Id);
             }
 
             // 2) Email cho Người đại diện khi lời mời được chấp nhận / từ chối
-            if ((trigger == TriggerLoiMoi.ChapNhan || trigger == TriggerLoiMoi.TuChoi)
-                && entity.NguoiDaiDienId > 0)
+            try
             {
-                var emailNdd = await _emailResolver.GetEmailByNguoiDungIdAsync(entity.NguoiDaiDienId, ct);
-                if (!string.IsNullOrWhiteSpace(emailNdd))
+                if ((trigger == TriggerLoiMoi.ChapNhan || trigger == TriggerLoiMoi.TuChoi)
+                    && entity.NguoiDaiDienId > 0)
                 {
-                    await _email.SendAsync(new EmailRequest
+                    var emailNdd = await _emailResolver.GetEmailByNguoiDungIdAsync(entity.NguoiDaiDienId, ct);
+                    if (!string.IsNullOrWhiteSpace(emailNdd))
                     {
-                        To = emailNdd,
-                        Subject = TieuDeThongBao(trigger),
-                        Body = NoiDungThongBao(trigger, tenDn, nguoiDuocMoi)
-                    });
+                        await _email.SendAsync(new EmailRequest
+                        {
+                            To = emailNdd,
+                            Subject = TieuDeThongBao(trigger),
+                            Body = NoiDungThongBao(trigger, tenDn, nguoiDuocMoi)
+                        });
+                    }
                 }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Gửi email thông báo lời mời nhân sự {LoiMoiId} thất bại.", entity.Id);
             }
 
             // 3) Email cho người được mời khi lời mời bị thu hồi
-            if (trigger == TriggerLoiMoi.HuyLoiMoi && !string.IsNullOrWhiteSpace(entity.Email))
+            try
             {
-                await _email.SendAsync(new EmailRequest
+                if (trigger == TriggerLoiMoi.HuyLoiMoi && !string.IsNullOrWhiteSpace(entity.Email))
                 {
-                    To = entity.Email,
-                    Subject = "Lời mời tham gia doanh nghiệp đã bị thu hồi",
-                    Body = $"Lời mời bạn tham gia {tenDn} đã bị người đại diện thu hồi."
-                });
+                    await _email.SendAsync(new EmailRequest
+                    {
+                        To = entity.Email,
+                        Subject = "Lời mời tham gia doanh nghiệp đã bị thu hồi",
+                        Body = $"Lời mời bạn tham gia {tenDn} đã bị người đại diện thu hồi."
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Gửi email thu hồi lời mời nhân sự {LoiMoiId} thất bại.", entity.Id);
             }
         }
 

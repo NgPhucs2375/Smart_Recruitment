@@ -113,6 +113,9 @@ export async function cancelLoiMoi(id: number): Promise<string> {
   const response = await fetch(`/api/dotnet/nhansus/invite/${id}`, { method: "DELETE", headers });
   const body = (await response.json().catch(() => null)) as ApiResponse<unknown> | null;
   if (!response.ok || !body) throw new Error(messageOf(body, "Không thể hủy lời mời."));
+  // Bắt buộc check Succeeded: BE có thể trả 200 + Succeeded=false (vd. side-effect lỗi,
+  // không có quyền) — không check sẽ báo thành công giả trong khi DB không đổi.
+  unwrap<unknown>(body, "Không thể hủy lời mời.");
   return messageOf(body, "Đã hủy lời mời.");
 }
 

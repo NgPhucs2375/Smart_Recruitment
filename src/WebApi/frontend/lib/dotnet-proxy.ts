@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 // Server-only env var — không có NEXT_PUBLIC_ prefix, không bao giờ lọt vào client bundle.
-const DOTNET_API_URL = process.env.DOTNET_API_URL ?? "https://localhost:5001";
+const DOTNET_API_URL = process.env.DOTNET_API_URL ?? "http://127.0.0.1:8000";
 
 let reqCounter = 0;
 const nextReqId = () => `${Date.now().toString(36)}-${(++reqCounter).toString(36)}`;
