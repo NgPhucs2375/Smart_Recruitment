@@ -2,13 +2,21 @@ import { type NextRequest, NextResponse } from "next/server";
 
 // Proxy /api/hubs/* → .NET /hubs/* (streaming — supports SSE + long polling)
 // DOTNET_API_URL bắt buộc: thiếu thì trả 500 rõ ràng, không fallback localhost.
-const DOTNET_API_URL = process.env.DOTNET_API_URL;
+// Đọc process.env tại thời điểm request để tránh bị cố định rỗng từ lúc build standalone.
+function getDotnetApiUrl(): string {
+  return process.env.DOTNET_API_URL ?? "";
+}
 
 let reqCounter = 0;
 const nextReqId = () => `hub-${Date.now().toString(36)}-${(++reqCounter).toString(36)}`;
 
 async function proxyHub(req: NextRequest, path: string[]): Promise<NextResponse> {
+  const rawEnv = getDotnetApiUrl();
+  const DOTNET_API_URL = rawEnv.trim();
   if (!DOTNET_API_URL) {
+    console.warn(
+      `[hub] dotnet_env configured=false len=${rawEnv.length} isHttps=false`,
+    );
     return NextResponse.json({ error: "dotnet_api_not_configured" }, { status: 500 });
   }
   const reqId = nextReqId();
@@ -29,7 +37,7 @@ async function proxyHub(req: NextRequest, path: string[]): Promise<NextResponse>
       ? await req.text().catch(() => undefined)
       : undefined;
 
-  console.log(`[${reqId}] ${req.method} ${url} (auth=${!!auth})`);
+  console.log(`[${reqId}] ${req.method} /api/hubs/${path.join("/")} (auth=${!!auth})`);
 
   try {
     const upstream = await fetch(url, {

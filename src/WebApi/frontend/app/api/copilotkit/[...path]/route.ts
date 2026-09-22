@@ -2,7 +2,10 @@ import { NextResponse, type NextRequest } from "next/server";
 
 // Server-only env var — không có NEXT_PUBLIC_ prefix, không bao giờ lọt vào client bundle.
 // BẮT BUỘC ở production: thiếu thì trả 500 rõ ràng, không fallback localhost.
-const DOTNET_API_URL = process.env.DOTNET_API_URL;
+// Đọc process.env tại thời điểm request để tránh bị cố định rỗng từ lúc build standalone.
+function getDotnetApiUrl(): string {
+  return process.env.DOTNET_API_URL ?? "";
+}
 
 /**
  * CopilotKit/Ag-UI proxy: browser POST /api/copilotkit → .NET /api/copilotkit.
@@ -18,7 +21,12 @@ export async function POST(
   req: NextRequest,
   ctx: { params: Promise<{ path: string[] }> },
 ) {
+  const rawEnv = getDotnetApiUrl();
+  const DOTNET_API_URL = rawEnv.trim();
   if (!DOTNET_API_URL) {
+    console.warn(
+      `[copilotkit] dotnet_env configured=false len=${rawEnv.length} isHttps=false`,
+    );
     return NextResponse.json({ error: "dotnet_api_not_configured" }, { status: 500 });
   }
   const { path } = await ctx.params;
