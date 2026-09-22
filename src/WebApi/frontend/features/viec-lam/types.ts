@@ -2,7 +2,7 @@ export type JobLevel = "Intern" | "Fresher" | "Junior" | "Mid" | "Senior" | "Lea
 
 export type EmploymentType = "Full-time" | "Part-time" | "Contract" | "Freelance";
 
-export type WorkMode = "Remote" | "Hybrid" | "Onsite";
+export type WorkMode = "Remote" | "Hybrid" | "Onsite" | "Flexible";
 
 export type Job = {
   id: string;

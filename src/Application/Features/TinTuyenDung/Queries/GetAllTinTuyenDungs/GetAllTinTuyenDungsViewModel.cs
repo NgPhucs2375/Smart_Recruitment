@@ -10,6 +10,7 @@ namespace Application.Features.TinTuyenDung.Queries.GetAllTinTuyenDungs
         public string YeuCauCongViec { get; set; }
         public string QuyenLoi { get; set; }
         public string DiaDiemLamViec { get; set; }
+        public string PhuongThucLamViec { get; set; }
         public decimal LuongToiThieu { get; set; }
         public decimal LuongToiDa { get; set; }
         public string TrangThai { get; set; }

@@ -84,7 +84,7 @@ export function normalizeHoSo(raw: unknown): HoSoVm | null {
   const r = raw as Record<string, unknown>;
   const id = (r.id ?? r.Id ?? 0) as number;
   if (!id && !r.hoTen && !r.HoTen) return null;
-  const avatarValue = (r.anhDaiDienUrl ?? r.AnhDaiDienUrl ?? "") as string;
+  const avatarValue = String(r.anhDaiDienUrl ?? r.AnhDaiDienUrl ?? "").trim();
   return {
     id,
     nguoiDungId: (r.nguoiDungId ?? r.NguoiDungId ?? 0) as number,
@@ -95,7 +95,7 @@ export function normalizeHoSo(raw: unknown): HoSoVm | null {
     diaChi: (r.diaChi ?? r.DiaChi ?? "") as string,
     gioiThieu: (r.gioiThieu ?? r.GioiThieu ?? "") as string,
     anhDaiDienUrl: avatarValue.startsWith("avatars/")
-      ? `/api/dotnet/hosoungviens/${id}/avatar?key=${encodeURIComponent(avatarValue)}`
+      ? `/api/dotnet/hosoungviens/${id}/avatar?key=${encodeURIComponent(avatarValue)}&v=${encodeURIComponent(avatarValue)}`
       : avatarValue,
     viTriUngTuyen: (r.viTriUngTuyen ?? r.ViTriUngTuyen ?? "") as string,
     mucLuongMongMuon: (r.mucLuongMongMuon ?? r.MucLuongMongMuon ?? 0) as number,

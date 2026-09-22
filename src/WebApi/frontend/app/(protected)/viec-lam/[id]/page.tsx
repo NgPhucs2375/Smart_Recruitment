@@ -13,6 +13,8 @@ import {
   CircleAlert,
   Eye,
   FileText,
+  Home,
+  Laptop,
   Loader2,
   MapPin,
   Send,
@@ -86,9 +88,9 @@ function isExpired(ngayHetHan: string) {
 function Section({ title, body }: { title: string; body: string }) {
   if (!body?.trim()) return null;
   return (
-    <section className="rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6">
-      <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">{title}</h2>
-      <p className="mt-2 whitespace-pre-line text-sm leading-6 text-foreground">{body}</p>
+    <section className="py-6 first:pt-0 last:pb-0">
+      <h2 className="text-base font-semibold tracking-tight text-foreground">{title}</h2>
+      <p className="mt-3 whitespace-pre-line text-sm leading-7 text-muted-foreground">{body}</p>
     </section>
   );
 }
@@ -283,9 +285,10 @@ export default function ViecLamChiTietPage() {
           description={loadError || "Tin không tồn tại."}
         />
       ) : (
-        <div className="space-y-5">
-          <div className="rounded-[2rem] border border-border bg-card p-6 shadow-sm sm:p-8">
-            <div className="flex items-start gap-4">
+        <div className="space-y-6">
+          <section className="overflow-hidden rounded-[2rem] border border-border bg-card shadow-sm">
+            <div className="p-6 sm:p-8">
+              <div className="flex items-start gap-4">
               <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-muted">
                 <Building2 className="size-6 text-primary" />
               </span>
@@ -303,6 +306,12 @@ export default function ViecLamChiTietPage() {
                   {tin.diaDiemLamViec && (
                     <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted px-3 py-1.5 font-medium text-muted-foreground">
                       <MapPin className="size-3.5" /> {tin.diaDiemLamViec}
+                    </span>
+                  )}
+                  {tin.workMode && (
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/5 px-3 py-1.5 font-medium text-primary">
+                      {tin.workMode === "Remote" ? <Home className="size-3.5" /> : tin.workMode === "Hybrid" ? <Laptop className="size-3.5" /> : <Building2 className="size-3.5" />}
+                      {tin.workMode}
                     </span>
                   )}
                   {tin.ngayHetHan && (
@@ -344,7 +353,7 @@ export default function ViecLamChiTietPage() {
               </div>
             </div>
 
-            <div className="mt-5 flex flex-wrap items-center gap-2">
+            <div className="mt-6 flex flex-wrap items-center gap-2 border-t border-border pt-5">
               {daUngTuyen ? (
                 <p className="inline-flex items-center gap-1.5 rounded-full bg-teal/10 px-4 py-2 text-sm font-semibold text-primary">
                   <BadgeCheck className="size-4" /> Bạn đã ứng tuyển tin này
@@ -364,14 +373,76 @@ export default function ViecLamChiTietPage() {
               )}
               <Link href="/viec-lam/da-ung-tuyen" className="ml-auto text-xs font-semibold text-primary hover:underline">
                 Xem việc đã ứng tuyển
-              </Link>
+                </Link>
             </div>
-          </div>
+            </div>
+          </section>
 
-          <Section title="Mô tả công việc" body={tin.moTaCongViec} />
-          <Section title="Yêu cầu công việc" body={tin.yeuCauCongViec} />
-          <Section title="Kinh nghiệm yêu cầu" body={tin.kinhNghiemYeuCau} />
-          <Section title="Quyền lợi" body={tin.quyenLoi} />
+          <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
+            <main className="min-w-0 rounded-[2rem] border border-border bg-card px-6 shadow-sm sm:px-8">
+              <Section title="Mô tả công việc" body={tin.moTaCongViec} />
+              <div className="border-t border-border" />
+              <Section title="Yêu cầu công việc" body={tin.yeuCauCongViec} />
+              <div className="border-t border-border" />
+              <Section title="Kinh nghiệm yêu cầu" body={tin.kinhNghiemYeuCau} />
+              <div className="border-t border-border" />
+              <Section title="Quyền lợi" body={tin.quyenLoi} />
+            </main>
+
+            <aside className="space-y-4 lg:sticky lg:top-6">
+              <section className="rounded-3xl border border-border bg-card p-5 shadow-sm">
+                <h2 className="text-sm font-semibold uppercase tracking-[0.12em] text-muted-foreground">Tổng quan</h2>
+                <div className="mt-4 divide-y divide-border">
+                  <div className="flex items-start justify-between gap-4 py-3 first:pt-0">
+                    <span className="text-sm text-muted-foreground">Mức lương</span>
+                    <span className="text-right text-sm font-semibold text-foreground">{fmtMoney(tin.luongToiThieu, tin.luongToiDa)}</span>
+                  </div>
+                  <div className="flex items-start justify-between gap-4 py-3">
+                    <span className="text-sm text-muted-foreground">Địa điểm</span>
+                    <span className="text-right text-sm font-semibold text-foreground">{tin.diaDiemLamViec || "Không nêu"}</span>
+                  </div>
+                  <div className="flex items-start justify-between gap-4 py-3">
+                    <span className="text-sm text-muted-foreground">Phương thức</span>
+                    <span className="text-right text-sm font-semibold text-foreground">{tin.workMode || "Onsite"}</span>
+                  </div>
+                  <div className="flex items-start justify-between gap-4 py-3">
+                    <span className="text-sm text-muted-foreground">Hạn nộp</span>
+                    <span className="text-right text-sm font-semibold text-foreground">{tin.ngayHetHan ? fmtDate(tin.ngayHetHan) : "Không giới hạn"}</span>
+                  </div>
+                  <div className="flex items-start justify-between gap-4 py-3 last:pb-0">
+                    <span className="text-sm text-muted-foreground">Ứng viên</span>
+                    <span className="text-right text-sm font-semibold text-foreground">{tin.soLuongUngVien}</span>
+                  </div>
+                </div>
+              </section>
+
+              {tin.kyNangs.length > 0 && (
+                <section className="rounded-3xl border border-border bg-card p-5 shadow-sm">
+                  <h2 className="text-sm font-semibold uppercase tracking-[0.12em] text-muted-foreground">Kỹ năng cần có</h2>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {tin.kyNangs.map((skill) => (
+                      <Badge key={skill} variant="outline" className="border-primary/20 bg-primary/5 text-foreground">
+                        {skill}
+                      </Badge>
+                    ))}
+                  </div>
+                </section>
+              )}
+
+              <section className="rounded-3xl border border-border bg-card p-5 shadow-sm">
+                <h2 className="text-sm font-semibold uppercase tracking-[0.12em] text-muted-foreground">Doanh nghiệp</h2>
+                <div className="mt-4 flex items-center gap-3">
+                  <span className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-sm font-bold text-primary">
+                    {(tenDoanhNghiep || "NT").slice(0, 2).toUpperCase()}
+                  </span>
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-foreground">{tenDoanhNghiep || "Nhà tuyển dụng"}</p>
+                    <p className="mt-0.5 text-xs text-muted-foreground">Đang tuyển dụng trên HIREAI</p>
+                  </div>
+                </div>
+              </section>
+            </aside>
+          </div>
         </div>
       )}
 

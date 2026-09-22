@@ -20,6 +20,7 @@ namespace Application.Features.TinTuyenDung.Commands.CreateTinTuyenDung
         public string YeuCauCongViec { get; set; }
         public string QuyenLoi { get; set; }
         public string DiaDiemLamViec { get; set; }
+        public PhuongThucLamViec PhuongThucLamViec { get; set; }
         public decimal LuongToiThieu { get; set; }
         public decimal LuongToiDa { get; set; }
         public System.DateTime? NgayHetHan { get; set; }
@@ -67,6 +68,7 @@ namespace Application.Features.TinTuyenDung.Commands.CreateTinTuyenDung
                 YeuCauCongViec = request.YeuCauCongViec?.Trim(),
                 QuyenLoi = request.QuyenLoi?.Trim(),
                 DiaDiemLamViec = request.DiaDiemLamViec?.Trim(),
+                PhuongThucLamViec = request.PhuongThucLamViec,
                 LuongToiThieu = request.LuongToiThieu,
                 LuongToiDa = request.LuongToiDa,
                 // State machine: tin mới luôn bắt đầu ở Nhap, muốn công khai phải qua funnel (GuiDuyet)

@@ -98,8 +98,6 @@ function NotificationBellInner({
   } | undefined;
   const notifications = (rawData?.notifications ?? rawData?.Notifications ?? []).map(normalizeNotification);
   const unreadCount   = rawData?.unreadCount ?? rawData?.UnreadCount ?? 0;
-  const is404 = query?.error?.statusCode === 404;
-
   // Stable refetch reference — avoids infinite-loop dependency on the full query object
   const refetch = query?.refetch;
   const refetchRef = useRef(refetch);
@@ -169,6 +167,11 @@ function NotificationBellInner({
       connection.on("ReceiveNotification", () => {
         void refetchRef.current?.();
       });
+      connection.onclose(() => {
+        // A stale long-polling connection id returns 404 after a backend restart.
+        // Keep notifications available through the REST polling fallback.
+        if (active) startPollingFallback();
+      });
       connection.start().catch((err: unknown) => {
         if (!active) return; // StrictMode fake-unmount — ignore silently
         console.warn("[NotificationBell] SignalR failed, falling back to 30s polling:", err);
@@ -191,6 +194,13 @@ function NotificationBellInner({
   const handleMarkAllRead = () => {
     markRead(
       { url: `${apiUrl}/Notifications/read`, method: "post", values: { ids: null } },
+      { onSuccess: () => void refetchRef.current?.() }
+    );
+  };
+
+  const handleMarkRead = (notificationId: number) => {
+    markRead(
+      { url: `${apiUrl}/Notifications/read/${notificationId}`, method: "post", values: {} },
       { onSuccess: () => void refetchRef.current?.() }
     );
   };
@@ -237,9 +247,19 @@ function NotificationBellInner({
               return (
                 <div
                   key={n.id}
+                  role="button"
+                  tabIndex={n.isRead ? -1 : 0}
+                  onClick={() => { if (!n.isRead) handleMarkRead(n.id); }}
+                  onKeyDown={(event) => {
+                    if (!n.isRead && (event.key === "Enter" || event.key === " ")) {
+                      event.preventDefault();
+                      handleMarkRead(n.id);
+                    }
+                  }}
                   className={cn(
-                    "flex gap-3 px-4 py-3 border-b last:border-b-0 text-sm",
+                    "flex gap-3 px-4 py-3 border-b last:border-b-0 text-sm transition-colors",
                     !n.isRead && "bg-muted/50",
+                    !n.isRead && "cursor-pointer hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary",
                   )}
                 >
                   <span className={cn("mt-0.5 shrink-0", meta.color)}>{meta.icon}</span>

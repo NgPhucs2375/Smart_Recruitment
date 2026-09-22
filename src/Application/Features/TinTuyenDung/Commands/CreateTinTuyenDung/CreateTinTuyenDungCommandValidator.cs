@@ -38,6 +38,10 @@ public class CreateTinTuyenDungCommandValidator : AbstractValidator<CreateTinTuy
             .MaximumLength(255)
             .WithMessage("Địa điểm làm việc không được vượt quá 255 ký tự.");
 
+        RuleFor(x => x.PhuongThucLamViec)
+            .IsInEnum()
+            .WithMessage("Phương thức làm việc không hợp lệ.");
+
         RuleFor(x => x.LuongToiThieu)
             .GreaterThanOrEqualTo(0)
             .WithMessage("Lương tối thiểu phải >= 0.");

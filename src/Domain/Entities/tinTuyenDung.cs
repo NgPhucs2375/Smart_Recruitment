@@ -20,6 +20,7 @@ namespace Domain.Entities
         public string YeuCauCongViec { get; set; }
         public string QuyenLoi { get; set; }
         public string DiaDiemLamViec { get; set; }
+        public PhuongThucLamViec PhuongThucLamViec { get; set; } = PhuongThucLamViec.Onsite;
         public decimal LuongToiThieu { get; set; }
         public decimal LuongToiDa { get; set; }
         public TrangThaiTinTuyenDung TrangThai { get; set; }

@@ -13,5 +13,6 @@ namespace Application.Features.TinTuyenDung.Queries.GetAllTinTuyenDungs
         public string Level { get; set; }
         public string EmploymentType { get; set; }
         public string WorkMode { get; set; }
+        public int? DoanhNghiepId { get; set; }
     }
 }

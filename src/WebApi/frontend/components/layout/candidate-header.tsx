@@ -1,19 +1,23 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { ChevronDown, LogOut } from "lucide-react";
 import { BrandLogo } from "@/components/brand-logo";
 import { useLogout } from "@refinedev/core";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { ModeToggle } from "@/components/mode-toggle";
 import { NotificationBell } from "@/components/layout/notification-bell";
 import { useStoredIdentity } from "@/hooks/use-stored-identity";
 import { cn } from "@/lib/utils";
+import { hoSoApi } from "@/lib/api/cv-api";
 
 type CandidateMenu = {
   title: string;
   items: readonly [label: string, href: string][];
+  groups?: readonly { title: string; items: readonly [label: string, href: string][] }[];
 };
 
 const menus: CandidateMenu[] = [
@@ -25,16 +29,13 @@ const menus: CandidateMenu[] = [
       ["Việc làm đã ứng tuyển", "/viec-lam/da-ung-tuyen"],
       ["Việc làm phù hợp", "/viec-lam/phu-hop"],
     ],
-  },
-  {
-    // Candidate discovery: directory + followed list. "Top doanh nghiệp"
-    // has no backend ranking data, so it is not a standalone nav item
-    // (route file kept, see /doanh-nghiep/top).
-    title: "Doanh nghiệp",
-    items: [
-      ["Khám phá công ty", "/doanh-nghiep"],
-      ["Công ty đang theo dõi", "/doanh-nghiep/dang-theo-doi"],
-    ],
+    groups: [{
+      title: "Doanh nghiệp",
+      items: [
+        ["Khám phá công ty", "/doanh-nghiep"],
+        ["Công ty đang theo dõi", "/doanh-nghiep/dang-theo-doi"],
+      ],
+    }],
   },
   {
     // /tao-cv is the full builder (create + templates + AI agent + JSON
@@ -55,15 +56,28 @@ export function CandidateHeader() {
   const pathname = usePathname();
   const router = useRouter();
   const identity = useStoredIdentity();
+  const [avatarUrl, setAvatarUrl] = useState("");
   const { mutate: logout, isPending } = useLogout();
   const initials = identity?.name?.split(" ").map((part) => part[0]).join("").toUpperCase().slice(0, 2) ?? "U";
+
+  useEffect(() => {
+    let active = true;
+    void hoSoApi.getMyHoSo()
+      .then((profile) => {
+        if (active) setAvatarUrl(profile.anhDaiDienUrl || "");
+      })
+      .catch(() => {
+        if (active) setAvatarUrl("");
+      });
+    return () => { active = false; };
+  }, []);
 
   return (
     <header className="sticky top-0 z-40 border-b border-workspace-border/70 bg-workspace-topbar/90 backdrop-blur-xl">
       <div className="mx-auto flex h-16 max-w-[1600px] items-center gap-5 px-4 md:px-8">
         <BrandLogo href="/dashboard" variant="workspace" size="md" />
 
-        <nav className="hidden min-w-0 flex-1 items-center gap-1 lg:flex" aria-label="Điều hướng ứng viên">
+        <nav className="hidden min-w-0 flex-1 items-center justify-center gap-1 lg:flex" aria-label="Điều hướng ứng viên">
           <CandidateLink href="/dashboard" active={pathname === "/dashboard"}>Tổng quan</CandidateLink>
           {menus.map((menu) => (
             <DropdownMenu key={menu.title}>
@@ -79,17 +93,30 @@ export function CandidateHeader() {
                     {label}
                   </DropdownMenuItem>
                 ))}
+                {menu.groups?.map((group) => (
+                  <div key={group.title}>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuGroup>
+                      <DropdownMenuLabel>{group.title}</DropdownMenuLabel>
+                      {group.items.map(([label, href]) => (
+                        <DropdownMenuItem key={href} onClick={() => router.push(href)}>
+                          {label}
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuGroup>
+                  </div>
+                ))}
               </DropdownMenuContent>
             </DropdownMenu>
           ))}
         </nav>
 
-        <div className="ml-auto flex shrink-0 items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2">
           <NotificationBell />
           <ModeToggle />
           <DropdownMenu>
             <DropdownMenuTrigger className="flex size-9 items-center justify-center rounded-full bg-workspace-primary text-sm font-semibold text-workspace-on-primary ring-2 ring-workspace-secondary/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-workspace-primary" aria-label="Tài khoản">
-              {initials}
+              {avatarUrl ? <Image src={avatarUrl} alt="Ảnh đại diện" width={36} height={36} className="size-full rounded-full object-cover" /> : initials}
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
               <div className="px-3 py-2">
@@ -117,11 +144,24 @@ export function CandidateHeader() {
               {menu.title}<ChevronDown className="size-3.5" />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="w-56">
-              {menu.items.map(([label, href]) => (
-                <DropdownMenuItem key={href} onClick={() => { window.location.href = href; }}>
-                  {label}
-                </DropdownMenuItem>
-              ))}
+                {menu.items.map(([label, href]) => (
+                  <DropdownMenuItem key={href} onClick={() => { window.location.href = href; }}>
+                    {label}
+                  </DropdownMenuItem>
+                ))}
+                {menu.groups?.map((group) => (
+                  <div key={group.title}>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuGroup>
+                      <DropdownMenuLabel>{group.title}</DropdownMenuLabel>
+                      {group.items.map(([label, href]) => (
+                        <DropdownMenuItem key={href} onClick={() => { window.location.href = href; }}>
+                          {label}
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuGroup>
+                  </div>
+                ))}
             </DropdownMenuContent>
           </DropdownMenu>
         ))}
@@ -131,7 +171,8 @@ export function CandidateHeader() {
 }
 
 function isMenuActive(menu: CandidateMenu, pathname: string) {
-  return menu.items.some(([, href]) => pathname === href || pathname.startsWith(`${href}/`));
+  return [...menu.items, ...(menu.groups?.flatMap((group) => group.items) ?? [])]
+    .some(([, href]) => pathname === href || pathname.startsWith(`${href}/`));
 }
 
 function CandidateLink({ href, active, children }: { href: string; active: boolean; children: React.ReactNode }) {

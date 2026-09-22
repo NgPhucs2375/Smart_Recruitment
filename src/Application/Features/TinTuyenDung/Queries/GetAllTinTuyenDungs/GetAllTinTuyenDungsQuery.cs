@@ -24,6 +24,7 @@ namespace Application.Features.TinTuyenDung.Queries.GetAllTinTuyenDungs
         public string Level { get; set; }
         public string EmploymentType { get; set; }
         public string WorkMode { get; set; }
+        public int? DoanhNghiepId { get; set; }
     }
 
     public class GetAllTinTuyenDungsQueryHandler(
@@ -52,6 +53,11 @@ namespace Application.Features.TinTuyenDung.Queries.GetAllTinTuyenDungs
                 query = query.Where(t => t.TrangThai == TrangThaiTinTuyenDung.DangTuyen);
             }
 
+            if (request.DoanhNghiepId.HasValue)
+            {
+                query = query.Where(t => t.DoanhNghiepId == request.DoanhNghiepId.Value);
+            }
+
             var filter = request._filter?.Trim();
 
             if (!string.IsNullOrWhiteSpace(filter))
@@ -78,9 +84,6 @@ namespace Application.Features.TinTuyenDung.Queries.GetAllTinTuyenDungs
                 query = query.Where(t => t.LuongToiThieu <= request.SalaryMax.Value);
             }
 
-            // Level / EmploymentType / WorkMode lọc in-memory phía dưới
-            // vì DB chưa có cột riêng (giữ nguyên để bàn giao migration sau).
-
             query = request._sort?.ToLower() switch
             {
                 "tieude" => request._order?.ToLower() == "desc"
@@ -105,8 +108,7 @@ namespace Application.Features.TinTuyenDung.Queries.GetAllTinTuyenDungs
             if (pageNumber < 1) pageNumber = 1;
 
             // Lọc DB bằng cột thật: keyword / location / salary overlap.
-            // Level / EmploymentType / WorkMode chưa có cột riêng -> lọc in-memory
-            // trên giá trị suy luận tập trung ở BE (FE không còn suy luận).
+            // WorkMode lấy từ enum đã lưu; level và employment type vẫn suy luận từ nội dung.
             var rows = await query.Select(t => new GetAllTinTuyenDungsViewModel
                 {
                     Id = t.Id,
@@ -117,6 +119,7 @@ namespace Application.Features.TinTuyenDung.Queries.GetAllTinTuyenDungs
                     YeuCauCongViec = t.YeuCauCongViec,
                     QuyenLoi = t.QuyenLoi,
                     DiaDiemLamViec = t.DiaDiemLamViec,
+                    PhuongThucLamViec = t.PhuongThucLamViec.ToString(),
                     LuongToiThieu = t.LuongToiThieu,
                     LuongToiDa = t.LuongToiDa,
                     TrangThai = t.TrangThai.ToString(),
@@ -129,7 +132,7 @@ namespace Application.Features.TinTuyenDung.Queries.GetAllTinTuyenDungs
                         .ToList(),
                     SoLuongUngVien = t.DonUngTuyens.Count,
                     Created = t.Created,
-                    WorkMode = InferWorkMode(t.DiaDiemLamViec, t.MoTaCongViec),
+                    WorkMode = t.PhuongThucLamViec.ToString(),
                     Level = InferLevel(t.TieuDe, t.KinhNghiemYeuCau),
                     EmploymentType = InferEmploymentType(t.YeuCauCongViec, t.MoTaCongViec)
                 }).ToListAsync(cancellationToken);
@@ -157,16 +160,6 @@ namespace Application.Features.TinTuyenDung.Queries.GetAllTinTuyenDungs
                 pagedList.PageSize,
                 pagedList.TotalCount,
                 pagedList.TotalPages);
-        }
-
-        private static string InferWorkMode(string location, string description)
-        {
-            var value = $"{location} {description}".ToLower();
-            if (value.Contains("remote") || value.Contains("từ xa") || value.Contains("online"))
-                return "Remote";
-            if (value.Contains("hybrid") || value.Contains("kết hợp") || value.Contains("linh hoạt"))
-                return "Hybrid";
-            return "Onsite";
         }
 
         private static string InferLevel(string title, string experience)

@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useEffect, Suspense, useCallback, useMemo } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { Bookmark, Briefcase, ArrowRight, RefreshCw, ChevronDown } from "lucide-react";
+import { Bookmark, Briefcase, ArrowRight, RefreshCw } from "lucide-react";
 import { JobCard, JobCardSkeleton } from "./job-card";
 import { JobFiltersBar } from "./job-filters";
 import type { Job, JobFilters } from "../types";
@@ -11,6 +11,9 @@ import { useBookmarks } from "@/hooks/use-bookmarks";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { jobsApi } from "@/lib/api/jobs-api";
+import { Pagination } from "@/components/ui/pagination";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Badge } from "@/components/ui/badge";
 
 const PAGE_SIZE = 10;
 
@@ -86,6 +89,8 @@ function useJobs(filters: JobFilters, page: number) {
   );
 
   useEffect(() => {
+    // Data loading is intentionally triggered by the filter/page synchronization effect.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void load(page, page > 1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filtersKey, page]);
@@ -97,6 +102,7 @@ function useJobs(filters: JobFilters, page: number) {
 
 function ViecLamContent() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const { bookmarkedIds, count: savedCount } = useBookmarks();
   const [showSavedOnly, setShowSavedOnly] = useState(() => searchParams.get("saved") === "1");
   const [page, setPage] = useState(1);
@@ -109,6 +115,7 @@ function ViecLamContent() {
     salaryMax: numParam(searchParams.get("salaryMax")),
     workMode: searchParams.get("workMode") ?? undefined,
   }));
+  const [previewJob, setPreviewJob] = useState<Job | null>(null);
 
   const debouncedKeyword = useDebouncedValue(filters.keyword, 400);
   const serverFilters = useMemo(
@@ -116,7 +123,7 @@ function ViecLamContent() {
     [filters, debouncedKeyword]
   );
 
-  const { jobs, totalCount, totalPages, hasNext, loading, loadingMore, error, reload } = useJobs(
+  const { jobs, totalCount, totalPages, loading, loadingMore, error, reload } = useJobs(
     serverFilters,
     page
   );
@@ -198,7 +205,7 @@ function ViecLamContent() {
             </Button>
           </div>
         ) : visibleJobs.length > 0 ? (
-          visibleJobs.map((job) => <JobCard key={job.id} job={job} />)
+           visibleJobs.map((job) => <JobCard key={job.id} job={job} onPreview={setPreviewJob} />)
         ) : showSavedOnly ? (
           <div className="flex flex-col items-center justify-center rounded-[2rem] border border-border bg-card px-6 py-20 text-center">
             <div className="flex size-16 items-center justify-center rounded-full bg-sandsoft">
@@ -236,19 +243,15 @@ function ViecLamContent() {
           <p className="text-xs text-muted-foreground">
             Trang {page}/{totalPages} • Tổng {totalCount} tin
           </p>
-          {hasNext && (
-            <Button
-              variant="outline"
-              className="rounded-full px-6"
-              disabled={loadingMore}
-              onClick={() => setPage((p) => p + 1)}
-            >
-              {loadingMore ? "Đang tải..." : "Xem thêm việc làm"}
-              <ChevronDown className="ml-1.5 size-4" />
-            </Button>
-          )}
+          <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
         </div>
       )}
+
+      <Sheet open={Boolean(previewJob)} onOpenChange={(open) => !open && setPreviewJob(null)}>
+        <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-xl">
+          {previewJob && <><SheetHeader><div className="flex size-12 items-center justify-center rounded-2xl bg-muted font-mono font-bold text-primary">{previewJob.logo}</div><SheetTitle className="pt-2">{previewJob.title}</SheetTitle><SheetDescription>{previewJob.company} • {previewJob.location}</SheetDescription></SheetHeader><div className="space-y-5 px-4 pb-8"><div className="flex flex-wrap gap-2"><Badge>{previewJob.salary}</Badge><Badge variant="outline">{previewJob.level}</Badge><Badge variant="outline">{previewJob.employmentType}</Badge></div><div><h3 className="mb-2 font-semibold">Mô tả công việc</h3><p className="whitespace-pre-wrap text-sm leading-7 text-muted-foreground">{previewJob.description || "Nhà tuyển dụng chưa cập nhật mô tả."}</p></div><div><h3 className="mb-2 font-semibold">Kỹ năng</h3><div className="flex flex-wrap gap-2">{previewJob.skills.map((skill) => <Badge key={skill} variant="secondary">{skill}</Badge>)}</div></div><Button className="w-full rounded-xl" onClick={() => router.push(`/viec-lam/${previewJob.id}`)}>Xem chi tiết và ứng tuyển</Button></div></>}
+        </SheetContent>
+      </Sheet>
 
       {visibleJobs.length > 0 && (
         <p className="rounded-2xl border border-border bg-card px-4 py-3 text-center text-xs leading-5 text-muted-foreground">
@@ -288,6 +291,8 @@ function DaLuuContent() {
   }, []);
 
   useEffect(() => {
+    // Saved jobs are hydrated from the browser-backed API after mount.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void load();
   }, [load]);
 

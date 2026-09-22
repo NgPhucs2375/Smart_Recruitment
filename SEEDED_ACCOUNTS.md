@@ -54,6 +54,9 @@ Seed tạo **5 tài khoản nhân sự cho mỗi doanh nghiệp hiện có trong
 
 4 = SmartTest
 5 = saokhue
+6 = mekong
+7 = anphat
+
 tự mò số tự tăng
 
 Ví dụ với doanh nghiệp có `Id = 12`:

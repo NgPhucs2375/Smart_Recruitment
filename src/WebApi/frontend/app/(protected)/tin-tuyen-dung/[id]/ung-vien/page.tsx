@@ -308,7 +308,7 @@ export default function UngVienTheoTinPage() {
           {tieuDe || `Tin tuyển dụng #${tinId}`}
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Xem hồ sơ, đánh dấu đã xem, đánh giá phù hợp hoặc từ chối. Mỗi thao tác ghi nhận người xử lý và thông báo cho ứng viên.
+          Mở hồ sơ, đánh giá phù hợp hoặc từ chối. Khi mở lần đầu, hệ thống ghi nhận đã xem và thông báo cho ứng viên.
         </p>
       </div>
 

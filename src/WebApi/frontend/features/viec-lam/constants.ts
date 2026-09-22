@@ -6,7 +6,6 @@ export const locations = [
   "Cần Thơ",
   "Bình Dương",
   "Đồng Nai",
-  "Remote",
 ] as const;
 
 export const jobLevels = [
@@ -30,6 +29,7 @@ export const workModes = [
   "Remote",
   "Hybrid",
   "Onsite",
+  "Flexible",
 ] as const;
 
 export const salaryRanges = [

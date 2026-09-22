@@ -20,6 +20,7 @@ namespace Application.Features.TinTuyenDung.Commands.UpdateTinTuyenDung
         public string YeuCauCongViec { get; set; }
         public string QuyenLoi { get; set; }
         public string DiaDiemLamViec { get; set; }
+        public PhuongThucLamViec PhuongThucLamViec { get; set; }
         public decimal LuongToiThieu { get; set; }
         public decimal LuongToiDa { get; set; }
         public System.DateTime? NgayHetHan { get; set; }
@@ -82,6 +83,7 @@ namespace Application.Features.TinTuyenDung.Commands.UpdateTinTuyenDung
             entity.YeuCauCongViec = request.YeuCauCongViec?.Trim();
             entity.QuyenLoi = request.QuyenLoi?.Trim();
             entity.DiaDiemLamViec = request.DiaDiemLamViec?.Trim();
+            entity.PhuongThucLamViec = request.PhuongThucLamViec;
             entity.LuongToiThieu = request.LuongToiThieu;
             entity.LuongToiDa = request.LuongToiDa;
             entity.NgayHetHan = request.NgayHetHan;

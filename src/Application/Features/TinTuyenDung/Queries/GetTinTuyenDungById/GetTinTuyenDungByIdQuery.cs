@@ -65,6 +65,7 @@ namespace Application.Features.TinTuyenDung.Queries.GetTinTuyenDungById
                 YeuCauCongViec = entity.YeuCauCongViec,
                 QuyenLoi = entity.QuyenLoi,
                 DiaDiemLamViec = entity.DiaDiemLamViec,
+                PhuongThucLamViec = entity.PhuongThucLamViec.ToString(),
                 LuongToiThieu = entity.LuongToiThieu,
                 LuongToiDa = entity.LuongToiDa,
                 TrangThai = entity.TrangThai.ToString(),
@@ -77,22 +78,12 @@ namespace Application.Features.TinTuyenDung.Queries.GetTinTuyenDungById
                     .ToList(),
                 SoLuongUngVien = soLuongUngVien,
                 Created = entity.Created,
-                WorkMode = InferWorkMode(entity.DiaDiemLamViec, entity.MoTaCongViec),
+                WorkMode = entity.PhuongThucLamViec.ToString(),
                 Level = InferLevel(entity.TieuDe, entity.KinhNghiemYeuCau),
                 EmploymentType = InferEmploymentType(entity.YeuCauCongViec, entity.MoTaCongViec)
             };
 
             return new Response<GetAllTinTuyenDungs.GetAllTinTuyenDungsViewModel>(vm);
-        }
-
-        private static string InferWorkMode(string location, string description)
-        {
-            var value = $"{location} {description}".ToLower();
-            if (value.Contains("remote") || value.Contains("từ xa") || value.Contains("online"))
-                return "Remote";
-            if (value.Contains("hybrid") || value.Contains("kết hợp") || value.Contains("linh hoạt"))
-                return "Hybrid";
-            return "Onsite";
         }
 
         private static string InferLevel(string title, string experience)

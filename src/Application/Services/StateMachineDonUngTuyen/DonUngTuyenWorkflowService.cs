@@ -4,6 +4,7 @@ using Application.Interfaces;
 using Domain.Entities;
 using Domain.Enums;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -26,6 +27,7 @@ namespace Application.Services.StateMachineDonUngTuyen
         private readonly IEmailService _email;
         private readonly IUserEmailResolver _emailResolver;
         private readonly INotificationPushService _push;
+        private readonly ILogger<DonUngTuyenWorkflowService> _logger;
 
         // Transition do HR thực hiện — không cần báo lại cho chính HR.
         private static readonly TriggerDonUngTuyen[] TriggerCuaHr =
@@ -39,12 +41,14 @@ namespace Application.Services.StateMachineDonUngTuyen
             IApplicationDbContext context,
             IEmailService email,
             IUserEmailResolver emailResolver,
-            INotificationPushService push)
+            INotificationPushService push,
+            ILogger<DonUngTuyenWorkflowService> logger)
         {
             _context = context;
             _email = email;
             _emailResolver = emailResolver;
             _push = push;
+            _logger = logger;
         }
 
         /// <summary>
@@ -108,14 +112,23 @@ namespace Application.Services.StateMachineDonUngTuyen
                 if (!string.IsNullOrWhiteSpace(emailUv))
                 {
                     bool phuHop = trigger == TriggerDonUngTuyen.DanhGiaPhuHop;
-                    await _email.SendAsync(new EmailRequest
+                    try
                     {
-                        To = emailUv,
-                        Subject = phuHop ? "Hồ sơ của bạn đã được đánh giá phù hợp" : "Kết quả ứng tuyển",
-                        Body = phuHop
-                            ? $"Hồ sơ của bạn cho vị trí {TieuDeTin} đã được đánh giá phù hợp. Nhà tuyển dụng sẽ liên hệ với bạn."
-                            : $"Rất tiếc hồ sơ của bạn cho vị trí {TieuDeTin} chưa phù hợp đợt này."
-                    });
+                        await _email.SendAsync(new EmailRequest
+                        {
+                            To = emailUv,
+                            Subject = phuHop ? "Hồ sơ của bạn đã được đánh giá phù hợp" : "Kết quả ứng tuyển",
+                            Body = phuHop
+                                ? $"Hồ sơ của bạn cho vị trí {TieuDeTin} đã được đánh giá phù hợp. Nhà tuyển dụng sẽ liên hệ với bạn."
+                                : $"Rất tiếc hồ sơ của bạn cho vị trí {TieuDeTin} chưa phù hợp đợt này."
+                        });
+                    }
+                    catch (Exception ex)
+                    {
+                        // Email là side-effect; không được làm hỏng transition và
+                        // khiến trạng thái Phù hợp/Từ chối không được lưu.
+                        _logger.LogWarning(ex, "Không thể gửi email kết quả đơn ứng tuyển {DonUngTuyenId}.", entity.Id);
+                    }
                 }
             }
         }
@@ -141,17 +154,25 @@ namespace Application.Services.StateMachineDonUngTuyen
                 }
             });
 
-            await _push.PushToUserAsync(
-                nguoiDungId,
-                new ThongBaoDTO
-                {
-                    TieuDe = tieuDe,
-                    NoiDung = noiDung,
-                    LoaiThongBao = loai,
-                    ReferenceType = nameof(DonUngTuyen),
-                    ReferenceId = entity.Id
-                },
-                ct);
+            try
+            {
+                await _push.PushToUserAsync(
+                    nguoiDungId,
+                    new ThongBaoDTO
+                    {
+                        TieuDe = tieuDe,
+                        NoiDung = noiDung,
+                        LoaiThongBao = loai,
+                        ReferenceType = nameof(DonUngTuyen),
+                        ReferenceId = entity.Id
+                    },
+                    ct);
+            }
+            catch (Exception ex)
+            {
+                // Đã lưu notification trong DB; SignalR chỉ là realtime delivery.
+                _logger.LogWarning(ex, "Không thể push notification cho người dùng {NguoiDungId}.", nguoiDungId);
+            }
         }
 
         private static string TieuDeThongBaoUngVien(TriggerDonUngTuyen t) => t switch

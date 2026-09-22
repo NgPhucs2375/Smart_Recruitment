@@ -1,6 +1,6 @@
 "use client";
 
-import { MapPin, Clock, Users, Flame, Bookmark, Building2, Home, Laptop } from "lucide-react";
+import { MapPin, Clock, Users, Flame, Bookmark, Building2, Home, Laptop, SlidersHorizontal, Eye } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
@@ -8,9 +8,11 @@ import { useBookmarks } from "@/hooks/use-bookmarks";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import type { Job } from "../types";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface JobCardProps {
   job: Job;
+  onPreview?: (job: Job) => void;
 }
 
 /* Level pills — 3 calm groups instead of rainbow */
@@ -28,9 +30,10 @@ const workModeConfig: Record<string, { label: string; icon: typeof Building2 }> 
   Remote: { label: "Remote", icon: Home },
   Hybrid: { label: "Hybrid", icon: Laptop },
   Onsite: { label: "Onsite", icon: Building2 },
+  Flexible: { label: "Flexible", icon: SlidersHorizontal },
 };
 
-export function JobCard({ job }: JobCardProps) {
+export function JobCard({ job, onPreview }: JobCardProps) {
   const router = useRouter();
   const { isBookmarked, toggle } = useBookmarks();
   const bookmarked = isBookmarked(job.id);
@@ -82,20 +85,8 @@ export function JobCard({ job }: JobCardProps) {
                     Hot
                   </Badge>
                 )}
-                <button
-                  type="button"
-                  onClick={handleBookmark}
-                  aria-label={bookmarked ? "Bỏ lưu" : "Lưu việc làm"}
-                  aria-pressed={bookmarked}
-                  className={cn(
-                    "flex size-9 items-center justify-center rounded-full border transition",
-                    bookmarked
-                      ? "border-navy bg-navy text-white shadow-sm"
-                      : "border-border bg-card text-mist hover:border-marine/40 hover:text-primary hover:bg-muted"
-                  )}
-                >
-                  <Bookmark className={cn("h-4 w-4", bookmarked && "fill-current")} />
-                </button>
+                <TooltipProvider><Tooltip><TooltipTrigger render={<button type="button" onClick={handleBookmark} aria-label={bookmarked ? "Bỏ lưu" : "Lưu việc làm"} aria-pressed={bookmarked} className={cn("flex size-9 items-center justify-center rounded-full border transition", bookmarked ? "border-navy bg-navy text-white shadow-sm" : "border-border bg-card text-mist hover:border-marine/40 hover:text-primary hover:bg-muted")} />}><Bookmark className={cn("h-4 w-4", bookmarked && "fill-current")} /></TooltipTrigger><TooltipContent>{bookmarked ? "Bỏ lưu" : "Lưu việc làm"}</TooltipContent></Tooltip></TooltipProvider>
+                {onPreview && <TooltipProvider><Tooltip><TooltipTrigger render={<button type="button" onClick={(event) => { event.preventDefault(); event.stopPropagation(); onPreview(job); }} aria-label="Xem nhanh" className="flex size-9 items-center justify-center rounded-full border border-border bg-card text-muted-foreground transition hover:border-primary/40 hover:text-primary" />}><Eye className="size-4" /></TooltipTrigger><TooltipContent>Xem nhanh</TooltipContent></Tooltip></TooltipProvider>}
               </div>
             </div>
 

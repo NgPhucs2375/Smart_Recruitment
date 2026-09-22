@@ -19,6 +19,7 @@ type TinTuyenDung = {
   yeuCauCongViec: string;
   quyenLoi: string;
   diaDiemLamViec: string;
+  phuongThucLamViec: number;
   luongToiThieu: number;
   luongToiDa: number;
   trangThai: string;
@@ -74,6 +75,7 @@ const EMPTY_FORM = {
   yeuCauCongViec: "",
   quyenLoi: "",
   diaDiemLamViec: "",
+  phuongThucLamViec: 0,
   luongToiThieu: 0,
   luongToiDa: 0,
   ngayHetHan: "",
@@ -96,6 +98,15 @@ function fmtMoneyInput(n: number) {
 function parseMoney(s: string): number {
   const digits = s.replace(/[^\d]/g, "");
   return digits ? Number(digits) : 0;
+}
+
+function parseWorkMode(value: unknown): number {
+  const text = `${value ?? ""}`.trim().toLowerCase();
+  if (text === "remote") return 1;
+  if (text === "hybrid") return 2;
+  if (text === "flexible") return 3;
+  const numeric = Number(value);
+  return Number.isInteger(numeric) && numeric >= 0 && numeric <= 3 ? numeric : 0;
 }
 
 export default function TinTuyenDungPage() {
@@ -147,6 +158,7 @@ export default function TinTuyenDungPage() {
           yeuCauCongViec: `${r.yeuCauCongViec ?? r.YeuCauCongViec ?? ""}`,
           quyenLoi: `${r.quyenLoi ?? r.QuyenLoi ?? ""}`,
           diaDiemLamViec: `${r.diaDiemLamViec ?? r.DiaDiemLamViec ?? ""}`,
+          phuongThucLamViec: parseWorkMode(r.phuongThucLamViec ?? r.PhuongThucLamViec ?? r.workMode ?? r.WorkMode),
           luongToiThieu: Number(r.luongToiThieu ?? r.LuongToiThieu ?? 0),
           luongToiDa: Number(r.luongToiDa ?? r.LuongToiDa ?? 0),
           trangThai: `${r.trangThai ?? r.TrangThai ?? "Nhap"}`,
@@ -213,6 +225,7 @@ export default function TinTuyenDungPage() {
       yeuCauCongViec: item.yeuCauCongViec,
       quyenLoi: item.quyenLoi,
       diaDiemLamViec: item.diaDiemLamViec,
+      phuongThucLamViec: item.phuongThucLamViec,
       luongToiThieu: item.luongToiThieu,
       luongToiDa: item.luongToiDa,
       ngayHetHan: item.ngayHetHan ? item.ngayHetHan.slice(0, 10) : "",
@@ -249,6 +262,7 @@ export default function TinTuyenDungPage() {
             yeuCauCongViec: form.yeuCauCongViec.trim(),
             quyenLoi: form.quyenLoi.trim(),
             diaDiemLamViec: form.diaDiemLamViec.trim(),
+            phuongThucLamViec: Number(form.phuongThucLamViec),
             luongToiThieu: Number(form.luongToiThieu),
             luongToiDa: Number(form.luongToiDa),
             ngayHetHan: form.ngayHetHan ? form.ngayHetHan : null,
@@ -261,6 +275,7 @@ export default function TinTuyenDungPage() {
             yeuCauCongViec: form.yeuCauCongViec.trim(),
             quyenLoi: form.quyenLoi.trim(),
             diaDiemLamViec: form.diaDiemLamViec.trim(),
+            phuongThucLamViec: Number(form.phuongThucLamViec),
             luongToiThieu: Number(form.luongToiThieu),
             luongToiDa: Number(form.luongToiDa),
             ngayHetHan: form.ngayHetHan ? form.ngayHetHan : null,
@@ -348,7 +363,20 @@ export default function TinTuyenDungPage() {
             </div>
             <div className="space-y-2">
               <Label>Địa điểm *</Label>
-              <Input value={form.diaDiemLamViec} onChange={e => setForm(f => ({ ...f, diaDiemLamViec: e.target.value }))} required placeholder="VD: Hà Nội / Remote" />
+              <Input value={form.diaDiemLamViec} onChange={e => setForm(f => ({ ...f, diaDiemLamViec: e.target.value }))} required placeholder="VD: Hà Nội, TP. Hồ Chí Minh" />
+            </div>
+            <div className="space-y-2">
+              <Label>Phương thức làm việc *</Label>
+              <select
+                value={form.phuongThucLamViec}
+                onChange={e => setForm(f => ({ ...f, phuongThucLamViec: Number(e.target.value) }))}
+                className="flex h-10 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <option value={0}>Onsite</option>
+                <option value={1}>Remote</option>
+                <option value={2}>Hybrid</option>
+                <option value={3}>Flexible</option>
+              </select>
             </div>
             <div className="space-y-2">
               <Label>Ngày hết hạn</Label>

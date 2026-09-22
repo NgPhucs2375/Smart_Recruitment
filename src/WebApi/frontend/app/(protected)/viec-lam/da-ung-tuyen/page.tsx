@@ -175,7 +175,7 @@ export default function DaUngTuyenPage() {
 
   const [withdrawingId, setWithdrawingId] = useState<number | null>(null);
 
-  // Rút đơn (trigger RutDon=8): chỉ khi đơn còn ở Chờ xử lý / Đã xem / Phù hợp.
+  // Rút đơn (trigger RutDon=8): chỉ khi đơn còn ở trạng thái đang xử lý.
   async function handleRutDon(item: DonUngTuyen) {
     if (!window.confirm(`Rút đơn #${item.id}? Bạn sẽ không xét lại được đơn này.`)) return;
     try {
@@ -186,6 +186,10 @@ export default function DaUngTuyenPage() {
         body: JSON.stringify({ id: item.id, trigger: 8, ghiChu: "Ứng viên rút đơn" }),
       });
       if (!ok(res)) throw new Error(msg(res) || "Không thể rút đơn");
+      // Update immediately so the action is visible without waiting for the refetch.
+      setItems((current) => current.map((entry) =>
+        entry.id === item.id ? { ...entry, trangThai: 6, ghiChu: "Ứng viên rút đơn" } : entry,
+      ));
       await load();
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Không thể rút đơn");
@@ -194,7 +198,7 @@ export default function DaUngTuyenPage() {
     }
   }
 
-  const canRutDon = (s: number) => s === 2 || s === 3 || s === 4;
+  const canRutDon = (s: number) => s === 0 || s === 2 || s === 3 || s === 4;
 
   const statusOptions = useMemo(
     () => Object.entries(TRANG_THAI).map(([v, s]) => ({ value: v, label: s.label })),

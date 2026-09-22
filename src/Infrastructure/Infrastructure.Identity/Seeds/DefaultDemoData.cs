@@ -12,8 +12,8 @@ namespace Infrastructure.Identity.Seeds
 {
     /// <summary>
     /// Bơm dữ liệu demo tối thiểu cho tài khoản người đại diện được seed
-    /// (employer@gmail.com): danh mục nghề, doanh nghiệp, hồ sơ nhà tuyển dụng
-    /// và 2 tin đang tuyển — để các luồng tuyển dụng (mời nhân sự, đăng tin,
+    /// (employer@gmail.com): doanh nghiệp, hồ sơ nhà tuyển dụng
+    /// và các tin đang tuyển — để các luồng tuyển dụng (mời nhân sự, đăng tin,
     /// dashboard tổng quan) có dữ liệu hoạt động ngay lần chạy đầu.
     /// Idempotent — chỉ tạo khi chưa tồn tại trong DB.
     /// </summary>
@@ -21,36 +21,10 @@ namespace Infrastructure.Identity.Seeds
     {
         public static async Task SeedAsync(UserManager<ApplicationUser> userManager, IApplicationDbContext appContext)
         {
-            // 1. Danh mục nghề chuẩn — check theo TenNghe để không seed trùng
-            var danhMucs = new[]
-            {
-                ("Công nghệ thông tin", "Phát triển phần mềm, hạ tầng, dữ liệu và an ninh mạng."),
-                ("Kế toán / Kiểm toán", "Kế toán, kiểm toán, thuế và báo cáo tài chính."),
-                ("Marketing / Truyền thông", "Digital marketing, content, SEO và quảng cáo."),
-                ("Bán hàng / Kinh doanh", "Kinh doanh B2B/B2C và chăm sóc khách hàng."),
-                ("Nhân sự", "Tuyển dụng, đào tạo, C&B và vận hành nhân sự."),
-                ("Kỹ thuật / Sản xuất", "Cơ khí, tự động hóa và vận hành nhà máy."),
-                ("Thiết kế / Đồ họa", "UI/UX, thiết kế đồ họa và motion."),
-                ("Logistics / Chuỗi cung ứng", "Vận tải, kho bãi và supply chain."),
-                ("Tài chính / Ngân hàng", "Tài chính doanh nghiệp, ngân hàng và đầu tư."),
-                ("Y tế / Chăm sóc sức khỏe", "Bác sĩ, điều dưỡng và dược phẩm.")
-            };
-            var danhMucMap = new Dictionary<string, int>();
-            foreach (var (tenNghe, moTa) in danhMucs)
-            {
-                var existing = appContext.DanhMucNghes.FirstOrDefault(d => d.TenNghe == tenNghe);
-                if (existing == null)
-                {
-                    var entity = new DanhMucNghe { TenNghe = tenNghe, MoTa = moTa, IsActive = true };
-                    await appContext.DanhMucNghes.AddAsync(entity);
-                    await appContext.SaveChangesAsync();
-                    danhMucMap[tenNghe] = entity.Id;
-                }
-                else
-                {
-                    danhMucMap[tenNghe] = existing.Id;
-                }
-            }
+            // 1. Danh mục nghề do admin quản lý trong module Danh mục nghề.
+            // Seed demo chỉ đọc danh mục đã có để gắn vào các tin mẫu.
+            var danhMucMap = appContext.DanhMucNghes
+                .ToDictionary(d => d.TenNghe, d => d.Id);
 
             // 2. Doanh nghiệp + hồ sơ nhà tuyển dụng + tin đang tuyển
             //    cho tài khoản người đại diện được seed.
@@ -103,7 +77,7 @@ namespace Infrastructure.Identity.Seeds
                 new
                 {
                     TieuDe = "Senior .NET Developer",
-                    DanhMuc = "Công nghệ thông tin",
+                    DanhMuc = "Backend Development",
                     DiaDiem = "TP. Hồ Chí Minh",
                     LuongToiThieu = 25000000m,
                     LuongToiDa = 45000000m,
@@ -114,14 +88,14 @@ namespace Infrastructure.Identity.Seeds
                 },
                 new
                 {
-                    TieuDe = "Chuyên viên Marketing Digital",
-                    DanhMuc = "Marketing / Truyền thông",
+                    TieuDe = "Data Analyst",
+                    DanhMuc = "Data Science & Analytics",
                     DiaDiem = "TP. Hồ Chí Minh",
                     LuongToiThieu = 12000000m,
                     LuongToiDa = 20000000m,
-                    MoTa = "Xây dựng và vận hành các kênh marketing digital của nền tảng: content, SEO, quảng cáo và mạng xã hội.",
-                    KinhNghiem = "Tối thiểu 2 năm kinh nghiệm digital marketing; từng chạy chiến dịch quảng cáo thực tế.",
-                    YeuCau = "Hiểu SEO/SEM và các công cụ analytics; khả năng viết content tiếng Việt tốt.",
+                    MoTa = "Phân tích dữ liệu tuyển dụng và xây dựng báo cáo hỗ trợ các quyết định vận hành nền tảng.",
+                    KinhNghiem = "Tối thiểu 2 năm kinh nghiệm phân tích dữ liệu; thành thạo SQL và công cụ trực quan hóa.",
+                    YeuCau = "Tư duy phân tích tốt; biết làm việc với dữ liệu lớn và trình bày kết quả rõ ràng.",
                     QuyenLoi = "Review lương 6 tháng/lần, phụ cấp điện thoại, team building quý."
                 }
             };
@@ -131,10 +105,14 @@ namespace Infrastructure.Identity.Seeds
                 {
                     continue;
                 }
+                if (!danhMucMap.TryGetValue(t.DanhMuc, out var danhMucNgheId))
+                {
+                    continue;
+                }
                 await appContext.TinTuyenDungs.AddAsync(new TinTuyenDung
                 {
                     DoanhNghiepId = doanhNghiep.Id,
-                    DanhMucNgheId = danhMucMap[t.DanhMuc],
+                    DanhMucNgheId = danhMucNgheId,
                     NguoiDangTinId = employerNd.Id,
                     TieuDe = t.TieuDe,
                     MoTaCongViec = t.MoTa,

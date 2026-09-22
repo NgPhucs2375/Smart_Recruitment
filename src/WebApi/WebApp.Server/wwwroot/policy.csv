@@ -194,6 +194,8 @@ p, UNG_VIEN, danhgias, list
 p, UNG_VIEN, danhgias, show
 p, UNG_VIEN, danhmucnghes, list
 p, UNG_VIEN, danhmucnghes, show
+p, UNG_VIEN, doanhnghieps, list
+p, UNG_VIEN, doanhnghieps, show
 p, UNG_VIEN, donungtuyens, create
 p, UNG_VIEN, donungtuyens, edit
 p, UNG_VIEN, donungtuyens, list

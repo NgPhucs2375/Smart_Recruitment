@@ -36,7 +36,8 @@ namespace WebApp.Server.Controllers.v1
                     SalaryMax = filter.SalaryMax,
                     Level = filter.Level,
                     EmploymentType = filter.EmploymentType,
-                    WorkMode = filter.WorkMode
+                    WorkMode = filter.WorkMode,
+                    DoanhNghiepId = filter.DoanhNghiepId
                 }));
             });
         }

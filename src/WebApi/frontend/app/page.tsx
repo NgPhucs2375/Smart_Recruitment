@@ -93,7 +93,7 @@ const popularTechTags = [".NET Core", "React", "Python", "AWS", "Node.js", "Next
 // Landing search subsets — derived from the single shared dataset in
 // `@/features/viec-lam/constants` (no separate location/level dataset here).
 const landingLocations = locations.filter(
-  (l) => l === "Hà Nội" || l === "Hồ Chí Minh" || l === "Đà Nẵng" || l === "Remote"
+  (l) => l === "Hà Nội" || l === "Hồ Chí Minh" || l === "Đà Nẵng"
 );
 const landingLevels = jobLevels.filter((l) => l !== "Intern");
 
@@ -101,6 +101,7 @@ const workModeMeta: Record<string, { label: string; icon: typeof Building2 }> = 
   Remote: { label: "Remote", icon: Home },
   Hybrid: { label: "Hybrid", icon: Laptop },
   Onsite: { label: "Onsite", icon: Building2 },
+  Flexible: { label: "Flexible", icon: Laptop },
 };
 
 const landingFeaturedJobs = [

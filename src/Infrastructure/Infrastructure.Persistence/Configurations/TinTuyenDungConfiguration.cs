@@ -15,6 +15,10 @@ namespace Infrastructure.Persistence.Configurations
             builder.Property(x => x.MoTaCongViec).IsRequired();
             builder.Property(x => x.YeuCauCongViec).IsRequired();
             builder.Property(x => x.DiaDiemLamViec).IsRequired().HasMaxLength(255);
+            builder.Property(x => x.PhuongThucLamViec)
+                   .IsRequired()
+                   .HasConversion<string>()
+                   .HasMaxLength(30);
             builder.Property(x => x.TrangThai).IsRequired().HasConversion<string>().HasMaxLength(50);
 
             // Quan hệ với DoanhNghiep

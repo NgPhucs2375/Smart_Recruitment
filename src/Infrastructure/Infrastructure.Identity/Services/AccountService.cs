@@ -300,10 +300,16 @@ namespace Infrastructure.Identity.Services
             // 1. Gán vai trò Người đại diện trong Identity Context
             await _userManager.AddToRoleAsync(user, VaiTroNguoiDung.NGUOI_DAI_DIEN.ToString()).ConfigureAwait(false);
 
+            // Optional tax codes must be stored as NULL, not an empty string,
+            // otherwise the unique index rejects every later registration without an MST.
+            var maSoThue = string.IsNullOrWhiteSpace(request.MaSoThue)
+                ? null
+                : request.MaSoThue.Trim();
+
             // 1b. 1-1 nghiêm ngặt: chặn trùng MST ngay từ lúc đăng ký.
-            if (!string.IsNullOrWhiteSpace(request.MaSoThue) &&
-                await _appContext.DoanhNghieps.AnyAsync(d => d.MaSoThue == request.MaSoThue).ConfigureAwait(false))
-                throw new ApiException($"Mã số thuế '{request.MaSoThue}' đã được sử dụng.");
+            if (maSoThue != null &&
+                await _appContext.DoanhNghieps.AnyAsync(d => d.MaSoThue == maSoThue).ConfigureAwait(false))
+                throw new ApiException($"Mã số thuế '{maSoThue}' đã được sử dụng.");
 
             // 2. Khởi tạo thực thể Doanh nghiệp
             var dn = new DoanhNghiep
@@ -313,7 +319,7 @@ namespace Infrastructure.Identity.Services
                 MoTa = request.MoTaDoanhNghiep,
                 Website = request.Website,
                 LogoUrl = request.LogoUrl,
-                MaSoThue = request.MaSoThue,
+                MaSoThue = maSoThue,
                 LinhVucHoatDong = request.LinhVucHoatDong,
                 QuyMoNhanSu = request.QuyMoNhanSu
             };

@@ -139,6 +139,7 @@ namespace WebApp.Server.Controllers.v1
                 ".gif" => "image/gif",
                 _ => "image/jpeg"
             };
+            Response.Headers.CacheControl = "no-store, no-cache, must-revalidate";
             return File(stream, contentType);
         }
 

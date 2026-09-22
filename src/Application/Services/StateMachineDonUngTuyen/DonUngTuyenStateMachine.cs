@@ -178,10 +178,13 @@ namespace Application.Services.StateMachineDonUngTuyen
 
         private void ConfigureTransitions()
         {
-            // Tiếp nhận hệ thống: hồ sơ hợp lệ -> chờ xử lý | lỗi -> chờ nộp lại
+            // Tiếp nhận hệ thống: hồ sơ hợp lệ -> chờ xử lý | lỗi -> chờ nộp lại.
+            // Cho phép ứng viên rút ngay trong khoảng ngắn trước khi hệ thống
+            // chuyển đơn sang hàng đợi xử lý.
             _machine.Configure(TrangThaiDonUngTuyen.KhoiTao)
                 .Permit(TriggerDonUngTuyen.XuLyHoSoThanhCong, TrangThaiDonUngTuyen.ChoXuLy)
-                .Permit(TriggerDonUngTuyen.XuLyHoSoThatBai, TrangThaiDonUngTuyen.LoiXuLyHoSo);
+                .Permit(TriggerDonUngTuyen.XuLyHoSoThatBai, TrangThaiDonUngTuyen.LoiXuLyHoSo)
+                .Permit(TriggerDonUngTuyen.RutDon, TrangThaiDonUngTuyen.UngVienRutDon);
 
             // Lỗi hồ sơ: ứng viên nộp lại -> chờ xử lý
             _machine.Configure(TrangThaiDonUngTuyen.LoiXuLyHoSo)

@@ -82,6 +82,25 @@ namespace WebApp.Server.Controllers
             return Ok();
         }
 
+        [HttpPost("read/{notificationId:int}")]
+        public async Task<IActionResult> MarkRead(int notificationId)
+        {
+            var nd = await _context.NguoiDungs
+                .FirstOrDefaultAsync(n => n.ApplicationUserId == _auth.UserId);
+
+            if (nd == null) return Ok();
+
+            var recipient = await _context.NotificationRecipients
+                .FirstOrDefaultAsync(r => r.NguoiDungId == nd.Id
+                    && r.NotificationId == notificationId);
+
+            if (recipient == null) return NotFound();
+
+            recipient.IsRead = true;
+            await _context.SaveChangesAsync(CancellationToken.None);
+            return Ok();
+        }
+
         private static int MapLoaiThongBao(LoaiThongBao loai) => loai switch
         {
             LoaiThongBao.ViecLamMoi => 0,
