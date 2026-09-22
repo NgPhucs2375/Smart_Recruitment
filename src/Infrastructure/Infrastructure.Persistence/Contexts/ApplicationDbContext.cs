@@ -24,10 +24,10 @@ namespace Infrastructure.Persistence.Contexts
             _authenticatedUser = authenticatedUser;
         }
         public DbSet<NguoiDung> NguoiDungs { get; set; }
-        public DbSet<ThongBao> ThongBaos { get; set; }
+        public DbSet<Notification> Notifications { get; set; }
+        public DbSet<NotificationRecipient> NotificationRecipients { get; set; }
         public DbSet<TinTuyenDung> TinTuyenDungs { get; set; }
         public DbSet<KyNang> KyNangs { get; set; }
-        public DbSet<KyNangUngVien> KyNangUngViens { get; set; }
         public DbSet<KyNangTinTuyenDung> KyNangTinTuyenDungs { get; set; }
         public DbSet<KetQuaPhanTichCv> KetQuaPhanTichCvs { get; set; }
         public DbSet<KetQuaPhuHop> KetQuaPhuHops { get; set; }
@@ -37,9 +37,11 @@ namespace Infrastructure.Persistence.Contexts
         public DbSet<DonUngTuyen> DonUngTuyens { get; set; }
         public DbSet<DoanhNghiep> DoanhNghieps { get; set; }
         public DbSet<DanhMucNghe> DanhMucNghes { get; set; }
-        public DbSet<CVUngVien> CVUngViens { get; set; }
-        public DbSet<KinhNghiemLamViec> KinhNghiemLamViecs { get; set; }
-        public DbSet<DanhGia> DanhGias {get; set;}
+	        public DbSet<CVUngVien> CVUngViens { get; set; }
+	        public DbSet<CVImportSession> CVImportSessions { get; set; }
+	        public DbSet<CVTepTin> CVTepTins { get; set; }
+	        public DbSet<CVPhienBan> CVPhienBans { get; set; }
+	        public DbSet<DanhGia> DanhGias {get; set;}
 
         public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = new CancellationToken())
         {
@@ -48,17 +50,41 @@ namespace Infrastructure.Persistence.Contexts
                 switch (entry.State)
                 {
                     case EntityState.Added:
-                        entry.Entity.Created = _dateTime.NowUtc;
+                        entry.Entity.Created = NormalizeToUtc(_dateTime.NowUtc);
                         entry.Entity.CreatedBy = _authenticatedUser.UserId;
                         break;
                     case EntityState.Modified:
-                        entry.Entity.LastModified = _dateTime.NowUtc;
+                        entry.Entity.LastModified = NormalizeToUtc(_dateTime.NowUtc);
                         entry.Entity.LastModifiedBy = _authenticatedUser.UserId;
                         break;
                 }
             }
+            // Npgsql chỉ chấp nhận DateTime Kind=Utc cho cột timestamptz.
+            // JSON không kèm offset (vd: NgayHetHan) deserialize thành Kind=Unspecified -> crash khi save.
+            // Chuẩn hóa mọi DateTime về UTC trước khi ghi.
+            foreach (var entry in ChangeTracker.Entries())
+            {
+                if (entry.State != EntityState.Added && entry.State != EntityState.Modified)
+                    continue;
+                foreach (var property in entry.Properties)
+                {
+                    if (property.CurrentValue is DateTime value)
+                    {
+                        var normalized = NormalizeToUtc(value);
+                        property.Metadata.PropertyInfo?.SetValue(entry.Entity, normalized);
+                        property.CurrentValue = normalized;
+                    }
+                }
+            }
             return base.SaveChangesAsync(cancellationToken);
         }
+
+        private static DateTime NormalizeToUtc(DateTime value) => value.Kind switch
+        {
+            DateTimeKind.Utc => value,
+            DateTimeKind.Local => value.ToUniversalTime(),
+            _ => DateTime.SpecifyKind(value, DateTimeKind.Utc),
+        };
         protected override void OnModelCreating(ModelBuilder builder)
         {
             builder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());

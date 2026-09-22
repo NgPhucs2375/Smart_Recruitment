@@ -35,7 +35,10 @@ namespace Infrastructure.Persistence.Contexts
 
             // 2. Dựng options UseNpgsql bằng tay
             var options = new DbContextOptionsBuilder<ApplicationDbContext>()
-                .UseNpgsql(conn, b => b.MigrationsAssembly(typeof(ApplicationDbContext).Assembly.FullName))
+                .UseNpgsql(conn, b =>
+                {
+                    b.MigrationsAssembly(typeof(ApplicationDbContext).Assembly.FullName);
+                })
                 .Options;
 
             // 3. Trả về context (cần cấp 2 dependency phụ)

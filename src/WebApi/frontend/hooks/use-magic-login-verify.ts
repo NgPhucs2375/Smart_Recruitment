@@ -3,8 +3,13 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { magicLogin } from "@/lib/auth-provider";
+import { sanitizeNext, type PortalKind } from "@/lib/portal-roles";
 
-export function useMagicLoginVerify(token: string | null, email: string | null) {
+export function useMagicLoginVerify(
+  token: string | null,
+  email: string | null,
+  opts?: { portal?: PortalKind; next?: string | null }
+) {
   const router = useRouter();
   const [status, setStatus] = useState<"loading" | "success" | "error">(
     !token || !email ? "error" : "loading"
@@ -14,6 +19,7 @@ export function useMagicLoginVerify(token: string | null, email: string | null) 
       ? "Liên kết đăng nhập không hợp lệ hoặc thiếu thông tin."
       : "Đang xác thực thông tin đăng nhập..."
   );
+  const [wrongPortal, setWrongPortal] = useState<PortalKind | null>(null);
 
   useEffect(() => {
     if (!token || !email) return;
@@ -22,18 +28,40 @@ export function useMagicLoginVerify(token: string | null, email: string | null) 
 
     const processMagicLogin = async () => {
       try {
-        const res = await magicLogin({ email, token });
+        // Portal context preserved frontend-only (?next= allowlist + portal
+        // stored by the requesting page). No backend magic-link change.
+        const storedPortal =
+          typeof window !== "undefined"
+            ? (sessionStorage.getItem("hireai.magic.portal") as PortalKind | null)
+            : null;
+        const portal =
+          opts?.portal ??
+          (storedPortal === "candidate" || storedPortal === "employer" ? storedPortal : undefined);
+        const res = await magicLogin({ email, token, portal });
 
         if (!isMounted) return;
 
         if (res.success) {
           setStatus("success");
           setMessage("Đăng nhập thành công. Đang chuyển hướng vào hệ thống...");
+          const target =
+            sanitizeNext(opts?.next) ??
+            (typeof window !== "undefined"
+              ? sanitizeNext(sessionStorage.getItem("hireai.magic.next"))
+              : null) ??
+            "/dashboard";
+          try {
+            sessionStorage.removeItem("hireai.magic.portal");
+            sessionStorage.removeItem("hireai.magic.next");
+          } catch {
+            // ignore
+          }
           setTimeout(() => {
-            router.replace("/dashboard");
+            router.replace(target);
           }, 800);
         } else {
           setStatus("error");
+          if (res.wrongPortal) setWrongPortal(res.wrongPortal);
           setMessage(res.error || "Xác thực Magic Link thất bại.");
         }
       } catch {
@@ -48,7 +76,7 @@ export function useMagicLoginVerify(token: string | null, email: string | null) 
     return () => {
       isMounted = false;
     };
-  }, [token, email, router]);
+  }, [token, email, router, opts?.portal, opts?.next]);
 
-  return { status, message };
+  return { status, message, wrongPortal };
 }

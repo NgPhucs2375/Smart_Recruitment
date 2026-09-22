@@ -12,12 +12,17 @@ namespace Domain.Entities
     public class KetQuaPhanTichCv : AuditableBaseEntity
     {
         public int CVUngVienId { get; set; }
-        public string NoiDungTrichXuat { get; set; }
-        public string KyNangTrichXuat { get; set; }
-        public string KinhNghiemTrichXuat { get; set; }
-        public string HocVanTrichXuat { get; set; }
 
-        // ===   === //
+        public string? NoiDungTrichXuat { get; set; }
+
+        public string? KyNangTrichXuat { get; set; }
+
+        public string? KinhNghiemTrichXuat { get; set; }
+
+        public string? HocVanTrichXuat { get; set; }
+
+        public TrangThaiPhanTichAgent PhanTich { get; set; }
+
         public CVUngVien CVUngVien { get; set; }
     }
 }

@@ -1,35 +1,6 @@
-export const locations = [
-  "Hà Nội",
-  "Hồ Chí Minh",
-  "Đà Nẵng",
-  "Hải Phòng",
-  "Cần Thơ",
-  "Bình Dương",
-  "Đồng Nai",
-  "Remote",
-] as const;
-
-export const jobLevels = [
-  "Intern",
-  "Fresher",
-  "Junior",
-  "Mid",
-  "Senior",
-  "Lead",
-  "Manager",
-] as const;
-
-export const employmentTypes = [
-  "Full-time",
-  "Part-time",
-  "Contract",
-  "Freelance",
-] as const;
-
-export const salaryRanges = [
-  "Dưới 10 triệu",
-  "10 - 20 triệu",
-  "20 - 30 triệu",
-  "30 - 50 triệu",
-  "Trên 50 triệu",
-] as const;
+/**
+ * Single source of truth lives in `@/features/viec-lam/constants`.
+ * This module only re-exports it so the protected job pages share the same
+ * location/level dataset instead of maintaining a duplicate copy.
+ */
+export * from "@/features/viec-lam/constants";

@@ -36,6 +36,7 @@ namespace WebApp.Server.Controllers.v1
         }
 
         // GET: api/NhanSu/invite/token?token=...
+        [AllowAnonymous]
         [HttpGet("invite/token")]
         public async Task<IActionResult> GetByToken([FromQuery] string token)
         {
@@ -48,7 +49,10 @@ namespace WebApp.Server.Controllers.v1
         {
             return await EnforcePermissionAndExecute("loimoinhansus", "create", async () =>
             {
-                command.Origin = $"{Request.Scheme}://{Request.Host}";
+                var frontendOrigin = Request.Headers.Origin.ToString();
+                command.Origin = string.IsNullOrWhiteSpace(frontendOrigin)
+                    ? $"{Request.Scheme}://{Request.Host}"
+                    : frontendOrigin;
                 return Ok(await Mediator.Send(command));
             });
         }

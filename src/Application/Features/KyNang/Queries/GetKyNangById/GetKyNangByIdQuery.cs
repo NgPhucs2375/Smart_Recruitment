@@ -12,25 +12,29 @@ namespace Application.Features.KyNang.Queries.GetKyNangById
         public int Id { get; set; }
     }
 
-    public class GetKyNangByIdQueryHandler : IRequestHandler<GetKyNangByIdQuery, Response<GetAllKyNangs.GetAllKyNangsViewModel>>
+    public class GetKyNangByIdQueryHandler(
+        IApplicationDbContext context,
+        IMapper mapper)
+        : IRequestHandler<GetKyNangByIdQuery, Response<GetAllKyNangs.GetAllKyNangsViewModel>>
     {
-        private readonly IApplicationDbContext _context;
-        private readonly IMapper _mapper;
-
-        public GetKyNangByIdQueryHandler(IApplicationDbContext context, IMapper mapper)
+        public async Task<Response<GetAllKyNangs.GetAllKyNangsViewModel>> Handle(
+            GetKyNangByIdQuery request,
+            CancellationToken cancellationToken)
         {
-            _context = context;
-            _mapper = mapper;
-        }
+            var entity = await context.KyNangs
+                .FindAsync([request.Id], cancellationToken);
 
-        public async Task<Response<GetAllKyNangs.GetAllKyNangsViewModel>> Handle(GetKyNangByIdQuery request, CancellationToken cancellationToken)
-        {
-            var entity = await _context.KyNangs.FindAsync(request.Id);
             if (entity == null)
-                return new Response<GetAllKyNangs.GetAllKyNangsViewModel>("Khong tim thay ky nang.");
+            {
+                return new Response<GetAllKyNangs.GetAllKyNangsViewModel>(
+                    "Không tìm thấy kỹ năng.");
+            }
 
-            var result = _mapper.Map<GetAllKyNangs.GetAllKyNangsViewModel>(entity);
-            return new Response<GetAllKyNangs.GetAllKyNangsViewModel>(result);
+            var result = mapper.Map<GetAllKyNangs.GetAllKyNangsViewModel>(
+                entity);
+
+            return new Response<GetAllKyNangs.GetAllKyNangsViewModel>(
+                result);
         }
     }
 }

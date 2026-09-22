@@ -15,13 +15,11 @@ using Domain.Settings;
 using Infrastructure.Identity.Contexts;
 using Infrastructure.Identity.Models;
 using Infrastructure.Identity.Services;
-using Infrastructure.Shared.Environments;
 using System;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using DotNetEnv;
 using System.Security.Claims;
 
 
@@ -35,31 +33,56 @@ namespace Infrastructure.Identity
                 options.UseInMemoryDatabase("IdentityDb"));
         }
 
-        public static void AddNpgSqlIdentityInfrastructure(this IServiceCollection services)
+        public static void AddNpgSqlIdentityInfrastructure(this IServiceCollection services, IConfiguration configuration)
         {
-            var sp = services.BuildServiceProvider();
-            using (var scope = sp.CreateScope())
+            // Config first, raw env var as backward-compatible fallback.
+            // Fail fast here instead of silently skipping AddDbContext, which
+            // used to surface later as "Unable to resolve IdentityContext".
+            var appConnStr = configuration.GetConnectionString("PostgresConnection");
+            if (string.IsNullOrWhiteSpace(appConnStr))
             {
-                var _dbSetting = scope.ServiceProvider.GetRequiredService<IDatabaseSettingsProvider>();
-                string appConnStr = _dbSetting.GetPostgresConnectionString();
-                if (!string.IsNullOrWhiteSpace(appConnStr))
-                {
-                    services.AddDbContext<IdentityContext>(options =>
-                    options.UseNpgsql(
-                    appConnStr,
-                    b =>
-                    {
-                        b.MigrationsAssembly(typeof(IdentityContext).Assembly.FullName);
-                        b.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery);
-                    }));
-                }
+                appConnStr = Environment.GetEnvironmentVariable("POSTGRES_CONNECTION_STRING");
             }
-            sp.Dispose();
+            if (string.IsNullOrWhiteSpace(appConnStr))
+            {
+                throw new InvalidOperationException(
+                    "PostgreSQL connection string is missing. Set ConnectionStrings:PostgresConnection " +
+                    "(or the POSTGRES_CONNECTION_STRING environment variable) before starting the application.");
+            }
+            services.AddDbContext<IdentityContext>(options =>
+                options.UseNpgsql(
+                appConnStr,
+                b =>
+                {
+                    b.MigrationsAssembly(typeof(IdentityContext).Assembly.FullName);
+                    b.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery);
+                }));
         }
 
         public static void AddIdentityRepositories(this IServiceCollection services, IConfiguration configuration)
         {
-            Env.Load();
+            var jwtKey = configuration["JWTSettings:Key"];
+            if (string.IsNullOrWhiteSpace(jwtKey))
+                throw new InvalidOperationException("JWTSettings:Key is required and must be a Base64-encoded key of at least 32 bytes.");
+
+            byte[] jwtKeyBytes;
+            try
+            {
+                jwtKeyBytes = Convert.FromBase64String(jwtKey);
+            }
+            catch (FormatException exception)
+            {
+                throw new InvalidOperationException("JWTSettings:Key must be valid Base64.", exception);
+            }
+
+            if (jwtKeyBytes.Length < 32)
+                throw new InvalidOperationException("JWTSettings:Key must decode to at least 32 bytes.");
+
+            var jwtIssuer = configuration["JWTSettings:Issuer"];
+            var jwtAudience = configuration["JWTSettings:Audience"];
+            if (string.IsNullOrWhiteSpace(jwtIssuer) || string.IsNullOrWhiteSpace(jwtAudience))
+                throw new InvalidOperationException("JWTSettings:Issuer and JWTSettings:Audience are required.");
+
             services.AddIdentity<ApplicationUser, IdentityRole>().AddEntityFrameworkStores<IdentityContext>().AddDefaultTokenProviders();
             #region Services
             services.AddScoped<IAccountService, AccountService>();
@@ -83,16 +106,17 @@ namespace Infrastructure.Identity
                         ValidateAudience = true,
                         ValidateLifetime = true,
                         ClockSkew = TimeSpan.Zero,
-                        ValidIssuer = configuration["JWTSettings:Issuer"],
-                        ValidAudience = configuration["JWTSettings:Audience"],
-                        IssuerSigningKey = new SymmetricSecurityKey(Convert.FromBase64String(configuration["JWTSettings:Key"])),
+                        ValidIssuer = jwtIssuer,
+                        ValidAudience = jwtAudience,
+                        IssuerSigningKey = new SymmetricSecurityKey(jwtKeyBytes),
                         RoleClaimType = ClaimTypes.Role
                     };
-                    o.Events = new JwtBearerEvents()
+                    o.Events = new JwtBearerEvents
                     {
                         OnMessageReceived = context =>
                         {
                             var accessToken = context.Request.Query["access_token"];
+
                             if (!string.IsNullOrEmpty(accessToken) &&
                                 context.HttpContext.Request.Path.StartsWithSegments("/api/hubs"))
                             {
@@ -101,33 +125,62 @@ namespace Infrastructure.Identity
 
                             return Task.CompletedTask;
                         },
-                        OnAuthenticationFailed = c =>
-                        {
-                            c.NoResult();
-                            c.Response.StatusCode = 401;
-                            c.Response.ContentType = "application/json";
-                            var logger = c.HttpContext.RequestServices.GetRequiredService<Microsoft.Extensions.Logging.ILogger<JwtBearerEvents>>();
-                            logger.LogError(c.Exception, "Lỗi xác thực JWT Token: {Message}", c.Exception.Message);
 
-                            // 2. Trả về thông báo lỗi chung chung (Generic Message) cho Client
-                            var result = JsonConvert.SerializeObject(new Response<string>("Xác thực thất bại. Token không hợp lệ hoặc đã hết hạn."));
-                            return c.Response.WriteAsync(result);
-                        },
-                        OnChallenge = context =>
+                        OnAuthenticationFailed = context =>
                         {
+                            var logger = context.HttpContext.RequestServices
+                                .GetRequiredService<ILogger<JwtBearerEvents>>();
+
+                            logger.LogWarning(
+                                context.Exception,
+                                "Lỗi xác thực JWT Token: {Message}",
+                                context.Exception.Message);
+
+                            // KHÔNG WriteAsync ở đây.
+                            // Để OnChallenge trả response 401.
+                            return Task.CompletedTask;
+                        },
+
+                        OnChallenge = async context =>
+                        {
+                            // Tắt response mặc định của JwtBearer.
                             context.HandleResponse();
-                            context.Response.StatusCode = 401;
+
+                            if (context.Response.HasStarted)
+                            {
+                                return;
+                            }
+
+                            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
                             context.Response.ContentType = "application/json";
-                            var result = JsonConvert.SerializeObject(new Response<string>("You are not Authorized"));
-                            return context.Response.WriteAsync(result);
+
+                            var result = JsonConvert.SerializeObject(
+                                new Response<string>(
+                                    "Xác thực thất bại. Token không hợp lệ hoặc đã hết hạn."
+                                )
+                            );
+
+                            await context.Response.WriteAsync(result);
                         },
-                        OnForbidden = context =>
+
+                        OnForbidden = async context =>
                         {
-                            context.Response.StatusCode = 403;
+                            if (context.Response.HasStarted)
+                            {
+                                return;
+                            }
+
+                            context.Response.StatusCode = StatusCodes.Status403Forbidden;
                             context.Response.ContentType = "application/json";
-                            var result = JsonConvert.SerializeObject(new Response<string>("You are not authorized to access this resource"));
-                            return context.Response.WriteAsync(result);
-                        },
+
+                            var result = JsonConvert.SerializeObject(
+                                new Response<string>(
+                                    "Bạn không có quyền truy cập tài nguyên này."
+                                )
+                            );
+
+                            await context.Response.WriteAsync(result);
+                        }
                     };
                 });
         }

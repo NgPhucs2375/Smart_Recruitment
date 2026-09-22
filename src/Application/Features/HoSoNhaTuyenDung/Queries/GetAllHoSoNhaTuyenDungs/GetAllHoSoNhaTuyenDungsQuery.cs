@@ -19,24 +19,22 @@ namespace Application.Features.HoSoNhaTuyenDung.Queries.GetAllHoSoNhaTuyenDungs
         public string _filter { get; set; }
     }
 
-    public class GetAllHoSoNhaTuyenDungsQueryHandler : IRequestHandler<GetAllHoSoNhaTuyenDungsQuery, Response<List<GetAllHoSoNhaTuyenDungsViewModel>>>
+    public class GetAllHoSoNhaTuyenDungsQueryHandler(
+        IApplicationDbContext context,
+        IMapper mapper)
+        : IRequestHandler<GetAllHoSoNhaTuyenDungsQuery, Response<List<GetAllHoSoNhaTuyenDungsViewModel>>>
     {
-        private readonly IApplicationDbContext _context;
-        private readonly IMapper _mapper;
-
-        public GetAllHoSoNhaTuyenDungsQueryHandler(IApplicationDbContext context, IMapper mapper)
+        public async Task<Response<List<GetAllHoSoNhaTuyenDungsViewModel>>> Handle(
+            GetAllHoSoNhaTuyenDungsQuery request,
+            CancellationToken cancellationToken)
         {
-            _context = context;
-            _mapper = mapper;
-        }
+            var query = context.HoSoNhaTuyenDungs.AsNoTracking();
 
-        public async Task<Response<List<GetAllHoSoNhaTuyenDungsViewModel>>> Handle(GetAllHoSoNhaTuyenDungsQuery request, CancellationToken cancellationToken)
-        {
-            var query = _context.HoSoNhaTuyenDungs.AsQueryable();
+            var filter = request._filter?.Trim();
 
-            if (!string.IsNullOrWhiteSpace(request._filter))
+            if (!string.IsNullOrWhiteSpace(filter))
             {
-                query = query.Where(x => x.HoTen.Contains(request._filter));
+                query = query.Where(x => x.HoTen.Contains(filter));
             }
 
             query = request._sort?.ToLower() switch
@@ -47,13 +45,23 @@ namespace Application.Features.HoSoNhaTuyenDung.Queries.GetAllHoSoNhaTuyenDungs
                 _ => query.OrderBy(x => x.Id)
             };
 
-            var skip = request._start;
-            var take = request._end - request._start;
-            if (take > 0)
-                query = query.Skip(skip).Take(take);
+            var skip = request._start < 0 ? 0 : request._start;
+            var take = request._end - skip;
 
-            var items = await query.ToListAsync(cancellationToken);
-            var result = _mapper.Map<List<GetAllHoSoNhaTuyenDungsViewModel>>(items);
+            if (skip > 0)
+            {
+                query = query.Skip(skip);
+            }
+
+            if (take > 0)
+            {
+                query = query.Take(take);
+            }
+
+            var items = await query.ToListAsync(
+                cancellationToken);
+
+            var result = mapper.Map<List<GetAllHoSoNhaTuyenDungsViewModel>>(items);
 
             return new Response<List<GetAllHoSoNhaTuyenDungsViewModel>>(result);
         }

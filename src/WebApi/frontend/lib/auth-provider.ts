@@ -1,11 +1,56 @@
 import type { AuthProvider } from "@refinedev/core";
 import { saveIdentity, loadIdentity, clearIdentity, buildIdentity } from "./access-control-provider";
+import { isPortalAllowed, homePortalFor, sanitizeNext, WRONG_PORTAL_MESSAGE, type PortalKind } from "./portal-roles";
+
+const LOGIN_PORTAL_KEY = "hireai.login.portal";
+
+function rememberLoginPortal(portal: PortalKind | undefined): void {
+  if (typeof window === "undefined") return;
+  try {
+    if (portal === "candidate" || portal === "employer") {
+      sessionStorage.setItem(LOGIN_PORTAL_KEY, portal);
+    }
+  } catch {
+    // ignore storage errors
+  }
+}
+
+function consumeLoginPortal(): PortalKind | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const v = sessionStorage.getItem(LOGIN_PORTAL_KEY);
+    sessionStorage.removeItem(LOGIN_PORTAL_KEY);
+    return v === "candidate" || v === "employer" ? v : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Non-consuming peek at the stored login portal (for redirect fallbacks). */
+function peekLoginPortal(): PortalKind | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const v = sessionStorage.getItem(LOGIN_PORTAL_KEY);
+    return v === "candidate" || v === "employer" ? v : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Portal-aware login route: employer deep-links fall back to employer login. */
+export function loginRouteForPortal(): "/employer/login" | "/login" {
+  const stored = peekLoginPortal();
+  if (stored) return stored === "employer" ? "/employer/login" : "/login";
+  const home = homePortalFor(loadIdentity()?.roles ?? []);
+  return home === "employer" ? "/employer/login" : "/login";
+}
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const API_URL = "/api/dotnet/account";
 const TOKEN_KEY = "access_token";
 const REFRESH_KEY = "refresh_token";
+const AUTH_REQUEST_TIMEOUT_MS = 15_000;
 
 // ─── ASP.NET Core Identity API response types ─────────────────────────────────
 
@@ -36,12 +81,45 @@ function normalizeMeResponse(value: unknown): MeResponse | null {
     return null;
   }
 
-  return {
-    id,
-    email,
-    userName,
-    roles: roles.filter((role): role is string => typeof role === "string"),
-    permissions: permissions.flatMap((permission) => {
+  // Roles có thể lẫn blob JSON quyền (do JWT inbound mapping đẩy claim
+  // "roles" vào nhóm Role) — bóc tách: giữ tên role, trích permissions nhúng.
+  const cleanRoles: string[] = [];
+  const embeddedPermissions: { resource: string; action: string }[] = [];
+  for (const role of roles) {
+    if (typeof role !== "string") continue;
+    const trimmed = role.trim();
+    if (!trimmed.startsWith("{")) {
+      cleanRoles.push(role);
+      continue;
+    }
+    try {
+      const parsed = JSON.parse(trimmed) as {
+        role?: unknown;
+        permissions?: unknown;
+      };
+      if (typeof parsed.role === "string" && parsed.role) cleanRoles.push(parsed.role);
+      if (Array.isArray(parsed.permissions)) {
+        for (const p of parsed.permissions) {
+          if (!p || typeof p !== "object") continue;
+          const rec = p as Record<string, unknown>;
+          const resource = rec.resource ?? rec.Resource;
+          const acts = rec.action ?? rec.Action;
+          const list = Array.isArray(acts) ? acts : [acts];
+          for (const a of list) {
+            if (typeof resource === "string" && typeof a === "string") {
+              embeddedPermissions.push({ resource, action: a });
+            }
+          }
+        }
+      }
+    } catch {
+      // Bỏ qua blob lỗi — không chặn đăng nhập
+    }
+  }
+
+  const seen = new Set<string>();
+  const mergedPermissions = [
+    ...permissions.flatMap((permission) => {
       if (!permission || typeof permission !== "object") return [];
       const item = permission as Record<string, unknown>;
       const resource = item.resource ?? item.Resource;
@@ -50,6 +128,20 @@ function normalizeMeResponse(value: unknown): MeResponse | null {
         ? [{ resource, action }]
         : [];
     }),
+    ...embeddedPermissions,
+  ].filter((p) => {
+    const key = `${p.resource}::${p.action}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+
+  return {
+    id,
+    email,
+    userName,
+    roles: [...new Set(cleanRoles)],
+    permissions: mergedPermissions,
   };
 }
 
@@ -78,12 +170,18 @@ function clearAuth(): void {
   clearIdentity();
 }
 
+/** Clear the frontend session (tokens + cached identity). Reused by portal gates — no JWT logic. */
+export function clearFrontendSession(): void {
+  clearAuth();
+}
+
 // ─── Fetch /me định danh + quyền ─────────────────────────────
 
 async function fetchAndSaveMe(token: string): Promise<MeResponse | null> {
   try {
     const res = await fetch(`${API_URL}/me`, {
       headers: { Authorization: `Bearer ${token}` },
+      signal: AbortSignal.timeout(AUTH_REQUEST_TIMEOUT_MS),
     });
     if (!res.ok) return null;
     const body = (await res.json()) as Record<string, unknown>;
@@ -107,7 +205,7 @@ async function attemptRefresh(): Promise<boolean> {
     const res = await fetch(`${API_URL}/refresh-token`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ refreshToken: CurrentrefreshToken }),
+      body: JSON.stringify({ Token: CurrentrefreshToken }),
     });
     if (!res.ok) return false;
     const body = await res.json();
@@ -130,11 +228,39 @@ export function getAuthToken(): string | null {
   return getToken();
 }
 
+function parseJwtExp(token: string): number | null {
+  try {
+    const parts = token.split(".");
+    if (parts.length < 2 || !parts[1]) return null;
+    const json = atob(parts[1].replace(/-/g, "+").replace(/_/g, "/"));
+    const payload = JSON.parse(json) as { exp?: unknown };
+    return typeof payload.exp === "number" ? payload.exp * 1000 : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Trả về token còn hạn; tự refresh khi sắp hết hạn (<60s). Null nếu không có/không refresh được. */
+export async function getValidToken(): Promise<string | null> {
+  const token = getToken();
+  if (!token) return null;
+  const exp = parseJwtExp(token);
+  if (exp !== null && exp - Date.now() > 60_000) return token;
+  // Hết hạn hoặc không đọc được exp → thử refresh
+  const refreshed = await attemptRefresh();
+  return refreshed ? getToken() : null;
+}
+
 /** Re-fetch /me and refresh the cached identity + permissions in localStorage.
  *  Call after any server-side permission change (e.g. saving the permission matrix). */
 export async function refreshIdentity(): Promise<void> {
   const token = getToken();
   if (token) await fetchAndSaveMe(token);
+}
+
+/** Force a new JWT after a server-side role change. */
+export async function refreshSession(): Promise<boolean> {
+  return attemptRefresh();
 }
 
 // ─── AuthProvider ─────────────────────────────────────────────────────────────
@@ -145,26 +271,40 @@ export const authProvider: AuthProvider = {
   login: async (payload) => {
     clearAuth();
     try {
-      // Nhận diện luồng đăng nhập (Google hay Local)
-      const isExternal = payload.providerName === "google" || payload.provider === "Google";
+      const portal = (payload.portal ?? payload.expectedPortal) as PortalKind | undefined;
+      // Nhận diện luồng đăng nhập (Google hay Local) — hỗ trợ cả payload từ useGoogleAuth
+      const isExternal = payload.providerName === "google" || payload.provider === "Google" || !!payload.credential || !!payload.idToken;
       
       const endpoint = isExternal ? `${API_URL}/external-login` : `${API_URL}/authenticate`;
       
+      const rawToken: string | undefined = payload.idToken || payload.credential || payload.IdToken;
+      if (isExternal && (!rawToken || typeof rawToken !== "string" || rawToken.split(".").length !== 3)) {
+        console.warn("[auth] Google credential không hợp lệ, length=", rawToken?.length, "snippet=", rawToken?.slice(0,40));
+        return { success: false, error: { name: "Đăng nhập thất bại", message: "Token Google không hợp lệ (không phải JWT). Vui lòng thử lại." } };
+      }
+
       const requestBody = isExternal 
-        ? { Provider: "Google", IdToken: payload.idToken || payload.credential }
+        ? { Provider: "Google", IdToken: rawToken }
         : { Email: payload.email, Password: payload.password };
+
+      if (isExternal) console.log("[auth] external-login sending IdToken length", rawToken?.length);
 
       const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(requestBody),
+        signal: AbortSignal.timeout(AUTH_REQUEST_TIMEOUT_MS),
       });
 
       if (!res.ok) {
         let message = isExternal ? "Đăng nhập Google thất bại" : "Email hoặc mật khẩu không đúng";
         try {
           const body = await res.json();
-          message = body?.detail ?? body?.title ?? body?.Message ?? message;
+          // Backend trả Response{Message, Errors} hoặc ProblemDetails
+          const serverMsg = body?.Message ?? body?.message ?? body?.detail ?? body?.title;
+          const serverErrors = Array.isArray(body?.Errors) ? body.Errors.join("; ") : Array.isArray(body?.errors) ? body.errors.join("; ") : "";
+          if (serverMsg) message = serverErrors ? `${serverMsg}: ${serverErrors}` : serverMsg;
+          console.warn("[auth] login failed", endpoint, res.status, body);
         } catch { /* ignore */ }
         return { success: false, error: { name: "Đăng nhập thất bại", message } };
       }
@@ -175,12 +315,45 @@ export const authProvider: AuthProvider = {
       const jwToken = data?.JWToken ?? data?.jwToken;
       const refreshToken = data?.RefreshToken ?? data?.refreshToken;
       
-      if (jwToken) {
-        saveTokens(jwToken, refreshToken);
-        await fetchAndSaveMe(jwToken);
+      if (!jwToken) {
+        clearAuth();
+        return {
+          success: false,
+          error: { name: "Đăng nhập thất bại", message: "Máy chủ không trả về access token." },
+        };
+      }
+
+      saveTokens(jwToken, refreshToken);
+      const me = await fetchAndSaveMe(jwToken);
+      if (!me) {
+        clearAuth();
+        return {
+          success: false,
+          error: {
+            name: "Không tải được tài khoản",
+            message: "Đăng nhập thành công nhưng không tải được thông tin người dùng. Vui lòng thử lại.",
+          },
+        };
+      }
+
+      rememberLoginPortal(portal);
+      // Portal role gate: same auth API, then validate the resolved
+      // identity. Wrong portal → clear the newly created frontend
+      // session so the account cannot enter through this portal.
+      if (portal === "candidate" || portal === "employer") {
+        if (!isPortalAllowed(me.roles, portal)) {
+          clearAuth();
+          return {
+            success: false,
+            error: { name: "Sai cổng đăng nhập", message: WRONG_PORTAL_MESSAGE[portal] },
+          };
+        }
       }
       
-      return { success: true, redirectTo: "/dashboard" };
+      return {
+        success: true,
+        redirectTo: sanitizeNext(payload.redirectTo ?? payload.next) ?? "/dashboard",
+      };
     } catch (err) {
       return {
         success: false,
@@ -220,15 +393,23 @@ export const authProvider: AuthProvider = {
   },
 
   logout: async () => {
-    clearAuth()
-    return { success: true, redirectTo: "/login" };
+    // Determine the workspace BEFORE clearing identity: candidate goes back
+    // to /login, recruiter/HR to the employer login route. Admin follows the
+    // portal they logged in from (stored at login), else the safe default.
+    const roles = loadIdentity()?.roles ?? [];
+    const storedPortal = consumeLoginPortal();
+    const home = homePortalFor(roles);
+    const portal: PortalKind =
+      storedPortal ?? (home === "employer" ? "employer" : "candidate");
+    clearAuth();
+    return { success: true, redirectTo: portal === "employer" ? "/employer/login" : "/login" };
   },
 
   // Fast local check — no network call
   check: async () => {
     const token = getToken();
     if (!token) {
-      return { authenticated: false, logout: true, redirectTo: "/login" };
+      return { authenticated: false, logout: true, redirectTo: loginRouteForPortal() };
     }
     return { authenticated: true };
   },
@@ -244,7 +425,7 @@ export const authProvider: AuthProvider = {
       clearAuth();
       return {
         logout: true,
-        redirectTo: "/login",
+        redirectTo: loginRouteForPortal(),
         error: { name: "Unauthorized", message: "Phiên đăng nhập hết hạn" },
       };
     }
@@ -318,7 +499,8 @@ export async function requestMagicLink(payload: {
 export async function magicLogin(payload: {
   email: string;
   token: string;
-}): Promise<{ success: boolean; error?: string }> {
+  portal?: PortalKind;
+}): Promise<{ success: boolean; error?: string; wrongPortal?: PortalKind }> {
   try {
     const res = await fetch(`${API_URL}/magic-login`, {
       method: "POST",
@@ -346,6 +528,14 @@ export async function magicLogin(payload: {
     if (jwToken) {
       saveTokens(jwToken, refreshToken); // Lưu token vào localStorage[cite: 18]
       await fetchAndSaveMe(jwToken);     // Đồng bộ thông tin định danh và quyền[cite: 18]
+      if (payload.portal === "candidate" || payload.portal === "employer") {
+        const roles = loadIdentity()?.roles ?? [];
+        if (!isPortalAllowed(roles, payload.portal)) {
+          clearAuth();
+          return { success: false, error: WRONG_PORTAL_MESSAGE[payload.portal], wrongPortal: payload.portal };
+        }
+      }
+      rememberLoginPortal(payload.portal);
       return { success: true };
     }
     

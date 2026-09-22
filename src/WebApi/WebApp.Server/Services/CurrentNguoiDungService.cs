@@ -24,10 +24,18 @@ namespace WebApp.Server.Services
 
             var hs = await _context.HoSoNhaTuyenDungs.FirstOrDefaultAsync(h => h.NguoiDungId == nd.Id);
 
+            // Fallback 1-1: owner có thể chưa có HoSo (tạo DN trực tiếp) thì lấy từ DoanhNghiep.NguoiDaiDienId.
+            int? doanhNghiepId = hs?.DoanhNghiepId;
+            if (!doanhNghiepId.HasValue)
+            {
+                var owned = await _context.DoanhNghieps.FirstOrDefaultAsync(d => d.NguoiDaiDienId == nd.Id);
+                doanhNghiepId = owned?.Id;
+            }
+
             return new CurrentNguoiDungContext
             {
                 Id = nd.Id,
-                DoanhNghiepId = hs?.DoanhNghiepId,
+                DoanhNghiepId = doanhNghiepId,
                 VaiTro = nd.VaiTro
             };
         }

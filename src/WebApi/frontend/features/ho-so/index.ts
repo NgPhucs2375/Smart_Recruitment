@@ -1,0 +1,1 @@
+export { HoSoView } from "./ho-so-view";

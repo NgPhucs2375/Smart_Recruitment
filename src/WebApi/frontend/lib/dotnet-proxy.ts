@@ -1,7 +1,24 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 // Server-only env var — không có NEXT_PUBLIC_ prefix, không bao giờ lọt vào client bundle.
-const DOTNET_API_URL = process.env.DOTNET_API_URL ?? "https://localhost:5001";
+// BẮT BUỘC ở production: thiếu thì proxy trả 500 dotnet_api_not_configured,
+// không fallback localhost để tránh gọi nhầm backend sai.
+// LƯU Ý Render/standalone: phải đọc process.env tại thời điểm xử lý request
+// (không cache ở top-level module) để tránh bị cố định thành rỗng từ lúc build.
+function getDotnetApiUrl(): string {
+  return process.env.DOTNET_API_URL ?? "";
+}
+
+// Log chẩn đoán an toàn: chỉ ghi configured/len/isHttps, KHÔNG in URL,
+// token, mật khẩu hay bất kỳ env var nào khác.
+function logDotnetEnvDiag(label: string, reqId: string, raw: string): void {
+  const configured = raw.trim().length > 0;
+  const len = raw.length;
+  const isHttps = raw.trimStart().toLowerCase().startsWith("https://");
+  console.warn(
+    `[${label} ${reqId}] dotnet_env configured=${configured} len=${len} isHttps=${isHttps}`,
+  );
+}
 
 let reqCounter = 0;
 const nextReqId = () => `${Date.now().toString(36)}-${(++reqCounter).toString(36)}`;
@@ -18,11 +35,14 @@ export async function proxyDotnet(
   req: NextRequest,
   path: string,
   label: string,
-  opts: { method?: string; body?: unknown } = {},
+  opts: { method?: string; body?: unknown; rawBody?: ArrayBuffer } = {},
 ): Promise<NextResponse> {
   const reqId = nextReqId();
+  const rawEnv = getDotnetApiUrl();
+  const DOTNET_API_URL = rawEnv.trim();
 
   if (!DOTNET_API_URL) {
+    logDotnetEnvDiag(label, reqId, rawEnv);
     return NextResponse.json({ error: "dotnet_api_not_configured" }, { status: 500 });
   }
 
@@ -40,9 +60,13 @@ export async function proxyDotnet(
   const origin = req.headers.get("Origin");
   if (origin) headers["Origin"] = origin;
 
-  let bodyStr: string | undefined;
-  if (opts.body !== undefined && opts.body !== null) {
-    bodyStr = JSON.stringify(opts.body);
+  let requestBody: BodyInit | undefined;
+  if (opts.rawBody) {
+    requestBody = opts.rawBody;
+    const ct = req.headers.get("Content-Type");
+    if (ct) headers["Content-Type"] = ct;
+  } else if (opts.body !== undefined && opts.body !== null) {
+    requestBody = JSON.stringify(opts.body);
     headers["Content-Type"] = "application/json";
   } else {
     const ct = req.headers.get("Content-Type");
@@ -53,7 +77,7 @@ export async function proxyDotnet(
     const r = await fetch(url, {
       method,
       headers,
-      body: bodyStr,
+      body: requestBody,
       cache: "no-store",
     });
 
@@ -62,7 +86,7 @@ export async function proxyDotnet(
     if (!r.ok) {
       const errBody = await r.text().catch(() => "");
       console.warn(
-        `[${label} ${reqId}] ${method} non-OK status=${r.status} (${elapsed}ms) body=${errBody.slice(0, 200)}`,
+        `[${label} ${reqId}] ${method} non-OK status=${r.status} (${elapsed}ms) path=${path} body=${errBody.slice(0, 500)}`,
       );
       // Forward upstream error body + status code to client.
       return new NextResponse(errBody, {

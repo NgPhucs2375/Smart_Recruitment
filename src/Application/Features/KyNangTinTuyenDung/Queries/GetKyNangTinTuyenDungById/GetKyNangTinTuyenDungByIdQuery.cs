@@ -12,25 +12,29 @@ namespace Application.Features.KyNangTinTuyenDung.Queries.GetKyNangTinTuyenDungB
         public int Id { get; set; }
     }
 
-    public class GetKyNangTinTuyenDungByIdQueryHandler : IRequestHandler<GetKyNangTinTuyenDungByIdQuery, Response<GetAllKyNangTinTuyenDungs.GetAllKyNangTinTuyenDungsViewModel>>
+    public class GetKyNangTinTuyenDungByIdQueryHandler(
+        IApplicationDbContext context,
+        IMapper mapper)
+        : IRequestHandler<GetKyNangTinTuyenDungByIdQuery, Response<GetAllKyNangTinTuyenDungs.GetAllKyNangTinTuyenDungsViewModel>>
     {
-        private readonly IApplicationDbContext _context;
-        private readonly IMapper _mapper;
-
-        public GetKyNangTinTuyenDungByIdQueryHandler(IApplicationDbContext context, IMapper mapper)
+        public async Task<Response<GetAllKyNangTinTuyenDungs.GetAllKyNangTinTuyenDungsViewModel>> Handle(
+            GetKyNangTinTuyenDungByIdQuery request,
+            CancellationToken cancellationToken)
         {
-            _context = context;
-            _mapper = mapper;
-        }
+            var entity = await context.KyNangTinTuyenDungs
+                .FindAsync([request.Id], cancellationToken);
 
-        public async Task<Response<GetAllKyNangTinTuyenDungs.GetAllKyNangTinTuyenDungsViewModel>> Handle(GetKyNangTinTuyenDungByIdQuery request, CancellationToken cancellationToken)
-        {
-            var entity = await _context.KyNangTinTuyenDungs.FindAsync(request.Id);
             if (entity == null)
-                return new Response<GetAllKyNangTinTuyenDungs.GetAllKyNangTinTuyenDungsViewModel>("Khong tim thay ky nang tin tuyen dung.");
+            {
+                return new Response<GetAllKyNangTinTuyenDungs.GetAllKyNangTinTuyenDungsViewModel>(
+                    "Không tìm thấy kỹ năng tin tuyển dụng.");
+            }
 
-            var result = _mapper.Map<GetAllKyNangTinTuyenDungs.GetAllKyNangTinTuyenDungsViewModel>(entity);
-            return new Response<GetAllKyNangTinTuyenDungs.GetAllKyNangTinTuyenDungsViewModel>(result);
+            var result = mapper.Map<GetAllKyNangTinTuyenDungs.GetAllKyNangTinTuyenDungsViewModel>(
+                entity);
+
+            return new Response<GetAllKyNangTinTuyenDungs.GetAllKyNangTinTuyenDungsViewModel>(
+                result);
         }
     }
 }

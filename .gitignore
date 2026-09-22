@@ -62,7 +62,22 @@ pnpm-debug.log*
 *.opencode
 **/.opencode/
 
+..agents
+**/agents
+*.agents
+**/.agents/
+
+..mimocode
+**/.mimocode
+*.mimocode
+**/.mimocode/
 
 # Loại bỏ file rác tự sinh của Windows & macOS
 .DS_Store
 Thumbs.db
+.vercel
+
+Lab/
+.agents/
+sodo/
+archify-artifacts/

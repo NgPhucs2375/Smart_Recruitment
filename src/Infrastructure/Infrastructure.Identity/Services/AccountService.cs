@@ -23,6 +23,7 @@ using System.Threading.Tasks;
 using Domain.Enums;
 using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Google.Apis.Auth;
 
 namespace Infrastructure.Identity.Services
@@ -39,6 +40,7 @@ namespace Infrastructure.Identity.Services
         private readonly IApplicationDbContext _appContext;
         private readonly IAuthenticatedUserService _authenticatedUserService;
         private readonly IOptions<GoogleSettings> _googleSettings;
+        private readonly ILogger<AccountService> _logger;
         public AccountService(
             IdentityContext context,
             IApplicationDbContext appContext,
@@ -49,7 +51,8 @@ namespace Infrastructure.Identity.Services
             SignInManager<ApplicationUser> signInManager,
             IEmailService emailService,
             IAuthenticatedUserService authenticatedUserService,
-            IOptions<GoogleSettings> googleSettings)
+            IOptions<GoogleSettings> googleSettings,
+            ILogger<AccountService> logger)
         {
             _context = context;
             _appContext = appContext;
@@ -61,6 +64,7 @@ namespace Infrastructure.Identity.Services
             this._emailService = emailService;
             _authenticatedUserService = authenticatedUserService;
             _googleSettings = googleSettings;
+            _logger = logger;
         }
 
         internal sealed record RolePermission
@@ -85,6 +89,10 @@ namespace Infrastructure.Identity.Services
 
             // Kiểm tra Mật khẩu
             var result = await _signInManager.PasswordSignInAsync(user.UserName, request.Password, false, lockoutOnFailure: false);
+            if (result.IsLockedOut || await _userManager.IsLockedOutAsync(user))
+            {
+                throw new ApiException($"Tài khoản '{request.Email}' đã bị khóa. Vui lòng liên hệ quản trị viên.");
+            }
             if (!result.Succeeded)
             {
                 throw new ApiException($"Thông tin đăng nhập không hợp lệ cho '{request.Email}'.");
@@ -272,6 +280,11 @@ namespace Infrastructure.Identity.Services
             // 1. Gán vai trò Người đại diện trong Identity Context
             await _userManager.AddToRoleAsync(user, VaiTroNguoiDung.NGUOI_DAI_DIEN.ToString()).ConfigureAwait(false);
 
+            // 1b. 1-1 nghiêm ngặt: chặn trùng MST ngay từ lúc đăng ký.
+            if (!string.IsNullOrWhiteSpace(request.MaSoThue) &&
+                await _appContext.DoanhNghieps.AnyAsync(d => d.MaSoThue == request.MaSoThue).ConfigureAwait(false))
+                throw new ApiException($"Mã số thuế '{request.MaSoThue}' đã được sử dụng.");
+
             // 2. Khởi tạo thực thể Doanh nghiệp
             var dn = new DoanhNghiep
             {
@@ -292,6 +305,9 @@ namespace Infrastructure.Identity.Services
                 VaiTro = VaiTroNguoiDung.NGUOI_DAI_DIEN,
                 IsActive = true
             };
+
+            // 3b. Gắn owner 1-1: DN này thuộc về đúng NGUOI_DAI_DIEN vừa đăng ký.
+            dn.NguoiDaiDien = nd;
 
             // 4. Khởi tạo Hồ sơ Người đại diện và liên kết thông qua Navigation Properties
             var hs = new HoSoNhaTuyenDung
@@ -390,8 +406,15 @@ namespace Infrastructure.Identity.Services
             };
 
             await _appContext.HoSoNhaTuyenDungs.AddAsync(hs).ConfigureAwait(false);
-            if (!await _userManager.IsInRoleAsync(user, VaiTroNguoiDung.NHAN_SU.ToString()).ConfigureAwait(false))
-                await _userManager.AddToRoleAsync(user, VaiTroNguoiDung.NHAN_SU.ToString()).ConfigureAwait(false);
+            var nhanSuRole = VaiTroNguoiDung.NHAN_SU.ToString();
+            var currentRoles = await _userManager.GetRolesAsync(user).ConfigureAwait(false);
+            var obsoleteRoles = currentRoles
+                .Where(role => !string.Equals(role, nhanSuRole, StringComparison.OrdinalIgnoreCase))
+                .ToArray();
+            if (obsoleteRoles.Length > 0)
+                await _userManager.RemoveFromRolesAsync(user, obsoleteRoles).ConfigureAwait(false);
+            if (!currentRoles.Any(role => string.Equals(role, nhanSuRole, StringComparison.OrdinalIgnoreCase)))
+                await _userManager.AddToRoleAsync(user, nhanSuRole).ConfigureAwait(false);
 
             invitation.LoiMoi = TrangThaiLoiMoi.DaChapNhan;
             await _appContext.SaveChangesAsync().ConfigureAwait(false);
@@ -715,25 +738,66 @@ namespace Infrastructure.Identity.Services
 
         public async Task<Response<AuthenticationResponse>> ExternalLoginAsync(ExternalAuthRequest request, string ipAddress)
         {
+            if (string.IsNullOrWhiteSpace(request?.IdToken))
+                throw new ApiException("IdToken không được để trống.");
+
+            var configuredClientId = _googleSettings.Value?.ClientId;
+            if (string.IsNullOrWhiteSpace(configuredClientId))
+            {
+                _logger.LogError("GoogleSettings:ClientId chưa được cấu hình trên server.");
+                throw new ApiException("Cấu hình Google ClientId trên server bị thiếu.");
+            }
+
             // 1. Xác thực token từ nhà cung cấp bên ngoài (Google): trong thu vien Api.Auth.Google
             GoogleJsonWebSignature.Payload payload;
             try
             {
                 var validationSettings = new GoogleJsonWebSignature.ValidationSettings
                 {
-                    Audience = new[] { _googleSettings.Value.ClientId }
+                    Audience = new[] { configuredClientId },
+                    // Dev: nới rất rộng để vượt lệch đồng hồ BE (đã thử 5m/10m vẫn "not yet valid" do w32tm chưa sync) — prod nên để 5m
+                    IssuedAtClockTolerance = TimeSpan.FromHours(1),
+                    ExpirationTimeClockTolerance = TimeSpan.FromHours(1)
                 };
+                // Log thêm iat/exp của token để chẩn lệch giờ
+                string tokenIatInfo = "unknown";
+                try
+                {
+                    var parts = request.IdToken.Split('.');
+                    if (parts.Length == 3)
+                    {
+                        var payloadJson = System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(parts[1].Replace('-', '+').Replace('_', '/').PadRight(parts[1].Length + (4 - parts[1].Length % 4) % 4, '=')));
+                        using var doc = System.Text.Json.JsonDocument.Parse(payloadJson);
+                        if (doc.RootElement.TryGetProperty("iat", out var iatEl) && doc.RootElement.TryGetProperty("exp", out var expEl))
+                        {
+                            var iat = DateTimeOffset.FromUnixTimeSeconds(iatEl.GetInt64()).UtcDateTime;
+                            var exp = DateTimeOffset.FromUnixTimeSeconds(expEl.GetInt64()).UtcDateTime;
+                            tokenIatInfo = $"iat={iat:O} exp={exp:O} skew={(iat - DateTime.UtcNow).TotalSeconds:F0}s";
+                        }
+                    }
+                } catch { }
+                _logger.LogInformation("Validating Google IdToken length={Len} for ClientId={ClientId} serverUtc={Utc} token={TokenInfo}", request.IdToken.Length, configuredClientId, DateTime.UtcNow, tokenIatInfo);
                 payload = await GoogleJsonWebSignature.ValidateAsync(request.IdToken, validationSettings).ConfigureAwait(false);
             }
-            catch (Exception)
+            catch (InvalidJwtException jwtEx)
             {
-                throw new ApiException("Xác thực bên ngoài không thành công. Token không hợp lệ.");
+                // Log kèm serverUtc và hint sync clock
+                _logger.LogWarning(jwtEx, "Google JWT validation failed: {Message} aud expected={Aud} serverUtc={Utc} tokenSnippet={Snippet} -> Gợi ý: chạy w32tm /resync hoặc Settings > Time > Sync now", jwtEx.Message, configuredClientId, DateTime.UtcNow, request.IdToken.Substring(0, Math.Min(60, request.IdToken.Length)));
+                throw new ApiException($"Xác thực bên ngoài không thành công. Token không hợp lệ: {jwtEx.Message} (serverUtc={DateTime.UtcNow:O}, hãy đồng bộ đồng hồ BE: w32tm /resync)");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Google validation unexpected error: {Message} tokenSnippet={Snippet}", ex.Message, request.IdToken.Substring(0, Math.Min(60, request.IdToken.Length)));
+                throw new ApiException($"Xác thực bên ngoài không thành công. Token không hợp lệ: {ex.Message}");
             }
 
             if (payload == null)
             {
+                _logger.LogWarning("Google payload null after validation for tokenSnippet={Snippet}", request.IdToken.Substring(0, Math.Min(60, request.IdToken.Length)));
                 throw new ApiException("Dữ liệu xác thực bên ngoài bị trống.");
             }
+
+            _logger.LogInformation("Google payload OK email={Email} aud={Aud} iss={Iss}", payload.Email, payload.Audience, payload.Issuer);
 
             // 2. Kiểm tra xem người dùng đã tồn tại trong hệ thống chưa[cite: 3]
             var user = await _userManager.FindByEmailAsync(payload.Email).ConfigureAwait(false);

@@ -21,28 +21,26 @@ namespace Application.Features.KyNangTinTuyenDung.Queries.GetAllKyNangTinTuyenDu
         public string _filter { get; set; }
     }
 
-    public class GetAllKyNangTinTuyenDungsQueryHandler : IRequestHandler<GetAllKyNangTinTuyenDungsQuery, Response<List<GetAllKyNangTinTuyenDungsViewModel>>>
+    public class GetAllKyNangTinTuyenDungsQueryHandler(
+        IApplicationDbContext context,
+        IMapper mapper)
+        : IRequestHandler<GetAllKyNangTinTuyenDungsQuery, Response<List<GetAllKyNangTinTuyenDungsViewModel>>>
     {
-        private readonly IApplicationDbContext _context;
-        private readonly IMapper _mapper;
-
-        public GetAllKyNangTinTuyenDungsQueryHandler(IApplicationDbContext context, IMapper mapper)
+        public async Task<Response<List<GetAllKyNangTinTuyenDungsViewModel>>> Handle(
+            GetAllKyNangTinTuyenDungsQuery request,
+            CancellationToken cancellationToken)
         {
-            _context = context;
-            _mapper = mapper;
-        }
+            var query = context.KyNangTinTuyenDungs.AsNoTracking();
 
-        public async Task<Response<List<GetAllKyNangTinTuyenDungsViewModel>>> Handle(GetAllKyNangTinTuyenDungsQuery request, CancellationToken cancellationToken)
-        {
-            var query = _context.KyNangTinTuyenDungs.AsQueryable();
+            var filter = request._filter?.Trim();
 
-            if (!string.IsNullOrWhiteSpace(request._filter))
+            if (!string.IsNullOrWhiteSpace(filter))
             {
-                if (int.TryParse(request._filter, out var idFilter))
+                if (int.TryParse(filter, out var idFilter))
                 {
                     query = query.Where(x => x.TinTuyenDungId == idFilter || x.KyNangId == idFilter);
                 }
-                else if (Enum.TryParse<MucDoYC>(request._filter, true, out var mucDo))
+                else if (Enum.TryParse<MucDoYC>(filter, true, out var mucDo))
                 {
                     query = query.Where(x => x.MucDoYeuCau == mucDo);
                 }
@@ -56,13 +54,24 @@ namespace Application.Features.KyNangTinTuyenDung.Queries.GetAllKyNangTinTuyenDu
                 _ => query.OrderBy(x => x.Id)
             };
 
-            var skip = request._start;
-            var take = request._end - request._start;
-            if (take > 0)
-                query = query.Skip(skip).Take(take);
+            var skip = request._start < 0 ? 0 : request._start;
+            var take = request._end - skip;
 
-            var items = await query.ToListAsync(cancellationToken);
-            var result = _mapper.Map<List<GetAllKyNangTinTuyenDungsViewModel>>(items);
+            if (skip > 0)
+            {
+                query = query.Skip(skip);
+            }
+
+            if (take > 0)
+            {
+                query = query.Take(take);
+            }
+
+            var items = await query.ToListAsync(
+                cancellationToken);
+
+            var result = mapper.Map<List<GetAllKyNangTinTuyenDungsViewModel>>(items);
+
             return new Response<List<GetAllKyNangTinTuyenDungsViewModel>>(result);
         }
     }

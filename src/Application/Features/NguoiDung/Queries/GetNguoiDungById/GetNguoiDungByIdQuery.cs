@@ -12,25 +12,29 @@ namespace Application.Features.NguoiDung.Queries.GetNguoiDungById
         public int Id { get; set; }
     }
 
-    public class GetNguoiDungByIdQueryHandler : IRequestHandler<GetNguoiDungByIdQuery, Response<GetAllNguoiDungs.GetAllNguoiDungsViewModel>>
+    public class GetNguoiDungByIdQueryHandler(
+        IApplicationDbContext context,
+        IMapper mapper)
+        : IRequestHandler<GetNguoiDungByIdQuery, Response<GetAllNguoiDungs.GetAllNguoiDungsViewModel>>
     {
-        private readonly IApplicationDbContext _context;
-        private readonly IMapper _mapper;
-
-        public GetNguoiDungByIdQueryHandler(IApplicationDbContext context, IMapper mapper)
+        public async Task<Response<GetAllNguoiDungs.GetAllNguoiDungsViewModel>> Handle(
+            GetNguoiDungByIdQuery request,
+            CancellationToken cancellationToken)
         {
-            _context = context;
-            _mapper = mapper;
-        }
+            var entity = await context.NguoiDungs
+                .FindAsync([request.Id], cancellationToken);
 
-        public async Task<Response<GetAllNguoiDungs.GetAllNguoiDungsViewModel>> Handle(GetNguoiDungByIdQuery request, CancellationToken cancellationToken)
-        {
-            var entity = await _context.NguoiDungs.FindAsync(request.Id);
             if (entity == null)
-                return new Response<GetAllNguoiDungs.GetAllNguoiDungsViewModel>("Không tìm thấy người dùng.");
+            {
+                return new Response<GetAllNguoiDungs.GetAllNguoiDungsViewModel>(
+                    "Không tìm thấy người dùng.");
+            }
 
-            var result = _mapper.Map<GetAllNguoiDungs.GetAllNguoiDungsViewModel>(entity);
-            return new Response<GetAllNguoiDungs.GetAllNguoiDungsViewModel>(result);
+            var result = mapper.Map<GetAllNguoiDungs.GetAllNguoiDungsViewModel>(
+                entity);
+
+            return new Response<GetAllNguoiDungs.GetAllNguoiDungsViewModel>(
+                result);
         }
     }
 }

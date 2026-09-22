@@ -7,6 +7,7 @@ using Application.Interfaces;
 using Infrastructure.Identity.Features.Users.Queries.GetMeByToken;
 using Microsoft.AspNetCore.Hosting;
 using Casbin;
+using Domain.Enums;
 
 namespace WebApp.Server.Controllers
 {
@@ -109,6 +110,6 @@ namespace WebApp.Server.Controllers
             }
 
             return HttpContext.Connection.RemoteIpAddress?.MapToIPv4().ToString() ?? "127.0.0.1";
-        }   
+        }
     }
 }

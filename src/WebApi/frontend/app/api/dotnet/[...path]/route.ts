@@ -3,6 +3,9 @@ import { proxyDotnet } from "@/lib/dotnet-proxy";
 
 // Catch-all proxy: /api/dotnet/[...path] → DOTNET_API_URL/api/[...path]
 // Dùng cho mọi endpoint chưa có route riêng. Browser không bao giờ thấy .NET origin.
+// force-dynamic: luôn xử lý tại request-time để process.env runtime được đọc mới,
+// không bị cố định giá trị build-time trong image standalone.
+export const dynamic = "force-dynamic";
 export async function GET(
   req: NextRequest,
   ctx: { params: Promise<{ path: string[] }> },
@@ -18,6 +21,13 @@ export async function POST(
 ) {
   const { path } = await ctx.params;
   const search = new URL(req.url).search;
+  if (req.headers.get("content-type")?.includes("multipart/form-data")) {
+    const rawBody = await req.arrayBuffer();
+    return proxyDotnet(req, `/api/${path.join("/")}${search}`, `dotnet/${path.join("/")}`, {
+      method: "POST",
+      rawBody,
+    });
+  }
   const body = await req.json().catch(() => undefined);
   return proxyDotnet(req, `/api/${path.join("/")}${search}`, `dotnet/${path.join("/")}`, { method: "POST", body });
 }

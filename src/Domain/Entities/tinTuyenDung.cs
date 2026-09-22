@@ -24,7 +24,6 @@ namespace Domain.Entities
         public decimal LuongToiDa { get; set; }
         public TrangThaiTinTuyenDung TrangThai { get; set; }
         public DateTime? NgayHetHan { get; set; }
-
         // ===   === //
         public DoanhNghiep DoanhNghiep { get; set; }
         public DanhMucNghe DanhMucNghe { get; set; }

@@ -19,39 +19,49 @@ namespace Application.Features.HoSoUngVien.Queries.GetAllHoSoUngViens
         public string _filter { get; set; }
     }
 
-    public class GetAllHoSoUngViensQueryHandler : IRequestHandler<GetAllHoSoUngViensQuery, Response<List<GetAllHoSoUngViensViewModel>>>
+    public class GetAllHoSoUngViensQueryHandler(
+        IApplicationDbContext context,
+        IMapper mapper)
+        : IRequestHandler<GetAllHoSoUngViensQuery, Response<List<GetAllHoSoUngViensViewModel>>>
     {
-        private readonly IApplicationDbContext _context;
-        private readonly IMapper _mapper;
-
-        public GetAllHoSoUngViensQueryHandler(IApplicationDbContext context, IMapper mapper)
+        public async Task<Response<List<GetAllHoSoUngViensViewModel>>> Handle(
+            GetAllHoSoUngViensQuery request,
+            CancellationToken cancellationToken)
         {
-            _context = context;
-            _mapper = mapper;
-        }
+            var query = context.HoSoUngViens.AsNoTracking();
 
-        public async Task<Response<List<GetAllHoSoUngViensViewModel>>> Handle(GetAllHoSoUngViensQuery request, CancellationToken cancellationToken)
-        {
-            var query = _context.HoSoUngViens.AsQueryable();
+            var filter = request._filter?.Trim();
 
-            if (!string.IsNullOrWhiteSpace(request._filter))
+            if (!string.IsNullOrWhiteSpace(filter))
             {
-                query = query.Where(x => x.HoTen.Contains(request._filter));
+                query = query.Where(x => x.HoTen.Contains(filter));
             }
 
             query = request._sort?.ToLower() switch
             {
-                "hoten" => request._order?.ToLower() == "desc" ? query.OrderByDescending(x => x.HoTen) : query.OrderBy(x => x.HoTen),
+                "hoten" => request._order?.ToLower() == "desc"
+                    ? query.OrderByDescending(x => x.HoTen)
+                    : query.OrderBy(x => x.HoTen),
                 _ => query.OrderBy(x => x.Id)
             };
 
-            var skip = request._start;
-            var take = request._end - request._start;
-            if (take > 0)
-                query = query.Skip(skip).Take(take);
+            var skip = request._start < 0 ? 0 : request._start;
+            var take = request._end - skip;
 
-            var items = await query.ToListAsync(cancellationToken);
-            var result = _mapper.Map<List<GetAllHoSoUngViensViewModel>>(items);
+            if (skip > 0)
+            {
+                query = query.Skip(skip);
+            }
+
+            if (take > 0)
+            {
+                query = query.Take(take);
+            }
+
+            var items = await query.ToListAsync(
+                cancellationToken);
+
+            var result = mapper.Map<List<GetAllHoSoUngViensViewModel>>(items);
 
             return new Response<List<GetAllHoSoUngViensViewModel>>(result);
         }

@@ -17,14 +17,14 @@ function ConfirmEmailContent() {
   const { status, message } = useConfirmEmail(userId, code);
 
   return (
-    <Card className="w-full max-w-md rounded-2xl border-[#d8d5ce] bg-white/90 p-2 shadow-xl backdrop-blur-md">
+    <Card className="w-full max-w-md rounded-2xl border-border bg-white/90 p-2 shadow-xl backdrop-blur-md">
       <CardContent className="p-8 text-center space-y-4">
-        <h1 className="text-2xl font-bold text-[#151515] mb-2">Xác thực Email</h1>
+        <h1 className="text-2xl font-bold text-foreground mb-2">Xác thực Email</h1>
 
         {status === "loading" && (
           <div className="space-y-4 py-4">
-            <Loader2 className="size-8 text-[#151515] animate-spin mx-auto" />
-            <p className="text-sm text-[#69727a]">{message}</p>
+            <Loader2 className="size-8 text-foreground animate-spin mx-auto" />
+            <p className="text-sm text-muted-foreground">{message}</p>
           </div>
         )}
 
@@ -43,7 +43,7 @@ function ConfirmEmailContent() {
         {(status === "success" || status === "error") && (
           <div className="w-full mt-6">
             <Link href="/login" className="block w-full">
-              <Button className="w-full h-11 rounded-xl bg-[#151515] text-white hover:bg-black">
+              <Button className="w-full h-11 rounded-xl bg-primary text-primary-foreground hover:bg-primary-hover">
                 Quay lại trang Đăng nhập
               </Button>
             </Link>
@@ -56,8 +56,8 @@ function ConfirmEmailContent() {
 
 export default function ConfirmEmailPage() {
   return (
-    <div className="min-h-screen bg-[#f4f2ed] flex items-center justify-center p-4">
-      <Suspense fallback={<div className="text-[#69727a] text-sm">Đang tải...</div>}>
+    <div className="min-h-dvh bg-background flex items-center justify-center p-4">
+      <Suspense fallback={<div className="text-muted-foreground text-sm">Đang tải...</div>}>
         <ConfirmEmailContent />
       </Suspense>
     </div>

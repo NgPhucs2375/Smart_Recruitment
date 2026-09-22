@@ -1,0 +1,1 @@
+// connect AiDraftCV <-> Copilot State

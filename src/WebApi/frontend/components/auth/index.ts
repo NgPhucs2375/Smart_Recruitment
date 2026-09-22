@@ -4,3 +4,6 @@ export * from "./tab-switcher";
 export * from "./magic-link-sent";
 export * from "./magic-link-form";
 export * from "./google-auth-section";
+export * from "./github-login-button";
+export * from "./wrong-portal-alert";
+export * from "./social-auth-section";

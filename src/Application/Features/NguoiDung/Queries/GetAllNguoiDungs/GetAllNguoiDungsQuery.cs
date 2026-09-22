@@ -19,24 +19,22 @@ namespace Application.Features.NguoiDung.Queries.GetAllNguoiDungs
         public string _filter { get; set; }
     }
 
-    public class GetAllNguoiDungsQueryHandler : IRequestHandler<GetAllNguoiDungsQuery, Response<List<GetAllNguoiDungsViewModel>>>
+    public class GetAllNguoiDungsQueryHandler(
+        IApplicationDbContext context,
+        IMapper mapper)
+        : IRequestHandler<GetAllNguoiDungsQuery, Response<List<GetAllNguoiDungsViewModel>>>
     {
-        private readonly IApplicationDbContext _context;
-        private readonly IMapper _mapper;
-
-        public GetAllNguoiDungsQueryHandler(IApplicationDbContext context, IMapper mapper)
+        public async Task<Response<List<GetAllNguoiDungsViewModel>>> Handle(
+            GetAllNguoiDungsQuery request,
+            CancellationToken cancellationToken)
         {
-            _context = context;
-            _mapper = mapper;
-        }
+            var query = context.NguoiDungs.AsNoTracking();
 
-        public async Task<Response<List<GetAllNguoiDungsViewModel>>> Handle(GetAllNguoiDungsQuery request, CancellationToken cancellationToken)
-        {
-            var query = _context.NguoiDungs.AsQueryable();
+            var filter = request._filter?.Trim();
 
-            if (!string.IsNullOrWhiteSpace(request._filter))
+            if (!string.IsNullOrWhiteSpace(filter))
             {
-                query = query.Where(x => x.ApplicationUserId.Contains(request._filter));
+                query = query.Where(x => x.ApplicationUserId.Contains(filter));
             }
 
             query = request._sort?.ToLower() switch
@@ -47,13 +45,23 @@ namespace Application.Features.NguoiDung.Queries.GetAllNguoiDungs
                 _ => query.OrderBy(x => x.Id)
             };
 
-            var skip = request._start;
-            var take = request._end - request._start;
-            if (take > 0)
-                query = query.Skip(skip).Take(take);
+            var skip = request._start < 0 ? 0 : request._start;
+            var take = request._end - skip;
 
-            var items = await query.ToListAsync(cancellationToken);
-            var result = _mapper.Map<List<GetAllNguoiDungsViewModel>>(items);
+            if (skip > 0)
+            {
+                query = query.Skip(skip);
+            }
+
+            if (take > 0)
+            {
+                query = query.Take(take);
+            }
+
+            var items = await query.ToListAsync(
+                cancellationToken);
+
+            var result = mapper.Map<List<GetAllNguoiDungsViewModel>>(items);
 
             return new Response<List<GetAllNguoiDungsViewModel>>(result);
         }

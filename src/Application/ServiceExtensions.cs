@@ -5,7 +5,11 @@ using Microsoft.Extensions.DependencyInjection;
 using Application.Behaviours;
 using Application.Interfaces;
 using Application.Services.StateMachineDonUngTuyen;
+using Application.Services.StateMachineLoiMoi;
+using Application.Services.StateMachineTinTuyenDung;
 using System.Reflection;
+using Application.Interfaces.Repositories;
+using Application.Mappings;
 
 namespace Application
 {
@@ -21,6 +25,15 @@ namespace Application
             #region State Machine DonUngTuyen
             services.AddScoped<IDonUngTuyenWorkflowService, DonUngTuyenWorkflowService>();
             #endregion
+
+            #region State Machine TinTuyenDung
+            services.AddScoped<ITinTuyenDungWorkflowService, TinTuyenDungWorkflowService>();
+            #endregion
+
+            #region State Machine LoiMoiNhanSu
+            services.AddScoped<ILoiMoiNhanSuWorkflowService, LoiMoiNhanSuWorkflowService>();
+            #endregion
+            services.AddScoped<ICvReadMapper, CvReadMapper>();
         }
     }
 }

@@ -1,0 +1,18 @@
+ .dockerignore                                      |   4 [32m+[m[31m-[m
+ .env.production.example                            |  63 [32m++++++++++[m
+ docs/render-deployment.md                          | 136 [32m+++++++++++++++++++++[m
+ src/Domain/Settings/SeedSettings.cs                |  22 [32m++++[m
+ .../Seeds/DefaultBasicUser.cs                      |  77 [32m++++++++[m[31m----[m
+ .../Seeds/DefaultSuperAdmin.cs                     |  94 [32m+++++++[m[31m-------[m
+ .../Infrastructure.Shared/ServiceRegistration.cs   |  97 [32m++++++++++[m[31m-----[m
+ src/WebApi/WebApp.Server/Agent/AgentExtensions.cs  |   6 [32m+[m[31m-[m
+ src/WebApi/WebApp.Server/Dockerfile                |   6 [32m+[m[31m-[m
+ .../Health/DatabaseReadinessHealthCheck.cs         |  39 [32m++++++[m
+ .../Initializer/ApplicationInitializer.cs          |  56 [32m+++++[m[31m----[m
+ src/WebApi/WebApp.Server/Program.cs                |  90 [32m+++++++++++++[m[31m-[m
+ src/WebApi/frontend/Dockerfile                     |  29 [32m+++++[m
+ .../frontend/app/api/copilotkit/[...path]/route.ts |   3 [32m+[m[31m-[m
+ .../frontend/app/api/hubs/[...path]/route.ts       |   6 [32m+[m[31m-[m
+ src/WebApi/frontend/lib/dotnet-proxy.ts            |   4 [32m+[m[31m-[m
+ src/WebApi/frontend/next.config.ts                 |   3 [32m+[m
+ 17 files changed, 605 insertions(+), 130 deletions(-)

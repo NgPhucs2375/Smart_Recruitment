@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 
-const TOKEN_KEY = "access_token";
+import { getValidToken } from "@/lib/auth-provider";
 
 interface NotificationDto {
   id: number;
@@ -87,60 +87,76 @@ function NotificationBellInner({
   // SignalR: connect once on mount, push triggers a refetch (no polling needed)
   useEffect(() => {
     // `active` guard prevents React StrictMode's fake-unmount from leaking a polling
-    // interval: cleanup sets active=false before .catch() resolves, so the catch
-    // returns early and never starts the interval.
+    // interval: cleanup sets active=false before async work resolves.
     let active = true;
     let pollingId: ReturnType<typeof setInterval> | undefined;
+    let connection: signalR.HubConnection | undefined;
 
-    const connection = new signalR.HubConnectionBuilder()
-      .withUrl("/api/hubs/notifications", {
-        accessTokenFactory: () => localStorage.getItem(TOKEN_KEY) ?? "",
-        // SSE preferred; LongPolling as automatic fallback if SSE fails through proxy
-        transport: signalR.HttpTransportType.ServerSentEvents | signalR.HttpTransportType.LongPolling,
-      })
-      .withAutomaticReconnect()
-      .configureLogging({
-        log(level, message) {
-          // React StrictMode (dev) double-invokes useEffect: cleanup calls stop() while
-          // negotiate is in flight, producing this message. Filter it — it's expected noise,
-          // not a real error. All other SignalR errors are forwarded to the console.
-          if (/stopped during negotiation/i.test(message)) return;
-          // Suppress transient "Failed to fetch" during server restart — reconnect handles it
-          if (/failed to fetch/i.test(message) && level >= signalR.LogLevel.Error) {
-            console.warn(`[SignalR] ${message}`);
-            return;
-          }
-          // Suppress 404 when SignalR hub not deployed — fallback to polling handles it
-          if (/not found|404/i.test(message) && level >= signalR.LogLevel.Error) {
-            return;
-          }
-          // Server closed connection due to missing NguoiDung or restart — now handled with fallback group, downgrade to warn
-          if (/Connection (closed|disconnected) with an error/i.test(message)) {
-            console.warn(`[SignalR] ${message} — falling back to polling`);
-            return;
-          }
-          if (level >= signalR.LogLevel.Error) console.error(`[SignalR] ${message}`);
-          else if (level >= signalR.LogLevel.Warning) console.warn(`[SignalR] ${message}`);
-        },
-      })
-      .build();
-
-    connection.on("ReceiveNotification", () => {
-      void refetchRef.current?.();
-    });
-
-    connection.start().catch((err: unknown) => {
-      if (!active) return; // StrictMode fake-unmount stopped the connection — ignore silently
-      console.warn("[NotificationBell] SignalR failed, falling back to 30s polling:", err);
+    const startPollingFallback = () => {
+      if (!active || pollingId !== undefined) return;
       pollingId = setInterval(() => {
         if (refetchRef.current) void refetchRef.current();
       }, 30_000);
+    };
+
+    const buildConnection = () =>
+      new signalR.HubConnectionBuilder()
+        .withUrl("/api/hubs/notifications", {
+          // Factory async: mỗi lần reconnect đều lấy token mới nhất.
+          accessTokenFactory: () => getValidToken().then((t) => t ?? ""),
+          // SSE preferred; LongPolling as automatic fallback if SSE fails through proxy
+          transport: signalR.HttpTransportType.ServerSentEvents | signalR.HttpTransportType.LongPolling,
+        })
+        .withAutomaticReconnect()
+        .configureLogging({
+          log(level, message) {
+            // React StrictMode (dev) double-invokes useEffect: cleanup calls stop() while
+            // negotiate is in flight, producing this message. Filter it — it's expected noise,
+            // not a real error. All other SignalR errors are forwarded to the console.
+            if (/stopped during negotiation/i.test(message)) return;
+            // Suppress transient "Failed to fetch" during server restart — reconnect handles it
+            if (/failed to fetch/i.test(message) && level >= signalR.LogLevel.Error) {
+              console.warn(`[SignalR] ${message}`);
+              return;
+            }
+            // Suppress 404 when SignalR hub not deployed — fallback to polling handles it
+            if (/not found|404/i.test(message) && level >= signalR.LogLevel.Error) {
+              return;
+            }
+            // Server closed connection due to missing NguoiDung or restart — downgrade to warn
+            if (/Connection (closed|disconnected) with an error/i.test(message)) {
+              console.warn(`[SignalR] ${message} — falling back to polling`);
+              return;
+            }
+            if (level >= signalR.LogLevel.Error) console.error(`[SignalR] ${message}`);
+            else if (level >= signalR.LogLevel.Warning) console.warn(`[SignalR] ${message}`);
+          },
+        })
+        .build();
+
+    // Lấy token tươi trước khi nối — tránh negotiate 401 vì token hết hạn.
+    // Không có token hợp lệ thì bỏ qua SignalR (polling fallback vẫn chạy).
+    void getValidToken().then((freshToken) => {
+      if (!active) return;
+      if (!freshToken) {
+        startPollingFallback();
+        return;
+      }
+      connection = buildConnection();
+      connection.on("ReceiveNotification", () => {
+        void refetchRef.current?.();
+      });
+      connection.start().catch((err: unknown) => {
+        if (!active) return; // StrictMode fake-unmount — ignore silently
+        console.warn("[NotificationBell] SignalR failed, falling back to 30s polling:", err);
+        startPollingFallback();
+      });
     });
 
     return () => {
       active = false;
       if (pollingId !== undefined) clearInterval(pollingId);
-      void connection.stop();
+      if (connection) void connection.stop();
     };
   }, []); // mount once
 

@@ -43,10 +43,28 @@ namespace Infrastructure.Identity.Seeds
             foreach (var kv in groups)
             {
                 var role = await rm.FindByNameAsync(kv.Key.role);
+                if (role == null) continue; // policy.csv còn role lạ (VD: NHA_TUYEN_DUNG cũ) — bỏ qua, tránh ArgumentNullException ở GetClaimsAsync
                 var existing = (await rm.GetClaimsAsync(role)).FirstOrDefault(c => c.Type == kv.Key.resource);
                 var wanted = string.Join("#", kv.Value);
                 if (existing == null) await rm.AddClaimAsync(role, new Claim(kv.Key.resource, wanted));
                 else if (existing.Value != wanted) { await rm.RemoveClaimAsync(role, existing); await rm.AddClaimAsync(role, new Claim(kv.Key.resource, wanted)); }
+            }
+
+            // Prune: xóa claim của resource không còn trong policy.csv
+            // (VD: resource đổi tên như tinvuyendungs -> tintuyendungs),
+            // để JWT và policy.csv tái tạo không còn rác cũ.
+            var wantedResources = new HashSet<string>(groups.Keys.Select(k => k.resource));
+            foreach (var r in roles)
+            {
+                var role = await rm.FindByNameAsync(r.ToString());
+                if (role == null) continue;
+                var stale = (await rm.GetClaimsAsync(role))
+                    .Where(c => !wantedResources.Contains(c.Type))
+                    .ToList();
+                foreach (var claim in stale)
+                {
+                    await rm.RemoveClaimAsync(role, claim);
+                }
             }
         }
     }

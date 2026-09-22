@@ -1,17 +1,23 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { ShieldCheck, Save, RotateCcw, Search, CheckSquare, Square } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getAuthToken, refreshIdentity } from "@/lib/auth-provider";
 import { loadIdentity } from "@/lib/access-control-provider";
 import { hasPermission } from "@/lib/permissions";
 import { toast } from "sonner";
-import { ShieldCheck, Save, RotateCcw } from "lucide-react";
+import {
+  AdminPageLayout,
+  AdminPageHeader,
+  AdminCard,
+  AdminErrorState,
+  AdminInfoBanner,
+} from "@/components/admin/admin-page-layout";
 
 type Matrix = Record<string, Record<string, string[]>>;
 interface MatrixResponse {
@@ -20,12 +26,11 @@ interface MatrixResponse {
   matrix: Matrix;
 }
 
-const ALL_ACTIONS = ["list", "show", "create", "edit", "delete", "assign", "remove"] as const;
+const ALL_ACTIONS = ["list", "show", "create", "edit", "delete"] as const;
 
 function extractData(body: unknown): MatrixResponse | null {
   if (!body || typeof body !== "object") return null;
   const b = body as Record<string, unknown>;
-  // Response<T> wrapper: { Succeeded, Data: { roles, resources, matrix } }
   const data = (b["Data"] as unknown) ?? (b["data"] as unknown) ?? body;
   if (!data || typeof data !== "object") return null;
   const d = data as Record<string, unknown>;
@@ -36,6 +41,25 @@ function extractData(body: unknown): MatrixResponse | null {
   return { roles, resources, matrix };
 }
 
+function countChanges(original: Matrix, draft: Matrix): number {
+  let count = 0;
+  const allRoleResources = new Set<string>();
+  for (const role of Object.keys(original)) {
+    for (const res of Object.keys(original[role] ?? {})) allRoleResources.add(`${role}::${res}`);
+  }
+  for (const role of Object.keys(draft)) {
+    for (const res of Object.keys(draft[role] ?? {})) allRoleResources.add(`${role}::${res}`);
+  }
+  for (const key of allRoleResources) {
+    const [role, res] = key.split("::");
+    const origActions = new Set(original[role]?.[res] ?? []);
+    const draftActions = new Set(draft[role]?.[res] ?? []);
+    if (origActions.size !== draftActions.size) { count++; continue; }
+    for (const a of origActions) { if (!draftActions.has(a)) { count++; break; } }
+  }
+  return count;
+}
+
 export default function PermissionMatrixPage() {
   const [data, setData] = useState<MatrixResponse | null>(null);
   const [draft, setDraft] = useState<Matrix>({});
@@ -43,6 +67,7 @@ export default function PermissionMatrixPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [identity, setIdentity] = useState(() => loadIdentity());
+  const [search, setSearch] = useState("");
 
   const canEdit = useMemo(() => {
     const isAdministrator = identity?.roles?.some(
@@ -73,7 +98,6 @@ export default function PermissionMatrixPage() {
       const parsed = extractData(body);
       if (!parsed) throw new Error("Dữ liệu matrix không hợp lệ");
       setData(parsed);
-      // deep clone
       setDraft(JSON.parse(JSON.stringify(parsed.matrix)));
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -88,12 +112,20 @@ export default function PermissionMatrixPage() {
 
   const resourcesSorted = useMemo(() => {
     if (!data) return [];
-    return [...data.resources].sort((a, b) => a.localeCompare(b));
-  }, [data]);
+    const sorted = [...data.resources].sort((a, b) => a.localeCompare(b));
+    if (!search.trim()) return sorted;
+    const q = search.trim().toLowerCase();
+    return sorted.filter((r) => r.toLowerCase().includes(q));
+  }, [data, search]);
 
   const isDirty = useMemo(() => {
     if (!data) return false;
     return JSON.stringify(data.matrix) !== JSON.stringify(draft);
+  }, [data, draft]);
+
+  const changeCount = useMemo(() => {
+    if (!data) return 0;
+    return countChanges(data.matrix, draft);
   }, [data, draft]);
 
   const toggleAction = (role: string, resource: string, action: string, checked: boolean) => {
@@ -106,6 +138,20 @@ export default function PermissionMatrixPage() {
       const arr = Array.from(cur);
       if (arr.length === 0) delete roleMap[resource];
       else roleMap[resource] = arr.sort();
+      next[role] = roleMap;
+      return next;
+    });
+  };
+
+  const toggleAllForRole = (role: string, resource: string, actions: string[], checked: boolean) => {
+    setDraft((prev) => {
+      const next: Matrix = { ...prev };
+      const roleMap = { ...(next[role] ?? {}) };
+      if (checked) {
+        roleMap[resource] = [...actions].sort();
+      } else {
+        delete roleMap[resource];
+      }
       next[role] = roleMap;
       return next;
     });
@@ -127,10 +173,8 @@ export default function PermissionMatrixPage() {
         try { const j = JSON.parse(text); msg = j?.Message ?? j?.message ?? msg; } catch { if (text) msg = text; }
         throw new Error(msg);
       }
-      // refresh permissions cached in localStorage so sidebar updates immediately
       await refreshIdentity();
       toast.success("Đã lưu ma trận quyền (policy.csv cache đã đồng bộ)");
-      // refetch to get server-canonical
       await fetchMatrix();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : String(e));
@@ -141,106 +185,182 @@ export default function PermissionMatrixPage() {
 
   if (loading) {
     return (
-      <div className="p-6 space-y-4">
-        <Skeleton className="h-8 w-64" />
-        <Skeleton className="h-[400px] w-full" />
-      </div>
+      <AdminPageLayout>
+        <div className="space-y-4">
+          <Skeleton className="h-8 w-64" />
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-[400px] w-full" />
+        </div>
+      </AdminPageLayout>
     );
   }
 
   if (error) {
     return (
-      <div className="p-6">
-        <Card className="border-destructive">
-          <CardHeader><CardTitle className="text-destructive">Lỗi tải ma trận</CardTitle><CardDescription>{error}</CardDescription></CardHeader>
-          <CardContent><Button variant="outline" onClick={fetchMatrix}><RotateCcw className="mr-2 size-4" /> Thử lại</Button></CardContent>
-        </Card>
-      </div>
+      <AdminPageLayout>
+        <AdminPageHeader
+          icon={ShieldCheck}
+          title="Phân quyền"
+          description="Quản lý ma trận quyền Role × Resource."
+        />
+        <AdminErrorState message={error} onRetry={fetchMatrix} />
+      </AdminPageLayout>
     );
   }
 
   if (!data) return null;
 
-  // Compute union actions per resource for column compactness: show only actions that exist for that resource in any role, plus common actions
   const getActionsForResource = (resource: string): string[] => {
     const set = new Set<string>();
     for (const role of data.roles) {
       const acts = draft[role.name]?.[resource] ?? data.matrix[role.name]?.[resource] ?? [];
       for (const a of acts) set.add(a);
     }
-    // Include ALL_ACTIONS that are used somewhere for this resource, fallback to common 5
-    if (set.size === 0) return ["list", "show", "create", "edit", "delete"];
-    // Keep order defined by ALL_ACTIONS
+    if (set.size === 0) return [...ALL_ACTIONS];
     return ALL_ACTIONS.filter((a) => set.has(a));
   };
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="flex size-10 items-center justify-center rounded-xl bg-primary text-primary-foreground"><ShieldCheck className="size-5" /></div>
-          <div>
-            <h1 className="text-xl font-semibold">Permission Matrix</h1>
-            <p className="text-sm text-muted-foreground">DB (RoleClaims) là truth, <code className="rounded bg-muted px-1 py-0.5 text-xs">wwwroot/policy.csv</code> là cache RAM — chỉnh ở đây sẽ ghi DB + ghi file + reload Enforcer</p>
+    <AdminPageLayout>
+      <AdminPageHeader
+        icon={ShieldCheck}
+        title="Phân quyền"
+        description="Quản lý ma trận quyền Role × Resource trong hệ thống."
+        actions={
+          <div className="flex items-center gap-2">
+            {isDirty && (
+              <span className="text-xs font-medium text-muted-foreground bg-muted px-2.5 py-1 rounded-full">
+                {changeCount} quyền đã thay đổi
+              </span>
+            )}
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={!isDirty || saving}
+              onClick={() => data && setDraft(JSON.parse(JSON.stringify(data.matrix)))}
+            >
+              <RotateCcw className="mr-1.5 size-3.5" />
+              Hủy
+            </Button>
+            <Button
+              size="sm"
+              disabled={!isDirty || saving || !canEdit}
+              onClick={handleSave}
+              className={isDirty ? "bg-primary text-primary-foreground shadow-sm" : ""}
+            >
+              {saving ? "Đang lưu..." : <><Save className="mr-1.5 size-3.5" /> Lưu ma trận</>}
+            </Button>
+          </div>
+        }
+      />
+
+      {!canEdit && (
+        <AdminInfoBanner>
+          Bạn chỉ có quyền xem — liên hệ Quản trị viên để được cấp quyền chỉnh sửa.
+        </AdminInfoBanner>
+      )}
+
+      <AdminCard className="flex flex-col overflow-hidden">
+        {/* ── 1. Toolbar (fixed) ── */}
+        <div className="flex items-center justify-between gap-3 px-5 py-3.5 border-b border-border shrink-0">
+          <div className="relative flex-1 max-w-xs">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
+            <Input
+              placeholder="Tìm resource..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="h-8 pl-8 text-xs"
+            />
+          </div>
+          <div className="text-xs text-muted-foreground whitespace-nowrap">
+            {resourcesSorted.length} resource{resourcesSorted.length !== 1 ? "s" : ""}
           </div>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" disabled={!isDirty || saving} onClick={() => data && setDraft(JSON.parse(JSON.stringify(data.matrix)))}><RotateCcw className="mr-2 size-4" /> Hủy</Button>
-          <Button disabled={!isDirty || saving || !canEdit} onClick={handleSave}>{saving ? "Đang lưu..." : <><Save className="mr-2 size-4" /> Lưu ma trận</>}</Button>
+
+        {/* ── 2. Matrix header (fixed, outside scroll) ── */}
+        <div className="grid grid-cols-[220px_repeat(4,minmax(270px,1fr))] border-b border-border bg-popover text-popover-foreground shadow-sm shrink-0">
+          <div className="px-4 py-3 font-medium text-xs text-muted-foreground border-r border-border">
+            Resource
+          </div>
+          {data.roles.map((r) => (
+            <div key={r.id} className="px-4 py-3 border-l border-border text-center">
+              <div className="flex flex-col items-center gap-1">
+                <span className="font-semibold text-xs text-foreground">{r.name}</span>
+                {canEdit && (
+                  <div className="flex gap-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        resourcesSorted.forEach((res) => {
+                          const actions = getActionsForResource(res);
+                          toggleAllForRole(r.name, res, actions, true);
+                        });
+                      }}
+                      className="inline-flex items-center text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+                      title="Chọn tất cả"
+                    >
+                      <CheckSquare className="size-3" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        resourcesSorted.forEach((res) => {
+                          toggleAllForRole(r.name, res, [], false);
+                        });
+                      }}
+                      className="inline-flex items-center text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+                      title="Bỏ tất cả"
+                    >
+                      <Square className="size-3" />
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
         </div>
-      </div>
 
-      {!canEdit && <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">Bạn chỉ có quyền xem (roleclaims:edit thiếu) — liên hệ QUAN_TRI_VIEN</div>}
+        {/* ── 3. Matrix body (only this scrolls) ── */}
+        <div className="overflow-auto max-h-[calc(100vh-22rem)]">
+          <div className="min-w-[1300px]">
+            {resourcesSorted.map((resource, idx) => (
+              <div
+                key={resource}
+                className={`grid grid-cols-[220px_repeat(4,minmax(270px,1fr))] border-b border-border transition-colors hover:bg-muted/50 ${idx % 2 === 1 ? "bg-muted/20" : ""}`}
+              >
+                <div className="px-4 py-3 font-medium text-xs text-foreground border-r border-border flex items-start">
+                  {resource}
+                </div>
+                {data.roles.map((role) => {
+                  const checkedSet = new Set(draft[role.name]?.[resource] ?? []);
+                  return (
+                    <div key={role.id + resource} className="px-4 py-3 border-l border-border/50">
+                      <div className="grid grid-cols-3 gap-x-4 gap-y-2">
+                        {ALL_ACTIONS.map((act) => {
+                          const checked = checkedSet.has(act);
+                          const id = `${role.name}-${resource}-${act}`;
+                          return (
+                            <Label key={id} htmlFor={id} className="grid grid-cols-[16px_auto] items-center gap-2 text-[11px] font-normal cursor-pointer">
+                              <Checkbox id={id} checked={checked} disabled={!canEdit} onCheckedChange={(v) => toggleAction(role.name, resource, act, Boolean(v))} />
+                              <span className="truncate">{act}</span>
+                            </Label>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
+        </div>
+      </AdminCard>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Ma trận Role × Resource</CardTitle>
-          <CardDescription>Tick để cấp quyền. Mỗi ô là tập actions cho role trên resource. Dòng = resource, Cột = role</CardDescription>
-        </CardHeader>
-        <CardContent className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="min-w-[180px] sticky left-0 bg-card">Resource</TableHead>
-                {data.roles.map((r) => (
-                  <TableHead key={r.id} className="text-center min-w-[180px]">{r.name}</TableHead>
-                ))}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {resourcesSorted.map((resource) => {
-                const actions = getActionsForResource(resource);
-                return (
-                  <TableRow key={resource}>
-                    <TableCell className="font-medium sticky left-0 bg-card">{resource}</TableCell>
-                    {data.roles.map((role) => {
-                      const checkedSet = new Set(draft[role.name]?.[resource] ?? []);
-                      return (
-                        <TableCell key={role.id + resource}>
-                          <div className="flex flex-wrap gap-3">
-                            {actions.map((act) => {
-                              const checked = checkedSet.has(act);
-                              const id = `${role.name}-${resource}-${act}`;
-                              return (
-                                <Label key={id} htmlFor={id} className="flex items-center gap-1.5 text-xs font-normal cursor-pointer">
-                                  <Checkbox id={id} checked={checked} disabled={!canEdit} onCheckedChange={(v) => toggleAction(role.name, resource, act, Boolean(v))} />
-                                  {act}
-                                </Label>
-                              );
-                            })}
-                          </div>
-                        </TableCell>
-                      );
-                    })}
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-
-      {isDirty && <p className="text-sm text-muted-foreground">Có thay đổi chưa lưu — nhớ bấm Lưu để đồng bộ DB + policy.csv cache</p>}
-    </div>
+      {isDirty && (
+        <AdminInfoBanner>
+          Có thay đổi chưa lưu — nhớ bấm Lưu để đồng bộ DB + policy.csv cache.
+        </AdminInfoBanner>
+      )}
+    </AdminPageLayout>
   );
 }

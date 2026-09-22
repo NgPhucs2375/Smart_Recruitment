@@ -13,15 +13,52 @@ namespace Domain.Entities
     public class CVUngVien : AuditableBaseEntity
     {
         public int HoSoUngVienId { get; set; }
+        // FILE
         public string TenFile { get; set; }
         public string FileUrl { get; set; }
-        public DateTime? NgayUpload { get; set; }
+        // CV
+        public string TemplateId { get; set; }
+        public PhuongThucTaoCV PhuongThucTao { get; set; }
+
         public bool IsDefault { get; set; } = true;
-        public TrangThaiCV TrangThaiCV { get; set; } 
+
+        public bool IsDaXoa { get; set; } = false;
+        public string StorageKey { get; set; }
+
+        public string FileMimeType { get; set; }
+
+        public long FileSize { get; set; }
+
+
+        
 
         // ===   === //
         public HoSoUngVien HoSoUngVien { get; set; }
-        public ICollection<KetQuaPhanTichCv> KetQuaPhanTichCvs { get; set; }
 
+        public CVThongTinLienHe ThongTinLienHe { get; set; }
+
+        public ICollection<CVHocVan> HocVans { get; set; }
+            = new List<CVHocVan>();
+
+        public ICollection<CVKinhNghiemLamViec> KinhNghiems { get; set; }
+            = new List<CVKinhNghiemLamViec>();
+
+        public ICollection<CVDuAn> DuAns { get; set; }
+            = new List<CVDuAn>();
+
+        public ICollection<CVKyNang> KyNangs { get; set; }
+            = new List<CVKyNang>();
+
+        public ICollection<CVChungChi> ChungChis { get; set; }
+            = new List<CVChungChi>();
+
+        public ICollection<KetQuaPhanTichCv> KetQuaPhanTichCvs { get; set; }
+            = new List<KetQuaPhanTichCv>();
+
+        public ICollection<CVTepTin> TepTins { get; set; }
+            = new List<CVTepTin>();
+
+        public ICollection<CVPhienBan> PhienBans { get; set; }
+            = new List<CVPhienBan>();
     }
 }

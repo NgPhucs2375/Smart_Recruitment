@@ -1,11 +1,17 @@
+using Application.DTOs.HoSoUngVien;
 using Application.Features.HoSoUngVien.Queries.GetAllHoSoUngViens;
 using Application.Features.HoSoUngVien.Queries.GetHoSoUngVienById;
-using Application.Features.HoSoUngVien.Commads.CreateHoSoUngVien;
-using Application.Features.HoSoUngVien.Commads.UpdateHoSoUngVien;
-using Application.Features.HoSoUngVien.Commads.DeleteHoSoUngVien;
+using Application.Features.HoSoUngVien.Queries.GetMyHoSoUngVien;
+using Application.Features.HoSoUngVien.Commands.CreateHoSoUngVien;
+using Application.Features.HoSoUngVien.Commands.UpdateHoSoUngVien;
+using Application.Features.HoSoUngVien.Commands.DeleteHoSoUngVien;
+using Application.Features.HoSoUngVien.Commands.UpdateHoSoUngVienAvatar;
+using Application.Interfaces;
+using AutoMapper;
 using Casbin;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace WebApp.Server.Controllers.v1
 {
@@ -13,11 +19,22 @@ namespace WebApp.Server.Controllers.v1
      [Route("api/hosoungviens")]
      public class HoSoUngVienController : BaseApiController
      {
-
+         private readonly IMapper _mapper;
+         private readonly IApplicationDbContext _context;
+         private readonly IFileStorageService _storage;
          public HoSoUngVienController(
-             Microsoft.AspNetCore.Hosting.IWebHostEnvironment hostingEnvironment, Enforcer enforcer) : base(hostingEnvironment,enforcer)
+             Microsoft.AspNetCore.Hosting.IWebHostEnvironment hostingEnvironment,
+             Enforcer enforcer,
+             IMapper mapper,
+             IApplicationDbContext context,
+             IFileStorageService storage) : base(hostingEnvironment,enforcer)
          {
+             _mapper = mapper;
+             _context = context;
+             _storage = storage;
          }
+
+
          // GET: api/<controller>
         [HttpGet]
         public async Task<IActionResult> Get([FromQuery] GetAllHoSoUngViensParameter filter)
@@ -34,6 +51,15 @@ namespace WebApp.Server.Controllers.v1
                 }));
              });
         }
+          // GET: api/hosoungviens/cua-toi
+        [HttpGet("cua-toi")]
+        public async Task<IActionResult> CuaToi()
+        {
+            return await EnforcePermissionAndExecute("hosoungviens", "show", async () =>
+            {
+                return Ok(await Mediator.Send(new GetMyHoSoUngVienQuery()));
+            });
+        }
           // GET: api/roles/show/5
         [HttpGet("show/{id}")]
         public async Task<IActionResult> Show(int id)
@@ -46,26 +72,74 @@ namespace WebApp.Server.Controllers.v1
 
         // POST: api/hosoungviens
         [HttpPost]
-        public async Task<IActionResult> Create(CreateHoSoUngVienCommand command)
+        public async Task<IActionResult> Create([FromBody] TaoHoSoUngVienDto dto)
         {
             return await EnforcePermissionAndExecute("hosoungviens", "create", async () =>
             {
+                var command = _mapper.Map<CreateHoSoUngVienCommand>(dto);
                 return Ok(await Mediator.Send(command));
             });
         }
 
         // PUT: api/hosoungviens/5
         [HttpPut("{id}")]
-        public async Task<IActionResult> Update(int id, UpdateHoSoUngVienCommand command)
+        public async Task<IActionResult> Update(int id, [FromBody] CapNhatHoSoUngVienDto dto)
         {
             return await EnforcePermissionAndExecute("hosoungviens", "edit", async () =>
             {
-                if (id != command.Id)
+                if (id != dto.Id)
                 {
                     return BadRequest();
                 }
+                var command = _mapper.Map<UpdateHoSoUngVienCommand>(dto);
                 return Ok(await Mediator.Send(command));
             });
+        }
+
+        [HttpPost("{id}/avatar")]
+        [RequestSizeLimit(5 * 1024 * 1024)]
+        public async Task<IActionResult> UploadAvatar(int id, [FromForm] IFormFile file)
+        {
+            return await EnforcePermissionAndExecute("hosoungviens", "edit", async () =>
+                Ok(await Mediator.Send(new UpdateHoSoUngVienAvatarCommand
+                {
+                    HoSoUngVienId = id,
+                    File = file
+                })));
+        }
+
+        [HttpDelete("{id}/avatar")]
+        public async Task<IActionResult> DeleteAvatar(int id)
+        {
+            return await EnforcePermissionAndExecute("hosoungviens", "edit", async () =>
+                Ok(await Mediator.Send(new DeleteHoSoUngVienAvatarCommand
+                {
+                    HoSoUngVienId = id
+                })));
+        }
+
+        [AllowAnonymous]
+        [HttpGet("{id}/avatar")]
+        public async Task<IActionResult> GetAvatar(int id, CancellationToken cancellationToken)
+        {
+            var objectName = await _context.HoSoUngViens
+                .AsNoTracking()
+                .Where(profile => profile.Id == id)
+                .Select(profile => profile.AnhDaiDienUrl)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (string.IsNullOrWhiteSpace(objectName) || !objectName.StartsWith("avatars/"))
+                return NotFound();
+
+            var stream = await _storage.DownloadAsync(objectName, cancellationToken);
+            var contentType = Path.GetExtension(objectName).ToLowerInvariant() switch
+            {
+                ".png" => "image/png",
+                ".webp" => "image/webp",
+                ".gif" => "image/gif",
+                _ => "image/jpeg"
+            };
+            return File(stream, contentType);
         }
 
         // DELETE: api/hosoungviens/5

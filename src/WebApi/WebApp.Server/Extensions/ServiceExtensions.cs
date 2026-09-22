@@ -40,10 +40,10 @@ namespace WebApp.Server.Extensions
                 {
                     Name = "Authorization",
                     In = ParameterLocation.Header,
-                    Type = SecuritySchemeType.ApiKey,
-                    Scheme = "Bearer",
+                    Type = SecuritySchemeType.Http,
+                    Scheme = "bearer",
                     BearerFormat = "JWT",
-                    Description = "Input your Bearer token in this format - Bearer {your token here} to access this API",
+                    Description = "Nhập JWT token. Swagger sẽ tự thêm tiền tố Bearer.",
                 });
 
                 c.AddSecurityRequirement(doc => new OpenApiSecurityRequirement

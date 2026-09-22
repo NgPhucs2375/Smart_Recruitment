@@ -1,35 +1,148 @@
 @import "tailwindcss";
 
+html {
+  scroll-behavior: smooth;
+}
+
+/* ============================================================
+   SMART RECRUITMENT — DESIGN TOKENS (Phase 1)
+   - Semantic tokens use `@theme inline` so utilities emit
+     `var(--...)` and keep following `:root` / `.dark` overrides
+     at runtime (theme toggle keeps working).
+   - Brand tokens are static values for direct use
+     (bg-ivory, text-charcoal, bg-marine, ...).
+   ============================================================ */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-primary-hover: var(--primary-hover);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  /* Semantic workspace layer (role-aware shells consume these) */
+  --color-workspace: var(--workspace-bg);
+  --color-workspace-surface: var(--workspace-surface);
+  --color-workspace-soft: var(--workspace-surface-soft);
+  --color-workspace-sidebar: var(--workspace-sidebar);
+  --color-workspace-topbar: var(--workspace-topbar);
+  --color-workspace-primary: var(--workspace-primary);
+  --color-workspace-primary-hover: var(--workspace-primary-hover);
+  --color-workspace-primary-soft: var(--workspace-primary-soft);
+  --color-workspace-on-primary: var(--workspace-on-primary);
+  --color-workspace-secondary: var(--workspace-secondary);
+  --color-workspace-secondary-soft: var(--workspace-secondary-soft);
+  --color-workspace-on-secondary: var(--workspace-on-secondary);
+  --color-workspace-text: var(--workspace-text);
+  --color-workspace-muted: var(--workspace-muted);
+  --color-workspace-border: var(--workspace-border);
+}
+
+@theme {
+  /* Surfaces */
+  --color-ivory: #faf8f3;
+  --color-parchment: #f7f5f1;
+  --color-cream: #f1eadf;
+  /* Text + lines */
+  --color-charcoal: #2f3440;
+  --color-linen: #ddd4c7;
+  /* Brand accents (unified navy + beige identity) */
+  --color-navy: #355c8c;
+  --color-marine: #35638f;
+  --color-mist: #8fb3cf;
+  --color-teal: #7fae9b;
+  --color-sand: #d7b98e;
+  /* Unified brand palette (single identity across public + workspaces) */
+  --color-brand: #355c8c;
+  --color-brand-hover: #2d4f79;
+  --color-brand-soft: #eaf1f8;
+  --color-sage: #7fae9b;
+  --color-soft-sage: #eaf4ef;
+  --color-sandgold: #d7b98e;
+  --color-bronze: #8a6a3b;
+  --color-soft-gold: #f6ebdd;
+  --color-lavender: #8e80c7;
+  --color-soft-lavender: #f1ecfa;
+  /* Soft directional tints (shared, sparing use) */
+  --color-frost: #eaf1f7;
+  --color-blush: #f7ece3;
+  --color-sandsoft: #f7eddc;
+  /* Type */
+  --font-heading: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
 :root {
-  --background: oklch(0.985 0.004 95);
-  --foreground: oklch(0.19 0.02 260);
+  --background: #f7f3ec;
+  --foreground: #2f3440;
 
   /* CopilotKit V2 theme variables */
-  --card: oklch(0.998 0.002 95);
-  --card-foreground: oklch(0.19 0.02 260);
-  --primary: oklch(0.31 0.09 255);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.95 0.015 255);
-  --secondary-foreground: oklch(0.26 0.04 255);
-  --muted: oklch(0.955 0.008 95);
-  --muted-foreground: oklch(0.52 0.025 260);
-  --accent: oklch(0.94 0.025 255);
-  --accent-foreground: oklch(0.24 0.05 255);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(0.89 0.012 260);
-  --input: oklch(0.87 0.015 260);
-  --ring: oklch(0.62 0.13 255);
+  --card: #fffdf9;
+  --card-foreground: #2f3440;
+  --popover: #fffdf9;
+  --popover-foreground: #2f3440;
+  --primary: #355c8c;
+  --primary-foreground: #ffffff;
+  --primary-hover: #2d4f79;
+  --secondary: #eaf1f8;
+  --secondary-foreground: #2d4f79;
+  --muted: #f0eee8;
+  --muted-foreground: #6d7480;
+  --accent: #eaf1f8;
+  --accent-foreground: #2d4f79;
+  --destructive: #b3362b;
+  --destructive-foreground: #ffffff;
+  --border: #ddd4c7;
+  --input: #d8d3c8;
+  --ring: #355c8c;
 
   /* Sidebar colors */
-  --sidebar: oklch(0.985 0.004 255);
-  --sidebar-foreground: oklch(0.22 0.025 260);
-  --sidebar-primary: oklch(0.31 0.09 255);
-  --sidebar-primary-foreground: oklch(0.99 0.005 95);
-  --sidebar-accent: oklch(0.94 0.025 255);
-  --sidebar-accent-foreground: oklch(0.24 0.05 255);
-  --sidebar-border: oklch(0.89 0.012 260);
-  --sidebar-ring: oklch(0.62 0.13 255);
+  --sidebar: #f7f5f1;
+  --sidebar-foreground: #2f3440;
+  --sidebar-primary: #355c8c;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #eaf1f8;
+  --sidebar-accent-foreground: #2d4f79;
+  --sidebar-border: #ddd4c7;
+  --sidebar-ring: #355c8c;
+
+  /* Workspace layer defaults = shared warm-neutral foundation (light).
+     Role tone classes (.tone-*) override these per workspace. */
+  --workspace-bg: #f7f3ec;
+  --workspace-surface: #fffdf9;
+  --workspace-surface-soft: #f1eadf;
+  --workspace-sidebar: #f7f5f1;
+  --workspace-topbar: #f7f3ec;
+  --workspace-primary: #355c8c;
+  --workspace-primary-hover: #2d4f79;
+  --workspace-primary-soft: #eaf1f8;
+  --workspace-on-primary: #ffffff;
+  --workspace-secondary: #9a938a;
+  --workspace-secondary-soft: #efe9df;
+  --workspace-on-secondary: #2f3440;
+  --workspace-text: #2f3440;
+  --workspace-muted: #6d7480;
+  --workspace-border: #ddd4c7;
 
   --radius: 0.625rem;
   --radius-sm: calc(var(--radius) - 4px);
@@ -37,36 +150,384 @@
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
 
+  /* System layer order (single source of truth for sticky/chrome z). */
+  --z-header: 40;
+  --z-modal: 50;
+  --z-dropdown: 100;
+
   --font-body: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-code: "SFMono-Regular", Menlo, Monaco, Consolas, monospace;
 }
 
+/* ============================================================
+   ROLE TONES (LIGHT) — final role color system.
+   One shared warm-neutral foundation; role color is accent /
+   system identity only, never a full-page paint.
+   Scoped wrappers rendered by AppLayout (.tone-* with `contents`
+   so layout is untouched).
+   Contrast pairs: white text on role primaries, charcoal on
+   light role surfaces. No pure black anywhere.
+   ============================================================ */
+.tone-candidate {
+  /* Candidate: brand navy primary + sage secondary (growth/career
+     accents only). Warm neutral chrome, beige content — youthful
+     but one product with the rest of the system. */
+  --primary: #355c8c;
+  --primary-foreground: #ffffff;
+  --secondary: #eaf1f8;
+  --secondary-foreground: #2d4f79;
+  --accent: #eaf1f8;
+  --accent-foreground: #2d4f79;
+  --ring: #355c8c;
+  --sidebar: #f5f1e8;
+  --sidebar-foreground: #2f3440;
+  --sidebar-primary: #355c8c;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #eaf1f8;
+  --sidebar-accent-foreground: #2d4f79;
+  --sidebar-border: #ddd4c7;
+  --sidebar-ring: #355c8c;
+  --workspace-bg: #f7f3ec;
+  --workspace-surface: #fffdf9;
+  --workspace-surface-soft: #f1eadf;
+  --workspace-sidebar: #f5f1e8;
+  --workspace-topbar: #fbf8f1;
+  --workspace-primary: #355c8c;
+  --workspace-primary-hover: #2d4f79;
+  --workspace-primary-soft: #eaf1f8;
+  --workspace-on-primary: #ffffff;
+  --workspace-secondary: #7fae9b;
+  --workspace-secondary-soft: #eaf4ef;
+  --workspace-on-secondary: #2f3440;
+  --workspace-text: #2f3440;
+  --workspace-muted: #6d7480;
+  --workspace-border: #ddd4c7;
+}
+
+.tone-recruiter {
+  /* Recruiter: brand navy primary + sage secondary (KPI/priority/
+     attention accents only). Warm neutral chrome, beige content —
+     sage is an accent, never a full-page paint. */
+  --primary: #355c8c;
+  --primary-foreground: #ffffff;
+  --secondary: #eaf1f8;
+  --secondary-foreground: #2d4f79;
+  --accent: #eaf1f8;
+  --accent-foreground: #2d4f79;
+  --ring: #355c8c;
+  --sidebar: #f1efe6;
+  --sidebar-foreground: #2f3440;
+  --sidebar-primary: #355c8c;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #eaf1f8;
+  --sidebar-accent-foreground: #2d4f79;
+  --sidebar-border: #ddd4c7;
+  --sidebar-ring: #355c8c;
+  --workspace-bg: #f7f3ec;
+  --workspace-surface: #fffdf9;
+  --workspace-surface-soft: #f1eadf;
+  --workspace-sidebar: #f1efe6;
+  --workspace-topbar: #faf6ef;
+  --workspace-primary: #355c8c;
+  --workspace-primary-hover: #2d4f79;
+  --workspace-primary-soft: #eaf1f8;
+  --workspace-on-primary: #ffffff;
+  --workspace-secondary: #7fae9b;
+  --workspace-secondary-soft: #eaf4ef;
+  --workspace-on-secondary: #2f3440;
+  --workspace-text: #2f3440;
+  --workspace-muted: #6d7480;
+  --workspace-border: #ddd4c7;
+}
+
+.tone-admin {
+  /* Admin: brand navy primary + soft navy chrome (a touch deeper
+     than public). Content stays beige/ivory — structured, not cold. */
+  --primary: #355c8c;
+  --primary-foreground: #ffffff;
+  --secondary: #eaf1f8;
+  --secondary-foreground: #2d4f79;
+  --accent: #eaf1f8;
+  --accent-foreground: #2d4f79;
+  --ring: #355c8c;
+  --sidebar: #e2e8f2;
+  --sidebar-foreground: #2f3440;
+  --sidebar-primary: #2d4f79;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #eaf1f8;
+  --sidebar-accent-foreground: #2d4f79;
+  --sidebar-border: #cfd8e4;
+  --sidebar-ring: #355c8c;
+  --workspace-bg: #f7f3ec;
+  --workspace-surface: #fffdf9;
+  --workspace-surface-soft: #f1eadf;
+  --workspace-sidebar: #e2e8f2;
+  --workspace-topbar: #e7edf5;
+  --workspace-primary: #355c8c;
+  --workspace-primary-hover: #2d4f79;
+  --workspace-primary-soft: #eaf1f8;
+  --workspace-on-primary: #ffffff;
+  --workspace-secondary: #7fae9b;
+  --workspace-secondary-soft: #eaf4ef;
+  --workspace-on-secondary: #2f3440;
+  --workspace-text: #2f3440;
+  --workspace-muted: #6d7480;
+  --workspace-border: #ddd4c7;
+}
+
+/* Dark foundation: warm-tinted charcoal (beige identity transformed,
+   never generic navy, never pure black). Role tones below refine it
+   per workspace via `.dark .tone-*` (higher specificity, so dark mode
+   can never collapse roles back into one theme). */
 .dark {
-  --background: #0a0a0a;
-  --foreground: #ededed;
-  --card: oklch(0.145 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.488 0.243 264.376);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.396 0.141 25.723);
-  --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(0.269 0 0);
-  --input: oklch(0.269 0 0);
-  --ring: oklch(0.439 0 0);
-  --sidebar: oklch(0.145 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(0.269 0 0);
-  --sidebar-ring: oklch(0.439 0 0);
+  --background: #242321;
+  --foreground: #ede6d8;
+  --card: #2d2b28;
+  --card-foreground: #ede6d8;
+  --popover: #2d2b28;
+  --popover-foreground: #ede6d8;
+  --primary: #b0a696;
+  --primary-foreground: #242321;
+  --primary-hover: #c2b8a6;
+  --secondary: #38342e;
+  --secondary-foreground: #d8d2c4;
+  --muted: #34312d;
+  --muted-foreground: #a49d90;
+  --accent: #38342e;
+  --accent-foreground: #d8d2c4;
+  --destructive: #e07a6a;
+  --destructive-foreground: #242321;
+  --border: #3e3a34;
+  --input: #3e3a34;
+  --ring: #b0a696;
+  --sidebar: #2b2925;
+  --sidebar-foreground: #ede6d8;
+  --sidebar-primary: #b0a696;
+  --sidebar-primary-foreground: #242321;
+  --sidebar-accent: #38342e;
+  --sidebar-accent-foreground: #d8d2c4;
+  --sidebar-border: #3e3a34;
+  --sidebar-ring: #b0a696;
+  --workspace-bg: #242321;
+  --workspace-surface: #2d2b28;
+  --workspace-surface-soft: #34312d;
+  --workspace-sidebar: #2b2925;
+  --workspace-topbar: #2b2925;
+  --workspace-primary: #b0a696;
+  --workspace-primary-hover: #bfb5a4;
+  --workspace-primary-soft: #34312d;
+  --workspace-on-primary: #242321;
+  --workspace-secondary: #8e887e;
+  --workspace-secondary-soft: #38342e;
+  --workspace-on-secondary: #ede6d8;
+  --workspace-text: #ede6d8;
+  --workspace-muted: #a49d90;
+  --workspace-border: #3e3a34;
+}
+
+/* ============================================================
+   ROLE TONES (DARK) — each role keeps its identity in dark mode.
+   `.dark .tone-*` (0,2,0) outranks both `.dark` and `.tone-*`
+   (0,1,0), so switching dark/light never changes the role.
+   ============================================================ */
+.dark .tone-candidate {
+  /* Candidate dark: warm charcoal base, navy-tinted chrome.
+     Lavender reserved for AI/insight accents only. */
+  --primary: #8ea6cf;
+  --primary-foreground: #23262e;
+  --secondary: #33364a;
+  --secondary-foreground: #d3d9e8;
+  --accent: #33364a;
+  --accent-foreground: #d3d9e8;
+  --ring: #8ea6cf;
+  --sidebar: #2a2c33;
+  --sidebar-foreground: #ede6da;
+  --sidebar-primary: #8ea6cf;
+  --sidebar-primary-foreground: #23262e;
+  --sidebar-accent: #33364a;
+  --sidebar-accent-foreground: #dcd2e8;
+  --sidebar-border: #3a3f4d;
+  --sidebar-ring: #8ea6cf;
+  --workspace-bg: #242321;
+  --workspace-surface: #2d2b28;
+  --workspace-surface-soft: #34312d;
+  --workspace-sidebar: #2a2c33;
+  --workspace-topbar: #2a2c33;
+  --workspace-primary: #8ea6cf;
+  --workspace-primary-hover: #9db4d8;
+  --workspace-primary-soft: #33364a;
+  --workspace-on-primary: #23262e;
+  --workspace-secondary: #8e80c7;
+  --workspace-secondary-soft: #33364a;
+  --workspace-on-secondary: #e6eaf2;
+  --workspace-text: #ede6da;
+  --workspace-muted: #a49d90;
+  --workspace-border: #3e3a34;
+}
+
+/* ============================================================
+   AUTH THEME BOUNDARY — public auth pages (login/register) always
+   render the light public theme, even when `.dark` persists on
+   <html> from a previous protected session (e.g. after logout).
+   The stored theme preference and <html> class are untouched, so
+   logging back in restores the workspace theme.
+   Same specificity as `.dark` (0,1,0); placed later so it wins
+   for descendants. No tone classes ever apply inside auth.
+   ============================================================ */
+.theme-auth {
+  color-scheme: light;
+  --background: #f7f3ec;
+  --foreground: #2f3440;
+  --card: #fffdf9;
+  --card-foreground: #2f3440;
+  --popover: #fffdf9;
+  --popover-foreground: #2f3440;
+  --primary: #355c8c;
+  --primary-foreground: #ffffff;
+  --primary-hover: #2d4f79;
+  --secondary: #eaf1f8;
+  --secondary-foreground: #2d4f79;
+  --muted: #f0eee8;
+  --muted-foreground: #6d7480;
+  --accent: #eaf1f8;
+  --accent-foreground: #2d4f79;
+  --destructive: #b3362b;
+  --destructive-foreground: #ffffff;
+  --border: #ddd4c7;
+  --input: #d8d3c8;
+  --ring: #355c8c;
+  --sidebar: #f7f5f1;
+  --sidebar-foreground: #2f3440;
+  --sidebar-primary: #355c8c;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #eaf1f8;
+  --sidebar-accent-foreground: #2d4f79;
+  --sidebar-border: #ddd4c7;
+  --sidebar-ring: #355c8c;
+  --workspace-bg: #f7f3ec;
+  --workspace-surface: #fffdf9;
+  --workspace-surface-soft: #f1eadf;
+  --workspace-sidebar: #f7f5f1;
+  --workspace-topbar: #f7f3ec;
+  --workspace-primary: #355c8c;
+  --workspace-primary-hover: #2d4f79;
+  --workspace-primary-soft: #eaf1f8;
+  --workspace-on-primary: #ffffff;
+  --workspace-secondary: #9a938a;
+  --workspace-secondary-soft: #efe9df;
+  --workspace-on-secondary: #2f3440;
+  --workspace-text: #2f3440;
+  --workspace-muted: #6d7480;
+  --workspace-border: #ddd4c7;
+}
+
+.dark .tone-recruiter {
+  /* Recruiter dark: navy-dominant like light mode; sage kept ONLY as
+     secondary accent (dots/highlights). Chrome is neutral warm
+     charcoal — no green wash, matching the unified brand. */
+  --primary: #8ea6cf;
+  --primary-foreground: #23262e;
+  --secondary: #33364a;
+  --secondary-foreground: #d3d9e8;
+  --accent: #33364a;
+  --accent-foreground: #d3d9e8;
+  --ring: #8ea6cf;
+  --sidebar: #262b33;
+  --sidebar-foreground: #e8ede9;
+  --sidebar-primary: #8ea6cf;
+  --sidebar-primary-foreground: #23262e;
+  --sidebar-accent: #33364a;
+  --sidebar-accent-foreground: #d3d9e8;
+  --sidebar-border: #3a4152;
+  --sidebar-ring: #8ea6cf;
+  --workspace-bg: #242321;
+  --workspace-surface: #2d2b28;
+  --workspace-surface-soft: #34312d;
+  --workspace-sidebar: #262b33;
+  --workspace-topbar: #262b33;
+  --workspace-primary: #8ea6cf;
+  --workspace-primary-hover: #9db4d8;
+  --workspace-primary-soft: #33364a;
+  --workspace-on-primary: #23262e;
+  --workspace-secondary: #7fae9b;
+  --workspace-secondary-soft: #323a35;
+  --workspace-on-secondary: #ede6da;
+  --workspace-text: #e8ede9;
+  --workspace-muted: #9aa5a0;
+  --workspace-border: #3a4152;
+}
+
+.dark .tone-admin {
+  /* Admin dark: shared neutral base, shell tinted slate-navy.
+     Coolest of the three, but never saturated full-navy. */
+  --primary: #829bc5;
+  --primary-foreground: #23262e;
+  --secondary: #33364a;
+  --secondary-foreground: #d3d9e8;
+  --accent: #33364a;
+  --accent-foreground: #d3d9e8;
+  --ring: #829bc5;
+  --sidebar: #28303d;
+  --sidebar-foreground: #e6eaf2;
+  --sidebar-primary: #829bc5;
+  --sidebar-primary-foreground: #23262e;
+  --sidebar-accent: #33364a;
+  --sidebar-accent-foreground: #d3d9e8;
+  --sidebar-border: #3a4152;
+  --sidebar-ring: #829bc5;
+  --workspace-bg: #242321;
+  --workspace-surface: #2d2b28;
+  --workspace-surface-soft: #34312d;
+  --workspace-sidebar: #28303d;
+  --workspace-topbar: #28303d;
+  --workspace-primary: #829bc5;
+  --workspace-primary-hover: #8ea7cf;
+  --workspace-primary-soft: #33364a;
+  --workspace-on-primary: #23262e;
+  --workspace-secondary: #9a8fc4;
+  --workspace-secondary-soft: #33364a;
+  --workspace-on-secondary: #e6eaf2;
+  --workspace-text: #e6eaf2;
+  --workspace-muted: #9aa0b4;
+  --workspace-border: #3a4152;
+}
+
+/* Dark header: neutral warm overlays only — the background itself is
+   driven by --workspace-topbar so each role keeps its identity. */
+.dark header .text-muted-foreground {
+  color: rgba(255, 255, 255, 0.6) !important;
+}
+.dark header .hover\:bg-accent:hover {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+}
+.dark header .hover\:text-foreground:hover,
+.dark header .hover\:text-accent-foreground:hover {
+  color: #ffffff !important;
+}
+.dark header input {
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  background-color: rgba(255, 255, 255, 0.05) !important;
+  color: #ededed !important;
+}
+.dark header input::placeholder {
+  color: rgba(255, 255, 255, 0.3) !important;
+}
+.dark header kbd {
+  color: rgba(255, 255, 255, 0.3) !important;
+  background-color: rgba(255, 255, 255, 0.1) !important;
+}
+.dark header .text-foreground {
+  color: #ededed !important;
+}
+
+/* Sidebar in dark mode: neutral overlays only — background, active
+   item and borders are driven by role tone variables. */
+.dark [data-slot="sidebar-inner"] .hover\:bg-accent:hover {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+}
+.dark [data-slot="sidebar-inner"] .hover\:text-foreground:hover,
+.dark [data-slot="sidebar-inner"] .hover\:text-destructive:hover {
+  color: inherit !important;
 }
 
 body {
@@ -75,18 +536,52 @@ body {
   font-family: var(--font-body);
 }
 
+/* Dropdown / menu item highlight on hover */
+[data-slot="dropdown-menu-content"],
+[data-slot="select-content"] {
+  background-color: var(--popover);
+  color: var(--popover-foreground);
+}
+[data-slot="dropdown-menu-content"] [data-slot="dropdown-menu-item"],
+[data-slot="dropdown-menu-content"] [data-slot="dropdown-menu-checkbox-item"],
+[data-slot="dropdown-menu-content"] [data-slot="dropdown-menu-radio-item"],
+[data-slot="dropdown-menu-content"] [data-slot="dropdown-menu-sub-trigger"] {
+  transition: background-color 0.1s, color 0.1s;
+}
+[data-slot="dropdown-menu-content"] [data-slot="dropdown-menu-item"]:hover,
+[data-slot="dropdown-menu-content"] [data-slot="dropdown-menu-item"][data-highlighted],
+[data-slot="dropdown-menu-content"] [data-slot="dropdown-menu-checkbox-item"]:hover,
+[data-slot="dropdown-menu-content"] [data-slot="dropdown-menu-checkbox-item"][data-highlighted],
+[data-slot="dropdown-menu-content"] [data-slot="dropdown-menu-radio-item"]:hover,
+[data-slot="dropdown-menu-content"] [data-slot="dropdown-menu-radio-item"][data-highlighted],
+[data-slot="dropdown-menu-content"] [data-slot="dropdown-menu-sub-trigger"]:hover,
+[data-slot="dropdown-menu-content"] [data-slot="dropdown-menu-sub-trigger"][data-highlighted] {
+  background-color: var(--muted);
+  color: var(--foreground);
+}
+
+/* Select dropdown item highlight */
+[data-slot="select-content"] [data-slot="select-item"]:hover,
+[data-slot="select-content"] [data-slot="select-item"][data-highlighted] {
+  background-color: var(--muted);
+  color: var(--foreground);
+}
+
 body,
 html {
   height: 100%;
 }
 
-/* Give Adam a distinct floating assistant presence without taking workspace space. */
+/* Give Adam a distinct floating assistant presence without taking workspace space.
+   Single motion contract: CopilotKit unmounts the popup 200ms after close
+   (see CopilotPopupViewInternal) with a 200ms exit, so every Adam-side
+   transition below uses the same 200ms — one duration, no split layers. */
 [data-testid="copilot-chat-toggle"].adam-chat-toggle {
   border-radius: 9999px !important;
   border: 1px solid color-mix(in oklab, var(--primary) 65%, white) !important;
   background: var(--primary) !important;
   box-shadow: 0 12px 28px color-mix(in oklab, var(--primary) 30%, transparent), 0 0 0 6px color-mix(in oklab, var(--primary) 9%, transparent) !important;
-  transition: transform 180ms ease, box-shadow 180ms ease !important;
+  transition: transform 200ms ease, box-shadow 200ms ease !important;
 }
 
 [data-testid="copilot-chat-toggle"].adam-chat-toggle::after {
@@ -107,8 +602,40 @@ html {
 }
 
 [data-copilot-popup="true"] {
+  /* Theme scoping (root cause of the "foreign frame" look): CopilotKit
+     ships its own cold oklch token scope, which painted the panel as a
+     detached slab. Re-point its internals at our warm workspace tokens
+     (fallbacks keep it safe outside a tone wrapper). */
+  --background: var(--workspace-surface, var(--card));
+  --foreground: var(--workspace-text, var(--foreground));
+  --card: var(--workspace-surface, var(--card));
+  --card-foreground: var(--workspace-text, var(--card-foreground));
+  --popover: var(--workspace-surface, var(--popover));
+  --popover-foreground: var(--workspace-text, var(--popover-foreground));
+  --primary: var(--workspace-primary, var(--primary));
+  --primary-foreground: var(--workspace-on-primary, var(--primary-foreground));
+  --secondary: var(--workspace-primary-soft, var(--secondary));
+  --secondary-foreground: var(--workspace-primary, var(--secondary-foreground));
+  --muted: var(--workspace-surface-soft, var(--muted));
+  --muted-foreground: var(--workspace-muted, var(--muted-foreground));
+  --accent: var(--workspace-primary-soft, var(--accent));
+  --accent-foreground: var(--workspace-primary, var(--accent-foreground));
+  --border: var(--workspace-border, var(--border));
+  --input: var(--workspace-border, var(--input));
+  --ring: var(--workspace-primary, var(--ring));
+  color-scheme: light;
   border-color: color-mix(in oklab, var(--primary) 28%, var(--border)) !important;
-  box-shadow: 0 24px 70px color-mix(in oklab, var(--foreground) 18%, transparent), 0 0 0 1px color-mix(in oklab, var(--primary) 8%, transparent) !important;
+  border-radius: 22px !important;
+  overflow: hidden;
+  box-shadow: 0 18px 50px color-mix(in oklab, var(--foreground) 14%, transparent), 0 0 0 1px color-mix(in oklab, var(--primary) 8%, transparent) !important;
+}
+
+/* Dark mode: calm dark-tinted shadow instead so the
+   popup doesn't glare like a white LED on dark backgrounds. */
+.dark [data-copilot-popup="true"] {
+  color-scheme: dark;
+  border-color: rgba(255, 255, 255, 0.09) !important;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.06) !important;
 }
 
 [data-testid="copilot-modal-header"].adam-chat-header {
@@ -148,6 +675,94 @@ html {
 .animate-slide-in {
   animation: slide-in 0.3s ease-out;
 }
+
+/* Hero load-in sequence: fade + slight rise, staggered via delay utils.
+   Transform/opacity only, runs once on mount. */
+@keyframes hero-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-hero-fade-up {
+  animation: hero-fade-up 0.5s ease-out both;
+}
+
+.animate-hero-delay-1 {
+  animation-delay: 0.08s;
+}
+
+.animate-hero-delay-2 {
+  animation-delay: 0.16s;
+}
+
+.animate-hero-delay-3 {
+  animation-delay: 0.24s;
+}
+
+@keyframes hero-scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-hero-scale {
+  animation: hero-scale-in 0.5s ease-out both;
+}
+
+/* Scroll reveal for landing sections: one-time fade + rise, staggered
+   via --reveal-delay on children. Initial hidden state gated behind
+   no-preference so content stays visible with reduced motion or no JS. */
+@media (prefers-reduced-motion: no-preference) {
+  .reveal {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+}
+
+.reveal.is-visible {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 0.5s ease-out,
+    transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  transition-delay: var(--reveal-delay, 0ms);
+}
+
+/* Staggered children: grid cards enter in sequence without wrappers.
+   Transform-only, so grid layout never shifts. */
+@media (prefers-reduced-motion: no-preference) {
+  .reveal-stagger > * {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+}
+
+.reveal-stagger.is-visible > * {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 0.45s ease-out,
+    transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.reveal-stagger.is-visible > *:nth-child(2) { transition-delay: 70ms; }
+.reveal-stagger.is-visible > *:nth-child(3) { transition-delay: 140ms; }
+.reveal-stagger.is-visible > *:nth-child(4) { transition-delay: 210ms; }
+.reveal-stagger.is-visible > *:nth-child(5) { transition-delay: 280ms; }
+.reveal-stagger.is-visible > *:nth-child(6) { transition-delay: 350ms; }
+.reveal-stagger.is-visible > *:nth-child(7) { transition-delay: 420ms; }
+.reveal-stagger.is-visible > *:nth-child(8) { transition-delay: 490ms; }
 
 @keyframes float-card {
   0%,
@@ -189,13 +804,618 @@ html {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
   .animate-float,
   .animate-pulse-soft,
-  .animate-slide-in {
+  .animate-slide-in,
+  .animate-hero-fade-up,
+  .animate-hero-scale,
+  .animate-spin,
+  .animate-pulse,
+  .cv-preview-crossfade,
+  .cv-check-dot[data-done="true"],
+  .cv-repeat-enter {
     animation: none;
   }
-  [style*="marquee"] {
+  .template-card,
+  .cv-check-dot {
+    transition: none;
+  }
+  [style*="marquee"],
+  [class*="marquee"] {
     animation: none !important;
     transform: none !important;
+  }
+}
+
+/* CV Builder Styles */
+:root {
+  --cv-accent: #35638f;
+  /* HIREAI paper tokens shared by all CV templates (no per-file hex). */
+  --hire-navy: #274b73;
+  --hire-navy-soft: #eaf1f8;
+  --hire-ink: #1f2a37;
+  --hire-subtle: #5b6470;
+  --hire-ivory: #f7f5f1;
+  --hire-line: #e6e0d6;
+  --hire-chip-border: #d7e1ee;
+  --hire-burgundy: #7a3b4d;
+}
+
+.cv-builder-shell {
+  min-height: calc(100vh - 2rem);
+  background: #faf8f3;
+  color: #3f454a;
+  padding: 1.5rem clamp(1rem, 3vw, 3.5rem) 4rem;
+}
+
+.cv-builder-topline,
+.cv-builder-header,
+.cv-progress-row {
+  max-width: 1440px;
+  margin-inline: auto;
+}
+
+.cv-builder-topline {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #e6e0d6;
+  padding-bottom: .9rem;
+  color: #6b6660;
+  font-family: var(--font-code);
+  font-size: .68rem;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+
+.cv-breadcrumb {
+  display: flex;
+  gap: .7rem;
+  align-items: center;
+}
+
+.cv-breadcrumb strong {
+  color: #3f454a;
+}
+
+.cv-save-state {
+  display: flex;
+  align-items: center;
+  gap: .45rem;
+  letter-spacing: .06em;
+  text-transform: none;
+}
+
+.cv-live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #6f9e9a;
+  box-shadow: 0 0 0 4px #6f9e9a1c;
+}
+
+.cv-builder-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 2rem;
+  padding: 3rem 0 2rem;
+}
+
+.cv-eyebrow {
+  margin: 0 0 .7rem;
+  color: #6b6660;
+  font-family: var(--font-code);
+  font-size: .68rem;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+}
+
+.cv-builder-header h1 {
+  margin: 0;
+  font-size: clamp(2.5rem, 5vw, 4.8rem);
+  font-weight: 500;
+  letter-spacing: -.07em;
+  line-height: .95;
+}
+
+.cv-builder-header h1 em {
+  color: #35638f;
+  font-style: normal;
+}
+
+.cv-builder-subtitle {
+  max-width: 520px;
+  margin: 1.1rem 0 0;
+  color: #6b6660;
+  font-size: .95rem;
+}
+
+.cv-header-actions {
+  display: flex;
+  gap: .7rem;
+  flex-wrap: wrap;
+}
+
+.cv-progress-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 0;
+  border-top: 1px solid #e6e0d6;
+  border-bottom: 1px solid #e6e0d6;
+  margin-bottom: 1.75rem;
+}
+
+.cv-progress-label {
+  display: flex;
+  gap: .5rem;
+  align-items: center;
+  min-width: 148px;
+  font-family: var(--font-code);
+  font-size: .66rem;
+  letter-spacing: .1em;
+  color: #6b6660;
+}
+
+.cv-progress-label strong {
+  color: #3f454a;
+}
+
+.cv-progress-track {
+  height: 5px;
+  flex: 1;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #eaf1f7;
+}
+
+.cv-progress-track div {
+  height: 100%;
+  border-radius: inherit;
+  background: #6f9e9a;
+  transition: width .3s ease;
+}
+
+.cv-progress-note {
+  color: #6b6660;
+  font-size: .78rem;
+  white-space: nowrap;
+}
+
+.cv-builder-grid {
+  max-width: 1440px;
+  margin-inline: auto;
+  grid-template-columns: minmax(0, 5fr) minmax(420px, 7fr);
+  gap: 2rem;
+}
+
+.cv-editor-column {
+  min-width: 0;
+}
+
+.cv-preview-column {
+  min-width: 0;
+}
+
+.cv-section-heading,
+.cv-preview-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 1.25rem;
+}
+
+.cv-section-heading h2,
+.cv-preview-toolbar h2 {
+  margin: 0;
+  font-size: 1.45rem;
+  font-weight: 500;
+  letter-spacing: -.04em;
+}
+
+.cv-section-heading > span,
+.cv-preview-status {
+  display: flex;
+  align-items: center;
+  gap: .35rem;
+  color: #6f9e9a;
+  font-family: var(--font-code);
+  font-size: .68rem;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+}
+
+.cv-form-stack {
+  display: grid;
+  gap: 1rem;
+}
+
+.cv-form-card {
+  border: 1px solid var(--border);
+  border-radius: 1.2rem;
+  background: var(--card);
+  box-shadow: 0 2px 10px #26352b08;
+}
+
+.cv-form-card [data-slot="card-header"] {
+  padding: 1rem 1rem 0.8rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.cv-form-card [data-slot="card-title"] {
+  display: flex;
+  align-items: center;
+  gap: .55rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+.cv-form-card [data-slot="card-title"] svg {
+  color: var(--primary);
+}
+
+.cv-form-card label {
+  color: var(--muted-foreground);
+  font-family: var(--font-code);
+  font-size: .67rem;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.cv-form-card input,
+.cv-form-card textarea {
+  border-color: var(--input);
+  border-radius: .7rem;
+  background: var(--card);
+}
+
+.cv-required,
+.cv-card-helper {
+  margin-left: auto;
+  color: var(--muted-foreground);
+  font-family: var(--font-code);
+  font-size: .62rem;
+  font-weight: 400;
+  letter-spacing: .08em;
+}
+
+.cv-repeat-item {
+  display: grid;
+  gap: .75rem;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: .9rem;
+  background: var(--card);
+}
+
+.cv-empty-form {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .6rem;
+  min-height: 5rem;
+  border: 1px dashed var(--border);
+  border-radius: .8rem;
+  color: var(--muted-foreground);
+  font-size: .82rem;
+  text-align: center;
+}
+
+.cv-empty-form svg {
+  color: var(--primary);
+}
+
+.cv-preview-toolbar {
+  margin-bottom: 1rem;
+}
+
+.cv-preview-frame {
+  position: sticky;
+  top: 5.5rem;
+  padding: clamp(.8rem, 2vw, 1.5rem);
+  border: 1px solid var(--border);
+  border-radius: 1.35rem;
+  background: var(--muted);
+  box-shadow: inset 0 0 0 1px var(--card), 0 12px 30px #29362b0b;
+}
+
+.cv-preview-hint {
+  display: flex;
+  align-items: center;
+  gap: .45rem;
+  justify-content: center;
+  color: #6b6660;
+  font-size: .76rem;
+  margin-top: 1rem;
+}
+
+/* Quick actions pinned at the top of the A4 preview pane. The frame
+   itself is sticky, so the bar stays visible while scrolling the long
+   editor column. Never captured into PDF/print output. */
+.cv-preview-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .5rem .75rem;
+  flex-wrap: wrap;
+  margin-bottom: .75rem;
+  padding: 0 .25rem .75rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.cv-paper {
+  overflow: hidden;
+  background: #fff;
+  color: #3f454a;
+  box-shadow: 0 8px 25px #26352b16;
+  font-family: Arial, sans-serif;
+}
+
+.cv-paper-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 2rem 2rem 1.7rem;
+  background: var(--cv-accent);
+  color: #fff;
+}
+
+.cv-paper-kicker,
+.cv-paper-label {
+  margin: 0 0 .7rem;
+  font-family: var(--font-code);
+  font-size: .52rem;
+  letter-spacing: .17em;
+}
+
+.cv-paper-header h1 {
+  margin: 0;
+  font-size: clamp(1.8rem, 3vw, 2.5rem);
+  letter-spacing: -.06em;
+  line-height: 1;
+}
+
+.cv-paper-role {
+  margin: .55rem 0 0;
+  color: #dcebe5;
+  font-size: .9rem;
+}
+
+.cv-paper-mark {
+  width: 2.7rem;
+  height: 2.7rem;
+  padding-top: .35rem;
+  border: 1px solid #fff7;
+  border-radius: 50%;
+  text-align: center;
+  font-family: var(--font-code);
+  font-size: .53rem;
+  line-height: .9;
+}
+
+.cv-paper-mark span {
+  font-size: .7rem;
+}
+
+.cv-paper-body {
+  display: grid;
+  grid-template-columns: 34% 66%;
+  min-height: 550px;
+}
+
+.cv-paper-sidebar {
+  padding: 1.5rem 1rem 2rem 1.5rem;
+  background: #f7f5f1;
+}
+
+.cv-paper-main {
+  padding: 1.5rem;
+}
+
+.cv-sidebar-block,
+.cv-paper-section {
+  margin-bottom: 1.7rem;
+}
+
+.cv-paper-label {
+  color: var(--cv-accent);
+  font-weight: 700;
+}
+
+.cv-contact {
+  display: flex;
+  align-items: flex-start;
+  gap: .35rem;
+  margin: .55rem 0;
+  color: #6b6660;
+  font-size: .6rem;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.cv-contact svg {
+  flex: 0 0 auto;
+  color: var(--cv-accent);
+}
+
+/* Resume paper: real A4 sheets. Each .cv-paper-a4 is one physical page
+   (210mm wide, 297/210 aspect as minimum height, grows only if a single
+   unbreakable block overflows). Sheets stack with a gap on the neutral
+   frame background — never one infinitely long white surface. */
+.cv-paper-a4 {
+  width: 210mm;
+  max-width: 100%;
+  aspect-ratio: 210 / 297;
+}
+
+.cv-pages-root {
+  position: relative;
+}
+
+.cv-pages {
+  display: grid;
+  gap: 1rem;
+  align-content: start;
+}
+
+.cv-sheet {
+  min-width: 0;
+}
+
+/* Hidden measurement pass: same width as the visible sheets, out of flow. */
+.cv-measure {
+  position: absolute;
+  inset: 0 0 auto 0;
+  visibility: hidden;
+  pointer-events: none;
+  z-index: -1;
+  overflow: hidden;
+}
+
+.cv-section-item {
+  break-inside: avoid;
+}
+
+/* ── Restrained micro-interactions (transform/opacity only, 150–250ms) ── */
+.cv-preview-crossfade {
+  animation: cv-fade 180ms ease-out;
+}
+
+@keyframes cv-fade {
+  from { opacity: 0.35; }
+  to { opacity: 1; }
+}
+
+.template-card {
+  transition: border-color 200ms ease, box-shadow 200ms ease, background-color 200ms ease;
+}
+
+.cv-check-dot {
+  transition: transform 200ms ease, background-color 200ms ease, border-color 200ms ease;
+}
+
+.cv-check-dot[data-done="true"] {
+  animation: cv-pop 200ms ease-out;
+}
+
+@keyframes cv-pop {
+  from { transform: scale(0.6); }
+  to { transform: scale(1); }
+}
+
+.cv-repeat-enter {
+  animation: cv-rise 200ms ease-out;
+}
+
+/* Thin themed scrollbar for single-scroll regions (e.g. template list).
+   Keeps wheel/touch scrolling, avoids heavy native scrollbars. */
+.cv-thin-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+.cv-thin-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+.cv-thin-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.cv-thin-scroll::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 9999px;
+}
+.cv-thin-scroll::-webkit-scrollbar-thumb:hover {
+  background: var(--muted-foreground);
+}
+
+@keyframes cv-rise {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* In CV: chỉ in khung xem trước, ẩn toàn bộ app shell */
+@media print {
+  @page {
+    size: A4;
+    margin: 8mm;
+  }
+
+  body {
+    background: #fff;
+  }
+
+  body * {
+    visibility: hidden;
+  }
+
+  .cv-preview-frame,
+  .cv-preview-frame * {
+    visibility: visible;
+  }
+
+  .cv-preview-frame {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    margin: 0;
+    padding: 0;
+    border: none;
+    background: #fff;
+    overflow: visible;
+  }
+
+  .cv-preview-hint {
+    display: none !important;
+  }
+
+  .cv-preview-bar {
+    display: none !important;
+  }
+
+  /* Screen stacking gap must not leak blank space into paged output. */
+  .cv-pages {
+    gap: 0;
+  }
+
+  /* Each sheet is one printed page; the last sheet must not force a
+     trailing blank page. Compact vertical rhythm for print density. */
+  .cv-pages > .cv-sheet {
+    break-after: page;
+  }
+
+  .cv-pages > .cv-sheet:last-child {
+    break-after: auto;
+  }
+
+  .cv-paper {
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+
+  .cv-paper-a4 {
+    width: auto;
+    max-width: none;
+    aspect-ratio: auto;
+  }
+
+  .cv-sidebar-block,
+  .cv-paper-section {
+    margin-bottom: 1.1rem;
+  }
+
+  .cv-section-item {
+    break-inside: avoid;
+    break-after: auto;
+  }
+
+  * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
 }

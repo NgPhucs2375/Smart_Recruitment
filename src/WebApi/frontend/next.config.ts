@@ -1,6 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Standalone output cho Docker production (server.js + static tách gọn).
+  // Dev (next dev) không bị ảnh hưởng.
+  output: "standalone",
   typescript: { ignoreBuildErrors: true },
   serverExternalPackages: ["@copilotkit/runtime"],
   env: {

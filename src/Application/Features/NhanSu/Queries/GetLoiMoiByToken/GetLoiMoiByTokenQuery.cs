@@ -21,23 +21,28 @@ namespace Application.Features.NhanSu.Queries.GetLoiMoiByToken
         public string TrangThai { get; set; }
     }
 
-    public class GetLoiMoiByTokenQueryHandler : IRequestHandler<GetLoiMoiByTokenQuery, Response<LoiMoiNhanSuVm>>
+    public class GetLoiMoiByTokenQueryHandler(
+        IApplicationDbContext context)
+        : IRequestHandler<GetLoiMoiByTokenQuery, Response<LoiMoiNhanSuVm>>
     {
-        private readonly IApplicationDbContext _context;
-
-        public GetLoiMoiByTokenQueryHandler(IApplicationDbContext context)
+        public async Task<Response<LoiMoiNhanSuVm>> Handle(
+            GetLoiMoiByTokenQuery request,
+            CancellationToken cancellationToken)
         {
-            _context = context;
-        }
+            var token = request.Token?.Trim();
 
-        public async Task<Response<LoiMoiNhanSuVm>> Handle(GetLoiMoiByTokenQuery q, CancellationToken ct)
-        {
-            var entity = await _context.LoiMoiNhanSus
+            var entity = await context.LoiMoiNhanSus
+                .AsNoTracking()
                 .Include(l => l.DoanhNghiep)
-                .FirstOrDefaultAsync(l => l.Token == q.Token, ct);
+                .FirstOrDefaultAsync(
+                    l => l.Token == token,
+                    cancellationToken);
 
             if (entity == null)
-                return new Response<LoiMoiNhanSuVm>("Lời mời không tồn tại.");
+            {
+                return new Response<LoiMoiNhanSuVm>(
+                    "Lời mời không tồn tại.");
+            }
 
             var vm = new LoiMoiNhanSuVm
             {
