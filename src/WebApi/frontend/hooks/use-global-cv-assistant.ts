@@ -21,8 +21,8 @@ import {
  *
  * Hook này luôn sẵn sàng ở mọi trang protected:
  * - expose `route` context để agent biết user đang ở đâu,
- * - expose `navigateToCvEditor` để agent lưu nháp + nhảy vào /tao-cv.
- * Khi đã ở /tao-cv, useCvAssistant lo điền trực tiếp; tool này chỉ là fallback.
+ * - expose `navigateToCvEditor` để agent lưu nháp + nhảy vào /CV.
+ * Khi đã ở /CV, useCvAssistant lo điền trực tiếp; tool này chỉ là fallback.
  */
 
 const navigateSchema = z.object({
@@ -56,13 +56,13 @@ const navigateSchema = z.object({
 export function useGlobalCvAssistant({ enabled = true }: { enabled?: boolean } = {}) {
   const router = useRouter();
   const pathname = usePathname();
-  const isEditor = pathname?.startsWith("/tao-cv") ?? false;
+  const isEditor = pathname?.startsWith("/tao-cv") || pathname?.startsWith("/CV") || false;
 
   useAgentContext({
     description:
       "Vị trí trang hiện tại của user. " +
       "Nếu isEditor=false thì KHÔNG có form CV trực tiếp để ghi — " +
-      "muốn điền CV phải gọi navigateToCvEditor (tự lưu nháp + nhảy vào /tao-cv). " +
+      "muốn điền CV phải gọi navigateToCvEditor (tự lưu nháp + nhảy vào /CV). " +
       "Nếu isEditor=true thì điền trực tiếp bằng updateCvContact/updateCvMeta/upsertCvSectionItem.",
     value: JSON.parse(JSON.stringify({ pathname: pathname ?? "", isEditor })) as {
       pathname: string;
@@ -74,7 +74,7 @@ export function useGlobalCvAssistant({ enabled = true }: { enabled?: boolean } =
     {
       name: "navigateToCvEditor",
       description:
-        "Lưu nháp CV rồi mở trình soạn /tao-cv. " +
+        "Lưu nháp CV rồi mở workspace /CV. " +
         "BẮT BUỘC gọi khi user nói 'tạo CV / CV mới / tạo CV với tên là X' mà isEditor=false. " +
         "Sau khi gọi, báo user đang mở trình soạn và liệt kê đã lưu gì.",
       parameters: navigateSchema,
@@ -141,7 +141,7 @@ export function useGlobalCvAssistant({ enabled = true }: { enabled?: boolean } =
               ? `Đã lưu ${savedBits.join(", ")} — đang mở trình soạn CV.`
               : "Đang mở trình soạn CV.",
           );
-          router.push("/tao-cv");
+          router.push("/CV");
         } else {
           // Đã ở editor: pending-patch sẽ được useCvAssistant đổ vào form ngay.
           toast.success(
@@ -151,8 +151,8 @@ export function useGlobalCvAssistant({ enabled = true }: { enabled?: boolean } =
           );
         }
         return isEditor
-          ? "Đã lưu nháp. Form /tao-cv đang mở sẽ tự đổ patch vào."
-          : "Đã lưu nháp và điều hướng tới /tao-cv. Form sẽ tự đổ patch khi load xong.";
+          ? "Đã lưu nháp. Workspace /CV đang mở sẽ tự đổ patch vào."
+          : "Đã lưu nháp và điều hướng tới /CV. Workspace sẽ tự đổ patch khi load xong.";
       },
     },
     [enabled, isEditor, pathname],

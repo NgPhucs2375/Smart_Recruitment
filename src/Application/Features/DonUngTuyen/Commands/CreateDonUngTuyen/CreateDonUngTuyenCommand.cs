@@ -84,6 +84,16 @@ public class CreateDonUngTuyenCommandHandler(
         await machine.FireSystemAsync(
             TriggerDonUngTuyen.XuLyHoSoThanhCong,
             "Hồ sơ hợp lệ, vào hàng đợi xử lý.",
+            cancellationToken,
+            runSideEffects: false);
+
+        await context.SaveChangesAsync(cancellationToken);
+
+        // The application ID must exist before the notification is created.
+        await workflow.HandleSideEffectsAsync(
+            entity,
+            TriggerDonUngTuyen.XuLyHoSoThanhCong,
+            "Hồ sơ hợp lệ, vào hàng đợi xử lý.",
             cancellationToken);
 
         await context.SaveChangesAsync(cancellationToken);

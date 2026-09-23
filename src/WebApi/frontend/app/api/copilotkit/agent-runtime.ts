@@ -24,6 +24,9 @@ const agentFetch: HttpAgentFetchFn = async (url, requestInit) => {
   if (auth) headers.set("Authorization", auth);
   const res = await fetch(url, { ...requestInit, headers });
   const contentType = res.headers.get("content-type") ?? "";
+  if (!res.ok) {
+    console.error("[AG-UI bridge] backend request failed", { status: res.status, contentType });
+  }
   if (!res.ok || !res.body || !contentType.includes("text/event-stream")) {
     return res;
   }
@@ -36,7 +39,20 @@ const agentFetch: HttpAgentFetchFn = async (url, requestInit) => {
       const parts = buffer.split(/\r?\n/);
       buffer = parts.pop() ?? "";
       for (const line of parts) {
-        controller.enqueue(encoder.encode(`${sanitizeSseLine(line)}\n`));
+        const sanitized = sanitizeSseLine(line);
+        if (line.startsWith("data:")) {
+          try {
+            const payload = JSON.parse(line.slice(5).trimStart()) as { type?: string };
+            if (payload.type?.includes("error")) {
+              console.error("[AG-UI bridge] backend error event", { type: payload.type });
+            } else if (payload.type?.includes("tool")) {
+              console.debug("[AG-UI bridge] tool event", { type: payload.type });
+            }
+          } catch {
+            console.warn("[AG-UI bridge] invalid SSE JSON line", { length: line.length });
+          }
+        }
+        controller.enqueue(encoder.encode(`${sanitized}\n`));
       }
     },
     flush(controller) {

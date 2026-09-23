@@ -70,6 +70,40 @@ export const magicLinkSchema = z.object({
   }
 });
 
+export const forgotPasswordSchema = z.object({
+  email: z.string().regex(/^[^\s@]+@[^\s@]+$/, "Email không hợp lệ"),
+});
+
+export const resetPasswordSchema = z.object({
+  password: z.string().min(6, "Mật khẩu phải tối thiểu 6 ký tự"),
+  confirmPassword: z.string().min(1, "Vui lòng xác nhận lại mật khẩu"),
+}).superRefine((data, ctx) => {
+  if (data.password !== data.confirmPassword) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Mật khẩu không khớp.",
+      path: ["confirmPassword"],
+    });
+  }
+});
+
+export const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1, "Vui lòng nhập mật khẩu hiện tại"),
+  newPassword: z.string().min(6, "Mật khẩu mới phải tối thiểu 6 ký tự"),
+  confirmPassword: z.string().min(1, "Vui lòng xác nhận lại mật khẩu"),
+}).superRefine((data, ctx) => {
+  if (data.newPassword !== data.confirmPassword) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Mật khẩu mới không khớp.",
+      path: ["confirmPassword"],
+    });
+  }
+});
+
 export type LoginFormData = z.infer<typeof loginSchema>;
 export type RegisterFormData = z.infer<typeof registerSchema>;
 export type MagicLinkFormData = z.infer<typeof magicLinkSchema>;
+export type ForgotPasswordFormData = z.infer<typeof forgotPasswordSchema>;
+export type ResetPasswordFormData = z.infer<typeof resetPasswordSchema>;
+export type ChangePasswordFormData = z.infer<typeof changePasswordSchema>;

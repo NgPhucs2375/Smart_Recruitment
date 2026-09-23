@@ -54,7 +54,8 @@ namespace Application.Features.DonUngTuyen.Commands.UpdateDonUngTuyen
                 await sm.FireAsync(
                     request.Trigger,
                     request.GhiChu ?? string.Empty,
-                    cancellationToken);
+                    cancellationToken,
+                    runSideEffects: false);
             }
             catch (ApiException ex)
             {
@@ -74,6 +75,15 @@ namespace Application.Features.DonUngTuyen.Commands.UpdateDonUngTuyen
 
             await context.SaveChangesAsync(
                 cancellationToken);
+
+            // Persist the state before publishing the notification/realtime event.
+            await workflow.HandleSideEffectsAsync(
+                entity,
+                request.Trigger,
+                request.GhiChu ?? string.Empty,
+                cancellationToken);
+
+            await context.SaveChangesAsync(cancellationToken);
 
             return new Response<int>(
                 data: entity.Id,

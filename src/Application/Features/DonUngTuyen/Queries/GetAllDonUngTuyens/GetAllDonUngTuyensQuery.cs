@@ -39,7 +39,7 @@ namespace Application.Features.DonUngTuyen.Queries.GetAllDonUngTuyens
             // QUAN_TRI_VIEN: xem tất cả, không lọc thêm
             if (ctx.VaiTro == VaiTroNguoiDung.NHAN_SU)
             {
-                query = query.Where(d => d.TinTuyenDung.NguoiDangTinId == ctx.Id);
+                query = query.Where(d => d.TinTuyenDung.DoanhNghiepId == ctx.DoanhNghiepId);
             }
             else if (ctx.VaiTro == VaiTroNguoiDung.NGUOI_DAI_DIEN)
             {

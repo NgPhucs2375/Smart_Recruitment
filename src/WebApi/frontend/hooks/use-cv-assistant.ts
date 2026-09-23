@@ -91,7 +91,7 @@ const metaSchema = z.object({
 /**
  * Gắn Adam vào form CV: expose snapshot đọc + 8 frontend tool (7 ghi + 1 mở CV đã lưu).
  * Ghi thẳng vào form live (preview realtime), mỗi lần ghi có toast Hoàn tác.
- * Chỉ mount trong /tao-cv. Chat từ trang khác dùng useGlobalCvAssistant
+ * Mount trong /tao-cv và /CV. Chat từ trang khác dùng useGlobalCvAssistant
  * (navigateToCvEditor + pending-patch) rồi đổ vào đây.
  */
 export function useCvAssistant({
@@ -303,7 +303,7 @@ export function useCvAssistant({
     {
       name: "loadCvFromBackend",
       description:
-        "Mở MỘT CV đã lưu vào trình soạn /tao-cv để chỉnh tiếp (thay toàn bộ form hiện tại). " +
+        "Mở MỘT CV đã lưu vào workspace /CV để chỉnh tiếp (thay toàn bộ form hiện tại). " +
         "cvId lấy từ backend tool list_my_cvs. Nếu form đang có thay đổi chưa lưu, nhắc user trước khi gọi. " +
         "Sau khi mở, đọc lại trạng thái form bằng getCvFormSnapshot trước khi sửa.",
       parameters: loadCvSchema,
@@ -317,15 +317,15 @@ export function useCvAssistant({
           }
           return `Không tải được CV ${cvId}. Báo người dùng thử lại hoặc mở thủ công từ hồ sơ.`;
         }
-        router.push(`/tao-cv?cv=${cvId}`);
-        return `Đang chuyển sang /tao-cv để mở CV ${cvId}. Form sẽ tự load CV khi đến nơi.`;
+        router.push(`/CV?cv=${cvId}`);
+        return `Đang chuyển sang /CV để mở CV ${cvId}. Workspace sẽ tự load CV khi đến nơi.`;
       },
     },
     [enabled],
   );
 
   // Pending patch: đổ vào form sau khi load xong (chat từ trang khác nhảy sang),
-  // và lắng nghe event cùng-tab khi user chat ngay trong /tao-cv mà agent
+  // và lắng nghe event cùng-tab khi user chat ngay trong /CV mà agent
   // lại gọi navigateToCvEditor thay vì tool điền trực tiếp.
   useEffect(() => {
     const drainPending = (isInitial: boolean) => {

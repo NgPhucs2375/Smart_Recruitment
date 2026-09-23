@@ -4,6 +4,7 @@ using Microsoft.IdentityModel.Tokens;
 using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace Infrastructure.Identity.Helpers
 {
@@ -19,6 +20,22 @@ namespace Infrastructure.Identity.Helpers
 
                 .AddJwtBearer(o =>
                 {
+                    // SignalR sends the bearer token as access_token in the query
+                    // string when it cannot set an Authorization header.
+                    o.Events = new JwtBearerEvents
+                    {
+                        OnMessageReceived = context =>
+                        {
+                            if (context.Request.Path.StartsWithSegments("/api/hubs") &&
+                                string.IsNullOrEmpty(context.Token))
+                            {
+                                context.Token = context.Request.Query["access_token"];
+                            }
+
+                            return Task.CompletedTask;
+                        },
+                    };
+
                     o.TokenValidationParameters = new TokenValidationParameters
                     {
                         ValidateIssuerSigningKey = true,

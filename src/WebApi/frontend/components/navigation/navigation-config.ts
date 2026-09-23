@@ -27,7 +27,7 @@ export const recruiterNavigation: NavigationItem[] = [
   { title: "Tin tuyển dụng", href: "/tin-tuyen-dung", icon: BriefcaseBusiness, permission: { resource: "tintuyendungs", action: "list" } },
   { title: "Duyệt tin Nhân sự", href: "/duyet-tin-nhan-su", icon: ListChecks, permission: { resource: "tintuyendungs", action: "edit" }, roles: ["NGUOI_DAI_DIEN"] },
   { title: "Ứng viên", href: "/ung-vien", icon: Users },
-  { title: "Nhân sự", href: "/nhan-su", icon: Users, permission: { resource: "nhansus", action: "list" } },
+  { title: "Nhân sự", href: "/nhan-su", icon: Users, permission: { resource: "nhansus", action: "list" }, roles: ["NGUOI_DAI_DIEN"] },
   { title: "Tin nhắn", href: "/tin-nhan", icon: FileText },
   { title: "Báo cáo", href: "/reports", icon: BarChart3 },
   { title: "Hồ sơ doanh nghiệp", href: "/doanh-nghiep/ho-so", icon: Building2 },

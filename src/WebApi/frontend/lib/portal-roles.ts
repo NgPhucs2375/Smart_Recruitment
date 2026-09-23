@@ -44,7 +44,7 @@ export function homePortalFor(roles: string[] | null | undefined): PortalKind | 
   return null;
 }
 
-const NEXT_ALLOWLIST = ["/login", "/employer/login", "/dashboard", "/ho-so", "/tao-cv", "/mau-cv", "/accept-invite"];
+const NEXT_ALLOWLIST = ["/login", "/employer/login", "/dashboard", "/ho-so", "/CV", "/tao-cv", "/mau-cv", "/accept-invite"];
 
 /** Sanitize frontend-only ?next= passthrough (no backend change). */
 export function sanitizeNext(raw: string | null | undefined): string | null {

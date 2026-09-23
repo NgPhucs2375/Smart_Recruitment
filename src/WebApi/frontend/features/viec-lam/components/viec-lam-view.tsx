@@ -8,6 +8,7 @@ import { JobCard, JobCardSkeleton } from "./job-card";
 import { JobFiltersBar } from "./job-filters";
 import type { Job, JobFilters } from "../types";
 import { useBookmarks } from "@/hooks/use-bookmarks";
+import { RecommendationPreview } from "@/features/recommendations/recommendation-preview";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { jobsApi } from "@/lib/api/jobs-api";
@@ -163,6 +164,8 @@ function ViecLamContent() {
           {showSavedOnly ? `Đã lưu (${savedCount})` : `Việc đã lưu${savedCount ? ` (${savedCount})` : ""}`}
         </Button>
       </div>
+
+      <RecommendationPreview count={3} />
 
       <JobFiltersBar
         filters={filters}

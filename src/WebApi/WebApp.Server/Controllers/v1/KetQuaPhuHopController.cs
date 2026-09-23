@@ -10,6 +10,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Application.DTOs.DanhMucNghe;
+using Application.Features.KetQuaPhuHop.Queries.SuggestJobsForCv;
+using Application.Features.KetQuaPhuHop.Queries.SuggestCandidatesForJob;
 
 namespace WebApp.Server.Controllers.v1
 {
@@ -49,6 +51,31 @@ namespace WebApp.Server.Controllers.v1
                 });
         }
 
+        [HttpGet("recommendations")]
+        public async Task<IActionResult> Recommendations([FromQuery] int topN = 10)
+        {
+            return await EnforcePermissionAndExecute(
+                "ketquaphuhops",
+                "list",
+                async () => Ok(await Mediator.Send(new GetSuggestedJobsForCvQuery
+                {
+                    TopN = Math.Clamp(topN, 3, 10)
+                })));
+        }
+
+        [HttpGet("candidates")]
+        public async Task<IActionResult> Candidates([FromQuery] int tinTuyenDungId, [FromQuery] int topN = 10)
+        {
+            return await EnforcePermissionAndExecute(
+                "ketquaphuhops",
+                "list",
+                async () => Ok(await Mediator.Send(new GetSuggestedCandidatesForJobQuery
+                {
+                    TinTuyenDungId = tinTuyenDungId,
+                    TopN = Math.Clamp(topN, 3, 20)
+                })));
+        }
+
         [HttpGet("show/{id}")]
         public async Task<IActionResult> Show(int id)
         {
@@ -81,7 +108,7 @@ namespace WebApp.Server.Controllers.v1
                 });
         }
 
-        [HttpPut("{id}")]
+        [HttpPut("{id:int}")]
         public async Task<IActionResult> Update(
             int id,
             [FromBody] CapNhatKetQuaPhuHopDto dto)
@@ -103,7 +130,7 @@ namespace WebApp.Server.Controllers.v1
                 });
         }
 
-        [HttpDelete("{id}")]
+        [HttpDelete("{id:int}")]
         public async Task<IActionResult> Delete(int id)
         {
             return await EnforcePermissionAndExecute(

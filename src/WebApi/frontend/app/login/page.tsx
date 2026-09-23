@@ -152,6 +152,7 @@ function LoginContent() {
               <Input
                 id="email"
                 type="email"
+                autoComplete="username"
                 placeholder="name@company.com"
                 {...register("email")}
                 disabled={isPending}

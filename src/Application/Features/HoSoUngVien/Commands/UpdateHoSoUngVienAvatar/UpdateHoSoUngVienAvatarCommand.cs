@@ -64,6 +64,7 @@ public class UpdateHoSoUngVienAvatarCommandHandler(
 
         var oldObjectName = profile.AnhDaiDienUrl;
         profile.AnhDaiDienUrl = objectName;
+        context.HoSoUngViens.Update(profile);
         await context.SaveChangesAsync(cancellationToken);
 
         if (!string.IsNullOrWhiteSpace(oldObjectName) && oldObjectName.StartsWith("avatars/"))
@@ -85,6 +86,7 @@ public class UpdateHoSoUngVienAvatarCommandHandler(
 
         var oldObjectName = profile.AnhDaiDienUrl;
         profile.AnhDaiDienUrl = null;
+        context.HoSoUngViens.Update(profile);
         await context.SaveChangesAsync(cancellationToken);
 
         if (!string.IsNullOrWhiteSpace(oldObjectName) && oldObjectName.StartsWith("avatars/"))

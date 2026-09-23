@@ -43,7 +43,9 @@ namespace Infrastructure.Persistence.Contexts
 	        public DbSet<CVTepTin> CVTepTins { get; set; }
 	        public DbSet<CVPhienBan> CVPhienBans { get; set; }
 	        public DbSet<DanhGia> DanhGias {get; set;}
-	        public DbSet<global::KyNangUngVien> KyNangUngViens { get; set; }
+        public DbSet<global::KyNangUngVien> KyNangUngViens { get; set; }
+        public DbSet<Conversation> Conversations { get; set; }
+        public DbSet<Message> Messages { get; set; }
 
         public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = new CancellationToken())
         {

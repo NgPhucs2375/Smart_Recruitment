@@ -134,7 +134,7 @@ export function toJsonSafe<T>(value: T): T {
   return JSON.parse(JSON.stringify(value ?? null)) as T;
 }
 
-// ---- Pending patch: chat ở trang khác -> nhảy về /tao-cv rồi đổ vào form ----
+// ---- Pending patch: chat ở trang khác -> nhảy về /CV rồi đổ vào form ----
 
 export type PendingSectionPatch = {
   section: CvSectionKey;
@@ -152,7 +152,7 @@ export type PendingCvPatch = {
 
 const PENDING_KEY = "hireai.cv-pending-patch";
 
-/** Event nội bộ cùng-tab: báo cho form /tao-cv đang mở đổ patch ngay, khỏi chờ reload. */
+/** Event nội bộ cùng-tab: báo cho workspace /CV đang mở đổ patch ngay, khỏi chờ reload. */
 export const CV_PENDING_PATCH_EVENT = "hireai:cv-pending-patch";
 
 export function savePendingCvPatch(patch: Omit<PendingCvPatch, "savedAt">): void {

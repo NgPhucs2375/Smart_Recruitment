@@ -496,6 +496,50 @@ export async function requestMagicLink(payload: {
   }
 }
 
+type AccountActionResult = { success: boolean; message?: string };
+
+async function accountAction(
+  endpoint: string,
+  body: Record<string, string>,
+  authenticated = false,
+): Promise<AccountActionResult> {
+  try {
+    const token = authenticated ? await getValidToken() : null;
+    if (authenticated && !token) return { success: false, message: "Phiên đăng nhập đã hết hạn." };
+
+    const res = await fetch(`${API_URL}/${endpoint}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify(body),
+    });
+    const responseBody = await res.json().catch(() => ({}));
+    const message = responseBody?.Message ?? responseBody?.message ?? responseBody?.detail ?? responseBody?.title;
+    return res.ok
+      ? { success: true, message }
+      : { success: false, message: message || "Yêu cầu không thành công." };
+  } catch (err) {
+    return { success: false, message: err instanceof Error ? err.message : "Lỗi kết nối máy chủ." };
+  }
+}
+
+export function requestPasswordReset(email: string): Promise<AccountActionResult> {
+  return accountAction("forgot-password", { Email: email });
+}
+
+export function resetPassword(email: string, token: string, password: string): Promise<AccountActionResult> {
+  return accountAction("reset-password", { Email: email, Token: token, Password: password });
+}
+
+export function changePassword(currentPassword: string, newPassword: string): Promise<AccountActionResult> {
+  return accountAction("change-password", {
+    MatKhauHienTai: currentPassword,
+    MatKhauMoi: newPassword,
+  }, true);
+}
+
 export async function magicLogin(payload: {
   email: string;
   token: string;

@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useState } from "react";
+import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import { useActiveAuthProvider, useGetIdentity, useLogout } from "@refinedev/core";
 import { SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
@@ -13,12 +15,15 @@ import {
 import { ModeToggle } from "@/components/mode-toggle";
 import { NotificationBell } from "@/components/layout/notification-bell";
 import { cn } from "@/lib/utils";
+import { hoSoApi } from "@/lib/api/cv-api";
 import { LogOut, User, Search, Bell, Sun, Moon, Settings } from "lucide-react";
 
 interface Identity {
+  id?: string;
   name?: string;
   avatar?: string;
   email?: string;
+  roles?: string[];
 }
 
 export function AppHeaderV2() {
@@ -94,12 +99,41 @@ function UserDropdownV2() {
   const authProvider = useActiveAuthProvider();
   const { data: identity } = useGetIdentity<Identity>();
   const { mutate: logout, isPending } = useLogout();
+  const [profileAvatar, setProfileAvatar] = useState<{ identityId: string; url: string } | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    if (!identity?.id) {
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    hoSoApi.getMyHoSo()
+      .then((profile) => {
+        if (!cancelled && profile.anhDaiDienUrl) {
+          setProfileAvatar({ identityId: identity.id!, url: profile.anhDaiDienUrl });
+        }
+      })
+      .catch(() => {
+        // Keep the initials when the profile is unavailable.
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [identity?.id, identity?.roles]);
 
   if (!authProvider?.getIdentity) return null;
 
   const initials = identity?.name
     ? identity.name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
     : "U";
+  const profileAvatarUrl = profileAvatar && profileAvatar.identityId === identity?.id
+    ? profileAvatar.url
+    : null;
+  const avatarUrl = profileAvatarUrl || identity?.avatar;
 
   return (
     <DropdownMenu>
@@ -107,10 +141,13 @@ function UserDropdownV2() {
         aria-label={identity?.name ?? "User menu"}
         className="flex h-9 w-9 items-center justify-center rounded-full bg-workspace-primary text-workspace-on-primary text-sm font-semibold shrink-0 ring-2 ring-workspace-secondary/70 hover:bg-workspace-primary-hover transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-workspace-primary focus-visible:ring-offset-2"
       >
-        {identity?.avatar ? (
-          <img
-            src={identity.avatar}
-            alt={identity.name ?? "avatar"}
+        {avatarUrl ? (
+          <Image
+            src={avatarUrl}
+            alt={identity?.name ?? "avatar"}
+            width={36}
+            height={36}
+            unoptimized
             className="h-full w-full rounded-full object-cover"
           />
         ) : (

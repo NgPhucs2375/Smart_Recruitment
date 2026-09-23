@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useTheme } from "@/components/theme-provider";
 import type { StoredIdentity } from "@/lib/access-control-provider";
 import { SettingRow, SettingsGroup, SoonBadge } from "./setting-bits";
+import { PasswordChangeForm } from "./password-change-form";
 
 function ThemeSegmented() {
   const { theme, setTheme } = useTheme();
@@ -101,11 +102,7 @@ export function RecruiterSettings({ identity }: { identity: StoredIdentity | nul
 
         <TabsContent value="security" className="mt-4">
           <SettingsGroup title="Bảo mật">
-            <SettingRow
-              title="Mật khẩu đăng nhập"
-              description="Đổi mật khẩu bảo vệ tài khoản"
-              action={<SoonBadge />}
-            />
+            <PasswordChangeForm />
             <SettingRow
               title="Đăng xuất"
               description="Thoát khỏi tài khoản trên thiết bị này"

@@ -83,9 +83,15 @@ export async function proxyDotnet(
 
     console.log(`[${label} ${reqId}] ${method} OK ${r.status} (${elapsed}ms)`);
     const body = await r.arrayBuffer();
+    const upstreamContentType = r.headers.get("Content-Type");
+    const fallbackContentType = /\/avatar(?:\?|$)/i.test(path)
+      ? ({ ".png": "image/png", ".webp": "image/webp", ".gif": "image/gif" } as Record<string, string>)[
+          (new URL(url).searchParams.get("key") ?? "").slice((new URL(url).searchParams.get("key") ?? "").lastIndexOf(".")).toLowerCase()
+        ] ?? "image/jpeg"
+      : "application/json";
     return new NextResponse(body, {
       status: r.status,
-      headers: { "Content-Type": r.headers.get("Content-Type") ?? "application/json" },
+      headers: { "Content-Type": upstreamContentType ?? fallbackContentType },
     });
   } catch (err) {
     console.warn(`[${label} ${reqId}] ${method} fetch error`, err);

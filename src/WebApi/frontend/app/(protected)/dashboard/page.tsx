@@ -12,7 +12,9 @@ import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbP
 import { Calendar } from "@/components/ui/calendar";
 import { useStoredIdentity } from "@/hooks/use-stored-identity";
 import { useBookmarks } from "@/hooks/use-bookmarks";
+import { RecommendationPreview } from "@/features/recommendations/recommendation-preview";
 import { cvApi } from "@/lib/api/cv-api";
+import { getValidToken, refreshSession } from "@/lib/auth-provider";
 import type { HoSoVm } from "@/lib/types";
 
 type ApiResponse<T> = { Succeeded?: boolean; succeeded?: boolean; Message?: string; message?: string; Data?: T; data?: T };
@@ -32,6 +34,24 @@ const extractArray = <T,>(r: ApiResponse<T>): unknown[] => {
   return [];
 };
 
+async function fetchDashboardApi(url: string): Promise<ApiResponse<unknown> | null> {
+  let token = await getValidToken();
+  const send = () => fetch(url, {
+    cache: "no-store",
+    headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+  });
+
+  let res = await send();
+  if (res.status === 401 && await refreshSession()) {
+    token = await getValidToken();
+    res = await send();
+  }
+
+  if (!res.ok) return null;
+  const body = await res.json().catch(() => null);
+  return body as ApiResponse<unknown> | null;
+}
+
 const TRANG_THAI: Record<number, { label: string; color: string }> = {
   0: { label: "Khởi tạo", color: "text-muted-foreground bg-muted border-border" },
   1: { label: "Lỗi xử lý hồ sơ", color: "text-destructive bg-destructive/5 border-destructive/30" },
@@ -45,6 +65,26 @@ const TRANG_THAI: Record<number, { label: string; color: string }> = {
   9: { label: "Vô hiệu hóa", color: "text-muted-foreground bg-muted border-border" },
 };
 
+const STATUS_BY_NAME: Record<string, number> = {
+  khoitao: 0,
+  loixulyhoso: 1,
+  choxuly: 2,
+  daxem: 3,
+  phuhop: 4,
+  tuchoi: 5,
+  ungvienrutdon: 6,
+  quahanxuly: 7,
+  tintuyendungbidong: 8,
+  vohieuhoa: 9,
+};
+
+function parseTrangThai(value: unknown): number {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  const text = `${value ?? ""}`.trim();
+  if (/^\d+$/.test(text)) return Number(text);
+  return STATUS_BY_NAME[text.toLowerCase().replace(/[\s_-]/g, "")] ?? -1;
+}
+
 function fmtDate(d: string) {
   if (!d) return "";
   try {
@@ -57,25 +97,25 @@ function fmtDate(d: string) {
   } catch { return d; }
 }
 
-const APPLICATION_STAGES = ["Đã nộp", "Đang xử lý", "Đã xem", "Phù hợp"];
+const APPLICATION_STAGES = ["Khởi tạo", "Chờ xử lý", "Đã xem", "Phù hợp", "Đã hủy"];
 
 function ApplicationTimeline({ status }: { status: number }) {
   const terminal = status === 5 || status === 6 || status === 7 || status === 8 || status === 9;
-  const currentIndex = terminal ? -1 : status <= 1 ? 0 : status === 2 ? 1 : status === 3 ? 2 : 3;
-  const terminalLabel = TRANG_THAI[status]?.label;
+  const currentIndex = terminal ? 4 : status <= 1 ? 0 : status === 2 ? 1 : status === 3 ? 2 : 3;
 
   return (
     <div className="mt-4 rounded-2xl bg-muted/40 p-4">
       <div className="flex items-start">
         {APPLICATION_STAGES.map((stage, index) => {
-          const reached = !terminal && index <= currentIndex;
+          const isTerminalStep = terminal && index === 4;
+          const reached = index <= currentIndex;
           return (
             <div key={stage} className="flex min-w-0 flex-1 items-start">
               <div className="flex min-w-0 flex-col items-center gap-1.5">
-                <span className={`flex size-7 items-center justify-center rounded-full border ${reached ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-muted-foreground"}`}>
-                  {reached ? <CheckCircle2 className="size-4" /> : <Circle className="size-3.5" />}
+                <span className={`flex size-7 items-center justify-center rounded-full border ${isTerminalStep ? "border-destructive bg-destructive text-destructive-foreground" : reached ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-muted-foreground"}`}>
+                  {isTerminalStep ? <XCircle className="size-4" /> : reached ? <CheckCircle2 className="size-4" /> : <Circle className="size-3.5" />}
                 </span>
-                <span className={`text-center text-[10px] leading-4 ${reached ? "font-semibold text-primary" : "text-muted-foreground"}`}>{stage}</span>
+                <span className={`text-center text-[10px] leading-4 ${isTerminalStep ? "font-semibold text-destructive" : reached ? "font-semibold text-primary" : "text-muted-foreground"}`}>{stage}</span>
               </div>
               {index < APPLICATION_STAGES.length - 1 && (
                 <span className={`mt-3 h-px flex-1 ${!terminal && index < currentIndex ? "bg-primary" : "bg-border"}`} />
@@ -84,11 +124,6 @@ function ApplicationTimeline({ status }: { status: number }) {
           );
         })}
       </div>
-      {terminal && (
-        <div className="mt-3 flex items-center gap-2 text-xs font-medium text-destructive">
-          <XCircle className="size-3.5" /> {terminalLabel || "Trạng thái đã kết thúc"}
-        </div>
-      )}
     </div>
   );
 }
@@ -115,13 +150,7 @@ function CandidateDashboard() {
   const [candidateCalendarDate, setCandidateCalendarDate] = useState<Date | undefined>();
   const { count: savedCount } = useBookmarks();
 
-  const apiFetch = useCallback(async (url: string) => {
-    const token = localStorage.getItem("access_token");
-    const res = await fetch(url, { headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) } });
-    if (!res.ok) return null;
-    const body = await res.json().catch(() => null);
-    return body as ApiResponse<unknown> | null;
-  }, []);
+  const apiFetch = useCallback((url: string) => fetchDashboardApi(url), []);
 
   useEffect(() => {
     void (async () => {
@@ -136,7 +165,7 @@ function CandidateDashboard() {
       if (donRes && ok(donRes)) {
         const items = extractArray(donRes).map((v: unknown) => {
           const r = v as Record<string, unknown>;
-          return { id: Number(r.id ?? r.Id), tinTuyenDungId: Number(r.tinTuyenDungId ?? r.TinTuyenDungId ?? 0), trangThai: Number(r.trangThai ?? r.TrangThai ?? 0), ngayUngTuyen: `${r.ngayUngTuyen ?? r.NgayUngTuyen ?? ""}` };
+          return { id: Number(r.id ?? r.Id), tinTuyenDungId: Number(r.tinTuyenDungId ?? r.TinTuyenDungId ?? 0), trangThai: parseTrangThai(r.trangThai ?? r.TrangThai), ngayUngTuyen: `${r.ngayUngTuyen ?? r.NgayUngTuyen ?? ""}` };
         }) as DonUngTuyen[];
         setAppliedCount(items.length);
         setRecentApplied(items.slice(0, 4));
@@ -258,8 +287,10 @@ function CandidateDashboard() {
         </Link>
       </div>
 
-      <div className="grid gap-8 lg:grid-cols-[1.2fr_.8fr]">
-        <div className="rounded-3xl border border-border bg-card p-6 sm:p-8">
+      <RecommendationPreview count={5} />
+
+       <div className="grid items-start gap-8 lg:grid-cols-[1.2fr_.8fr]">
+         <div className="h-fit rounded-3xl border border-border bg-card p-6 sm:p-8">
           <div className="flex items-center justify-between border-b border-border pb-5">
             <div>
               <h2 className="text-xl font-medium tracking-tight">Đơn ứng tuyển gần đây</h2>
@@ -489,13 +520,7 @@ function RecruiterControlCenter() {
   const [err, setErr] = useState("");
   const [selectedCalendarDate, setSelectedCalendarDate] = useState<Date | undefined>();
 
-  const apiFetch = useCallback(async (url: string) => {
-    const token = localStorage.getItem("access_token");
-    const res = await fetch(url, { headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) } });
-    if (!res.ok) return null;
-    const body = await res.json().catch(() => null);
-    return body as ApiResponse<unknown> | null;
-  }, []);
+  const apiFetch = useCallback((url: string) => fetchDashboardApi(url), []);
 
   const load = useCallback(async () => {
     setLoading(true);

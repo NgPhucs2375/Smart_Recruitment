@@ -59,11 +59,31 @@ const TRANG_THAI: Record<number, { label: string; variant: "default" | "secondar
 // Trigger số của backend (Domain/Enums/TriggerDonUngTuyen.cs) — hành động của HR
 const TRIGGER = { XemDon: 5, DanhGiaPhuHop: 6, TuChoi: 7 } as const;
 
+const STATUS_BY_NAME: Record<string, number> = {
+  khoitao: 0,
+  loixulyhoso: 1,
+  choxuly: 2,
+  daxem: 3,
+  phuhop: 4,
+  tuchoi: 5,
+  ungvienrutdon: 6,
+  quahanxuly: 7,
+  tintuyendungbidong: 8,
+  vohieuhoa: 9,
+};
+
 const API = "/api/dotnet/donungtuyens";
 const DG_API = "/api/dotnet/danhgias";
 const ok = (r: ApiResponse<unknown>): boolean => r.Succeeded ?? r.succeeded ?? true;
 const msg = (r: ApiResponse<unknown>): string => r.Message ?? r.message ?? "";
 const extractData = <T,>(r: ApiResponse<T>): T | undefined => r.Data ?? r.data;
+
+function parseTrangThai(value: unknown): number {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  const text = `${value ?? ""}`.trim();
+  if (/^\d+$/.test(text)) return Number(text);
+  return STATUS_BY_NAME[text.toLowerCase().replace(/[\s_-]/g, "")] ?? -1;
+}
 
 function fmtDate(d: string) {
   if (!d) return "—";
@@ -98,6 +118,7 @@ export default function UngVienTheoTinPage() {
     const token = localStorage.getItem("access_token");
     const res = await fetch(url, {
       ...opts,
+      cache: "no-store",
       headers: {
         "Content-Type": "application/json",
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -137,7 +158,7 @@ export default function UngVienTheoTinPage() {
           tinTuyenDungId: Number(r.tinTuyenDungId ?? r.TinTuyenDungId ?? 0),
           cvUngVienId: Number(r.cvUngVienId ?? r.CVUngVienId ?? 0),
           cvPhienBanId: r.cvPhienBanId ?? r.CVPhienBanId ?? null,
-          trangThai: Number(r.trangThai ?? r.TrangThai ?? 0),
+          trangThai: parseTrangThai(r.trangThai ?? r.TrangThai),
           ghiChu: `${r.ghiChu ?? r.GhiChu ?? ""}`,
           ngayUngTuyen: `${r.ngayUngTuyen ?? r.NgayUngTuyen ?? ""}`,
         } as DonUngTuyen;
@@ -210,11 +231,17 @@ export default function UngVienTheoTinPage() {
       setActingId(item.id);
       setErr("");
       setSuccessMsg("");
-      const res: ApiResponse<unknown> = await apiFetch(`${API}/${item.id}`, {
+       const res: ApiResponse<unknown> = await apiFetch(`${API}/${item.id}`, {
         method: "PUT",
         body: JSON.stringify({ id: item.id, trigger, ghiChu }),
       });
       if (!ok(res)) throw new Error(msg(res) || "Không thể cập nhật đơn");
+      const nextStatus = trigger === TRIGGER.TuChoi ? 5 : trigger === TRIGGER.DanhGiaPhuHop ? 4 : undefined;
+      if (nextStatus !== undefined) {
+        setItems((current) => current.map((entry) =>
+          entry.id === item.id ? { ...entry, trangThai: nextStatus, ghiChu } : entry,
+        ));
+      }
       setSuccessMsg(msg(res) || `Đã ${label.toLowerCase()} đơn #${item.id}.`);
       await load();
     } catch (e) {
@@ -241,9 +268,12 @@ export default function UngVienTheoTinPage() {
       const res: ApiResponse<unknown> = await apiFetch(`${API}/${item.id}`, {
         method: "PUT",
         body: JSON.stringify({ id: item.id, trigger: TRIGGER.XemDon, ghiChu: "" }),
-      });
-      if (!ok(res)) throw new Error(msg(res) || "Không thể ghi nhận đã xem hồ sơ");
-      router.push(`/tin-tuyen-dung/${tinId}/ung-vien/cv/${item.cvUngVienId}`);
+       });
+       if (!ok(res)) throw new Error(msg(res) || "Không thể ghi nhận đã xem hồ sơ");
+       setItems((current) => current.map((entry) =>
+         entry.id === item.id ? { ...entry, trangThai: 3 } : entry,
+       ));
+       router.push(`/tin-tuyen-dung/${tinId}/ung-vien/cv/${item.cvUngVienId}`);
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Không thể mở hồ sơ ứng viên");
       setActingId(null);
@@ -362,9 +392,9 @@ export default function UngVienTheoTinPage() {
                     <Button variant="outline" size="sm" disabled={busy} onClick={() => void handleViewCv(item)}>
                       <Eye className="size-4" /> Xem CV
                     </Button>
-                    {canPhuHop(item.trangThai) && (
-                      <Button variant="default" size="sm" disabled={busy} onClick={() => void handleAction(item, TRIGGER.DanhGiaPhuHop, "Đánh giá phù hợp")}>
-                        <CheckCheck className="size-4" /> Phù hợp
+                     {canPhuHop(item.trangThai) && (
+                       <Button variant="default" size="sm" disabled={busy} onClick={() => void handleAction(item, TRIGGER.DanhGiaPhuHop, "duyệt phù hợp")}>
+                         <CheckCheck className="size-4" /> Duyệt phù hợp
                       </Button>
                     )}
                     {canTuChoi(item.trangThai) && (

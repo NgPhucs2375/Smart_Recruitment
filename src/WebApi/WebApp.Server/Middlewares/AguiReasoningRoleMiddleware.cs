@@ -13,10 +13,14 @@ namespace WebApp.Server.Middlewares;
 public sealed class AguiReasoningRoleMiddleware
 {
     private readonly RequestDelegate _next;
+    private readonly ILogger<AguiReasoningRoleMiddleware> _logger;
 
-    public AguiReasoningRoleMiddleware(RequestDelegate next)
+    public AguiReasoningRoleMiddleware(
+        RequestDelegate next,
+        ILogger<AguiReasoningRoleMiddleware> logger)
     {
         _next = next;
+        _logger = logger;
     }
 
     public async Task Invoke(HttpContext context)
@@ -32,8 +36,9 @@ public sealed class AguiReasoningRoleMiddleware
                 var node = await JsonNode.ParseAsync(context.Request.Body);
                 if (node is JsonObject obj
                     && obj["messages"] is JsonArray messages
-                    && Sanitize(messages))
+                    && Sanitize(messages) is var removedCount && removedCount > 0)
                 {
+                    _logger.LogInformation("AG-UI request sanitized. RemovedReasoningMessages={RemovedCount}", removedCount);
                     var bytes = Encoding.UTF8.GetBytes(node.ToJsonString());
                     context.Request.Body = new MemoryStream(bytes);
                     context.Request.ContentLength = bytes.Length;
@@ -41,9 +46,10 @@ public sealed class AguiReasoningRoleMiddleware
                     return;
                 }
             }
-            catch
+            catch (Exception ex)
             {
                 // Body không phải JSON hợp lệ: để pipeline dưới quyết định.
+                _logger.LogWarning(ex, "AG-UI request body could not be inspected.");
             }
             context.Request.Body.Position = 0;
         }
@@ -51,9 +57,9 @@ public sealed class AguiReasoningRoleMiddleware
         await _next(context);
     }
 
-    private static bool Sanitize(JsonArray messages)
+    private static int Sanitize(JsonArray messages)
     {
-        var changed = false;
+        var removedCount = 0;
         for (var i = messages.Count - 1; i >= 0; i--)
         {
             if (messages[i] is JsonObject message
@@ -62,9 +68,9 @@ public sealed class AguiReasoningRoleMiddleware
                 && string.Equals(roleName, "reasoning", StringComparison.OrdinalIgnoreCase))
             {
                 messages.RemoveAt(i);
-                changed = true;
+                removedCount++;
             }
         }
-        return changed;
+        return removedCount;
     }
 }

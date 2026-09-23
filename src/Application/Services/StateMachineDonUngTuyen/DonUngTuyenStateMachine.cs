@@ -27,6 +27,7 @@ namespace Application.Services.StateMachineDonUngTuyen
 
         private string _currentNote;
         private CancellationToken _currentCt;
+        private bool _runSideEffects = true;
 
         /// <summary>
         /// Các trigger chỉ hệ thống được fire (tiếp nhận hồ sơ, job SLA, cascade đóng tin).
@@ -75,7 +76,11 @@ namespace Application.Services.StateMachineDonUngTuyen
         /// Fire trigger có kiểm tra quyền (dành cho tác nhân người: HR / ứng viên).
         /// Caller tự <c>SaveChangesAsync</c> sau khi fire thành công.
         /// </summary>
-        public async Task FireAsync(TriggerDonUngTuyen trigger, string note = "", CancellationToken ct = default)
+        public async Task FireAsync(
+            TriggerDonUngTuyen trigger,
+            string note = "",
+            CancellationToken ct = default,
+            bool runSideEffects = true)
         {
             if (!_machine.CanFire(trigger))
             {
@@ -86,17 +91,28 @@ namespace Application.Services.StateMachineDonUngTuyen
 
             _currentNote = string.IsNullOrWhiteSpace(note) ? GetDefaultNote(trigger) : note;
             _currentCt = ct;
+            _runSideEffects = runSideEffects;
 
-            await _machine.FireAsync(trigger);
-
-            _currentNote = null;
+            try
+            {
+                await _machine.FireAsync(trigger);
+            }
+            finally
+            {
+                _currentNote = null;
+                _runSideEffects = true;
+            }
         }
 
         /// <summary>
         /// Fire trigger hệ thống, bỏ kiểm tra quyền (tiếp nhận hồ sơ, job SLA, cascade đóng tin).
         /// Chỉ chấp nhận 4 trigger hệ thống, trigger của người sẽ bị từ chối.
         /// </summary>
-        public async Task FireSystemAsync(TriggerDonUngTuyen trigger, string note = "", CancellationToken ct = default)
+        public async Task FireSystemAsync(
+            TriggerDonUngTuyen trigger,
+            string note = "",
+            CancellationToken ct = default,
+            bool runSideEffects = true)
         {
             if (!LaTriggerHeThong(trigger))
                 throw new ApiException($"Trigger '{trigger}' phải fire qua FireAsync (có kiểm tra quyền).");
@@ -108,10 +124,17 @@ namespace Application.Services.StateMachineDonUngTuyen
 
             _currentNote = string.IsNullOrWhiteSpace(note) ? GetDefaultNote(trigger) : note;
             _currentCt = ct;
+            _runSideEffects = runSideEffects;
 
-            await _machine.FireAsync(trigger);
-
-            _currentNote = null;
+            try
+            {
+                await _machine.FireAsync(trigger);
+            }
+            finally
+            {
+                _currentNote = null;
+                _runSideEffects = true;
+            }
         }
 
         /// <summary>
@@ -127,7 +150,7 @@ namespace Application.Services.StateMachineDonUngTuyen
 
             switch (trigger)
             {
-                // Các hành động của Nhân sự / Người đại diện, chỉ áp dụng cho đơn thuộc tin họ đăng/tổ chức họ thuộc về
+                // Các hành động của Nhân sự / Người đại diện, chỉ áp dụng cho đơn thuộc doanh nghiệp của họ.
                 case TriggerDonUngTuyen.XemDon:
                 case TriggerDonUngTuyen.DanhGiaPhuHop:
                 case TriggerDonUngTuyen.TuChoi:
@@ -138,8 +161,8 @@ namespace Application.Services.StateMachineDonUngTuyen
                     }
                     else if (ctx.VaiTro == VaiTroNguoiDung.NHAN_SU)
                     {
-                        if (_entity.TinTuyenDung == null || _entity.TinTuyenDung.NguoiDangTinId != ctx.Id)
-                            throw new ApiException("Bạn chỉ được xử lý đơn thuộc tin do mình đăng.", 403);
+                        if (_entity.TinTuyenDung == null || _entity.TinTuyenDung.DoanhNghiepId != ctx.DoanhNghiepId)
+                            throw new ApiException("Bạn chỉ được xử lý đơn thuộc doanh nghiệp của mình.", 403);
                     }
                     else
                     {
@@ -168,6 +191,9 @@ namespace Application.Services.StateMachineDonUngTuyen
         /// </summary>
         private async Task OnTransitedAsync(StateMachine<TrangThaiDonUngTuyen, TriggerDonUngTuyen>.Transition transition)
         {
+            if (!_runSideEffects)
+                return;
+
             var trigger = transition.Trigger;
             await _workflow.HandleSideEffectsAsync(
                 _entity,

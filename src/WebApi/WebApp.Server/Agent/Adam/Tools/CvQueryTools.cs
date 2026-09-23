@@ -7,26 +7,61 @@ using Application.Features.HoSoUngVien.Queries.GetMyHoSoUngVien;
 using Application.Features.KetQuaPhuHop.Queries.SuggestJobsForCv;
 using Application.Wrappers;
 using MediatR;
+using Microsoft.Extensions.Logging;
 
-namespace WebApp.Server.Agent.CvAssistant.Tools;
+namespace WebApp.Server.Agent.Adam.Tools;
 
 // Adapter giữa MAF tool calling và CQRS query. Nghiệp vụ vẫn nằm trong query handler.
 internal sealed class CvQueryTools
 {
     private readonly ISender _sender;
+    private readonly ILogger<CvQueryTools> _logger;
 
-    public CvQueryTools(ISender sender)
+    public CvQueryTools(ISender sender, ILogger<CvQueryTools> logger)
     {
         _sender = sender;
+        _logger = logger;
     }
 
     [Description(
         "Lấy hồ sơ ứng viên - Profile của ứng viên đang đăng nhập hiện tại. " +
         "Gọi trước khi tư vấn hoặc tạo nội dung CV cần dữ liệu hồ sơ thật.")]
-    public Task<Response<GetAllHoSoUngViensViewModel>> GetMyProfileAsync(
+    public async Task<ProfileToolResult> GetMyProfileAsync(
         CancellationToken cancellationToken = default)
     {
-        return _sender.Send(new GetMyHoSoUngVienQuery(), cancellationToken);
+        _logger.LogInformation("Adam tool get_my_profile started.");
+        try
+        {
+            var response = await _sender.Send(new GetMyHoSoUngVienQuery(), cancellationToken);
+            if (!response.Succeeded || response.Data == null)
+            {
+                _logger.LogWarning("Adam tool get_my_profile returned no profile. Succeeded={Succeeded}, Message={Message}", response.Succeeded, response.Message);
+                return new ProfileToolResult
+                {
+                    Succeeded = false,
+                    Message = response.Message ?? "Chưa có hồ sơ ứng viên.",
+                    Profile = new GetAllHoSoUngViensViewModel()
+                };
+            }
+
+            _logger.LogInformation("Adam tool get_my_profile completed successfully. ProfileId={ProfileId}", response.Data.Id);
+            return new ProfileToolResult
+            {
+                Succeeded = true,
+                Message = "Đã lấy hồ sơ ứng viên hiện tại.",
+                Profile = response.Data
+            };
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogError(ex, "Adam tool get_my_profile failed.");
+            return new ProfileToolResult
+            {
+                Succeeded = false,
+                Message = "Không thể lấy hồ sơ ứng viên hiện tại.",
+                Profile = new GetAllHoSoUngViensViewModel()
+            };
+        }
     }
 
     [Description(
@@ -65,4 +100,11 @@ internal sealed class CvQueryTools
             new GetSuggestedJobsForCvQuery { CvUngVienId = cvId, TopN = 10 },
             cancellationToken);
     }
+}
+
+public sealed class ProfileToolResult
+{
+    public bool Succeeded { get; set; }
+    public string Message { get; set; } = string.Empty;
+    public GetAllHoSoUngViensViewModel Profile { get; set; } = new();
 }

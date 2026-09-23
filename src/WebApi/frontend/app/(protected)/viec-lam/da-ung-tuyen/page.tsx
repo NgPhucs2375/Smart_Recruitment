@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { Send, Undo2, MapPin, Wallet, ChevronLeft, ChevronRight } from "lucide-react";
 import { AdminPageLayout, AdminPageHeader, AdminCard, AdminCardHeader, AdminEmptyState, AdminLoadingState } from "@/components/admin/admin-page-layout";
@@ -59,12 +59,33 @@ const TRANG_THAI: Record<number, { label: string; variant: "default" | "secondar
 
 const API = "/api/dotnet/donungtuyens";
 const DG_API = "/api/dotnet/danhgias";
+const WITHDRAWN_STATUS = 6;
+const STATUS_BY_NAME: Record<string, number> = {
+  khoitao: 0,
+  loixulyhoso: 1,
+  choxuly: 2,
+  daxem: 3,
+  phuhop: 4,
+  tuchoi: 5,
+  ungvienrutdon: 6,
+  quahanxuly: 7,
+  tintuyendungbidong: 8,
+  vohieuhoa: 9,
+};
 const ok = (r: ApiResponse<unknown>): boolean => r.Succeeded ?? r.succeeded ?? true;
 const msg = (r: ApiResponse<unknown>): string => r.Message ?? r.message ?? "";
 const extractData = <T,>(r: ApiResponse<T>): T | undefined => r.Data ?? r.data;
 
+function parseTrangThai(value: unknown): number {
+  if (typeof value === "number") return value;
+  const text = `${value ?? ""}`.trim();
+  if (/^\d+$/.test(text)) return Number(text);
+  return STATUS_BY_NAME[text.toLowerCase().replace(/[\s_-]/g, "")] ?? -1;
+}
+
 export default function DaUngTuyenPage() {
   const [items, setItems] = useState<DonUngTuyen[]>([]);
+  const withdrawnIdsRef = useRef<Set<number>>(new Set());
   const [ketLuans, setKetLuans] = useState<Record<number, string>>({});
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
@@ -75,7 +96,7 @@ export default function DaUngTuyenPage() {
 
   const apiFetch = useCallback(async (url: string, opts?: RequestInit) => {
     const token = localStorage.getItem("access_token");
-    const res = await fetch(url, { ...opts, headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}), ...opts?.headers } });
+    const res = await fetch(url, { ...opts, cache: "no-store", headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}), ...opts?.headers } });
     const body = await res.json().catch(() => null);
     if (!res.ok) throw new Error(body?.Message ?? body?.message ?? `HTTP ${res.status}`);
     return body;
@@ -99,7 +120,7 @@ export default function DaUngTuyenPage() {
         return {
           id: Number(r.id ?? r.Id),
           tinTuyenDungId: Number(r.tinTuyenDungId ?? r.TinTuyenDungId ?? 0),
-          trangThai: Number(r.trangThai ?? r.TrangThai ?? 0),
+          trangThai: parseTrangThai(r.trangThai ?? r.TrangThai),
           ngayUngTuyen: `${r.ngayUngTuyen ?? r.NgayUngTuyen ?? ""}`,
           ghiChu: `${r.ghiChu ?? r.GhiChu ?? ""}`,
           tieuDe: `${r.tieuDe ?? r.TieuDe ?? ""}` || undefined,
@@ -108,8 +129,10 @@ export default function DaUngTuyenPage() {
           luongToiThieu: r.luongToiThieu ?? r.LuongToiThieu !== undefined ? Number(r.luongToiThieu ?? r.LuongToiThieu) : undefined,
           luongToiDa: r.luongToiDa ?? r.LuongToiDa !== undefined ? Number(r.luongToiDa ?? r.LuongToiDa) : undefined,
         };
-      });
-      setTotalCount(Number(res.TotalCount ?? res.totalCount ?? parsed.length));
+      }).filter((item) => item.trangThai !== WITHDRAWN_STATUS && !withdrawnIdsRef.current.has(item.id));
+      const serverTotal = Number(res.TotalCount ?? res.totalCount ?? rawItems.length);
+      // The API total includes withdrawn applications, while this page hides them.
+      setTotalCount(Math.max(0, serverTotal - (rawItems.length - parsed.length)));
       setTotalPages(Number(res.TotalPages ?? res.totalPages ?? 1) || 1);
 
       // Enrich job info cho đơn thiếu (BE cũ / cache): gọi jobsApi theo tinId, gom nhóm để tránh N+1 trùng.
@@ -186,10 +209,10 @@ export default function DaUngTuyenPage() {
         body: JSON.stringify({ id: item.id, trigger: 8, ghiChu: "Ứng viên rút đơn" }),
       });
       if (!ok(res)) throw new Error(msg(res) || "Không thể rút đơn");
-      // Update immediately so the action is visible without waiting for the refetch.
-      setItems((current) => current.map((entry) =>
-        entry.id === item.id ? { ...entry, trangThai: 6, ghiChu: "Ứng viên rút đơn" } : entry,
-      ));
+      withdrawnIdsRef.current.add(item.id);
+      // Remove immediately; withdrawn applications do not belong on this page.
+      setItems((current) => current.filter((entry) => entry.id !== item.id));
+      setTotalCount((count) => Math.max(0, count - 1));
       await load();
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Không thể rút đơn");

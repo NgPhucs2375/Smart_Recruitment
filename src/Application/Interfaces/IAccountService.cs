@@ -17,6 +17,7 @@ namespace Application.Interfaces
         Task<Response<string>> RemoveNhanSuRoleAsync(string applicationUserId);
         Task ForgotPassword(YeuCauQuenMatKhau model, string origin);
         Task<Response<string>> ResetPassword(YeuCauGuiLaiXacMinh model);
+        Task<Response<string>> ChangePasswordAsync(YeuCauDoiMatKhau model);
         // Task ResendVerificationEmailAsync(string email, string origin);
         Task<Response<AuthenticationResponse>> RefreshTokenAsync(string token, string ipAddress);
         Task<Response<AuthenticationResponse>> ExternalLoginAsync(ExternalAuthRequest request, string ipAddress);

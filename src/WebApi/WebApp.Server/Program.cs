@@ -68,7 +68,7 @@ _services.AddApiVersioningExtension();
 _services.AddHealthChecks();
 _services.AddSignalR();
 _services.AddWebAppServices();
-_services.AddCvAssistantAgent();
+_services.AddAdamAgents();
 _services.AddHostedService<WebApp.Server.Jobs.TinTuyenDungHetHanJob>();
 _services.AddHostedService<WebApp.Server.Jobs.CvImportSessionCleanupJob>();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
@@ -115,6 +115,7 @@ app.UseHealthChecks("/health");
 app.MapControllers();
 
 app.MapHub<WebApp.Server.Hubs.NotificationsHub>("/api/hubs/notifications").RequireCors("AllowFrontend");
+app.MapHub<WebApp.Server.Hubs.ChatHub>("/api/hubs/chat").RequireCors("AllowFrontend");
 
 // Map role=reasoning trong AG-UI history về assistant trước khi MAF parse,
 // nếu không continuation run sau tool result sẽ 500 "Unknown chat role".
@@ -122,8 +123,8 @@ app.UseMiddleware<WebApp.Server.Middlewares.AguiReasoningRoleMiddleware>();
 
 // BE-first: một agent duy nhất ở BE (LLM + tool backend scoped, chỉ đọc).
 // FE giữ frontend tool v2 (useFrontendTool/useAgentContext) và trỏ runtimeUrl về endpoint này.
-// Ghi CV duy nhất qua nút "Lưu CV" ở /tao-cv; chat từ trang khác dùng navigateToCvEditor + pending-patch.
-app.MapCvAssistantAgent("/api/copilotkit")
+// Ghi CV duy nhất qua nút "Lưu CV" ở /CV; chat từ trang khác dùng navigateToCvEditor + pending-patch.
+app.MapAdamAgent("/api/copilotkit")
     .RequireCors("AllowFrontend")
     .RequireAuthorization();
 
