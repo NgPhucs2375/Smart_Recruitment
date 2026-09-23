@@ -46,6 +46,10 @@ namespace Application.Features.TinTuyenDung.Commands.UpdateTinTuyenDung
                     "Không tìm thấy tin tuyển dụng.");
             }
 
+        // DbContext NoTracking toàn cục: Find/FirstOrDefault trả về entity
+        // không track — Attach cùng reference (không throw duplicate-track).
+        context.TinTuyenDungs.Attach(entity);
+
             var ctx = await current.ResolveAsync();
 
             if (!CoTheThaoTac(ctx, entity))

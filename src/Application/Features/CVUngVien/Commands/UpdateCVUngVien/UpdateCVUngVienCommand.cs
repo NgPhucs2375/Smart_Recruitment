@@ -45,6 +45,10 @@ public class UpdateCVUngVienCommandHandler(
             return new Response<int>("Không tìm thấy CV.");
         }
 
+        // DbContext NoTracking toàn cục: Find/FirstOrDefault trả về entity
+        // không track — Attach cùng reference (không throw duplicate-track).
+        context.CVUngViens.Attach(entity);
+
         var skillIds = CvEntityMapper.GetKyNangIds(request.NoiDung);
         var validSkillIds = await context.KyNangs.AsNoTracking()
             .Where(x => skillIds.Contains(x.Id))
@@ -62,6 +66,10 @@ public class UpdateCVUngVienCommandHandler(
                 .Where(x => x.HoSoUngVienId == entity.HoSoUngVienId &&
                             x.Id != entity.Id && x.IsDefault && !x.IsDaXoa)
                 .ToListAsync(cancellationToken);
+            foreach (var x in oldDefaults)
+            {
+                    context.CVUngViens.Attach(x);
+            }
             oldDefaults.ForEach(x => x.IsDefault = false);
         }
 
@@ -81,6 +89,9 @@ public class UpdateCVUngVienCommandHandler(
             }
             else
             {
+                // DbContext NoTracking toàn cục: Find/FirstOrDefault trả về entity
+                // không track — Attach cùng reference (không throw duplicate-track).
+                context.CVUngViens.Attach(replacement);
                 replacement.IsDefault = true;
             }
         }

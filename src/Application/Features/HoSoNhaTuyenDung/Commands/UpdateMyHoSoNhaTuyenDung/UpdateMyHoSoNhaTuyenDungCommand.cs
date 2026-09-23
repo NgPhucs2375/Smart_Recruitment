@@ -50,6 +50,10 @@ public class UpdateMyHoSoNhaTuyenDungCommandHandler(
                 "Bạn chưa có hồ sơ nhà tuyển dụng.");
         }
 
+        // DbContext NoTracking toàn cục: Find/FirstOrDefault trả về entity
+        // không track — Attach cùng reference (không throw duplicate-track).
+        context.HoSoNhaTuyenDungs.Attach(entity);
+
         entity.HoTen = request.HoTen?.Trim();
         entity.SDT = request.SDT?.Trim();
         entity.ChucVu = request.ChucVu?.Trim();

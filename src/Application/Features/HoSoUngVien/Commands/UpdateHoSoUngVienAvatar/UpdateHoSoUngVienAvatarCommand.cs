@@ -48,6 +48,10 @@ public class UpdateHoSoUngVienAvatarCommandHandler(
         if (profile == null)
             return new Response<string>("Không tìm thấy hồ sơ hoặc bạn không có quyền cập nhật.");
 
+        // DbContext NoTracking toàn cục: Find/FirstOrDefault trả về entity
+        // không track — Attach cùng reference (không throw duplicate-track).
+        context.HoSoUngViens.Attach(profile);
+
         var extension = contentType switch
         {
             "image/jpeg" => ".jpg",
@@ -82,6 +86,10 @@ public class UpdateHoSoUngVienAvatarCommandHandler(
         var profile = await GetOwnedProfile(request.HoSoUngVienId, cancellationToken);
         if (profile == null)
             return new Response<int>("Không tìm thấy hồ sơ hoặc bạn không có quyền cập nhật.");
+
+        // DbContext NoTracking toàn cục: Find/FirstOrDefault trả về entity
+        // không track — Attach cùng reference (không throw duplicate-track).
+        context.HoSoUngViens.Attach(profile);
 
         var oldObjectName = profile.AnhDaiDienUrl;
         profile.AnhDaiDienUrl = null;

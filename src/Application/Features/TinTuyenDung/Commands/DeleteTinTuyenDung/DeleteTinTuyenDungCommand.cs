@@ -34,6 +34,10 @@ namespace Application.Features.TinTuyenDung.Commands.DeleteTinTuyenDung
                     "Không tìm thấy tin tuyển dụng.");
             }
 
+        // DbContext NoTracking toàn cục: Find/FirstOrDefault trả về entity
+        // không track — Attach cùng reference (không throw duplicate-track).
+        context.TinTuyenDungs.Attach(entity);
+
             // Xóa mềm qua state machine để giữ record cho DonUngTuyen tham chiếu
             // + cascade đóng các đơn đang dở dang trong workflow.
             // HR: DongTin | Admin: AdminCuongCheKhoa (quyền check trong machine).

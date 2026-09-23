@@ -1,20 +1,20 @@
 "use client";
 
-import { useLogin } from "@refinedev/core";
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { loginSchema, type LoginFormData } from "@/lib/schemas";
 import type { PortalKind } from "@/lib/portal-roles";
+import { useAuthLogin } from "@/components/auth/use-auth";
 
 const SAVED_EMAIL_KEY = "saved_login_email";
 
-export const WRONG_PORTAL_ERROR = "Sai cổng đăng nhập";
-
+/**
+ * Password form concerns (RHF + zod + remember-me email).
+ * Submission itself delegates to the shared `useAuthLogin` engine.
+ */
 export function usePasswordLogin(portal?: PortalKind, next?: string | null) {
-  const [submitError, setSubmitError] = useState<string | null>(null);
-  const [wrongPortal, setWrongPortal] = useState<PortalKind | null>(null);
-  const { mutateAsync: login, isPending } = useLogin<LoginFormData>();
+  const auth = useAuthLogin(portal, next);
 
   const {
     register,
@@ -42,29 +42,12 @@ export function usePasswordLogin(portal?: PortalKind, next?: string | null) {
   const remember = useWatch({ control, name: "remember" });
 
   async function onSubmit(data: LoginFormData) {
-    setSubmitError(null);
-    setWrongPortal(null);
-
     if (data.remember) {
       localStorage.setItem(SAVED_EMAIL_KEY, data.email);
     } else {
       localStorage.removeItem(SAVED_EMAIL_KEY);
     }
-
-    try {
-      const result = await login({ ...data, portal, redirectTo: next } as LoginFormData & {
-        portal?: PortalKind;
-        redirectTo?: string | null;
-      });
-      if (!result.success && result.error) {
-        if (result.error.name === WRONG_PORTAL_ERROR && portal) {
-          setWrongPortal(portal);
-        }
-        setSubmitError(result.error.message ?? "Email hoặc mật khẩu không chính xác");
-      }
-    } catch (err) {
-      setSubmitError(err instanceof Error ? err.message : "Đăng nhập thất bại");
-    }
+    await auth.loginWithPassword(data.email, data.password);
   }
 
   return {
@@ -72,10 +55,8 @@ export function usePasswordLogin(portal?: PortalKind, next?: string | null) {
     handleSubmit: rhfSubmit(onSubmit),
     setValue,
     errors,
-    isPending,
-    submitError,
+    isPending: auth.isPending,
+    submitError: auth.error,
     remember,
-    wrongPortal,
-    clearWrongPortal: () => setWrongPortal(null),
   };
 }

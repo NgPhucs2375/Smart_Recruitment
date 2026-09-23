@@ -45,6 +45,10 @@ using Application.Features.DanhGia.Commands.CreateDanhGia;
 using Application.Features.DanhGia.Commands.UpdateDanhGia;
 using Application.DTOs.HoSoNhaTuyenDung;
 using Application.Features.HoSoNhaTuyenDung.Commands.UpdateHoSoNhaTuyenDung;
+using Application.DTOs.CvTheme;
+using Application.Features.CvTheme.Commands.CreateCvTheme;
+using Application.Features.CvTheme.Commands.UpdateCvTheme;
+using Application.Features.CvTheme.Queries.GetAllCvThemes;
 
 
 namespace Application.Mappings
@@ -94,6 +98,11 @@ namespace Application.Mappings
             CreateMap<DanhMucNghe, GetAllDanhMucNghesViewModel>();
             CreateMap<TaoDanhMucNgheDto, CreateDanhMucNgheCommand>();
             CreateMap<CapNhatDanhMucNgheDto, UpdateDanhMucNgheCommand>();
+
+            // CvTheme
+            CreateMap<CvTheme, GetAllCvThemesViewModel>();
+            CreateMap<TaoCvThemeDto, CreateCvThemeCommand>();
+            CreateMap<CapNhatCvThemeDto, UpdateCvThemeCommand>();
 
             // DoanhNghiep
             CreateMap<DoanhNghiep, GetAllDoanhNghiepsViewModel>();

@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
+using Pgvector;
 
 #nullable disable
 
@@ -18,7 +19,8 @@ namespace Infrastructure.Persistence.Migrations
 #pragma warning disable 612, 618
             modelBuilder
                 .HasAnnotation("ProductVersion", "10.0.11")
-                .HasAnnotation("Relational:MaxIdentifierLength", 63);
+                .HasAnnotation("Relational:MaxIdentifierLength", 63)
+                .HasAnnotation("Npgsql:PostgresExtension:vector", ",,");
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
@@ -699,6 +701,1268 @@ namespace Infrastructure.Persistence.Migrations
                     b.HasIndex("HoSoUngVienId", "IsDefault");
 
                     b.ToTable("CVUngVien", (string)null);
+                });
+
+            modelBuilder.Entity("Domain.Entities.CvTheme", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("CapBac")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime>("Created")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<string>("DanhMuc")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<Pgvector.Vector>("Embedding")
+                        .HasColumnType("vector(1536)");
+
+                    b.Property<string>("EmbeddingModel")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("GoiYAI")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("KhuyenNghiSuDung")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<bool>("LaMacDinh")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("LastModified")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("LastModifiedBy")
+                        .HasColumnType("text");
+
+                    b.Property<string>("MauSacChuDao")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("MoTa")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("MoTaNgan")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("NganhPhuHop")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("PhongCachThietKe")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("PreviewStorageKey")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("Slug")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int>("SoCot")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("TamLyMauSac")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("Tags")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("Ten")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<bool>("ThanThienATS")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("ThuTu")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("TranhSuDungKhi")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("ViTriMucTieu")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Slug")
+                        .IsUnique();
+
+                    b.ToTable("cv_themes", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            CapBac = "all",
+                            Created = new DateTime(2026, 9, 23, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedBy = "system",
+                            DanhMuc = "ats",
+                            GoiYAI = "Mặc định an toàn khi không rõ yêu cầu nhà tuyển dụng",
+                            IsActive = true,
+                            KhuyenNghiSuDung = "Mọi ngành, đặc biệt khi nộp qua hệ thống ATS",
+                            LaMacDinh = true,
+                            MauSacChuDao = "#1f2a37",
+                            MoTa = "Một cột, tương thích hệ thống lọc hồ sơ",
+                            MoTaNgan = "Chuẩn ATS, an toàn mọi ngành",
+                            NganhPhuHop = "all",
+                            PhongCachThietKe = "ats",
+                            Slug = "minimal-ats",
+                            SoCot = 1,
+                            TamLyMauSac = "Đen than tạo cảm giác tin cậy, tập trung nội dung",
+                            Tags = "ATS,Professional",
+                            Ten = "Minimal ATS",
+                            ThanThienATS = true,
+                            ThuTu = 1,
+                            TranhSuDungKhi = "Portfolio sáng tạo cần ấn tượng thị giác mạnh",
+                            ViTriMucTieu = "all"
+                        },
+                        new
+                        {
+                            Id = 2,
+                            CapBac = "all",
+                            Created = new DateTime(2026, 9, 23, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedBy = "system",
+                            DanhMuc = "developer",
+                            GoiYAI = "Đề xuất đầu tiên cho hồ sơ kỹ thuật",
+                            IsActive = true,
+                            KhuyenNghiSuDung = "IT/Developer cần nêu bật dự án và kỹ năng",
+                            LaMacDinh = false,
+                            MauSacChuDao = "#274b73",
+                            MoTa = "Hai cột, dành cho IT / Developer",
+                            MoTaNgan = "Chuẩn IT, sidebar kỹ năng",
+                            NganhPhuHop = "IT",
+                            PhongCachThietKe = "modern",
+                            Slug = "tech-modern",
+                            SoCot = 2,
+                            TamLyMauSac = "Xanh navy truyền tải chuyên nghiệp và đáng tin",
+                            Tags = "IT,Developer",
+                            Ten = "Tech Modern",
+                            ThanThienATS = true,
+                            ThuTu = 2,
+                            TranhSuDungKhi = "Môi trường bảo thủ hoặc văn bản thuần túy",
+                            ViTriMucTieu = "Backend,Frontend,Fullstack,DevOps"
+                        },
+                        new
+                        {
+                            Id = 3,
+                            CapBac = "all",
+                            Created = new DateTime(2026, 9, 23, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedBy = "system",
+                            DanhMuc = "ats",
+                            GoiYAI = "Bản ATS gọn hơn minimal-ats cho dân kỹ thuật",
+                            IsActive = true,
+                            KhuyenNghiSuDung = "Backend/DevOps/Data nộp qua cổng ATS",
+                            LaMacDinh = false,
+                            MauSacChuDao = "#1f2a37",
+                            MoTa = "Một cột gọn nhẹ, tối ưu hệ thống lọc hồ sơ",
+                            MoTaNgan = "Gọn nhẹ, qua ATS dễ dàng",
+                            NganhPhuHop = "IT",
+                            PhongCachThietKe = "classic",
+                            Slug = "ats-classic",
+                            SoCot = 1,
+                            TamLyMauSac = "Tối giản, máy đọc ưu tiên",
+                            Tags = "ATS,Backend,DevOps",
+                            Ten = "ATS Classic",
+                            ThanThienATS = true,
+                            ThuTu = 3,
+                            TranhSuDungKhi = "Vai trò cần thể hiện cá tính mạnh",
+                            ViTriMucTieu = "Backend,DevOps,Data"
+                        },
+                        new
+                        {
+                            Id = 4,
+                            CapBac = "all",
+                            Created = new DateTime(2026, 9, 23, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedBy = "system",
+                            DanhMuc = "developer",
+                            GoiYAI = "Khi cần 2 cột nhưng vẫn giữ vẻ trang trọng",
+                            IsActive = true,
+                            KhuyenNghiSuDung = "IT/BA/PM cần cân bằng kỹ năng và kinh nghiệm",
+                            LaMacDinh = false,
+                            MauSacChuDao = "#274b73",
+                            MoTa = "Hai cột thanh lịch, sidebar hẹp cho IT / BA / PM",
+                            MoTaNgan = "Thanh lịch 2 cột",
+                            NganhPhuHop = "IT,Kinh doanh",
+                            PhongCachThietKe = "modern",
+                            Slug = "professional-split",
+                            SoCot = 2,
+                            TamLyMauSac = "Navy điểm xuyết tạo chiều sâu chuyên nghiệp",
+                            Tags = "IT,2 cột,Chuyên nghiệp",
+                            Ten = "Professional Split",
+                            ThanThienATS = true,
+                            ThuTu = 4,
+                            TranhSuDungKhi = "Fresher ít nội dung (sidebar sẽ trống)",
+                            ViTriMucTieu = "Backend,BA,PM"
+                        },
+                        new
+                        {
+                            Id = 5,
+                            CapBac = "all",
+                            Created = new DateTime(2026, 9, 23, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedBy = "system",
+                            DanhMuc = "developer",
+                            GoiYAI = "Cho vai trò cần năng lượng hiện đại",
+                            IsActive = true,
+                            KhuyenNghiSuDung = "Product/Frontend muốn nổi bật dự án",
+                            LaMacDinh = false,
+                            MauSacChuDao = "#274b73",
+                            MoTa = "Hiện đại, điểm nhấn mạnh cho Product / Frontend",
+                            MoTaNgan = "Điểm nhấn hiện đại",
+                            NganhPhuHop = "IT,Sản phẩm",
+                            PhongCachThietKe = "modern",
+                            Slug = "modern-accent",
+                            SoCot = 1,
+                            TamLyMauSac = "Điểm nhấn màu dẫn mắt vào thành tựu",
+                            Tags = "Hiện đại,Frontend,Product",
+                            Ten = "Modern Accent",
+                            ThanThienATS = true,
+                            ThuTu = 5,
+                            TranhSuDungKhi = "Hồ sơ học thuật hoặc hành chính",
+                            ViTriMucTieu = "Frontend,Product"
+                        },
+                        new
+                        {
+                            Id = 6,
+                            CapBac = "senior",
+                            Created = new DateTime(2026, 9, 23, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedBy = "system",
+                            DanhMuc = "senior",
+                            GoiYAI = "Khi cần thể hiện đẳng cấp lãnh đạo",
+                            IsActive = true,
+                            KhuyenNghiSuDung = "Senior/lead ứng tuyển vị trí quản lý kỹ thuật",
+                            LaMacDinh = false,
+                            MauSacChuDao = "#1f2a37",
+                            MoTa = "Bố cục doanh nghiệp trang trọng cho senior / lead",
+                            MoTaNgan = "Trang trọng cho lead",
+                            NganhPhuHop = "IT,Quản lý",
+                            PhongCachThietKe = "classic",
+                            Slug = "executive-tech",
+                            SoCot = 1,
+                            TamLyMauSac = "Trang trọng, thể hiện tầm vóc quản lý",
+                            Tags = "Senior,Chuyên nghiệp,Lead",
+                            Ten = "Executive Tech",
+                            ThanThienATS = true,
+                            ThuTu = 6,
+                            TranhSuDungKhi = "Fresher/junior (quá nặng nề)",
+                            ViTriMucTieu = "Lead,Manager,Architect"
+                        },
+                        new
+                        {
+                            Id = 7,
+                            CapBac = "fresher",
+                            Created = new DateTime(2026, 9, 23, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedBy = "system",
+                            DanhMuc = "developer",
+                            GoiYAI = "Tối ưu 1 trang cho người mới",
+                            IsActive = false,
+                            KhuyenNghiSuDung = "Fresher/junior ít kinh nghiệm nhưng nhiều kỹ năng",
+                            LaMacDinh = false,
+                            MauSacChuDao = "#1f2a37",
+                            MoTa = "Một cột siêu gọn cho fresher / junior IT",
+                            MoTaNgan = "Siêu gọn cho fresher",
+                            NganhPhuHop = "IT",
+                            PhongCachThietKe = "ats",
+                            Slug = "compact-developer",
+                            SoCot = 1,
+                            TamLyMauSac = "Gọn gàng, không phô trương",
+                            Tags = "ATS,Fresher,Junior",
+                            Ten = "Compact Developer",
+                            ThanThienATS = true,
+                            ThuTu = 7,
+                            TranhSuDungKhi = "Senior có bề dày cần không gian",
+                            ViTriMucTieu = "Backend,Frontend,Fresher"
+                        },
+                        new
+                        {
+                            Id = 8,
+                            CapBac = "all",
+                            Created = new DateTime(2026, 9, 23, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedBy = "system",
+                            DanhMuc = "developer",
+                            GoiYAI = "Khi kỹ năng là điểm mạnh nhất",
+                            IsActive = false,
+                            KhuyenNghiSuDung = "IT generalist muốn khoe stack kỹ năng",
+                            LaMacDinh = false,
+                            MauSacChuDao = "#274b73",
+                            MoTa = "Sidebar phải, kỹ năng đặt lên đầu cho IT",
+                            MoTaNgan = "Kỹ năng lên đầu",
+                            NganhPhuHop = "IT",
+                            PhongCachThietKe = "modern",
+                            Slug = "sidebar-pro",
+                            SoCot = 2,
+                            TamLyMauSac = "Sidebar điều hướng mắt nhà tuyển dụng",
+                            Tags = "IT,2 cột,Kỹ năng",
+                            Ten = "Sidebar Pro",
+                            ThanThienATS = true,
+                            ThuTu = 8,
+                            TranhSuDungKhi = "Vai trò phi kỹ thuật",
+                            ViTriMucTieu = "Backend,Frontend,Fullstack"
+                        },
+                        new
+                        {
+                            Id = 9,
+                            CapBac = "all",
+                            Created = new DateTime(2026, 9, 23, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedBy = "system",
+                            DanhMuc = "corporate",
+                            GoiYAI = "An toàn cho khối văn phòng",
+                            IsActive = false,
+                            KhuyenNghiSuDung = "BA/PM/QA/HR trong môi trường corporate",
+                            LaMacDinh = false,
+                            MauSacChuDao = "#1f2a37",
+                            MoTa = "Phong cách công sở chuẩn mực cho BA / PM / QA / HR",
+                            MoTaNgan = "Chuẩn công sở",
+                            NganhPhuHop = "Kinh doanh,Hành chính",
+                            PhongCachThietKe = "classic",
+                            Slug = "clean-corporate",
+                            SoCot = 1,
+                            TamLyMauSac = "Chuẩn mực, phù hợp văn hóa doanh nghiệp",
+                            Tags = "Corporate,BA,PM",
+                            Ten = "Clean Corporate",
+                            ThanThienATS = true,
+                            ThuTu = 9,
+                            TranhSuDungKhi = "Sáng tạo, startup (quá cứng nhắc)",
+                            ViTriMucTieu = "BA,PM,QA,HR"
+                        },
+                        new
+                        {
+                            Id = 10,
+                            CapBac = "all",
+                            Created = new DateTime(2026, 9, 23, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedBy = "system",
+                            DanhMuc = "creative",
+                            GoiYAI = "Khi portfolio quan trọng hơn từ ngữ",
+                            IsActive = true,
+                            KhuyenNghiSuDung = "Designer/frontend cần show dự án trực quan",
+                            LaMacDinh = false,
+                            MauSacChuDao = "#7a3b4d",
+                            MoTa = "Cá tính mạnh, dự án dạng thẻ cho designer / frontend",
+                            MoTaNgan = "Cá tính portfolio",
+                            NganhPhuHop = "Thiết kế,IT",
+                            PhongCachThietKe = "creative",
+                            Slug = "creative-portfolio",
+                            SoCot = 1,
+                            TamLyMauSac = "Đỏ burgundy khơi gợi sáng tạo và đam mê",
+                            Tags = "Creative,Portfolio,Designer",
+                            Ten = "Creative Portfolio",
+                            ThanThienATS = false,
+                            ThuTu = 10,
+                            TranhSuDungKhi = "Nộp qua ATS nghiêm ngặt",
+                            ViTriMucTieu = "Designer,Frontend"
+                        },
+                        new
+                        {
+                            Id = 11,
+                            CapBac = "senior",
+                            Created = new DateTime(2026, 9, 23, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedBy = "system",
+                            DanhMuc = "senior",
+                            GoiYAI = "Cho hồ sơ lãnh đạo dày dặn",
+                            IsActive = false,
+                            KhuyenNghiSuDung = "Quản lý cấp cao với bề dày thành tích",
+                            LaMacDinh = false,
+                            MauSacChuDao = "#1f2a37",
+                            MoTa = "Thoáng đãng, tôn vinh kinh nghiệm lãnh đạo",
+                            MoTaNgan = "Lãnh đạo thoáng đãng",
+                            NganhPhuHop = "Quản lý",
+                            PhongCachThietKe = "classic",
+                            Slug = "senior-executive",
+                            SoCot = 1,
+                            TamLyMauSac = "Khoảng trắng thể hiện sự tự tin",
+                            Tags = "Senior,Leadership,Manager",
+                            Ten = "Senior Executive",
+                            ThanThienATS = true,
+                            ThuTu = 11,
+                            TranhSuDungKhi = "Người mới (thiếu nội dung sẽ lộ)",
+                            ViTriMucTieu = "Manager,Director,C-level"
+                        },
+                        new
+                        {
+                            Id = 12,
+                            CapBac = "fresher",
+                            Created = new DateTime(2026, 9, 23, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedBy = "system",
+                            DanhMuc = "ats",
+                            GoiYAI = "Khi học vấn là tài sản lớn nhất",
+                            IsActive = true,
+                            KhuyenNghiSuDung = "Học thuật, nghiên cứu, học bổng",
+                            LaMacDinh = false,
+                            MauSacChuDao = "#1f2a37",
+                            MoTa = "Học vấn lên trước, đánh số nghiên cứu / chứng chỉ",
+                            MoTaNgan = "Học thuật chuẩn",
+                            NganhPhuHop = "Giáo dục,Nghiên cứu",
+                            PhongCachThietKe = "ats",
+                            Slug = "academic-cv",
+                            SoCot = 1,
+                            TamLyMauSac = "Hàn lâm, nghiêm túc",
+                            Tags = "Academic,Research,Học vấn",
+                            Ten = "Academic CV",
+                            ThanThienATS = true,
+                            ThuTu = 12,
+                            TranhSuDungKhi = "Doanh nghiệp thương mại (quá khô)",
+                            ViTriMucTieu = "Nghiên cứu,Học thuật"
+                        },
+                        new
+                        {
+                            Id = 13,
+                            CapBac = "all",
+                            Created = new DateTime(2026, 9, 23, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedBy = "system",
+                            DanhMuc = "developer",
+                            GoiYAI = "Đề xuất đầu tiên cho dân dữ liệu",
+                            IsActive = true,
+                            KhuyenNghiSuDung = "Data/AI/ML cần khoe stack và dự án",
+                            LaMacDinh = false,
+                            MauSacChuDao = "#274b73",
+                            MoTa = "Dải stack nổi bật, dự án dẫn đầu cho Data / AI / ML",
+                            MoTaNgan = "Chuyên Data/AI",
+                            NganhPhuHop = "Data,IT",
+                            PhongCachThietKe = "modern",
+                            Slug = "data-specialist",
+                            SoCot = 1,
+                            TamLyMauSac = "Kỹ thuật số, chính xác",
+                            Tags = "Data,AI,ML",
+                            Ten = "Data Specialist",
+                            ThanThienATS = true,
+                            ThuTu = 13,
+                            TranhSuDungKhi = "Vai trò không liên quan dữ liệu",
+                            ViTriMucTieu = "Data,AI,ML"
+                        },
+                        new
+                        {
+                            Id = 14,
+                            CapBac = "all",
+                            Created = new DateTime(2026, 9, 23, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedBy = "system",
+                            DanhMuc = "developer",
+                            GoiYAI = "Khi tool-stack là trọng tâm",
+                            IsActive = false,
+                            KhuyenNghiSuDung = "DevOps/Cloud/SRE với nhiều công cụ và chứng chỉ",
+                            LaMacDinh = false,
+                            MauSacChuDao = "#274b73",
+                            MoTa = "Timeline ngày tháng, nhóm công cụ hạ tầng rõ ràng",
+                            MoTaNgan = "Timeline hạ tầng",
+                            NganhPhuHop = "IT",
+                            PhongCachThietKe = "modern",
+                            Slug = "devops-stack",
+                            SoCot = 1,
+                            TamLyMauSac = "Mạch lạc như pipeline CI/CD",
+                            Tags = "DevOps,Infra,Cloud",
+                            Ten = "DevOps Stack",
+                            ThanThienATS = true,
+                            ThuTu = 14,
+                            TranhSuDungKhi = "Vai trò mềm, ít kỹ thuật",
+                            ViTriMucTieu = "DevOps,Cloud,SRE"
+                        },
+                        new
+                        {
+                            Id = 15,
+                            CapBac = "all",
+                            Created = new DateTime(2026, 9, 23, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedBy = "system",
+                            DanhMuc = "creative",
+                            GoiYAI = "Khi outcome quan trọng hơn chức danh",
+                            IsActive = false,
+                            KhuyenNghiSuDung = "PM/freelance cần chứng minh kết quả",
+                            LaMacDinh = false,
+                            MauSacChuDao = "#7fae9b",
+                            MoTa = "Dự án lên trước, nhấn mạnh kết quả sản phẩm",
+                            MoTaNgan = "Kết quả sản phẩm",
+                            NganhPhuHop = "Sản phẩm,IT",
+                            PhongCachThietKe = "creative",
+                            Slug = "product-builder",
+                            SoCot = 1,
+                            TamLyMauSac = "Xanh sage tươi mới, tinh thần xây dựng",
+                            Tags = "Product,PM,Freelance",
+                            Ten = "Product Builder",
+                            ThanThienATS = false,
+                            ThuTu = 15,
+                            TranhSuDungKhi = "ATS khắt khe",
+                            ViTriMucTieu = "PM,Product,Freelance"
+                        },
+                        new
+                        {
+                            Id = 16,
+                            CapBac = "fresher",
+                            Created = new DateTime(2026, 9, 23, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedBy = "system",
+                            DanhMuc = "creative",
+                            GoiYAI = "Năng động nhưng an toàn",
+                            IsActive = false,
+                            KhuyenNghiSuDung = "Fresher hoặc startup văn hóa mở",
+                            LaMacDinh = false,
+                            MauSacChuDao = "#355c8c",
+                            MoTa = "Trẻ trung, gọn nhẹ nhưng vẫn chuyên nghiệp",
+                            MoTaNgan = "Trẻ trung startup",
+                            NganhPhuHop = "all",
+                            PhongCachThietKe = "modern",
+                            Slug = "startup-modern",
+                            SoCot = 1,
+                            TamLyMauSac = "Trẻ trung mà vẫn đáng tin",
+                            Tags = "Startup,Hiện đại,Fresher",
+                            Ten = "Startup Modern",
+                            ThanThienATS = true,
+                            ThuTu = 16,
+                            TranhSuDungKhi = "Tổ chức truyền thống",
+                            ViTriMucTieu = "all"
+                        },
+                        new
+                        {
+                            Id = 17,
+                            CapBac = "senior",
+                            Created = new DateTime(2026, 9, 23, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedBy = "system",
+                            DanhMuc = "corporate",
+                            GoiYAI = "Cao cấp mà vẫn qua ATS",
+                            IsActive = true,
+                            KhuyenNghiSuDung = "Vai trò cần sự tinh tế, cao cấp",
+                            LaMacDinh = false,
+                            MauSacChuDao = "#2f3440",
+                            MoTa = "Tiêu đề serif trang nhã, thân thiện ATS",
+                            MoTaNgan = "Serif trang nhã",
+                            NganhPhuHop = "all",
+                            PhongCachThietKe = "editorial",
+                            Slug = "elegant-serif",
+                            SoCot = 1,
+                            TamLyMauSac = "Serif cổ điển, tinh tế",
+                            Tags = "Serif,Editorial,Premium",
+                            Ten = "Elegant Serif",
+                            ThanThienATS = true,
+                            ThuTu = 17,
+                            TranhSuDungKhi = "Kỹ thuật thuần túy (quá mềm)",
+                            ViTriMucTieu = "all"
+                        },
+                        new
+                        {
+                            Id = 18,
+                            CapBac = "all",
+                            Created = new DateTime(2026, 9, 23, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedBy = "system",
+                            DanhMuc = "developer",
+                            GoiYAI = "Hiện đại, có cấu trúc",
+                            IsActive = false,
+                            KhuyenNghiSuDung = "Frontend/fullstack thích bố cục module",
+                            LaMacDinh = false,
+                            MauSacChuDao = "#274b73",
+                            MoTa = "Mô-đun lưới gọn gàng, cấu trúc thị giác rõ",
+                            MoTaNgan = "Lưới tối giản",
+                            NganhPhuHop = "IT",
+                            PhongCachThietKe = "modern",
+                            Slug = "minimal-grid",
+                            SoCot = 2,
+                            TamLyMauSac = "Lưới trật tự, dễ quét",
+                            Tags = "Grid,Hiện đại,Gọn",
+                            Ten = "Minimal Grid",
+                            ThanThienATS = true,
+                            ThuTu = 18,
+                            TranhSuDungKhi = "Nội dung dài liên tục",
+                            ViTriMucTieu = "Frontend,Fullstack"
+                        },
+                        new
+                        {
+                            Id = 19,
+                            CapBac = "all",
+                            Created = new DateTime(2026, 9, 23, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedBy = "system",
+                            DanhMuc = "creative",
+                            GoiYAI = "Ấn tượng: rực rỡ, trẻ trung. Đề xuất khi CV có portfolio, branding, dự án sáng tạo",
+                            IsActive = true,
+                            KhuyenNghiSuDung = "Marketing/Content/Social cần gây ấn tượng thị giác",
+                            LaMacDinh = false,
+                            MauSacChuDao = "#f97316",
+                            MoTa = "Header gradient rực rỡ, tên nổi bật cho ngành sáng tạo",
+                            MoTaNgan = "Rực rỡ sáng tạo",
+                            NganhPhuHop = "Marketing,Truyền thông",
+                            PhongCachThietKe = "creative",
+                            Slug = "sunset-gradient",
+                            SoCot = 1,
+                            TamLyMauSac = "Cam-hồng-tím truyền năng lượng, lạc quan và khác biệt",
+                            Tags = "Marketing,Content,Social,Branding,Event",
+                            Ten = "Sunset Gradient",
+                            ThanThienATS = false,
+                            ThuTu = 19,
+                            TranhSuDungKhi = "Ngân hàng, kế toán, hành chính công, ATS khắt khe",
+                            ViTriMucTieu = "Marketing,Content,Social,Event"
+                        },
+                        new
+                        {
+                            Id = 20,
+                            CapBac = "all",
+                            Created = new DateTime(2026, 9, 23, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedBy = "system",
+                            DanhMuc = "creative",
+                            GoiYAI = "Ấn tượng: mát, dễ gần. Đề xuất khi CV nhấn mạnh giao tiếp và phục vụ khách hàng",
+                            IsActive = true,
+                            KhuyenNghiSuDung = "Sales/CSKH/du lịch cần vẻ thân thiện",
+                            LaMacDinh = false,
+                            MauSacChuDao = "#0284c7",
+                            MoTa = "Sidebar sóng xanh, timeline thân thiện cho dịch vụ",
+                            MoTaNgan = "Mát mẻ thân thiện",
+                            NganhPhuHop = "Dịch vụ,Du lịch",
+                            PhongCachThietKe = "modern",
+                            Slug = "ocean-wave",
+                            SoCot = 2,
+                            TamLyMauSac = "Xanh biển tin cậy mà tươi mới",
+                            Tags = "Sales,CSKH,Du lịch,Giao tiếp",
+                            Ten = "Ocean Wave",
+                            ThanThienATS = true,
+                            ThuTu = 20,
+                            TranhSuDungKhi = "Luật, tài chính cấp cao",
+                            ViTriMucTieu = "Sales,CSKH,Du lịch"
+                        },
+                        new
+                        {
+                            Id = 21,
+                            CapBac = "all",
+                            Created = new DateTime(2026, 9, 23, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedBy = "system",
+                            DanhMuc = "creative",
+                            GoiYAI = "Ấn tượng: sạch, tích cực. Đề xuất khi CV có hoạt động xã hội, tình nguyện",
+                            IsActive = true,
+                            KhuyenNghiSuDung = "Giáo dục/môi trường/NGO hoặc fresher cần thiện cảm",
+                            LaMacDinh = false,
+                            MauSacChuDao = "#16a34a",
+                            MoTa = "Xanh lá tươi mới, mục tiêu nghề nghiệp dạng quote",
+                            MoTaNgan = "Tươi mới tích cực",
+                            NganhPhuHop = "Giáo dục,Môi trường",
+                            PhongCachThietKe = "modern",
+                            Slug = "forest-fresh",
+                            SoCot = 1,
+                            TamLyMauSac = "Xanh lá tăng trưởng, chân thật",
+                            Tags = "Môi trường,Giáo dục,NGO,Content",
+                            Ten = "Forest Fresh",
+                            ThanThienATS = true,
+                            ThuTu = 21,
+                            TranhSuDungKhi = "Ngân hàng, chứng khoán",
+                            ViTriMucTieu = "Giáo viên,Content,Tình nguyện"
+                        },
+                        new
+                        {
+                            Id = 22,
+                            CapBac = "all",
+                            Created = new DateTime(2026, 9, 23, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedBy = "system",
+                            DanhMuc = "developer",
+                            GoiYAI = "Ấn tượng: táo bạo, hiện đại. Đề xuất khi CV có Github, opensource, stack sâu",
+                            IsActive = true,
+                            KhuyenNghiSuDung = "Developer/DevOps/Game muốn phong cách dev-centric",
+                            LaMacDinh = false,
+                            MauSacChuDao = "#0f172a",
+                            MoTa = "Nền tối, skill tags mono cho dân kỹ thuật",
+                            MoTaNgan = "Nền tối đẳng cấp",
+                            NganhPhuHop = "IT",
+                            PhongCachThietKe = "modern",
+                            Slug = "midnight-pro",
+                            SoCot = 1,
+                            TamLyMauSac = "Nền tối neon thể hiện đẳng cấp kỹ thuật",
+                            Tags = "Developer,DevOps,Game,Github",
+                            Ten = "Midnight Pro",
+                            ThanThienATS = false,
+                            ThuTu = 22,
+                            TranhSuDungKhi = "Hành chính, kế toán, ATS parser cũ",
+                            ViTriMucTieu = "Developer,DevOps,Game,AI"
+                        },
+                        new
+                        {
+                            Id = 23,
+                            CapBac = "all",
+                            Created = new DateTime(2026, 9, 23, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedBy = "system",
+                            DanhMuc = "creative",
+                            GoiYAI = "Ấn tượng: dễ thương, sáng tạo. Đề xuất khi CV có Figma, portfolio thiết kế",
+                            IsActive = true,
+                            KhuyenNghiSuDung = "Designer/UI/UX/Marketing cần vẻ mềm mại",
+                            LaMacDinh = false,
+                            MauSacChuDao = "#f9a8d4",
+                            MoTa = "Thẻ pastel bo tròn, avatar lớn cho ngành thẩm mỹ",
+                            MoTaNgan = "Nhẹ nhàng tinh tế",
+                            NganhPhuHop = "Thiết kế,Truyền thông",
+                            PhongCachThietKe = "creative",
+                            Slug = "pastel-studio",
+                            SoCot = 2,
+                            TamLyMauSac = "Pastel nhẹ nhàng, tinh tế",
+                            Tags = "Design,UI,UX,Branding,Portfolio",
+                            Ten = "Pastel Studio",
+                            ThanThienATS = true,
+                            ThuTu = 23,
+                            TranhSuDungKhi = "Luật, tài chính, ATS khắt khe",
+                            ViTriMucTieu = "Designer,UI,UX,Marketing"
+                        },
+                        new
+                        {
+                            Id = 24,
+                            CapBac = "all",
+                            Created = new DateTime(2026, 9, 23, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedBy = "system",
+                            DanhMuc = "creative",
+                            GoiYAI = "Ấn tượng: hiện đại như landing page. Đề xuất khi CV giàu dự án",
+                            IsActive = true,
+                            KhuyenNghiSuDung = "Frontend/Product/Designer khoe dự án theo module",
+                            LaMacDinh = false,
+                            MauSacChuDao = "#2563eb",
+                            MoTa = "Module lưới bento bất đối xứng kiểu portfolio web",
+                            MoTaNgan = "Module hiện đại",
+                            NganhPhuHop = "IT,Sản phẩm",
+                            PhongCachThietKe = "modern",
+                            Slug = "bento-grid",
+                            SoCot = 2,
+                            TamLyMauSac = "Trật tự trong tự do, cảm giác web hiện đại",
+                            Tags = "Portfolio,Frontend,Product,Dự án",
+                            Ten = "Bento Grid",
+                            ThanThienATS = true,
+                            ThuTu = 24,
+                            TranhSuDungKhi = "Hồ sơ dài nhiều chữ",
+                            ViTriMucTieu = "Frontend,Product,Designer"
+                        },
+                        new
+                        {
+                            Id = 25,
+                            CapBac = "all",
+                            Created = new DateTime(2026, 9, 23, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedBy = "system",
+                            DanhMuc = "creative",
+                            GoiYAI = "Ấn tượng: startup, bứt phá. Đề xuất khi CV gắn đổi mới sáng tạo",
+                            IsActive = true,
+                            KhuyenNghiSuDung = "Startup/AI/Product cần vẻ futuristic",
+                            LaMacDinh = false,
+                            MauSacChuDao = "#34d399",
+                            MoTa = "Nền gradient loang futuristic cho startup và AI",
+                            MoTaNgan = "Tương lai startup",
+                            NganhPhuHop = "Công nghệ,Startup",
+                            PhongCachThietKe = "creative",
+                            Slug = "aurora-mesh",
+                            SoCot = 1,
+                            TamLyMauSac = "Gradient mesh đổi mới, công nghệ",
+                            Tags = "Startup,AI,Product,Đổi mới",
+                            Ten = "Aurora Mesh",
+                            ThanThienATS = false,
+                            ThuTu = 25,
+                            TranhSuDungKhi = "Corporate truyền thống, ngân hàng",
+                            ViTriMucTieu = "Product,AI,Marketing"
+                        },
+                        new
+                        {
+                            Id = 26,
+                            CapBac = "all",
+                            Created = new DateTime(2026, 9, 23, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedBy = "system",
+                            DanhMuc = "creative",
+                            GoiYAI = "Ấn tượng: poster khó quên. Đề xuất khi CV cần cá tính mạnh",
+                            IsActive = true,
+                            KhuyenNghiSuDung = "Quảng cáo/event/sales cần gây nhớ",
+                            LaMacDinh = false,
+                            MauSacChuDao = "#facc15",
+                            MoTa = "Khối màu pop-art, số liệu phóng to kiểu poster",
+                            MoTaNgan = "Bùng nổ cá tính",
+                            NganhPhuHop = "Truyền thông,Quảng cáo",
+                            PhongCachThietKe = "creative",
+                            Slug = "pop-art-bold",
+                            SoCot = 1,
+                            TamLyMauSac = "Vàng-đỏ-cobalt tự tin, bùng nổ",
+                            Tags = "Quảng cáo,Event,Sales,Truyền thông",
+                            Ten = "Pop Art Bold",
+                            ThanThienATS = false,
+                            ThuTu = 26,
+                            TranhSuDungKhi = "Kế toán, luật, y tế",
+                            ViTriMucTieu = "Quảng cáo,Event,Sales"
+                        },
+                        new
+                        {
+                            Id = 27,
+                            CapBac = "senior",
+                            Created = new DateTime(2026, 9, 23, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedBy = "system",
+                            DanhMuc = "corporate",
+                            GoiYAI = "Ấn tượng: mạch lạc, đáng tin. Đề xuất khi CV nhiều năm kinh nghiệm",
+                            IsActive = true,
+                            KhuyenNghiSuDung = "Người có lộ trình thăng tiến rõ",
+                            LaMacDinh = false,
+                            MauSacChuDao = "#1e3a5f",
+                            MoTa = "Trục thời gian dọc kể hành trình thăng tiến",
+                            MoTaNgan = "Hành trình rõ ràng",
+                            NganhPhuHop = "all",
+                            PhongCachThietKe = "classic",
+                            Slug = "career-timeline",
+                            SoCot = 1,
+                            TamLyMauSac = "Navy hành trình, tiến bộ vững chắc",
+                            Tags = "Thăng tiến,Quản lý,Kinh nghiệm",
+                            Ten = "Career Timeline",
+                            ThanThienATS = true,
+                            ThuTu = 27,
+                            TranhSuDungKhi = "Fresher (trục trống)",
+                            ViTriMucTieu = "Manager,Lead"
+                        },
+                        new
+                        {
+                            Id = 28,
+                            CapBac = "all",
+                            Created = new DateTime(2026, 9, 23, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedBy = "system",
+                            DanhMuc = "developer",
+                            GoiYAI = "Ấn tượng: trực quan, số liệu. Đề xuất khi CV giàu con số",
+                            IsActive = true,
+                            KhuyenNghiSuDung = "CV có kỹ năng định lượng, KPI rõ",
+                            LaMacDinh = false,
+                            MauSacChuDao = "#0d9488",
+                            MoTa = "Thanh/donut % kỹ năng và số liệu trực quan",
+                            MoTaNgan = "Trực quan dữ liệu",
+                            NganhPhuHop = "IT,Marketing",
+                            PhongCachThietKe = "modern",
+                            Slug = "infographic-pro",
+                            SoCot = 2,
+                            TamLyMauSac = "Teal dữ liệu, minh bạch",
+                            Tags = "Kỹ năng,KPI,Data",
+                            Ten = "Infographic Pro",
+                            ThanThienATS = false,
+                            ThuTu = 28,
+                            TranhSuDungKhi = "ATS parser text thuần",
+                            ViTriMucTieu = "Data,Marketing,Kế toán"
+                        },
+                        new
+                        {
+                            Id = 29,
+                            CapBac = "senior",
+                            Created = new DateTime(2026, 9, 23, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedBy = "system",
+                            DanhMuc = "corporate",
+                            GoiYAI = "Ấn tượng: nhớ tên ngay. Đề xuất khi CV cần dấu ấn lãnh đạo",
+                            IsActive = true,
+                            KhuyenNghiSuDung = "Quản lý/sales cần thương hiệu cá nhân",
+                            LaMacDinh = false,
+                            MauSacChuDao = "#1e40af",
+                            MoTa = "Header màu đặc, tên khổng lồ khó quên",
+                            MoTaNgan = "Tuyên ngôn cá nhân",
+                            NganhPhuHop = "all",
+                            PhongCachThietKe = "modern",
+                            Slug = "statement-header",
+                            SoCot = 1,
+                            TamLyMauSac = "Một màu đặc quyết đoán",
+                            Tags = "Quản lý,Thương hiệu cá nhân",
+                            Ten = "Statement Header",
+                            ThanThienATS = true,
+                            ThuTu = 29,
+                            TranhSuDungKhi = "Fresher, ATS tối giản",
+                            ViTriMucTieu = "Manager,Lead,Sales"
+                        },
+                        new
+                        {
+                            Id = 30,
+                            CapBac = "all",
+                            Created = new DateTime(2026, 9, 23, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedBy = "system",
+                            DanhMuc = "ats",
+                            GoiYAI = "Ấn tượng: cao cấp, tĩnh. An toàn ATS bậc nhất",
+                            IsActive = true,
+                            KhuyenNghiSuDung = "Mọi ngành khi muốn tối giản tuyệt đối",
+                            LaMacDinh = false,
+                            MauSacChuDao = "#111111",
+                            MoTa = "Khoảng trắng cực lớn, không màu accent",
+                            MoTaNgan = "Tĩnh lặng cao cấp",
+                            NganhPhuHop = "all",
+                            PhongCachThietKe = "ats",
+                            Slug = "zen-minimal",
+                            SoCot = 1,
+                            TamLyMauSac = "Đen-xám tĩnh, tự tin kiểu Nhật",
+                            Tags = "Tối giản,Cao cấp",
+                            Ten = "Zen Minimal",
+                            ThanThienATS = true,
+                            ThuTu = 30,
+                            TranhSuDungKhi = "Cần thể hiện cá tính mạnh",
+                            ViTriMucTieu = "all"
+                        },
+                        new
+                        {
+                            Id = 31,
+                            CapBac = "all",
+                            Created = new DateTime(2026, 9, 23, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedBy = "system",
+                            DanhMuc = "corporate",
+                            GoiYAI = "Ấn tượng: gần gũi. Đề xuất khi CV có ảnh và kỹ năng giao tiếp",
+                            IsActive = true,
+                            KhuyenNghiSuDung = "Sales/CSKH/HR/giáo dục có ảnh đẹp",
+                            LaMacDinh = false,
+                            MauSacChuDao = "#c2410c",
+                            MoTa = "Ảnh đại diện lớn, chuẩn CV ảnh thị trường",
+                            MoTaNgan = "Gần gũi đáng tin",
+                            NganhPhuHop = "Dịch vụ,Giáo dục",
+                            PhongCachThietKe = "classic",
+                            Slug = "snapshot-pro",
+                            SoCot = 2,
+                            TamLyMauSac = "Cam đất ấm áp, con người thật",
+                            Tags = "Ảnh,Giao tiếp,Dịch vụ",
+                            Ten = "Snapshot Pro",
+                            ThanThienATS = true,
+                            ThuTu = 31,
+                            TranhSuDungKhi = "Công ty cấm ảnh, ATS ẩn danh",
+                            ViTriMucTieu = "Sales,CSKH,HR,Giáo viên"
+                        },
+                        new
+                        {
+                            Id = 32,
+                            CapBac = "senior",
+                            Created = new DateTime(2026, 9, 23, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedBy = "system",
+                            DanhMuc = "senior",
+                            GoiYAI = "Ấn tượng: hiệu suất. Đề xuất khi CV dày nhưng cần súc tích",
+                            IsActive = true,
+                            KhuyenNghiSuDung = "C-level/tư vấn cần gọn 1 trang",
+                            LaMacDinh = false,
+                            MauSacChuDao = "#0f2a44",
+                            MoTa = "Ép 1 trang mật độ cao cho lãnh đạo bận rộn",
+                            MoTaNgan = "Súc tích lãnh đạo",
+                            NganhPhuHop = "Quản lý,Tư vấn",
+                            PhongCachThietKe = "classic",
+                            Slug = "one-page-exec",
+                            SoCot = 2,
+                            TamLyMauSac = "Navy hiệu suất, dồn lực",
+                            Tags = "C-level,Tư vấn,Súc tích",
+                            Ten = "One-Page Exec",
+                            ThanThienATS = true,
+                            ThuTu = 32,
+                            TranhSuDungKhi = "Fresher, hồ sơ cần chi tiết",
+                            ViTriMucTieu = "Manager,Director,C-level"
+                        },
+                        new
+                        {
+                            Id = 33,
+                            CapBac = "all",
+                            Created = new DateTime(2026, 9, 23, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedBy = "system",
+                            DanhMuc = "corporate",
+                            GoiYAI = "Ấn tượng: chuyên môn y khoa. Đề xuất khi CV có chứng chỉ ngành y",
+                            IsActive = true,
+                            KhuyenNghiSuDung = "Y tế/dược có chứng chỉ hành nghề",
+                            LaMacDinh = false,
+                            MauSacChuDao = "#0284c7",
+                            MoTa = "Header chữ thập y tế, block chứng chỉ hành nghề",
+                            MoTaNgan = "Chuẩn y khoa",
+                            NganhPhuHop = "Y tế",
+                            PhongCachThietKe = "classic",
+                            Slug = "care-plus",
+                            SoCot = 1,
+                            TamLyMauSac = "Xanh y tế sạch sẽ, an toàn",
+                            Tags = "Y tế,Bác sĩ,Điều dưỡng,Chứng chỉ",
+                            Ten = "Care Plus",
+                            ThanThienATS = true,
+                            ThuTu = 33,
+                            TranhSuDungKhi = "Ngành khác",
+                            ViTriMucTieu = "Bác sĩ,Điều dưỡng,Dược"
+                        },
+                        new
+                        {
+                            Id = 34,
+                            CapBac = "all",
+                            Created = new DateTime(2026, 9, 23, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedBy = "system",
+                            DanhMuc = "corporate",
+                            GoiYAI = "Ấn tượng: nhà giáo. Đề xuất khi CV có kinh nghiệm giảng dạy",
+                            IsActive = true,
+                            KhuyenNghiSuDung = "Giáo viên/giảng viên/đào tạo nội bộ",
+                            LaMacDinh = false,
+                            MauSacChuDao = "#ea580c",
+                            MoTa = "Sidebar thành tích giảng dạy, bảng khóa đào tạo",
+                            MoTaNgan = "Ấm áp tri thức",
+                            NganhPhuHop = "Giáo dục",
+                            PhongCachThietKe = "classic",
+                            Slug = "mentor-class",
+                            SoCot = 2,
+                            TamLyMauSac = "Cam ấm tri thức, gần gũi",
+                            Tags = "Giáo viên,Đào tạo,Học thuật",
+                            Ten = "Mentor Class",
+                            ThanThienATS = true,
+                            ThuTu = 34,
+                            TranhSuDungKhi = "Kỹ thuật thuần",
+                            ViTriMucTieu = "Giáo viên,Giảng viên,Đào tạo"
+                        },
+                        new
+                        {
+                            Id = 35,
+                            CapBac = "senior",
+                            Created = new DateTime(2026, 9, 23, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedBy = "system",
+                            DanhMuc = "senior",
+                            GoiYAI = "Ấn tượng: private banking. Đề xuất khi CV có CFA, số liệu tài chính",
+                            IsActive = true,
+                            KhuyenNghiSuDung = "Ngân hàng/tài chính/kế toán cấp cao",
+                            LaMacDinh = false,
+                            MauSacChuDao = "#c9a227",
+                            MoTa = "Navy + gold premium, bảng số liệu tài chính",
+                            MoTaNgan = "Premium tài chính",
+                            NganhPhuHop = "Tài chính,Ngân hàng",
+                            PhongCachThietKe = "classic",
+                            Slug = "vault-finance",
+                            SoCot = 1,
+                            TamLyMauSac = "Navy-gold giàu có, chính xác",
+                            Tags = "Ngân hàng,Tài chính,CFA",
+                            Ten = "Vault Finance",
+                            ThanThienATS = true,
+                            ThuTu = 35,
+                            TranhSuDungKhi = "Startup, sáng tạo",
+                            ViTriMucTieu = "Ngân hàng,Tài chính,Kế toán"
+                        },
+                        new
+                        {
+                            Id = 36,
+                            CapBac = "fresher",
+                            Created = new DateTime(2026, 9, 23, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedBy = "system",
+                            DanhMuc = "fresher",
+                            GoiYAI = "Ấn tượng: dễ mến. Đề xuất khi CV part-time, ít kinh nghiệm",
+                            IsActive = true,
+                            KhuyenNghiSuDung = "Dịch vụ/bán lẻ/thực tập sinh",
+                            LaMacDinh = false,
+                            MauSacChuDao = "#fb923c",
+                            MoTa = "Bo tròn thân thiện cho dịch vụ và thực tập",
+                            MoTaNgan = "Dễ mến thân thiện",
+                            NganhPhuHop = "Dịch vụ,Bán lẻ",
+                            PhongCachThietKe = "modern",
+                            Slug = "host-warm",
+                            SoCot = 1,
+                            TamLyMauSac = "Cam đào hiếu khách",
+                            Tags = "Phục vụ,Bán lẻ,Thực tập",
+                            Ten = "Host Warm",
+                            ThanThienATS = true,
+                            ThuTu = 36,
+                            TranhSuDungKhi = "Kỹ thuật, tài chính",
+                            ViTriMucTieu = "Phục vụ,Bán lẻ,Thực tập"
+                        },
+                        new
+                        {
+                            Id = 37,
+                            CapBac = "all",
+                            Created = new DateTime(2026, 9, 23, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedBy = "system",
+                            DanhMuc = "creative",
+                            GoiYAI = "Ấn tượng: tạp chí, trí thức. Đề xuất khi CV viết lách, xuất bản",
+                            IsActive = true,
+                            KhuyenNghiSuDung = "Truyền thông/biên tập cần ấn tượng biên tập",
+                            LaMacDinh = false,
+                            MauSacChuDao = "#111827",
+                            MoTa = "Bố cục tạp chí, drop-cap và pull-quote",
+                            MoTaNgan = "Tạp chí biên tập",
+                            NganhPhuHop = "Truyền thông,Xuất bản",
+                            PhongCachThietKe = "editorial",
+                            Slug = "editorial-magazine",
+                            SoCot = 2,
+                            TamLyMauSac = "Mực đen báo chí, đỏ điểm nhấn quyết đoán",
+                            Tags = "Editorial,Tạp chí,Content",
+                            Ten = "Editorial Magazine",
+                            ThanThienATS = true,
+                            ThuTu = 37,
+                            TranhSuDungKhi = "ATS khắt khe, văn bản thuần túy",
+                            ViTriMucTieu = "Biên tập,Content"
+                        },
+                        new
+                        {
+                            Id = 38,
+                            CapBac = "all",
+                            Created = new DateTime(2026, 9, 23, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedBy = "system",
+                            DanhMuc = "creative",
+                            GoiYAI = "Ấn tượng: kỹ thuật, chuẩn xác. Đề xuất khi CV có portfolio bản vẽ",
+                            IsActive = true,
+                            KhuyenNghiSuDung = "Kiến trúc/nội thất khoe bản vẽ",
+                            LaMacDinh = false,
+                            MauSacChuDao = "#334155",
+                            MoTa = "Khung bản vẽ kỹ thuật, nhãn sheet",
+                            MoTaNgan = "Bản vẽ kiến trúc",
+                            NganhPhuHop = "Kiến trúc,Xây dựng",
+                            PhongCachThietKe = "creative",
+                            Slug = "archi-portfolio",
+                            SoCot = 2,
+                            TamLyMauSac = "Xám thép chính xác, kỷ luật",
+                            Tags = "Kiến trúc,Bản vẽ,Portfolio",
+                            Ten = "Archi Portfolio",
+                            ThanThienATS = true,
+                            ThuTu = 38,
+                            TranhSuDungKhi = "Vai trò phi thiết kế",
+                            ViTriMucTieu = "Kiến trúc sư,Nội thất"
+                        },
+                        new
+                        {
+                            Id = 39,
+                            CapBac = "all",
+                            Created = new DateTime(2026, 9, 23, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedBy = "system",
+                            DanhMuc = "corporate",
+                            GoiYAI = "Ấn tượng: uy nghi. Đề xuất khi CV luật, tuân thủ",
+                            IsActive = true,
+                            KhuyenNghiSuDung = "Luật/pháp chế cần sự tin cậy",
+                            LaMacDinh = false,
+                            MauSacChuDao = "#1e3a5f",
+                            MoTa = "Trang trọng, điều khoản đánh số La Mã",
+                            MoTaNgan = "Uy nghi ngành luật",
+                            NganhPhuHop = "Luật",
+                            PhongCachThietKe = "classic",
+                            Slug = "legal-prestige",
+                            SoCot = 1,
+                            TamLyMauSac = "Navy uy quyền, gold trang trọng",
+                            Tags = "Luật,Pháp chế",
+                            Ten = "Legal Prestige",
+                            ThanThienATS = true,
+                            ThuTu = 39,
+                            TranhSuDungKhi = "Startup, sáng tạo",
+                            ViTriMucTieu = "Luật sư,Pháp chế"
+                        },
+                        new
+                        {
+                            Id = 40,
+                            CapBac = "all",
+                            Created = new DateTime(2026, 9, 23, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedBy = "system",
+                            DanhMuc = "creative",
+                            GoiYAI = "Ấn tượng: động, trẻ. Đề xuất khi CV sáng tạo nội dung số",
+                            IsActive = true,
+                            KhuyenNghiSuDung = "Multimedia/content cần năng lượng",
+                            LaMacDinh = false,
+                            MauSacChuDao = "#f43f5e",
+                            MoTa = "Band nghiêng, khối chuyển động",
+                            MoTaNgan = "Năng động đa phương tiện",
+                            NganhPhuHop = "Truyền thông,Giải trí",
+                            PhongCachThietKe = "creative",
+                            Slug = "motion-creative",
+                            SoCot = 1,
+                            TamLyMauSac = "Coral-violet trẻ trung, chuyển động",
+                            Tags = "Sáng tạo,Multimedia",
+                            Ten = "Motion Creative",
+                            ThanThienATS = false,
+                            ThuTu = 40,
+                            TranhSuDungKhi = "Luật, tài chính, ATS khắt khe",
+                            ViTriMucTieu = "Multimedia,Content"
+                        },
+                        new
+                        {
+                            Id = 41,
+                            CapBac = "senior",
+                            Created = new DateTime(2026, 9, 23, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedBy = "system",
+                            DanhMuc = "senior",
+                            GoiYAI = "Ấn tượng: học giả. Đề xuất khi CV có công bố, đề tài",
+                            IsActive = true,
+                            KhuyenNghiSuDung = "Nghiên cứu/giảng viên có công bố",
+                            LaMacDinh = false,
+                            MauSacChuDao = "#14532d",
+                            MoTa = "Abstract, citation và metrics học thuật",
+                            MoTaNgan = "Học thuật chuyên sâu",
+                            NganhPhuHop = "Giáo dục,Nghiên cứu",
+                            PhongCachThietKe = "classic",
+                            Slug = "research-scholar",
+                            SoCot = 2,
+                            TamLyMauSac = "Xanh lá đậm học thuật, nghiêm cẩn",
+                            Tags = "Nghiên cứu,Học thuật",
+                            Ten = "Research Scholar",
+                            ThanThienATS = true,
+                            ThuTu = 41,
+                            TranhSuDungKhi = "Doanh nghiệp thương mại",
+                            ViTriMucTieu = "Nghiên cứu,Giảng viên"
+                        },
+                        new
+                        {
+                            Id = 42,
+                            CapBac = "all",
+                            Created = new DateTime(2026, 9, 23, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedBy = "system",
+                            DanhMuc = "creative",
+                            GoiYAI = "Ấn tượng: ngon mắt. Đề xuất khi CV ẩm thực, nhà hàng",
+                            IsActive = true,
+                            KhuyenNghiSuDung = "Đầu bếp/F&B cần dấu ấn riêng",
+                            LaMacDinh = false,
+                            MauSacChuDao = "#881337",
+                            MoTa = "Phong cách menu nhà hàng cao cấp",
+                            MoTaNgan = "Ẩm thực đẳng cấp",
+                            NganhPhuHop = "F&B,Du lịch",
+                            PhongCachThietKe = "creative",
+                            Slug = "culinary-signature",
+                            SoCot = 1,
+                            TamLyMauSac = "Burgundy ấm cúng, tinh tế",
+                            Tags = "F&B,Đầu bếp",
+                            Ten = "Culinary Signature",
+                            ThanThienATS = true,
+                            ThuTu = 42,
+                            TranhSuDungKhi = "Kỹ thuật, văn phòng",
+                            ViTriMucTieu = "Đầu bếp,F&B"
+                        },
+                        new
+                        {
+                            Id = 43,
+                            CapBac = "all",
+                            Created = new DateTime(2026, 9, 23, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedBy = "system",
+                            DanhMuc = "creative",
+                            GoiYAI = "Ấn tượng: lookbook. Đề xuất khi CV thời trang, phong cách",
+                            IsActive = true,
+                            KhuyenNghiSuDung = "Thời trang/stylist cần gu thẩm mỹ",
+                            LaMacDinh = false,
+                            MauSacChuDao = "#0a0a0a",
+                            MoTa = "Lookbook, type-scale thời trang",
+                            MoTaNgan = "Thời trang cao cấp",
+                            NganhPhuHop = "Thời trang",
+                            PhongCachThietKe = "editorial",
+                            Slug = "fashion-editorial",
+                            SoCot = 1,
+                            TamLyMauSac = "Đen-trắng tương phản, thời thượng",
+                            Tags = "Thời trang,Lookbook",
+                            Ten = "Fashion Editorial",
+                            ThanThienATS = false,
+                            ThuTu = 43,
+                            TranhSuDungKhi = "ATS khắt khe, văn phòng truyền thống",
+                            ViTriMucTieu = "Thiết kế,Stylist"
+                        },
+                        new
+                        {
+                            Id = 44,
+                            CapBac = "all",
+                            Created = new DateTime(2026, 9, 23, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedBy = "system",
+                            DanhMuc = "developer",
+                            GoiYAI = "Ấn tượng: bản vẽ kỹ thuật. Đề xuất khi CV công nghiệp, nhà máy",
+                            IsActive = true,
+                            KhuyenNghiSuDung = "Cơ khí/sản xuất cần tính kỹ thuật",
+                            LaMacDinh = false,
+                            MauSacChuDao = "#475569",
+                            MoTa = "Lưới blueprint, specs-table kỹ thuật",
+                            MoTaNgan = "Kỹ thuật công nghiệp",
+                            NganhPhuHop = "Cơ khí,Sản xuất",
+                            PhongCachThietKe = "modern",
+                            Slug = "industrial-blueprint",
+                            SoCot = 1,
+                            TamLyMauSac = "Xám thép công nghiệp, chính xác",
+                            Tags = "Cơ khí,Bản vẽ,Kỹ thuật",
+                            Ten = "Industrial Blueprint",
+                            ThanThienATS = true,
+                            ThuTu = 44,
+                            TranhSuDungKhi = "Sáng tạo, dịch vụ",
+                            ViTriMucTieu = "Kỹ sư,Cơ khí"
+                        }
+                    );
                 });
 
             modelBuilder.Entity("Domain.Entities.DanhGia", b =>

@@ -43,7 +43,10 @@ internal sealed class CvAssistantAgentFactory
                     new AIFunctionFactoryOptions { Name = "list_my_cvs" }),
                 AIFunctionFactory.Create(
                     _queryTools.SuggestJobsForMyCvAsync,
-                    new AIFunctionFactoryOptions { Name = "suggest_jobs_for_my_cv" })
+                    new AIFunctionFactoryOptions { Name = "suggest_jobs_for_my_cv" }),
+                AIFunctionFactory.Create(
+                    _queryTools.SuggestCvThemeAsync,
+                    new AIFunctionFactoryOptions { Name = "suggest_cv_theme" })
             ]);
     }
 }

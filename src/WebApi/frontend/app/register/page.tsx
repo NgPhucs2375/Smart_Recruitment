@@ -9,7 +9,6 @@ import {
   TabSwitcher,
   SocialAuthSection,
   MagicLinkSentSuccess,
-  WrongPortalAlert,
 } from "@/components/auth";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -58,7 +57,6 @@ function RegisterContent() {
     isPending: isGooglePending,
     error: googleError,
     setError: setGoogleError,
-    wrongPortal: googleWrongPortal,
   } = useGoogleAuth("candidate");
 
   // 3. Magic Link Hook (candidate-only)
@@ -176,12 +174,6 @@ function RegisterContent() {
           active={method}
           onChange={(id) => setMethod(id as "password" | "magic")}
         />
-      )}
-
-      {googleWrongPortal && (
-        <div className="mb-3">
-          <WrongPortalAlert portal={googleWrongPortal} />
-        </div>
       )}
 
       {/* 1. EMAIL & MẬT KHẨU */}

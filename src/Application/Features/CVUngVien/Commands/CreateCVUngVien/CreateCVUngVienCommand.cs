@@ -77,6 +77,10 @@ public class CreateCVUngVienCommandHandler(
             var oldDefaults = await context.CVUngViens
                 .Where(x => x.HoSoUngVienId == hoSo.Id && x.IsDefault && !x.IsDaXoa)
                 .ToListAsync(cancellationToken);
+            foreach (var x in oldDefaults)
+            {
+                    context.CVUngViens.Attach(x);
+            }
             oldDefaults.ForEach(x => x.IsDefault = false);
         }
 

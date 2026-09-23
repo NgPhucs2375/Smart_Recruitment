@@ -1,13 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { usePasswordLogin, useGoogleAuth } from "@/hooks";
+import { sanitizeNext } from "@/lib/portal-roles";
 import {
   AuthLayout,
   GoogleAuthSection,
   GithubLoginButton,
-  WrongPortalAlert,
 } from "@/components/auth";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,10 +22,19 @@ import { Mail, Lock, ArrowRight, Loader2, Building2, Eye, EyeOff, Sparkles, Kanb
  * No duplicated authentication logic.
  */
 export default function EmployerLoginPage() {
+  return (
+    <Suspense fallback={<div className="min-h-dvh bg-background" />}>
+      <EmployerLoginContent />
+    </Suspense>
+  );
+}
+
+function EmployerLoginContent() {
   const [showPassword, setShowPassword] = useState(false);
-  const { register, handleSubmit, errors, isPending, submitError, wrongPortal: passwordWrongPortal } = usePasswordLogin("employer");
-  const { handleGoogleLogin, isPending: isGooglePending, error: googleError, wrongPortal: googleWrongPortal } = useGoogleAuth("employer");
-  const wrongPortal = passwordWrongPortal ?? googleWrongPortal;
+  const searchParams = useSearchParams();
+  const next = sanitizeNext(searchParams.get("next"));
+  const { register, handleSubmit, errors, isPending, submitError } = usePasswordLogin("employer", next);
+  const { handleGoogleLogin, isPending: isGooglePending, error: googleError } = useGoogleAuth("employer", next);
 
   return (
     <AuthLayout
@@ -103,7 +113,6 @@ export default function EmployerLoginPage() {
       </div>
 
       <form onSubmit={handleSubmit} noValidate className="space-y-3">
-        {wrongPortal && <WrongPortalAlert portal={wrongPortal} />}
         {submitError && (
           <Alert variant="destructive" className="border-red-200 bg-red-50 py-2.5">
             <AlertDescription className="text-xs text-red-700">{submitError}</AlertDescription>

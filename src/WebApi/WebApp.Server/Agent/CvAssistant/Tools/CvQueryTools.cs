@@ -4,6 +4,7 @@ using Application.Features.CVUngVien.Queries.GetAllCVUngViens;
 using Application.Features.CVUngVien.Queries.GetCVUngVienById;
 using Application.Features.HoSoUngVien.Queries.GetAllHoSoUngViens;
 using Application.Features.HoSoUngVien.Queries.GetMyHoSoUngVien;
+using Application.Features.CvTheme.Queries.SuggestCvThemes;
 using Application.Features.KetQuaPhuHop.Queries.SuggestJobsForCv;
 using Application.Wrappers;
 using MediatR;
@@ -63,6 +64,21 @@ internal sealed class CvQueryTools
     {
         return _sender.Send(
             new GetSuggestedJobsForCvQuery { CvUngVienId = cvId, TopN = 10 },
+            cancellationToken);
+    }
+
+    [Description(
+        "Gợi ý mẫu CV phù hợp với hồ sơ của ứng viên (ưu tiên CV mặc định). " +
+        "Trả về top mẫu kèm điểm phù hợp và lý do chọn (ngành, cấp bậc, ATS). " +
+        "Dùng khi người dùng hỏi 'mẫu CV nào hợp với tôi', 'nên dùng theme nào'. " +
+        "Áp dụng mẫu bằng frontend tool setCvTemplate, chỉ khi người dùng đồng ý.")]
+    public Task<Response<List<SuggestedCvThemeViewModel>>> SuggestCvThemeAsync(
+        [Description("ID CV cụ thể cần gợi ý mẫu; bỏ trống để dùng CV mặc định")] int? cvId,
+        [Description("Vị trí ứng tuyển muốn nhắm tới (vd: Backend Developer); bỏ trống để lấy từ hồ sơ")] string viTri,
+        CancellationToken cancellationToken = default)
+    {
+        return _sender.Send(
+            new GetSuggestedCvThemesQuery { CvUngVienId = cvId, ViTri = viTri, TopN = 3 },
             cancellationToken);
     }
 }

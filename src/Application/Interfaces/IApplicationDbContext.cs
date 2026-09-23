@@ -28,6 +28,7 @@ namespace Application.Interfaces
         DbSet<CVTepTin> CVTepTins { get; set; }
         DbSet<CVPhienBan> CVPhienBans { get; set; }
         DbSet<DanhGia> DanhGias { get; set; }
+        DbSet<CvTheme> CvThemes { get; set; }
         Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
     }
 }

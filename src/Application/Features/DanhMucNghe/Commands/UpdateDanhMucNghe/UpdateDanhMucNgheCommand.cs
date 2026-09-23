@@ -31,6 +31,10 @@ public class UpdateDanhMucNgheCommandHandler(
                 "Không tìm thấy danh mục nghề.");
         }
 
+        // DbContext NoTracking toàn cục: Find/FirstOrDefault trả về entity
+        // không track — Attach cùng reference (không throw duplicate-track).
+        context.DanhMucNghes.Attach(entity);
+
         var tenNghe = request.TenNghe?.Trim();
 
         var trungLap = await context.DanhMucNghes

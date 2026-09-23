@@ -1,6 +1,7 @@
 import type { AuthProvider } from "@refinedev/core";
 import { saveIdentity, loadIdentity, clearIdentity, buildIdentity } from "./access-control-provider";
-import { isPortalAllowed, homePortalFor, sanitizeNext, WRONG_PORTAL_MESSAGE, type PortalKind } from "./portal-roles";
+import { homePortalFor, type PortalKind } from "./portal-roles";
+import { resolvePostLoginTarget } from "@/components/auth/login-handler";
 
 const LOGIN_PORTAL_KEY = "hireai.login.portal";
 
@@ -337,22 +338,14 @@ export const authProvider: AuthProvider = {
       }
 
       rememberLoginPortal(portal);
-      // Portal role gate: same auth API, then validate the resolved
-      // identity. Wrong portal → clear the newly created frontend
-      // session so the account cannot enter through this portal.
-      if (portal === "candidate" || portal === "employer") {
-        if (!isPortalAllowed(me.roles, portal)) {
-          clearAuth();
-          return {
-            success: false,
-            error: { name: "Sai cổng đăng nhập", message: WRONG_PORTAL_MESSAGE[portal] },
-          };
-        }
-      }
-      
+      // Shared-auth model: the same API serves every portal. The login URL
+      // is only a hint — backend `/account/me` roles are the source of
+      // truth and `AppLayout` picks the candidate / recruiter / admin
+      // shell from them. Cross-portal accounts log in successfully and
+      // land on the dashboard of their own role.
       return {
         success: true,
-        redirectTo: sanitizeNext(payload.redirectTo ?? payload.next) ?? "/dashboard",
+        redirectTo: resolvePostLoginTarget(me.roles, payload.redirectTo ?? payload.next),
       };
     } catch (err) {
       return {
@@ -500,7 +493,7 @@ export async function magicLogin(payload: {
   email: string;
   token: string;
   portal?: PortalKind;
-}): Promise<{ success: boolean; error?: string; wrongPortal?: PortalKind }> {
+  }): Promise<{ success: boolean; error?: string }> {
   try {
     const res = await fetch(`${API_URL}/magic-login`, {
       method: "POST",
@@ -528,13 +521,8 @@ export async function magicLogin(payload: {
     if (jwToken) {
       saveTokens(jwToken, refreshToken); // Lưu token vào localStorage[cite: 18]
       await fetchAndSaveMe(jwToken);     // Đồng bộ thông tin định danh và quyền[cite: 18]
-      if (payload.portal === "candidate" || payload.portal === "employer") {
-        const roles = loadIdentity()?.roles ?? [];
-        if (!isPortalAllowed(roles, payload.portal)) {
-          clearAuth();
-          return { success: false, error: WRONG_PORTAL_MESSAGE[payload.portal], wrongPortal: payload.portal };
-        }
-      }
+      // Same shared-auth model as password/Google login: portal is a hint,
+      // roles from /me decide the shell. No rejection on mismatch.
       rememberLoginPortal(payload.portal);
       return { success: true };
     }

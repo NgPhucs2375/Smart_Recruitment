@@ -11,6 +11,7 @@ import { Progress } from "@/components/ui/progress";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { Calendar } from "@/components/ui/calendar";
 import { useStoredIdentity } from "@/hooks/use-stored-identity";
+import { SystemAdminDashboard } from "@/components/admin/system-dashboard";
 import { useBookmarks } from "@/hooks/use-bookmarks";
 import { cvApi } from "@/lib/api/cv-api";
 import type { HoSoVm } from "@/lib/types";
@@ -408,42 +409,7 @@ function RecruiterAdminDashboard() {
 
   if (!isAdmin) return <RecruiterControlCenter />;
 
-  return (
-    <AdminPageLayout>
-      <AdminPageHeader
-        icon={LayoutDashboard}
-        title="Admin Dashboard"
-        description="Quản trị hệ thống Smart Recruitment."
-      />
-
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <Link href="/user-roles" className="group rounded-3xl border border-border bg-card p-6 shadow-sm transition hover:-translate-y-1 hover:border-foreground/30">
-          <div className="flex items-center justify-between text-muted-foreground">
-            <span className="text-xs uppercase tracking-wider">Người dùng</span>
-            <Users className="size-5" />
-          </div>
-          <div className="mt-6 text-4xl font-semibold tracking-tight">—</div>
-          <p className="mt-2 text-xs text-muted-foreground">Quản lý tài khoản</p>
-        </Link>
-        <Link href="/tin-tuyen-dung" className="group rounded-3xl border border-border bg-card p-6 shadow-sm transition hover:-translate-y-1 hover:border-foreground/30">
-          <div className="flex items-center justify-between text-muted-foreground">
-            <span className="text-xs uppercase tracking-wider">Tin tuyển dụng</span>
-            <Briefcase className="size-5" />
-          </div>
-          <div className="mt-6 text-4xl font-semibold tracking-tight">—</div>
-          <p className="mt-2 text-xs text-muted-foreground">Duyệt tin</p>
-        </Link>
-        <Link href="/reports" className="group rounded-3xl border border-border bg-card p-6 shadow-sm transition hover:-translate-y-1 hover:border-foreground/30">
-          <div className="flex items-center justify-between text-muted-foreground">
-            <span className="text-xs uppercase tracking-wider">Báo cáo</span>
-            <TrendingUp className="size-5" />
-          </div>
-          <div className="mt-6 text-4xl font-semibold tracking-tight">—</div>
-          <p className="mt-2 text-xs text-muted-foreground">Thống kê hệ thống</p>
-        </Link>
-      </div>
-    </AdminPageLayout>
-  );
+  return <SystemAdminDashboard />;
 }
 
 /* ─── Recruiter Control Center (shared by NGUOI_DAI_DIEN + NHAN_SU) ──────────

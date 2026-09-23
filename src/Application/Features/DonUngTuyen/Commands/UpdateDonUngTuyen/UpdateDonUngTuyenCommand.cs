@@ -47,6 +47,10 @@ namespace Application.Features.DonUngTuyen.Commands.UpdateDonUngTuyen
                     "Không tìm thấy đơn ứng tuyển.");
             }
 
+        // DbContext NoTracking toàn cục: Find/FirstOrDefault trả về entity
+        // không track — Attach cùng reference (không throw duplicate-track).
+        context.DonUngTuyens.Attach(entity);
+
             var sm = new DonUngTuyenStateMachine(workflow, current, entity);
 
             try

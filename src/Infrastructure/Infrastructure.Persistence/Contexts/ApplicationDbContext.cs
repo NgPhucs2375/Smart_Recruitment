@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Application.Interfaces;
 using Domain.Common;
 using Domain.Entities;
@@ -42,8 +43,9 @@ namespace Infrastructure.Persistence.Contexts
 	        public DbSet<CVImportSession> CVImportSessions { get; set; }
 	        public DbSet<CVTepTin> CVTepTins { get; set; }
 	        public DbSet<CVPhienBan> CVPhienBans { get; set; }
-	        public DbSet<DanhGia> DanhGias {get; set;}
-	        public DbSet<global::KyNangUngVien> KyNangUngViens { get; set; }
+        public DbSet<DanhGia> DanhGias {get; set;}
+        public DbSet<global::KyNangUngVien> KyNangUngViens { get; set; }
+        public DbSet<CvTheme> CvThemes { get; set; }
 
         public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = new CancellationToken())
         {
@@ -90,6 +92,9 @@ namespace Infrastructure.Persistence.Contexts
         protected override void OnModelCreating(ModelBuilder builder)
         {
             builder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
+
+            // pgvector (phase 2: CvTheme.Embedding). Tạo extension qua migration.
+            builder.HasPostgresExtension("vector");
             
             //tat ca cac cot decimal co kieu du lieu la decimal(18,6)
             foreach (var property in builder.Model.GetEntityTypes()

@@ -37,6 +37,10 @@ namespace Application.Features.NhanSu.Commands.RejectLoiMoi
             if (entity == null)
                 return new Response<int>("Lời mời không tồn tại.");
 
+        // DbContext NoTracking toàn cục: Find/FirstOrDefault trả về entity
+        // không track — Attach cùng reference (không throw duplicate-track).
+        context.LoiMoiNhanSus.Attach(entity);
+
             var machine = new LoiMoiNhanSuStateMachine(workflow, current, entity);
             try
             {

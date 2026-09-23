@@ -34,6 +34,10 @@ public class DeleteCVUngVienByIdCommandHandler(
                 "Không tìm thấy CV.");
         }
 
+        // DbContext NoTracking toàn cục: Find/FirstOrDefault trả về entity
+        // không track — Attach cùng reference (không throw duplicate-track).
+        context.CVUngViens.Attach(entity);
+
         // Xóa mềm: giữ record để DonUngTuyen cũ vẫn tham chiếu được (FK CVUngVienId).
         var wasDefault = entity.IsDefault;
         entity.IsDaXoa = true;

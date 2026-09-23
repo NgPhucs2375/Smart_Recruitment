@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { useLogin } from "@refinedev/core";
+import { loginWithPasswordService } from "@/components/auth/auth-service";
 import { ArrowUpRight, Bookmark, Building2, Check, ChevronRight, Clock, Code2, FileText, Flame, Home, Laptop, Layers, Loader2, Lock, Mail, MapPin, Phone, Search, Shield, Sparkles, Users, X } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { HeroBackgroundIllustration } from "@/features/landing/brand-illustration-card";
@@ -196,7 +196,7 @@ export default function LandingPage() {
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
   const [loginError, setLoginError] = useState<string | null>(null);
-  const { mutateAsync: login, isPending: loginPending } = useLogin();
+  const [loginPending, setLoginPending] = useState(false);
   const [searchKeyword, setSearchKeyword] = useState("");
   const [searchLocation, setSearchLocation] = useState("");
   const [searchLevel, setSearchLevel] = useState("");
@@ -251,13 +251,20 @@ export default function LandingPage() {
   async function handleLandingLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setLoginError(null);
+    setLoginPending(true);
     try {
-      const result = await login({ email: loginEmail, password: loginPassword });
+      // Shared engine (same as the login pages); portal stays undefined
+      // so role routing comes purely from /account/me.
+      const result = await loginWithPasswordService(loginEmail, loginPassword);
       if (!result.success) {
-        setLoginError(result.error?.message ?? "Email hoặc mật khẩu không đúng");
+        setLoginError(result.message ?? "Email hoặc mật khẩu không đúng");
+      } else if (result.redirectTo) {
+        router.push(result.redirectTo);
       }
     } catch (error) {
       setLoginError(error instanceof Error ? error.message : "Không thể kết nối máy chủ");
+    } finally {
+      setLoginPending(false);
     }
   }
 

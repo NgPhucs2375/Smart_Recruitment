@@ -4,7 +4,7 @@ import React, { useEffect } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { AppLayout } from "@/components/layout/layout";
-import { getAuthToken, refreshIdentity } from "@/lib/auth-provider";
+import { getAuthToken, loginRouteForPortal, refreshIdentity } from "@/lib/auth-provider";
 
 // Keep the large CopilotKit client bundle out of the protected route layout.
 // The page can render while the optional assistant bundle loads separately.
@@ -25,7 +25,8 @@ export default function ProtectedLayout({
 
   useEffect(() => {
     if (!getAuthToken()) {
-      router.replace("/login");
+      // Về đúng cổng đã dùng (employer không bị đá sang /login candidate).
+      router.replace(loginRouteForPortal());
       return;
     }
     // Làm mới identity nền (quyền trong localStorage có thể cũ sau khi

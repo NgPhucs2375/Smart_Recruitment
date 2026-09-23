@@ -5,6 +5,7 @@ using Application.Interfaces;
 using Application.Interfaces.Repositories;
 using Infrastructure.Persistence.Contexts;
 using Infrastructure.Persistence.Repository;
+using Pgvector.EntityFrameworkCore;
 using System;
 
 namespace Infrastructure.Persistence
@@ -39,6 +40,7 @@ namespace Infrastructure.Persistence
                 {
                     b.MigrationsAssembly(typeof(ApplicationDbContext).Assembly.FullName);
                     b.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery);
+                    b.UseVector();
                 }));
         }
 

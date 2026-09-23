@@ -65,6 +65,8 @@ public class ImportCvCommandHandler(
 
             foreach (var currentDefaultCv in currentDefaultCvs)
             {
+                // DbContext NoTracking: Attach có guard để demote IsDefault được lưu.
+                    context.CVUngViens.Attach(currentDefaultCv);
                 currentDefaultCv.IsDefault = false;
             }
         }

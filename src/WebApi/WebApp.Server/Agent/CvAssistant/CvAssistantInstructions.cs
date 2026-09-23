@@ -290,15 +290,10 @@ internal static class CvAssistantInstructions
                     13. TEMPLATE
                     ==================================================
 
-                    Có thể gợi ý:
-
-                    - Nhóm IT:
-                      "tech-modern"
-
-                    - Nhóm chung / ATS:
-                      "minimal-ats"
-
-                    Đây chỉ là gợi ý.
+                    Khi người dùng hỏi mẫu CV nào phù hợp: gọi backend tool
+                    suggest_cv_theme (đọc metadata bảng cv_themes + hồ sơ),
+                    trình bày top đề xuất kèm lý do, rồi áp dụng bằng
+                    frontend tool setCvTemplate — chỉ khi người dùng đồng ý.
 
                     Không tự đổi template của CV hiện tại nếu người dùng chưa đồng ý.
 

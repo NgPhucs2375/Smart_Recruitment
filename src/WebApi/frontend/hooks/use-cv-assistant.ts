@@ -72,7 +72,7 @@ const removeItemSchema = z.object({
 });
 
 const templateSchema = z.object({
-  templateId: z.string().describe("ID mẫu: minimal-ats (1 cột, chuẩn ATS) hoặc tech-modern (2 cột, cho IT)"),
+  templateId: z.string().describe("ID mẫu trong TEMPLATE_REGISTRY (vd: tech-modern, minimal-ats, devops-stack, data-specialist...). Chỉ dùng slug có sẵn."),
 });
 
 const loadCvSchema = z.object({
@@ -254,7 +254,7 @@ export function useCvAssistant({
   useFrontendTool(
     {
       name: "setCvTemplate",
-      description: "Đổi mẫu CV hiển thị. IT dùng tech-modern, còn lại minimal-ats.",
+      description: "Đổi mẫu CV hiển thị. Khi cần gợi ý, gọi backend tool suggest_cv_theme trước rồi áp dụng slug được đề xuất.",
       parameters: templateSchema,
       available: enabled,
       handler: async ({ templateId }) => {
