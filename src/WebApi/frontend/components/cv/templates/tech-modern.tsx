@@ -1,7 +1,8 @@
 "use client";
 
 // Template hiện đại chỉ nhận dữ liệu trình bày đã chuẩn hóa, không đọc form/API.
-import { Mail, Phone, MapPin, Linkedin, Github, Globe, Award } from "lucide-react";
+import { Mail, Phone, MapPin, Globe, Award } from "lucide-react";
+import { GithubIcon as Github, LinkedinIcon as Linkedin } from "@/components/icons/brand-icons";
 import type { ResumeContact } from "@/features/tao-cv/resume-data";
 import type { ResumeTemplateProps } from "./shared";
 import { DateText, EmptyPaper, SectionShell } from "./shared";

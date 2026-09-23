@@ -1,4 +1,87 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* ============================================================
+   EJECTED from shadcn/tailwind.css (shadcn@4.21.0) — official
+   `shadcn eject` equivalent, trimmed to what HireAI uses:
+   - data-open/closed: tooltip, select, dropdown-menu animations
+   - data-checked/unchecked: checkbox, field validation states
+   - data-disabled: select, checkbox, dropdown-menu items
+   - data-active: sidebar menu buttons
+   - data-horizontal/vertical: separator orientation
+     (missing = invisible 0px separator)
+   - no-scrollbar: sidebar content
+   Dropped (0 usage): accordion keyframes, scroll-fade-*,
+   shimmer-*, data-selected.
+   Purpose: zero runtime dependency on the `shadcn` CLI package
+   so Docker builds (npm ci --omit=dev or stale volumes) never
+   fail resolving `shadcn/tailwind.css`. Re-verify after every
+   future `shadcn add` — the CLI may re-add the import.
+   ============================================================ */
+@custom-variant data-open {
+  &:where([data-state="open"]),
+  &:where([data-open]:not([data-open="false"])) {
+    @slot;
+  }
+}
+
+@custom-variant data-closed {
+  &:where([data-state="closed"]),
+  &:where([data-closed]:not([data-closed="false"])) {
+    @slot;
+  }
+}
+
+@custom-variant data-checked {
+  &:where([data-state="checked"]),
+  &:where([data-checked]:not([data-checked="false"])) {
+    @slot;
+  }
+}
+
+@custom-variant data-unchecked {
+  &:where([data-state="unchecked"]),
+  &:where([data-unchecked]:not([data-unchecked="false"])) {
+    @slot;
+  }
+}
+
+@custom-variant data-disabled {
+  &:where([data-disabled="true"]),
+  &:where([data-disabled]:not([data-disabled="false"])) {
+    @slot;
+  }
+}
+
+@custom-variant data-active {
+  &:where([data-state="active"]),
+  &:where([data-active]:not([data-active="false"])) {
+    @slot;
+  }
+}
+
+@custom-variant data-horizontal {
+  &:where([data-orientation="horizontal"]) {
+    @slot;
+  }
+}
+
+@custom-variant data-vertical {
+  &:where([data-orientation="vertical"]) {
+    @slot;
+  }
+}
+
+@utility no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
 
 /* Layout CV dùng một document duy nhất; mobile chỉ đổi thứ tự hai panel. */
 html {
@@ -58,6 +141,15 @@ html {
   --color-workspace-text: var(--workspace-text);
   --color-workspace-muted: var(--workspace-muted);
   --color-workspace-border: var(--workspace-border);
+  --font-sans: var(--font-sans);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
 }
 
 @theme {
@@ -158,6 +250,11 @@ html {
 
   --font-body: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-code: "SFMono-Regular", Menlo, Monaco, Consolas, monospace;
+  --chart-1: oklch(0.87 0 0);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.439 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
 }
 
 /* ============================================================
@@ -324,6 +421,11 @@ html {
   --workspace-text: #ede6d8;
   --workspace-muted: #a49d90;
   --workspace-border: #3e3a34;
+  --chart-1: oklch(0.87 0 0);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.439 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
 }
 
 /* ============================================================
@@ -532,8 +634,6 @@ html {
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
   font-family: var(--font-body);
 }
 
@@ -1536,5 +1636,17 @@ html {
   /* Tao-cv-view dùng CSS `zoom` cho preview — reset khi in để đủ cỡ A4. */
   [data-manual-cv-pdf] {
     zoom: 1 !important;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html {
+    @apply font-sans;
   }
 }
