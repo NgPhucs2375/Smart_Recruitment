@@ -24,6 +24,7 @@ function extractMessage(body: unknown, fallback: string): string {
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`/api/dotnet${path}`, {
+    cache: "no-store",
     ...init,
     headers: {
       Accept: "application/json",

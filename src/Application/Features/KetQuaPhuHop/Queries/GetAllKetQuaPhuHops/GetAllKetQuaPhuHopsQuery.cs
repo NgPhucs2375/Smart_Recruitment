@@ -23,14 +23,37 @@ namespace Application.Features.KetQuaPhuHop.Queries.GetAllKetQuaPhuHops
 
     public class GetAllKetQuaPhuHopsQueryHandler(
         IApplicationDbContext context,
-        IMapper mapper)
+        IMapper mapper,
+        ICurrentNguoiDungService current)
         : IRequestHandler<GetAllKetQuaPhuHopsQuery, Response<List<GetAllKetQuaPhuHopsViewModel>>>
     {
         public async Task<Response<List<GetAllKetQuaPhuHopsViewModel>>> Handle(
             GetAllKetQuaPhuHopsQuery request,
             CancellationToken cancellationToken)
         {
+            var ctx = await current.ResolveAsync();
+
             var query = context.KetQuaPhuHops.AsNoTracking();
+
+            // Ứng viên chỉ thấy kết quả của chính hồ sơ mình.
+            if (ctx.VaiTro == VaiTroNguoiDung.UNG_VIEN)
+            {
+                var hoSoId = await context.HoSoUngViens
+                    .AsNoTracking()
+                    .Where(x => x.NguoiDungId == ctx.Id)
+                    .Select(x => x.Id)
+                    .FirstOrDefaultAsync(cancellationToken);
+                query = query.Where(x => x.HoSoUngVienId == hoSoId);
+            }
+            // Nhân sự / Người đại diện chỉ thấy kết quả thuộc tin trong phạm vi mình.
+            else if (ctx.VaiTro == VaiTroNguoiDung.NHAN_SU)
+            {
+                query = query.Where(x => x.TinTuyenDung.NguoiDangTinId == ctx.Id);
+            }
+            else if (ctx.VaiTro == VaiTroNguoiDung.NGUOI_DAI_DIEN)
+            {
+                query = query.Where(x => x.TinTuyenDung.DoanhNghiepId == ctx.DoanhNghiepId);
+            }
 
             var filter = request._filter?.Trim();
 

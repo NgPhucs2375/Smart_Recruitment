@@ -5,16 +5,18 @@ import { refreshSession } from "@/lib/auth-provider";
 import {
   acceptLoiMoi,
   getLoiMoiByToken,
+  rejectLoiMoi,
   type LoiMoiNhanSu,
 } from "@/lib/api/nhan-su-api";
 
-type InvitationStatus = "loading" | "ready" | "success" | "error";
+type InvitationStatus = "loading" | "ready" | "success" | "rejected" | "error";
 
 export function useInvitation(token: string | null) {
   const [status, setStatus] = useState<InvitationStatus>(token ? "loading" : "error");
   const [invitation, setInvitation] = useState<LoiMoiNhanSu | null>(null);
   const [message, setMessage] = useState(token ? "" : "Liên kết lời mời thiếu token.");
   const [accepting, setAccepting] = useState(false);
+  const [rejecting, setRejecting] = useState(false);
   const [sessionRefreshed, setSessionRefreshed] = useState(false);
 
   useEffect(() => {
@@ -55,5 +57,20 @@ export function useInvitation(token: string | null) {
     }
   }
 
-  return { status, invitation, message, accepting, sessionRefreshed, accept };
+  async function reject() {
+    if (!token || rejecting) return;
+    setRejecting(true);
+    setMessage("");
+    try {
+      const msg = await rejectLoiMoi(token);
+      setMessage(msg);
+      setStatus("rejected");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Không thể từ chối lời mời.");
+    } finally {
+      setRejecting(false);
+    }
+  }
+
+  return { status, invitation, message, accepting, rejecting, sessionRefreshed, accept, reject };
 }

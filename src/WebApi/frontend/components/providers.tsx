@@ -26,7 +26,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
         authProvider={authProvider}
         accessControlProvider={accessControlProvider}
         resources={resources}
-        options={{ syncWithLocation: true, title: { text: "CV Copilot" } }}
+        options={{ syncWithLocation: true, title: { text: "Trợ lý Adam" } }}
       >
         <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
           {children}

@@ -1,7 +1,9 @@
 "use client";
 
 import { FormEvent, useCallback, useEffect, useState } from "react";
-import { Briefcase, Plus, Pencil, Trash2, X, Send, Pause, Play, Lock } from "lucide-react";
+import Link from "next/link";
+import { useGetIdentity } from "@refinedev/core";
+import { Briefcase, Plus, Pencil, Trash2, X, Send, Pause, Play, Lock, Users, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,6 +19,7 @@ type TinTuyenDung = {
   yeuCauCongViec: string;
   quyenLoi: string;
   diaDiemLamViec: string;
+  phuongThucLamViec: number;
   luongToiThieu: number;
   luongToiDa: number;
   trangThai: string;
@@ -41,6 +44,7 @@ const TRANG_THAI: Record<string, { label: string; variant: "default" | "secondar
   DaDong: { label: "Đã đóng", variant: "secondary" },
   TuChoi: { label: "Bị từ chối", variant: "destructive" },
   BiKhoa: { label: "Bị khóa", variant: "destructive" },
+  ChoNguoiDaiDienDuyet: { label: "Chờ Người đại diện duyệt", variant: "outline" },
   "0": { label: "Nháp", variant: "secondary" },
   "1": { label: "Chờ duyệt hệ thống", variant: "outline" },
   "2": { label: "Chờ admin duyệt", variant: "default" },
@@ -50,14 +54,16 @@ const TRANG_THAI: Record<string, { label: string; variant: "default" | "secondar
   "6": { label: "Đã đóng", variant: "secondary" },
   "7": { label: "Bị từ chối", variant: "destructive" },
   "8": { label: "Bị khóa", variant: "destructive" },
+  "9": { label: "Chờ Người đại diện duyệt", variant: "outline" },
 };
 
 // Trigger enum số của backend (Domain/Enums/TriggerTinTuyenDung.cs)
-const TRIGGER = { GuiDuyet: 0, TamDungTin: 6, MoLaiTin: 7, DongTin: 9 } as const;
+const TRIGGER = { GuiDuyet: 0, TamDungTin: 6, MoLaiTin: 7, DongTin: 9, NguoiDaiDienDuyet: 13, NguoiDaiDienTuChoi: 14 } as const;
 
 const API = "/api/dotnet/tintuyendungs";
 const DM_API = "/api/dotnet/danhmucnghes";
-const ok = (r: ApiResponse<unknown>): boolean => r.Succeeded ?? r.succeeded ?? true;
+const DON_API = "/api/dotnet/donungtuyens";
+const ok = (r: ApiResponse<unknown>): boolean => r.Succeeded ?? r.succeeded ?? false;
 const msg = (r: ApiResponse<unknown>): string => r.Message ?? r.message ?? "";
 const extractData = <T,>(r: ApiResponse<T>): T | undefined => r.Data ?? r.data;
 
@@ -69,6 +75,7 @@ const EMPTY_FORM = {
   yeuCauCongViec: "",
   quyenLoi: "",
   diaDiemLamViec: "",
+  phuongThucLamViec: 0,
   luongToiThieu: 0,
   luongToiDa: 0,
   ngayHetHan: "",
@@ -82,8 +89,29 @@ function fmtMoney(n: number) {
   if (!n) return "Thỏa thuận";
   return new Intl.NumberFormat("vi-VN").format(n) + " đ";
 }
+// Hiển thị số tiền có phân nhóm hàng nghìn khi nhập (25,000,000 -> 25.000.000)
+function fmtMoneyInput(n: number) {
+  if (!n) return "";
+  return new Intl.NumberFormat("vi-VN").format(n);
+}
+// Bóc chữ số từ chuỗi có dấu chấm phân nhóm để lưu giá trị thô
+function parseMoney(s: string): number {
+  const digits = s.replace(/[^\d]/g, "");
+  return digits ? Number(digits) : 0;
+}
+
+function parseWorkMode(value: unknown): number {
+  const text = `${value ?? ""}`.trim().toLowerCase();
+  if (text === "remote") return 1;
+  if (text === "hybrid") return 2;
+  if (text === "flexible") return 3;
+  const numeric = Number(value);
+  return Number.isInteger(numeric) && numeric >= 0 && numeric <= 3 ? numeric : 0;
+}
 
 export default function TinTuyenDungPage() {
+  const { data: identity } = useGetIdentity<{ roles?: string[] }>();
+  const isNguoiDaiDien = identity?.roles?.some(role => role.trim().toUpperCase() === "NGUOI_DAI_DIEN") ?? false;
   const [items, setItems] = useState<TinTuyenDung[]>([]);
   const [danhMucs, setDanhMucs] = useState<DanhMucNghe[]>([]);
   const [loading, setLoading] = useState(true);
@@ -94,12 +122,13 @@ export default function TinTuyenDungPage() {
   const [successMsg, setSuccessMsg] = useState("");
   const [err, setErr] = useState("");
   const [search, setSearch] = useState("");
+  const [donCounts, setDonCounts] = useState<Record<number, number>>({});
 
   const [form, setForm] = useState({ ...EMPTY_FORM });
 
   const apiFetch = useCallback(async (url: string, opts?: RequestInit) => {
     const token = localStorage.getItem("access_token");
-    const res = await fetch(url, { ...opts, headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}), ...opts?.headers } });
+    const res = await fetch(url, { cache: "no-store", ...opts, headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}), ...opts?.headers } });
     const body = await res.json().catch(() => null);
     if (!res.ok) throw new Error(body?.Message ?? body?.message ?? `HTTP ${res.status}`);
     return body;
@@ -129,6 +158,7 @@ export default function TinTuyenDungPage() {
           yeuCauCongViec: `${r.yeuCauCongViec ?? r.YeuCauCongViec ?? ""}`,
           quyenLoi: `${r.quyenLoi ?? r.QuyenLoi ?? ""}`,
           diaDiemLamViec: `${r.diaDiemLamViec ?? r.DiaDiemLamViec ?? ""}`,
+          phuongThucLamViec: parseWorkMode(r.phuongThucLamViec ?? r.PhuongThucLamViec ?? r.workMode ?? r.WorkMode),
           luongToiThieu: Number(r.luongToiThieu ?? r.LuongToiThieu ?? 0),
           luongToiDa: Number(r.luongToiDa ?? r.LuongToiDa ?? 0),
           trangThai: `${r.trangThai ?? r.TrangThai ?? "Nhap"}`,
@@ -139,6 +169,24 @@ export default function TinTuyenDungPage() {
       setErr(e instanceof Error ? e.message : "Lỗi tải dữ liệu");
     } finally {
       setLoading(false);
+    }
+    // Đếm đơn ứng tuyển theo tin (BE đã lọc theo quyền: chỉ tin mình được xem).
+    // Lỗi thì bỏ qua — danh sách tin vẫn hiện, nút Ứng viên hiện 0.
+    try {
+      const donRes: ApiResponse<unknown> = await apiFetch(`${DON_API}?_start=0&_end=1000`);
+      if (ok(donRes)) {
+        const dd = extractData(donRes);
+        const arr = Array.isArray(dd) ? dd : [];
+        const counts: Record<number, number> = {};
+        for (const v of arr) {
+          const r = v as Record<string, unknown>;
+          const tid = Number(r.tinTuyenDungId ?? r.TinTuyenDungId ?? 0);
+          if (tid > 0) counts[tid] = (counts[tid] ?? 0) + 1;
+        }
+        setDonCounts(counts);
+      }
+    } catch {
+      // bỏ qua
     }
   }, [apiFetch]);
 
@@ -177,6 +225,7 @@ export default function TinTuyenDungPage() {
       yeuCauCongViec: item.yeuCauCongViec,
       quyenLoi: item.quyenLoi,
       diaDiemLamViec: item.diaDiemLamViec,
+      phuongThucLamViec: item.phuongThucLamViec,
       luongToiThieu: item.luongToiThieu,
       luongToiDa: item.luongToiDa,
       ngayHetHan: item.ngayHetHan ? item.ngayHetHan.slice(0, 10) : "",
@@ -213,6 +262,7 @@ export default function TinTuyenDungPage() {
             yeuCauCongViec: form.yeuCauCongViec.trim(),
             quyenLoi: form.quyenLoi.trim(),
             diaDiemLamViec: form.diaDiemLamViec.trim(),
+            phuongThucLamViec: Number(form.phuongThucLamViec),
             luongToiThieu: Number(form.luongToiThieu),
             luongToiDa: Number(form.luongToiDa),
             ngayHetHan: form.ngayHetHan ? form.ngayHetHan : null,
@@ -225,6 +275,7 @@ export default function TinTuyenDungPage() {
             yeuCauCongViec: form.yeuCauCongViec.trim(),
             quyenLoi: form.quyenLoi.trim(),
             diaDiemLamViec: form.diaDiemLamViec.trim(),
+            phuongThucLamViec: Number(form.phuongThucLamViec),
             luongToiThieu: Number(form.luongToiThieu),
             luongToiDa: Number(form.luongToiDa),
             ngayHetHan: form.ngayHetHan ? form.ngayHetHan : null,
@@ -245,7 +296,22 @@ export default function TinTuyenDungPage() {
         body: JSON.stringify({ id: item.id, trigger, ghiChu: `${label} từ trang quản lý tin` }),
       });
       if (!ok(res)) throw new Error(msg(res) || "Không thể cập nhật trạng thái");
-      setSuccessMsg(`Đã ${label.toLowerCase()} tin.`);
+      // Backend trả về kết quả funnel (pass/vùng xám/từ chối) trong Message — ưu tiên hiển thị nó.
+      setSuccessMsg(msg(res) || `Đã ${label.toLowerCase()} tin.`);
+      const nextState = trigger === TRIGGER.TamDungTin
+        ? "TamDung"
+        : trigger === TRIGGER.MoLaiTin
+          ? "DangTuyen"
+          : trigger === TRIGGER.DongTin
+            ? "DaDong"
+            : trigger === TRIGGER.NguoiDaiDienDuyet
+              ? "DangTuyen"
+              : trigger === TRIGGER.NguoiDaiDienTuChoi
+                ? "TuChoi"
+                : null;
+      if (nextState) {
+        setItems(current => current.map(value => value.id === item.id ? { ...value, trangThai: nextState } : value));
+      }
       await load();
     } catch (e) { setErr(e instanceof Error ? e.message : "Không thể cập nhật trạng thái"); } finally { setFiringId(null); }
   }
@@ -297,7 +363,20 @@ export default function TinTuyenDungPage() {
             </div>
             <div className="space-y-2">
               <Label>Địa điểm *</Label>
-              <Input value={form.diaDiemLamViec} onChange={e => setForm(f => ({ ...f, diaDiemLamViec: e.target.value }))} required placeholder="VD: Hà Nội / Remote" />
+              <Input value={form.diaDiemLamViec} onChange={e => setForm(f => ({ ...f, diaDiemLamViec: e.target.value }))} required placeholder="VD: Hà Nội, TP. Hồ Chí Minh" />
+            </div>
+            <div className="space-y-2">
+              <Label>Phương thức làm việc *</Label>
+              <select
+                value={form.phuongThucLamViec}
+                onChange={e => setForm(f => ({ ...f, phuongThucLamViec: Number(e.target.value) }))}
+                className="flex h-10 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <option value={0}>Onsite</option>
+                <option value={1}>Remote</option>
+                <option value={2}>Hybrid</option>
+                <option value={3}>Flexible</option>
+              </select>
             </div>
             <div className="space-y-2">
               <Label>Ngày hết hạn</Label>
@@ -305,11 +384,21 @@ export default function TinTuyenDungPage() {
             </div>
             <div className="space-y-2">
               <Label>Lương tối thiểu (VND)</Label>
-              <Input type="number" min={0} value={form.luongToiThieu} onChange={e => setForm(f => ({ ...f, luongToiThieu: Number(e.target.value) }))} />
+              <Input
+                inputMode="numeric"
+                value={fmtMoneyInput(form.luongToiThieu)}
+                onChange={e => setForm(f => ({ ...f, luongToiThieu: parseMoney(e.target.value) }))}
+                placeholder="VD: 10.000.000"
+              />
             </div>
             <div className="space-y-2">
               <Label>Lương tối đa (VND)</Label>
-              <Input type="number" min={0} value={form.luongToiDa} onChange={e => setForm(f => ({ ...f, luongToiDa: Number(e.target.value) }))} />
+              <Input
+                inputMode="numeric"
+                value={fmtMoneyInput(form.luongToiDa)}
+                onChange={e => setForm(f => ({ ...f, luongToiDa: parseMoney(e.target.value) }))}
+                placeholder="VD: 20.000.000"
+              />
             </div>
             <div className="space-y-2 md:col-span-2">
               <Label>Mô tả công việc *</Label>
@@ -344,9 +433,13 @@ export default function TinTuyenDungPage() {
             {filtered.map(item => {
               const st = TRANG_THAI[item.trangThai] ?? { label: item.trangThai, variant: "secondary" as const };
               const busy = firingId === item.id;
+              // Gửi duyệt hiện cho cả Nhân sự lẫn Người đại diện (fallback khi auto-duyệt
+              // lúc tạo/sửa thất bại — tránh tin chết ở Nháp mà không gửi lại được).
               const canGuiDuyet = item.trangThai === "Nhap" || item.trangThai === "0" || item.trangThai === "TuChoi" || item.trangThai === "7";
               const isDangTuyen = item.trangThai === "DangTuyen" || item.trangThai === "3";
               const isTamDung = item.trangThai === "TamDung" || item.trangThai === "4";
+              // Tin nhân sự đăng đã qua funnel, chờ chủ doanh nghiệp duyệt — chỉ NDD thấy nút.
+              const choNguoiDaiDienDuyet = isNguoiDaiDien && (item.trangThai === "ChoNguoiDaiDienDuyet" || item.trangThai === "9");
               return (
                 <div key={item.id} className="flex items-center justify-between gap-4 p-5">
                   <div className="min-w-0">
@@ -361,8 +454,20 @@ export default function TinTuyenDungPage() {
                     </div>
                   </div>
                   <div className="flex shrink-0 flex-wrap justify-end gap-2">
+                    <Link
+                      href={`/tin-tuyen-dung/${item.id}/ung-vien`}
+                      className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-xs font-semibold text-foreground transition hover:border-primary/50 hover:text-primary"
+                    >
+                      <Users className="size-4" /> {donCounts[item.id] ?? 0} ứng viên
+                    </Link>
                     {canGuiDuyet && (
                       <Button variant="default" size="sm" disabled={busy} onClick={() => void handleFire(item, TRIGGER.GuiDuyet, "Gửi duyệt")}><Send className="size-4" /> Gửi duyệt</Button>
+                    )}
+                    {choNguoiDaiDienDuyet && (
+                      <Button variant="default" size="sm" disabled={busy} onClick={() => void handleFire(item, TRIGGER.NguoiDaiDienDuyet, "Duyệt")}><CheckCircle2 className="size-4" /> Duyệt tin</Button>
+                    )}
+                    {choNguoiDaiDienDuyet && (
+                      <Button variant="outline" size="sm" disabled={busy} onClick={() => void handleFire(item, TRIGGER.NguoiDaiDienTuChoi, "Từ chối", `Từ chối tin "${item.tieuDe}"?`)}><X className="size-4" /> Từ chối</Button>
                     )}
                     {isDangTuyen && (
                       <Button variant="outline" size="sm" disabled={busy} onClick={() => void handleFire(item, TRIGGER.TamDungTin, "Tạm dừng")}><Pause className="size-4" /> Tạm dừng</Button>

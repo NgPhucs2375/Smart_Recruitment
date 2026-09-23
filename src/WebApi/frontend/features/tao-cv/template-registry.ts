@@ -1,7 +1,9 @@
 "use client";
 
+// Registry thống nhất metadata và props của template, không chứa logic form/export.
 import type { ComponentType } from "react";
 import type { ResumeData } from "./resume-data";
+import type { ResumeTemplateProps } from "@/components/cv/templates/shared";
 import { MinimalAtsTemplate } from "@/components/cv/templates/minimal-ats";
 import { TechModernTemplate } from "@/components/cv/templates/tech-modern";
 import { AtsClassicTemplate } from "@/components/cv/templates/ats-classic";
@@ -31,15 +33,13 @@ export type TemplateCategory =
   | "two-column"
   | "one-column";
 
-export type ResumeTemplateProps = {
-  data: ResumeData;
-};
-
 export type ResumeTemplateMeta = {
   id: string;
   name: string;
   description: string;
   tags: string[];
+  /** Version tĩnh để lưu cùng CV — render lại đúng bản dù template đã đổi. */
+  version: string;
   Component: ComponentType<ResumeTemplateProps>;
   /** Column structure for layout filters. Frontend-only, defaults to 1. */
   columns?: 1 | 2;
@@ -69,6 +69,7 @@ export const TEMPLATE_REGISTRY: Record<string, ResumeTemplateMeta> = {
     name: "Minimal ATS",
     description: "Một cột, tương thích hệ thống lọc hồ sơ",
     tags: ["ATS", "Professional"],
+    version: "1.0",
     Component: MinimalAtsTemplate,
     columns: 1,
     categories: ["ats", "corporate", "fresher", "one-column"],
@@ -78,6 +79,7 @@ export const TEMPLATE_REGISTRY: Record<string, ResumeTemplateMeta> = {
     name: "Tech Modern",
     description: "Hai cột, dành cho IT / Developer",
     tags: ["IT", "Developer"],
+    version: "1.0",
     Component: TechModernTemplate,
     columns: 2,
     categories: ["developer", "two-column"],
@@ -87,6 +89,7 @@ export const TEMPLATE_REGISTRY: Record<string, ResumeTemplateMeta> = {
     name: "ATS Classic",
     description: "Một cột gọn nhẹ, tối ưu hệ thống lọc hồ sơ",
     tags: ["ATS", "Backend", "DevOps"],
+    version: "1.0",
     Component: AtsClassicTemplate,
     columns: 1,
     categories: ["ats", "developer", "one-column"],
@@ -96,6 +99,7 @@ export const TEMPLATE_REGISTRY: Record<string, ResumeTemplateMeta> = {
     name: "Professional Split",
     description: "Hai cột thanh lịch, sidebar hẹp cho IT / BA / PM",
     tags: ["IT", "2 cột", "Chuyên nghiệp"],
+    version: "1.0",
     Component: ProfessionalSplitTemplate,
     columns: 2,
     categories: ["developer", "corporate", "two-column"],
@@ -105,6 +109,7 @@ export const TEMPLATE_REGISTRY: Record<string, ResumeTemplateMeta> = {
     name: "Modern Accent",
     description: "Hiện đại, điểm nhấn mạnh cho Product / Frontend",
     tags: ["Hiện đại", "Frontend", "Product"],
+    version: "1.0",
     Component: ModernAccentTemplate,
     columns: 1,
     categories: ["creative", "developer", "one-column"],
@@ -114,6 +119,7 @@ export const TEMPLATE_REGISTRY: Record<string, ResumeTemplateMeta> = {
     name: "Executive Tech",
     description: "Bố cục doanh nghiệp trang trọng cho senior / lead",
     tags: ["Senior", "Chuyên nghiệp", "Lead"],
+    version: "1.0",
     Component: ExecutiveTechTemplate,
     columns: 1,
     categories: ["senior", "corporate", "one-column"],
@@ -123,6 +129,7 @@ export const TEMPLATE_REGISTRY: Record<string, ResumeTemplateMeta> = {
     name: "Compact Developer",
     description: "Một cột siêu gọn cho fresher / junior IT",
     tags: ["ATS", "Fresher", "Junior"],
+    version: "1.0",
     Component: CompactDeveloperTemplate,
     columns: 1,
     categories: ["ats", "developer", "fresher", "one-column"],
@@ -132,6 +139,7 @@ export const TEMPLATE_REGISTRY: Record<string, ResumeTemplateMeta> = {
     name: "Sidebar Pro",
     description: "Sidebar phải, kỹ năng đặt lên đầu cho IT",
     tags: ["IT", "2 cột", "Kỹ năng"],
+    version: "1.0",
     Component: SidebarProTemplate,
     columns: 2,
     categories: ["developer", "two-column"],
@@ -141,6 +149,7 @@ export const TEMPLATE_REGISTRY: Record<string, ResumeTemplateMeta> = {
     name: "Clean Corporate",
     description: "Phong cách công sở chuẩn mực cho BA / PM / QA / HR",
     tags: ["Corporate", "BA", "PM"],
+    version: "1.0",
     Component: CleanCorporateTemplate,
     columns: 1,
     categories: ["corporate", "one-column"],
@@ -150,6 +159,7 @@ export const TEMPLATE_REGISTRY: Record<string, ResumeTemplateMeta> = {
     name: "Creative Portfolio",
     description: "Cá tính mạnh, dự án dạng thẻ cho designer / frontend",
     tags: ["Creative", "Portfolio", "Designer"],
+    version: "1.0",
     Component: CreativePortfolioTemplate,
     columns: 1,
     categories: ["creative", "developer", "one-column"],
@@ -159,6 +169,7 @@ export const TEMPLATE_REGISTRY: Record<string, ResumeTemplateMeta> = {
     name: "Senior Executive",
     description: "Thoáng đãng, tôn vinh kinh nghiệm lãnh đạo",
     tags: ["Senior", "Leadership", "Manager"],
+    version: "1.0",
     Component: SeniorExecutiveTemplate,
     columns: 1,
     categories: ["senior", "corporate", "one-column"],
@@ -168,6 +179,7 @@ export const TEMPLATE_REGISTRY: Record<string, ResumeTemplateMeta> = {
     name: "Academic CV",
     description: "Học vấn lên trước, đánh số nghiên cứu / chứng chỉ",
     tags: ["Academic", "Research", "Học vấn"],
+    version: "1.0",
     Component: AcademicCvTemplate,
     columns: 1,
     categories: ["ats", "fresher", "one-column"],
@@ -177,6 +189,7 @@ export const TEMPLATE_REGISTRY: Record<string, ResumeTemplateMeta> = {
     name: "Data Specialist",
     description: "Dải stack nổi bật, dự án dẫn đầu cho Data / AI / ML",
     tags: ["Data", "AI", "ML"],
+    version: "1.0",
     Component: DataSpecialistTemplate,
     columns: 1,
     categories: ["developer", "one-column"],
@@ -186,6 +199,7 @@ export const TEMPLATE_REGISTRY: Record<string, ResumeTemplateMeta> = {
     name: "DevOps Stack",
     description: "Timeline ngày tháng, nhóm công cụ hạ tầng rõ ràng",
     tags: ["DevOps", "Infra", "Cloud"],
+    version: "1.0",
     Component: DevopsStackTemplate,
     columns: 1,
     categories: ["developer", "one-column"],
@@ -195,6 +209,7 @@ export const TEMPLATE_REGISTRY: Record<string, ResumeTemplateMeta> = {
     name: "Product Builder",
     description: "Dự án lên trước, nhấn mạnh kết quả sản phẩm",
     tags: ["Product", "PM", "Freelance"],
+    version: "1.0",
     Component: ProductBuilderTemplate,
     columns: 1,
     categories: ["creative", "fresher", "one-column"],
@@ -204,6 +219,7 @@ export const TEMPLATE_REGISTRY: Record<string, ResumeTemplateMeta> = {
     name: "Startup Modern",
     description: "Trẻ trung, gọn nhẹ nhưng vẫn chuyên nghiệp",
     tags: ["Startup", "Hiện đại", "Fresher"],
+    version: "1.0",
     Component: StartupModernTemplate,
     columns: 1,
     categories: ["creative", "fresher", "one-column"],
@@ -213,6 +229,7 @@ export const TEMPLATE_REGISTRY: Record<string, ResumeTemplateMeta> = {
     name: "Elegant Serif",
     description: "Tiêu đề serif trang nhã, thân thiện ATS",
     tags: ["Serif", "Editorial", "Premium"],
+    version: "1.0",
     Component: ElegantSerifTemplate,
     columns: 1,
     categories: ["corporate", "creative", "senior", "one-column"],
@@ -222,6 +239,7 @@ export const TEMPLATE_REGISTRY: Record<string, ResumeTemplateMeta> = {
     name: "Minimal Grid",
     description: "Mô-đun lưới gọn gàng, cấu trúc thị giác rõ",
     tags: ["Grid", "Hiện đại", "Gọn"],
+    version: "1.0",
     Component: MinimalGridTemplate,
     columns: 2,
     categories: ["developer", "creative", "two-column"],

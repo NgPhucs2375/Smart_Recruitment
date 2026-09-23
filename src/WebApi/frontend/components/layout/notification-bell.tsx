@@ -42,9 +42,24 @@ const TYPE_META: Record<number, { icon: React.ReactNode; color: string }> = {
 function fmt(iso: string) {
   const d = new Date(iso);
   const diff = Date.now() - d.getTime();
-  if (diff < 60_000)   return "just now";
-  if (diff < 3600_000) return `${Math.floor(diff / 60_000)}m ago`;
+  if (diff < 60_000)   return "Vừa xong";
+  if (diff < 3600_000) return `${Math.floor(diff / 60_000)} phút trước`;
   return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
+// BE trả JSON PascalCase ({ Notifications, UnreadCount }, item { Id, Message, ... }) —
+// bóc tách cả hai dạng casing, nếu không bell luôn rỗng dù BE có dữ liệu.
+function normalizeNotification(raw: unknown): NotificationDto {
+  const r = (raw ?? {}) as Record<string, unknown>;
+  return {
+    id: Number(r.id ?? r.Id ?? 0),
+    message: `${r.message ?? r.Message ?? ""}`,
+    type: Number(r.type ?? r.Type ?? 0),
+    isRead: Boolean(r.isRead ?? r.IsRead ?? false),
+    invoiceId: (r.invoiceId ?? r.InvoiceId ?? null) as number | null,
+    approverGroup: (r.approverGroup ?? r.ApproverGroup ?? null) as string | null,
+    created: `${r.created ?? r.Created ?? ""}`,
+  };
 }
 
 export function NotificationBell() {
@@ -75,10 +90,14 @@ function NotificationBellInner({
 
   const { mutate: markRead } = useCustomMutation();
 
-  const notifications = result?.data?.notifications ?? [];
-  const unreadCount   = result?.data?.unreadCount   ?? 0;
-  const is404 = query?.error?.statusCode === 404;
-
+  const rawData = result?.data as {
+    notifications?: unknown[];
+    Notifications?: unknown[];
+    unreadCount?: number;
+    UnreadCount?: number;
+  } | undefined;
+  const notifications = (rawData?.notifications ?? rawData?.Notifications ?? []).map(normalizeNotification);
+  const unreadCount   = rawData?.unreadCount ?? rawData?.UnreadCount ?? 0;
   // Stable refetch reference — avoids infinite-loop dependency on the full query object
   const refetch = query?.refetch;
   const refetchRef = useRef(refetch);
@@ -104,8 +123,10 @@ function NotificationBellInner({
         .withUrl("/api/hubs/notifications", {
           // Factory async: mỗi lần reconnect đều lấy token mới nhất.
           accessTokenFactory: () => getValidToken().then((t) => t ?? ""),
-          // SSE preferred; LongPolling as automatic fallback if SSE fails through proxy
-          transport: signalR.HttpTransportType.ServerSentEvents | signalR.HttpTransportType.LongPolling,
+          // Next's route handler can buffer/close SSE responses, causing the
+          // negotiated connection ID to disappear before the client connects.
+          // Long Polling is reliable through the same-origin proxy.
+          transport: signalR.HttpTransportType.LongPolling,
         })
         .withAutomaticReconnect()
         .configureLogging({
@@ -146,6 +167,11 @@ function NotificationBellInner({
       connection.on("ReceiveNotification", () => {
         void refetchRef.current?.();
       });
+      connection.onclose(() => {
+        // A stale long-polling connection id returns 404 after a backend restart.
+        // Keep notifications available through the REST polling fallback.
+        if (active) startPollingFallback();
+      });
       connection.start().catch((err: unknown) => {
         if (!active) return; // StrictMode fake-unmount — ignore silently
         console.warn("[NotificationBell] SignalR failed, falling back to 30s polling:", err);
@@ -168,6 +194,13 @@ function NotificationBellInner({
   const handleMarkAllRead = () => {
     markRead(
       { url: `${apiUrl}/Notifications/read`, method: "post", values: { ids: null } },
+      { onSuccess: () => void refetchRef.current?.() }
+    );
+  };
+
+  const handleMarkRead = (notificationId: number) => {
+    markRead(
+      { url: `${apiUrl}/Notifications/read/${notificationId}`, method: "post", values: {} },
       { onSuccess: () => void refetchRef.current?.() }
     );
   };
@@ -214,9 +247,19 @@ function NotificationBellInner({
               return (
                 <div
                   key={n.id}
+                  role="button"
+                  tabIndex={n.isRead ? -1 : 0}
+                  onClick={() => { if (!n.isRead) handleMarkRead(n.id); }}
+                  onKeyDown={(event) => {
+                    if (!n.isRead && (event.key === "Enter" || event.key === " ")) {
+                      event.preventDefault();
+                      handleMarkRead(n.id);
+                    }
+                  }}
                   className={cn(
-                    "flex gap-3 px-4 py-3 border-b last:border-b-0 text-sm",
+                    "flex gap-3 px-4 py-3 border-b last:border-b-0 text-sm transition-colors",
                     !n.isRead && "bg-muted/50",
+                    !n.isRead && "cursor-pointer hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary",
                   )}
                 >
                   <span className={cn("mt-0.5 shrink-0", meta.color)}>{meta.icon}</span>

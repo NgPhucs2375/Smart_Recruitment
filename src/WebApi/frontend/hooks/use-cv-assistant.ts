@@ -1,0 +1,381 @@
+"use client";
+
+import { useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
+import { useAgentContext, useFrontendTool } from "@copilotkit/react-core/v2";
+import { z } from "zod";
+import { toast } from "sonner";
+import type { CvFormData } from "@/lib/types";
+import {
+  CV_CONTACT_FIELDS,
+  CV_PENDING_PATCH_EVENT,
+  CV_SECTION_KEYS,
+  buildAssistantSnapshot,
+  clearPendingCvPatch,
+  isCvContactField,
+  isCvSectionKey,
+  loadPendingCvPatch,
+  missingRequiredFields,
+  toJsonSafe,
+} from "@/features/ai-cv/cv-assistant-state";
+import {
+  applyContactPatch,
+  applySectionItems,
+  applyTemplatePatch,
+  applyTenFilePatch,
+  removeSectionItem,
+  sectionReport,
+} from "@/features/ai-cv/merge-cv-patch";
+
+type UseCvAssistantOpts = {
+  data: CvFormData;
+  onChange: (data: CvFormData) => void;
+  /** true khi form đã load xong (đổ pending-patch sau thời điểm này). */
+  ready?: boolean;
+  /** Tắt tool khi rời khỏi màn hình soạn CV. */
+  enabled?: boolean;
+  /** Mở một CV đã lưu vào form (handleSelect của TaoCvView). Trả true nếu thành công. */
+  selectCv?: (id: number) => Promise<boolean>;
+};
+
+const contactSchema = z.object({
+  field: z.string().describe(`Field liên hệ, một trong: ${CV_CONTACT_FIELDS.join(", ")}`),
+  value: z.string().describe("Giá trị mới (bỏ trống để giữ nguyên)"),
+});
+
+const bulkContactSchema = z.object({
+  contact: z
+    .record(z.string(), z.string())
+    .describe(
+      `NHIỀU field liên hệ trong MỘT lượt (khuyên dùng khi ≥2 field). Key là một trong: ${CV_CONTACT_FIELDS.join(", ")}. ` +
+        "Chỉ điền field user nói rõ, field rỗng sẽ bị bỏ qua.",
+    ),
+});
+
+const sectionItemsSchema = z.object({
+  section: z.string().describe(`Mục CV, một trong: ${CV_SECTION_KEYS.join(", ")}`),
+  items: z
+    .array(z.record(z.string(), z.unknown()))
+    .min(1)
+    .max(20)
+    .describe(
+      "MẢNG item cần thêm/sửa. Muốn SỬA item đã có: truyền đúng id (lấy từ getCvFormSnapshot) " +
+        "hoặc đủ bộ khóa tên (hocVan: truong+chuyenNganh; kinhNghiem: congTy+chucDanh; " +
+        "duAn: tenDuAn; kyNang: tenKyNang; chungChi: tenChungChi+donViCap). " +
+        "Ngày viết MM/YYYY hoặc YYYY. kỹ năng mảng congNghe/kyNangSuDung cách nhau bằng dấu phẩy.",
+    ),
+});
+
+const removeItemSchema = z.object({
+  section: z.string().describe(`Mục CV, một trong: ${CV_SECTION_KEYS.join(", ")}`),
+  id: z.string().describe("id của item cần xóa (lấy từ getCvFormSnapshot)"),
+});
+
+const templateSchema = z.object({
+  templateId: z.string().describe("ID mẫu: minimal-ats (1 cột, chuẩn ATS) hoặc tech-modern (2 cột, cho IT)"),
+});
+
+const loadCvSchema = z.object({
+  cvId: z.number().int().describe("ID của CV đã lưu cần mở vào form (lấy từ kết quả list_my_cvs của backend tool)"),
+});
+
+const metaSchema = z.object({
+  tenFile: z
+    .string()
+    .describe(
+      "Tên file CV (hiển thị ở danh sách CV, vd: CV-Tester-2026). " +
+        "Khác hoTen trong liên hệ. Khi user nói 'Tạo CV với tên là X' mà chưa có họ tên thì điền cả tenFile và hoTen.",
+    ),
+});
+
+/**
+ * Gắn Adam vào form CV: expose snapshot đọc + 8 frontend tool (7 ghi + 1 mở CV đã lưu).
+ * Ghi thẳng vào form live (preview realtime), mỗi lần ghi có toast Hoàn tác.
+ * Chỉ mount trong /tao-cv. Chat từ trang khác dùng useGlobalCvAssistant
+ * (navigateToCvEditor + pending-patch) rồi đổ vào đây.
+ */
+export function useCvAssistant({
+  data,
+  onChange,
+  ready = true,
+  enabled = true,
+  selectCv,
+}: UseCvAssistantOpts) {
+  const router = useRouter();
+  const dataRef = useRef(data);
+  const onChangeRef = useRef(onChange);
+  const selectCvRef = useRef(selectCv);
+  const undoRef = useRef<CvFormData | null>(null);
+  const pendingDoneRef = useRef(false);
+
+  useEffect(() => {
+    dataRef.current = data;
+    onChangeRef.current = onChange;
+    selectCvRef.current = selectCv;
+  });
+
+  const undo = () => {
+    if (!undoRef.current) {
+      toast.info("Không có gì để hoàn tác.");
+      return;
+    }
+    onChangeRef.current(undoRef.current);
+    undoRef.current = null;
+    toast.success("Đã hoàn tác thay đổi của Adam.");
+  };
+
+  const commit = (next: CvFormData, toastLabel: string) => {
+    if (next === dataRef.current) return;
+    undoRef.current = dataRef.current;
+    onChangeRef.current(next);
+    toast.success(toastLabel, {
+      action: { label: "Hoàn tác", onClick: undo },
+    });
+  };
+
+  // Form là UI-owned state: agent đọc qua context, chỉ ghi qua tool.
+  // Snapshot nhỏ (vài KB) nên build trực tiếp mỗi render, khỏi memo.
+  const snapshot = toJsonSafe(buildAssistantSnapshot(data));
+  useAgentContext({
+    description:
+      "Dữ liệu CV đang mở trong trình soạn thảo (nguồn đúng nhất). " +
+      "Điền form bằng frontend tool, KHÔNG yêu cầu user gõ lại thứ đã có ở đây.",
+    value: snapshot,
+  });
+
+  useFrontendTool(
+    {
+      name: "updateCvContact",
+      description: "Ghi một field liên hệ vào form CV (preview cập nhật ngay). Giá trị rỗng sẽ bị bỏ qua.",
+      parameters: contactSchema,
+      available: enabled,
+      handler: async ({ field, value }) => {
+        if (!isCvContactField(field)) {
+          return `Field không hợp lệ: ${field}. Chỉ nhận: ${CV_CONTACT_FIELDS.join(", ")}.`;
+        }
+        const r = applyContactPatch(dataRef.current, field, value);
+        if (r.applied) commit(r.next, `Adam đã cập nhật ${field}`);
+        return r.report;
+      },
+    },
+    [enabled],
+  );
+
+  useFrontendTool(
+    {
+      name: "updateCvContactBulk",
+      description:
+        "Ghi NHIỀU field liên hệ trong MỘT lượt (bulk-fill, preview cập nhật ngay). " +
+        "Ưu tiên tool này thay vì gọi updateCvContact lẻ nhiều lần. Giá trị rỗng sẽ bị bỏ qua.",
+      parameters: bulkContactSchema,
+      available: enabled,
+      handler: async ({ contact }) => {
+        if (!contact || typeof contact !== "object" || Array.isArray(contact)) {
+          return "Bỏ qua vì contact không phải object.";
+        }
+        let next = dataRef.current;
+        const done: string[] = [];
+        const skipped: string[] = [];
+        for (const [field, value] of Object.entries(contact)) {
+          if (!isCvContactField(field)) {
+            skipped.push(`field lạ ${field}`);
+            continue;
+          }
+          if (typeof value !== "string" || !value.trim()) continue;
+          const r = applyContactPatch(next, field, value);
+          next = r.next;
+          if (r.applied) done.push(field);
+        }
+        if (done.length > 0) commit(next, `Adam đã cập nhật ${done.join(", ")}`);
+        const parts: string[] = [];
+        if (done.length > 0) parts.push(`đã điền: ${done.join(", ")}`);
+        if (skipped.length > 0) parts.push(`bỏ qua: ${skipped.join("; ")}`);
+        return parts.length > 0 ? parts.join(". ") + "." : "Không có gì để ghi.";
+      },
+    },
+    [enabled],
+  );
+
+  useFrontendTool(
+    {
+      name: "upsertCvSectionItem",
+      description:
+        "Thêm/sửa HÀNG LOẠT item của một mục CV trong một lượt (bulk-fill). " +
+        "Không id và không đủ khóa tên thì TẠO MỚI. Ngày lỗi không ghi mà báo lại.",
+      parameters: sectionItemsSchema,
+      available: enabled,
+      handler: async ({ section, items }) => {
+        if (!isCvSectionKey(section)) {
+          return `Mục không hợp lệ: ${section}. Chỉ nhận: ${CV_SECTION_KEYS.join(", ")}.`;
+        }
+        const r = applySectionItems(dataRef.current, section, items);
+        const report = sectionReport(section, r);
+        if (r.created.length > 0 || r.updated.length > 0) {
+          commit(r.next, `Adam đã cập nhật ${r.created.length + r.updated.length} mục`);
+        }
+        return report;
+      },
+    },
+    [enabled],
+  );
+
+  useFrontendTool(
+    {
+      name: "removeCvSectionItem",
+      description: "Xóa một item khỏi mục CV theo id. Chỉ gọi khi user yêu cầu xóa rõ ràng.",
+      parameters: removeItemSchema,
+      available: enabled,
+      handler: async ({ section, id }) => {
+        const r = removeSectionItem(dataRef.current, section, id);
+        if (r.removed) commit(r.next, "Adam đã xóa một mục");
+        return r.report;
+      },
+    },
+    [enabled],
+  );
+
+  useFrontendTool(
+    {
+      name: "updateCvMeta",
+      description:
+        "Đặt tên file CV (tenFile, top-level). Khác hoTen trong liên hệ. " +
+        "Khi user nói 'Tạo CV với tên là X' thì gọi tool này (và updateCvContact hoTen nếu chưa có).",
+      parameters: metaSchema,
+      available: enabled,
+      handler: async ({ tenFile }) => {
+        const r = applyTenFilePatch(dataRef.current, tenFile);
+        if (r.applied) commit(r.next, "Adam đã đặt tên CV");
+        return r.report;
+      },
+    },
+    [enabled],
+  );
+
+  useFrontendTool(
+    {
+      name: "setCvTemplate",
+      description: "Đổi mẫu CV hiển thị. IT dùng tech-modern, còn lại minimal-ats.",
+      parameters: templateSchema,
+      available: enabled,
+      handler: async ({ templateId }) => {
+        const r = applyTemplatePatch(dataRef.current, templateId);
+        if (r.applied) commit(r.next, "Adam đã đổi mẫu CV");
+        return r.report;
+      },
+    },
+    [enabled],
+  );
+
+  useFrontendTool(
+    {
+      name: "getCvFormSnapshot",
+      description:
+        "Đọc tóm tắt form hiện tại: field bắt buộc còn thiếu, số lượng từng mục, id các item. " +
+        "Gọi trước khi sửa item đã có hoặc khi cần biết còn thiếu gì.",
+      available: enabled,
+      handler: async () => {
+        const d = dataRef.current;
+        return JSON.stringify({
+          missing: missingRequiredFields(d),
+          counts: {
+            hocVan: d.hocVan.length,
+            kinhNghiemLamViec: d.kinhNghiemLamViec.length,
+            duAn: d.duAn.length,
+            kyNang: d.kyNang.length,
+            chungChi: d.chungChi.length,
+          },
+          templateId: d.templateId,
+          tenFile: d.tenFile,
+          contact: {
+            hoTen: d.thongTinLienHe.hoTen,
+            email: d.thongTinLienHe.email,
+            sdt: d.thongTinLienHe.sdt,
+            viTriUngTuyen: d.thongTinLienHe.viTriUngTuyen,
+          },
+          items: toJsonSafe(buildAssistantSnapshot(d).items),
+        });
+      },
+    },
+    [enabled],
+  );
+
+  useFrontendTool(
+    {
+      name: "loadCvFromBackend",
+      description:
+        "Mở MỘT CV đã lưu vào trình soạn /tao-cv để chỉnh tiếp (thay toàn bộ form hiện tại). " +
+        "cvId lấy từ backend tool list_my_cvs. Nếu form đang có thay đổi chưa lưu, nhắc user trước khi gọi. " +
+        "Sau khi mở, đọc lại trạng thái form bằng getCvFormSnapshot trước khi sửa.",
+      parameters: loadCvSchema,
+      available: enabled,
+      handler: async ({ cvId }) => {
+        if (selectCvRef.current) {
+          const ok = await selectCvRef.current(cvId);
+          if (ok) {
+            toast.success(`Adam đã mở CV #${cvId} vào trình soạn`);
+            return `Đã mở CV ${cvId} vào form. Dữ liệu form bây giờ là của CV này.`;
+          }
+          return `Không tải được CV ${cvId}. Báo người dùng thử lại hoặc mở thủ công từ hồ sơ.`;
+        }
+        router.push(`/tao-cv?cv=${cvId}`);
+        return `Đang chuyển sang /tao-cv để mở CV ${cvId}. Form sẽ tự load CV khi đến nơi.`;
+      },
+    },
+    [enabled],
+  );
+
+  // Pending patch: đổ vào form sau khi load xong (chat từ trang khác nhảy sang),
+  // và lắng nghe event cùng-tab khi user chat ngay trong /tao-cv mà agent
+  // lại gọi navigateToCvEditor thay vì tool điền trực tiếp.
+  useEffect(() => {
+    const drainPending = (isInitial: boolean) => {
+      if (!ready) return;
+      if (isInitial) {
+        if (pendingDoneRef.current) return;
+        pendingDoneRef.current = true;
+      }
+      const pending = loadPendingCvPatch();
+      if (!pending) return;
+      let next = dataRef.current;
+      const notes: string[] = [];
+      if (pending.tenFile && typeof pending.tenFile === "string" && pending.tenFile.trim()) {
+        const r = applyTenFilePatch(next, pending.tenFile);
+        next = r.next;
+        if (r.applied) notes.push(`tên file "${pending.tenFile.trim()}"`);
+      }
+      if (pending.contact) {
+        for (const [field, value] of Object.entries(pending.contact)) {
+          if (!isCvContactField(field) || typeof value !== "string" || !value.trim()) continue;
+          const r = applyContactPatch(next, field, value);
+          next = r.next;
+          if (r.applied) notes.push(field);
+        }
+      }
+      if (pending.sections) {
+        for (const s of pending.sections) {
+          if (!s || !isCvSectionKey(s.section) || !Array.isArray(s.items)) continue;
+          const r = applySectionItems(next, s.section, s.items);
+          next = r.next;
+        }
+      }
+      if (pending.templateId) {
+        next = applyTemplatePatch(next, pending.templateId).next;
+      }
+      clearPendingCvPatch();
+      if (next !== dataRef.current) {
+        commit(next, "Đã đưa thông tin từ chat Adam vào form");
+        if (notes.length > 0) {
+          toast.info(`Đã điền từ chat: ${notes.join(", ")}. Kiểm tra lại rồi bấm Lưu CV.`);
+        }
+      }
+    };
+
+    drainPending(true);
+    const onPatch = () => drainPending(false);
+    window.addEventListener(CV_PENDING_PATCH_EVENT, onPatch);
+    return () => window.removeEventListener(CV_PENDING_PATCH_EVENT, onPatch);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready]);
+
+  return { undo };
+}

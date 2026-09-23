@@ -21,6 +21,7 @@ import {
   Plus,
   ImagePlus,
   Trash2,
+  Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -515,6 +516,12 @@ export function HoSoView() {
                         <Button variant="outline" size="sm">
                           <Pencil className="mr-1.5 h-3.5 w-3.5" />
                           Mở / Sửa
+                        </Button>
+                      </Link>
+                      <Link href={`/cv-phan-tich/${cv.id}`}>
+                        <Button variant="outline" size="sm">
+                          <Sparkles className="mr-1.5 h-3.5 w-3.5" />
+                          Phân tích AI
                         </Button>
                       </Link>
                       <Link href={cvHref(cv)}>

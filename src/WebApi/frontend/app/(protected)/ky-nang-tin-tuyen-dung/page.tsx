@@ -20,8 +20,8 @@ const MUC_DO = [
 ];
 
 const API_TTD = "/api/dotnet/tintuyendungs";
-const API_KN = "/api/dotnet/kynang";
-const API_KNTTD = "/api/dotnet/kynangtintuyendung";
+const API_KN = "/api/dotnet/kynangs";
+const API_KNTTD = "/api/dotnet/kynangtintuyendungs";
 
 const ok = (r: ApiResponse<unknown>): boolean => r.Succeeded ?? r.succeeded ?? true;
 const msg = (r: ApiResponse<unknown>): string => r.Message ?? r.message ?? "";

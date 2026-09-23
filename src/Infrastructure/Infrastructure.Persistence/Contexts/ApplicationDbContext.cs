@@ -37,11 +37,13 @@ namespace Infrastructure.Persistence.Contexts
         public DbSet<DonUngTuyen> DonUngTuyens { get; set; }
         public DbSet<DoanhNghiep> DoanhNghieps { get; set; }
         public DbSet<DanhMucNghe> DanhMucNghes { get; set; }
+        public DbSet<QuyTacKiemDuyetTin> QuyTacKiemDuyetTins { get; set; }
 	        public DbSet<CVUngVien> CVUngViens { get; set; }
 	        public DbSet<CVImportSession> CVImportSessions { get; set; }
 	        public DbSet<CVTepTin> CVTepTins { get; set; }
 	        public DbSet<CVPhienBan> CVPhienBans { get; set; }
 	        public DbSet<DanhGia> DanhGias {get; set;}
+	        public DbSet<global::KyNangUngVien> KyNangUngViens { get; set; }
 
         public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = new CancellationToken())
         {

@@ -479,7 +479,10 @@ namespace Infrastructure.Persistence.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
-                    b.Property<int>("TepDaSinhId")
+                    b.Property<string>("TemplateVersion")
+                        .HasColumnType("text");
+
+                    b.Property<int?>("TepDaSinhId")
                         .HasColumnType("integer");
 
                     b.Property<int?>("TepGocId")
@@ -1401,6 +1404,373 @@ namespace Infrastructure.Persistence.Migrations
                     b.ToTable("NotificationRecipients", (string)null);
                 });
 
+            modelBuilder.Entity("Domain.Entities.QuyTacKiemDuyetTin", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("Created")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<int>("DiemTru")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("LastModified")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("LastModifiedBy")
+                        .HasColumnType("text");
+
+                    b.Property<int>("Loai")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("MoTa")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("TuKhoa")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TuKhoa", "Loai")
+                        .IsUnique();
+
+                    b.ToTable("QuyTacKiemDuyetTin", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Created = new DateTime(2026, 9, 21, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedBy = "system",
+                            DiemTru = 100,
+                            IsActive = true,
+                            Loai = 1,
+                            MoTa = "Dấu hiệu lừa đảo",
+                            TuKhoa = "viec nhe luong cao"
+                        },
+                        new
+                        {
+                            Id = 2,
+                            Created = new DateTime(2026, 9, 21, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedBy = "system",
+                            DiemTru = 100,
+                            IsActive = true,
+                            Loai = 1,
+                            MoTa = "Yêu cầu đặt cọc",
+                            TuKhoa = "dat coc"
+                        },
+                        new
+                        {
+                            Id = 3,
+                            Created = new DateTime(2026, 9, 21, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedBy = "system",
+                            DiemTru = 100,
+                            IsActive = true,
+                            Loai = 1,
+                            MoTa = "Thu phí ứng viên",
+                            TuKhoa = "phi tham gia"
+                        },
+                        new
+                        {
+                            Id = 4,
+                            Created = new DateTime(2026, 9, 21, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedBy = "system",
+                            DiemTru = 100,
+                            IsActive = true,
+                            Loai = 1,
+                            MoTa = "Thu phí ứng viên",
+                            TuKhoa = "phi giu cho"
+                        },
+                        new
+                        {
+                            Id = 5,
+                            Created = new DateTime(2026, 9, 21, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedBy = "system",
+                            DiemTru = 100,
+                            IsActive = true,
+                            Loai = 1,
+                            MoTa = "Thu phí ứng viên",
+                            TuKhoa = "phi dao tao"
+                        },
+                        new
+                        {
+                            Id = 6,
+                            Created = new DateTime(2026, 9, 21, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedBy = "system",
+                            DiemTru = 100,
+                            IsActive = true,
+                            Loai = 1,
+                            MoTa = "Thu phí ứng viên",
+                            TuKhoa = "phi ho so"
+                        },
+                        new
+                        {
+                            Id = 7,
+                            Created = new DateTime(2026, 9, 21, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedBy = "system",
+                            DiemTru = 100,
+                            IsActive = true,
+                            Loai = 1,
+                            MoTa = "Thu phí ứng viên",
+                            TuKhoa = "phi tuyen dung"
+                        },
+                        new
+                        {
+                            Id = 8,
+                            Created = new DateTime(2026, 9, 21, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedBy = "system",
+                            DiemTru = 100,
+                            IsActive = true,
+                            Loai = 1,
+                            MoTa = "Yêu cầu chuyển tiền",
+                            TuKhoa = "nop tien truoc"
+                        },
+                        new
+                        {
+                            Id = 9,
+                            Created = new DateTime(2026, 9, 21, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedBy = "system",
+                            DiemTru = 100,
+                            IsActive = true,
+                            Loai = 1,
+                            MoTa = "Yêu cầu chuyển tiền",
+                            TuKhoa = "chuyen tien truoc"
+                        },
+                        new
+                        {
+                            Id = 10,
+                            Created = new DateTime(2026, 9, 21, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedBy = "system",
+                            DiemTru = 100,
+                            IsActive = true,
+                            Loai = 1,
+                            MoTa = "Phân biệt giới tính",
+                            TuKhoa = "chi tuyen nam"
+                        },
+                        new
+                        {
+                            Id = 11,
+                            Created = new DateTime(2026, 9, 21, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedBy = "system",
+                            DiemTru = 100,
+                            IsActive = true,
+                            Loai = 1,
+                            MoTa = "Phân biệt giới tính",
+                            TuKhoa = "chi tuyen nu"
+                        },
+                        new
+                        {
+                            Id = 12,
+                            Created = new DateTime(2026, 9, 21, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedBy = "system",
+                            DiemTru = 25,
+                            IsActive = true,
+                            Loai = 2,
+                            MoTa = "Cam kết thu nhập phi thực tế",
+                            TuKhoa = "thu nhap khong gioi han"
+                        },
+                        new
+                        {
+                            Id = 13,
+                            Created = new DateTime(2026, 9, 21, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedBy = "system",
+                            DiemTru = 25,
+                            IsActive = true,
+                            Loai = 2,
+                            MoTa = "Cam kết làm giàu",
+                            TuKhoa = "co hoi lam giau"
+                        },
+                        new
+                        {
+                            Id = 14,
+                            Created = new DateTime(2026, 9, 21, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedBy = "system",
+                            DiemTru = 25,
+                            IsActive = true,
+                            Loai = 2,
+                            MoTa = "Cam kết thu nhập phi thực tế",
+                            TuKhoa = "kiem tien nhanh"
+                        },
+                        new
+                        {
+                            Id = 15,
+                            Created = new DateTime(2026, 9, 21, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedBy = "system",
+                            DiemTru = 25,
+                            IsActive = true,
+                            Loai = 2,
+                            MoTa = "Dấu hiệu tuyển dụng không rõ ràng",
+                            TuKhoa = "kiem tien online"
+                        },
+                        new
+                        {
+                            Id = 16,
+                            Created = new DateTime(2026, 9, 21, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedBy = "system",
+                            DiemTru = 15,
+                            IsActive = true,
+                            Loai = 2,
+                            MoTa = "Thiếu cam kết lao động",
+                            TuKhoa = "khong can hop dong"
+                        },
+                        new
+                        {
+                            Id = 17,
+                            Created = new DateTime(2026, 9, 21, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedBy = "system",
+                            DiemTru = 15,
+                            IsActive = true,
+                            Loai = 2,
+                            MoTa = "Quy trình tuyển dụng rủi ro",
+                            TuKhoa = "khong can cv"
+                        },
+                        new
+                        {
+                            Id = 18,
+                            Created = new DateTime(2026, 9, 21, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedBy = "system",
+                            DiemTru = 100,
+                            IsActive = true,
+                            Loai = 1,
+                            MoTa = "Thu phí ứng viên",
+                            TuKhoa = "phi nhap hoc"
+                        },
+                        new
+                        {
+                            Id = 19,
+                            Created = new DateTime(2026, 9, 21, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedBy = "system",
+                            DiemTru = 100,
+                            IsActive = true,
+                            Loai = 1,
+                            MoTa = "Mô hình kim tự tháp",
+                            TuKhoa = "pyramid scheme"
+                        },
+                        new
+                        {
+                            Id = 20,
+                            Created = new DateTime(2026, 9, 21, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedBy = "system",
+                            DiemTru = 100,
+                            IsActive = true,
+                            Loai = 1,
+                            MoTa = "Dấu hiệu đa cấp",
+                            TuKhoa = "multi level marketing"
+                        },
+                        new
+                        {
+                            Id = 21,
+                            Created = new DateTime(2026, 9, 21, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedBy = "system",
+                            DiemTru = 100,
+                            IsActive = true,
+                            Loai = 1,
+                            MoTa = "Phân biệt giới tính",
+                            TuKhoa = "chi nhan nam"
+                        },
+                        new
+                        {
+                            Id = 22,
+                            Created = new DateTime(2026, 9, 21, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedBy = "system",
+                            DiemTru = 100,
+                            IsActive = true,
+                            Loai = 1,
+                            MoTa = "Phân biệt giới tính",
+                            TuKhoa = "chi nhan nu"
+                        },
+                        new
+                        {
+                            Id = 23,
+                            Created = new DateTime(2026, 9, 21, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedBy = "system",
+                            DiemTru = 100,
+                            IsActive = true,
+                            Loai = 1,
+                            MoTa = "Phân biệt giới tính",
+                            TuKhoa = "khong nhan nam"
+                        },
+                        new
+                        {
+                            Id = 24,
+                            Created = new DateTime(2026, 9, 21, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedBy = "system",
+                            DiemTru = 100,
+                            IsActive = true,
+                            Loai = 1,
+                            MoTa = "Phân biệt giới tính",
+                            TuKhoa = "khong nhan nu"
+                        },
+                        new
+                        {
+                            Id = 25,
+                            Created = new DateTime(2026, 9, 21, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedBy = "system",
+                            DiemTru = 100,
+                            IsActive = true,
+                            Loai = 1,
+                            MoTa = "Phân biệt giới tính",
+                            TuKhoa = "khong tuyen nam"
+                        },
+                        new
+                        {
+                            Id = 26,
+                            Created = new DateTime(2026, 9, 21, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedBy = "system",
+                            DiemTru = 100,
+                            IsActive = true,
+                            Loai = 1,
+                            MoTa = "Phân biệt giới tính",
+                            TuKhoa = "khong tuyen nu"
+                        },
+                        new
+                        {
+                            Id = 27,
+                            Created = new DateTime(2026, 9, 21, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedBy = "system",
+                            DiemTru = 100,
+                            IsActive = true,
+                            Loai = 1,
+                            MoTa = "Phân biệt giới tính",
+                            TuKhoa = "khong tuyen phu nu"
+                        },
+                        new
+                        {
+                            Id = 28,
+                            Created = new DateTime(2026, 9, 21, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedBy = "system",
+                            DiemTru = 15,
+                            IsActive = true,
+                            Loai = 2,
+                            MoTa = "Cam kết thanh toán phi thực tế",
+                            TuKhoa = "nhan tien ngay"
+                        },
+                        new
+                        {
+                            Id = 29,
+                            Created = new DateTime(2026, 9, 21, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedBy = "system",
+                            DiemTru = 15,
+                            IsActive = true,
+                            Loai = 2,
+                            MoTa = "Cam kết thanh toán phi thực tế",
+                            TuKhoa = "tra tien ngay"
+                        });
+                });
+
             modelBuilder.Entity("Domain.Entities.TinTuyenDung", b =>
                 {
                     b.Property<int>("Id")
@@ -1450,6 +1820,11 @@ namespace Infrastructure.Persistence.Migrations
 
                     b.Property<int>("NguoiDangTinId")
                         .HasColumnType("integer");
+
+                    b.Property<string>("PhuongThucLamViec")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("QuyenLoi")
                         .HasColumnType("text");
@@ -1701,8 +2076,7 @@ namespace Infrastructure.Persistence.Migrations
                     b.HasOne("Domain.Entities.CVTepTin", "TepDaSinh")
                         .WithMany()
                         .HasForeignKey("TepDaSinhId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("Domain.Entities.CVTepTin", "TepGoc")
                         .WithMany()

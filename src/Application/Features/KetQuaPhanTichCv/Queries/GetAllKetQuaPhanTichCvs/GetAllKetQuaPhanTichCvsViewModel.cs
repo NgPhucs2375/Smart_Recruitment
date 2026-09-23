@@ -1,3 +1,4 @@
+using Domain.Enums;
 using System;
 
 namespace Application.Features.KetQuaPhanTichCv.Queries.GetAllKetQuaPhanTichCvs;
@@ -9,4 +10,6 @@ public class GetAllKetQuaPhanTichCvsViewModel
     public string NoiDungTrichXuat { get; set; }
     public string KyNangTrichXuat { get; set; }
     public string KinhNghiemTrichXuat { get; set; }
+    public string HocVanTrichXuat { get; set; }
+    public TrangThaiPhanTichAgent PhanTich { get; set; }
 }

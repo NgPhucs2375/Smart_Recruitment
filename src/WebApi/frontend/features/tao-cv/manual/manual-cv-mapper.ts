@@ -1,5 +1,6 @@
 import type { CvDetailVm, CvFormData, DuAnItem, HocVanItem, KinhNghiemItem, KyNangItem, ChungChiItem } from "@/lib/types";
 import { isoToVnDate, newId, normalizeCvPartialDate } from "../cv-data";
+import { TEMPLATE_REGISTRY } from "../template-registry";
 import { formatVndInput, parseVndInput } from "@/lib/format-vnd";
 import type {
   CreateManualCvPayload,
@@ -188,6 +189,7 @@ export function createManualCvPayload(
     tenFile: data.tenFile.trim() || `CV-${new Date().toISOString().slice(0, 10)}`,
     fileUrl: null,
     templateId: data.templateId,
+    templateVersion: TEMPLATE_REGISTRY[data.templateId]?.version ?? "1.0",
     isDefault,
     phuongThucTao: 1,
     noiDung: contentPayload(data),

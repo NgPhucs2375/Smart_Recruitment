@@ -13,6 +13,7 @@ namespace Application.Interfaces
         DbSet<TinTuyenDung> TinTuyenDungs { get; set; }
         DbSet<KyNang> KyNangs { get; set; }
         DbSet<KyNangTinTuyenDung> KyNangTinTuyenDungs { get; set; }
+        DbSet<global::KyNangUngVien> KyNangUngViens { get; set; }
         DbSet<KetQuaPhanTichCv> KetQuaPhanTichCvs { get; set; }
         DbSet<KetQuaPhuHop> KetQuaPhuHops { get; set; }
         DbSet<HoSoUngVien> HoSoUngViens { get; set; }
@@ -21,6 +22,7 @@ namespace Application.Interfaces
         DbSet<DonUngTuyen> DonUngTuyens { get; set; }
         DbSet<DoanhNghiep> DoanhNghieps { get; set; }
         DbSet<DanhMucNghe> DanhMucNghes { get; set; }
+        DbSet<QuyTacKiemDuyetTin> QuyTacKiemDuyetTins { get; set; }
         DbSet<CVUngVien> CVUngViens { get; set; }
         DbSet<CVImportSession> CVImportSessions { get; set; }
         DbSet<CVTepTin> CVTepTins { get; set; }

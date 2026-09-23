@@ -7,8 +7,10 @@ import {
   LayoutDashboard,
   Settings,
   ShieldCheck,
+  ListChecks,
   Tags,
   UserCog,
+  UserRound,
   Users,
 } from "lucide-react";
 
@@ -17,16 +19,19 @@ export interface NavigationItem {
   href: string;
   icon: typeof LayoutDashboard;
   permission?: { resource: string; action: string };
+  roles?: string[];
 }
 
 export const recruiterNavigation: NavigationItem[] = [
   { title: "Tổng quan", href: "/dashboard", icon: LayoutDashboard },
   { title: "Tin tuyển dụng", href: "/tin-tuyen-dung", icon: BriefcaseBusiness, permission: { resource: "tintuyendungs", action: "list" } },
+  { title: "Duyệt tin Nhân sự", href: "/duyet-tin-nhan-su", icon: ListChecks, permission: { resource: "tintuyendungs", action: "edit" }, roles: ["NGUOI_DAI_DIEN"] },
   { title: "Ứng viên", href: "/ung-vien", icon: Users },
   { title: "Nhân sự", href: "/nhan-su", icon: Users, permission: { resource: "nhansus", action: "list" } },
   { title: "Tin nhắn", href: "/tin-nhan", icon: FileText },
   { title: "Báo cáo", href: "/reports", icon: BarChart3 },
   { title: "Hồ sơ doanh nghiệp", href: "/doanh-nghiep/ho-so", icon: Building2 },
+  { title: "Hồ sơ của tôi", href: "/ho-so-nha-tuyen-dung", icon: UserRound, permission: { resource: "hosonhatuyendungs", action: "show" } },
   { title: "Cài đặt", href: "/settings", icon: Settings },
 ];
 
@@ -35,6 +40,7 @@ export const adminNavigation: NavigationItem[] = [
   { title: "Quản lý người dùng", href: "/admin/nguoi-dung", icon: UserCog, permission: { resource: "nguoidungs", action: "list" } },
   { title: "Quản lý doanh nghiệp", href: "/admin/doanh-nghiep", icon: Building2, permission: { resource: "doanhnghieps", action: "list" } },
   { title: "Duyệt tin tuyển dụng", href: "/admin/tin-tuyen-dung", icon: ShieldCheck, permission: { resource: "tintuyendungs", action: "list" } },
+  { title: "Rule kiểm duyệt", href: "/admin/quy-tac-kiem-duyet", icon: ListChecks, permission: { resource: "quytackiemduyettins", action: "list" } },
   { title: "Quản lý danh mục", href: "/admin/danh-muc", icon: Tags, permission: { resource: "danhmucnghes", action: "list" } },
   { title: "Quản lý CV/mẫu CV", href: "/CV", icon: FileCheck },
   { title: "Báo cáo và thống kê", href: "/reports", icon: BarChart3 },
@@ -57,7 +63,9 @@ export function resolveWorkspace(roles: readonly string[] | undefined | null): W
 
 // Roles without an explicit admin role use the recruiter workspace.
 export function getWorkspaceNavigation(roles: string[] = []) {
-  return resolveWorkspace(roles) === "admin"
+  const normalized = roles.map((role) => role.trim().toUpperCase());
+  const items = resolveWorkspace(roles) === "admin"
     ? adminNavigation
     : recruiterNavigation;
+  return items.filter((item) => !item.roles || item.roles.some((role) => normalized.includes(role)));
 }

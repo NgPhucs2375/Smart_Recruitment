@@ -1,5 +1,7 @@
 "use client";
 
+// Khởi tạo màn hình tạo CV
+// render component chính : tao-cv-view
 import { Suspense } from "react";
 import { Loader2 } from "lucide-react";
 import { TaoCvView } from "@/components/cv/tao-cv-view";

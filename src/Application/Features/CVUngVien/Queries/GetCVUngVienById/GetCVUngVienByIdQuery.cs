@@ -2,6 +2,7 @@ using Application.DTOs.CV;
 using Application.Interfaces;
 using Application.Interfaces.Repositories;
 using Application.Wrappers;
+using Domain.Enums;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -52,6 +53,50 @@ public class GetCVUngVienByIdQueryHandler(
                     x.HoSoUngVien.NguoiDungId ==
                         currentUser.Id,
                 cancellationToken);
+
+        // Nhân sự / Người đại diện: được xem CV của ứng viên ĐÃ NỘP ĐƠN
+        // vào tin thuộc phạm vi mình phụ trách (tin mình đăng / cùng DN).
+        // Không có đơn nào → từ chối (chống dò CV theo id).
+        if (entity == null &&
+            (currentUser.VaiTro == VaiTroNguoiDung.NHAN_SU ||
+             currentUser.VaiTro == VaiTroNguoiDung.NGUOI_DAI_DIEN))
+        {
+            var trongPhamVi = await context.DonUngTuyens
+                .AsNoTracking()
+                .AnyAsync(
+                    d =>
+                        d.CVUngVienId == request.Id &&
+                        (currentUser.VaiTro == VaiTroNguoiDung.NHAN_SU
+                            ? d.TinTuyenDung.NguoiDangTinId == currentUser.Id
+                            : d.TinTuyenDung.DoanhNghiepId == currentUser.DoanhNghiepId),
+                    cancellationToken);
+
+            if (trongPhamVi)
+            {
+                entity = await context.CVUngViens
+                    .AsNoTracking()
+
+                    .Include(x => x.ThongTinLienHe)
+
+                    .Include(x => x.HocVans)
+
+                    .Include(x => x.KinhNghiems)
+                        .ThenInclude(x => x.KyNangs)
+
+                    .Include(x => x.DuAns)
+                        .ThenInclude(x => x.CongNghes)
+
+                    .Include(x => x.KyNangs)
+
+                    .Include(x => x.ChungChis)
+
+                    .FirstOrDefaultAsync(
+                        x =>
+                            x.Id == request.Id &&
+                            !x.IsDaXoa,
+                        cancellationToken);
+            }
+        }
 
         if (entity == null)
         {

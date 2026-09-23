@@ -98,12 +98,9 @@ namespace Infrastructure.Identity.Services
                 throw new ApiException($"Thông tin đăng nhập không hợp lệ cho '{request.Email}'.");
             }
 
-            // Kiểm tra Xác thực Email — auto-confirm in dev mode (no SMTP)
-            if (!user.EmailConfirmed)
-            {
-                user.EmailConfirmed = true;
-                await _userManager.UpdateAsync(user).ConfigureAwait(false);
-            }
+            // Không tự động xác thực email ở đây — giữ nguyên trạng thái EmailConfirmed
+            // để luồng xác thực email thực tế hoạt động khi SMTP được cấu hình.
+            // Đăng nhập vẫn cho phép để không khóa user cũ; IsVerified phản ánh đúng.
            
             // 1. Khởi tạo Access Token và Refresh Token
             JwtSecurityToken jwtSecurityToken = await GenerateJWToken(user).ConfigureAwait(false);
@@ -181,6 +178,25 @@ namespace Infrastructure.Identity.Services
             if (userWithSameEmail != null) 
                 throw new ApiException($"Email '{request.Email}' đã được đăng ký trong hệ thống.");
 
+            // 4b. Validate lời mời TRƯỚC khi tạo Identity user — tránh account mồ côi
+            // (trước đây user được tạo ở bước 6 rồi mới validate ở RegisterInvitedNhanSuAsync,
+            // token hết hạn/sai email để lại account chiếm email nhưng không role/profile).
+            LoiMoiNhanSu inviteToConsume = null;
+            bool isInviteFlow = !string.IsNullOrWhiteSpace(request.InviteToken) && request.InviteToken != "string";
+            if (isInviteFlow)
+            {
+                inviteToConsume = await _appContext.LoiMoiNhanSus
+                    .FirstOrDefaultAsync(l => l.Token == request.InviteToken).ConfigureAwait(false);
+                if (inviteToConsume == null)
+                    throw new ApiException("Lời mời không hợp lệ.");
+                if (inviteToConsume.LoiMoi != TrangThaiLoiMoi.ChoXacNhan)
+                    throw new ApiException("Lời mời đã được xử lý.");
+                if (inviteToConsume.NgayHetHan < DateTime.UtcNow)
+                    throw new ApiException("Lời mời đã hết hạn.");
+                if (!string.Equals(inviteToConsume.Email, request.Email, StringComparison.OrdinalIgnoreCase))
+                    throw new ApiException("Email đăng ký không khớp với lời mời.");
+            }
+
             // 5. Tách Họ và Tên an toàn
             string hoTen = (request.HoTen ?? string.Empty).Trim();
             int firstSpaceIndex = hoTen.IndexOf(' ');
@@ -217,8 +233,11 @@ namespace Infrastructure.Identity.Services
                 await RegisterEmployerAsync(user, request).ConfigureAwait(false);
             }
 
-            // 8. Tạo mã xác nhận và gửi email (skip nếu SMTP fails - dev mode)
+            // 8. Tạo mã xác nhận và gửi email.
+            // Chỉ auto-confirm khi gửi email thất bại (SMTP chưa cấu hình — dev fallback).
+            // Khi SMTP hoạt động, giữ EmailConfirmed=false để xác thực email thực tế.
             string verificationUri = null;
+            bool emailSent = false;
             try
             {
                 verificationUri = await SendVerificationEmail(user, origin).ConfigureAwait(false);
@@ -229,21 +248,22 @@ namespace Infrastructure.Identity.Services
                     Body = $"Vui lòng xác nhận tài khoản của bạn bằng cách nhấn vào liên kết: {verificationUri}",
                     Subject = "Xác nhận Đăng ký Tài khoản"
                 }).ConfigureAwait(false);
+                emailSent = true;
             }
             catch (Exception ex)
             {
-                // Email failed (no SMTP in dev) — auto-confirm so user can login immediately
+                _logger.LogWarning(ex, "Gửi email xác thực thất bại cho {Email} — auto-confirm fallback.", user.Email);
                 verificationUri = null;
+                emailSent = false;
             }
 
-            // Auto-confirm email in dev mode (no SMTP) so user can login immediately
-            if (!user.EmailConfirmed)
+            if (!emailSent && !user.EmailConfirmed)
             {
                 user.EmailConfirmed = true;
                 await _userManager.UpdateAsync(user).ConfigureAwait(false);
             }
 
-            return new Response<string>(user.Id, $"Người dùng đã đăng ký thành công{(verificationUri != null ? $". Vui lòng xác nhận tài khoản qua email: {verificationUri}" : "")}");
+            return new Response<string>(user.Id, $"Người dùng đã đăng ký thành công{(verificationUri != null && emailSent ? $". Vui lòng xác nhận tài khoản qua email: {verificationUri}" : "")}");
         }
 
         ///<summary>
@@ -280,10 +300,16 @@ namespace Infrastructure.Identity.Services
             // 1. Gán vai trò Người đại diện trong Identity Context
             await _userManager.AddToRoleAsync(user, VaiTroNguoiDung.NGUOI_DAI_DIEN.ToString()).ConfigureAwait(false);
 
+            // Optional tax codes must be stored as NULL, not an empty string,
+            // otherwise the unique index rejects every later registration without an MST.
+            var maSoThue = string.IsNullOrWhiteSpace(request.MaSoThue)
+                ? null
+                : request.MaSoThue.Trim();
+
             // 1b. 1-1 nghiêm ngặt: chặn trùng MST ngay từ lúc đăng ký.
-            if (!string.IsNullOrWhiteSpace(request.MaSoThue) &&
-                await _appContext.DoanhNghieps.AnyAsync(d => d.MaSoThue == request.MaSoThue).ConfigureAwait(false))
-                throw new ApiException($"Mã số thuế '{request.MaSoThue}' đã được sử dụng.");
+            if (maSoThue != null &&
+                await _appContext.DoanhNghieps.AnyAsync(d => d.MaSoThue == maSoThue).ConfigureAwait(false))
+                throw new ApiException($"Mã số thuế '{maSoThue}' đã được sử dụng.");
 
             // 2. Khởi tạo thực thể Doanh nghiệp
             var dn = new DoanhNghiep
@@ -293,7 +319,7 @@ namespace Infrastructure.Identity.Services
                 MoTa = request.MoTaDoanhNghiep,
                 Website = request.Website,
                 LogoUrl = request.LogoUrl,
-                MaSoThue = request.MaSoThue,
+                MaSoThue = maSoThue,
                 LinhVucHoatDong = request.LinhVucHoatDong,
                 QuyMoNhanSu = request.QuyMoNhanSu
             };
@@ -420,6 +446,26 @@ namespace Infrastructure.Identity.Services
             await _appContext.SaveChangesAsync().ConfigureAwait(false);
 
             return new Response<string>(user.Id, "Đã chấp nhận lời mời. Bạn hiện là Nhân sự của doanh nghiệp.");
+        }
+
+        /// <summary>
+        /// Gỡ role NHAN_SU khỏi Identity khi nhân sự bị xóa khỏi doanh nghiệp,
+        /// gán lại UNG_VIEN để họ không còn vào cổng employer / giữ quyền tintuyendungs.*.
+        /// </summary>
+        public async Task<Response<string>> RemoveNhanSuRoleAsync(string applicationUserId)
+        {
+            var user = await _userManager.FindByIdAsync(applicationUserId).ConfigureAwait(false);
+            if (user == null)
+                return new Response<string>(applicationUserId, "Không tìm thấy tài khoản Identity.");
+
+            var nhanSuRole = VaiTroNguoiDung.NHAN_SU.ToString();
+            var ungVienRole = VaiTroNguoiDung.UNG_VIEN.ToString();
+            if (await _userManager.IsInRoleAsync(user, nhanSuRole).ConfigureAwait(false))
+                await _userManager.RemoveFromRoleAsync(user, nhanSuRole).ConfigureAwait(false);
+            if (!await _userManager.IsInRoleAsync(user, ungVienRole).ConfigureAwait(false))
+                await _userManager.AddToRoleAsync(user, ungVienRole).ConfigureAwait(false);
+
+            return new Response<string>(applicationUserId, "Đã gỡ quyền nhân sự.");
         }
         
         /// <summary>

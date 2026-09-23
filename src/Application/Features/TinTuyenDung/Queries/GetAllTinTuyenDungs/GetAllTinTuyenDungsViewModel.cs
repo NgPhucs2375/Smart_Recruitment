@@ -10,11 +10,19 @@ namespace Application.Features.TinTuyenDung.Queries.GetAllTinTuyenDungs
         public string YeuCauCongViec { get; set; }
         public string QuyenLoi { get; set; }
         public string DiaDiemLamViec { get; set; }
+        public string PhuongThucLamViec { get; set; }
         public decimal LuongToiThieu { get; set; }
         public decimal LuongToiDa { get; set; }
         public string TrangThai { get; set; }
         public System.DateTime? NgayHetHan { get; set; }
         public int NguoiDangTinId { get; set; }
         public int DoanhNghiepId { get; set; }
+        public string TenDoanhNghiep { get; set; }
+        public List<string> KyNangs { get; set; } = new();
+        public int SoLuongUngVien { get; set; }
+        public System.DateTime Created { get; set; }
+        public string WorkMode { get; set; }
+        public string Level { get; set; }
+        public string EmploymentType { get; set; }
     }
 }

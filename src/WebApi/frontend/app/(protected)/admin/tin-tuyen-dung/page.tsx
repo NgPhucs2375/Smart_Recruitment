@@ -36,6 +36,7 @@ const TIN_TRANG_THAI: Record<string, { label: string; variant: "default" | "seco
   DaDong: { label: "Đã đóng", variant: "secondary" },
   TuChoi: { label: "Bị từ chối", variant: "destructive" },
   BiKhoa: { label: "Bị khóa", variant: "destructive" },
+  ChoNguoiDaiDienDuyet: { label: "Chờ Người đại diện duyệt", variant: "outline" },
 };
 
 export default function AdminTinTuyenDungPage() {
@@ -57,6 +58,7 @@ export default function AdminTinTuyenDungPage() {
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void fetchRows();
   }, [fetchRows]);
 

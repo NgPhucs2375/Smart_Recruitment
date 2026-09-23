@@ -84,7 +84,7 @@ export function normalizeHoSo(raw: unknown): HoSoVm | null {
   const r = raw as Record<string, unknown>;
   const id = (r.id ?? r.Id ?? 0) as number;
   if (!id && !r.hoTen && !r.HoTen) return null;
-  const avatarValue = (r.anhDaiDienUrl ?? r.AnhDaiDienUrl ?? "") as string;
+  const avatarValue = String(r.anhDaiDienUrl ?? r.AnhDaiDienUrl ?? "").trim();
   return {
     id,
     nguoiDungId: (r.nguoiDungId ?? r.NguoiDungId ?? 0) as number,
@@ -95,7 +95,7 @@ export function normalizeHoSo(raw: unknown): HoSoVm | null {
     diaChi: (r.diaChi ?? r.DiaChi ?? "") as string,
     gioiThieu: (r.gioiThieu ?? r.GioiThieu ?? "") as string,
     anhDaiDienUrl: avatarValue.startsWith("avatars/")
-      ? `/api/dotnet/hosoungviens/${id}/avatar?key=${encodeURIComponent(avatarValue)}`
+      ? `/api/dotnet/hosoungviens/${id}/avatar?key=${encodeURIComponent(avatarValue)}&v=${encodeURIComponent(avatarValue)}`
       : avatarValue,
     viTriUngTuyen: (r.viTriUngTuyen ?? r.ViTriUngTuyen ?? "") as string,
     mucLuongMongMuon: (r.mucLuongMongMuon ?? r.MucLuongMongMuon ?? 0) as number,
@@ -270,7 +270,19 @@ export const cvApi = {
         expiresAt: String(raw.expiresAt ?? raw.ExpiresAt ?? ""),
       }));
   },
-  saveVersion: (payload: object, pdf: Blob, fileName: string) => {
+  /** Lưu CV: JSON + templateId/templateVersion, KHÔNG chụp màn hình. Backend nhận multipart/form-data với Payload (GeneratedPdf optional). Xuất PDF dùng window.print(). */
+  saveVersion: (payload: object) => {
+    const form = new FormData();
+    form.append("Payload", JSON.stringify(payload));
+    return request<Record<string, unknown>>("cvungviens/save-version", { method: "POST", body: form })
+      .then((raw): SaveCvVersionVm => ({
+        cvUngVienId: Number(raw.cvUngVienId ?? raw.CVUngVienId),
+        cvPhienBanId: Number(raw.cvPhienBanId ?? raw.CVPhienBanId),
+        soPhienBan: Number(raw.soPhienBan ?? raw.SoPhienBan),
+      }));
+  },
+  /** Giữ để tương thích: gửi kèm PDF nếu có (legacy/Playwright). */
+  saveVersionWithPdf: (payload: object, pdf: Blob, fileName: string) => {
     const form = new FormData();
     form.append("Payload", JSON.stringify(payload));
     form.append("GeneratedPdf", pdf, fileName);

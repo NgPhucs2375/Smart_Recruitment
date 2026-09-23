@@ -1,8 +1,10 @@
+#nullable enable
 using System;
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Net;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 using Application.DTOs.CV;
@@ -19,9 +21,16 @@ public sealed class GeminiCvStructuredParser(
     ILogger<GeminiCvStructuredParser> logger) : ICvStructuredParser
 {
     private const int MaxAttempts = 3;
+
+    // LLM sinh JSON cho cả CV có thể mất vài chục giây, nhưng khi connection
+    // treo (mạng Docker/VPN không ổn định) phải cắt sớm từng lần thử để còn
+    // thời gian retry thay vì để HttpClient.Timeout nuốt trọn 90s rồi trả 500.
+    private static readonly TimeSpan AttemptTimeout = TimeSpan.FromSeconds(60);
+
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
-        PropertyNameCaseInsensitive = true
+        PropertyNameCaseInsensitive = true,
+        NumberHandling = JsonNumberHandling.AllowReadingFromString
     };
 
     public async Task<ParsedCvDto> ParseAsync(
@@ -38,6 +47,8 @@ public sealed class GeminiCvStructuredParser(
         }
 
         var model = configuration["Gemini:Model"] ?? "gemini-3.6-flash";
+        var fallbackModel = configuration["Gemini:FallbackModel"];
+        var currentModel = model;
         var requestBody = new
         {
             contents = new[]
@@ -61,30 +72,91 @@ public sealed class GeminiCvStructuredParser(
         {
             using var request = new HttpRequestMessage(
                 HttpMethod.Post,
-                $"v1beta/models/{Uri.EscapeDataString(model)}:generateContent");
+                $"v1beta/models/{Uri.EscapeDataString(currentModel)}:generateContent");
             request.Headers.Add("x-goog-api-key", apiKey);
             request.Content = JsonContent.Create(requestBody);
 
-            using var response = await httpClient.SendAsync(request, cancellationToken);
-            var responseJson = await response.Content.ReadAsStringAsync(cancellationToken);
-            if (!response.IsSuccessStatusCode)
+            string responseJson;
+            HttpStatusCode statusCode;
+            bool isSuccess;
+            TimeSpan? retryAfter;
+            try
             {
-                var isTransient = response.StatusCode is
-                    HttpStatusCode.TooManyRequests or
-                    HttpStatusCode.BadGateway or
-                    HttpStatusCode.ServiceUnavailable or
-                    HttpStatusCode.GatewayTimeout;
+                using var attemptCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                attemptCts.CancelAfter(AttemptTimeout);
+
+                using var response = await httpClient.SendAsync(request, attemptCts.Token);
+                statusCode = response.StatusCode;
+                isSuccess = response.IsSuccessStatusCode;
+                retryAfter = response.Headers.RetryAfter?.Delta;
+                responseJson = await response.Content.ReadAsStringAsync(attemptCts.Token);
+            }
+            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+            {
+                logger.LogWarning(
+                    "Gemini parse CV quá thời gian chờ {Timeout}s. lần={Attempt}/{MaxAttempts}.",
+                    AttemptTimeout.TotalSeconds,
+                    attempt,
+                    MaxAttempts);
+                if (attempt >= MaxAttempts)
+                {
+                    throw new ApiException(
+                        "Gemini không phản hồi kịp thời. Vui lòng thử lại sau ít phút.",
+                        (int)HttpStatusCode.ServiceUnavailable);
+                }
+                await Task.Delay(TimeSpan.FromSeconds(attempt), cancellationToken);
+                continue;
+            }
+            catch (HttpRequestException ex)
+            {
+                logger.LogWarning(
+                    "Gemini parse CV lỗi mạng: {Error}. lần={Attempt}/{MaxAttempts}.",
+                    ex.Message,
+                    attempt,
+                    MaxAttempts);
+                if (attempt >= MaxAttempts)
+                {
+                    throw new ApiException(
+                        "Không kết nối được Gemini. Vui lòng kiểm tra kết nối mạng rồi thử lại.",
+                        (int)HttpStatusCode.ServiceUnavailable);
+                }
+                await Task.Delay(TimeSpan.FromSeconds(attempt), cancellationToken);
+                continue;
+            }
+
+            if (!isSuccess)
+            {
+                var isTransient = (int)statusCode is
+                    (int)HttpStatusCode.TooManyRequests or
+                    (int)HttpStatusCode.BadGateway or
+                    (int)HttpStatusCode.ServiceUnavailable or
+                    (int)HttpStatusCode.GatewayTimeout;
 
                 if (isTransient && attempt < MaxAttempts)
                 {
-                    var delay = response.Headers.RetryAfter?.Delta
-                        ?? TimeSpan.FromSeconds(attempt);
-                    if (delay > TimeSpan.FromSeconds(5))
-                        delay = TimeSpan.FromSeconds(5);
+                    // Free-tier mỗi model có bucket quota riêng, nên khi model
+                    // chính bị 429/503 thử chuyển sang model dự phòng.
+                    TimeSpan delay;
+                    if (!string.IsNullOrWhiteSpace(fallbackModel) && currentModel != fallbackModel)
+                    {
+                        logger.LogWarning(
+                            "Gemini model {Model} lỗi {Status} — chuyển sang model dự phòng {Fallback}.",
+                            currentModel,
+                            (int)statusCode,
+                            fallbackModel);
+                        currentModel = fallbackModel;
+                        delay = TimeSpan.FromMilliseconds(500);
+                    }
+                    else
+                    {
+                        delay = retryAfter ?? TimeSpan.FromSeconds(attempt);
+                        if (delay > TimeSpan.FromSeconds(5))
+                            delay = TimeSpan.FromSeconds(5);
+                    }
 
                     logger.LogWarning(
                         "Gemini parse CV tạm thời thất bại. Status={Status}, lần={Attempt}/{MaxAttempts}. Thử lại sau {DelayMs}ms.",
-                        (int)response.StatusCode,
+                        (int)statusCode,
                         attempt,
                         MaxAttempts,
                         delay.TotalMilliseconds);
@@ -94,29 +166,44 @@ public sealed class GeminiCvStructuredParser(
 
                 logger.LogError(
                     "Gemini parse CV thất bại. Status={Status}. Body={Body}",
-                    (int)response.StatusCode,
-                    responseJson.Length > 500 ? responseJson[..500] : responseJson);
+                    (int)statusCode,
+                    Truncate(responseJson));
                 throw new ApiException(
                     isTransient
                         ? "Gemini đang quá tải. Vui lòng thử lại sau ít phút."
-                        : $"Gemini không thể phân tích CV ({(int)response.StatusCode}).",
+                        : $"Gemini không thể phân tích CV ({(int)statusCode}).",
                     isTransient ? (int)HttpStatusCode.ServiceUnavailable : (int)HttpStatusCode.BadGateway);
             }
 
-            using var document = JsonDocument.Parse(responseJson);
-            var json = document.RootElement
-                .GetProperty("candidates")[0]
-                .GetProperty("content")
-                .GetProperty("parts")[0]
-                .GetProperty("text")
-                .GetString();
-
-            var parsed = string.IsNullOrWhiteSpace(json)
-                ? null
-                : JsonSerializer.Deserialize<ParsedCvDto>(json, JsonOptions);
+            ParsedCvDto? parsed;
+            try
+            {
+                using var document = JsonDocument.Parse(responseJson);
+                var json = ExtractCandidateText(document.RootElement);
+                parsed = string.IsNullOrWhiteSpace(json)
+                    ? null
+                    : JsonSerializer.Deserialize<ParsedCvDto>(json, JsonOptions);
+            }
+            catch (JsonException ex)
+            {
+                logger.LogError(
+                    "Gemini parse CV trả về JSON không hợp lệ. Lỗi={Error}. Body={Body}",
+                    ex.Message,
+                    Truncate(responseJson));
+                throw new ApiException(
+                    "Gemini trả về dữ liệu CV không hợp lệ. Vui lòng thử lại.",
+                    (int)HttpStatusCode.BadGateway);
+            }
 
             if (parsed is null)
-                throw new ApiException("Gemini trả về dữ liệu CV không hợp lệ.", (int)HttpStatusCode.BadGateway);
+            {
+                logger.LogError(
+                    "Gemini parse CV không có nội dung phân tích được. Body={Body}",
+                    Truncate(responseJson));
+                throw new ApiException(
+                    "Gemini không trả về nội dung CV hợp lệ (nội dung có thể bị chặn).",
+                    (int)HttpStatusCode.BadGateway);
+            }
 
             parsed.ThongTinLienHe ??= new ParsedThongTinLienHeDto();
             parsed.HocVan ??= [];
@@ -129,6 +216,32 @@ public sealed class GeminiCvStructuredParser(
 
         throw new ApiException("Gemini đang quá tải. Vui lòng thử lại sau ít phút.", (int)HttpStatusCode.ServiceUnavailable);
     }
+
+    // Trích candidates[0].content.parts[0].text; trả null nếu Gemini trả 200
+    // nhưng thiếu shape (ví dụ bị chặn bởi bộ lọc an toàn).
+    private static string? ExtractCandidateText(JsonElement root)
+    {
+        if (root.ValueKind != JsonValueKind.Object
+            || !root.TryGetProperty("candidates", out var candidates)
+            || candidates.ValueKind != JsonValueKind.Array
+            || candidates.GetArrayLength() == 0
+            || candidates[0].ValueKind != JsonValueKind.Object
+            || !candidates[0].TryGetProperty("content", out var content)
+            || content.ValueKind != JsonValueKind.Object
+            || !content.TryGetProperty("parts", out var parts)
+            || parts.ValueKind != JsonValueKind.Array
+            || parts.GetArrayLength() == 0
+            || parts[0].ValueKind != JsonValueKind.Object
+            || !parts[0].TryGetProperty("text", out var text)
+            || text.ValueKind != JsonValueKind.String)
+        {
+            return null;
+        }
+        return text.GetString();
+    }
+
+    private static string Truncate(string value) =>
+        value.Length > 500 ? value[..500] : value;
 
     private static string BuildPrompt(string rawText) => $$"""
         Trích xuất CV dưới đây thành đúng một JSON object theo schema này:

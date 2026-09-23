@@ -116,7 +116,7 @@ export function CvPaginatedPreview({ resume, Component, templateKey, onPageCount
   const visible: PageRange[] = ranges ?? [[0, Number.MAX_SAFE_INTEGER]];
 
   return (
-    <div className="cv-pages-root">
+    <div className="cv-pages-root" data-cv-document>
       <div ref={pagesRef} className="cv-pages cv-preview-crossfade" key={templateKey}>
         {visible.map((_, page) => (
           <div key={`${templateKey}-p${page}`} className="cv-sheet" data-page={page + 1}>

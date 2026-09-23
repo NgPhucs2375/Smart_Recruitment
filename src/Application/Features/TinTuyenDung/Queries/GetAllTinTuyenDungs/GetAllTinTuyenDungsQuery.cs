@@ -11,21 +11,28 @@ using System.Threading.Tasks;
 
 namespace Application.Features.TinTuyenDung.Queries.GetAllTinTuyenDungs
 {
-    public class GetAllTinTuyenDungsQuery : IRequest<Response<List<GetAllTinTuyenDungsViewModel>>>
+    public class GetAllTinTuyenDungsQuery : IRequest<PagedResponse<List<GetAllTinTuyenDungsViewModel>>>
     {
         public int _start { get; set; }
         public int _end { get; set; }
         public string _order { get; set; }
         public string _sort { get; set; }
         public string _filter { get; set; }
+        public string Location { get; set; }
+        public decimal? SalaryMin { get; set; }
+        public decimal? SalaryMax { get; set; }
+        public string Level { get; set; }
+        public string EmploymentType { get; set; }
+        public string WorkMode { get; set; }
+        public int? DoanhNghiepId { get; set; }
     }
 
     public class GetAllTinTuyenDungsQueryHandler(
         IApplicationDbContext context,
         ICurrentNguoiDungService current)
-        : IRequestHandler<GetAllTinTuyenDungsQuery, Response<List<GetAllTinTuyenDungsViewModel>>>
+        : IRequestHandler<GetAllTinTuyenDungsQuery, PagedResponse<List<GetAllTinTuyenDungsViewModel>>>
     {
-        public async Task<Response<List<GetAllTinTuyenDungsViewModel>>> Handle(
+        public async Task<PagedResponse<List<GetAllTinTuyenDungsViewModel>>> Handle(
             GetAllTinTuyenDungsQuery request,
             CancellationToken cancellationToken)
         {
@@ -46,11 +53,35 @@ namespace Application.Features.TinTuyenDung.Queries.GetAllTinTuyenDungs
                 query = query.Where(t => t.TrangThai == TrangThaiTinTuyenDung.DangTuyen);
             }
 
+            if (request.DoanhNghiepId.HasValue)
+            {
+                query = query.Where(t => t.DoanhNghiepId == request.DoanhNghiepId.Value);
+            }
+
             var filter = request._filter?.Trim();
 
             if (!string.IsNullOrWhiteSpace(filter))
             {
-                query = query.Where(t => t.TieuDe.Contains(filter));
+                query = query.Where(t => t.TieuDe.Contains(filter)
+                    || t.MoTaCongViec.Contains(filter)
+                    || t.YeuCauCongViec.Contains(filter)
+                    || t.KyNangTinTuyenDungs.Any(k => k.KyNang.TenKyNang.Contains(filter))
+                    || t.DoanhNghiep.TenDoanhNghiep.Contains(filter));
+            }
+
+            if (!string.IsNullOrWhiteSpace(request.Location))
+            {
+                query = query.Where(t => t.DiaDiemLamViec.Contains(request.Location));
+            }
+
+            if (request.SalaryMin.HasValue)
+            {
+                query = query.Where(t => t.LuongToiDa >= request.SalaryMin.Value);
+            }
+
+            if (request.SalaryMax.HasValue)
+            {
+                query = query.Where(t => t.LuongToiThieu <= request.SalaryMax.Value);
             }
 
             query = request._sort?.ToLower() switch
@@ -58,41 +89,107 @@ namespace Application.Features.TinTuyenDung.Queries.GetAllTinTuyenDungs
                 "tieude" => request._order?.ToLower() == "desc"
                     ? query.OrderByDescending(t => t.TieuDe)
                     : query.OrderBy(t => t.TieuDe),
+                "luong" => request._order?.ToLower() == "desc"
+                    ? query.OrderByDescending(t => t.LuongToiDa)
+                    : query.OrderBy(t => t.LuongToiThieu),
+                "ngaytao" => request._order?.ToLower() == "desc"
+                    ? query.OrderByDescending(t => t.Created)
+                    : query.OrderBy(t => t.Created),
                 _ => query.OrderByDescending(t => t.Id)
             };
 
-            var skip = request._start < 0 ? 0 : request._start;
-            var take = request._end - skip;
+            // _start/_end legacy (offset/end-index) -> pageNumber/pageSize
+            var start = request._start < 0 ? 0 : request._start;
+            var end = request._end <= start ? start + 20 : request._end;
+            var pageSize = end - start;
+            if (pageSize < 1) pageSize = 20;
+            if (pageSize > 100) pageSize = 100;
+            var pageNumber = (start / pageSize) + 1;
+            if (pageNumber < 1) pageNumber = 1;
 
-            if (skip > 0)
+            // Lọc DB bằng cột thật: keyword / location / salary overlap.
+            // WorkMode lấy từ enum đã lưu; level và employment type vẫn suy luận từ nội dung.
+            var rows = await query.Select(t => new GetAllTinTuyenDungsViewModel
+                {
+                    Id = t.Id,
+                    DanhMucNgheId = t.DanhMucNgheId,
+                    TieuDe = t.TieuDe,
+                    MoTaCongViec = t.MoTaCongViec,
+                    KinhNghiemYeuCau = t.KinhNghiemYeuCau,
+                    YeuCauCongViec = t.YeuCauCongViec,
+                    QuyenLoi = t.QuyenLoi,
+                    DiaDiemLamViec = t.DiaDiemLamViec,
+                    PhuongThucLamViec = t.PhuongThucLamViec.ToString(),
+                    LuongToiThieu = t.LuongToiThieu,
+                    LuongToiDa = t.LuongToiDa,
+                    TrangThai = t.TrangThai.ToString(),
+                    NgayHetHan = t.NgayHetHan,
+                    NguoiDangTinId = t.NguoiDangTinId,
+                    DoanhNghiepId = t.DoanhNghiepId,
+                    TenDoanhNghiep = t.DoanhNghiep.TenDoanhNghiep,
+                    KyNangs = t.KyNangTinTuyenDungs
+                        .Select(k => k.KyNang.TenKyNang)
+                        .ToList(),
+                    SoLuongUngVien = t.DonUngTuyens.Count,
+                    Created = t.Created,
+                    WorkMode = t.PhuongThucLamViec.ToString(),
+                    Level = InferLevel(t.TieuDe, t.KinhNghiemYeuCau),
+                    EmploymentType = InferEmploymentType(t.YeuCauCongViec, t.MoTaCongViec)
+                }).ToListAsync(cancellationToken);
+
+            if (!string.IsNullOrWhiteSpace(request.Level))
             {
-                query = query.Skip(skip);
+                rows = rows.Where(x => string.Equals(x.Level, request.Level, System.StringComparison.OrdinalIgnoreCase)).ToList();
             }
 
-            if (take > 0)
+            if (!string.IsNullOrWhiteSpace(request.EmploymentType))
             {
-                query = query.Take(take);
+                rows = rows.Where(x => string.Equals(x.EmploymentType, request.EmploymentType, System.StringComparison.OrdinalIgnoreCase)).ToList();
             }
 
-            var items = await query.Select(t => new GetAllTinTuyenDungsViewModel
+            if (!string.IsNullOrWhiteSpace(request.WorkMode))
             {
-                Id = t.Id,
-                DanhMucNgheId = t.DanhMucNgheId,
-                TieuDe = t.TieuDe,
-                MoTaCongViec = t.MoTaCongViec,
-                KinhNghiemYeuCau = t.KinhNghiemYeuCau,
-                YeuCauCongViec = t.YeuCauCongViec,
-                QuyenLoi = t.QuyenLoi,
-                DiaDiemLamViec = t.DiaDiemLamViec,
-                LuongToiThieu = t.LuongToiThieu,
-                LuongToiDa = t.LuongToiDa,
-                TrangThai = t.TrangThai.ToString(),
-                NgayHetHan = t.NgayHetHan,
-                NguoiDangTinId = t.NguoiDangTinId,
-                DoanhNghiepId = t.DoanhNghiepId
-            }).ToListAsync(cancellationToken);
+                rows = rows.Where(x => string.Equals(x.WorkMode, request.WorkMode, System.StringComparison.OrdinalIgnoreCase)).ToList();
+            }
 
-            return new Response<List<GetAllTinTuyenDungsViewModel>>(items);
+            var pagedList = PagedList<GetAllTinTuyenDungsViewModel>.ToPagedList(rows, pageNumber, pageSize);
+
+            return new PagedResponse<List<GetAllTinTuyenDungsViewModel>>(
+                pagedList.ToList(),
+                pagedList.PageNumber,
+                pagedList.PageSize,
+                pagedList.TotalCount,
+                pagedList.TotalPages);
+        }
+
+        private static string InferLevel(string title, string experience)
+        {
+            var value = $"{title} {experience}".ToLower();
+            if (value.Contains("intern") || value.Contains("thực tập"))
+                return "Intern";
+            if (value.Contains("fresher") || value.Contains("mới tốt nghiệp"))
+                return "Fresher";
+            if (value.Contains("junior"))
+                return "Junior";
+            if (value.Contains("lead") || value.Contains("trưởng nhóm"))
+                return "Lead";
+            if (value.Contains("manager") || value.Contains("quản lý"))
+                return "Manager";
+            if (value.Contains("senior") || value.Contains("cao cấp"))
+                return "Senior";
+            return "Mid";
+        }
+
+        private static string InferEmploymentType(string requirements, string description)
+        {
+            var value = $"{requirements} {description}".ToLower();
+            if (value.Contains("part-time") || value.Contains("bán thời gian") || value.Contains("part time"))
+                return "Part-time";
+            if (value.Contains("freelance") || value.Contains("tự do"))
+                return "Freelance";
+            if (value.Contains("contract") || value.Contains("hợp đồng"))
+                return "Contract";
+            return "Full-time";
         }
     }
 }

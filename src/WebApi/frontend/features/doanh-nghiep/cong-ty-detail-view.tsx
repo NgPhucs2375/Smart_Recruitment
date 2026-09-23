@@ -2,11 +2,12 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Building2, Globe, Loader2, MapPin, Users, BellPlus, BellOff } from "lucide-react";
+import { ArrowLeft, Building2, Globe, Loader2, MapPin, Users, BellPlus, BellOff, Briefcase, MapPinned } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useFollowedCompanies } from "@/hooks/use-followed-companies";
 import { companyInitials, doanhNghiepApi, type DoanhNghiepVm } from "./doanh-nghiep-api";
+import type { Job } from "@/features/viec-lam/types";
 
 /** Read-only public company detail for candidates. No edit form here. */
 export function CongTyDetailView({ id }: { id: number }) {
@@ -14,6 +15,8 @@ export function CongTyDetailView({ id }: { id: number }) {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const [jobsLoading, setJobsLoading] = useState(true);
   const { isFollowed, toggle } = useFollowedCompanies();
   const followed = isFollowed(id);
 
@@ -38,6 +41,18 @@ export function CongTyDetailView({ id }: { id: number }) {
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
+      });
+    setJobsLoading(true);
+    doanhNghiepApi
+      .listJobs(id)
+      .then((items) => {
+        if (!cancelled) setJobs(items);
+      })
+      .catch(() => {
+        if (!cancelled) setJobs([]);
+      })
+      .finally(() => {
+        if (!cancelled) setJobsLoading(false);
       });
     return () => {
       cancelled = true;
@@ -128,6 +143,35 @@ export function CongTyDetailView({ id }: { id: number }) {
             </div>
           )}
         </article>
+      )}
+
+      {!loading && !notFound && !loadError && company && (
+        <section className="rounded-3xl border border-border bg-card p-6 shadow-sm">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h2 className="flex items-center gap-2 text-lg font-semibold tracking-tight"><Briefcase className="size-4 text-primary" /> Tin tuyển dụng đang mở</h2>
+              <p className="mt-1 text-xs text-muted-foreground">Các cơ hội hiện có từ {company.tenDoanhNghiep}.</p>
+            </div>
+            <Badge variant="secondary">{jobs.length} tin</Badge>
+          </div>
+          {jobsLoading ? (
+            <div className="mt-5 flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="size-4 animate-spin" /> Đang tải tin tuyển dụng...</div>
+          ) : jobs.length === 0 ? (
+            <div className="mt-5 rounded-2xl border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground">Doanh nghiệp hiện chưa có tin tuyển dụng đang mở.</div>
+          ) : (
+            <div className="mt-5 divide-y divide-border">
+              {jobs.map((job) => (
+                <Link key={job.id} href={`/viec-lam/${job.id}`} className="block py-4 first:pt-0 last:pb-0 hover:bg-muted/30">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="min-w-0"><h3 className="font-medium text-foreground">{job.title}</h3><p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground"><MapPinned className="size-3.5" />{job.location}</p></div>
+                    <Badge variant="outline" className="w-fit shrink-0">{job.salary}</Badge>
+                  </div>
+                  <div className="mt-2 flex flex-wrap gap-1.5">{job.skills.slice(0, 5).map((skill) => <Badge key={skill} variant="secondary" className="text-[11px]">{skill}</Badge>)}</div>
+                </Link>
+              ))}
+            </div>
+          )}
+        </section>
       )}
     </div>
   );

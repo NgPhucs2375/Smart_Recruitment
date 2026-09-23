@@ -1,12 +1,14 @@
 "use client";
 
+// Workspace AI dùng cùng CvDocument với trình tạo CV để preview và export đồng nhất.
+// Đã đồng nhất CopilotKit v2: hội thoại dùng CopilotPopup toàn cục,
+// workspace chỉ giữ bản nháp + preview. Không còn useCopilotAction/useCopilotChat v1.
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useCopilotAction, useCopilotChat } from "@copilotkit/react-core";
-import { TextMessage, MessageRole } from "@copilotkit/runtime-client-gql";
+import { useFrontendTool } from "@copilotkit/react-core/v2";
+import { z } from "zod";
 import {
   Sparkles,
-  Loader2,
   RotateCcw,
   Check,
   Pencil,
@@ -21,11 +23,11 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { CvPreview } from "@/components/cv/cv-preview";
+import { CvDocument } from "@/components/cv/cv-document";
 import { TEMPLATE_REGISTRY, DEFAULT_TEMPLATE_ID } from "@/features/tao-cv/template-registry";
 import { defaultCvData } from "@/features/tao-cv/constants";
 import type { CvFormData } from "@/lib/types";
-import { createManualCvPayload, createManualCvPdfBlob, manualCvPdfFileName } from "@/features/tao-cv/manual";
+import { createManualCvPayload } from "@/features/tao-cv/manual";
 import { cvApi } from "@/lib/api/cv-api";
 import {
   emptyAiDraft,
@@ -77,7 +79,6 @@ const PROMPT_CHIPS: { label: string; prompt: string }[] = [
 export function AiCvWorkspace() {
   const router = useRouter();
   const [prompt, setPrompt] = useState("");
-  const [sendError, setSendError] = useState<string | null>(null);
   const [draft, setDraft] = useState<AiDraftCv>(emptyAiDraft);
   const [liveCv, setLiveCv] = useState<CvFormData>(() =>
     JSON.parse(JSON.stringify(defaultCvData)) as CvFormData
@@ -85,77 +86,87 @@ export function AiCvWorkspace() {
   const [previewZoom, setPreviewZoom] = useState(1);
   const [saving, setSaving] = useState(false);
   const promptRef = useRef<HTMLTextAreaElement>(null);
+  const documentRef = useRef<HTMLDivElement>(null);
 
-  const { visibleMessages: rawVisibleMessages, appendMessage, isLoading } = useCopilotChat();
-  // v1 hook yields undefined before chat state initializes — normalize once
-  // so every .length/.map below is safe without scattering guards.
-  const visibleMessages = rawVisibleMessages ?? [];
-
-  // Client-side actions cho BE smart-agent gọi ngược qua AG-UI.
+  // Frontend tool v2 cho agent BE gọi ngược qua AG-UI.
   // AI tool calls land in the DRAFT — never in live CV state.
-  useCopilotAction({
-    name: "updateAiDraftSection",
-    description: "Ghi một phần CV (họ tên, tóm tắt, kinh nghiệm, kỹ năng) vào bản nháp AI",
-    parameters: [
-      {
-        name: "section",
-        type: "string",
-        description: "Tên phần: fullName, summary, experience, skills",
-        required: true,
+  // Hội thoại chính dùng CopilotPopup toàn cục (useGlobalCvAssistant),
+  // workspace chỉ giữ bản nháp + preview nên không cần useCopilotChat v1.
+  useFrontendTool(
+    {
+      name: "updateAiDraftSection",
+      description: "Ghi một phần CV (họ tên, tóm tắt, kinh nghiệm, kỹ năng) vào bản nháp AI",
+      parameters: z.object({
+        section: z
+          .string()
+          .describe("Tên phần: fullName, summary, experience, skills"),
+        value: z
+          .string()
+          .describe("Nội dung (kỹ năng cách nhau bằng dấu phẩy hoặc xuống dòng)"),
+      }),
+      handler: async ({ section, value }) => {
+        const v = typeof value === "string" ? value : "";
+        setDraft((prev) => {
+          if (section === "fullName") return { ...prev, fullName: v };
+          if (section === "summary") return { ...prev, summary: v };
+          if (section === "experience") return { ...prev, experience: v };
+          if (section === "skills") {
+            const skills = v
+              .split(/[\n,;]+/)
+              .map((s) => s.trim())
+              .filter(Boolean);
+            return { ...prev, skills };
+          }
+          return prev;
+        });
+        return `Đã ghi ${String(section)} vào bản nháp.`;
       },
-      {
-        name: "value",
-        type: "string",
-        description: "Nội dung (kỹ năng cách nhau bằng dấu phẩy hoặc xuống dòng)",
-        required: true,
+    },
+    [],
+  );
+
+  useFrontendTool(
+    {
+      name: "addSkillToAiDraft",
+      description: "Thêm một kỹ năng vào bản nháp AI",
+      parameters: z.object({
+        skill: z.string().describe("Kỹ năng cần thêm"),
+      }),
+      handler: async ({ skill }) => {
+        const s = typeof skill === "string" ? skill.trim() : "";
+        if (!s) return "Bỏ qua kỹ năng rỗng.";
+        setDraft((prev) =>
+          prev.skills.some((x) => x.toLowerCase() === s.toLowerCase())
+            ? prev
+            : { ...prev, skills: [...prev.skills, s] },
+        );
+        return `Đã thêm kỹ năng ${s} vào bản nháp.`;
       },
-    ],
-    handler: async ({ section, value }) => {
-      const v = typeof value === "string" ? value : "";
-      setDraft((prev) => {
-        if (section === "fullName") return { ...prev, fullName: v };
-        if (section === "summary") return { ...prev, summary: v };
-        if (section === "experience") return { ...prev, experience: v };
-        if (section === "skills") {
-          const skills = v
-            .split(/[\n,;]+/)
-            .map((s) => s.trim())
-            .filter(Boolean);
-          return { ...prev, skills };
-        }
-        return prev;
-      });
     },
-  });
+    [],
+  );
 
-  useCopilotAction({
-    name: "addSkillToAiDraft",
-    description: "Thêm một kỹ năng vào bản nháp AI",
-    parameters: [
-      { name: "skill", type: "string", description: "Kỹ năng cần thêm", required: true },
-    ],
-    handler: async ({ skill }) => {
-      const s = typeof skill === "string" ? skill.trim() : "";
-      if (!s) return;
-      setDraft((prev) =>
-        prev.skills.some((x) => x.toLowerCase() === s.toLowerCase())
-          ? prev
-          : { ...prev, skills: [...prev.skills, s] }
-      );
-    },
-  });
-
-  async function handleGenerate() {
-    const text = prompt.trim();
-    if (!text || isLoading) return;
-    setSendError(null);
+  function openGlobalAdamWithPrompt(text: string) {
+    const t = text.trim();
+    if (!t) return;
     try {
-      await appendMessage(
-        new TextMessage({ id: `user-${Date.now()}`, role: MessageRole.User, content: text })
-      );
+      void navigator.clipboard?.writeText(t);
     } catch {
-      setSendError("Không gửi được yêu cầu tới AI. Hãy thử lại.");
+      // Clipboard bị chặn: vẫn mở popup, user tự dán.
     }
+    const toggle = document.querySelector<HTMLElement>(".adam-chat-toggle");
+    if (toggle) {
+      toggle.click();
+      toast.success("Đã mở Adam — prompt đã copy, dán vào chat để tạo bản nháp.");
+    } else {
+      toast.info("Mở Adam ở góc phải màn hình rồi dán prompt để tạo bản nháp.");
+    }
+  }
+
+  function handleGenerate() {
+    const text = prompt.trim();
+    if (!text) return;
+    openGlobalAdamWithPrompt(text);
   }
 
   function handleApply() {
@@ -173,14 +184,11 @@ export function AiCvWorkspace() {
     setSaving(true);
     try {
       const hs = await cvApi.getMyHoSo();
-      const preview = document.querySelector<HTMLElement>("[data-ai-cv-pdf]");
-      if (!preview) throw new Error("Không tìm thấy bản xem trước để lưu PDF.");
-      const fileName = manualCvPdfFileName(liveCv.tenFile, liveCv.thongTinLienHe.hoTen);
-      const pdf = await createManualCvPdfBlob(preview);
+      // Lưu CV: chỉ JSON + templateId/templateVersion, KHÔNG chụp màn hình.
       const result = await cvApi.saveVersion({
         ...createManualCvPayload(hs.id, liveCv, true),
         phuongThucTao: 3,
-      }, pdf, fileName);
+      });
       toast.success("Đã lưu CV.");
       if (edit) router.push(`/tao-cv?cv=${result.cvUngVienId}`);
     } catch (e) {
@@ -243,60 +251,27 @@ export function AiCvWorkspace() {
                 </button>
               ))}
             </div>
-            {sendError && (
-              <p role="alert" className="mt-2.5 rounded-2xl border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs leading-5 text-destructive">
-                {sendError}{" "}
-                <button type="button" onClick={handleGenerate} className="font-semibold underline underline-offset-2">
-                  Thử lại
-                </button>
-              </p>
-            )}
             <Button
               type="button"
               onClick={handleGenerate}
-              disabled={prompt.trim() === "" || isLoading}
+              disabled={prompt.trim() === ""}
               className="mt-3 h-11 w-full rounded-xl bg-primary text-white hover:bg-primary-hover"
             >
-              {isLoading ? (
-                <Loader2 className="mr-2 size-4 animate-spin" />
-              ) : (
-                <Sparkles className="mr-2 size-4" />
-              )}
-              {isLoading ? "AI đang tạo..." : "Tạo CV bằng AI"}
+              <Sparkles className="mr-2 size-4" />
+              Tạo CV bằng AI
             </Button>
+            <p className="mt-2 text-[11px] leading-5 text-muted-foreground">
+              Bấm để mở Adam (góc phải) — prompt đã tự copy, dán vào chat là AI tạo bản nháp bên dưới.
+            </p>
           </div>
 
           <div className="rounded-3xl border border-linen bg-card p-5 shadow-sm">
             <p className="text-sm font-semibold text-charcoal">Hội thoại với AI</p>
-            <div className="mt-3 max-h-64 space-y-2.5 overflow-y-auto" aria-live="polite">
-              {visibleMessages.length === 0 && (
-                <p className="rounded-2xl bg-muted/50 px-3 py-2.5 text-xs leading-5 text-muted-foreground">
-                  Câu trả lời của AI sẽ hiện ở đây. AI có thể hỏi thêm để hoàn thiện bản nháp.
-                </p>
-              )}
-              {visibleMessages.map((m) => {
-                if (!("content" in m) || typeof m.content !== "string" || !m.content.trim()) {
-                  return null;
-                }
-                const role = "role" in m ? String(m.role) : "";
-                const isUser = role === "user";
-                return (
-                  <div key={m.id} className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
-                    <p
-                      className={`max-w-[85%] whitespace-pre-line rounded-2xl px-3 py-2 text-xs leading-5 ${
-                        isUser ? "bg-navy text-white" : "bg-muted/60 text-charcoal"
-                      }`}
-                    >
-                      {m.content}
-                    </p>
-                  </div>
-                );
-              })}
-              {isLoading && (
-                <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                  <Loader2 className="size-3.5 animate-spin" /> AI đang trả lời...
-                </p>
-              )}
+            <div className="mt-3 space-y-2.5" aria-live="polite">
+              <p className="rounded-2xl bg-muted/50 px-3 py-2.5 text-xs leading-5 text-muted-foreground">
+                Chat với Adam ở popup góc phải màn hình. AI sẽ gọi tool bản nháp và kết quả hiện ở khung
+                “Bản nháp AI” bên dưới — không cần gõ lại ở đây.
+              </p>
             </div>
           </div>
 
@@ -412,9 +387,7 @@ export function AiCvWorkspace() {
                 className="origin-top overflow-hidden rounded-2xl border border-linen bg-white shadow-[0_12px_32px_rgba(53,92,140,0.10)]"
                 style={{ transform: `scale(${previewZoom})`, width: `${100 / previewZoom}%` }}
               >
-                <div data-ai-cv-pdf>
-                  <CvPreview data={liveCv} />
-                </div>
+                <CvDocument data={liveCv} documentRef={documentRef} />
               </div>
             ) : (
               <div className="flex flex-col items-center rounded-2xl border border-dashed border-linen bg-white/70 px-4 py-14 text-center">

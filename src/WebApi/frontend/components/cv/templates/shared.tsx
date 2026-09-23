@@ -1,7 +1,10 @@
 "use client";
 
+// Kiểu props dùng chung cho mọi template, bảo đảm template chỉ nhận ResumeData.
 import type { ReactNode } from "react";
-import type { ResumeDateRange, ResumeSkill } from "@/features/tao-cv/resume-data";
+import type { ResumeData, ResumeDateRange, ResumeSkill } from "@/features/tao-cv/resume-data";
+
+export type ResumeTemplateProps = { data: ResumeData };
 
 /**
  * Shared template primitives — only what genuinely repeats across
@@ -30,8 +33,14 @@ export function EmptyPaper({ hint }: { hint: string }) {
   );
 }
 
+/**
+ * SectionShell bọc CẢ section (kể cả heading) nên KHÔNG dùng
+ * cv-section-item (break-inside: avoid) — section dài phải được
+ * phép tách qua trang khi in, tránh khoảng trống lớn + trang trắng.
+ * cv-section-shell chỉ phục vụ orphan protection cho heading.
+ */
 export function SectionShell({ children }: { children: ReactNode }) {
-  return <section className="cv-section-item">{children}</section>;
+  return <section className="cv-section-shell">{children}</section>;
 }
 
 /**

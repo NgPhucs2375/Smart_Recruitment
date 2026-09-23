@@ -1,8 +1,8 @@
 using Application;
+using AGUI.Abstractions;
 using Infrastructure.Identity;
 using Infrastructure.Persistence;
 using Infrastructure.Shared;
-using WebApp.Server.Agent.CvAssistant;
 using WebApp.Server.Extensions;
 using WebApp.Server.Initializer;
 using Casbin;
@@ -10,6 +10,16 @@ using Minio;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddAGUIServer();
+// Trên net10, endpoint AG-UI serialize event qua Http.Json.JsonOptions nhưng rule
+// WhenWritingNull của AGUI context không theo resolver vào options này, nên
+// TOOL_CALL_RESULT phát "role": null khiến @ag-ui/client (zod) từ chối event.
+// DefaultTypeInfoResolver gắn rule omit-null vào metadata type AGUI; register sau
+// AddAGUIServer và Insert(0) để nó được hỏi trước context trần trong resolver chain.
+builder.Services.ConfigureHttpJsonOptions(options =>
+{
+    options.SerializerOptions.TypeInfoResolverChain.Insert(
+        0, AGUIJsonUtilities.DefaultTypeInfoResolver);
+});
 var _config = builder.Configuration;
 var _services = builder.Services;
 var _env = builder.Environment;
@@ -53,7 +63,6 @@ if (_env.IsDevelopment())
 _services.AddControllers().AddJsonOptions(opts =>
 {
     opts.JsonSerializerOptions.PropertyNamingPolicy = null;
-    opts.JsonSerializerOptions.TypeInfoResolverChain.Add(CvAssistantJsonContext.Default);
 });
 _services.AddApiVersioningExtension();
 _services.AddHealthChecks();
@@ -107,10 +116,16 @@ app.MapControllers();
 
 app.MapHub<WebApp.Server.Hubs.NotificationsHub>("/api/hubs/notifications").RequireCors("AllowFrontend");
 
-// BE-first: một agent duy nhất ở BE (LLM + tool backend scoped).
-// FE chỉ giữ các action client-side (useCopilotAction) và trỏ runtimeUrl về endpoint này.
+// Map role=reasoning trong AG-UI history về assistant trước khi MAF parse,
+// nếu không continuation run sau tool result sẽ 500 "Unknown chat role".
+app.UseMiddleware<WebApp.Server.Middlewares.AguiReasoningRoleMiddleware>();
+
+// BE-first: một agent duy nhất ở BE (LLM + tool backend scoped, chỉ đọc).
+// FE giữ frontend tool v2 (useFrontendTool/useAgentContext) và trỏ runtimeUrl về endpoint này.
+// Ghi CV duy nhất qua nút "Lưu CV" ở /tao-cv; chat từ trang khác dùng navigateToCvEditor + pending-patch.
 app.MapCvAssistantAgent("/api/copilotkit")
-    .RequireCors("AllowFrontend");
+    .RequireCors("AllowFrontend")
+    .RequireAuthorization();
 
 
 

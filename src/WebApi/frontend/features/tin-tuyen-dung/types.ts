@@ -7,7 +7,8 @@ export type TinTuyenDungTrangThai =
   | "HetHan"
   | "DaDong"
   | "TuChoi"
-  | "BiKhoa";
+  | "BiKhoa"
+  | "ChoNguoiDaiDienDuyet";
 
 export type TriggerTinTuyenDung =
   | "GuiDuyet"
@@ -20,7 +21,11 @@ export type TriggerTinTuyenDung =
   | "MoLaiTin"
   | "HetHanNop"
   | "DongTin"
-  | "AdminCuongCheKhoa";
+  | "AdminCuongCheKhoa"
+  | "HeThongDuyetChoNguoiDaiDien"
+  | "AdminDuyetChoNguoiDaiDien"
+  | "NguoiDaiDienDuyet"
+  | "NguoiDaiDienTuChoi";
 
 export type DanhMucNghe = {
   id: number;

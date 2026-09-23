@@ -1,5 +1,6 @@
 "use client";
 
+// Wrapper giao diện preview; nội dung CV render qua Template Registry + phân trang A4.
 import type { CvFormData } from "@/lib/types";
 import { toResumeData } from "@/features/tao-cv/resume-data";
 import { resolveTemplate } from "@/features/tao-cv/template-registry";

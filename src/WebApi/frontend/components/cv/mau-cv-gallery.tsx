@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import { Dialog as DialogPrimitive } from "@base-ui/react/dialog";
 import { Eye, ArrowRight, X, FileText, Check, Search, LayoutGrid } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -16,6 +15,21 @@ import {
   type ResumeTemplateMeta,
   type TemplateCategory,
 } from "@/features/tao-cv/template-registry";
+
+/**
+ * Mở trình tạo CV với mẫu đã chọn. Nếu gallery được mở từ trình soạn đang
+ * sửa CV (?cv=...), giữ lại param đó để bên /tao-cv tải đúng CV rồi áp mẫu
+ * mới — nội dung đã nhập không bị mất. Dùng full navigation để state cũ
+ * không lẫn sang (loadAll bên kia tự xử lý giữ liệu).
+ */
+function goUseTemplate(templateId: string) {
+  const cv = new URLSearchParams(window.location.search).get("cv");
+  window.location.assign(
+    cv
+      ? `/tao-cv?template=${templateId}&cv=${encodeURIComponent(cv)}`
+      : `/tao-cv?template=${templateId}`,
+  );
+}
 
 /**
  * Template gallery — renders the ACTUAL registered template components with
@@ -169,12 +183,10 @@ function TemplateCard({
             <Eye className="mr-2 size-4" />
             Xem trước
           </Button>
-          <Link href={`/tao-cv?template=${template.id}`} className="flex-1">
-            <Button type="button" className="h-10 w-full rounded-xl bg-primary text-white hover:bg-primary-hover">
-              Dùng mẫu này
-              <ArrowRight className="ml-2 size-4" />
-            </Button>
-          </Link>
+          <Button type="button" className="h-10 flex-1 rounded-xl" onClick={() => goUseTemplate(template.id)}>
+            Dùng mẫu này
+            <ArrowRight className="ml-2 size-4" />
+          </Button>
         </div>
       </div>
     </article>
@@ -238,12 +250,14 @@ function TemplatePreviewModal({
                 Đóng
               </Button>
               {template && (
-                <Link href={`/tao-cv?template=${template.id}`}>
-                  <Button type="button" className="h-10 w-full rounded-xl bg-primary text-white hover:bg-primary-hover sm:w-auto">
-                    Dùng mẫu này
-                    <ArrowRight className="ml-2 size-4" />
-                  </Button>
-                </Link>
+                <Button
+                  type="button"
+                  className="h-10 w-full rounded-xl bg-primary text-white hover:bg-primary-hover sm:w-auto"
+                  onClick={() => goUseTemplate(template.id)}
+                >
+                  Dùng mẫu này
+                  <ArrowRight className="ml-2 size-4" />
+                </Button>
               )}
             </div>
           </DialogPrimitive.Popup>

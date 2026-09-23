@@ -13,6 +13,8 @@ namespace Application.Features.DonUngTuyen.Queries.GetAllDonUngTuyens
         public int? CVUngVienId { get; set; }
 
         public int? TinTuyenDungId { get; set; }
+
+        public int? TrangThai { get; set; }
     }
 }
 

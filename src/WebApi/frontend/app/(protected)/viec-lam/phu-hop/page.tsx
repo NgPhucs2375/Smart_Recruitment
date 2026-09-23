@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Target, TrendingUp } from "lucide-react";
+import Link from "next/link";
+import { Target, TrendingUp, ArrowRight } from "lucide-react";
 import { AdminPageLayout, AdminPageHeader, AdminCard, AdminCardHeader, AdminEmptyState, AdminLoadingState } from "@/components/admin/admin-page-layout";
 import { Badge } from "@/components/ui/badge";
 import { useStoredIdentity } from "@/hooks/use-stored-identity";
@@ -23,7 +24,7 @@ const PHAN_LOAI: Record<number, { label: string; variant: "default" | "secondary
   2: { label: "Thấp", variant: "outline" },
 };
 
-const API = "/api/dotnet/ketquaphuhop";
+const API = "/api/dotnet/ketquaphuhops";
 const ok = (r: ApiResponse<unknown>): boolean => r.Succeeded ?? r.succeeded ?? true;
 const msg = (r: ApiResponse<unknown>): string => r.Message ?? r.message ?? "";
 const extractData = <T,>(r: ApiResponse<T>): T | undefined => r.Data ?? r.data;
@@ -114,8 +115,14 @@ function CandidatePhuHop() {
                       {item.created && <span>{fmtDate(item.created)}</span>}
                     </div>
                   </div>
-                  <div className="shrink-0 text-right">
+                  <div className="flex shrink-0 items-center gap-3">
                     <span className="text-2xl font-semibold text-foreground">{pct}%</span>
+                    <Link
+                      href={`/viec-lam/${item.tinTuyenDungId}`}
+                      className="inline-flex items-center gap-1 rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-primary transition hover:border-primary/50"
+                    >
+                      Xem & ứng tuyển <ArrowRight className="size-3.5" />
+                    </Link>
                   </div>
                 </div>
               );

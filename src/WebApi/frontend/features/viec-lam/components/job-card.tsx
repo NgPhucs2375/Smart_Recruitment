@@ -1,15 +1,18 @@
 "use client";
 
-import { MapPin, Clock, Users, Flame, Bookmark, Building2, Home, Laptop } from "lucide-react";
+import { MapPin, Clock, Users, Flame, Bookmark, Building2, Home, Laptop, SlidersHorizontal, Eye } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { useBookmarks } from "@/hooks/use-bookmarks";
 import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 import type { Job } from "../types";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface JobCardProps {
   job: Job;
+  onPreview?: (job: Job) => void;
 }
 
 /* Level pills — 3 calm groups instead of rainbow */
@@ -27,9 +30,11 @@ const workModeConfig: Record<string, { label: string; icon: typeof Building2 }> 
   Remote: { label: "Remote", icon: Home },
   Hybrid: { label: "Hybrid", icon: Laptop },
   Onsite: { label: "Onsite", icon: Building2 },
+  Flexible: { label: "Flexible", icon: SlidersHorizontal },
 };
 
-export function JobCard({ job }: JobCardProps) {
+export function JobCard({ job, onPreview }: JobCardProps) {
+  const router = useRouter();
   const { isBookmarked, toggle } = useBookmarks();
   const bookmarked = isBookmarked(job.id);
   const workMode = workModeConfig[job.workMode] ?? workModeConfig.Onsite;
@@ -46,7 +51,20 @@ export function JobCard({ job }: JobCardProps) {
   }
 
   return (
-    <Card className="group cursor-pointer rounded-[1.5rem] border-border bg-card transition-all duration-200 hover:-translate-y-0.5 hover:border-marine/25 hover:shadow-[0_18px_44px_rgba(53,92,140,0.10)]">
+    <Card
+      role="link"
+      tabIndex={0}
+      aria-label={`Xem chi tiết ${job.title}`}
+      onClick={() => router.push(`/viec-lam/${job.id}`)}
+      onKeyDown={(event) => {
+        if (event.target !== event.currentTarget) return;
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          router.push(`/viec-lam/${job.id}`);
+        }
+      }}
+      className="group cursor-pointer rounded-[1.5rem] border-border bg-card transition-all duration-200 hover:-translate-y-0.5 hover:border-marine/25 hover:shadow-[0_18px_44px_rgba(53,92,140,0.10)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+    >
       <CardContent className="p-6">
         <div className="flex items-start gap-4">
           <div className="flex size-13 shrink-0 items-center justify-center rounded-2xl bg-muted font-mono text-sm font-bold text-primary">
@@ -67,20 +85,8 @@ export function JobCard({ job }: JobCardProps) {
                     Hot
                   </Badge>
                 )}
-                <button
-                  type="button"
-                  onClick={handleBookmark}
-                  aria-label={bookmarked ? "Bỏ lưu" : "Lưu việc làm"}
-                  aria-pressed={bookmarked}
-                  className={cn(
-                    "flex size-9 items-center justify-center rounded-full border transition",
-                    bookmarked
-                      ? "border-navy bg-navy text-white shadow-sm"
-                      : "border-border bg-card text-mist hover:border-marine/40 hover:text-primary hover:bg-muted"
-                  )}
-                >
-                  <Bookmark className={cn("h-4 w-4", bookmarked && "fill-current")} />
-                </button>
+                <TooltipProvider><Tooltip><TooltipTrigger render={<button type="button" onClick={handleBookmark} aria-label={bookmarked ? "Bỏ lưu" : "Lưu việc làm"} aria-pressed={bookmarked} className={cn("flex size-9 items-center justify-center rounded-full border transition", bookmarked ? "border-navy bg-navy text-white shadow-sm" : "border-border bg-card text-mist hover:border-marine/40 hover:text-primary hover:bg-muted")} />}><Bookmark className={cn("h-4 w-4", bookmarked && "fill-current")} /></TooltipTrigger><TooltipContent>{bookmarked ? "Bỏ lưu" : "Lưu việc làm"}</TooltipContent></Tooltip></TooltipProvider>
+                {onPreview && <TooltipProvider><Tooltip><TooltipTrigger render={<button type="button" onClick={(event) => { event.preventDefault(); event.stopPropagation(); onPreview(job); }} aria-label="Xem nhanh" className="flex size-9 items-center justify-center rounded-full border border-border bg-card text-muted-foreground transition hover:border-primary/40 hover:text-primary" />}><Eye className="size-4" /></TooltipTrigger><TooltipContent>Xem nhanh</TooltipContent></Tooltip></TooltipProvider>}
               </div>
             </div>
 
@@ -133,6 +139,49 @@ export function JobCard({ job }: JobCardProps) {
           </div>
         </div>
       </CardContent>
+    </Card>
+  );
+}
+
+/* Skeleton theo phong cách shimmer (tham khảo codepen hexagoncircle/XWbWKwL):
+   khối xám + lớp quét sáng chạy ngang, đúng layout JobCard để không giật layout. */
+export function JobCardSkeleton() {
+  return (
+    <Card aria-hidden className="rounded-[1.5rem] border-border bg-card overflow-hidden">
+      <CardContent className="p-6">
+        <div className="relative flex items-start gap-4">
+          <div className="size-13 shrink-0 rounded-2xl bg-muted animate-pulse" />
+          <div className="flex-1 min-w-0 space-y-3">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex-1 space-y-2">
+                <div className="h-5 w-3/4 rounded-full bg-muted animate-pulse" />
+                <div className="h-3.5 w-1/3 rounded-full bg-muted animate-pulse" />
+              </div>
+              <div className="h-9 w-9 shrink-0 rounded-full bg-muted animate-pulse" />
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <div className="h-7 w-32 rounded-full bg-muted animate-pulse" />
+              <div className="h-7 w-24 rounded-full bg-muted animate-pulse" />
+              <div className="h-7 w-20 rounded-full bg-muted animate-pulse" />
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              <div className="h-6 w-16 rounded-full bg-muted animate-pulse" />
+              <div className="h-6 w-20 rounded-full bg-muted animate-pulse" />
+              <div className="h-6 w-14 rounded-full bg-muted animate-pulse" />
+            </div>
+            <div className="flex gap-5 border-t border-border pt-4">
+              <div className="h-3.5 w-24 rounded-full bg-muted animate-pulse" />
+              <div className="h-3.5 w-20 rounded-full bg-muted animate-pulse" />
+            </div>
+          </div>
+          {/* lớp quét sáng */}
+          <div
+            className="pointer-events-none absolute inset-0 -translate-x-full animate-[shimmer_1.6s_infinite] bg-gradient-to-r from-transparent via-white/40 to-transparent"
+            style={{ animationName: "job-skeleton-shimmer" }}
+          />
+        </div>
+      </CardContent>
+      <style>{`@keyframes job-skeleton-shimmer { 100% { transform: translateX(100%); } }`}</style>
     </Card>
   );
 }

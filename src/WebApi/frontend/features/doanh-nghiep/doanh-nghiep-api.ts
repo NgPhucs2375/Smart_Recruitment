@@ -1,6 +1,8 @@
 "use client";
 
 import { getAuthToken } from "@/lib/auth-provider";
+import { normalizeJob } from "@/lib/api/jobs-api";
+import type { Job } from "@/features/viec-lam/types";
 
 /** Company record — field names mirror GetAllDoanhNghiepsViewModel (no invented fields). */
 export interface DoanhNghiepVm {
@@ -98,6 +100,17 @@ export const doanhNghiepApi = {
       return normalizeCompany(payload);
     }
     return toList(payload)[0] ?? null;
+  },
+  listJobs: async (companyId: number): Promise<Job[]> => {
+    const payload = await apiFetch(`/api/dotnet/tintuyendungs?_start=0&_end=100&DoanhNghiepId=${companyId}`);
+    const rows = Array.isArray(payload)
+      ? payload
+      : payload && typeof payload === "object"
+        ? ((payload as Record<string, unknown>).items ?? (payload as Record<string, unknown>).Items ?? (payload as Record<string, unknown>).data ?? (payload as Record<string, unknown>).Data)
+        : [];
+    return (Array.isArray(rows) ? rows : [])
+      .map(normalizeJob)
+      .filter((job): job is Job => job !== null);
   },
 };
 

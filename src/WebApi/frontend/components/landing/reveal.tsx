@@ -22,13 +22,17 @@ export function Reveal({
   as?: "div" | "section" | "article" | "li" | "span";
 }) {
   const ref = useRef<HTMLDivElement>(null);
-  const [visible, setVisible] = useState<boolean>(
-    () => typeof IntersectionObserver === "undefined",
-  );
+  // Khởi tạo false giống nhau trên server và client để hydration khớp.
+  // IntersectionObserver chỉ được chạm tới trong effect (client-only).
+  const [visible, setVisible] = useState<boolean>(false);
 
   useEffect(() => {
     const el = ref.current;
-    if (!el || typeof IntersectionObserver === "undefined") return;
+    if (!el) return;
+    if (typeof IntersectionObserver === "undefined") {
+      setVisible(true);
+      return;
+    }
     const io = new IntersectionObserver(
       (entries) => {
         if (entries.some((e) => e.isIntersecting)) {

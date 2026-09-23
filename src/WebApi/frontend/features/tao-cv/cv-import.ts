@@ -1,3 +1,5 @@
+// xử lý file trên frontend
+
 import type { CvFormData, JsonResume } from "@/lib/types";
 import { newId } from "./cv-data";
 import { defaultCvData } from "./constants";

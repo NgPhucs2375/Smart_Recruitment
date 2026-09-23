@@ -1,10 +1,20 @@
 "use client";
 
 import React, { useEffect } from "react";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { AppLayout } from "@/components/layout/layout";
 import { getAuthToken, refreshIdentity } from "@/lib/auth-provider";
-import { CopilotProvider } from "@/app/providers/CopilotProvider";
+
+// Keep the large CopilotKit client bundle out of the protected route layout.
+// The page can render while the optional assistant bundle loads separately.
+const CopilotProvider = dynamic(
+  async () => {
+    const copilotModule = await import("@/app/providers/CopilotProvider");
+    return copilotModule.CopilotProvider;
+  },
+  { ssr: false },
+);
 
 export default function ProtectedLayout({
   children,

@@ -1,3 +1,5 @@
+// trích xuất nội dung file
+
 export async function extractCvText(file: File): Promise<string> {
   const extension = file.name.split(".").pop()?.toLowerCase();
 

@@ -24,7 +24,11 @@ namespace Application.Features.TinTuyenDung.Queries.GetTinTuyenDungById
             CancellationToken cancellationToken)
         {
             var entity = await context.TinTuyenDungs
-                .FindAsync([request.Id], cancellationToken);
+                .Include(t => t.DoanhNghiep)
+                .Include(t => t.KyNangTinTuyenDungs)
+                    .ThenInclude(k => k.KyNang)
+                .AsNoTracking()
+                .FirstOrDefaultAsync(t => t.Id == request.Id, cancellationToken);
 
             if (entity == null)
             {
@@ -47,6 +51,10 @@ namespace Application.Features.TinTuyenDung.Queries.GetTinTuyenDungById
                     "Bạn không có quyền xem tin tuyển dụng này.", 403);
             }
 
+            var soLuongUngVien = await context.DonUngTuyens
+                .AsNoTracking()
+                .CountAsync(d => d.TinTuyenDungId == entity.Id, cancellationToken);
+
             var vm = new GetAllTinTuyenDungs.GetAllTinTuyenDungsViewModel
             {
                 Id = entity.Id,
@@ -57,15 +65,55 @@ namespace Application.Features.TinTuyenDung.Queries.GetTinTuyenDungById
                 YeuCauCongViec = entity.YeuCauCongViec,
                 QuyenLoi = entity.QuyenLoi,
                 DiaDiemLamViec = entity.DiaDiemLamViec,
+                PhuongThucLamViec = entity.PhuongThucLamViec.ToString(),
                 LuongToiThieu = entity.LuongToiThieu,
                 LuongToiDa = entity.LuongToiDa,
                 TrangThai = entity.TrangThai.ToString(),
                 NgayHetHan = entity.NgayHetHan,
                 NguoiDangTinId = entity.NguoiDangTinId,
-                DoanhNghiepId = entity.DoanhNghiepId
+                DoanhNghiepId = entity.DoanhNghiepId,
+                TenDoanhNghiep = entity.DoanhNghiep?.TenDoanhNghiep,
+                KyNangs = entity.KyNangTinTuyenDungs
+                    .Select(k => k.KyNang.TenKyNang)
+                    .ToList(),
+                SoLuongUngVien = soLuongUngVien,
+                Created = entity.Created,
+                WorkMode = entity.PhuongThucLamViec.ToString(),
+                Level = InferLevel(entity.TieuDe, entity.KinhNghiemYeuCau),
+                EmploymentType = InferEmploymentType(entity.YeuCauCongViec, entity.MoTaCongViec)
             };
 
             return new Response<GetAllTinTuyenDungs.GetAllTinTuyenDungsViewModel>(vm);
+        }
+
+        private static string InferLevel(string title, string experience)
+        {
+            var value = $"{title} {experience}".ToLower();
+            if (value.Contains("intern") || value.Contains("thực tập"))
+                return "Intern";
+            if (value.Contains("fresher") || value.Contains("mới tốt nghiệp"))
+                return "Fresher";
+            if (value.Contains("junior"))
+                return "Junior";
+            if (value.Contains("lead") || value.Contains("trưởng nhóm"))
+                return "Lead";
+            if (value.Contains("manager") || value.Contains("quản lý"))
+                return "Manager";
+            if (value.Contains("senior") || value.Contains("cao cấp"))
+                return "Senior";
+            return "Mid";
+        }
+
+        private static string InferEmploymentType(string requirements, string description)
+        {
+            var value = $"{requirements} {description}".ToLower();
+            if (value.Contains("part-time") || value.Contains("bán thời gian") || value.Contains("part time"))
+                return "Part-time";
+            if (value.Contains("freelance") || value.Contains("tự do"))
+                return "Freelance";
+            if (value.Contains("contract") || value.Contains("hợp đồng"))
+                return "Contract";
+            return "Full-time";
         }
     }
 }

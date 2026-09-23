@@ -13,7 +13,8 @@ namespace Application.Features.CVUngVien.Commands.SaveCvVersion;
 public class SaveCvVersionCommand : IRequest<Response<SaveCvVersionResult>>
 {
     public string Payload { get; set; }
-    public IFormFile GeneratedPdf { get; set; }
+    /// <summary>PDF đã chụp (legacy). Lưu JSON-only thì null — không bắt buộc nữa.</summary>
+    public IFormFile? GeneratedPdf { get; set; }
 }
 
 public class SaveCvVersionPayload
@@ -23,6 +24,7 @@ public class SaveCvVersionPayload
     public Guid? ImportSessionId { get; set; }
     public string TenFile { get; set; }
     public string? TemplateId { get; set; }
+    public string? TemplateVersion { get; set; }
     public bool IsDefault { get; set; } = true;
     public PhuongThucTaoCV PhuongThucTao { get; set; } = PhuongThucTaoCV.ThuCongTemplate;
     public ParsedCvDto NoiDung { get; set; }
@@ -45,9 +47,8 @@ public class SaveCvVersionCommandHandler(
         SaveCvVersionCommand request,
         CancellationToken cancellationToken)
     {
-        if (request.GeneratedPdf == null || request.GeneratedPdf.Length == 0)
-            return new Response<SaveCvVersionResult>("PDF đã sinh không được để trống.");
-        if (request.GeneratedPdf.Length > 20 * 1024 * 1024)
+        // Lưu JSON-only (không chụp màn hình) là luồng chính. GeneratedPdf chỉ còn legacy/Playwright.
+        if (request.GeneratedPdf != null && request.GeneratedPdf.Length > 20 * 1024 * 1024)
             return new Response<SaveCvVersionResult>("PDF đã sinh không được vượt quá 20 MB.");
 
         SaveCvVersionPayload? payload;
@@ -141,28 +142,38 @@ public class SaveCvVersionCommandHandler(
         cv.PhuongThucTao = importSession == null ? payload.PhuongThucTao : PhuongThucTaoCV.TaiLenTrucTiep;
         CvEntityMapper.ApplyContent(cv, payload.NoiDung);
 
+        // Persist kết quả trích xuất CV (module NLP): mỗi lần lưu là một bản
+        // phân tích mới nhất của CV. Dữ liệu đã có cấu trúc sẵn nên không cần
+        // gọi LLM — trích tóm tắt trực tiếp, chung 1 SaveChanges với CV.
+        await LuuKetQuaTrichXuatAsync(context, cv, payload.NoiDung, cancellationToken);
+
         var nextVersion = payload.CVUngVienId.HasValue
             ? await context.CVPhienBans.Where(x => x.CVUngVienId == cv.Id)
                 .Select(x => (int?)x.SoPhienBan).MaxAsync(cancellationToken) + 1 ?? 1
             : 1;
-        var generatedKey = $"cvs/{hoSo.Id}/versions/{Guid.NewGuid():N}.pdf";
-        await using var pdfStream = request.GeneratedPdf.OpenReadStream();
-        await fileStorageService.UploadAsync(
-            pdfStream,
-            generatedKey,
-            "application/pdf",
-            request.GeneratedPdf.Length,
-            cancellationToken);
-
-        var generatedFile = new CVTepTin
+        // JSON-only: không bắt buộc PDF. Khi có PDF (legacy/Playwright) thì lưu file, không thì bỏ qua.
+        string? generatedKey = null;
+        CVTepTin? generatedFile = null;
+        if (request.GeneratedPdf != null && request.GeneratedPdf.Length > 0)
         {
-            CVUngVien = cv,
-            LoaiTep = LoaiTepCv.BanDaSinh,
-            ObjectKey = generatedKey,
-            TenFile = Path.GetFileName(request.GeneratedPdf.FileName),
-            ContentType = "application/pdf",
-            KichThuoc = request.GeneratedPdf.Length
-        };
+            generatedKey = $"cvs/{hoSo.Id}/versions/{Guid.NewGuid():N}.pdf";
+            await using var pdfStream = request.GeneratedPdf.OpenReadStream();
+            await fileStorageService.UploadAsync(
+                pdfStream,
+                generatedKey,
+                "application/pdf",
+                request.GeneratedPdf.Length,
+                cancellationToken);
+            generatedFile = new CVTepTin
+            {
+                CVUngVien = cv,
+                LoaiTep = LoaiTepCv.BanDaSinh,
+                ObjectKey = generatedKey,
+                TenFile = Path.GetFileName(request.GeneratedPdf.FileName),
+                ContentType = "application/pdf",
+                KichThuoc = request.GeneratedPdf.Length
+            };
+        }
         CVTepTin? originalFile = null;
         int? originalFileId = null;
         if (importSession != null)
@@ -193,11 +204,16 @@ public class SaveCvVersionCommandHandler(
             TepGoc = originalFile,
             TepGocId = originalFileId,
             TepDaSinh = generatedFile,
-            TemplateId = payload.TemplateId
+            TepDaSinhId = generatedFile != null ? generatedFile.Id : null,
+            TemplateId = payload.TemplateId,
+            TemplateVersion = payload.TemplateVersion
         };
-        cv.StorageKey = generatedKey;
-        cv.FileMimeType = "application/pdf";
-        cv.FileSize = request.GeneratedPdf.Length;
+        if (generatedFile != null)
+        {
+            cv.StorageKey = generatedKey!;
+            cv.FileMimeType = "application/pdf";
+            cv.FileSize = request.GeneratedPdf!.Length;
+        }
         cv.FileUrl = null;
 
         if (!payload.CVUngVienId.HasValue)
@@ -217,7 +233,8 @@ public class SaveCvVersionCommandHandler(
         }
         catch
         {
-            await fileStorageService.DeleteAsync(generatedKey, cancellationToken);
+            if (generatedKey != null)
+                await fileStorageService.DeleteAsync(generatedKey, cancellationToken);
             throw;
         }
 
@@ -227,5 +244,66 @@ public class SaveCvVersionCommandHandler(
             CVPhienBanId = version.Id,
             SoPhienBan = version.SoPhienBan
         }, $"Đã lưu phiên bản {version.SoPhienBan} của CV.");
+    }
+
+    /// <summary>
+    /// Upsert 1 dòng KetQuaPhanTichCv cho mỗi CV: bản mới thì gắn qua navigation
+    /// (Id chưa có cho tới SaveChanges), bản đã lưu thì update tại chỗ.
+    /// </summary>
+    private static async Task LuuKetQuaTrichXuatAsync(
+        IApplicationDbContext context,
+        Domain.Entities.CVUngVien cv,
+        ParsedCvDto noiDung,
+        CancellationToken cancellationToken)
+    {
+        var trichXuat = await context.KetQuaPhanTichCvs
+            .FirstOrDefaultAsync(x => x.CVUngVienId == cv.Id && cv.Id != 0, cancellationToken);
+
+        var kyNang = string.Join("; ", noiDung.KyNang
+            .Where(k => !string.IsNullOrWhiteSpace(k.TenKyNang))
+            .Select(k => k.SoNamKinhNghiem.HasValue
+                ? $"{k.TenKyNang.Trim()} ({k.SoNamKinhNghiem.Value} năm)"
+                : k.TenKyNang.Trim()));
+
+        var kinhNghiem = string.Join("\n", noiDung.KinhNghiemLamViec
+            .Where(k => !string.IsNullOrWhiteSpace(k.ChucDanh) || !string.IsNullOrWhiteSpace(k.TenCongTy))
+            .Select(k =>
+            {
+                var tieuDe = $"{k.ChucDanh?.Trim()} @ {k.TenCongTy?.Trim()}".Trim(' ', '@');
+                var mocThoiGian = string.Join(
+                    " – ",
+                    new[] { k.TuNgay?.Trim(), k.IsHienTai ? "nay" : k.DenNgay?.Trim() }
+                        .Where(s => !string.IsNullOrWhiteSpace(s)));
+                return string.IsNullOrWhiteSpace(mocThoiGian) ? tieuDe : $"{tieuDe} ({mocThoiGian})";
+            }));
+
+        var hocVan = string.Join("\n", noiDung.HocVan
+            .Where(h => !string.IsNullOrWhiteSpace(h.Truong))
+            .Select(h => string.IsNullOrWhiteSpace(h.ChuyenNganh)
+                ? h.Truong.Trim()
+                : $"{h.Truong.Trim()} — {h.ChuyenNganh.Trim()}"));
+
+        var lh = noiDung.ThongTinLienHe;
+        var noiDungTomTat = string.Join("\n", new[]
+        {
+            lh.HoTen?.Trim(),
+            lh.ViTriUngTuyen?.Trim(),
+            lh.GioiThieuBanThan?.Trim()
+        }.Where(s => !string.IsNullOrWhiteSpace(s)));
+
+        if (trichXuat == null)
+        {
+            trichXuat = new Domain.Entities.KetQuaPhanTichCv
+            {
+                CVUngVien = cv
+            };
+            await context.KetQuaPhanTichCvs.AddAsync(trichXuat, cancellationToken);
+        }
+
+        trichXuat.NoiDungTrichXuat = string.IsNullOrWhiteSpace(noiDungTomTat) ? null : noiDungTomTat;
+        trichXuat.KyNangTrichXuat = string.IsNullOrWhiteSpace(kyNang) ? null : kyNang;
+        trichXuat.KinhNghiemTrichXuat = string.IsNullOrWhiteSpace(kinhNghiem) ? null : kinhNghiem;
+        trichXuat.HocVanTrichXuat = string.IsNullOrWhiteSpace(hocVan) ? null : hocVan;
+        trichXuat.PhanTich = TrangThaiPhanTichAgent.HoanThanh;
     }
 }

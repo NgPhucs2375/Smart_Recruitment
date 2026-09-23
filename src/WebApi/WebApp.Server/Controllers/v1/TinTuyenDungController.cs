@@ -30,7 +30,14 @@ namespace WebApp.Server.Controllers.v1
                     _start = filter._start,
                     _order = filter._order,
                     _sort = filter._sort,
-                    _filter = filter._filter
+                    _filter = filter._filter,
+                    Location = filter.Location,
+                    SalaryMin = filter.SalaryMin,
+                    SalaryMax = filter.SalaryMax,
+                    Level = filter.Level,
+                    EmploymentType = filter.EmploymentType,
+                    WorkMode = filter.WorkMode,
+                    DoanhNghiepId = filter.DoanhNghiepId
                 }));
             });
         }

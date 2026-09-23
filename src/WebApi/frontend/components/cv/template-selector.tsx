@@ -21,6 +21,8 @@ import {
 interface TemplateSelectorProps {
   selectedId: string;
   onSelect: (id: string) => void;
+  /** ID CV đang soạn (nếu có): gallery giữ ?cv= để quay về đúng CV, không mất nội dung. */
+  cvId?: number | null;
 }
 
 /**
@@ -86,7 +88,7 @@ function useTemplateBrowse(selectedId: string) {
  * active template opens a popover with search + category filter and a
  * compact row list (small live thumbnails). Full gallery stays at /mau-cv.
  */
-export function TemplatePicker({ selectedId, onSelect }: TemplateSelectorProps) {
+export function TemplatePicker({ selectedId, onSelect, cvId }: TemplateSelectorProps) {
   const [open, setOpen] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
   const { active, activeId, query, setQuery, category, setCategory, visible, templates } =
@@ -238,7 +240,7 @@ export function TemplatePicker({ selectedId, onSelect }: TemplateSelectorProps) 
           )}
           </div>
           <Link
-            href="/mau-cv"
+            href={cvId != null ? `/mau-cv?cv=${cvId}` : "/mau-cv"}
             className="mt-2 flex w-full shrink-0 items-center justify-center gap-1.5 rounded-xl border border-border px-3 py-2 text-xs font-semibold text-foreground transition hover:border-primary/50 hover:text-primary"
           >
             Xem tất cả {templates.length} mẫu <ArrowRight className="size-3.5" />

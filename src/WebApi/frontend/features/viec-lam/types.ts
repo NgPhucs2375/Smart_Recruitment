@@ -2,7 +2,7 @@ export type JobLevel = "Intern" | "Fresher" | "Junior" | "Mid" | "Senior" | "Lea
 
 export type EmploymentType = "Full-time" | "Part-time" | "Contract" | "Freelance";
 
-export type WorkMode = "Remote" | "Hybrid" | "Onsite";
+export type WorkMode = "Remote" | "Hybrid" | "Onsite" | "Flexible";
 
 export type Job = {
   id: string;
@@ -10,6 +10,8 @@ export type Job = {
   company: string;
   logo: string;
   salary: string;
+  salaryMin?: number;
+  salaryMax?: number;
   location: string;
   workMode: WorkMode;
   level: JobLevel;
@@ -26,5 +28,19 @@ export type JobFilters = {
   location: string;
   level: string;
   employmentType: string;
-  salary: string;
+  salaryMin?: number;
+  salaryMax?: number;
+  workMode?: string;
 };
+
+export type PagedResponse<T> = {
+  succeeded: boolean;
+  code: number;
+  message: string | null;
+  errors: string[] | null;
+  data: T;
+  pageNumber: number;
+  pageSize: number;
+};
+
+export type JobsApiResponse = PagedResponse<Job[]>;

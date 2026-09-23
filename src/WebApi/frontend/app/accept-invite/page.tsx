@@ -12,7 +12,7 @@ import { getAuthToken } from "@/lib/auth-provider";
 
 function InvitationContent() {
   const token = useSearchParams().get("token");
-  const { status, invitation, message, accepting, sessionRefreshed, accept } = useInvitation(token);
+  const { status, invitation, message, accepting, rejecting, sessionRefreshed, accept, reject } = useInvitation(token);
   const loggedIn = Boolean(getAuthToken());
   const returnPath = token ? `/accept-invite?token=${encodeURIComponent(token)}` : "/accept-invite";
   const loginHref = `/login?next=${encodeURIComponent(returnPath)}`;
@@ -62,6 +62,16 @@ function InvitationContent() {
             <div className="space-y-3">
               <p className="text-sm text-muted-foreground">Đăng nhập bằng đúng email nhận lời mời để tiếp tục.</p>
               <Link href={loginHref} className={buttonVariants({ className: "w-full" })}>Đăng nhập để chấp nhận</Link>
+              <div className="flex justify-center">
+                <button
+                  type="button"
+                  disabled={rejecting}
+                  className="text-xs text-muted-foreground underline underline-offset-4 hover:text-foreground disabled:opacity-50"
+                  onClick={() => void reject()}
+                >
+                  {rejecting ? "Đang từ chối..." : "Từ chối lời mời này"}
+                </button>
+              </div>
               <p className="text-center text-xs text-muted-foreground">
                 Chưa có tài khoản?{" "}
                 <Link href={registerHref} className="font-semibold text-foreground underline underline-offset-4">
@@ -74,9 +84,13 @@ function InvitationContent() {
           {status === "ready" && pending && loggedIn && (
             <div className="space-y-3">
               {message && <Alert variant="destructive"><AlertDescription>{message}</AlertDescription></Alert>}
-              <Button className="w-full" disabled={accepting} onClick={() => void accept()}>
+              <Button className="w-full" disabled={accepting || rejecting} onClick={() => void accept()}>
                 {accepting && <Loader2 className="size-4 animate-spin" />}
                 {accepting ? "Đang xác nhận..." : "Chấp nhận lời mời"}
+              </Button>
+              <Button variant="outline" className="w-full" disabled={accepting || rejecting} onClick={() => void reject()}>
+                {rejecting && <Loader2 className="size-4 animate-spin" />}
+                {rejecting ? "Đang từ chối..." : "Từ chối lời mời"}
               </Button>
             </div>
           )}
@@ -94,6 +108,12 @@ function InvitationContent() {
                 {sessionRefreshed ? "Vào trang quản trị" : "Đăng nhập lại để tiếp tục"}
               </Link>
             </div>
+          )}
+
+          {status === "rejected" && (
+            <Alert>
+              <AlertDescription>{message || "Bạn đã từ chối lời mời."}</AlertDescription>
+            </Alert>
           )}
         </CardContent>
       </Card>
