@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  output: "standalone",
   typescript: { ignoreBuildErrors: true },
   serverExternalPackages: ["@copilotkit/runtime"],
   allowedDevOrigins: ["localhost", "127.0.0.1"],
