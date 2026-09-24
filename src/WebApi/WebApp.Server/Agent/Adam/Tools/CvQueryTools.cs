@@ -8,6 +8,7 @@ using Application.Features.KetQuaPhuHop.Queries.SuggestJobsForCv;
 using Application.Wrappers;
 using MediatR;
 using Microsoft.Extensions.Logging;
+using WebApp.Server.Agent.SharedState;
 
 namespace WebApp.Server.Agent.Adam.Tools;
 
@@ -16,11 +17,16 @@ internal sealed class CvQueryTools
 {
     private readonly ISender _sender;
     private readonly ILogger<CvQueryTools> _logger;
+    private readonly SharedStateStore _sharedState;
 
-    public CvQueryTools(ISender sender, ILogger<CvQueryTools> logger)
+    public CvQueryTools(
+        ISender sender,
+        ILogger<CvQueryTools> logger,
+        SharedStateStore sharedState)
     {
         _sender = sender;
         _logger = logger;
+        _sharedState = sharedState;
     }
 
     [Description(
@@ -35,7 +41,7 @@ internal sealed class CvQueryTools
             var response = await _sender.Send(new GetMyHoSoUngVienQuery(), cancellationToken);
             if (!response.Succeeded || response.Data == null)
             {
-                _logger.LogWarning("Adam tool get_my_profile returned no profile. Succeeded={Succeeded}, Message={Message}", response.Succeeded, response.Message);
+                _logger.LogWarning("Adam tool get_my_profile không trả về hồ sơ nào. Succeeded={Succeeded}, Message={Message}", response.Succeeded, response.Message);
                 return new ProfileToolResult
                 {
                     Succeeded = false,
@@ -44,7 +50,7 @@ internal sealed class CvQueryTools
                 };
             }
 
-            _logger.LogInformation("Adam tool get_my_profile completed successfully. ProfileId={ProfileId}", response.Data.Id);
+            _logger.LogInformation("Adam tool get_my_profile hoàn tất. ProfileId={ProfileId}", response.Data.Id);
             return new ProfileToolResult
             {
                 Succeeded = true,
@@ -54,7 +60,7 @@ internal sealed class CvQueryTools
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            _logger.LogError(ex, "Adam tool get_my_profile failed.");
+            _logger.LogError(ex, "Adam tool get_my_profile thất bại.");
             return new ProfileToolResult
             {
                 Succeeded = false,
@@ -92,13 +98,21 @@ internal sealed class CvQueryTools
         "Gợi ý các tin tuyển dụng đang tuyển phù hợp với CV của ứng viên (ưu tiên CV mặc định). " +
         "Trả về top tin kèm điểm phù hợp, kỹ năng đã khớp và kỹ năng còn thiếu. " +
         "Dùng khi người dùng hỏi 'gợi ý việc làm', 'tôi phù hợp với công việc nào'.")]
-    public Task<Response<List<SuggestedJobViewModel>>> SuggestJobsForMyCvAsync(
+    public async Task<Response<List<SuggestedJobViewModel>>> SuggestJobsForMyCvAsync(
         [Description("ID CV cụ thể cần so khớp; bỏ trống để dùng CV mặc định")] int? cvId,
         CancellationToken cancellationToken = default)
     {
-        return _sender.Send(
+        var response = await _sender.Send(
             new GetSuggestedJobsForCvQuery { CvUngVienId = cvId, TopN = 10 },
             cancellationToken);
+
+        if (response.Succeeded && response.Data is not null)
+        {
+            _sharedState.Set("jobRecommendations", response.Data);
+            _sharedState.Set("lastAction", "jobRecommendationsLoaded");
+        }
+
+        return response;
     }
 }
 

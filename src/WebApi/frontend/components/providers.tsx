@@ -9,6 +9,7 @@ import { accessControlProvider } from "@/lib/access-control-provider";
 import { ThemeProvider } from "@/components/theme-provider";
 import {GoogleOAuthProvider} from "@react-oauth/google";
 import { Toaster } from "@/components/ui/sonner";
+import { ConfirmDialogProvider } from "@/components/ui/confirm-dialog";
 const dataProvider = createDataProvider("/api/dotnet");
 const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? "";
 
@@ -29,8 +30,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
         options={{ syncWithLocation: true, title: { text: "Trợ lý Adam" } }}
       >
         <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
-          {children}
-          <Toaster position="top-right" richColors closeButton />
+          <ConfirmDialogProvider>
+            {children}
+            <Toaster position="top-right" richColors closeButton />
+          </ConfirmDialogProvider>
         </GoogleOAuthProvider>
       </Refine>
     </ThemeProvider>

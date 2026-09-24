@@ -3,6 +3,7 @@ using AGUI.Abstractions;
 using Infrastructure.Identity;
 using Infrastructure.Persistence;
 using Infrastructure.Shared;
+using WebApp.Server.Agent;
 using WebApp.Server.Extensions;
 using WebApp.Server.Initializer;
 using Casbin;

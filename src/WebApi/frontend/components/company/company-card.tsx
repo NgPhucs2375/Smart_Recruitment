@@ -1,0 +1,19 @@
+"use client";
+
+import Link from "next/link";
+import { ArrowUpRight, BriefcaseBusiness, Heart, MapPin, MoreHorizontal, Users } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { companyInitials, type DoanhNghiepVm } from "@/features/doanh-nghiep/doanh-nghiep-api";
+
+export function CompanyCard({ company, jobCount = 0, followed, onToggleFollow, featured = false }: { company: DoanhNghiepVm; jobCount?: number; followed: boolean; onToggleFollow: (id: number) => void; featured?: boolean }) {
+  return <article className={`group flex h-full flex-col rounded-2xl border border-border bg-card p-5 transition-colors duration-200 hover:border-primary/35 ${featured ? "min-h-[272px]" : "min-h-[228px]"}`}>
+    <div className="grid grid-cols-[3rem_minmax(0,1fr)_2rem] items-start gap-3"><Avatar className="size-12 rounded-xl border border-border"><AvatarImage src={company.logoUrl || undefined} alt="" /><AvatarFallback className="rounded-xl bg-primary/10 font-semibold text-primary">{companyInitials(company.tenDoanhNghiep)}</AvatarFallback></Avatar><div className="min-w-0"><h3 className="line-clamp-2 text-base leading-6 font-semibold text-foreground"><Link href={`/doanh-nghiep/${company.id}`} className="outline-none hover:text-primary focus-visible:rounded focus-visible:ring-2 focus-visible:ring-ring">{company.tenDoanhNghiep || `Doanh nghiệp #${company.id}`}</Link></h3><p className="mt-1 truncate text-sm text-muted-foreground">{company.linhVucHoatDong || "Đang cập nhật lĩnh vực"}</p></div><Tooltip><TooltipTrigger render={<Button type="button" variant="ghost" size="icon-sm" aria-label={followed ? `Bỏ theo dõi ${company.tenDoanhNghiep}` : `Theo dõi ${company.tenDoanhNghiep}`} aria-pressed={followed} onClick={() => onToggleFollow(company.id)}><Heart className={`size-4 ${followed ? "fill-primary text-primary" : ""}`} /></Button>} /><TooltipContent>{followed ? "Bỏ theo dõi" : "Theo dõi doanh nghiệp"}</TooltipContent></Tooltip></div>
+    <div className="mt-4 flex min-h-7 flex-wrap content-start gap-2"><Badge variant="secondary" className="max-w-full gap-1.5 font-normal"><MapPin className="size-3 shrink-0" /><span className="truncate">{company.diaChi || "Đang cập nhật"}</span></Badge>{company.quyMoNhanSu && <Badge variant="secondary" className="max-w-full gap-1.5 font-normal"><Users className="size-3 shrink-0" /><span className="truncate">{company.quyMoNhanSu}</span></Badge>}</div>
+    {!featured && <p className="mt-4 min-h-12 line-clamp-2 text-sm leading-6 text-muted-foreground">{company.moTa || "Doanh nghiệp đang hoàn thiện phần giới thiệu."}</p>}
+    <div className="mt-auto flex flex-col gap-3 border-t border-border/70 pt-4 sm:flex-row sm:items-center sm:justify-between"><span className="inline-flex min-w-0 items-center gap-1.5 text-sm font-medium text-primary"><BriefcaseBusiness className="size-4 shrink-0" />{jobCount} vị trí đang tuyển</span><div className="flex shrink-0 items-center gap-1"><Link href={`/doanh-nghiep/${company.id}`}><Button variant={featured ? "default" : "outline"} size="sm" className="whitespace-nowrap">{featured ? "Xem doanh nghiệp" : "Xem chi tiết"}<ArrowUpRight className="size-3.5" /></Button></Link><DropdownMenu><DropdownMenuTrigger render={<Button variant="ghost" size="icon-sm" aria-label="Tùy chọn doanh nghiệp"><MoreHorizontal className="size-4" /></Button>} /><DropdownMenuContent align="end"><DropdownMenuItem onClick={() => onToggleFollow(company.id)}>{followed ? "Bỏ theo dõi" : "Theo dõi"}</DropdownMenuItem></DropdownMenuContent></DropdownMenu></div></div>
+  </article>;
+}

@@ -4,6 +4,8 @@ using Domain.Entities;
 using Domain.Enums;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using System.Diagnostics;
 
 namespace Application.Features.KetQuaPhuHop.Queries.SuggestJobsForCv;
 
@@ -36,7 +38,8 @@ public class SuggestedJobViewModel
 
 public class GetSuggestedJobsForCvQueryHandler(
     IApplicationDbContext context,
-    ICurrentNguoiDungService currentNguoiDungService)
+    ICurrentNguoiDungService currentNguoiDungService,
+    ILogger<GetSuggestedJobsForCvQueryHandler> logger)
     : IRequestHandler<GetSuggestedJobsForCvQuery, Response<List<SuggestedJobViewModel>>>
 {
     private static readonly Dictionary<MucDoYC, float> MucDoWeights = new()
@@ -53,6 +56,7 @@ public class GetSuggestedJobsForCvQueryHandler(
         GetSuggestedJobsForCvQuery request,
         CancellationToken cancellationToken)
     {
+        var timer = Stopwatch.StartNew();
         var currentUser = await currentNguoiDungService.ResolveAsync();
         var hoSo = await context.HoSoUngViens.AsNoTracking()
             .FirstOrDefaultAsync(x => x.NguoiDungId == currentUser.Id, cancellationToken);
@@ -93,18 +97,37 @@ public class GetSuggestedJobsForCvQueryHandler(
 
         var now = DateTime.UtcNow;
         var postings = await context.TinTuyenDungs.AsNoTracking()
-            .Include(t => t.DoanhNghiep)
-            .Include(t => t.KyNangTinTuyenDungs)
-                .ThenInclude(k => k.KyNang)
             .Where(t => t.TrangThai == TrangThaiTinTuyenDung.DangTuyen &&
                         (t.NgayHetHan == null || t.NgayHetHan > now))
+            .Select(t => new JobMatchPosting
+            {
+                Id = t.Id,
+                TieuDe = t.TieuDe,
+                TenDoanhNghiep = t.DoanhNghiep != null ? t.DoanhNghiep.TenDoanhNghiep : string.Empty,
+                DiaDiemLamViec = t.DiaDiemLamViec,
+                LuongToiThieu = t.LuongToiThieu,
+                LuongToiDa = t.LuongToiDa,
+                NgayHetHan = t.NgayHetHan,
+                Skills = t.KyNangTinTuyenDungs
+                    .Where(k => k.KyNang != null)
+                    .Select(k => new JobMatchSkill
+                    {
+                        KyNangId = k.KyNangId,
+                        TenKyNang = k.KyNang!.TenKyNang,
+                        MucDoYeuCau = k.MucDoYeuCau,
+                    })
+                    .ToList(),
+            })
             .ToListAsync(cancellationToken);
+
+        logger.LogInformation("Job recommendation query loaded {PostingCount} postings in {ElapsedMs} ms.",
+            postings.Count, timer.ElapsedMilliseconds);
 
         var results = new List<(SuggestedJobViewModel Vm, float Diem, string Thoa, string Thieu)>();
         foreach (var t in postings)
         {
-            var postingSkills = t.KyNangTinTuyenDungs
-                .Where(k => k.KyNang != null && !string.IsNullOrWhiteSpace(k.KyNang.TenKyNang))
+            var postingSkills = t.Skills
+                .Where(k => !string.IsNullOrWhiteSpace(k.TenKyNang))
                 .ToList();
 
             var matchedNames = new List<string>();
@@ -114,16 +137,17 @@ public class GetSuggestedJobsForCvQueryHandler(
             {
                 var weight = MucDoWeights.GetValueOrDefault(k.MucDoYeuCau, 1f);
                 totalWeight += weight;
-                var name = Norm(k.KyNang!.TenKyNang);
-                var hit = skillIds.Contains(k.KyNangId) || skillNames.Contains(name);
+                var name = Norm(k.TenKyNang);
+                var hit = k.KyNangId.HasValue && skillIds.Contains(k.KyNangId.Value)
+                    || skillNames.Contains(name);
                 if (hit)
                 {
                     matchedWeight += weight;
-                    matchedNames.Add(k.KyNang!.TenKyNang.Trim());
+                    matchedNames.Add(k.TenKyNang!.Trim());
                 }
                 else
                 {
-                    missingNames.Add(k.KyNang!.TenKyNang.Trim());
+                    missingNames.Add(k.TenKyNang!.Trim());
                 }
             }
 
@@ -181,6 +205,9 @@ public class GetSuggestedJobsForCvQueryHandler(
         }
         await context.SaveChangesAsync(cancellationToken);
 
+        logger.LogInformation("Job recommendation completed in {ElapsedMs} ms. Results={ResultCount}.",
+            timer.ElapsedMilliseconds, top.Count);
+
         var message = top.Count == 0
             ? "Chưa có tin tuyển dụng nào phù hợp với CV này (kiểm tra lại kỹ năng đã điền trong CV)."
             : $"Tìm thấy {top.Count} tin tuyển dụng phù hợp.";
@@ -188,11 +215,11 @@ public class GetSuggestedJobsForCvQueryHandler(
             top.Select(r => r.Vm).ToList(), message);
     }
 
-    private static SuggestedJobViewModel ToVm(Domain.Entities.TinTuyenDung t, float diem) => new()
+    private static SuggestedJobViewModel ToVm(JobMatchPosting t, float diem) => new()
     {
         TinTuyenDungId = t.Id,
         TieuDe = t.TieuDe,
-        TenDoanhNghiep = t.DoanhNghiep?.TenDoanhNghiep ?? string.Empty,
+        TenDoanhNghiep = t.TenDoanhNghiep,
         DiaDiemLamViec = t.DiaDiemLamViec ?? string.Empty,
         LuongToiThieu = t.LuongToiThieu,
         LuongToiDa = t.LuongToiDa,
@@ -200,6 +227,25 @@ public class GetSuggestedJobsForCvQueryHandler(
         PhanLoai = PhanLoaiOf(diem).ToString(),
         NgayHetHan = t.NgayHetHan,
     };
+
+    private sealed class JobMatchPosting
+    {
+        public int Id { get; set; }
+        public string TieuDe { get; set; } = string.Empty;
+        public string TenDoanhNghiep { get; set; } = string.Empty;
+        public string? DiaDiemLamViec { get; set; }
+        public decimal LuongToiThieu { get; set; }
+        public decimal LuongToiDa { get; set; }
+        public DateTime? NgayHetHan { get; set; }
+        public List<JobMatchSkill> Skills { get; set; } = [];
+    }
+
+    private sealed class JobMatchSkill
+    {
+        public int? KyNangId { get; set; }
+        public string? TenKyNang { get; set; }
+        public MucDoYC MucDoYeuCau { get; set; }
+    }
 
     private static PhanLoaiKetQua PhanLoaiOf(float diem) =>
         diem >= 0.66f ? PhanLoaiKetQua.Cao

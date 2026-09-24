@@ -49,9 +49,9 @@ const TRANG_THAI: Record<number, { label: string; variant: "default" | "secondar
   1: { label: "Lỗi xử lý", variant: "destructive" },
   2: { label: "Chờ xử lý", variant: "default" },
   3: { label: "Đã xem", variant: "outline" },
-  4: { label: "Phù hợp", variant: "default" },
-  5: { label: "Từ chối", variant: "destructive" },
-  6: { label: "Rút đơn", variant: "secondary" },
+  4: { label: "Ứng viên rút đơn", variant: "secondary" },
+  5: { label: "Phù hợp", variant: "default" },
+  6: { label: "Từ chối", variant: "destructive" },
   7: { label: "Quá hạn", variant: "destructive" },
   8: { label: "Tin đóng", variant: "secondary" },
   9: { label: "Vô hiệu", variant: "secondary" },
@@ -59,15 +59,15 @@ const TRANG_THAI: Record<number, { label: string; variant: "default" | "secondar
 
 const API = "/api/dotnet/donungtuyens";
 const DG_API = "/api/dotnet/danhgias";
-const WITHDRAWN_STATUS = 6;
+const WITHDRAWN_STATUS = 4;
 const STATUS_BY_NAME: Record<string, number> = {
   khoitao: 0,
   loixulyhoso: 1,
   choxuly: 2,
   daxem: 3,
-  phuhop: 4,
-  tuchoi: 5,
-  ungvienrutdon: 6,
+  phuhop: 5,
+  tuchoi: 6,
+  ungvienrutdon: 4,
   quahanxuly: 7,
   tintuyendungbidong: 8,
   vohieuhoa: 9,
@@ -196,6 +196,12 @@ export default function DaUngTuyenPage() {
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { void load(); }, [load]);
 
+  useEffect(() => {
+    const refreshFromNotification = () => { void load(); };
+    window.addEventListener("recruitment:notification", refreshFromNotification);
+    return () => window.removeEventListener("recruitment:notification", refreshFromNotification);
+  }, [load]);
+
   const [withdrawingId, setWithdrawingId] = useState<number | null>(null);
 
   // Rút đơn (trigger RutDon=8): chỉ khi đơn còn ở trạng thái đang xử lý.
@@ -221,7 +227,7 @@ export default function DaUngTuyenPage() {
     }
   }
 
-  const canRutDon = (s: number) => s === 0 || s === 2 || s === 3 || s === 4;
+  const canRutDon = (s: number) => s === 0 || s === 2 || s === 3;
 
   const statusOptions = useMemo(
     () => Object.entries(TRANG_THAI).map(([v, s]) => ({ value: v, label: s.label })),

@@ -18,7 +18,7 @@ import { getValidToken, refreshSession } from "@/lib/auth-provider";
 import type { HoSoVm } from "@/lib/types";
 
 type ApiResponse<T> = { Succeeded?: boolean; succeeded?: boolean; Message?: string; message?: string; Data?: T; data?: T };
-type DonUngTuyen = { id: number; tinTuyenDungId: number; trangThai: number; ngayUngTuyen: string };
+type DonUngTuyen = { id: number; tinTuyenDungId: number; trangThai: number; ngayUngTuyen: string; tieuDe?: string };
 type DashboardNotification = { id: number; message: string; isRead: boolean; created: string };
 
 const ok = (r: ApiResponse<unknown>): boolean => r.Succeeded ?? r.succeeded ?? true;
@@ -57,9 +57,9 @@ const TRANG_THAI: Record<number, { label: string; color: string }> = {
   1: { label: "Lỗi xử lý hồ sơ", color: "text-destructive bg-destructive/5 border-destructive/30" },
   2: { label: "Chờ xử lý", color: "text-primary bg-primary/10 border-primary/30" },
   3: { label: "Đã xem", color: "text-teal bg-teal/10 border-teal/30" },
-  4: { label: "Phù hợp", color: "text-primary bg-primary/10 border-primary/30" },
-  5: { label: "Từ chối", color: "text-destructive bg-destructive/5 border-destructive/30" },
-  6: { label: "Ứng viên rút đơn", color: "text-muted-foreground bg-muted border-border" },
+  4: { label: "Ứng viên rút đơn", color: "text-muted-foreground bg-muted border-border" },
+  5: { label: "Phù hợp", color: "text-primary bg-primary/10 border-primary/30" },
+  6: { label: "Từ chối", color: "text-destructive bg-destructive/5 border-destructive/30" },
   7: { label: "Quá hạn xử lý", color: "text-bronze bg-soft-gold border-bronze/30" },
   8: { label: "Tin tuyển dụng đã đóng", color: "text-muted-foreground bg-muted border-border" },
   9: { label: "Vô hiệu hóa", color: "text-muted-foreground bg-muted border-border" },
@@ -70,12 +70,25 @@ const STATUS_BY_NAME: Record<string, number> = {
   loixulyhoso: 1,
   choxuly: 2,
   daxem: 3,
-  phuhop: 4,
-  tuchoi: 5,
-  ungvienrutdon: 6,
+  phuhop: 5,
+  tuchoi: 6,
+  ungvienrutdon: 4,
   quahanxuly: 7,
   tintuyendungbidong: 8,
   vohieuhoa: 9,
+};
+
+const JOB_STATUS_BY_NAME: Record<string, number> = {
+  nhap: 0,
+  choduyethethong: 1,
+  choadminduyet: 2,
+  dangtuyen: 3,
+  tamdung: 4,
+  hethan: 5,
+  dadong: 6,
+  tuchoi: 7,
+  bikhoa: 8,
+  chonguoidaidienduyet: 9,
 };
 
 function parseTrangThai(value: unknown): number {
@@ -83,6 +96,13 @@ function parseTrangThai(value: unknown): number {
   const text = `${value ?? ""}`.trim();
   if (/^\d+$/.test(text)) return Number(text);
   return STATUS_BY_NAME[text.toLowerCase().replace(/[\s_-]/g, "")] ?? -1;
+}
+
+function parseTrangThaiTin(value: unknown): number {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  const text = `${value ?? ""}`.trim().toLowerCase().replace(/[\s_-]/g, "");
+  if (/^\d+$/.test(text)) return Number(text);
+  return JOB_STATUS_BY_NAME[text] ?? -1;
 }
 
 function fmtDate(d: string) {
@@ -148,6 +168,7 @@ function CandidateDashboard() {
   const [jobTitles, setJobTitles] = useState<Record<number, string>>({});
   const [notifications, setNotifications] = useState<DashboardNotification[]>([]);
   const [candidateCalendarDate, setCandidateCalendarDate] = useState<Date | undefined>();
+  const [notificationRefresh, setNotificationRefresh] = useState(0);
   const { count: savedCount } = useBookmarks();
 
   const apiFetch = useCallback((url: string) => fetchDashboardApi(url), []);
@@ -155,17 +176,23 @@ function CandidateDashboard() {
   useEffect(() => {
     void (async () => {
       const [donRes, hsRes, pqRes, tinRes, notificationRes] = await Promise.all([
-        apiFetch("/api/dotnet/donungtuyens"),
+        apiFetch("/api/dotnet/donungtuyens?_start=0&_end=100"),
         apiFetch("/api/dotnet/hosoungviens"),
         apiFetch("/api/dotnet/ketquaphuhops"),
-        apiFetch("/api/dotnet/tintuyendungs"),
+        apiFetch("/api/dotnet/tintuyendungs?_start=0&_end=100"),
         apiFetch("/api/dotnet/Notifications"),
       ]);
 
       if (donRes && ok(donRes)) {
         const items = extractArray(donRes).map((v: unknown) => {
           const r = v as Record<string, unknown>;
-          return { id: Number(r.id ?? r.Id), tinTuyenDungId: Number(r.tinTuyenDungId ?? r.TinTuyenDungId ?? 0), trangThai: parseTrangThai(r.trangThai ?? r.TrangThai), ngayUngTuyen: `${r.ngayUngTuyen ?? r.NgayUngTuyen ?? ""}` };
+          return {
+            id: Number(r.id ?? r.Id),
+            tinTuyenDungId: Number(r.tinTuyenDungId ?? r.TinTuyenDungId ?? 0),
+            trangThai: parseTrangThai(r.trangThai ?? r.TrangThai),
+            ngayUngTuyen: `${r.ngayUngTuyen ?? r.NgayUngTuyen ?? ""}`,
+            tieuDe: `${r.tieuDe ?? r.TieuDe ?? ""}`.trim() || undefined,
+          };
         }) as DonUngTuyen[];
         setAppliedCount(items.length);
         setRecentApplied(items.slice(0, 4));
@@ -220,7 +247,13 @@ function CandidateDashboard() {
         setCvCount(null);
       }
     })();
-  }, [apiFetch]);
+  }, [apiFetch, notificationRefresh]);
+
+  useEffect(() => {
+    const refreshFromNotification = () => setNotificationRefresh((value) => value + 1);
+    window.addEventListener("recruitment:notification", refreshFromNotification);
+    return () => window.removeEventListener("recruitment:notification", refreshFromNotification);
+  }, []);
 
   return (
     <AdminPageLayout>
@@ -316,7 +349,7 @@ function CandidateDashboard() {
                   <div key={item.id} className="py-5">
                     <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
                     <div>
-                      <h3 className="font-medium">{jobTitle ?? `Tin #${item.tinTuyenDungId}`}</h3>
+                      <h3 className="font-medium">{item.tieuDe ?? jobTitle ?? "Vị trí ứng tuyển"}</h3>
                       <div className="mt-1 flex items-center gap-3 text-xs text-muted-foreground">
                         <span className="flex items-center gap-1"><Clock className="size-3.5" /> {fmtDate(item.ngayUngTuyen)}</span>
                       </div>
@@ -527,8 +560,8 @@ function RecruiterControlCenter() {
     setErr("");
     try {
       const [jobRes, donRes] = await Promise.all([
-        apiFetch("/api/dotnet/tintuyendungs"),
-        apiFetch("/api/dotnet/donungtuyens"),
+        apiFetch("/api/dotnet/tintuyendungs?_start=0&_end=100"),
+        apiFetch("/api/dotnet/donungtuyens?_start=0&_end=100"),
       ]);
       if (jobRes && ok(jobRes)) {
         setJobs(
@@ -537,7 +570,7 @@ function RecruiterControlCenter() {
               return {
                 id: Number(r.id ?? r.Id ?? 0),
                 tieuDe: `${r.tieuDe ?? r.TieuDe ?? ""}`,
-                trangThai: Number(r.trangThai ?? r.TrangThai ?? 0),
+                trangThai: parseTrangThaiTin(r.trangThai ?? r.TrangThai),
                 ngayHetHan: `${r.ngayHetHan ?? r.NgayHetHan ?? ""}`,
                 diaDiemLamViec: `${r.diaDiemLamViec ?? r.DiaDiemLamViec ?? ""}`,
                 nguoiDangTinId: Number(r.nguoiDangTinId ?? r.NguoiDangTinId ?? 0),
@@ -553,7 +586,7 @@ function RecruiterControlCenter() {
               id: Number(r.id ?? r.Id ?? 0),
               tinTuyenDungId: Number(r.tinTuyenDungId ?? r.TinTuyenDungId ?? 0),
               hoSoUngVienId: Number(r.hoSoUngVienId ?? r.HoSoUngVienId ?? 0),
-              trangThai: Number(r.trangThai ?? r.TrangThai ?? 0),
+              trangThai: parseTrangThai(r.trangThai ?? r.TrangThai),
               ngayUngTuyen: `${r.ngayUngTuyen ?? r.NgayUngTuyen ?? ""}`,
             };
           }) as DonLite[],
@@ -584,8 +617,21 @@ function RecruiterControlCenter() {
     }
   }, [apiFetch, isManager]);
 
-  // eslint-disable-next-line react-hooks/set-state-in-effect
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => {
+    const refreshWhenActive = () => {
+      if (document.visibilityState === "visible") void load();
+    };
+    const interval = window.setInterval(refreshWhenActive, 30_000);
+    window.addEventListener("focus", refreshWhenActive);
+    document.addEventListener("visibilitychange", refreshWhenActive);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void load();
+    return () => {
+      window.clearInterval(interval);
+      window.removeEventListener("focus", refreshWhenActive);
+      document.removeEventListener("visibilitychange", refreshWhenActive);
+    };
+  }, [load]);
 
   const activeJobs = jobs.filter((j) => j.trangThai === 3);
   const appsByJob = new Map<number, { total: number; fresh: number }>();
@@ -641,13 +687,13 @@ function RecruiterControlCenter() {
         { icon: Briefcase, label: "Tin đang tuyển", value: `${activeJobs.length}`, sub: `${jobs.length} tin trong doanh nghiệp`, href: "/tin-tuyen-dung" },
         { icon: Users, label: "Ứng viên", value: `${new Set(dons.map((don) => don.hoSoUngVienId)).size}`, sub: `${dons.length} lượt ứng tuyển`, href: "/ung-vien" },
         { icon: UserPlus, label: "Nhân sự", value: `${team.length}`, sub: "thành viên trong đội ngũ", href: "/nhan-su" },
-        { icon: Eye, label: "Đơn mới chờ xem", value: `${unviewed.length}`, sub: "cần được xử lý", href: "/ung-vien" },
-        { icon: ListTodo, label: "Việc cần xử lý", value: `${attentionCount}`, sub: `${unviewed.length} đơn • ${expiringJobs.length} tin sắp hết hạn`, href: "/ung-vien" },
+        { icon: Eye, label: "Đơn mới chờ xem", value: `${unviewed.length}`, sub: "cần được xử lý", href: "/ung-vien?status=2" },
+        { icon: ListTodo, label: "Việc cần xử lý", value: `${attentionCount}`, sub: `${unviewed.length} đơn • ${expiringJobs.length} tin sắp hết hạn`, href: "/ung-vien?status=2" },
       ]
     : [
         { icon: Briefcase, label: "Tin đang đăng", value: `${jobs.length}`, sub: `${activeJobs.length} tin đang tuyển`, href: "/tin-tuyen-dung" },
         { icon: Users, label: "Đơn ứng tuyển", value: `${dons.length}`, sub: "thuộc các tin bạn phụ trách", href: "/ung-vien" },
-        { icon: Clock, label: "Chờ xử lý", value: `${unviewed.length}`, sub: "đơn chưa xem", href: "/ung-vien" },
+        { icon: Clock, label: "Chờ xử lý", value: `${unviewed.length}`, sub: "đơn chưa xem", href: "/ung-vien?status=2" },
       ];
 
   // Only stages backed by real TrangThaiDonUngTuyen values. The system has
@@ -655,8 +701,8 @@ function RecruiterControlCenter() {
   const stages = [
     { label: "Mới nhận", count: stageNew, note: "Chờ xử lý" },
     { label: "Đã xem", count: filteredPipelineDons.filter((d) => d.trangThai === 3).length, note: "Đã mở hồ sơ" },
-    { label: "Phù hợp", count: filteredPipelineDons.filter((d) => d.trangThai === 4).length, note: "Được đánh giá" },
-    { label: "Kết thúc", count: filteredPipelineDons.filter((d) => [5, 6, 7, 8, 9].includes(d.trangThai)).length, note: "Từ chối / rút / đóng" },
+    { label: "Phù hợp", count: filteredPipelineDons.filter((d) => d.trangThai === 5).length, note: "Được đánh giá" },
+    { label: "Kết thúc", count: filteredPipelineDons.filter((d) => [4, 6, 7, 8, 9].includes(d.trangThai)).length, note: "Từ chối / rút / đóng" },
   ];
 
   const trend = Array.from({ length: 7 }, (_, index) => {
@@ -675,7 +721,7 @@ function RecruiterControlCenter() {
     };
   });
   const trendMax = Math.max(1, ...trend.map((point) => point.count));
-  const highFit = dons.filter((don) => don.trangThai === 4);
+  const highFit = dons.filter((don) => don.trangThai === 5);
   const calendarMarkedDates = [
     ...dons.map((don) => new Date(don.ngayUngTuyen)).filter((date) => !Number.isNaN(date.getTime())),
     ...expiringJobs.map((job) => new Date(job.ngayHetHan)).filter((date) => !Number.isNaN(date.getTime())),
@@ -764,11 +810,11 @@ function RecruiterControlCenter() {
           <div className="grid divide-y divide-border md:grid-cols-3 md:divide-x md:divide-y-0">
             <div className="p-5">
               <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2"><AlertTriangle className="size-4 text-primary" /><h3 className="text-sm font-medium">Ứng viên mới chưa xem</h3></div>
-                <Link href="/ung-vien" className="text-xs font-medium text-primary hover:underline">Xem all</Link>
+                <div className="flex items-center gap-2"><AlertTriangle className="size-4 text-primary" /><h3 className="text-sm font-medium">Đơn mới chưa xem</h3></div>
+                <Link href="/ung-vien?status=2" className="text-xs font-medium text-primary hover:underline">Xem ngay</Link>
               </div>
               <p className="mt-4 text-3xl font-semibold">{unviewed.length}</p>
-              <p className="mt-1 text-xs text-muted-foreground">đơn đang chờ bạn mở hồ sơ</p>
+                <p className="mt-1 text-xs text-muted-foreground">đơn đang chờ bạn mở hồ sơ</p>
             </div>
             <div className="p-5">
               <div className="flex items-center justify-between gap-3">
@@ -780,8 +826,8 @@ function RecruiterControlCenter() {
             </div>
             <div className="p-5">
               <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2"><TrendingUp className="size-4 text-primary" /><h3 className="text-sm font-medium">Ứng viên phù hợp cao</h3></div>
-                <Link href="/ung-vien" className="text-xs font-medium text-primary hover:underline">Xem all</Link>
+                <div className="flex items-center gap-2"><TrendingUp className="size-4 text-primary" /><h3 className="text-sm font-medium">Ứng viên phù hợp</h3></div>
+                <Link href="/ung-vien?status=4" className="text-xs font-medium text-primary hover:underline">Xem ngay</Link>
               </div>
               <p className="mt-4 text-3xl font-semibold">{highFit.length}</p>
               <p className="mt-1 text-xs text-muted-foreground">đã phù hợp nhưng chưa xử lý tiếp</p>
@@ -939,8 +985,8 @@ function RecruiterControlCenter() {
                 <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-sandsoft">
                   <FileText className="size-4 text-foreground" />
                 </span>
-                <p className="flex-1"><span className="font-semibold">{unviewed.length}</span> CV chưa review</p>
-                <Link href="/ung-vien" className="inline-flex items-center gap-1 text-xs font-medium text-foreground underline underline-offset-4 hover:opacity-70">
+                <p className="flex-1"><span className="font-semibold">{unviewed.length}</span> đơn mới chưa xem</p>
+                <Link href="/ung-vien?status=2" className="inline-flex items-center gap-1 text-xs font-medium text-foreground underline underline-offset-4 hover:opacity-70">
                   Xem ngay <ArrowRight className="size-3.5" />
                 </Link>
               </li>

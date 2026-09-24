@@ -21,18 +21,49 @@ const authHeaderStorage = new AsyncLocalStorage<string>();
 const agentFetch: HttpAgentFetchFn = async (url, requestInit) => {
   const auth = authHeaderStorage.getStore();
   const headers = new Headers(requestInit?.headers);
+  const traceId = crypto.randomUUID();
   if (auth) headers.set("Authorization", auth);
-  const res = await fetch(url, { ...requestInit, headers });
+  headers.set("X-AGUI-Trace-Id", traceId);
+  let res: Response;
+  try {
+    res = await fetch(url, { ...requestInit, headers });
+  } catch (error) {
+    console.error("[AG-UI bridge] upstream fetch threw", {
+      url: String(url),
+      method: requestInit?.method ?? "GET",
+      traceId,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    throw error;
+  }
   const contentType = res.headers.get("content-type") ?? "";
+  console.info("[AG-UI bridge] upstream response", {
+    url: String(url),
+    traceId,
+    status: res.status,
+    contentType,
+    contentLength: res.headers.get("content-length"),
+  });
   if (!res.ok) {
     console.error("[AG-UI bridge] backend request failed", { status: res.status, contentType });
   }
   if (!res.ok || !res.body || !contentType.includes("text/event-stream")) {
+    void res.clone().text().then((body) => {
+      console.error("[AG-UI bridge] upstream was not an SSE stream", {
+        status: res.status,
+        contentType,
+        body: body.slice(0, 1000),
+      });
+    }).catch((error) => {
+      console.error("[AG-UI bridge] could not read upstream error body", error);
+    });
     return res;
   }
   const decoder = new TextDecoder();
   const encoder = new TextEncoder();
   let buffer = "";
+  let eventCount = 0;
+  console.info("[AG-UI bridge] upstream SSE opened", { traceId, backendTraceId: res.headers.get("x-agui-trace-id") });
   const stream = new TransformStream<Uint8Array, Uint8Array>({
     transform(chunk, controller) {
       buffer += decoder.decode(chunk, { stream: true });
@@ -41,12 +72,49 @@ const agentFetch: HttpAgentFetchFn = async (url, requestInit) => {
       for (const line of parts) {
         const sanitized = sanitizeSseLine(line);
         if (line.startsWith("data:")) {
+          eventCount++;
           try {
-            const payload = JSON.parse(line.slice(5).trimStart()) as { type?: string };
-            if (payload.type?.includes("error")) {
-              console.error("[AG-UI bridge] backend error event", { type: payload.type });
-            } else if (payload.type?.includes("tool")) {
-              console.debug("[AG-UI bridge] tool event", { type: payload.type });
+            const payload = JSON.parse(line.slice(5).trimStart()) as {
+              type?: string;
+              runId?: string;
+              threadId?: string;
+              toolCallId?: string;
+              toolName?: string;
+              name?: string;
+              code?: string;
+              message?: string;
+              error?: unknown;
+            };
+            const eventType = payload.type?.toLowerCase() ?? "";
+            if (eventType.includes("error")) {
+              console.error("[AG-UI bridge] backend error event", {
+                traceId,
+                eventIndex: eventCount,
+                type: payload.type,
+                runId: payload.runId,
+                threadId: payload.threadId,
+                code: payload.code,
+                message: payload.message,
+                error: payload.error,
+              });
+            } else if (eventType.includes("tool")) {
+              console.debug("[AG-UI bridge] tool event", {
+                traceId,
+                eventIndex: eventCount,
+                type: payload.type,
+                runId: payload.runId,
+                threadId: payload.threadId,
+                toolCallId: payload.toolCallId,
+                toolName: payload.toolName ?? payload.name,
+              });
+            } else {
+              console.debug("[AG-UI bridge] event", {
+                traceId,
+                eventIndex: eventCount,
+                type: payload.type,
+                runId: payload.runId,
+                threadId: payload.threadId,
+              });
             }
           } catch {
             console.warn("[AG-UI bridge] invalid SSE JSON line", { length: line.length });
@@ -58,6 +126,7 @@ const agentFetch: HttpAgentFetchFn = async (url, requestInit) => {
     flush(controller) {
       buffer += decoder.decode();
       if (buffer) controller.enqueue(encoder.encode(`${sanitizeSseLine(buffer)}\n`));
+      console.info("[AG-UI bridge] upstream SSE closed", { traceId, eventCount, trailingBytes: buffer.length });
     },
   });
   return new Response(res.body.pipeThrough(stream), {

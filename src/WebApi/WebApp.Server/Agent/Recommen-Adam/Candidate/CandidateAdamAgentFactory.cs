@@ -20,12 +20,10 @@ internal sealed class CandidateAdamAgentFactory
         _chatClient = chatClient;
     }
 
-    public AIAgent CreateAgent() => new ChatClientAgent(
-        _chatClient,
-        instructions: CandidateAdamInstructions.SystemPrompt,
-        name: CandidateAdamInstructions.AgentName,
-        tools:
-        [
+    public AIAgent CreateAgent()
+    {
+        var tools = new List<AITool>
+        {
             AIFunctionFactory.Create(_cvQueryTools.GetMyProfileAsync, new AIFunctionFactoryOptions { Name = "get_my_profile" }),
             AIFunctionFactory.Create(_cvQueryTools.GetCvDetailAsync, new AIFunctionFactoryOptions { Name = "get_cv_detail" }),
             AIFunctionFactory.Create(_cvQueryTools.GetMyCvsAsync, new AIFunctionFactoryOptions { Name = "list_my_cvs" }),
@@ -40,5 +38,31 @@ internal sealed class CandidateAdamAgentFactory
             AIFunctionFactory.Create(_candidateTools.CompareJobsAsync, new AIFunctionFactoryOptions { Name = "compare_jobs" }),
             AIFunctionFactory.Create(_candidateTools.GetMyApplicationsAsync, new AIFunctionFactoryOptions { Name = "get_my_applications" }),
             AIFunctionFactory.Create(_candidateTools.GetApplicationStatusAsync, new AIFunctionFactoryOptions { Name = "get_application_status" }),
-        ]);
+        };
+
+        return new ChatClientAgent(
+            _chatClient,
+            new ChatClientAgentOptions
+            {
+                Name = CandidateAdamInstructions.AgentName,
+                Description = "Trợ lý hồ sơ và việc làm cho ứng viên.",
+                ChatOptions = new ChatOptions
+                {
+                    Instructions = CandidateAdamInstructions.SystemPrompt,
+                    Temperature = 0.1f,
+                    MaxOutputTokens = 512,
+                    // The model must receive the tool result and produce a user-facing
+                    // answer in the same run; false ends the stream at TOOL_CALL_RESULT.
+                    AllowMultipleToolCalls = true,
+                    Reasoning = new ReasoningOptions
+                    {
+                        Effort = ReasoningEffort.None,
+                        Output = ReasoningOutput.None
+                    },
+                    Tools = tools
+                }
+            },
+            loggerFactory: null,
+            services: null);
+    }
 }

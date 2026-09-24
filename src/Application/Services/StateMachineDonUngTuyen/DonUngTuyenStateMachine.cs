@@ -154,6 +154,9 @@ namespace Application.Services.StateMachineDonUngTuyen
                 case TriggerDonUngTuyen.XemDon:
                 case TriggerDonUngTuyen.DanhGiaPhuHop:
                 case TriggerDonUngTuyen.TuChoi:
+                    if (_entity.TrangThai == TrangThaiDonUngTuyen.UngVienRutDon)
+                        throw new ApiException("Đơn đã được ứng viên rút, không thể tiếp tục xử lý.");
+
                     if (ctx.VaiTro == VaiTroNguoiDung.NGUOI_DAI_DIEN)
                     {
                         if (_entity.TinTuyenDung == null || _entity.TinTuyenDung.DoanhNghiepId != ctx.DoanhNghiepId)

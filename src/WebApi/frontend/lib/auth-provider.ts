@@ -254,7 +254,7 @@ export async function getValidToken(): Promise<string | null> {
 /** Re-fetch /me and refresh the cached identity + permissions in localStorage.
  *  Call after any server-side permission change (e.g. saving the permission matrix). */
 export async function refreshIdentity(): Promise<void> {
-  const token = getToken();
+  const token = await getValidToken();
   if (token) await fetchAndSaveMe(token);
 }
 

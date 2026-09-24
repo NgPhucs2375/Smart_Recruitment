@@ -8,9 +8,9 @@ using WebApp.Server.Agent.RecommenAdam;
 using WebApp.Server.Agent.RecommenAdam.Candidate;
 using WebApp.Server.Agent.RecommenAdam.Recruiter;
 using WebApp.Server.Agent.RecommenAdam.Recruiter.Tools;
+using WebApp.Server.Agent.SharedState;
 
-namespace WebApp.Server.Extensions;
-
+namespace WebApp.Server.Agent;
 /// <summary>
 /// DI for the global Adam assistant and the Recommen-Adam recommendation domain.
 /// </summary>
@@ -19,6 +19,7 @@ public static class AgentExtensions
     public static IServiceCollection AddAdamAgents(this IServiceCollection services)
     {
         services.AddHttpContextAccessor();
+        services.AddScoped<SharedStateStore>();
 
         services.AddKeyedSingleton<IChatClient>(
             AdamInstructions.ChatClientKey,

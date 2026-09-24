@@ -10,19 +10,22 @@ using Application.Features.TinTuyenDung.Queries.GetAllTinTuyenDungs;
 using Application.Features.TinTuyenDung.Queries.GetTinTuyenDungById;
 using Application.Wrappers;
 using MediatR;
+using WebApp.Server.Agent.SharedState;
 
 namespace WebApp.Server.Agent.RecommenAdam.Candidate;
 
 internal sealed class CandidateTools
 {
-    private readonly ISender _sender;
+	private readonly ISender _sender;
+	private readonly SharedStateStore _sharedState;
 
-    public CandidateTools(ISender sender)
-    {
-        _sender = sender;
+	public CandidateTools(ISender sender, SharedStateStore sharedState)
+	{
+		_sender = sender;
+		_sharedState = sharedState;
     }
 
-    [Description("Kiểm tra hồ sơ và CV mặc định của ứng viên còn thiếu thông tin nào. Dùng khi ứng viên hỏi hồ sơ còn thiếu gì hoặc cần hoàn thiện hồ sơ.")]
+    [Description("Chỉ kiểm tra các trường thông tin cá nhân trong HoSoUngVien của ứng viên hiện tại. Không đọc, không phân tích và không kiểm tra CVUngVien. Dùng khi ứng viên hỏi: hồ sơ của tôi còn thiếu gì.")]
     public async Task<Response<CandidateProfileCompleteness>> CheckProfileCompletenessAsync(CancellationToken cancellationToken = default)
     {
         var profile = await _sender.Send(new GetMyHoSoUngVienQuery(), cancellationToken);
@@ -36,14 +39,9 @@ internal sealed class CandidateTools
         if (string.IsNullOrWhiteSpace(profile.Data.ViTriUngTuyen)) missing.Add("Vị trí ứng tuyển");
         if (profile.Data.MucLuongMongMuon <= 0) missing.Add("Mức lương mong muốn");
 
-        var cvs = await _sender.Send(new GetAllCVUngViensQuery { _start = 0, _end = 20 }, cancellationToken);
-        var defaultCv = cvs.Data?.FirstOrDefault(x => x.IsDefault);
-        if (defaultCv == null) missing.Add("CV mặc định");
-
         return new Response<CandidateProfileCompleteness>(new CandidateProfileCompleteness
         {
             HoSoUngVienId = profile.Data.Id,
-            CvMacDinhId = defaultCv?.Id,
             ThieuThongTin = missing,
             DaHoanThien = missing.Count == 0
         });
@@ -108,10 +106,19 @@ internal sealed class CandidateTools
         => _sender.Send(new GetTinTuyenDungByIdQuery { Id = tinTuyenDungId }, cancellationToken);
 
     [Description("Lấy các việc làm phù hợp nhất với CV mặc định hoặc CV được chọn, kèm điểm match, kỹ năng khớp và kỹ năng còn thiếu.")]
-    public Task<Response<List<SuggestedJobViewModel>>> GetJobRecommendationsAsync(
+    public async Task<Response<List<SuggestedJobViewModel>>> GetJobRecommendationsAsync(
         [Description("ID CV cần so khớp, bỏ trống để dùng CV mặc định.")] int? cvId = null,
         CancellationToken cancellationToken = default)
-        => _sender.Send(new GetSuggestedJobsForCvQuery { CvUngVienId = cvId, TopN = 10 }, cancellationToken);
+    {
+        var response = await _sender.Send(new GetSuggestedJobsForCvQuery { CvUngVienId = cvId, TopN = 10 }, cancellationToken);
+        if (response.Succeeded && response.Data is not null)
+        {
+            _sharedState.Set("jobRecommendations", response.Data);
+            _sharedState.Set("lastAction", "jobRecommendationsLoaded");
+        }
+
+        return response;
+    }
 
     [Description("Giải thích vì sao CV phù hợp với một tin tuyển dụng. Chỉ trả dữ liệu match thật của tin đó.")]
     public async Task<Response<SuggestedJobViewModel>> ExplainJobMatchAsync(
@@ -169,7 +176,6 @@ internal sealed class CandidateTools
 public sealed class CandidateProfileCompleteness
 {
     public int HoSoUngVienId { get; set; }
-    public int? CvMacDinhId { get; set; }
     public bool DaHoanThien { get; set; }
     public List<string> ThieuThongTin { get; set; } = new();
 }
