@@ -10,6 +10,8 @@ using Casbin;
 using Minio;
 
 var builder = WebApplication.CreateBuilder(args);
+// Serilog dùng chung lifecycle của host (đọc section "Serilog" trong appsettings).
+// Host tự flush log khi shutdown — không tự tạo logger riêng trong Initializer.
 builder.Services.AddAGUIServer();
 // Trên net10, endpoint AG-UI serialize event qua Http.Json.JsonOptions nhưng rule
 // WhenWritingNull của AGUI context không theo resolver vào options này, nên
@@ -29,9 +31,35 @@ var _env = builder.Environment;
 
 _services.AddCors(options =>
 {
+    // Production: chỉ cho phép origin cấu hình rõ ràng qua
+    // Frontend:AllowedOrigins (env Frontend__AllowedOrigins, phân tách bằng ';').
+    // Development: giữ localhost + origin bổ sung nếu có.
+    var configuredOrigins = _config.GetSection("Frontend:AllowedOrigins").Get<string[]>()
+        ?.SelectMany(o => o.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        .Where(o => !string.IsNullOrWhiteSpace(o))
+        .Distinct(StringComparer.OrdinalIgnoreCase)
+        .ToArray() ?? Array.Empty<string>();
+
+    string[] allowedOrigins;
+    if (_env.IsDevelopment())
+    {
+        allowedOrigins = new[] { "http://localhost:3000", "http://127.0.0.1:3000" }
+            .Concat(configuredOrigins)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+    }
+    else
+    {
+        if (configuredOrigins.Length == 0)
+            throw new InvalidOperationException(
+                "Frontend:AllowedOrigins is required in Production. " +
+                "Set the Frontend__AllowedOrigins environment variable (origins separated by ';').");
+        allowedOrigins = configuredOrigins;
+    }
+
     options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.WithOrigins("http://localhost:3000", "http://127.0.0.1:3000") // Cổng dev của Vite/Next/React
+        policy.WithOrigins(allowedOrigins) // Cổng dev của Vite/Next/React
               .AllowAnyHeader()
               .AllowAnyMethod()
               .AllowCredentials();
@@ -51,8 +79,8 @@ _services.AddSingleton(opts=>
 _services.AddEnvironmentVariablesExtension();
 _services.AddIdentityLayer();
 _services.AddApplicationLayer();
-_services.AddNpgSqlIdentityInfrastructure();
-_services.AddNpgSqlPersistenceInfrastructure();
+_services.AddNpgSqlIdentityInfrastructure(_config);
+_services.AddNpgSqlPersistenceInfrastructure(_config);
 _services.AddIdentityRepositories(_config);
 _services.AddPersistenceRepositories();
 _services.AddSharedInfrastructure(_config);
@@ -66,7 +94,7 @@ _services.AddControllers().AddJsonOptions(opts =>
     opts.JsonSerializerOptions.PropertyNamingPolicy = null;
 });
 _services.AddApiVersioningExtension();
-_services.AddHealthChecks();
+// Liveness (luôn 200 khi process sống) + readiness database riêng ở /health/ready.
 _services.AddSignalR();
 _services.AddWebAppServices();
 _services.AddAdamAgents();
@@ -77,11 +105,45 @@ _services.AddEndpointsApiExplorer();
 
 // trước Build() dùng Add sau dùng Use
 var app = builder.Build();
+
+// Thứ tự ưu tiên endpoint lắng nghe: PORT hợp lệ → ASPNETCORE_URLS hiện có → fallback 8080.
+// Chỉ duy nhất một endpoint được cấu hình để tránh xung đột listener.
+var portEnv = Environment.GetEnvironmentVariable("PORT");
+if (int.TryParse(portEnv, out var configuredPort) && configuredPort > 0 && configuredPort <= 65535)
+{
+    app.Urls.Clear();
+    app.Urls.Add($"http://0.0.0.0:{configuredPort}");
+    app.Logger.LogInformation("Backend lắng nghe trên 0.0.0.0:{Port} (biến môi trường PORT).", configuredPort);
+}
+else if (string.IsNullOrWhiteSpace(app.Configuration["URLS"]))
+{
+    app.Urls.Clear();
+    app.Urls.Add("http://0.0.0.0:8080");
+    app.Logger.LogInformation("PORT/ASPNETCORE_URLS chưa cấu hình — fallback 0.0.0.0:8080.");
+}
+// Ngược lại: giữ nguyên ASPNETCORE_URLS hiện có (vd. Docker Compose local http://+:8080).
+
+// Áp dụng X-Forwarded-For/Proto từ reverse proxy TRƯỚC mọi middleware khác.
+app.UseForwardedHeaders();
+
+if (!string.IsNullOrWhiteSpace(portEnv) &&
+    (!int.TryParse(portEnv, out var _parsedPort) || _parsedPort <= 0 || _parsedPort > 65535))
+{
+    app.Logger.LogWarning("Biến môi trường PORT có giá trị không hợp lệ ('{PortValue}') — đã bỏ qua.", portEnv);
+}
+
 if (string.IsNullOrWhiteSpace(app.Configuration["Gemini:ApiKey"]))
 {
     app.Logger.LogWarning(
         "Gemini:ApiKey chưa được khai báo - tính năng parse CV sẽ báo lỗi. "
-        + "Thêm key vào appsettings.Development.json rồi restart backend.");
+        + "Thêm biến môi trường Gemini__ApiKey (local: appsettings.Development.json) rồi restart backend.");
+}
+// Fail-fast sớm khi cấu hình object storage production thiếu/sai: MinioClient.Build()
+// không gọi mạng, chỉ validate Endpoint/Credentials/BucketName.
+if (app.Environment.IsProduction())
+{
+    using var storageValidationScope = app.Services.CreateScope();
+    storageValidationScope.ServiceProvider.GetRequiredService<IMinioClient>();
 }
 using (var scope = app.Services.CreateScope())
 {
@@ -111,7 +173,6 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.UseErrorHandlingMiddleware();
-app.UseHealthChecks("/health");
 // Map Controllers nghiệp vụ
 app.MapControllers();
 

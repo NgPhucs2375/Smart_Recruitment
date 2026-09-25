@@ -1,10 +1,13 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using Casbin;
 using Infrastructure.Identity.Contexts;
 using Infrastructure.Identity.Models;
 using Infrastructure.Persistence.Contexts;
-using Casbin;
-using Serilog;
 
 namespace WebApp.Server.Initializer
 {
@@ -19,25 +22,22 @@ namespace WebApp.Server.Initializer
 
         public async Task InitializeAsync()
         {
-            //Read Configuration from appSettings
-            var config = new ConfigurationBuilder()
-                .AddJsonFile("appsettings.json")
-                .Build();
-            //Initialize Logger
-            Log.Logger = new LoggerConfiguration()
-                .ReadFrom.Configuration(config)
-                .CreateLogger();
+            // Dùng IConfiguration của host (gồm appsettings + env vars), không tự dựng
+            // ConfigurationBuilder riêng để tránh lệch cấu hình production.
+            // Logging dùng ILogger lifecycle của host (Serilog đã wire qua builder.Host).
+            var configuration = _serviceProvider.GetRequiredService<IConfiguration>();
+            var env = _serviceProvider.GetRequiredService<IWebHostEnvironment>();
+            var logger = _serviceProvider.GetRequiredService<ILogger<ApplicationInitializer>>();
             try
             {
                 var dbContext = _serviceProvider.GetRequiredService<ApplicationDbContext>();
-                dbContext.Database.Migrate();
+                await dbContext.Database.MigrateAsync();
                 var identityDbContext = _serviceProvider.GetRequiredService<IdentityContext>();
-                identityDbContext.Database.Migrate();
+                await identityDbContext.Database.MigrateAsync();
 
                 var userManager = _serviceProvider.GetRequiredService<UserManager<ApplicationUser>>();
                 var roleManager = _serviceProvider.GetRequiredService<RoleManager<IdentityRole>>();
                 var appContext = _serviceProvider.GetRequiredService<Application.Interfaces.IApplicationDbContext>();
-                var env = _serviceProvider.GetRequiredService<IWebHostEnvironment>();
 
                 await Infrastructure.Identity.Seeds.DefaultRoles.SeedAsync(userManager, roleManager, env.WebRootPath);
                 await Infrastructure.Identity.Seeds.DefaultSuperAdmin.SeedAsync(userManager, roleManager, appContext);
@@ -81,24 +81,29 @@ namespace WebApp.Server.Initializer
                             if (enforcer != null) await enforcer.LoadPolicyAsync();
                         }
                         catch { /* best-effort */ }
-                        Log.Information("Đã đồng bộ policy.csv cache từ DB: {Count} dòng", allLines.Count);
+                        logger.LogInformation("Đã đồng bộ policy.csv cache từ DB: {Count} dòng", allLines.Count);
                     }
                 }
                 catch (Exception syncEx)
                 {
-                    Log.Warning(syncEx, "Không đồng bộ được policy.csv cache");
+                    logger.LogWarning(syncEx, "Không đồng bộ được policy.csv cache");
                 }
 
-                Log.Information("Đã hoàn thành bơm dữ liệu mặc định!");
-                Log.Information("Ứng dụng đang khởi chạy ...");
+                logger.LogInformation("Đã hoàn thành bơm dữ liệu mặc định!");
+                logger.LogInformation("Ứng dụng đang khởi chạy ...");
             }
             catch (Exception ex)
             {
-                Log.Warning(ex, "Đã xảy ra lỗi khi thêm dữ liệu vào cơ sở dữ liệu!!!");
-            }
-            finally
-            {
-                Log.CloseAndFlush();
+                // Không log connection string / secret: ex.Message của EF/Npgsql không chứa credentials.
+                logger.LogError(ex, "Khởi tạo database/seed thất bại.");
+                if (env.IsProduction())
+                {
+                    // Production: fail-fast để orchestrator (Render) báo deploy lỗi
+                    // thay vì chạy với database nửa vời.
+                    throw new InvalidOperationException(
+                        "Backend không thể khởi động do khởi tạo database thất bại. Xem log để biết chi tiết.", ex);
+                }
+                logger.LogWarning("Tiếp tục khởi động ở môi trường {Environment} dù khởi tạo database thất bại.", env.EnvironmentName);
             }
         }
     }

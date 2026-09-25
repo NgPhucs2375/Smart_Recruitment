@@ -1,10 +1,11 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Application.Interfaces;
 using Application.Interfaces.Repositories;
 using Infrastructure.Persistence.Contexts;
 using Infrastructure.Persistence.Repository;
-using Infrastructure.Shared.Environments;
+using System;
 
 namespace Infrastructure.Persistence
 {
@@ -16,26 +17,29 @@ namespace Infrastructure.Persistence
                 options.UseInMemoryDatabase("ApplicationDb"));
         }
     
-        public static void AddNpgSqlPersistenceInfrastructure(this IServiceCollection services)
+        public static void AddNpgSqlPersistenceInfrastructure(this IServiceCollection services, IConfiguration configuration)
         {
-            var sp = services.BuildServiceProvider();
-            using (var scope = sp.CreateScope())
+            // Config first, raw env var as backward-compatible fallback.
+            // Fail fast here instead of silently skipping AddDbContext.
+            var appConnStr = configuration.GetConnectionString("PostgresConnection");
+            if (string.IsNullOrWhiteSpace(appConnStr))
             {
-                var _dbSetting = scope.ServiceProvider.GetRequiredService<IDatabaseSettingsProvider>();
-                string appConnStr = _dbSetting.GetPostgresConnectionString();
-                if (!string.IsNullOrWhiteSpace(appConnStr))
-                {
-                    services.AddDbContext<ApplicationDbContext>(options =>
-                    options.UseNpgsql(
-                    appConnStr,
-                    b =>
-                    {
-                        b.MigrationsAssembly(typeof(ApplicationDbContext).Assembly.FullName);
-                        b.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery);
-                    }));
-                }
+                appConnStr = Environment.GetEnvironmentVariable("POSTGRES_CONNECTION_STRING");
             }
-            sp.Dispose();
+            if (string.IsNullOrWhiteSpace(appConnStr))
+            {
+                throw new InvalidOperationException(
+                    "PostgreSQL connection string is missing. Set ConnectionStrings:PostgresConnection " +
+                    "(or the POSTGRES_CONNECTION_STRING environment variable) before starting the application.");
+            }
+            services.AddDbContext<ApplicationDbContext>(options =>
+                options.UseNpgsql(
+                appConnStr,
+                b =>
+                {
+                    b.MigrationsAssembly(typeof(ApplicationDbContext).Assembly.FullName);
+                    b.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery);
+                }));
         }
 
         public static void AddPersistenceRepositories(this IServiceCollection services)

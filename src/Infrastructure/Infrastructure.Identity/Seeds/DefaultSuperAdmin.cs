@@ -3,8 +3,8 @@ using Application.Interfaces;
 using Domain.Entities;
 using Domain.Enums;
 using Infrastructure.Identity.Models;
-using System.Linq;
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace Infrastructure.Identity.Seeds
@@ -13,7 +13,7 @@ namespace Infrastructure.Identity.Seeds
     {
         public static async Task SeedAsync(UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager, IApplicationDbContext appContext)
         {
-            //Seed Default User
+            // Seed Default User
             var defaultUser = new ApplicationUser
             {
                 UserName = "superadmin",

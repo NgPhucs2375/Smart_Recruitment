@@ -1,12 +1,24 @@
 import { type NextRequest, NextResponse } from "next/server";
 
 // Proxy /api/hubs/* → .NET /hubs/* (streaming — supports SSE + long polling)
-const DOTNET_API_URL = process.env.DOTNET_API_URL ?? "http://127.0.0.1:8000";
 
+// DOTNET_API_URL bắt buộc: thiếu thì trả 500 rõ ràng, không fallback localhost.
+// Đọc process.env tại thời điểm request để tránh bị cố định rỗng từ lúc build standalone.
+function getDotnetApiUrl(): string {
+  return process.env.DOTNET_API_URL ?? "";
+}
 let reqCounter = 0;
 const nextReqId = () => `hub-${Date.now().toString(36)}-${(++reqCounter).toString(36)}`;
 
 async function proxyHub(req: NextRequest, path: string[]): Promise<NextResponse> {
+  const rawEnv = getDotnetApiUrl();
+  const DOTNET_API_URL = rawEnv.trim();
+  if (!DOTNET_API_URL) {
+    console.warn(
+      `[hub] dotnet_env configured=false len=${rawEnv.length} isHttps=false`,
+    );
+    return NextResponse.json({ error: "dotnet_api_not_configured" }, { status: 500 });
+  }
   const reqId = nextReqId();
   const search = new URL(req.url).search;
   const url = `${DOTNET_API_URL}/api/hubs/${path.join("/")}${search}`;
@@ -25,7 +37,7 @@ async function proxyHub(req: NextRequest, path: string[]): Promise<NextResponse>
       ? await req.text().catch(() => undefined)
       : undefined;
 
-  console.log(`[${reqId}] ${req.method} ${url} (auth=${!!auth})`);
+  console.log(`[${reqId}] ${req.method} /api/hubs/${path.join("/")} (auth=${!!auth})`);
 
   try {
     const upstream = await fetch(url, {
@@ -62,7 +74,11 @@ async function proxyHub(req: NextRequest, path: string[]): Promise<NextResponse>
     });
   } catch (err) {
     console.error(`[${reqId}] fetch error:`, err);
-    return NextResponse.json({ error: "hub_proxy_error", detail: String(err) }, { status: 502 });
+    return NextResponse.json({ error: "hub_proxy_error"
+                              // , detail: String(err) /// dev moi dung prodcution thi khong can tra toi detail, de tranh lo thong tin he thong
+                            }, 
+                            // { status: 502 } /// dev moi dung prodcution thi khong can tra toi detail, de tranh lo thong tin he thong
+                          );
   }
 }
 
