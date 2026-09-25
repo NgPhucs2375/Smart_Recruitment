@@ -84,6 +84,7 @@ _services.AddNpgSqlPersistenceInfrastructure(_config);
 _services.AddIdentityRepositories(_config);
 _services.AddPersistenceRepositories();
 _services.AddSharedInfrastructure(_config);
+_services.AddRedisInfrastructure(_config);
 if (_env.IsDevelopment())
 {
     _services.AddSwaggerExtension();
@@ -94,7 +95,7 @@ _services.AddControllers().AddJsonOptions(opts =>
     opts.JsonSerializerOptions.PropertyNamingPolicy = null;
 });
 _services.AddApiVersioningExtension();
-// Liveness (luôn 200 khi process sống) + readiness database riêng ở /health/ready.
+// Liveness (luôn 200 khi process sống) + readiness dependency ở /health/ready.
 _services.AddSignalR();
 _services.AddWebAppServices();
 _services.AddAdamAgents();
@@ -173,6 +174,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.UseErrorHandlingMiddleware();
+app.MapHealthEndpoints();
 // Map Controllers nghiệp vụ
 app.MapControllers();
 

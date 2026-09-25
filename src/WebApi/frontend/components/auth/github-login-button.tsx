@@ -24,9 +24,9 @@ export function GithubLoginButton({ text = "Tiếp tục với GitHub" }: { text
           <Github className="size-3.5" aria-hidden />
         </span>
         <span className="flex-1 text-center">{text}</span>
-        <span className="rounded-full border border-border bg-muted px-2 py-px text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">
+        {/* <span className="rounded-full border border-border bg-muted px-2 py-px text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">
           Sắp có
-        </span>
+        </span> */}
       </Button>
     </span>
   );

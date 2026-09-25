@@ -25,6 +25,11 @@ services:
     restart: unless-stopped
     ports:
       - "${REDIS_PORT:-6379}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
     networks:
       - kltn_network
 
@@ -80,6 +85,8 @@ services:
       RabbitMq__Port: "5672"
       RabbitMq__VHost: ""
 
+      ConnectionStrings__Redis: redis:6379,abortConnect=false
+
       GROQ_API_KEY: ${GROQ_API_KEY:-dev-placeholder}
 
       # 9Router chạy ngoài compose (network bridge), backend ở kltn_network nên
@@ -102,7 +109,7 @@ services:
       postgres:
         condition: service_healthy
       redis:
-        condition: service_started
+        condition: service_healthy
       rabbitmq:
         condition: service_started
       minio:
