@@ -35,7 +35,7 @@ internal sealed class CvQueryTools
     public async Task<ProfileToolResult> GetMyProfileAsync(
         CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Adam tool get_my_profile started.");
+        _logger.LogInformation("Adam tool get_my_profile đã bắt đầu.");
         try
         {
             var response = await _sender.Send(new GetMyHoSoUngVienQuery(), cancellationToken);
@@ -86,12 +86,20 @@ internal sealed class CvQueryTools
         "Lấy danh sách CV đã lưu của ứng viên đang đăng nhập (mới nhất trước), " +
         "kèm id, tên file, vị trí ứng tuyển, template và CV mặc định. " +
         "Gọi tool này trước khi mở/chỉnh một CV đã lưu để biết cvId.")]
-    public Task<Response<List<GetAllCVUngViensViewModel>>> GetMyCvsAsync(
+    public async Task<Response<List<GetAllCVUngViensViewModel>>> GetMyCvsAsync(
         CancellationToken cancellationToken = default)
     {
-        return _sender.Send(
+        var response = await _sender.Send(
             new GetAllCVUngViensQuery { _start = 0, _end = 20 },
             cancellationToken);
+
+        if (response.Succeeded && response.Data is not null)
+        {
+            _sharedState.Set("myCvs", response.Data);
+            _sharedState.Set("lastAction", "myCvsLoaded");
+        }
+
+        return response;
     }
 
     [Description(

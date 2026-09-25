@@ -6,6 +6,7 @@ using Infrastructure.Shared;
 using WebApp.Server.Agent;
 using WebApp.Server.Extensions;
 using WebApp.Server.Initializer;
+using WebApp.Server.Health;
 using Casbin;
 using Minio;
 
@@ -85,6 +86,9 @@ _services.AddIdentityRepositories(_config);
 _services.AddPersistenceRepositories();
 _services.AddSharedInfrastructure(_config);
 _services.AddRedisInfrastructure(_config);
+_services.AddHealthChecks()
+    .AddCheck<MinioHealthCheck>("object-storage", tags: ["ready"])
+    .AddCheck<AiProviderHealthCheck>("ai-provider", tags: ["telemetry"]);
 if (_env.IsDevelopment())
 {
     _services.AddSwaggerExtension();

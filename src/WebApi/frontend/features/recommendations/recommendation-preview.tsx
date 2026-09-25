@@ -83,12 +83,12 @@ export function RecommendationPreview({ count = 5 }: { count?: number }) {
     <section className="rounded-3xl border border-primary/20 bg-primary/[0.04] p-5 sm:p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-primary"><Sparkles className="size-3.5" /> Adam đề xuất</p>
-          <h2 className="mt-2 text-xl font-semibold tracking-tight">Dành cho bạn</h2>
-          <p className="mt-1 text-sm text-muted-foreground">Dựa trên CV mặc định và kỹ năng của bạn.</p>
+          <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-primary"><Sparkles className="size-3.5" /> Adam gợi ý cho bạn</p>
+          <h2 className="mt-2 text-xl font-semibold tracking-tight">Việc làm phù hợp với cv của bạn</h2>
+          {/* <p className="mt-1 text-sm text-muted-foreground">Dựa trên CV mặc định và kỹ năng của bạn.</p> */}
         </div>
         <Link href="/viec-lam/phu-hop" className="flex items-center gap-1 text-sm font-medium text-primary hover:underline">
-          Xem tất cả <ArrowUpRight className="size-4" />
+          Xem thêm việc phù hợp <ArrowUpRight className="size-4" />
         </Link>
       </div>
       {loading ? (
@@ -99,9 +99,9 @@ export function RecommendationPreview({ count = 5 }: { count?: number }) {
         <p className="mt-5 rounded-2xl border border-destructive/20 bg-card px-4 py-4 text-sm text-muted-foreground">{error}</p>
       ) : items.length === 0 ? (
         <div className="mt-5 rounded-2xl border border-border bg-card px-4 py-5">
-          <p className="text-sm font-medium">Chưa có gợi ý việc làm.</p>
-          <p className="mt-1 text-sm text-muted-foreground">Hãy tạo hoặc chọn CV mặc định để Adam tìm việc phù hợp cho bạn.</p>
-          <Link href="/CV" className="mt-3 inline-flex text-sm font-medium text-primary underline underline-offset-4">Mở workspace CV</Link>
+          <p className="text-sm font-medium">Adam chưa tìm thấy việc phù hợp cho bạn.</p>
+          <p className="mt-1 text-sm text-muted-foreground">Hoàn thiện hoặc chọn CV mặc định để Adam phân tích và đề xuất những cơ hội phù hợp hơn.</p>
+          <Link href="/CV" className="mt-3 inline-flex text-sm font-medium text-primary underline underline-offset-4">Hoàn thiện CV</Link>
         </div>
       ) : (
         <div className="mt-5 grid gap-3 md:grid-cols-2">

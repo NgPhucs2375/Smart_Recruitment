@@ -58,7 +58,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="vi" suppressHydrationWarning className={`${sans.variable} ${mono.variable}`}>
+    <html lang="vi" suppressHydrationWarning data-scroll-behavior="smooth" className={`${sans.variable} ${mono.variable}`}>
       <body className="antialiased">
         <a
           href="#main-content"

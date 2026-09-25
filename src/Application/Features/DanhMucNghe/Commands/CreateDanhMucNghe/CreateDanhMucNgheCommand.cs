@@ -1,7 +1,9 @@
 using Application.Interfaces;
 using Application.Wrappers;
+using Application.Features.DanhMucNghe.Cache;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Distributed;
 using DanhMucNgheEntity = global::Domain.Entities.DanhMucNghe;
 
 namespace Application.Features.DanhMucNghe.Commands.CreateDanhMucNghe;
@@ -14,7 +16,8 @@ public class CreateDanhMucNgheCommand : IRequest<Response<int>>
 }
 
 public class CreateDanhMucNgheCommandHandler(
-    IApplicationDbContext context)
+    IApplicationDbContext context,
+    IDistributedCache cache)
     : IRequestHandler<CreateDanhMucNgheCommand, Response<int>>
 {
     public async Task<Response<int>> Handle(
@@ -47,6 +50,11 @@ public class CreateDanhMucNgheCommandHandler(
             cancellationToken);
 
         await context.SaveChangesAsync(
+            cancellationToken);
+
+        await cache.SetStringAsync(
+            DanhMucNgheCache.VersionKey,
+            Guid.NewGuid().ToString("N"),
             cancellationToken);
 
         return new Response<int>(

@@ -1,6 +1,8 @@
 using Application.Interfaces;
 using Application.Wrappers;
+using Application.Features.KyNang.Cache;
 using MediatR;
+using Microsoft.Extensions.Caching.Distributed;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -12,7 +14,8 @@ namespace Application.Features.KyNang.Commands.DeleteKyNang
     }
 
     public class DeleteKyNangByIdCommandHandler(
-        IApplicationDbContext context)
+        IApplicationDbContext context,
+        IDistributedCache cache)
         : IRequestHandler<DeleteKyNangByIdCommand, Response<int>>
     {
         public async Task<Response<int>> Handle(
@@ -31,6 +34,11 @@ namespace Application.Features.KyNang.Commands.DeleteKyNang
             context.KyNangs.Remove(entity);
 
             await context.SaveChangesAsync(
+                cancellationToken);
+
+            await cache.SetStringAsync(
+                KyNangCache.VersionKey,
+                Guid.NewGuid().ToString("N"),
                 cancellationToken);
 
             return new Response<int>(

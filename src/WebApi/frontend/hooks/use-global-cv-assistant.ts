@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter, usePathname } from "next/navigation";
+import { useEffect } from "react";
 import { useAgentContext, useFrontendTool } from "@copilotkit/react-core/v2";
 import { z } from "zod";
 import { toast } from "sonner";
@@ -10,6 +11,13 @@ import {
   savePendingCvPatch,
   type PendingSectionPatch,
 } from "@/features/ai-cv/cv-assistant-state";
+import { getNavigableRoute, type NavigablePage } from "@/components/navigation/navigation-routes";
+import {
+  CV_FOCUS_SECTIONS,
+  getCvFocusSectionLabel,
+  requestCvSectionFocus,
+  type CvFocusSection,
+} from "@/features/ai-cv/cv-focus";
 
 /**
  * Global Adam bridge: mount MỘT lần trong CopilotProvider (protected layout).
@@ -21,6 +29,7 @@ import {
  *
  * Hook này luôn sẵn sàng ở mọi trang protected:
  * - expose `route` context để agent biết user đang ở đâu,
+ * - expose `navigateTo` để điều hướng tới page hợp lệ,
  * - expose `navigateToCvEditor` để agent lưu nháp + nhảy vào /CV.
  * Khi đã ở /CV, useCvAssistant lo điền trực tiếp; tool này chỉ là fallback.
  */
@@ -53,10 +62,50 @@ const navigateSchema = z.object({
     .describe("ID mẫu: minimal-ats hoặc tech-modern. Bỏ trống để giữ mặc định."),
 });
 
+const pageSchema = z.object({
+  page: z.enum([
+    "dashboard",
+    "jobs",
+    "saved-jobs",
+    "applied-jobs",
+    "matching-jobs",
+    "job-messages",
+    "my-profile",
+    "cv-editor",
+    "cv-import",
+    "cv-templates",
+    "candidates",
+    "employees",
+    "recruiter-profile",
+    "companies",
+    "reports",
+    "settings",
+    "admin-users",
+    "admin-companies",
+    "admin-jobs",
+    "admin-rules",
+    "admin-categories",
+    "admin-banners",
+    "admin-permissions",
+  ]).describe("Page key trong danh sách route được phép. Không truyền URL.")
+});
+
+const focusSectionSchema = z.object({
+  section: z.enum([...CV_FOCUS_SECTIONS, "skill"] as [string, ...string[]]).describe(
+    "Section cần đưa vào tầm nhìn: contact, experience, education, skills (hoặc skill), projects hoặc certificates.",
+  ),
+});
+
 export function useGlobalCvAssistant({ enabled = true }: { enabled?: boolean } = {}) {
   const router = useRouter();
   const pathname = usePathname();
   const isEditor = pathname?.startsWith("/tao-cv") || pathname?.startsWith("/CV") || false;
+
+  // Warm the editor chunk while the user is still chatting. This removes the
+  // compile/fetch gap when navigateToCvEditor is called by a frontend tool.
+  useEffect(() => {
+    if (enabled && !isEditor) void router.prefetch("/CV");
+  }, [enabled, isEditor, router]);
 
   useAgentContext({
     description:
@@ -72,11 +121,61 @@ export function useGlobalCvAssistant({ enabled = true }: { enabled?: boolean } =
 
   useFrontendTool(
     {
+      name: "navigateTo",
+      description:
+        "Điều hướng user tới đúng page trong ứng dụng. Chỉ dùng khi user yêu cầu mở, đi tới hoặc chuyển sang một chức năng. " +
+        "Không dùng cho flow tạo CV có dữ liệu; flow đó phải gọi navigateToCvEditor. Không truyền URL, chỉ truyền page key. " +
+        "Mapping quan trọng: saved-jobs = việc làm đã lưu, applied-jobs = việc làm đã ứng tuyển, matching-jobs = việc làm phù hợp, " +
+        "cv-editor = soạn CV, cv-templates = mẫu CV, my-profile = hồ sơ cá nhân.",
+      agentId: "default",
+      parameters: pageSchema,
+      available: enabled,
+      handler: async ({ page }) => {
+        const destination = getNavigableRoute(page as NavigablePage);
+        if (!destination) return `Không tìm thấy page hợp lệ cho ${page}.`;
+
+        if (pathname === destination.href) {
+          return `User đang ở page ${destination.label}.`;
+        }
+
+        await router.prefetch(destination.href);
+        toast.success(`Đang mở ${destination.label}.`);
+        window.setTimeout(() => router.push(destination.href), 0);
+        return `Đã xác nhận điều hướng tới ${destination.label}.`;
+      },
+    },
+    [enabled, pathname, router],
+  );
+
+  useFrontendTool(
+    {
+      name: "focusSection",
+      description:
+        "Đưa một section CV vào tầm nhìn của user để Adam chỉ đúng phần đang thiếu hoặc yếu. " +
+        "Tool sẽ tự scroll tới section, highlight rõ trong khoảng 2-3 giây rồi fade dần. " +
+        "Dùng sau khi phân tích CV và chỉ gọi với section cụ thể, không dùng thay cho câu trả lời nhận xét.",
+      agentId: "default",
+      parameters: focusSectionSchema,
+      available: enabled,
+      handler: async ({ section }) => {
+        const normalizedSection = section === "skill" ? "skills" : section;
+        const label = getCvFocusSectionLabel(normalizedSection as CvFocusSection);
+        if (!isEditor) return `Chưa thể focus ${label} vì user chưa mở trình soạn CV.`;
+        requestCvSectionFocus(normalizedSection as CvFocusSection);
+        return `Đã đưa phần ${label} vào tầm nhìn và highlight để user kiểm tra.`;
+      },
+    },
+    [enabled, isEditor],
+  );
+
+  useFrontendTool(
+    {
       name: "navigateToCvEditor",
       description:
         "Lưu nháp CV rồi mở workspace /CV. " +
         "BẮT BUỘC gọi khi user nói 'tạo CV / CV mới / tạo CV với tên là X' mà isEditor=false. " +
         "Sau khi gọi, báo user đang mở trình soạn và liệt kê đã lưu gì.",
+      agentId: "default",
       parameters: navigateSchema,
       available: enabled,
       handler: async ({ tenFile, hoTen, contact, sections, templateId }) => {
@@ -141,7 +240,9 @@ export function useGlobalCvAssistant({ enabled = true }: { enabled?: boolean } =
               ? `Đã lưu ${savedBits.join(", ")} — đang mở trình soạn CV.`
               : "Đang mở trình soạn CV.",
           );
-          router.push("/CV");
+          // Let the tool result finish before unmounting CopilotChat; otherwise
+          // navigation can interrupt the final AG-UI tool response.
+          window.setTimeout(() => router.push("/CV"), 0);
         } else {
           // Đã ở editor: pending-patch sẽ được useCvAssistant đổ vào form ngay.
           toast.success(

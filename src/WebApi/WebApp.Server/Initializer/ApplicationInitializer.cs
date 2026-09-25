@@ -46,6 +46,13 @@ namespace WebApp.Server.Initializer
                 await Infrastructure.Identity.Seeds.DefaultDemoData.SeedAsync(userManager, appContext);
                 await Infrastructure.Identity.Seeds.DefaultBulkTestAccounts.SeedAsync(userManager, appContext);
 
+                if (env.IsDevelopment())
+                {
+                    var fileStorage = _serviceProvider.GetRequiredService<Application.Interfaces.IFileStorageService>();
+                    await MarketingBannerSeeder.SeedAsync(dbContext, fileStorage);
+                    logger.LogInformation("Đã seed banner marketing demo cho môi trường Development.");
+                }
+
                 // Regenerate wwwroot/policy.csv cache từ DB (DB là truth, file là cache RAM) — chỉ 4 role chuẩn VaiTroNguoiDung.cs
                 try
                 {

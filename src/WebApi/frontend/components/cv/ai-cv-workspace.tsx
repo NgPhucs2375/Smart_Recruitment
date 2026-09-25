@@ -1,9 +1,8 @@
 "use client";
 
-import { useRef, useState, type Dispatch, type RefObject, type SetStateAction } from "react";
-import { CopilotChat, useConfigureSuggestions } from "@copilotkit/react-core/v2";
-import { useRouter } from "next/navigation";
-import { FileDown, FilePlus2, FileText, LayoutTemplate, Save, Sparkles, ZoomIn, ZoomOut } from "lucide-react";
+import { useEffect, useRef, useState, type Dispatch, type RefObject, type SetStateAction } from "react";
+import { CopilotChat } from "@copilotkit/react-core/v2";
+import { CheckCircle2, FileDown, FilePlus2, FileText, Save, Sparkles, ZoomIn, ZoomOut } from "lucide-react";
 import { toast } from "sonner";
 
 import { CvDocument } from "@/components/cv/cv-document";
@@ -13,23 +12,31 @@ import { DEFAULT_TEMPLATE_ID, TEMPLATE_REGISTRY } from "@/features/tao-cv/templa
 import { useCvAssistant } from "@/hooks/use-cv-assistant";
 import { cvApi } from "@/lib/api/cv-api";
 import type { CvFormData } from "@/lib/types";
-
-const CHAT_SUGGESTIONS = [
-  { title: "Tạo CV từ đầu", message: "Hãy giúp tôi tạo một CV mới. Hỏi tôi các thông tin còn thiếu theo từng bước." },
-  { title: "Điền liên hệ", message: "Hãy hỏi tôi các thông tin liên hệ còn thiếu và điền trực tiếp vào CV." },
-  { title: "Tối ưu ATS", message: "Hãy kiểm tra CV hiện tại và áp dụng các cải thiện giúp CV thân thiện với ATS." },
-  { title: "Viết lại kinh nghiệm", message: "Hãy viết lại phần kinh nghiệm hiện tại theo hướng định lượng thành tích, không bịa thông tin." },
-];
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import { adamMessageView } from "@/components/ai/adam-markdown";
+import { focusCvSectionInDom, getCvFocusEventName, type CvFocusSection } from "@/features/ai-cv/cv-focus";
 
 const cloneDefaultCv = (): CvFormData => JSON.parse(JSON.stringify(defaultCvData)) as CvFormData;
 
 export function AiCvWorkspace() {
-  const router = useRouter();
   const documentRef = useRef<HTMLDivElement>(null);
   const [cvData, setCvData] = useState<CvFormData>(cloneDefaultCv);
   const [zoom, setZoom] = useState(1);
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
+
+  useEffect(() => {
+    const onFocus = (event: Event) => {
+      const section = (event as CustomEvent<{ section?: unknown }>).detail?.section;
+      if (typeof section === "string") focusCvSectionInDom(section as CvFocusSection);
+    };
+    window.addEventListener(getCvFocusEventName(), onFocus);
+    return () => window.removeEventListener(getCvFocusEventName(), onFocus);
+  }, []);
 
   useCvAssistant({
     data: cvData,
@@ -65,19 +72,25 @@ export function AiCvWorkspace() {
     <main className="cv-workspace">
       <header className="cv-workspace__topbar">
         <div className="cv-workspace__title">
-          <span className="cv-workspace__eyebrow"><Sparkles size={14} /> AI CV WORKSPACE</span>
-          <h1>Tạo CV cùng Adam</h1>
+          <div className="cv-workspace__brandmark"><Sparkles className="size-4" /></div>
+          <div>
+            <span className="cv-workspace__eyebrow">AI CV STUDIO</span>
+            <h1>Tạo CV cùng Adam</h1>
+          </div>
         </div>
         <div className="cv-workspace__actions">
-          <span className={dirty ? "cv-status cv-status--dirty" : "cv-status"}>{dirty ? "Chưa lưu" : "Sẵn sàng"}</span>
-          <button type="button" className="cv-button cv-button--quiet" onClick={resetCv}><FilePlus2 size={15} /> CV mới</button>
-          <button type="button" className="cv-button cv-button--primary" disabled={saving} onClick={saveCv}><Save size={15} /> {saving ? "Đang lưu" : "Lưu CV"}</button>
+          <Badge variant={dirty ? "secondary" : "outline"} className="cv-status">
+            <span className={dirty ? "cv-status__dot cv-status__dot--dirty" : "cv-status__dot"} />
+            {dirty ? "Chưa lưu thay đổi" : "Đã sẵn sàng"}
+          </Badge>
+          <Separator orientation="vertical" className="hidden h-6 sm:block" />
+          <Button type="button" variant="outline" size="sm" onClick={resetCv}><FilePlus2 className="size-4" /> <span className="hidden sm:inline">CV mới</span></Button>
+          <Button type="button" size="sm" disabled={saving} onClick={saveCv}><Save className="size-4" /> {saving ? "Đang lưu" : "Lưu CV"}</Button>
         </div>
       </header>
 
       <div className="cv-workspace__body">
         <aside className="cv-assistant-column">
-          <AssistantGuide router={router} />
           <ChatPanel />
         </aside>
         <PreviewPanel data={cvData} zoom={zoom} setZoom={setZoom} documentRef={documentRef} onTemplateChange={(templateId) => { setCvData((current) => ({ ...current, templateId })); setDirty(true); }} />
@@ -86,25 +99,17 @@ export function AiCvWorkspace() {
   );
 }
 
-function AssistantGuide({ router }: { router: ReturnType<typeof useRouter> }) {
-  return (
-    <section className="cv-guide">
-      <div className="cv-guide__heading"><span className="cv-avatar"><Sparkles size={16} /></span><div><strong>Adam</strong><span>Trợ lý CV của bạn</span></div></div>
-      <p className="cv-guide__description">Nói cho Adam biết mục tiêu của bạn. Tôi sẽ cập nhật nội dung và preview ngay trong workspace.</p>
-      <div className="cv-guide__steps"><span><b>1</b> Nói yêu cầu</span><span><b>2</b> Kiểm tra preview</span><span><b>3</b> Tự quyết định lưu</span></div>
-      <button type="button" className="cv-link-button" onClick={() => router.push("/mau-cv")}><LayoutTemplate size={14} /> Xem thư viện mẫu</button>
-    </section>
-  );
-}
-
 function ChatPanel() {
-  useConfigureSuggestions({ suggestions: CHAT_SUGGESTIONS, available: "before-first-message", consumerAgentId: "default" });
   return (
     <section className="cv-chat">
-      <div className="cv-chat__bar"><div><strong>Trò chuyện với Adam</strong><span>Thay đổi CV realtime</span></div><span className="cv-online"><i /> Online</span></div>
+      <div className="cv-chat__bar">
+        <div className="cv-chat__identity"><span className="cv-avatar"><Sparkles className="size-4" /></span><div><strong>Adam</strong><span>Trợ lý tạo CV · Realtime</span></div></div>
+        <span className="cv-online"><i /> Online</span>
+      </div>
       <div className="cv-chat__content">
         <CopilotChat
           className="cv-chat__copilot"
+          messageView={adamMessageView}
           labels={{ welcomeMessageText: "Bạn muốn bắt đầu với phần nào của CV?", chatInputPlaceholder: "Nhập yêu cầu cho Adam..." }}
         />
       </div>
@@ -115,23 +120,28 @@ function ChatPanel() {
 function PreviewPanel({ data, zoom, setZoom, documentRef, onTemplateChange }: { data: CvFormData; zoom: number; setZoom: Dispatch<SetStateAction<number>>; documentRef: RefObject<HTMLDivElement | null>; onTemplateChange: (templateId: string) => void }) {
   const template = TEMPLATE_REGISTRY[data.templateId];
   return (
-    <section className="cv-preview">
+    <Card className="cv-preview">
       <div className="cv-preview__bar">
         <div className="cv-preview__label"><FileText size={16} /><strong>Preview CV</strong><span>Realtime</span></div>
-        <select value={data.templateId} onChange={(event) => onTemplateChange(event.target.value)} aria-label="Chọn mẫu CV"><option value="">Chọn mẫu</option>{Object.values(TEMPLATE_REGISTRY).map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select>
-        <div className="cv-zoom"><button type="button" aria-label="Thu nhỏ" disabled={zoom <= 0.8} onClick={() => setZoom((value) => Math.max(0.8, +(value - 0.1).toFixed(2)))}><ZoomOut size={14} /></button><span>{Math.round(zoom * 100)}%</span><button type="button" aria-label="Phóng to" disabled={zoom >= 1.2} onClick={() => setZoom((value) => Math.min(1.2, +(value + 0.1).toFixed(2)))}><ZoomIn size={14} /></button></div>
-        <button type="button" className="cv-button cv-button--quiet" onClick={() => window.print()}><FileDown size={15} /> PDF</button>
+         <Select value={data.templateId} onValueChange={(value) => { if (value !== null) onTemplateChange(value); }}>
+           <SelectTrigger className="h-9 w-44" aria-label="Chọn mẫu CV"><SelectValue placeholder="Chọn mẫu" /></SelectTrigger>
+           <SelectContent>
+             {Object.values(TEMPLATE_REGISTRY).map((item) => <SelectItem key={item.id} value={item.id}>{item.name}</SelectItem>)}
+           </SelectContent>
+         </Select>
+         <div className="cv-zoom"><Button variant="ghost" size="icon-sm" type="button" aria-label="Thu nhỏ" disabled={zoom <= 0.8} onClick={() => setZoom((value) => Math.max(0.8, +(value - 0.1).toFixed(2)))}><ZoomOut className="size-4" /></Button><span>{Math.round(zoom * 100)}%</span><Button variant="ghost" size="icon-sm" type="button" aria-label="Phóng to" disabled={zoom >= 1.2} onClick={() => setZoom((value) => Math.min(1.2, +(value + 0.1).toFixed(2)))}><ZoomIn className="size-4" /></Button></div>
+         <Button variant="outline" size="sm" type="button" onClick={() => window.print()}><FileDown className="size-4" /> PDF</Button>
       </div>
       <div className="cv-preview__canvas">
         {hasPreviewContent(data) ? <div className="cv-document" style={{ width: `${100 / zoom}%`, transform: `scale(${zoom})` }}><CvDocument data={data} documentRef={documentRef} /></div> : <EmptyPreview />}
       </div>
       <div className="cv-preview__footer"><span>{template?.name ?? DEFAULT_TEMPLATE_ID}</span><span>Chỉ lưu khi bạn bấm Lưu CV</span></div>
-    </section>
+    </Card>
   );
 }
 
 function EmptyPreview() {
-  return <div className="cv-empty"><FileText size={28} /><strong>Preview sẽ xuất hiện ở đây</strong><span>Hãy trò chuyện với Adam để bắt đầu điền CV.</span></div>;
+  return <div className="cv-empty"><span className="cv-empty__icon"><FileText className="size-7" /></span><strong>Preview sẽ xuất hiện ở đây</strong><span>Hãy trò chuyện với Adam hoặc chọn mẫu để bắt đầu.</span><div className="cv-empty__hint"><CheckCircle2 className="size-4" /> Nội dung được cập nhật realtime</div></div>;
 }
 
 function hasPreviewContent(data: CvFormData) {

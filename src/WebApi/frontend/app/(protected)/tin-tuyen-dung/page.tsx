@@ -6,6 +6,7 @@ import { useGetIdentity } from "@refinedev/core";
 import { Briefcase, Plus, Pencil, Trash2, X, Send, Pause, Play, Lock, Users, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { AdminPageLayout, AdminPageHeader, AdminCard, AdminCardHeader, AdminEmptyState, AdminLoadingState } from "@/components/admin/admin-page-layout";
 import { Badge } from "@/components/ui/badge";
@@ -351,15 +352,13 @@ export default function TinTuyenDungPage() {
             </div>
             <div className="space-y-2">
               <Label>Danh mục nghề *</Label>
-              <select
-                value={form.danhMucNgheId}
-                onChange={e => setForm(f => ({ ...f, danhMucNgheId: Number(e.target.value) }))}
-                required
-                className="flex h-10 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                <option value={0}>-- Chọn danh mục nghề --</option>
-                {danhMucs.map(d => <option key={d.id} value={d.id}>{d.tenNghe}</option>)}
-              </select>
+              <Select value={String(form.danhMucNgheId)} onValueChange={value => setForm(f => ({ ...f, danhMucNgheId: Number(value) }))}>
+                <SelectTrigger className="h-10 w-full"><SelectValue placeholder="-- Chọn danh mục nghề --" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="0">-- Chọn danh mục nghề --</SelectItem>
+                  {danhMucs.map(d => <SelectItem key={d.id} value={String(d.id)}>{d.tenNghe}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2">
               <Label>Địa điểm *</Label>
@@ -367,16 +366,15 @@ export default function TinTuyenDungPage() {
             </div>
             <div className="space-y-2">
               <Label>Phương thức làm việc *</Label>
-              <select
-                value={form.phuongThucLamViec}
-                onChange={e => setForm(f => ({ ...f, phuongThucLamViec: Number(e.target.value) }))}
-                className="flex h-10 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                <option value={0}>Onsite</option>
-                <option value={1}>Remote</option>
-                <option value={2}>Hybrid</option>
-                <option value={3}>Flexible</option>
-              </select>
+              <Select value={String(form.phuongThucLamViec)} onValueChange={value => setForm(f => ({ ...f, phuongThucLamViec: Number(value) }))}>
+                <SelectTrigger className="h-10 w-full"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="0">Onsite</SelectItem>
+                  <SelectItem value="1">Remote</SelectItem>
+                  <SelectItem value="2">Hybrid</SelectItem>
+                  <SelectItem value="3">Flexible</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2">
               <Label>Ngày hết hạn</Label>

@@ -1,7 +1,9 @@
 using Application.Interfaces;
 using Application.Wrappers;
+using Application.Features.DanhMucNghe.Cache;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Distributed;
 
 namespace Application.Features.DanhMucNghe.Commands.UpdateDanhMucNghe;
 
@@ -15,7 +17,8 @@ public class UpdateDanhMucNgheCommand : IRequest<Response<int>>
 }
 
 public class UpdateDanhMucNgheCommandHandler(
-    IApplicationDbContext context)
+    IApplicationDbContext context,
+    IDistributedCache cache)
     : IRequestHandler<UpdateDanhMucNgheCommand, Response<int>>
 {
     public async Task<Response<int>> Handle(
@@ -50,6 +53,11 @@ public class UpdateDanhMucNgheCommandHandler(
         entity.MoTa = request.MoTa?.Trim();
 
         await context.SaveChangesAsync(
+            cancellationToken);
+
+        await cache.SetStringAsync(
+            DanhMucNgheCache.VersionKey,
+            Guid.NewGuid().ToString("N"),
             cancellationToken);
 
         return new Response<int>(

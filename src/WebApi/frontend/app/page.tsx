@@ -408,9 +408,10 @@ export default function LandingPage() {
               <div className="grid gap-3 sm:grid-cols-2">
                 <label className="relative">
                   <Mail className="absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-mist" />
-                  <input
-                    type="email"
-                    required
+                   <input
+                     type="email"
+                     autoComplete="username"
+                     required
                     value={loginEmail}
                     onChange={(event) => setLoginEmail(event.target.value)}
                     placeholder="Email"

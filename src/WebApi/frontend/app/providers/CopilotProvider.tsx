@@ -15,6 +15,7 @@ import { usePathname } from "next/navigation";
 import { getAuthToken, getValidToken } from "@/lib/auth-provider";
 import { useGlobalCvAssistant } from "@/hooks/use-global-cv-assistant";
 import { useStoredIdentity } from "@/hooks/use-stored-identity";
+import { adamMessageView } from "@/components/ai/adam-markdown";
 
 const CHAT_SUGGESTIONS = [
   { title: "Tạo CV từ đầu", message: "Hãy giúp tôi tạo một CV mới. Hỏi tôi các thông tin còn thiếu theo từng bước." },
@@ -59,11 +60,41 @@ function formatSalary(min: number, max: number) {
 function parseJobRecommendations(result: string | undefined): JobRecommendation[] {
   if (!result) return [];
   try {
-    const parsed = JSON.parse(result) as { data?: unknown };
-    return Array.isArray(parsed.data) ? parsed.data as JobRecommendation[] : [];
+    const parsed = JSON.parse(result) as { data?: unknown; Data?: unknown };
+    const data = parsed.data ?? parsed.Data;
+    if (!Array.isArray(data)) return [];
+
+    const seenIds = new Set<number>();
+    return data.flatMap((value): JobRecommendation[] => {
+      if (!value || typeof value !== "object") return [];
+      const item = value as Record<string, unknown>;
+      const tinTuyenDungId = Number(item.tinTuyenDungId ?? item.TinTuyenDungId);
+      if (!Number.isInteger(tinTuyenDungId) || tinTuyenDungId <= 0 || seenIds.has(tinTuyenDungId)) return [];
+
+      seenIds.add(tinTuyenDungId);
+      return [{
+        tinTuyenDungId,
+        tieuDe: String(item.tieuDe ?? item.TieuDe ?? "Tin tuyển dụng"),
+        tenDoanhNghiep: String(item.tenDoanhNghiep ?? item.TenDoanhNghiep ?? "Doanh nghiệp chưa cập nhật"),
+        diaDiemLamViec: String(item.diaDiemLamViec ?? item.DiaDiemLamViec ?? ""),
+        luongToiThieu: Number(item.luongToiThieu ?? item.LuongToiThieu ?? 0) || 0,
+        luongToiDa: Number(item.luongToiDa ?? item.LuongToiDa ?? 0) || 0,
+        diemPhuHop: Number(item.diemPhuHop ?? item.DiemPhuHop ?? 0) || 0,
+      }];
+    });
   } catch {
     return [];
   }
+}
+
+function normalizeRecruitmentJobs(jobs: RecruitmentJobState[]) {
+  const seenIds = new Set<number>();
+  return jobs.filter((job) => {
+    const id = Number(job.tinTuyenDungId);
+    if (!Number.isInteger(id) || id <= 0 || seenIds.has(id)) return false;
+    seenIds.add(id);
+    return true;
+  });
 }
 
 function GlobalCvAssistantMount() {
@@ -133,7 +164,7 @@ function ToolActivityMount() {
 function SharedStateMount() {
   const { agent, isReady } = useAgent({ agentId: "default" });
   const state = (agent.state ?? {}) as SharedAgentState;
-  const jobs = state.recruitmentJobs ?? [];
+  const jobs = normalizeRecruitmentJobs(state.recruitmentJobs ?? []);
 
   useEffect(() => {
     if (!isReady) return;
@@ -240,12 +271,13 @@ export function CopilotProvider({ children }: { children: React.ReactNode }) {
       {children}
       <InitialPopupState />
       <GlobalCvAssistantMount />
-      <ToolActivityMount />
+      <ToolActivityMount /> 
       <SharedStateMount />
       <CopilotPopup
         defaultOpen={false}
         width="min(92vw, 650px)"
         height="min(88vh, 1100px)"
+        messageView={adamMessageView}
         clickOutsideToClose
         toggleButton={{
           className: "adam-chat-toggle",

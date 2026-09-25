@@ -73,7 +73,6 @@ services:
       ASPNETCORE_URLS: http://+:8080
 
       ConnectionStrings__PostgresConnection: Host=postgres;Port=5432;Database=smart_recruitment_db;Username=postgres;Password=${POSTGRES_PASSWORD:-SuperStrongPassword123!}
-
       JWTSettings__Key: ${JWT_KEY:-UmVjcnVpdG1lbnRTbWFydC1EZXZlbG9wbWVudC1KV1QtS2V5LTIwMjYtQ2hhbmdlLU1l}
       JWTSettings__Issuer: ${JWT_ISSUER:-Identity}
       JWTSettings__Audience: ${JWT_AUDIENCE:-IdentityUser}
@@ -91,8 +90,10 @@ services:
 
       # 9Router chạy ngoài compose (network bridge), backend ở kltn_network nên
       # localhost:20128 trong container != host. Dùng host-gateway để tới 9Router.
-      Ai__Endpoint: http://host.docker.internal:20128/v1
-      Ai__Model: Ahihi
+      # 9Router is an external container joined to proj_cv_kltn_network.
+      Ai__Endpoint: http://9router:20128/v1
+      Ai__Model: gemini/gemini-2.5-flash-lite
+      # Ahihi
 
       Minio__Endpoint: minio:9000
       Minio__PublicEndpoint: localhost:9000

@@ -1,7 +1,9 @@
 using Application.Interfaces;
 using Application.Wrappers;
+using Application.Features.CVUngVien.Cache;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Distributed;
 
 namespace Application.Features.CVUngVien.Commands.SetDefaultCVUngVien;
 
@@ -12,7 +14,8 @@ public sealed class SetDefaultCVUngVienCommand : IRequest<Response<int>>
 
 public sealed class SetDefaultCVUngVienCommandHandler(
     IApplicationDbContext context,
-    ICurrentNguoiDungService currentNguoiDungService)
+    ICurrentNguoiDungService currentNguoiDungService,
+    IDistributedCache cache)
     : IRequestHandler<SetDefaultCVUngVienCommand, Response<int>>
 {
     public async Task<Response<int>> Handle(
@@ -42,6 +45,11 @@ public sealed class SetDefaultCVUngVienCommandHandler(
         context.CVUngViens.UpdateRange(oldDefaults);
         context.CVUngViens.Update(cv);
         await context.SaveChangesAsync(cancellationToken);
+        await CVUngVienListCache.InvalidateAsync(
+            cache,
+            currentUser.Id,
+            cancellationToken,
+            oldDefaults.Select(x => x.Id).Append(cv.Id).ToArray());
 
         return new Response<int>(cv.Id, "Đã đặt CV làm mặc định.");
     }

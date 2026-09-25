@@ -46,6 +46,7 @@ namespace Infrastructure.Persistence.Contexts
         public DbSet<global::KyNangUngVien> KyNangUngViens { get; set; }
         public DbSet<Conversation> Conversations { get; set; }
         public DbSet<Message> Messages { get; set; }
+        public DbSet<MarketingBanner> MarketingBanners { get; set; }
 
         public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = new CancellationToken())
         {

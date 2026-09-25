@@ -3,16 +3,20 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { FileText, Send, Bookmark, ArrowUpRight, ArrowRight, Sparkles, Building2, Clock, ChevronRight, TrendingUp, LayoutDashboard, Briefcase, Users, Plus, UserPlus, Eye, ListTodo, Bell, CheckCircle2, Circle, XCircle, BarChart3, Filter, AlertTriangle } from "lucide-react";
+import { FileText, Send, Bookmark, ArrowRight, Clock, ChevronRight, TrendingUp, LayoutDashboard, Briefcase, Users, Plus, UserPlus, Eye, ListTodo, Bell, BarChart3, Filter, AlertTriangle } from "lucide-react";
 import { AdminPageLayout, AdminPageHeader, AdminCard, AdminCardHeader, AdminLoadingState, AdminErrorState } from "@/components/admin/admin-page-layout";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { Calendar } from "@/components/ui/calendar";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useStoredIdentity } from "@/hooks/use-stored-identity";
 import { useBookmarks } from "@/hooks/use-bookmarks";
 import { RecommendationPreview } from "@/features/recommendations/recommendation-preview";
+import { MarketingBanner } from "@/features/marketing/marketing-banner";
+import { AdminDashboard } from "@/features/admin/dashboard/admin-dashboard";
 import { cvApi } from "@/lib/api/cv-api";
 import { getValidToken, refreshSession } from "@/lib/auth-provider";
 import type { HoSoVm } from "@/lib/types";
@@ -117,35 +121,23 @@ function fmtDate(d: string) {
   } catch { return d; }
 }
 
-const APPLICATION_STAGES = ["Khởi tạo", "Chờ xử lý", "Đã xem", "Phù hợp", "Đã hủy"];
+function getProfileCompletion(profile: HoSoVm | null) {
+  if (!profile) return { percent: 0, missing: 7 };
 
-function ApplicationTimeline({ status }: { status: number }) {
-  const terminal = status === 5 || status === 6 || status === 7 || status === 8 || status === 9;
-  const currentIndex = terminal ? 4 : status <= 1 ? 0 : status === 2 ? 1 : status === 3 ? 2 : 3;
-
-  return (
-    <div className="mt-4 rounded-2xl bg-muted/40 p-4">
-      <div className="flex items-start">
-        {APPLICATION_STAGES.map((stage, index) => {
-          const isTerminalStep = terminal && index === 4;
-          const reached = index <= currentIndex;
-          return (
-            <div key={stage} className="flex min-w-0 flex-1 items-start">
-              <div className="flex min-w-0 flex-col items-center gap-1.5">
-                <span className={`flex size-7 items-center justify-center rounded-full border ${isTerminalStep ? "border-destructive bg-destructive text-destructive-foreground" : reached ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-muted-foreground"}`}>
-                  {isTerminalStep ? <XCircle className="size-4" /> : reached ? <CheckCircle2 className="size-4" /> : <Circle className="size-3.5" />}
-                </span>
-                <span className={`text-center text-[10px] leading-4 ${isTerminalStep ? "font-semibold text-destructive" : reached ? "font-semibold text-primary" : "text-muted-foreground"}`}>{stage}</span>
-              </div>
-              {index < APPLICATION_STAGES.length - 1 && (
-                <span className={`mt-3 h-px flex-1 ${!terminal && index < currentIndex ? "bg-primary" : "bg-border"}`} />
-              )}
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
+  const fields = [
+    profile.hoTen,
+    profile.sdt,
+    profile.diaChi,
+    profile.viTriUngTuyen,
+    profile.mucLuongMongMuon && profile.mucLuongMongMuon > 0,
+    profile.gioiThieu,
+    profile.anhDaiDienUrl,
+  ];
+  const completed = fields.filter((value) => Boolean(value)).length;
+  return {
+    percent: Math.round((completed / fields.length) * 100),
+    missing: fields.length - completed,
+  };
 }
 
 export default function DashboardPage() {
@@ -167,7 +159,6 @@ function CandidateDashboard() {
   const [cvCount, setCvCount] = useState<number | null>(null);
   const [jobTitles, setJobTitles] = useState<Record<number, string>>({});
   const [notifications, setNotifications] = useState<DashboardNotification[]>([]);
-  const [candidateCalendarDate, setCandidateCalendarDate] = useState<Date | undefined>();
   const [notificationRefresh, setNotificationRefresh] = useState(0);
   const { count: savedCount } = useBookmarks();
 
@@ -249,6 +240,8 @@ function CandidateDashboard() {
     })();
   }, [apiFetch, notificationRefresh]);
 
+  const profileCompletion = getProfileCompletion(profile);
+
   useEffect(() => {
     const refreshFromNotification = () => setNotificationRefresh((value) => value + 1);
     window.addEventListener("recruitment:notification", refreshFromNotification);
@@ -264,200 +257,167 @@ function CandidateDashboard() {
           <BreadcrumbItem><BreadcrumbPage>Dashboard</BreadcrumbPage></BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
-      <div className="flex flex-col justify-between gap-6 rounded-3xl border border-border bg-card p-8 shadow-sm md:flex-row md:items-center">
-        <div>
-          <span className="font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground">Candidate Hub</span>
-          <h1 className="mt-2 text-3xl font-medium tracking-tight sm:text-4xl">Chào mừng trở lại, {profileName}!</h1>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Hoàn thiện hồ sơ và CV để tăng cơ hội được nhà tuyển dụng chú ý.
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <Link href="/CV" className="flex items-center gap-2 rounded-2xl bg-primary px-5 py-3 text-sm font-medium text-primary-foreground transition hover:opacity-90">
-            <FileText className="size-4" /> Quản lý CV
-          </Link>
-          <Link href="/viec-lam" className="flex items-center gap-2 rounded-2xl border border-border bg-background px-5 py-3 text-sm font-medium text-foreground transition hover:border-foreground/40">
-            Tìm việc ngay <ArrowUpRight className="size-4" />
-          </Link>
-        </div>
-      </div>
-
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Link href="/CV" className="group rounded-3xl border border-border bg-card p-6 shadow-sm transition hover:border-foreground/30">
-          <div className="flex items-center justify-between text-muted-foreground">
-            <span className="text-xs uppercase tracking-wider">CV đã tạo</span>
-            <FileText className="size-5" />
+      <Card className="overflow-hidden border-border/80 bg-card shadow-sm">
+        <CardContent className="flex flex-col justify-between gap-6 p-6 sm:p-8 md:flex-row md:items-center">
+          <div>
+            <Badge variant="secondary" className="font-mono text-[10px] uppercase tracking-[0.2em]">Cổng ứng viên</Badge>
+            <h1 className="mt-3 text-3xl font-medium tracking-tight sm:text-4xl">Xin chào, {profileName}!</h1>
+            <p className="mt-2 max-w-xl text-sm leading-6 text-muted-foreground">Quản lý hành trình ứng tuyển và khám phá những cơ hội phù hợp với bạn.</p>
           </div>
-          <div className="mt-6 text-4xl font-semibold tracking-tight">{cvCount ?? "—"}</div>
-          <p className="mt-2 text-xs text-muted-foreground">Quản lý CV của bạn</p>
-        </Link>
-
-        <div className="rounded-3xl border border-border bg-card p-6 shadow-sm">
-          <div className="flex items-center justify-between text-muted-foreground">
-            <span className="text-xs uppercase tracking-wider">Việc đã ứng tuyển</span>
-            <Send className="size-5" />
-          </div>
-          <div className="mt-6 text-4xl font-semibold tracking-tight">{appliedCount}</div>
-          <p className="mt-2 text-xs text-muted-foreground">{recentApplied.length} đơn gần đây</p>
-        </div>
-
-        <Link href="/viec-lam/phu-hop" className="group rounded-3xl border border-border bg-card p-6 shadow-sm transition hover:border-foreground/30">
-          <div className="flex items-center justify-between text-muted-foreground">
-            <span className="text-xs uppercase tracking-wider">Việc phù hợp</span>
-            <TrendingUp className="size-5" />
-          </div>
-          <div className="mt-6 text-4xl font-semibold tracking-tight">{matchCount}</div>
-          <p className="mt-2 text-xs text-muted-foreground">Kết quả AI gợi ý</p>
-        </Link>
-
-        <Link href="/viec-lam/da-luu" className="group rounded-3xl border border-border bg-card p-6 shadow-sm transition hover:border-foreground/30">
-          <div className="flex items-center justify-between text-muted-foreground">
-            <span className="text-xs uppercase tracking-wider">Việc đã lưu</span>
-            <Bookmark className="size-5" />
-          </div>
-          <div className="mt-6 text-4xl font-semibold tracking-tight">{savedCount}</div>
-          <p className="mt-2 text-xs text-muted-foreground">Xem lại sau</p>
-        </Link>
-      </div>
-
-      <RecommendationPreview count={5} />
-
-       <div className="grid items-start gap-8 lg:grid-cols-[1.2fr_.8fr]">
-         <div className="h-fit rounded-3xl border border-border bg-card p-6 sm:p-8">
-          <div className="flex items-center justify-between border-b border-border pb-5">
-            <div>
-              <h2 className="text-xl font-medium tracking-tight">Đơn ứng tuyển gần đây</h2>
-              <p className="mt-1 text-xs text-muted-foreground">Theo dõi tiến độ duyệt hồ sơ</p>
-            </div>
-            <Link href="/viec-lam/da-ung-tuyen" className="text-xs font-medium text-foreground underline underline-offset-4 hover:opacity-70">
-              Xem tất cả
+          <div className="flex flex-wrap gap-2">
+            <Link href="/viec-lam" className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition hover:bg-primary-hover">
+              <Briefcase className="size-4" /> Khám phá việc làm
+            </Link>
+            <Link href="/CV" className="inline-flex items-center gap-2 rounded-xl border border-border bg-background px-4 py-2.5 text-sm font-medium text-foreground transition hover:border-primary/40 hover:text-primary">
+              <FileText className="size-4" /> Tạo CV mới
             </Link>
           </div>
+        </CardContent>
+      </Card>
 
-          {recentApplied.length === 0 ? (
-            <div className="mt-8 text-center">
-              <Send className="mx-auto size-8 text-muted-foreground/50" />
-              <p className="mt-3 text-sm text-muted-foreground">Chưa có đơn ứng tuyển nào.</p>
-              <Link href="/viec-lam" className="mt-3 inline-block text-sm font-medium text-foreground underline underline-offset-4">Tìm việc ngay</Link>
-            </div>
-          ) : (
-            <div className="mt-6 divide-y divide-border">
-              {recentApplied.map(item => {
-                const st = TRANG_THAI[item.trangThai] ?? { label: `#${item.trangThai}`, color: "text-muted-foreground bg-muted border-border" };
-                const jobTitle = jobTitles[item.tinTuyenDungId];
-                return (
-                  <div key={item.id} className="py-5">
-                    <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-                    <div>
-                      <h3 className="font-medium">{item.tieuDe ?? jobTitle ?? "Vị trí ứng tuyển"}</h3>
-                      <div className="mt-1 flex items-center gap-3 text-xs text-muted-foreground">
-                        <span className="flex items-center gap-1"><Clock className="size-3.5" /> {fmtDate(item.ngayUngTuyen)}</span>
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {[
+          { label: "CV của bạn", value: cvCount ?? "—", note: "Quản lý CV", icon: FileText, href: "/CV" },
+          { label: "Sẵn sàng ứng tuyển", value: appliedCount, note: "Theo dõi trạng thái", icon: Send, href: "/viec-lam/da-ung-tuyen" },
+          { label: "Việc phù hợp với bạn", value: matchCount, note: "Adam đã tìm thấy", icon: TrendingUp, href: "/viec-lam/phu-hop" },
+          { label: "Việc bạn đã lưu", value: savedCount, note: "Cơ hội bạn quan tâm", icon: Bookmark, href: "/viec-lam/da-luu" },
+        ].map((item) => (
+          <Link key={item.label} href={item.href} className="group">
+            <Card className="h-full border-border/80 shadow-sm transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md">
+              <CardContent className="p-5">
+                <div className="flex items-center justify-between text-muted-foreground">
+                  <span className="text-[11px] font-semibold uppercase tracking-[0.14em]">{item.label}</span>
+                  <item.icon className="size-4 transition group-hover:text-primary" />
+                </div>
+                <div className="mt-4 text-3xl font-semibold tracking-tight">{item.value}</div>
+                <p className="mt-1 text-xs text-muted-foreground">{item.note}</p>
+              </CardContent>
+            </Card>
+          </Link>
+        ))}
+      </div>
+
+      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1.35fr)_minmax(300px,.65fr)]">
+        <div className="space-y-6">
+          <RecommendationPreview count={3} />
+
+          <Card className="border-border/80 shadow-sm">
+            <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0 border-b border-border/70 p-5 sm:p-6">
+              <div>
+                <CardTitle className="text-lg tracking-tight">Đơn ứng tuyển gần đây</CardTitle>
+                <CardDescription className="mt-1">Theo dõi những cơ hội bạn đã gửi hồ sơ.</CardDescription>
+              </div>
+              <Link href="/viec-lam/da-ung-tuyen" className="shrink-0 text-xs font-medium text-primary hover:underline">Xem tất cả</Link>
+            </CardHeader>
+            <CardContent className="p-0">
+              {recentApplied.length === 0 ? (
+                <div className="px-5 py-10 text-center sm:px-6">
+                  <Send className="mx-auto size-8 text-muted-foreground/50" />
+                  <p className="mt-3 text-sm text-muted-foreground">Chưa có đơn ứng tuyển nào.</p>
+                  <Link href="/viec-lam" className="mt-3 inline-flex text-sm font-medium text-primary underline underline-offset-4">Tìm việc ngay</Link>
+                </div>
+              ) : (
+                <div className="divide-y divide-border/70">
+                  {recentApplied.slice(0, 3).map((item) => {
+                    const st = TRANG_THAI[item.trangThai] ?? { label: `#${item.trangThai}`, color: "text-muted-foreground bg-muted border-border" };
+                    const jobTitle = jobTitles[item.tinTuyenDungId];
+                    return (
+                      <div key={item.id} className="flex items-center gap-3 px-5 py-4 sm:px-6">
+                        <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                          <Briefcase className="size-4" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <h3 className="truncate text-sm font-medium">{item.tieuDe ?? jobTitle ?? "Vị trí ứng tuyển"}</h3>
+                          <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground"><Clock className="size-3" /> {fmtDate(item.ngayUngTuyen)}</p>
+                        </div>
+                        <Badge variant="outline" className={`shrink-0 text-[11px] ${st.color}`}>{st.label}</Badge>
                       </div>
-                    </div>
-                    <Badge variant="outline" className={st.color}>{st.label}</Badge>
-                    </div>
-                    <ApplicationTimeline status={item.trangThai} />
-                  </div>
-                );
-              })}
-            </div>
-          )}
+                    );
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+          <MarketingBanner />
         </div>
 
         <div className="space-y-6">
-          <div className="rounded-3xl border border-border bg-card p-6 shadow-sm">
-            <div className="mb-4">
-              <h2 className="flex items-center gap-2 text-lg font-semibold tracking-tight"><Clock className="size-4 text-primary" /> Lịch ứng tuyển</h2>
-              <p className="mt-1 text-xs text-muted-foreground">Ngày bạn đã gửi đơn ứng tuyển.</p>
-            </div>
-            <Calendar
-              selected={candidateCalendarDate}
-              markedDates={recentApplied.map((item) => new Date(item.ngayUngTuyen)).filter((date) => !Number.isNaN(date.getTime()))}
-              onSelect={setCandidateCalendarDate}
-            />
-          </div>
-
-          <div className="rounded-3xl border border-border bg-card p-6 shadow-sm">
-            <div className="flex items-start gap-4">
-              <div className="flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-primary/10 text-lg font-semibold text-primary">
-                {profile?.anhDaiDienUrl ? (
-                  <Image src={profile.anhDaiDienUrl} alt={profile.hoTen || "Ảnh hồ sơ"} width={64} height={64} className="size-full object-cover" />
-                ) : (
-                  profile?.hoTen?.split(" ").map((part) => part[0]).slice(-2).join("").toUpperCase() || <UserPlus className="size-7" />
-                )}
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Hồ sơ ứng viên</p>
-                    <h2 className="mt-1 truncate text-lg font-semibold tracking-tight">{profile?.hoTen || profileName}</h2>
-                  </div>
-                  <Link href="/ho-so" className="shrink-0 text-xs font-medium text-primary hover:underline">Chỉnh sửa</Link>
+          <Card id="notifications" className="border-border/80 shadow-sm">
+            <CardHeader className="p-5 pb-3 sm:p-6 sm:pb-3">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <CardTitle className="text-lg tracking-tight">Hồ sơ của bạn</CardTitle>
+                  {/* <CardDescription className="mt-1">Tăng độ nổi bật với nhà tuyển dụng.</CardDescription> */}
                 </div>
-                <p className="mt-1 truncate text-sm text-muted-foreground">{profile?.viTriUngTuyen || "Chưa cập nhật vị trí ứng tuyển"}</p>
+                <Link href="/ho-so" className="text-xs font-medium text-primary hover:underline">Chỉnh sửa</Link>
               </div>
-            </div>
-            <div className="mt-5 grid grid-cols-2 gap-3 rounded-2xl bg-muted/40 p-4 text-xs">
-              <div><span className="text-muted-foreground">Trạng thái</span><p className="mt-1 font-semibold text-foreground">{profile?.isTimViec === false ? "Tạm dừng" : "Đang tìm việc"}</p></div>
-              <div><span className="text-muted-foreground">CV đã tạo</span><p className="mt-1 font-semibold text-foreground">{cvCount ?? "—"} bản</p></div>
-            </div>
-            {!profile && <Link href="/ho-so" className="mt-4 flex items-center justify-between rounded-2xl border border-dashed border-border p-3 text-xs text-muted-foreground hover:border-primary hover:text-primary">Hoàn thiện hồ sơ để tăng cơ hội được chú ý <ArrowRight className="size-3.5" /></Link>}
-          </div>
+            </CardHeader>
+            <CardContent className="p-5 pt-3 sm:p-6 sm:pt-3">
+              <div className="flex items-center gap-3">
+                <Avatar className="size-14 rounded-2xl">
+                  {profile?.anhDaiDienUrl && <Image src={profile.anhDaiDienUrl} alt={profile.hoTen || "Ảnh hồ sơ"} width={56} height={56} className="size-full object-cover" />}
+                  <AvatarFallback className="rounded-2xl bg-primary/10 text-primary">{profile?.hoTen?.split(" ").map((part) => part[0]).slice(-2).join("").toUpperCase() || <UserPlus className="size-5" />}</AvatarFallback>
+                </Avatar>
+                <div className="min-w-0">
+                  <h3 className="truncate font-semibold">{profile?.hoTen || profileName}</h3>
+                  <p className="mt-1 truncate text-xs text-muted-foreground">{profile?.viTriUngTuyen || "Chưa cập nhật vị trí ứng tuyển"}</p>
+                </div>
+              </div>
+              <div className="mt-5 flex items-center justify-between text-xs">
+                <span className="font-medium">Hồ sơ hoàn thiện</span>
+                <span className="font-semibold text-primary">{profileCompletion.percent}%</span>
+              </div>
+              <Progress value={profileCompletion.percent} className="mt-2 h-2" />
+              <div className="mt-4 flex items-center justify-between rounded-xl bg-muted/50 px-3 py-2.5 text-xs">
+                <span className="text-muted-foreground">{profileCompletion.missing > 0 ? `Thiếu ${profileCompletion.missing} mục thông tin` : "Hồ sơ đã đầy đủ"}</span>
+                <Badge variant={profile?.isTimViec === false ? "secondary" : "default"} className="text-[10px]">{profile?.isTimViec === false ? "Tạm dừng" : "Đang tìm việc"}</Badge>
+              </div>
+              <Link href="/ho-so" className="mt-4 flex items-center justify-between rounded-xl border border-dashed border-border px-3 py-2.5 text-xs font-medium text-primary transition hover:border-primary/50 hover:bg-primary/5">
+                Hoàn thiện hồ sơ <ArrowRight className="size-3.5" />
+              </Link>
+            </CardContent>
+          </Card>
 
-          <div className="rounded-3xl border border-border bg-card p-6 shadow-sm">
-            <div className="flex items-center justify-between">
+          <Card className="border-border/80 shadow-sm">
+            <CardHeader className="flex flex-row items-start justify-between gap-3 space-y-0 p-5 pb-3 sm:p-6 sm:pb-3">
               <div>
-                <h2 className="flex items-center gap-2 text-lg font-semibold tracking-tight"><Bell className="size-4 text-primary" /> Thông báo</h2>
-                <p className="mt-1 text-xs text-muted-foreground">Cập nhật mới nhất dành cho bạn</p>
+                <CardTitle className="flex items-center gap-2 text-lg tracking-tight"><Bell className="size-4 text-primary" /> Thông báo</CardTitle>
+                <CardDescription className="mt-1">Cập nhật mới nhất dành cho bạn.</CardDescription>
               </div>
-              <Link href="#notifications" className="text-xs font-medium text-primary hover:underline">Xem thêm</Link>
-            </div>
-            {notifications.length === 0 ? (
-              <div className="mt-5 rounded-2xl bg-muted/40 px-4 py-6 text-center text-xs text-muted-foreground">Chưa có thông báo mới.</div>
-            ) : (
-              <div id="notifications" className="mt-4 divide-y divide-border">
-                {notifications.map((notification) => (
-                  <div key={notification.id} className={`flex gap-3 py-3 ${!notification.isRead ? "font-medium" : ""}`}>
-                    <span className={`mt-1 size-2 shrink-0 rounded-full ${notification.isRead ? "bg-border" : "bg-primary"}`} />
-                    <div className="min-w-0"><p className="line-clamp-2 text-sm text-foreground">{notification.message}</p><p className="mt-1 text-[11px] font-normal text-muted-foreground">{fmtDate(notification.created)}</p></div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+              <Link href="#notifications" className="text-xs font-medium text-primary hover:underline">Xem tất cả</Link>
+            </CardHeader>
+            <CardContent className="p-5 pt-2 sm:p-6 sm:pt-2">
+              {notifications.length === 0 ? (
+                <div className="rounded-xl bg-muted/50 px-4 py-6 text-center text-xs text-muted-foreground">Chưa có thông báo mới.</div>
+              ) : (
+                <div className="divide-y divide-border/70">
+                  {notifications.slice(0, 4).map((notification) => (
+                    <div key={notification.id} className={`flex gap-3 py-3 first:pt-2 last:pb-1 ${!notification.isRead ? "font-medium" : ""}`}>
+                      <span className={`mt-1.5 size-2 shrink-0 rounded-full ${notification.isRead ? "bg-border" : "bg-primary"}`} />
+                      <div className="min-w-0"><p className="line-clamp-2 text-sm text-foreground">{notification.message}</p><p className="mt-1 text-[11px] font-normal text-muted-foreground">{fmtDate(notification.created)}</p></div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
-          <div className="rounded-3xl border border-border bg-primary p-6 text-primary-foreground shadow-sm">
-            <div className="flex items-center justify-between">
-              <span className="flex items-center gap-2 font-mono text-xs uppercase tracking-widest text-primary-foreground/60">
-                <Sparkles className="size-3.5" /> AI Smart Match
-              </span>
-              <span className="rounded-full bg-primary-foreground/10 px-2.5 py-1 text-[11px]">{matchCount} kết quả</span>
-            </div>
-            <div className="mt-6 text-sm text-primary-foreground/80">
-              Hệ thống AI phân tích hồ sơ và gợi ý việc làm phù hợp dựa trên kỹ năng, kinh nghiệm và sở thích.
-            </div>
-            <Link href="/viec-lam/phu-hop" className="mt-6 flex items-center justify-center gap-2 rounded-2xl bg-primary-foreground py-3 text-xs font-medium text-primary transition hover:opacity-90">
-              Xem việc phù hợp ngay
-            </Link>
-          </div>
-
-          <div className="rounded-3xl border border-border bg-card p-6">
-            <h3 className="font-medium tracking-tight">Hành động nhanh</h3>
-            <div className="mt-4 space-y-2">
-              <Link href="/ho-so" className="flex items-center justify-between rounded-2xl border border-border bg-background p-4 text-sm font-medium transition hover:border-foreground/40">
-                <span className="flex items-center gap-2"><Building2 className="size-4 text-muted-foreground" /> Cập nhật hồ sơ</span>
-                <ChevronRight className="size-4 text-muted-foreground" />
+          <Card className="border-border/80 shadow-sm">
+            <CardHeader className="p-5 pb-2 sm:p-6 sm:pb-2">
+              <CardTitle className="text-base tracking-tight">Hành động nhanh</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-2 p-5 pt-2 sm:p-6 sm:pt-2">
+              <Link href="/ho-so" className="flex items-center justify-between rounded-xl border border-border bg-background px-3 py-2.5 text-sm transition hover:border-primary/40 hover:text-primary">
+                <span className="flex items-center gap-2"><UserPlus className="size-4" /> Cập nhật hồ sơ</span><ChevronRight className="size-4 text-muted-foreground" />
               </Link>
-              <Link href="/kinh-nghiem" className="flex items-center justify-between rounded-2xl border border-border bg-background p-4 text-sm font-medium transition hover:border-foreground/40">
-                <span className="flex items-center gap-2"><Clock className="size-4 text-muted-foreground" /> Thêm kinh nghiệm</span>
-                <ChevronRight className="size-4 text-muted-foreground" />
+              <Link href="/CV" className="flex items-center justify-between rounded-xl border border-border bg-background px-3 py-2.5 text-sm transition hover:border-primary/40 hover:text-primary">
+                <span className="flex items-center gap-2"><FileText className="size-4" /> Quản lý CV</span><ChevronRight className="size-4 text-muted-foreground" />
               </Link>
-              <Link href="/ky-nang-ung-vien" className="flex items-center justify-between rounded-2xl border border-border bg-background p-4 text-sm font-medium transition hover:border-foreground/40">
-                <span className="flex items-center gap-2"><TrendingUp className="size-4 text-muted-foreground" /> Cập nhật kỹ năng</span>
-                <ChevronRight className="size-4 text-muted-foreground" />
+              <Link href="/viec-lam/da-ung-tuyen" className="flex items-center justify-between rounded-xl border border-border bg-background px-3 py-2.5 text-sm transition hover:border-primary/40 hover:text-primary">
+                <span className="flex items-center gap-2"><Send className="size-4" /> Xem đơn đã nộp</span><ChevronRight className="size-4 text-muted-foreground" />
               </Link>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </AdminPageLayout>
@@ -472,42 +432,7 @@ function RecruiterAdminDashboard() {
 
   if (!isAdmin) return <RecruiterControlCenter />;
 
-  return (
-    <AdminPageLayout>
-      <AdminPageHeader
-        icon={LayoutDashboard}
-        title="Admin Dashboard"
-        description="Quản trị hệ thống Smart Recruitment."
-      />
-
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <Link href="/user-roles" className="group rounded-3xl border border-border bg-card p-6 shadow-sm transition hover:-translate-y-1 hover:border-foreground/30">
-          <div className="flex items-center justify-between text-muted-foreground">
-            <span className="text-xs uppercase tracking-wider">Người dùng</span>
-            <Users className="size-5" />
-          </div>
-          <div className="mt-6 text-4xl font-semibold tracking-tight">—</div>
-          <p className="mt-2 text-xs text-muted-foreground">Quản lý tài khoản</p>
-        </Link>
-        <Link href="/tin-tuyen-dung" className="group rounded-3xl border border-border bg-card p-6 shadow-sm transition hover:-translate-y-1 hover:border-foreground/30">
-          <div className="flex items-center justify-between text-muted-foreground">
-            <span className="text-xs uppercase tracking-wider">Tin tuyển dụng</span>
-            <Briefcase className="size-5" />
-          </div>
-          <div className="mt-6 text-4xl font-semibold tracking-tight">—</div>
-          <p className="mt-2 text-xs text-muted-foreground">Duyệt tin</p>
-        </Link>
-        <Link href="/reports" className="group rounded-3xl border border-border bg-card p-6 shadow-sm transition hover:-translate-y-1 hover:border-foreground/30">
-          <div className="flex items-center justify-between text-muted-foreground">
-            <span className="text-xs uppercase tracking-wider">Báo cáo</span>
-            <TrendingUp className="size-5" />
-          </div>
-          <div className="mt-6 text-4xl font-semibold tracking-tight">—</div>
-          <p className="mt-2 text-xs text-muted-foreground">Thống kê hệ thống</p>
-        </Link>
-      </div>
-    </AdminPageLayout>
-  );
+  return <AdminDashboard />;
 }
 
 /* ─── Recruiter Control Center (shared by NGUOI_DAI_DIEN + NHAN_SU) ──────────
@@ -861,14 +786,20 @@ function RecruiterControlCenter() {
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <Filter className="size-3.5 text-muted-foreground" />
-            <select value={pipelineJobId} onChange={(event) => setPipelineJobId(event.target.value)} className="h-9 rounded-lg border border-border bg-background px-2 text-xs text-foreground">
-              <option value="all">Tất cả tin</option>
-              {jobs.map((job) => <option key={job.id} value={job.id}>{job.tieuDe || `Tin #${job.id}`}</option>)}
-            </select>
-            <select value={pipelineStatus} onChange={(event) => setPipelineStatus(event.target.value)} className="h-9 rounded-lg border border-border bg-background px-2 text-xs text-foreground">
-              <option value="all">Tất cả trạng thái</option>
-              {Object.entries(TRANG_THAI).map(([value, state]) => <option key={value} value={value}>{state.label}</option>)}
-            </select>
+            <Select value={pipelineJobId} onValueChange={(value) => { if (value !== null) setPipelineJobId(value); }}>
+              <SelectTrigger className="h-9 w-auto min-w-32 rounded-lg px-2 text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tất cả tin</SelectItem>
+                {jobs.map((job) => <SelectItem key={job.id} value={String(job.id)}>{job.tieuDe || `Tin #${job.id}`}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Select value={pipelineStatus} onValueChange={(value) => { if (value !== null) setPipelineStatus(value); }}>
+              <SelectTrigger className="h-9 w-auto min-w-40 rounded-lg px-2 text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tất cả trạng thái</SelectItem>
+                {Object.entries(TRANG_THAI).map(([value, state]) => <SelectItem key={value} value={value}>{state.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
           </div>
         </div>
         <div className="relative mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">

@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -715,16 +716,15 @@ export function HoSoView() {
                   <div className="space-y-1.5">
                     <label className="text-xs font-medium text-foreground">Giới tính</label>
                     <div className="relative">
-                      <User className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                      <select
-                        className="flex h-10 w-full rounded-xl border border-input bg-card pl-10 pr-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                        value={gioiTinh}
-                        onChange={(e) => setGioiTinh(e.target.value)}
-                      >
-                        <option value="Nam">Nam</option>
-                        <option value="Nữ">Nữ</option>
-                        <option value="Khác">Khác</option>
-                      </select>
+                      <User className="pointer-events-none absolute left-3.5 top-1/2 z-10 size-4 -translate-y-1/2 text-muted-foreground" />
+                      <Select value={gioiTinh} onValueChange={(value) => { if (value !== null) setGioiTinh(value); }}>
+                        <SelectTrigger className="h-10 w-full rounded-xl border-input bg-card pl-10 text-sm"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Nam">Nam</SelectItem>
+                          <SelectItem value="Nữ">Nữ</SelectItem>
+                          <SelectItem value="Khác">Khác</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
                 </div>

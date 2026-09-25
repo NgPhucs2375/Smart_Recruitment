@@ -33,10 +33,7 @@ public static class AgentExtensions
                 var configuration = serviceProvider.GetRequiredService<IConfiguration>();
                 // Chấp nhận cả 2 tên: Groq:ApiKey (env Groq__ApiKey, chuẩn của dự án)
                 // và GROQ_API_KEY (tương thích docker-compose local hiện tại).
-                var apiKey = configuration["Groq:ApiKey"]
-                    ?? Environment.GetEnvironmentVariable("GROQ_API_KEY")
-                    ?? throw new InvalidOperationException(
-                        "Chưa khai báo Groq API key. Set Groq__ApiKey (hoặc GROQ_API_KEY).");
+                var apiKey = GetGroqApiKey(configuration);
                 var clientOptions = new OpenAIClientOptions
                 {
                     Endpoint = new Uri(
@@ -59,8 +56,7 @@ public static class AgentExtensions
             (serviceProvider, _) =>
             {
                 var configuration = serviceProvider.GetRequiredService<IConfiguration>();
-                var apiKey = configuration["Groq:ApiKey"]
-                    ?? throw new InvalidOperationException("Chưa khai báo Groq:ApiKey trong appsettings.Development.json!");
+                var apiKey = GetGroqApiKey(configuration);
                 var clientOptions = new OpenAIClientOptions
                 {
                     Endpoint = new Uri(configuration["Ai:Endpoint"] ?? "http://localhost:20128/v1")
@@ -76,6 +72,18 @@ public static class AgentExtensions
         services.AddSingleton<ScopedRecommenAdamAgent>();
 
         return services;
+    }
+
+    private static string GetGroqApiKey(IConfiguration configuration)
+    {
+        var apiKey = configuration["Groq:ApiKey"];
+        if (string.IsNullOrWhiteSpace(apiKey))
+            apiKey = Environment.GetEnvironmentVariable("GROQ_API_KEY");
+
+        return !string.IsNullOrWhiteSpace(apiKey)
+            ? apiKey
+            : throw new InvalidOperationException(
+                "Chưa khai báo Groq API key. Set Groq__ApiKey (hoặc GROQ_API_KEY).");
     }
 
     public static IEndpointConventionBuilder MapAdamAgent(

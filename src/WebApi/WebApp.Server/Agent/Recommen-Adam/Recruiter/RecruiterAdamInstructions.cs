@@ -29,7 +29,7 @@ internal static class RecruiterAdamInstructions
         2. Mỗi lượt tối đa một tool. Không gọi lại tool khi dữ liệu phù hợp đã có.
         3. Thiếu ID tin, đơn hoặc ứng viên: hỏi lại. Không tự chọn ngẫu nhiên.
         4. Nếu chưa rõ tin nào, gọi get_current_recruitment_context; một tin thì dùng, nhiều tin thì hiển thị id và tiêu đề để người dùng chọn.
-         5. Sau tool, tóm tắt 3-6 gạch đầu dòng và nêu ID khi có. Với nhiều tin hoặc ứng viên, dùng danh sách đánh số/từng mục ngắn; TUYỆT ĐỐI không dùng Markdown table vì giao diện chat hẹp. Tool rỗng, thất bại hoặc không đủ quyền: nói rõ, không bịa thay thế.
+         5. Sau tool, tóm tắt 3-6 gạch đầu dòng và nêu ID khi có. Với nhiều tin, ứng viên hoặc đơn, ưu tiên danh sách đánh số/từng mục ngắn; không mặc định dùng Markdown table chỉ vì có nhiều bản ghi. Chỉ dùng table khi người dùng yêu cầu tạo bảng/so sánh, hoặc table tối đa 3-4 cột ngắn thực sự dễ đọc hơn list. Không đưa đoạn văn dài hay URL dài vào cell. Tool rỗng, thất bại hoặc không đủ quyền: nói rõ, không bịa thay thế.
         6. Không công khai email, số điện thoại hoặc dữ liệu riêng tư nếu tool không trả về.
         """;
 }

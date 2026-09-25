@@ -1,10 +1,13 @@
 using Application.DTOs.CV;
+using Application.Features.CVUngVien.Cache;
 using Application.Interfaces;
 using Application.Interfaces.Repositories;
 using Application.Wrappers;
 using Domain.Enums;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Distributed;
+using System.Text.Json;
 
 namespace Application.Features.CVUngVien.Queries.GetCVUngVienById;
 
@@ -17,7 +20,8 @@ public class GetCVUngVienByIdQuery
 public class GetCVUngVienByIdQueryHandler(
     IApplicationDbContext context,
     ICurrentNguoiDungService currentNguoiDungService,
-    ICvReadMapper cvReadMapper)
+    ICvReadMapper cvReadMapper,
+    IDistributedCache cache)
     : IRequestHandler<
         GetCVUngVienByIdQuery,
         Response<CvDetailDto>>
@@ -28,6 +32,20 @@ public class GetCVUngVienByIdQueryHandler(
     {
         var currentUser =
             await currentNguoiDungService.ResolveAsync();
+        var detailVersion = await cache.GetStringAsync(
+            CVUngVienListCache.DetailVersionKey(request.Id),
+            cancellationToken) ?? "1";
+        var cacheKey = CVUngVienListCache.BuildDetailKey(
+            currentUser.Id,
+            request.Id,
+            detailVersion);
+        var cached = await cache.GetStringAsync(cacheKey, cancellationToken);
+        if (!string.IsNullOrWhiteSpace(cached))
+        {
+            var cachedResponse = JsonSerializer.Deserialize<Response<CvDetailDto>>(cached);
+            if (cachedResponse != null)
+                return cachedResponse;
+        }
 
         var entity = await context.CVUngViens
             .AsNoTracking()
@@ -107,8 +125,20 @@ public class GetCVUngVienByIdQueryHandler(
         var result =
             cvReadMapper.Map(entity);
 
-        return new Response<CvDetailDto>(
+        var response = new Response<CvDetailDto>(
             data: result,
             message: "Lấy CV thành công.");
+
+        await cache.SetStringAsync(
+            cacheKey,
+            JsonSerializer.Serialize(response),
+            new DistributedCacheEntryOptions
+            {
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(1),
+                SlidingExpiration = TimeSpan.FromSeconds(30)
+            },
+            cancellationToken);
+
+        return response;
     }
 }

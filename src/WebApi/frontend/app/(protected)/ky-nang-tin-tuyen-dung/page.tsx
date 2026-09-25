@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { AdminPageLayout, AdminPageHeader, AdminCard, AdminCardHeader, AdminEmptyState, AdminLoadingState } from "@/components/admin/admin-page-layout";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 type TinTuyenDung = { id: number; tieuDe: string };
 type KyNang = { id: number; tenKyNang: string };
@@ -188,14 +189,13 @@ export default function KyNangTinTuyenDungPage() {
       <AdminCard>
         <div className="p-5">
           <Label>Chọn tin tuyển dụng *</Label>
-          <select
-            value={selectedJob}
-            onChange={e => { setSelectedJob(Number(e.target.value)); setErr(""); setSuccessMsg(""); resetForm(); }}
-            className="mt-1 flex h-9 w-full max-w-md rounded-lg border border-input bg-background px-2.5 text-sm"
-          >
-            <option value={0}>-- Chọn tin tuyển dụng --</option>
-            {jobPostings.map(j => <option key={j.id} value={j.id}>{j.tieuDe}</option>)}
-          </select>
+          <Select value={String(selectedJob)} onValueChange={value => { setSelectedJob(Number(value)); setErr(""); setSuccessMsg(""); resetForm(); }}>
+            <SelectTrigger className="mt-1 h-9 w-full max-w-md"><SelectValue placeholder="-- Chọn tin tuyển dụng --" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="0">-- Chọn tin tuyển dụng --</SelectItem>
+              {jobPostings.map(j => <SelectItem key={j.id} value={String(j.id)}>{j.tieuDe}</SelectItem>)}
+            </SelectContent>
+          </Select>
         </div>
       </AdminCard>
 
@@ -215,16 +215,22 @@ export default function KyNangTinTuyenDungPage() {
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
                   <Label>Kỹ năng *</Label>
-                  <select value={form.kyNangId} onChange={e => setForm(f => ({ ...f, kyNangId: Number(e.target.value) }))} className="flex h-9 w-full rounded-lg border border-input bg-background px-2.5 text-sm" disabled={!!editing}>
-                    <option value={0}>Chọn kỹ năng...</option>
-                    {availableSkills.map(k => <option key={k.id} value={k.id}>{k.tenKyNang}</option>)}
-                  </select>
+                  <Select value={String(form.kyNangId)} onValueChange={value => setForm(f => ({ ...f, kyNangId: Number(value) }))} disabled={!!editing}>
+                    <SelectTrigger className="h-9 w-full"><SelectValue placeholder="Chọn kỹ năng..." /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="0">Chọn kỹ năng...</SelectItem>
+                      {availableSkills.map(k => <SelectItem key={k.id} value={String(k.id)}>{k.tenKyNang}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-2">
                   <Label>Mức độ yêu cầu *</Label>
-                  <select value={form.mucDoYeuCau} onChange={e => setForm(f => ({ ...f, mucDoYeuCau: Number(e.target.value) }))} className="flex h-9 w-full rounded-lg border border-input bg-background px-2.5 text-sm">
-                    {MUC_DO.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
-                  </select>
+                  <Select value={String(form.mucDoYeuCau)} onValueChange={value => setForm(f => ({ ...f, mucDoYeuCau: Number(value) }))}>
+                    <SelectTrigger className="h-9 w-full"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {MUC_DO.map(m => <SelectItem key={m.value} value={String(m.value)}>{m.label}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
               <div className="mt-5 flex justify-end gap-2">

@@ -198,8 +198,9 @@ function RegisterContent() {
               <Label className="text-xs font-medium text-gray-700">Họ và tên</Label>
               <div className="relative">
                 <User className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
-                <Input
-                  type="text"
+                 <Input
+                   type="text"
+                   autoComplete="name"
                   {...registerPwd("hoTen")}
                   disabled={isPwdPending}
                   placeholder="Nguyễn Văn A"
@@ -213,8 +214,9 @@ function RegisterContent() {
               <Label className="text-xs font-medium text-gray-700">Số điện thoại</Label>
               <div className="relative">
                 <Phone className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
-                <Input
-                  type="text"
+                 <Input
+                   type="tel"
+                   autoComplete="tel"
                   {...registerPwd("soDienThoai")}
                   disabled={isPwdPending}
                   placeholder="090 123 4567"
@@ -229,8 +231,9 @@ function RegisterContent() {
             <Label className="text-xs font-medium text-gray-700">Email</Label>
             <div className="relative">
               <Mail className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
-              <Input
-                  type="email"
+               <Input
+                   type="email"
+                   autoComplete="email"
                   {...registerPwd("email")}
                   disabled={isPwdPending}
                   readOnly={isInvitation}

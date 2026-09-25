@@ -15,13 +15,17 @@ internal sealed class ScopedRecommenAdamAgent : AIAgent
 {
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly ILogger<ScopedRecommenAdamAgent> _logger;
+    private readonly TimeSpan _maxStreamingRunTime;
 
     public ScopedRecommenAdamAgent(
         IHttpContextAccessor httpContextAccessor,
-        ILogger<ScopedRecommenAdamAgent> logger)
+        ILogger<ScopedRecommenAdamAgent> logger,
+        IConfiguration configuration)
     {
         _httpContextAccessor = httpContextAccessor;
         _logger = logger;
+        var configuredSeconds = configuration.GetValue<int?>("Ai:MaxStreamingRunTimeSeconds") ?? 60;
+        _maxStreamingRunTime = TimeSpan.FromSeconds(Math.Clamp(configuredSeconds, 10, 300));
     }
 
     public override string? Name => "Adam";
@@ -79,27 +83,59 @@ internal sealed class ScopedRecommenAdamAgent : AIAgent
             throw;
         }
 
-        await using var enumerator = agent
-            .RunStreamingAsync(messageList, session, options, cancellationToken)
-            .GetAsyncEnumerator(cancellationToken);
-        while (true)
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        timeout.CancelAfter(_maxStreamingRunTime);
+
+        var timedOut = false;
+        var enumerator = agent
+            .RunStreamingAsync(messageList, session, options, timeout.Token)
+            .GetAsyncEnumerator(timeout.Token);
+        try
         {
-            bool hasNext;
+            while (true)
+            {
+                bool hasNext;
+                try
+                {
+                    hasNext = await enumerator.MoveNextAsync();
+                }
+                catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested && timeout.IsCancellationRequested)
+                {
+                    timedOut = true;
+                    break;
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    _logger.LogError(ex, "Adam streaming run failed while reading an update.");
+                    throw;
+                }
+
+                if (!hasNext) break;
+
+                var update = enumerator.Current;
+                _logger.LogDebug("Adam stream update received. UpdateType={UpdateType}", update.GetType().Name);
+                yield return update;
+            }
+        }
+        finally
+        {
             try
             {
-                hasNext = await enumerator.MoveNextAsync();
+                await enumerator.DisposeAsync();
             }
-            catch (Exception ex) when (ex is not OperationCanceledException)
+            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested && timeout.IsCancellationRequested)
             {
-                _logger.LogError(ex, "Adam streaming run failed while reading an update.");
-                throw;
+                timedOut = true;
             }
+        }
 
-            if (!hasNext) yield break;
-
-            var update = enumerator.Current;
-            _logger.LogDebug("Adam stream update received. UpdateType={UpdateType}", update.GetType().Name);
-            yield return update;
+        if (timedOut)
+        {
+            _logger.LogWarning("Adam streaming run exceeded the {TimeoutSeconds}s time limit.", _maxStreamingRunTime.TotalSeconds);
+            yield return new AgentResponseUpdate
+            {
+                Contents = [new TextContent($"Model chưa phản hồi trong {_maxStreamingRunTime.TotalSeconds:0} giây. Vui lòng thử lại hoặc rút gọn yêu cầu.")]
+            };
         }
     }
 

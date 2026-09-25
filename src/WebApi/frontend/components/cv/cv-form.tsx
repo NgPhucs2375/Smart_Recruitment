@@ -1,9 +1,10 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Plus, Trash2, FileText } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ChipInput } from "./chip-input";
@@ -26,6 +27,7 @@ import {
   maskYearOnly,
   parseCvPartialDate,
 } from "@/features/tao-cv/cv-data";
+import { focusCvSectionInDom, getCvFocusEventName, type CvFocusSection } from "@/features/ai-cv/cv-focus";
 
 interface CvFormProps {
   data: CvFormData;
@@ -139,6 +141,14 @@ export function CvForm({ data, onChange }: CvFormProps) {
   // UI-only: id of the repeat item added most recently, so only it plays
   // the enter animation (no mount cascade on pre-filled data).
   const [freshId, setFreshId] = useState<string | null>(null);
+  useEffect(() => {
+    const onFocus = (event: Event) => {
+      const section = (event as CustomEvent<{ section?: unknown }>).detail?.section;
+      if (typeof section === "string") focusCvSectionInDom(section as CvFocusSection);
+    };
+    window.addEventListener(getCvFocusEventName(), onFocus);
+    return () => window.removeEventListener(getCvFocusEventName(), onFocus);
+  }, []);
   const setLienHe = (field: keyof LienHe, value: string) =>
     onChange({ ...data, thongTinLienHe: { ...lh, [field]: value } });
 
@@ -221,7 +231,7 @@ export function CvForm({ data, onChange }: CvFormProps) {
   return (
     <div className="cv-form-stack">
       {/* 1. Thông tin liên hệ */}
-      <div className="cv-form-card">
+      <div id="cv-section-contact" data-cv-section="contact" className="cv-form-card">
         <SectionTitle>Thông tin liên hệ</SectionTitle>
         <div data-slot="card-content" style={{ padding: "1rem" }}>
           <div style={{ marginBottom: "1rem" }}>
@@ -287,7 +297,7 @@ export function CvForm({ data, onChange }: CvFormProps) {
       </div>
 
       {/* 2. Kinh nghiệm làm việc */}
-      <div className="cv-form-card">
+      <div id="cv-section-experience" data-cv-section="experience" className="cv-form-card">
         <div data-slot="card-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div data-slot="card-title"><FileText className="h-5 w-5" />Kinh nghiệm làm việc</div>
           <Button variant="outline" size="sm" onClick={() => {
@@ -336,7 +346,7 @@ export function CvForm({ data, onChange }: CvFormProps) {
       </div>
 
       {/* 3. Học vấn */}
-      <div className="cv-form-card">
+      <div id="cv-section-education" data-cv-section="education" className="cv-form-card">
         <div data-slot="card-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div data-slot="card-title"><FileText className="h-5 w-5" />Học vấn</div>
           <Button variant="outline" size="sm" onClick={() => {
@@ -380,7 +390,7 @@ export function CvForm({ data, onChange }: CvFormProps) {
       </div>
 
       {/* 4. Kỹ năng */}
-      <div className="cv-form-card">
+      <div id="cv-section-skills" data-cv-section="skills" className="cv-form-card">
         <div data-slot="card-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div data-slot="card-title"><FileText className="h-5 w-5" />Kỹ năng</div>
           <Button variant="outline" size="sm" onClick={() => {
@@ -397,17 +407,15 @@ export function CvForm({ data, onChange }: CvFormProps) {
           {data.kyNang.map((k) => (
             <div key={k.id} style={{ display: "flex", gap: "0.75rem", marginBottom: "0.75rem", alignItems: "center" }}>
               <Input placeholder="Tên kỹ năng *" value={k.tenKyNang} onChange={(e) => updateList("kyNang", k.id, "tenKyNang", e.target.value)} style={{ flex: 2 }} />
-               <select
-                 aria-label="Mức độ thành thạo"
-                 value={k.mucDoThanhThao || "0"}
-                 onChange={(e) => updateList("kyNang", k.id, "mucDoThanhThao", e.target.value)}
-                 className="h-9 flex-1 rounded-md border border-input bg-transparent px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
-               >
-                 <option value="0">Cơ bản</option>
-                 <option value="1">Trung bình</option>
-                 <option value="2">Thành thạo</option>
-                 <option value="3">Chuyên gia</option>
-               </select>
+                <Select value={k.mucDoThanhThao || "0"} onValueChange={(value) => updateList("kyNang", k.id, "mucDoThanhThao", value)}>
+                  <SelectTrigger className="h-9 flex-1" aria-label="Mức độ thành thạo"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="0">Cơ bản</SelectItem>
+                    <SelectItem value="1">Trung bình</SelectItem>
+                    <SelectItem value="2">Thành thạo</SelectItem>
+                    <SelectItem value="3">Chuyên gia</SelectItem>
+                  </SelectContent>
+                </Select>
                <Input type="number" min="0" max="100" step="0.5" placeholder="Số năm" value={k.soNamKinhNghiem} onChange={(e) => updateList("kyNang", k.id, "soNamKinhNghiem", e.target.value)} style={{ flex: 1 }} />
               <Button variant="ghost" size="icon" className="shrink-0 text-muted-foreground hover:text-destructive" onClick={() => removeFrom("kyNang", k.id)}>
                 <Trash2 className="h-4 w-4" />
@@ -418,7 +426,7 @@ export function CvForm({ data, onChange }: CvFormProps) {
       </div>
 
       {/* 5. Dự án */}
-      <div className="cv-form-card">
+      <div id="cv-section-projects" data-cv-section="projects" className="cv-form-card">
         <div data-slot="card-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div data-slot="card-title"><FileText className="h-5 w-5" />Dự án</div>
           <Button variant="outline" size="sm" onClick={() => {
@@ -468,7 +476,7 @@ export function CvForm({ data, onChange }: CvFormProps) {
       </div>
 
       {/* 6. Chứng chỉ */}
-      <div className="cv-form-card">
+      <div id="cv-section-certificates" data-cv-section="certificates" className="cv-form-card">
         <div data-slot="card-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div data-slot="card-title"><FileText className="h-5 w-5" />Chứng chỉ</div>
           <Button variant="outline" size="sm" onClick={() => {

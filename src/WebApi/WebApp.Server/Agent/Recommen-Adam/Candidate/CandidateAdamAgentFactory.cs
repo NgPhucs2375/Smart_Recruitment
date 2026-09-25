@@ -30,6 +30,7 @@ internal sealed class CandidateAdamAgentFactory
             AIFunctionFactory.Create(_cvQueryTools.SuggestJobsForMyCvAsync, new AIFunctionFactoryOptions { Name = "suggest_jobs_for_my_cv" }),
             AIFunctionFactory.Create(_candidateTools.CheckProfileCompletenessAsync, new AIFunctionFactoryOptions { Name = "check_profile_completeness" }),
             AIFunctionFactory.Create(_candidateTools.AnalyzeCvAsync, new AIFunctionFactoryOptions { Name = "analyze_cv" }),
+            AIFunctionFactory.Create(_candidateTools.ReviewDefaultCvAsync, new AIFunctionFactoryOptions { Name = "review_default_cv" }),
             AIFunctionFactory.Create(_candidateTools.SuggestCvImprovementAsync, new AIFunctionFactoryOptions { Name = "suggest_cv_improvement" }),
             AIFunctionFactory.Create(_candidateTools.SearchJobsAsync, new AIFunctionFactoryOptions { Name = "search_jobs" }),
             AIFunctionFactory.Create(_candidateTools.GetJobDetailsAsync, new AIFunctionFactoryOptions { Name = "get_job_details" }),

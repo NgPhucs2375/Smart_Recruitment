@@ -58,20 +58,24 @@ internal sealed class CandidateTools
         var content = cv.Data.NoiDung;
         if (content == null)
             return new Response<CandidateCvAnalysis>("CV chưa có nội dung để phân tích.");
-        var strengths = new List<string>();
-        var improvements = new List<string>();
-        if (content.KyNang.Count > 0) strengths.Add($"Có {content.KyNang.Count} kỹ năng trong CV"); else improvements.Add("Bổ sung kỹ năng chuyên môn");
-        if (content.KinhNghiemLamViec.Count > 0) strengths.Add("Có kinh nghiệm làm việc"); else improvements.Add("Bổ sung kinh nghiệm hoặc dự án tiêu biểu");
-        if (content.DuAn.Count > 0) strengths.Add("Có dự án thể hiện năng lực"); else improvements.Add("Bổ sung dự án hoặc sản phẩm đã thực hiện");
-        if (content.HocVan.Count == 0) improvements.Add("Bổ sung học vấn");
-        if (string.IsNullOrWhiteSpace(content.ThongTinLienHe?.Email)) improvements.Add("Bổ sung email liên hệ");
-        if (string.IsNullOrWhiteSpace(content.ThongTinLienHe?.ViTriUngTuyen)) improvements.Add("Nêu rõ vị trí ứng tuyển mục tiêu");
+        return new Response<CandidateCvAnalysis>(BuildCvAnalysis(cv.Data));
+    }
 
-        return new Response<CandidateCvAnalysis>(new CandidateCvAnalysis
+    [Description(
+        "Xem CV mặc định hiện tại và đánh giá các điểm cần cải thiện trong cùng một lần gọi. " +
+        "Dùng trực tiếp khi người dùng vừa muốn xem CV mặc định vừa hỏi cần cải thiện gì; " +
+        "không gọi list_my_cvs, get_cv_detail hoặc analyze_cv thêm cho cùng yêu cầu.")]
+    public async Task<Response<CandidateCvReview>> ReviewDefaultCvAsync(
+        CancellationToken cancellationToken = default)
+    {
+        var cv = await GetCvAsync(null, cancellationToken);
+        if (!cv.Succeeded || cv.Data == null)
+            return new Response<CandidateCvReview>(cv.Message ?? "Không lấy được CV mặc định.");
+
+        return new Response<CandidateCvReview>(new CandidateCvReview
         {
-            CvUngVienId = cv.Data.Id,
-            DiemManh = strengths,
-            CanCaiThien = improvements
+            Cv = cv.Data,
+            Analysis = BuildCvAnalysis(cv.Data)
         });
     }
 
@@ -113,8 +117,18 @@ internal sealed class CandidateTools
         var response = await _sender.Send(new GetSuggestedJobsForCvQuery { CvUngVienId = cvId, TopN = 10 }, cancellationToken);
         if (response.Succeeded && response.Data is not null)
         {
-            _sharedState.Set("jobRecommendations", response.Data);
+            // Keep weak matches out when stronger recommendations exist.
+            var visible = response.Data.Where(job => job.DiemPhuHop >= 0.33f).ToList();
+            if (visible.Count == 0)
+                visible = response.Data.Take(3).ToList();
+
+            _sharedState.Set("jobRecommendations", visible);
             _sharedState.Set("lastAction", "jobRecommendationsLoaded");
+            return new Response<List<SuggestedJobViewModel>>(
+                visible,
+                visible.Any(job => job.DiemPhuHop >= 0.33f)
+                    ? "Đã lọc các tin có mức phù hợp từ trung bình trở lên."
+                    : "Chưa có tin đạt mức phù hợp trung bình trở lên; đây là các kết quả gần nhất để tham khảo.");
         }
 
         return response;
@@ -171,6 +185,26 @@ internal sealed class CandidateTools
             ? new Response<CvDetailDto>("Không tìm thấy CV mặc định.")
             : await _sender.Send(new GetCVUngVienByIdQuery { Id = defaultCv.Id }, cancellationToken);
     }
+
+    private static CandidateCvAnalysis BuildCvAnalysis(CvDetailDto cv)
+    {
+        var content = cv.NoiDung;
+        var strengths = new List<string>();
+        var improvements = new List<string>();
+        if (content.KyNang.Count > 0) strengths.Add($"Có {content.KyNang.Count} kỹ năng trong CV"); else improvements.Add("Bổ sung kỹ năng chuyên môn");
+        if (content.KinhNghiemLamViec.Count > 0) strengths.Add("Có kinh nghiệm làm việc"); else improvements.Add("Bổ sung kinh nghiệm hoặc dự án tiêu biểu");
+        if (content.DuAn.Count > 0) strengths.Add("Có dự án thể hiện năng lực"); else improvements.Add("Bổ sung dự án hoặc sản phẩm đã thực hiện");
+        if (content.HocVan.Count == 0) improvements.Add("Bổ sung học vấn");
+        if (string.IsNullOrWhiteSpace(content.ThongTinLienHe?.Email)) improvements.Add("Bổ sung email liên hệ");
+        if (string.IsNullOrWhiteSpace(content.ThongTinLienHe?.ViTriUngTuyen)) improvements.Add("Nêu rõ vị trí ứng tuyển mục tiêu");
+
+        return new CandidateCvAnalysis
+        {
+            CvUngVienId = cv.Id,
+            DiemManh = strengths,
+            CanCaiThien = improvements
+        };
+    }
 }
 
 public sealed class CandidateProfileCompleteness
@@ -185,4 +219,10 @@ public sealed class CandidateCvAnalysis
     public int CvUngVienId { get; set; }
     public List<string> DiemManh { get; set; } = new();
     public List<string> CanCaiThien { get; set; } = new();
+}
+
+public sealed class CandidateCvReview
+{
+    public CvDetailDto Cv { get; set; } = new();
+    public CandidateCvAnalysis Analysis { get; set; } = new();
 }

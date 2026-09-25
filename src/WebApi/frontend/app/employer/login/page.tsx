@@ -117,9 +117,10 @@ export default function EmployerLoginPage() {
           <div className="relative">
             <Mail className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
             <Input
-              id="employer-email"
-              type="email"
-              placeholder="hr@company.com"
+               id="employer-email"
+               type="email"
+               autoComplete="username"
+               placeholder="hr@company.com"
               {...register("email")}
               disabled={isPending}
               className="h-11 rounded-xl border-input bg-white pl-10 text-sm transition focus-visible:ring-1 focus-visible:ring-primary"

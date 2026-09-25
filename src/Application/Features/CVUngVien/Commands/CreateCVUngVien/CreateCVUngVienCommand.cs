@@ -1,10 +1,12 @@
 using Application.DTOs.CV;
+using Application.Features.CVUngVien.Cache;
 using Application.Interfaces;
 using Application.Wrappers;
 using Domain.Enums;
 using MediatR;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Distributed;
 
 namespace Application.Features.CVUngVien.Commands.CreateCVUngVien;
 
@@ -23,7 +25,8 @@ public class CreateCVUngVienCommand : IRequest<Response<int>>
 public class CreateCVUngVienCommandHandler(
     IApplicationDbContext context,
     ICurrentNguoiDungService currentNguoiDungService,
-    IFileStorageService fileStorageService)
+    IFileStorageService fileStorageService,
+    IDistributedCache cache)
     : IRequestHandler<CreateCVUngVienCommand, Response<int>>
 {
     public async Task<Response<int>> Handle(
@@ -71,6 +74,7 @@ public class CreateCVUngVienCommandHandler(
             x => x.HoSoUngVienId == hoSo.Id && !x.IsDaXoa,
             cancellationToken);
         var isDefault = request.IsDefault || !hasAnyCv;
+        var affectedCvIds = new List<int>();
 
         if (isDefault)
         {
@@ -78,6 +82,7 @@ public class CreateCVUngVienCommandHandler(
                 .Where(x => x.HoSoUngVienId == hoSo.Id && x.IsDefault && !x.IsDaXoa)
                 .ToListAsync(cancellationToken);
             oldDefaults.ForEach(x => x.IsDefault = false);
+            affectedCvIds.AddRange(oldDefaults.Select(x => x.Id));
         }
 
         var entity = new Domain.Entities.CVUngVien
@@ -95,6 +100,11 @@ public class CreateCVUngVienCommandHandler(
 
         await context.CVUngViens.AddAsync(entity, cancellationToken);
         await context.SaveChangesAsync(cancellationToken);
+        await CVUngVienListCache.InvalidateAsync(
+            cache,
+            currentUser.Id,
+            cancellationToken,
+            affectedCvIds.Append(entity.Id).ToArray());
 
         return new Response<int>(data: entity.Id, message: "Tạo CV thành công.");
     }

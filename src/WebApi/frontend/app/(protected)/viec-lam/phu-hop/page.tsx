@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Target, TrendingUp, ArrowRight } from "lucide-react";
 import { AdminPageLayout, AdminPageHeader, AdminCard, AdminCardHeader, AdminEmptyState, AdminLoadingState } from "@/components/admin/admin-page-layout";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useStoredIdentity } from "@/hooks/use-stored-identity";
 
 type KetQuaPhuHop = {
@@ -120,16 +121,22 @@ function CandidatePhuHop() {
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border p-5">
           <AdminCardHeader title="Dành cho bạn" description={`${visibleItems.length}/${items.length} kết quả`} />
           <div className="flex flex-wrap gap-2">
-            <select value={category} onChange={(event) => setCategory(event.target.value as typeof category)} className="h-9 rounded-lg border border-border bg-background px-3 text-sm">
-              <option value="all">Tất cả mức độ</option>
-              <option value="high">Cao từ 70%</option>
-              <option value="medium">Trung bình 40–69%</option>
-              <option value="low">Thấp dưới 40%</option>
-            </select>
-            <select value={sort} onChange={(event) => setSort(event.target.value as typeof sort)} className="h-9 rounded-lg border border-border bg-background px-3 text-sm">
-              <option value="score">Điểm cao nhất</option>
-              <option value="title">Tên công việc</option>
-            </select>
+            <Select value={category} onValueChange={(value) => setCategory(value as typeof category)}>
+              <SelectTrigger className="h-9 w-44 rounded-lg px-3 text-sm"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tất cả mức độ</SelectItem>
+                <SelectItem value="high">Cao từ 70%</SelectItem>
+                <SelectItem value="medium">Trung bình 40–69%</SelectItem>
+                <SelectItem value="low">Thấp dưới 40%</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={sort} onValueChange={(value) => setSort(value as typeof sort)}>
+              <SelectTrigger className="h-9 w-40 rounded-lg px-3 text-sm"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="score">Điểm cao nhất</SelectItem>
+                <SelectItem value="title">Tên công việc</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
         {loading ? <AdminLoadingState /> : visibleItems.length === 0 ? (

@@ -1,7 +1,9 @@
 using Application.Interfaces;
 using Application.Wrappers;
+using Application.Features.CVUngVien.Cache;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Distributed;
 
 namespace Application.Features.CVUngVien.Commands.DeleteCVUngVien;
 
@@ -12,7 +14,8 @@ public class DeleteCVUngVienByIdCommand : IRequest<Response<int>>
 
 public class DeleteCVUngVienByIdCommandHandler(
     IApplicationDbContext context,
-    ICurrentNguoiDungService current)
+    ICurrentNguoiDungService current,
+    IDistributedCache cache)
     : IRequestHandler<DeleteCVUngVienByIdCommand, Response<int>>
 {
     public async Task<Response<int>> Handle(
@@ -36,6 +39,7 @@ public class DeleteCVUngVienByIdCommandHandler(
 
         // Xóa mềm: giữ record để DonUngTuyen cũ vẫn tham chiếu được (FK CVUngVienId).
         var wasDefault = entity.IsDefault;
+        var replacementId = 0;
         entity.IsDaXoa = true;
         entity.IsDefault = false;
 
@@ -53,11 +57,19 @@ public class DeleteCVUngVienByIdCommandHandler(
             if (replacement != null)
             {
                 replacement.IsDefault = true;
+                replacementId = replacement.Id;
             }
         }
 
         await context.SaveChangesAsync(
             cancellationToken);
+        await CVUngVienListCache.InvalidateAsync(
+            cache,
+            currentUser.Id,
+            cancellationToken,
+            replacementId > 0
+                ? new[] { entity.Id, replacementId }
+                : new[] { entity.Id });
 
         return new Response<int>(
             data: entity.Id,

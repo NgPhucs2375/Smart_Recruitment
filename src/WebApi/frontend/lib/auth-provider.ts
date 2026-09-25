@@ -232,9 +232,12 @@ function parseJwtExp(token: string): number | null {
   try {
     const parts = token.split(".");
     if (parts.length < 2 || !parts[1]) return null;
-    const json = atob(parts[1].replace(/-/g, "+").replace(/_/g, "/"));
+    const encoded = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+    const padded = encoded.padEnd(encoded.length + ((4 - (encoded.length % 4)) % 4), "=");
+    const json = atob(padded);
     const payload = JSON.parse(json) as { exp?: unknown };
-    return typeof payload.exp === "number" ? payload.exp * 1000 : null;
+    const exp = typeof payload.exp === "number" ? payload.exp : Number(payload.exp);
+    return Number.isFinite(exp) ? exp * 1000 : null;
   } catch {
     return null;
   }
