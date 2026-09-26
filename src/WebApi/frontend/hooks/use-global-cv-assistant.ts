@@ -18,6 +18,10 @@ import {
   requestCvSectionFocus,
   type CvFocusSection,
 } from "@/features/ai-cv/cv-focus";
+import {
+  cvContactPatchSchema,
+  cvSectionCreateSchema,
+} from "@/features/ai-cv/cv-tool-schemas";
 
 /**
  * Global Adam bridge: mount MỘT lần trong CopilotProvider (protected layout).
@@ -44,18 +48,17 @@ const navigateSchema = z.object({
     .optional()
     .describe("Họ tên ứng viên. Nếu user chỉ cho 1 cái tên và chưa có họ tên thì điền cùng giá trị với tenFile."),
   contact: z
-    .record(z.string(), z.string())
+    .object(cvContactPatchSchema.shape)
+    .strict()
     .optional()
-    .describe("Các field liên hệ khác (email, sdt, diaChi, viTriUngTuyen...). Chỉ điền thứ user nói rõ."),
-  sections: z
-    .array(
-      z.object({
-        section: z.string(),
-        items: z.array(z.record(z.string(), z.unknown())),
-      }),
-    )
+    .describe("Các field liên hệ cụ thể. Không truyền reason hoặc mô tả tổng hợp."),
+  sections: z.array(cvSectionCreateSchema)
+    .max(5)
     .optional()
-    .describe("Các mục list (hocVan, kinhNghiemLamViec, duAn, kyNang, chungChi), mỗi mục là mảng item."),
+    .describe(
+      "Các mục CV được hỗ trợ: hocVan, kinhNghiemLamViec, duAn, kyNang, chungChi. " +
+      "Phải điền đúng field cấu trúc của từng item; không truyền reason. ngonNgu và hoatDong chưa có section riêng.",
+    ),
   templateId: z
     .string()
     .optional()
@@ -156,7 +159,7 @@ export function useGlobalCvAssistant({ enabled = true }: { enabled?: boolean } =
         "Dùng sau khi phân tích CV và chỉ gọi với section cụ thể, không dùng thay cho câu trả lời nhận xét.",
       agentId: "default",
       parameters: focusSectionSchema,
-      available: enabled,
+      available: enabled && isEditor,
       handler: async ({ section }) => {
         const normalizedSection = section === "skill" ? "skills" : section;
         const label = getCvFocusSectionLabel(normalizedSection as CvFocusSection);
@@ -177,7 +180,7 @@ export function useGlobalCvAssistant({ enabled = true }: { enabled?: boolean } =
         "Sau khi gọi, báo user đang mở trình soạn và liệt kê đã lưu gì.",
       agentId: "default",
       parameters: navigateSchema,
-      available: enabled,
+      available: enabled && !isEditor,
       handler: async ({ tenFile, hoTen, contact, sections, templateId }) => {
         const cleanContact: Record<string, string> = {};
         const merged: Record<string, string> = { ...(contact ?? {}) };
@@ -201,10 +204,14 @@ export function useGlobalCvAssistant({ enabled = true }: { enabled?: boolean } =
               .slice(0, 20)
               .filter((it) => it && typeof it === "object" && !Array.isArray(it))
               .map((it) => {
-                const out: Record<string, string> = {};
+                const out: Record<string, unknown> = {};
                 for (const [k, v] of Object.entries(it as Record<string, unknown>)) {
                   if (typeof v === "string" && v.trim()) out[k] = v.trim();
                   else if (typeof v === "number" || typeof v === "boolean") out[k] = String(v);
+                  else if (Array.isArray(v)) {
+                    const values = v.map((value) => String(value).trim()).filter(Boolean);
+                    if (values.length > 0) out[k] = values;
+                  }
                 }
                 return out;
               })

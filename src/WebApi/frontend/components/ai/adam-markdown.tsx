@@ -50,8 +50,12 @@ export const adamMarkdownComponents = {
 
 export const adamMessageView = {
   assistantMessage: {
+    className: "adam-message adam-message--assistant",
     markdownRenderer: {
       components: adamMarkdownComponents,
     },
+  },
+  userMessage: {
+    className: "adam-message adam-message--user",
   },
 };

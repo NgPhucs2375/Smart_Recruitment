@@ -16,13 +16,38 @@ import { getAuthToken, getValidToken } from "@/lib/auth-provider";
 import { useGlobalCvAssistant } from "@/hooks/use-global-cv-assistant";
 import { useStoredIdentity } from "@/hooks/use-stored-identity";
 import { adamMessageView } from "@/components/ai/adam-markdown";
+import {
+  getCvFocusSectionLabel,
+  requestCvSectionFocus,
+  type CvFocusSection,
+} from "@/features/ai-cv/cv-focus";
 
 const CHAT_SUGGESTIONS = [
   { title: "Tạo CV từ đầu", message: "Hãy giúp tôi tạo một CV mới. Hỏi tôi các thông tin còn thiếu theo từng bước." },
-  { title: "Điền liên hệ", message: "Hãy hỏi tôi các thông tin liên hệ còn thiếu và điền trực tiếp vào CV." },
-  { title: "Tối ưu ATS", message: "Hãy kiểm tra CV hiện tại và áp dụng các cải thiện giúp CV thân thiện với ATS." },
-  { title: "Viết lại kinh nghiệm", message: "Hãy viết lại phần kinh nghiệm hiện tại theo hướng định lượng thành tích, không bịa thông tin." },
+  { title: "Cải thiện nội dung", message: "Hãy xem nội dung CV hiện tại và đề xuất cách viết chuyên nghiệp hơn mà không bịa thông tin." },
+  { title: "Tối ưu theo JD", message: "Tôi muốn tối ưu CV theo một công việc mục tiêu. Hãy yêu cầu tôi cung cấp JD rồi điều chỉnh CV phù hợp." },
+  { title: "Kiểm tra ATS", message: "Hãy kiểm tra CV hiện tại và đề xuất các cải thiện giúp CV thân thiện với ATS." },
 ];
+
+const CV_TOOL_SECTIONS: Record<string, CvFocusSection> = {
+  updateCvContact: "contact",
+  updateCvContactBulk: "contact",
+};
+
+const CV_SECTION_FROM_PARAMETER: Record<string, CvFocusSection> = {
+  hocVan: "education",
+  kinhNghiemLamViec: "experience",
+  duAn: "projects",
+  kyNang: "skills",
+  chungChi: "certificates",
+};
+
+function cvToolSection(name: string, parameters: unknown): CvFocusSection | undefined {
+  if (CV_TOOL_SECTIONS[name]) return CV_TOOL_SECTIONS[name];
+  if (name !== "upsertCvSectionItem" || !parameters || typeof parameters !== "object") return undefined;
+  const section = (parameters as { section?: unknown }).section;
+  return typeof section === "string" ? CV_SECTION_FROM_PARAMETER[section] : undefined;
+}
 
 type RecruitmentJobState = {
   tinTuyenDungId: number;
@@ -109,8 +134,16 @@ function GlobalCvAssistantMount() {
 
 function ToolActivityMount() {
   useDefaultRenderTool({
-    render: ({ name, status, result }) => {
+    render: ({ name, status, result, parameters }) => {
       const labels: Record<string, string> = {
+        getCvFormSnapshot: "Đang đọc nội dung CV",
+        updateCvContact: "Đang cập nhật thông tin liên hệ",
+        updateCvContactBulk: "Đang cập nhật thông tin liên hệ",
+        upsertCvSectionItem: "Đang cập nhật nội dung CV",
+        updateCvMeta: "Đang cập nhật thông tin CV",
+        setCvTemplate: "Đang đổi mẫu CV",
+        analyze_cv: "Đang phân tích CV",
+        review_default_cv: "Đang phân tích CV",
         get_job_recommendations: "Đang tìm việc phù hợp với CV",
         suggest_jobs_for_my_cv: "Đang tìm việc phù hợp với CV",
         search_jobs: "Đang tìm kiếm tin tuyển dụng",
@@ -121,6 +154,9 @@ function ToolActivityMount() {
       const label = labels[name] ?? "Adam đang xử lý yêu cầu";
       const complete = status === "complete";
       const jobs = complete ? parseJobRecommendations(result) : [];
+      const section = cvToolSection(name, parameters);
+      const sectionLabel = section ? getCvFocusSectionLabel(section) : undefined;
+      const activityLabel = !complete && sectionLabel ? `Đang cập nhật ${sectionLabel}` : label;
 
       if (jobs.length > 0) {
         return (
@@ -150,9 +186,16 @@ function ToolActivityMount() {
       }
 
       return (
-        <div className="adam-tool-activity" role="status" aria-live="polite">
+        <div className={`adam-tool-activity${section ? " adam-tool-activity--change" : ""}`} role="status" aria-live="polite">
           <span className={`adam-tool-activity__icon${complete ? " is-complete" : ""}`} aria-hidden="true" />
-          <span className="adam-tool-activity__label">{complete ? `${label} xong` : label}</span>
+          <span className="adam-tool-activity__label">
+            {complete && sectionLabel ? <>Đã cập nhật <strong>{sectionLabel}</strong></> : complete ? `${label} xong` : activityLabel}
+          </span>
+          {complete && section && (
+            <button type="button" className="adam-tool-activity__action" onClick={() => requestCvSectionFocus(section)}>
+              Xem thay đổi
+            </button>
+          )}
           <span className="adam-tool-activity__status">{complete ? "Đã xong" : "Đang xử lý"}</span>
         </div>
       );

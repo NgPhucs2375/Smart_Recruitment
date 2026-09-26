@@ -1,8 +1,40 @@
 "use client";
 
-import { useEffect, useRef, useState, type Dispatch, type RefObject, type SetStateAction } from "react";
-import { CopilotChat } from "@copilotkit/react-core/v2";
-import { CheckCircle2, FileDown, FilePlus2, FileText, Save, Sparkles, ZoomIn, ZoomOut } from "lucide-react";
+import {
+  useEffect,
+  forwardRef,
+  useRef,
+  useState,
+  type ComponentProps,
+  type Dispatch,
+  type HTMLAttributes,
+  type ReactElement,
+  type RefObject,
+  type SetStateAction,
+} from "react";
+import {
+  CopilotChat,
+  CopilotChatSuggestionView,
+  useAgent,
+  useConfigureSuggestions,
+} from "@copilotkit/react-core/v2";
+import {
+  BriefcaseBusiness,
+  CheckCircle2,
+  FileDown,
+  FilePenLine,
+  FilePlus2,
+  FileText,
+  PencilLine,
+  Save,
+  ScanSearch,
+  Sparkles,
+  Target,
+  WandSparkles,
+  ZoomIn,
+  ZoomOut,
+  type LucideIcon,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { CvDocument } from "@/components/cv/cv-document";
@@ -21,6 +53,43 @@ import { adamMessageView } from "@/components/ai/adam-markdown";
 import { focusCvSectionInDom, getCvFocusEventName, type CvFocusSection } from "@/features/ai-cv/cv-focus";
 
 const cloneDefaultCv = (): CvFormData => JSON.parse(JSON.stringify(defaultCvData)) as CvFormData;
+
+const STARTER_META: Record<string, { description: string; icon: LucideIcon }> = {
+  "Tạo CV từ đầu": { description: "Adam hướng dẫn và điền từng bước", icon: WandSparkles },
+  "Cải thiện nội dung": { description: "Viết lại nội dung chuyên nghiệp hơn", icon: PencilLine },
+  "Tối ưu theo JD": { description: "Điều chỉnh CV theo công việc mục tiêu", icon: Target },
+  "Kiểm tra ATS": { description: "Phân tích khả năng vượt hệ thống ATS", icon: ScanSearch },
+};
+
+const CONTEXT_META: Record<string, { icon: LucideIcon }> = {
+  "Rút gọn giới thiệu": { icon: FilePenLine },
+  "Viết lại kinh nghiệm": { icon: PencilLine },
+  "Thêm kỹ năng": { icon: Sparkles },
+  "Kiểm tra ATS": { icon: ScanSearch },
+  "So sánh với JD": { icon: BriefcaseBusiness },
+};
+
+function contextualSuggestions(data: CvFormData) {
+  const suggestions: Array<{ title: string; message: string }> = [];
+  if (data.thongTinLienHe.gioiThieuBanThan.trim()) {
+    suggestions.push({
+      title: "Rút gọn giới thiệu",
+      message: "Hãy rút gọn phần giới thiệu hiện tại, giữ đúng thông tin và làm nổi bật giá trị nghề nghiệp.",
+    });
+  }
+  if (data.kinhNghiemLamViec.length > 0) {
+    suggestions.push({
+      title: "Viết lại kinh nghiệm",
+      message: "Hãy viết lại phần kinh nghiệm hiện tại ngắn gọn, chuyên nghiệp hơn và không bịa số liệu.",
+    });
+  }
+  suggestions.push(
+    { title: "Thêm kỹ năng", message: "Hãy xem CV hiện tại và hỏi tôi những kỹ năng còn thiếu trước khi thêm vào CV." },
+    { title: "Kiểm tra ATS", message: "Hãy kiểm tra CV hiện tại về khả năng đọc bởi ATS và đề xuất thay đổi cụ thể." },
+    { title: "So sánh với JD", message: "Tôi muốn so sánh CV với một JD. Hãy yêu cầu tôi cung cấp mô tả công việc." },
+  );
+  return suggestions.slice(0, 4);
+}
 
 export function AiCvWorkspace() {
   const documentRef = useRef<HTMLDivElement>(null);
@@ -91,7 +160,7 @@ export function AiCvWorkspace() {
 
       <div className="cv-workspace__body">
         <aside className="cv-assistant-column">
-          <ChatPanel />
+          <ChatPanel data={cvData} />
         </aside>
         <PreviewPanel data={cvData} zoom={zoom} setZoom={setZoom} documentRef={documentRef} onTemplateChange={(templateId) => { setCvData((current) => ({ ...current, templateId })); setDirty(true); }} />
       </div>
@@ -99,22 +168,130 @@ export function AiCvWorkspace() {
   );
 }
 
-function ChatPanel() {
+function ChatPanel({ data }: { data: CvFormData }) {
+  const [composerValue, setComposerValue] = useState("");
+  const { agent } = useAgent({ agentId: "default" });
+  const hasContent = hasPreviewContent(data);
+  const hasSummary = Boolean(data.thongTinLienHe.gioiThieuBanThan.trim());
+  const experienceCount = data.kinhNghiemLamViec.length;
+  const suggestions = contextualSuggestions(data);
+
+  useConfigureSuggestions(
+    {
+      suggestions,
+      available: "after-first-message",
+      consumerAgentId: "default",
+    },
+    [hasSummary, experienceCount],
+  );
+
+  const addContext = (value: string) => {
+    setComposerValue((current) => current.trim() ? `${current.trim()}\n\n${value}` : value);
+  };
+
   return (
     <section className="cv-chat">
       <div className="cv-chat__bar">
         <div className="cv-chat__identity"><span className="cv-avatar"><Sparkles className="size-4" /></span><div><strong>Adam</strong><span>Trợ lý tạo CV · Realtime</span></div></div>
-        <span className="cv-online"><i /> Online</span>
+        <span className={`cv-online${agent.isRunning ? " is-working" : ""}`} role="status">
+          <i /> {agent.isRunning ? "Đang làm việc" : "Sẵn sàng"}
+        </span>
       </div>
       <div className="cv-chat__content">
         <CopilotChat
           className="cv-chat__copilot"
           messageView={adamMessageView}
-          labels={{ welcomeMessageText: "Bạn muốn bắt đầu với phần nào của CV?", chatInputPlaceholder: "Nhập yêu cầu cho Adam..." }}
+          welcomeScreen={({ input, suggestionView }) => <AgentWelcomeScreen input={input} suggestionView={suggestionView} />}
+          suggestionView={AgentSuggestionView}
+          inputValue={composerValue}
+          onInputChange={setComposerValue}
+          autoScroll="pin-to-send"
+          input={{
+            className: "adam-composer",
+            positioning: "absolute",
+            showDisclaimer: true,
+            textArea: { className: "adam-composer__textarea", rows: 1 },
+            sendButton: { className: "adam-composer__send" },
+            addMenuButton: { className: "adam-composer__add" },
+            disclaimer: AgentDisclaimer,
+            toolsMenu: [
+              { label: "Thêm mô tả công việc", action: () => addContext("Mô tả công việc mục tiêu:\n") },
+              { label: "Thêm yêu cầu chỉnh sửa", action: () => addContext("Yêu cầu chỉnh sửa CV:\n") },
+              { label: "Bổ sung thông tin cá nhân", action: () => addContext("Thông tin cần bổ sung:\n") },
+            ],
+          }}
+          labels={{
+            welcomeMessageText: "",
+            chatInputPlaceholder: hasContent
+              ? "Ví dụ: Viết lại phần kinh nghiệm ngắn gọn hơn..."
+              : "Hỏi Adam hoặc yêu cầu chỉnh CV...",
+            chatInputToolbarAddButtonLabel: "Thêm ngữ cảnh",
+            chatDisclaimerText: "Adam có thể mắc lỗi. Hãy kiểm tra thông tin quan trọng.",
+          }}
         />
       </div>
     </section>
   );
+}
+
+type AgentWelcomeScreenProps = {
+  input: ReactElement;
+  suggestionView: ReactElement;
+};
+
+function AgentWelcomeScreen({ input, suggestionView }: AgentWelcomeScreenProps) {
+  return (
+    <div className="adam-welcome">
+      <div className="adam-welcome__body">
+        <span className="adam-welcome__avatar" aria-hidden="true"><Sparkles className="size-5" /></span>
+        <div className="adam-welcome__copy">
+          <h2>Bạn muốn xây dựng CV như thế nào?</h2>
+          <p>Mô tả công việc bạn muốn ứng tuyển hoặc để Adam giúp bạn xây dựng CV từng bước.</p>
+        </div>
+        {suggestionView}
+      </div>
+      {input}
+    </div>
+  );
+}
+
+const AgentSuggestionView = forwardRef<HTMLDivElement, ComponentProps<typeof CopilotChatSuggestionView>>(function AgentSuggestionView(
+  props,
+  ref,
+) {
+  const { suggestions, onSelectSuggestion, loadingIndexes } = props;
+  const contextual = suggestions.some((suggestion) => suggestion.title in CONTEXT_META && !(suggestion.title in STARTER_META));
+  return (
+    <div ref={ref} className={contextual ? "adam-suggestions adam-suggestions--context" : "adam-suggestions"} aria-label={contextual ? "Gợi ý tiếp theo" : "Cách bắt đầu"}>
+      {contextual && <span className="adam-suggestions__label">Gợi ý tiếp theo</span>}
+      <div className="adam-suggestions__list">
+        {suggestions.map((suggestion, index) => {
+          const meta = STARTER_META[suggestion.title] ?? CONTEXT_META[suggestion.title];
+          const Icon = meta?.icon ?? Sparkles;
+          const isLoading = loadingIndexes?.includes(index) ?? false;
+          return (
+            <button
+              key={`${suggestion.title}-${index}`}
+              type="button"
+              className={contextual ? "adam-context-action" : "adam-starter-action"}
+              onClick={() => onSelectSuggestion?.(suggestion, index)}
+              disabled={isLoading}
+            >
+              <span className="adam-suggestion__icon" aria-hidden="true"><Icon className="size-4" /></span>
+              <span className="adam-suggestion__copy">
+                <strong>{suggestion.title}</strong>
+                {!contextual && <small>{STARTER_META[suggestion.title]?.description ?? "Gửi yêu cầu cho Adam"}</small>}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+});
+
+function AgentDisclaimer(props: HTMLAttributes<HTMLDivElement>) {
+  return <div {...props} className="adam-composer__disclaimer">Adam có thể mắc lỗi. Hãy kiểm tra thông tin quan trọng.</div>;
 }
 
 function PreviewPanel({ data, zoom, setZoom, documentRef, onTemplateChange }: { data: CvFormData; zoom: number; setZoom: Dispatch<SetStateAction<number>>; documentRef: RefObject<HTMLDivElement | null>; onTemplateChange: (templateId: string) => void }) {

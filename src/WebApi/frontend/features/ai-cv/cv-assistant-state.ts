@@ -138,7 +138,7 @@ export function toJsonSafe<T>(value: T): T {
 
 export type PendingSectionPatch = {
   section: CvSectionKey;
-  items: Array<Record<string, string>>;
+  items: Array<Record<string, unknown>>;
 };
 
 export type PendingCvPatch = {

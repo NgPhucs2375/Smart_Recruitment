@@ -56,7 +56,7 @@ html {
 .cv-online { display: inline-flex; align-items: center; gap: 0.35rem; color: #18804b; font-size: 0.65rem; font-weight: 650; }
 .cv-online i { width: 0.38rem; height: 0.38rem; border-radius: 999px; background: #22a866; }
 .cv-chat__content { display: flex; width: 100%; min-width: 0; min-height: 0; flex: 1 1 auto; overflow: hidden; padding: 0; }
-.cv-chat__copilot, .cv-chat__copilot > div, .cv-chat__copilot [data-copilotkit], .cv-chat__copilot [data-copilotkit] > div { display: flex; width: 100%; height: 100%; min-width: 0; min-height: 0; flex: 1 1 auto; flex-direction: column; overflow: hidden; border: 0 !important; border-radius: 0 !important; background: transparent !important; box-shadow: none !important; }
+.cv-chat__copilot { display: flex; width: 100%; height: 100%; min-width: 0; min-height: 0; flex: 1 1 auto; flex-direction: column; overflow: hidden; border: 0 !important; border-radius: 0 !important; background: transparent !important; box-shadow: none !important; }
 .cv-chat__copilot [data-copilotkit] form,
 .cv-chat__copilot [data-copilotkit] div:has(> textarea[data-testid="copilot-chat-textarea"]) {
   flex-shrink: 0;
@@ -2025,4 +2025,173 @@ html {
   .cv-preview__bar { align-items: flex-start; }
   .cv-preview__label { flex-basis: calc(100% - 1rem); }
   .cv-preview__footer { font-size: 0.58rem; }
+}
+
+/* Embedded Adam CV agent: CopilotKit keeps ownership of messages and runs;
+   these classes only customize its workspace slots. */
+.adam-welcome {
+  display: flex;
+  width: 100%;
+  min-height: 100%;
+  flex-direction: column;
+  padding: clamp(1.25rem, 4vh, 2.5rem) 1rem 8.5rem;
+}
+
+.adam-welcome__body {
+  display: flex;
+  width: min(100%, 34rem);
+  margin: auto;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.adam-welcome__avatar {
+  display: grid;
+  width: 2.75rem;
+  height: 2.75rem;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--primary) 24%, var(--border));
+  border-radius: 0.85rem;
+  background: color-mix(in srgb, var(--primary) 8%, var(--card));
+  color: var(--primary);
+}
+
+.adam-welcome__copy { margin-top: 0.9rem; }
+.adam-welcome__copy h2 { color: var(--foreground); font-size: 1rem; font-weight: 680; letter-spacing: -0.015em; }
+.adam-welcome__copy p { max-width: 29rem; margin-top: 0.35rem; color: var(--muted-foreground); font-size: 0.78rem; line-height: 1.55; }
+
+.adam-suggestions { width: 100%; margin-top: 1.15rem; }
+.adam-suggestions__list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.55rem; }
+
+.adam-starter-action,
+.adam-context-action {
+  display: flex;
+  min-width: 0;
+  min-height: 3.6rem;
+  align-items: center;
+  gap: 0.65rem;
+  border: 1px solid color-mix(in srgb, var(--border) 84%, transparent);
+  border-radius: 0.75rem;
+  background: var(--card);
+  color: var(--foreground);
+  text-align: left;
+  transition: border-color 180ms ease, background-color 180ms ease, transform 180ms ease;
+}
+
+.adam-starter-action { padding: 0.7rem 0.75rem; }
+.adam-starter-action:hover,
+.adam-context-action:hover { border-color: color-mix(in srgb, var(--primary) 38%, var(--border)); background: color-mix(in srgb, var(--primary) 5%, var(--card)); }
+.adam-starter-action:active,
+.adam-context-action:active { transform: translateY(1px); }
+.adam-starter-action:focus-visible,
+.adam-context-action:focus-visible { outline: 2px solid color-mix(in srgb, var(--ring) 65%, transparent); outline-offset: 2px; }
+.adam-starter-action:disabled,
+.adam-context-action:disabled { cursor: wait; opacity: 0.6; }
+
+.adam-suggestion__icon {
+  display: grid;
+  width: 2rem;
+  height: 2rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 0.55rem;
+  background: var(--muted);
+  color: var(--foreground);
+}
+
+.adam-suggestion__copy { display: flex; min-width: 0; flex-direction: column; gap: 0.08rem; }
+.adam-suggestion__copy strong { overflow: hidden; color: var(--foreground); font-size: 0.75rem; font-weight: 650; text-overflow: ellipsis; white-space: nowrap; }
+.adam-suggestion__copy small { overflow: hidden; color: var(--muted-foreground); font-size: 0.65rem; line-height: 1.35; text-overflow: ellipsis; white-space: nowrap; }
+
+.adam-suggestions--context {
+  margin: 0;
+  padding: 0 1rem 0.45rem;
+}
+.adam-suggestions__label { display: block; margin-bottom: 0.4rem; color: var(--muted-foreground); font-size: 0.65rem; font-weight: 600; }
+.adam-suggestions--context .adam-suggestions__list { display: flex; gap: 0.4rem; overflow-x: auto; padding: 0.1rem 0.1rem 0.2rem; scrollbar-width: none; }
+.adam-suggestions--context .adam-suggestions__list::-webkit-scrollbar { display: none; }
+.adam-context-action { min-height: 2.5rem; flex: 0 0 auto; padding: 0.45rem 0.65rem; border-radius: 0.65rem; }
+.adam-context-action .adam-suggestion__icon { width: 1.5rem; height: 1.5rem; background: transparent; color: var(--muted-foreground); }
+.adam-context-action .adam-suggestion__copy strong { font-size: 0.7rem; }
+
+.cv-chat__copilot [data-testid="copilot-input-overlay"] { background: transparent; }
+.cv-chat__copilot .adam-composer {
+  border: 1px solid color-mix(in srgb, var(--border) 90%, transparent) !important;
+  border-radius: 1rem !important;
+  background: var(--card) !important;
+  box-shadow: 0 6px 24px rgb(15 23 42 / 0.09) !important;
+  transition: border-color 180ms ease, box-shadow 180ms ease !important;
+}
+.cv-chat__copilot .adam-composer:focus-within {
+  border-color: color-mix(in srgb, var(--ring) 55%, var(--border)) !important;
+  box-shadow: 0 8px 26px rgb(15 23 42 / 0.1), 0 0 0 3px color-mix(in srgb, var(--ring) 13%, transparent) !important;
+}
+.cv-chat__copilot .adam-composer__textarea {
+  min-height: 3rem !important;
+  max-height: 9rem !important;
+  color: var(--foreground) !important;
+  font-size: 0.86rem !important;
+  line-height: 1.5 !important;
+}
+.cv-chat__copilot .adam-composer__textarea::placeholder { color: color-mix(in srgb, var(--muted-foreground) 78%, transparent) !important; }
+.cv-chat__copilot .adam-composer__send,
+.cv-chat__copilot .adam-composer__add { width: 2.5rem !important; height: 2.5rem !important; min-width: 2.5rem !important; }
+.cv-chat__copilot .adam-composer__send { background: var(--foreground) !important; color: var(--background) !important; }
+.cv-chat__copilot .adam-composer__send:hover:not(:disabled) { opacity: 0.82; }
+.cv-chat__copilot .adam-composer__add { color: var(--muted-foreground) !important; }
+.adam-composer__disclaimer { padding: 0.45rem 0.5rem 0.15rem; color: var(--muted-foreground); font-size: 0.62rem; line-height: 1.35; text-align: center; }
+
+.adam-message { animation: adam-message-in 180ms ease-out both; }
+.adam-message--assistant { color: var(--foreground); }
+.adam-message--assistant h1,
+.adam-message--assistant h2,
+.adam-message--assistant h3 { color: var(--foreground); letter-spacing: -0.01em; }
+.adam-message--assistant li { margin-block: 0.18rem; }
+.adam-message--user > div:first-child { border: 1px solid color-mix(in srgb, var(--border) 78%, transparent); background: var(--muted) !important; color: var(--foreground); }
+
+.cv-online.is-working { color: #a16207; }
+.cv-online.is-working i { background: #d97706; animation: adam-pulse 1.4s ease-in-out infinite; }
+
+.adam-tool-activity {
+  border-color: color-mix(in srgb, var(--border) 86%, transparent);
+  background: color-mix(in srgb, var(--muted) 55%, var(--card));
+  color: var(--foreground);
+}
+.adam-tool-activity__label strong { color: inherit; }
+.adam-tool-activity__action {
+  min-height: 2.25rem;
+  flex: 0 0 auto;
+  border-radius: 0.5rem;
+  padding: 0 0.55rem;
+  color: var(--primary);
+  font-size: 0.7rem;
+  font-weight: 650;
+  transition: background-color 160ms ease;
+}
+.adam-tool-activity__action:hover { background: color-mix(in srgb, var(--primary) 9%, transparent); }
+.adam-tool-activity__action:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+.adam-tool-activity--change .adam-tool-activity__status { display: none; }
+
+@keyframes adam-message-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 520px) {
+  .adam-welcome { padding-inline: 0.75rem; }
+  .adam-suggestions__list { grid-template-columns: 1fr; }
+  .adam-starter-action { min-height: 3.25rem; }
+  .adam-suggestions--context { padding-inline: 0.75rem; }
+  .adam-tool-activity { flex-wrap: wrap; }
+  .adam-tool-activity__action { min-height: 2.5rem; margin-left: auto; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .adam-message,
+  .cv-online.is-working i { animation: none; }
+  .adam-starter-action,
+  .adam-context-action,
+  .cv-chat__copilot .adam-composer { transition: none !important; }
+  .cv-ai-focused { animation: none; outline: 3px solid color-mix(in srgb, var(--primary) 45%, transparent); }
 }

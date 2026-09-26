@@ -26,6 +26,10 @@ import {
   removeSectionItem,
   sectionReport,
 } from "@/features/ai-cv/merge-cv-patch";
+import {
+  cvContactPatchSchema,
+  cvSectionUpsertSchema,
+} from "@/features/ai-cv/cv-tool-schemas";
 
 type UseCvAssistantOpts = {
   data: CvFormData;
@@ -44,27 +48,17 @@ const contactSchema = z.object({
 });
 
 const bulkContactSchema = z.object({
-  contact: z
-    .record(z.string(), z.string())
-    .describe(
-      `NHIỀU field liên hệ trong MỘT lượt (khuyên dùng khi ≥2 field). Key là một trong: ${CV_CONTACT_FIELDS.join(", ")}. ` +
-        "Chỉ điền field user nói rõ, field rỗng sẽ bị bỏ qua.",
-    ),
+  contact: cvContactPatchSchema.describe(
+    `NHIỀU field liên hệ trong MỘT lượt (khuyên dùng khi ≥2 field). Key là một trong: ${CV_CONTACT_FIELDS.join(", ")}. ` +
+      "Chỉ điền field user nói rõ, field rỗng sẽ bị bỏ qua.",
+  ),
 });
 
-const sectionItemsSchema = z.object({
-  section: z.string().describe(`Mục CV, một trong: ${CV_SECTION_KEYS.join(", ")}`),
-  items: z
-    .array(z.record(z.string(), z.unknown()))
-    .min(1)
-    .max(20)
-    .describe(
-      "MẢNG item cần thêm/sửa. Muốn SỬA item đã có: truyền đúng id (lấy từ getCvFormSnapshot) " +
-        "hoặc đủ bộ khóa tên (hocVan: truong+chuyenNganh; kinhNghiem: congTy+chucDanh; " +
-        "duAn: tenDuAn; kyNang: tenKyNang; chungChi: tenChungChi+donViCap). " +
-        "Ngày viết MM/YYYY hoặc YYYY. kỹ năng mảng congNghe/kyNangSuDung cách nhau bằng dấu phẩy.",
-    ),
-});
+const sectionItemsSchema = cvSectionUpsertSchema.describe(
+  `Thêm/sửa item của đúng một mục CV (${CV_SECTION_KEYS.join(", ")}). ` +
+    "Dùng đúng field được khai báo; không truyền reason hoặc văn bản tổng hợp. " +
+    "Muốn sửa item đã có thì truyền id từ getCvFormSnapshot.",
+);
 
 const removeItemSchema = z.object({
   section: z.string().describe(`Mục CV, một trong: ${CV_SECTION_KEYS.join(", ")}`),
@@ -119,7 +113,9 @@ export function useCvAssistant({
       toast.info("Không có gì để hoàn tác.");
       return;
     }
-    onChangeRef.current(undoRef.current);
+    const previous = undoRef.current;
+    dataRef.current = previous;
+    onChangeRef.current(previous);
     undoRef.current = null;
     toast.success("Đã hoàn tác thay đổi của Adam.");
   };
@@ -127,6 +123,9 @@ export function useCvAssistant({
   const commit = (next: CvFormData, toastLabel: string) => {
     if (next === dataRef.current) return;
     undoRef.current = dataRef.current;
+    // Frontend tools can run back-to-back before React commits a render.
+    // Mirror synchronously so every following tool merges onto the latest CV.
+    dataRef.current = next;
     onChangeRef.current(next);
     toast.success(toastLabel, {
       action: { label: "Hoàn tác", onClick: undo },

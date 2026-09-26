@@ -65,12 +65,15 @@ services:
   backend:
     build:
       context: .
-      dockerfile: src/WebApi/WebApp.Server/Dockerfile
+      dockerfile: src/WebApi/WebApp.Server/Dockerfile.dev
     container_name: backend
     restart: unless-stopped
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ASPNETCORE_URLS: http://+:8080
+      DOTNET_USE_POLLING_FILE_WATCHER: "1"
+      DOTNET_WATCH_SUPPRESS_LAUNCH_BROWSER: "1"
+      DOTNET_WATCH_RESTART_ON_RUDE_EDIT: "1"
 
       ConnectionStrings__PostgresConnection: Host=postgres;Port=5432;Database=smart_recruitment_db;Username=postgres;Password=${POSTGRES_PASSWORD:-SuperStrongPassword123!}
       JWTSettings__Key: ${JWT_KEY:-UmVjcnVpdG1lbnRTbWFydC1EZXZlbG9wbWVudC1KV1QtS2V5LTIwMjYtQ2hhbmdlLU1l}
@@ -104,6 +107,10 @@ services:
 
     ports:
       - "${BACKEND_PORT:-8000}:8080"
+    volumes:
+      # Source remains on Windows; build artifacts stay inside the container
+      # at /artifacts via dotnet watch --artifacts-path.
+      - .:/workspace
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:
@@ -134,6 +141,10 @@ services:
       # Chặn Turbopack/Node phình bộ nhớ làm host cạn RAM (trước đây gây
       # "Out of memory (os error 12)" -> module resolve lỗi ngẫu nhiên -> 500).
       NODE_OPTIONS: --max-old-space-size=2048
+      # Docker Desktop bind mounts do not always emit native Linux file events.
+      WATCHPACK_POLLING: "true"
+      CHOKIDAR_USEPOLLING: "true"
+      NEXT_TELEMETRY_DISABLED: "1"
     volumes:
       - ./src/WebApi/frontend:/app
       - frontend_node_modules:/app/node_modules
