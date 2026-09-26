@@ -2,7 +2,7 @@
 
 import { Mail, Phone, MapPin, Globe, Award, Briefcase } from "lucide-react";
 import type { ResumeTemplateProps } from "./shared";
-import { DateText, EmptyPaper, SectionShell } from "./shared";
+import { BannerSlot, DateText, EmptyPaper, SectionShell, SplitBlocks } from "./shared";
 
 const INK = "#111111";
 const SUBTLE = "#4b5563";
@@ -43,6 +43,7 @@ export function PopArtBoldTemplate({ data }: ResumeTemplateProps) {
   return (
     <div className="cv-paper cv-paper-a4 bg-white text-[13px] leading-relaxed" style={{ color: INK }}>
       <header className="px-7 pb-4 pt-6">
+        <BannerSlot data={data} className="mb-1 text-[10px] font-bold uppercase tracking-[0.24em]" style={{ color: SUBTLE }} />
         <h1 className="text-[28px] font-bold leading-tight tracking-tight" style={{ color: INK }}>
           {data.name || "Họ và tên"}
         </h1>
@@ -59,7 +60,7 @@ export function PopArtBoldTemplate({ data }: ResumeTemplateProps) {
             <PopTitle color="#facc15">Liên hệ</PopTitle>
             <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
               {data.contacts.map((c, i) => (
-                <p key={`${c.label}-${i}`} className="cv-section-item flex items-start gap-2 text-[12px]" style={{ color: SUBTLE }}>
+                <p key={`${c.label}-${i}`} className="cv-section-item flex min-w-0 items-start gap-2 text-[12px]" style={{ color: SUBTLE }}>
                   <ContactIcon label={c.label} />
                   <span className="break-all">{c.value}</span>
                 </p>
@@ -71,9 +72,7 @@ export function PopArtBoldTemplate({ data }: ResumeTemplateProps) {
         {data.summary && (
           <SectionShell>
             <PopTitle color="#ef4444">Tóm tắt</PopTitle>
-            <p className="whitespace-pre-line border-l-4 pl-3 text-[13px]" style={{ color: SUBTLE, borderColor: "#ef4444" }}>
-              {data.summary}
-            </p>
+            <SplitBlocks text={data.summary} className="whitespace-pre-line break-words [overflow-wrap:anywhere] border-l-4 pl-3 text-[13px]" style={{ color: SUBTLE, borderColor: "#ef4444" }} />
           </SectionShell>
         )}
 
@@ -92,7 +91,7 @@ export function PopArtBoldTemplate({ data }: ResumeTemplateProps) {
                   </div>
                   <p className="text-[12px] font-semibold" style={{ color: "#1d4ed8" }}>{job.company}</p>
                   {job.description && (
-                    <p className="mt-1 whitespace-pre-line text-[13px]" style={{ color: SUBTLE }}>{job.description}</p>
+                    <SplitBlocks text={job.description} className="mt-1 whitespace-pre-line break-words [overflow-wrap:anywhere] text-[13px]" style={{ color: SUBTLE }} />
                   )}
                 </div>
               ))}
@@ -131,7 +130,7 @@ export function PopArtBoldTemplate({ data }: ResumeTemplateProps) {
                   </div>
                   {p.role && <p className="text-[12px] font-bold" style={{ color: "#ef4444" }}>{p.role}</p>}
                   {p.description && (
-                    <p className="mt-1 whitespace-pre-line text-[13px]" style={{ color: SUBTLE }}>{p.description}</p>
+                    <SplitBlocks text={p.description} className="mt-1 whitespace-pre-line break-words [overflow-wrap:anywhere] text-[13px]" style={{ color: SUBTLE }} />
                   )}
                 </div>
               ))}
@@ -151,7 +150,7 @@ export function PopArtBoldTemplate({ data }: ResumeTemplateProps) {
                   </div>
                   {edu.degree && <p className="text-[12px] font-bold" style={{ color: "#1d4ed8" }}>{edu.degree}</p>}
                   {edu.description && (
-                    <p className="mt-1 whitespace-pre-line text-[13px]" style={{ color: SUBTLE }}>{edu.description}</p>
+                    <SplitBlocks text={edu.description} className="mt-1 whitespace-pre-line break-words [overflow-wrap:anywhere] text-[13px]" style={{ color: SUBTLE }} />
                   )}
                 </div>
               ))}

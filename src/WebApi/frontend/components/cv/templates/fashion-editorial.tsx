@@ -2,7 +2,7 @@
 
 import { Mail, Phone, MapPin, Globe, Award, Briefcase } from "lucide-react";
 import type { ResumeTemplateProps } from "./shared";
-import { DateText, EmptyPaper, SectionShell } from "./shared";
+import { DateText, EmptyPaper, SectionShell, SplitBlocks, resolveBannerTitle } from "./shared";
 
 /**
  * Fashion Editorial — tạp chí thời trang: khoảng trắng cực lớn,
@@ -85,7 +85,7 @@ export function FashionEditorialTemplate({ data }: ResumeTemplateProps) {
         <div className="flex items-center gap-3">
           <span className="inline-block size-2.5" style={{ backgroundColor: RED }} aria-hidden="true" />
           <p className="text-[10.5px] font-bold uppercase" style={{ color: BLACK, letterSpacing: "0.4em" }}>
-            Portfolio — CV
+            {resolveBannerTitle(data, "Portfolio — CV")}
           </p>
         </div>
         <h1
@@ -114,12 +114,7 @@ export function FashionEditorialTemplate({ data }: ResumeTemplateProps) {
         {data.summary && (
           <SectionShell>
             <EditorialSection index="N°1" vertical="Giới thiệu">
-              <p
-                className="cv-section-item max-w-[520px] whitespace-pre-line text-[15px] font-light leading-loose"
-                style={{ color: BLACK }}
-              >
-                {data.summary}
-              </p>
+              <SplitBlocks text={data.summary} className="max-w-[520px] whitespace-pre-line break-words [overflow-wrap:anywhere] text-[15px] font-light leading-loose" style={{ color: BLACK }} />
             </EditorialSection>
           </SectionShell>
         )}
@@ -147,9 +142,7 @@ export function FashionEditorialTemplate({ data }: ResumeTemplateProps) {
                     )}
                     <DateText range={job.range} className="mt-1 block text-[11.5px] uppercase tracking-[0.2em]" />
                     {job.description && (
-                      <p className="mt-3 max-w-[520px] whitespace-pre-line font-light leading-loose" style={{ color: GRAY }}>
-                        {job.description}
-                      </p>
+                      <SplitBlocks text={job.description} className="mt-3 max-w-[520px] whitespace-pre-line break-words [overflow-wrap:anywhere] font-light leading-loose" style={{ color: GRAY }} />
                     )}
                   </div>
                 ))}
@@ -179,9 +172,7 @@ export function FashionEditorialTemplate({ data }: ResumeTemplateProps) {
                       <DateText range={p.range} className="mt-1 block text-[11.5px] uppercase tracking-[0.2em]" />
                     )}
                     {p.description && (
-                      <p className="mt-3 max-w-[520px] whitespace-pre-line font-light leading-loose" style={{ color: GRAY }}>
-                        {p.description}
-                      </p>
+                      <SplitBlocks text={p.description} className="mt-3 max-w-[520px] whitespace-pre-line break-words [overflow-wrap:anywhere] font-light leading-loose" style={{ color: GRAY }} />
                     )}
                     {p.tech.length > 0 && (
                       <p className="mt-2 text-[11.5px] uppercase" style={{ color: FAINT, letterSpacing: "0.18em" }}>
@@ -214,9 +205,7 @@ export function FashionEditorialTemplate({ data }: ResumeTemplateProps) {
                     )}
                     <DateText range={edu.range} className="mt-1 block text-[11.5px] uppercase tracking-[0.2em]" />
                     {edu.description && (
-                      <p className="mt-2 max-w-[520px] whitespace-pre-line font-light leading-loose" style={{ color: GRAY }}>
-                        {edu.description}
-                      </p>
+                      <SplitBlocks text={edu.description} className="mt-2 max-w-[520px] whitespace-pre-line break-words [overflow-wrap:anywhere] font-light leading-loose" style={{ color: GRAY }} />
                     )}
                   </div>
                 ))}
@@ -258,8 +247,8 @@ export function FashionEditorialTemplate({ data }: ResumeTemplateProps) {
         )}
       </div>
 
-      <footer className="mt-20 flex items-center justify-between border-t border-neutral-200 pt-6">
-        <p className="text-[10px] uppercase" style={{ color: FAINT, letterSpacing: "0.35em" }}>
+      <footer className="mt-8 flex items-center justify-between border-t border-neutral-200 pb-2 pt-6">
+        <p className="min-w-0 text-[10px] uppercase" style={{ color: FAINT, letterSpacing: "0.35em" }}>
           {data.name || "Họ và tên"}
         </p>
         <span className="inline-block size-2.5" style={{ backgroundColor: BLACK }} aria-hidden="true" />

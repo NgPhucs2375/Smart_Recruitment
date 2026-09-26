@@ -270,6 +270,14 @@ export function CvForm({ data, onChange }: CvFormProps) {
             </div>
           </div>
           <div style={{ marginBottom: "1rem" }}>
+            <label style={{ display: "block", marginBottom: "0.5rem" }}>Tiêu đề hiển thị trên CV</label>
+            <Input
+              value={data.tieuDeHienThi ?? ""}
+              onChange={(e) => onChange({ ...data, tieuDeHienThi: e.target.value })}
+              placeholder="VD: Hồ sơ ứng viên — để trống dùng mặc định của mẫu"
+            />
+          </div>
+          <div style={{ marginBottom: "1rem" }}>
             <label style={{ display: "block", marginBottom: "0.5rem" }}>Mức lương mong muốn</label>
             <Input
               inputMode="numeric"

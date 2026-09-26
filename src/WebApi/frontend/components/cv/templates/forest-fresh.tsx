@@ -2,7 +2,7 @@
 
 import { Mail, Phone, MapPin, Globe, Award, Briefcase } from "lucide-react";
 import type { ResumeTemplateProps } from "./shared";
-import { DateText, EmptyPaper, SectionShell } from "./shared";
+import { BannerSlot, DateText, EmptyPaper, SectionShell, SplitBlocks } from "./shared";
 
 const LEAF = "#16a34a";
 const LEAF_DARK = "#15803d";
@@ -40,6 +40,7 @@ export function ForestFreshTemplate({ data }: ResumeTemplateProps) {
   return (
     <div className="cv-paper cv-paper-a4 bg-white px-7 py-6 text-[13px] leading-relaxed" style={{ color: INK }}>
       <header className="text-center">
+        <BannerSlot data={data} className="mb-1 text-[13px] font-semibold uppercase tracking-[0.12em]" style={{ color: LEAF_DARK }} />
         <h1 className="text-[27px] font-bold leading-tight tracking-tight" style={{ color: INK }}>
           {data.name || "Họ và tên"}
         </h1>
@@ -51,7 +52,7 @@ export function ForestFreshTemplate({ data }: ResumeTemplateProps) {
         {data.contacts.length > 0 && (
           <div className="mt-2.5 flex flex-wrap justify-center gap-x-4 gap-y-1.5">
             {data.contacts.map((c, i) => (
-              <p key={`${c.label}-${i}`} className="cv-section-item flex items-start gap-1.5 text-[12px]" style={{ color: SUBTLE }}>
+              <p key={`${c.label}-${i}`} className="cv-section-item flex min-w-0 items-start gap-1.5 text-[12px]" style={{ color: SUBTLE }}>
                 <ContactIcon label={c.label} />
                 <span className="break-all">{c.value}</span>
               </p>
@@ -67,7 +68,7 @@ export function ForestFreshTemplate({ data }: ResumeTemplateProps) {
               className="cv-section-item border-l-4 pl-4 font-serif text-[14px] italic leading-relaxed"
               style={{ borderColor: LEAF, color: INK }}
             >
-              <span className="whitespace-pre-line">{data.summary}</span>
+              <span className="whitespace-pre-line break-words [overflow-wrap:anywhere]">{data.summary}</span>
             </blockquote>
           </SectionShell>
         )}
@@ -86,7 +87,7 @@ export function ForestFreshTemplate({ data }: ResumeTemplateProps) {
                   </div>
                   <p className="text-[12px] font-semibold" style={{ color: LEAF_DARK }}>{job.company}</p>
                   {job.description && (
-                    <p className="mt-1 whitespace-pre-line text-[13px]" style={{ color: SUBTLE }}>{job.description}</p>
+                    <SplitBlocks text={job.description} className="mt-1 whitespace-pre-line break-words [overflow-wrap:anywhere] text-[13px]" style={{ color: SUBTLE }} />
                   )}
                 </div>
               ))}
@@ -108,7 +109,7 @@ export function ForestFreshTemplate({ data }: ResumeTemplateProps) {
                   </div>
                   {edu.degree && <p className="text-[12px] font-semibold" style={{ color: LEAF_DARK }}>{edu.degree}</p>}
                   {edu.description && (
-                    <p className="mt-1 whitespace-pre-line text-[13px]" style={{ color: SUBTLE }}>{edu.description}</p>
+                    <SplitBlocks text={edu.description} className="mt-1 whitespace-pre-line break-words [overflow-wrap:anywhere] text-[13px]" style={{ color: SUBTLE }} />
                   )}
                 </div>
               ))}
@@ -151,7 +152,7 @@ export function ForestFreshTemplate({ data }: ResumeTemplateProps) {
                   </div>
                   {p.role && <p className="text-[12px] font-semibold" style={{ color: LEAF_DARK }}>{p.role}</p>}
                   {p.description && (
-                    <p className="mt-1 whitespace-pre-line text-[13px]" style={{ color: SUBTLE }}>{p.description}</p>
+                    <SplitBlocks text={p.description} className="mt-1 whitespace-pre-line break-words [overflow-wrap:anywhere] text-[13px]" style={{ color: SUBTLE }} />
                   )}
                 </div>
               ))}

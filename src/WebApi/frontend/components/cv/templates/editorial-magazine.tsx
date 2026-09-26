@@ -3,7 +3,7 @@
 import { Mail, Phone, MapPin, Globe, Award, Briefcase } from "lucide-react";
 import type { ResumeContact } from "@/features/tao-cv/resume-data";
 import type { ResumeTemplateProps } from "./shared";
-import { DateText, EmptyPaper, SectionShell } from "./shared";
+import { DateText, EmptyPaper, SectionShell, SplitBlocks, resolveBannerTitle3 } from "./shared";
 
 const INK = "#111827";
 const RED = "#b91c1c";
@@ -66,14 +66,14 @@ export function EditorialMagazineTemplate({ data }: ResumeTemplateProps) {
       {/* Masthead */}
       <header className="px-8 pb-3 pt-6">
         <div className="flex items-center justify-between gap-4">
-          <Kicker>Hồ sơ ứng viên · CV</Kicker>
-          <p className="text-[10px] font-semibold uppercase" style={{ color: MUTED, letterSpacing: "0.28em" }}>
+          <Kicker>{resolveBannerTitle3(data, data.title, "Hồ sơ ứng viên · CV")}</Kicker>
+          <p className="min-w-0 text-[10px] font-semibold uppercase" style={{ color: MUTED, letterSpacing: "0.28em" }}>
             {data.contacts.length > 0 ? data.contacts[0].value : ""}
           </p>
         </div>
         <h1
           className="mt-2 text-[30px] font-black leading-[1.05] tracking-tight"
-          style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}
+          style={{ fontFamily: "var(--font-serif)" }}
         >
           {data.name || "Họ và tên"}
         </h1>
@@ -88,12 +88,12 @@ export function EditorialMagazineTemplate({ data }: ResumeTemplateProps) {
 
       <div className="grid grid-cols-[65%_35%] gap-0 px-8 pb-8">
         {/* Main column */}
-        <div className="space-y-5 pr-6">
+        <div className="min-w-0 space-y-5 pr-6">
           {data.summary && (
             <SectionShell>
               <div className="cv-section-item">
                 <Kicker>Tóm tắt</Kicker>
-                <p className="mt-2 whitespace-pre-line text-justify" style={{ color: INK }}>
+                <p className="mt-2 whitespace-pre-line break-words [overflow-wrap:anywhere] text-justify" style={{ color: INK }}>
                   <span
                     aria-hidden="true"
                     style={{
@@ -104,7 +104,7 @@ export function EditorialMagazineTemplate({ data }: ResumeTemplateProps) {
                       paddingTop: "4px",
                       fontWeight: 900,
                       color: RED,
-                      fontFamily: "Georgia, 'Times New Roman', serif",
+                      fontFamily: "var(--font-serif)",
                     }}
                   >
                     {first}
@@ -137,9 +137,7 @@ export function EditorialMagazineTemplate({ data }: ResumeTemplateProps) {
                         {job.company}
                       </p>
                       {job.description && (
-                        <p className="mt-1 whitespace-pre-line" style={{ color: MUTED }}>
-                          {job.description}
-                        </p>
+                        <SplitBlocks text={job.description} className="mt-1 whitespace-pre-line break-words [overflow-wrap:anywhere]" style={{ color: MUTED }} />
                       )}
                       {i < data.experience.length - 1 && <Rule />}
                     </div>
@@ -171,9 +169,7 @@ export function EditorialMagazineTemplate({ data }: ResumeTemplateProps) {
                         </p>
                       )}
                       {p.description && (
-                        <p className="mt-1 whitespace-pre-line" style={{ color: MUTED }}>
-                          {p.description}
-                        </p>
+                        <SplitBlocks text={p.description} className="mt-1 whitespace-pre-line break-words [overflow-wrap:anywhere]" style={{ color: MUTED }} />
                       )}
                     </div>
                   ))}
@@ -184,7 +180,7 @@ export function EditorialMagazineTemplate({ data }: ResumeTemplateProps) {
         </div>
 
         {/* Rail column */}
-        <div className="space-y-5 border-l pl-6" style={{ borderColor: "#e7e5e4" }}>
+        <div className="min-w-0 space-y-5 border-l pl-6" style={{ borderColor: "#e7e5e4" }}>
           {data.contacts.length > 0 && (
             <SectionShell>
               <div>
@@ -235,9 +231,7 @@ export function EditorialMagazineTemplate({ data }: ResumeTemplateProps) {
                       )}
                       <DateText range={edu.range} className="text-[11.5px]" />
                       {edu.description && (
-                        <p className="mt-1 whitespace-pre-line text-[12px]" style={{ color: MUTED }}>
-                          {edu.description}
-                        </p>
+                        <SplitBlocks text={edu.description} className="mt-1 whitespace-pre-line break-words [overflow-wrap:anywhere] text-[12px]" style={{ color: MUTED }} />
                       )}
                     </div>
                   ))}

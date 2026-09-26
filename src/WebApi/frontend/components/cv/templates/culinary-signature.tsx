@@ -2,7 +2,7 @@
 
 import { Mail, Phone, MapPin, Globe, Award } from "lucide-react";
 import type { ResumeTemplateProps } from "./shared";
-import { DateText, EmptyPaper, SectionShell } from "./shared";
+import { DateText, EmptyPaper, SectionShell, SplitBlocks, resolveBannerTitle } from "./shared";
 
 /**
  * Culinary Signature — thực đơn nhà hàng: entries nối bằng
@@ -43,12 +43,14 @@ function ContactLine({ label, value, href }: { label: string; value: string; hre
 function MenuHeading({ children, sub }: { children: React.ReactNode; sub?: string }) {
   return (
     <div className="mb-3 text-center">
-      <p className="text-[10px] font-bold uppercase tracking-[0.3em]" style={{ color: GOLD }}>
-        {sub}
-      </p>
+      {sub && (
+        <p className="text-[10px] font-bold uppercase tracking-[0.3em]" style={{ color: GOLD }}>
+          {sub}
+        </p>
+      )}
       <h2
         className="mt-0.5 text-[15px] font-bold uppercase tracking-[0.18em]"
-        style={{ fontFamily: "Georgia, 'Times New Roman', serif", color: WINE }}
+        style={{ fontFamily: "var(--font-serif)", color: WINE }}
       >
         {children}
       </h2>
@@ -81,11 +83,11 @@ export function CulinarySignatureTemplate({ data }: ResumeTemplateProps) {
     >
       <header className="text-center">
         <p className="text-[10.5px] font-bold uppercase tracking-[0.34em]" style={{ color: GOLD }}>
-          Thực đơn nghề nghiệp
+          {resolveBannerTitle(data, "Hồ sơ năng lực")}
         </p>
         <h1
           className="mx-auto mt-2 max-w-[480px] text-[32px] font-bold leading-tight"
-          style={{ fontFamily: "Georgia, 'Times New Roman', serif", color: WINE }}
+          style={{ fontFamily: "var(--font-serif)", color: WINE }}
         >
           {data.name || "Họ và tên"}
         </h1>
@@ -107,14 +109,14 @@ export function CulinarySignatureTemplate({ data }: ResumeTemplateProps) {
           className="mt-4 border-y-4 border-double py-1 text-[10px] font-bold uppercase tracking-[0.3em]"
           style={{ borderColor: GOLD, color: GOLD }}
         >
-          Khai vị · Món chính · Tráng miệng
+          Giới thiệu · Kinh nghiệm · Dự án
         </div>
       </header>
 
       <div className="mt-5 space-y-7">
         {data.summary && (
           <SectionShell>
-            <MenuHeading sub="Lời mở đầu">Giới thiệu</MenuHeading>
+            <MenuHeading>Giới thiệu bản thân</MenuHeading>
             <p
               className="cv-section-item mx-auto max-w-[560px] text-center text-[12.5px] italic leading-relaxed"
               style={{ color: MUTED }}
@@ -126,7 +128,7 @@ export function CulinarySignatureTemplate({ data }: ResumeTemplateProps) {
 
         {featured && (
           <SectionShell>
-            <MenuHeading sub="Đầu bếp gợi ý">Món đặc trưng ★</MenuHeading>
+            <MenuHeading>Dự án tiêu biểu</MenuHeading>
             <div
               className="cv-section-item rounded-md border-2 px-5 py-4"
               style={{ borderColor: WINE, backgroundColor: WINE_SOFT }}
@@ -153,14 +155,14 @@ export function CulinarySignatureTemplate({ data }: ResumeTemplateProps) {
                 </p>
               )}
               {featured.description && (
-                <p className="mt-1 whitespace-pre-line pl-5 text-[12.5px]" style={{ color: MUTED }}>
+                <p className="mt-1 whitespace-pre-line break-words [overflow-wrap:anywhere] pl-5 text-[12.5px]" style={{ color: MUTED }}>
                   {featured.description}
                 </p>
               )}
               {featured.tech.length > 0 && (
                 <p className="mt-1 pl-5 text-[11.5px]" style={{ color: MUTED }}>
                   <span className="font-semibold" style={{ color: WINE }}>
-                    Nguyên liệu:{" "}
+                    Công nghệ sử dụng:{" "}
                   </span>
                   {featured.tech.join(" · ")}
                 </p>
@@ -171,7 +173,7 @@ export function CulinarySignatureTemplate({ data }: ResumeTemplateProps) {
 
         {data.experience.length > 0 && (
           <SectionShell>
-            <MenuHeading sub="Món chính">Kinh nghiệm</MenuHeading>
+            <MenuHeading>Kinh nghiệm làm việc</MenuHeading>
             <div className="space-y-3.5">
               {data.experience.map((job) => (
                 <div key={job.id} className="cv-section-item">
@@ -192,9 +194,7 @@ export function CulinarySignatureTemplate({ data }: ResumeTemplateProps) {
                     </p>
                   )}
                   {job.description && (
-                    <p className="mt-1 whitespace-pre-line text-[12.5px]" style={{ color: MUTED }}>
-                      {job.description}
-                    </p>
+                    <SplitBlocks text={job.description} className="mt-1 whitespace-pre-line break-words [overflow-wrap:anywhere] text-[12.5px]" style={{ color: MUTED }} />
                   )}
                 </div>
               ))}
@@ -204,7 +204,7 @@ export function CulinarySignatureTemplate({ data }: ResumeTemplateProps) {
 
         {restProjects.length > 0 && (
           <SectionShell>
-            <MenuHeading sub="Thực đơn thêm">Dự án khác</MenuHeading>
+            <MenuHeading>Dự án khác</MenuHeading>
             <div className="space-y-3.5">
               {restProjects.map((p) => (
                 <div key={p.id} className="cv-section-item">
@@ -227,9 +227,7 @@ export function CulinarySignatureTemplate({ data }: ResumeTemplateProps) {
                     </p>
                   )}
                   {p.description && (
-                    <p className="mt-1 whitespace-pre-line text-[12.5px]" style={{ color: MUTED }}>
-                      {p.description}
-                    </p>
+                    <SplitBlocks text={p.description} className="mt-1 whitespace-pre-line break-words [overflow-wrap:anywhere] text-[12.5px]" style={{ color: MUTED }} />
                   )}
                 </div>
               ))}
@@ -260,9 +258,7 @@ export function CulinarySignatureTemplate({ data }: ResumeTemplateProps) {
                     </p>
                   )}
                   {edu.description && (
-                    <p className="mt-1 whitespace-pre-line text-[12.5px]" style={{ color: MUTED }}>
-                      {edu.description}
-                    </p>
+                    <SplitBlocks text={edu.description} className="mt-1 whitespace-pre-line break-words [overflow-wrap:anywhere] text-[12.5px]" style={{ color: MUTED }} />
                   )}
                 </div>
               ))}
@@ -290,7 +286,7 @@ export function CulinarySignatureTemplate({ data }: ResumeTemplateProps) {
 
         {data.certificates.length > 0 && (
           <SectionShell>
-            <MenuHeading sub="Tráng miệng">Chứng chỉ</MenuHeading>
+            <MenuHeading>Chứng chỉ</MenuHeading>
             <div className="space-y-2.5">
               {data.certificates.map((c) => (
                 <div key={c.id} className="cv-section-item text-center">

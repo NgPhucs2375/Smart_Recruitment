@@ -2,7 +2,7 @@
 
 import { Mail, Phone, MapPin, Globe, Award, Briefcase } from "lucide-react";
 import type { ResumeTemplateProps } from "./shared";
-import { DateText, EmptyPaper, SectionShell } from "./shared";
+import { DateText, EmptyPaper, SectionShell, SplitBlocks, resolveBannerTitle3 } from "./shared";
 
 const WARM = "#ea580c";
 const CREAM = "#fff7ed";
@@ -47,7 +47,7 @@ export function MentorClassTemplate({ data }: ResumeTemplateProps) {
     <div className="cv-paper cv-paper-a4 text-[13px] leading-relaxed" style={{ color: INK }}>
       <header className="border-b-4 px-7 pb-5 pt-6" style={{ backgroundColor: CREAM, borderColor: WARM }}>
         <p className="text-[11px] font-bold uppercase tracking-[0.22em]" style={{ color: WARM }}>
-          Hồ sơ giảng viên / Cố vấn
+          {resolveBannerTitle3(data, data.title, "Hồ sơ năng lực")}
         </p>
         <h1 className="mt-1 text-[26px] font-bold leading-tight tracking-tight">{data.name || "Họ và tên"}</h1>
         {data.title && (
@@ -81,16 +81,14 @@ export function MentorClassTemplate({ data }: ResumeTemplateProps) {
               </div>
               {data.education.map((edu) => (
                 <div key={edu.id} className="cv-section-item grid grid-cols-[38%_32%_30%] gap-2 border-b py-2" style={{ borderColor: "#f3e3d3" }}>
-                  <div>
+                  <div className="min-w-0">
                     <p className="text-[12px] font-bold">{edu.school || "Trường"}</p>
                     {edu.description && (
-                      <p className="mt-1 whitespace-pre-line text-[12px]" style={{ color: SUBTLE }}>
-                        {edu.description}
-                      </p>
+                      <SplitBlocks text={edu.description} className="mt-1 whitespace-pre-line break-words [overflow-wrap:anywhere] text-[12px]" style={{ color: SUBTLE }} />
                     )}
                   </div>
-                  <p className="text-[12px]" style={{ color: SUBTLE }}>{edu.degree || "—"}</p>
-                  <div className="text-right">
+                  <p className="min-w-0 text-[12px]" style={{ color: SUBTLE }}>{edu.degree || "—"}</p>
+                  <div className="min-w-0 text-right">
                     <DateText range={edu.range} className="text-[12px]" />
                   </div>
                 </div>
@@ -102,9 +100,7 @@ export function MentorClassTemplate({ data }: ResumeTemplateProps) {
         {data.summary && (
           <SectionShell>
             <WarmTitle>Tóm tắt</WarmTitle>
-            <p className="whitespace-pre-line text-[12px]" style={{ color: SUBTLE }}>
-              {data.summary}
-            </p>
+            <SplitBlocks text={data.summary} className="whitespace-pre-line break-words [overflow-wrap:anywhere] text-[12px]" style={{ color: SUBTLE }} />
           </SectionShell>
         )}
 
@@ -127,9 +123,7 @@ export function MentorClassTemplate({ data }: ResumeTemplateProps) {
                     </p>
                   )}
                   {job.description && (
-                    <p className="mt-1 whitespace-pre-line text-[12px]" style={{ color: SUBTLE }}>
-                      {job.description}
-                    </p>
+<SplitBlocks text={job.description} className="mt-1 whitespace-pre-line break-words [overflow-wrap:anywhere] text-[12px]" style={{ color: SUBTLE }} />
                   )}
                 </div>
               ))}
@@ -166,9 +160,7 @@ export function MentorClassTemplate({ data }: ResumeTemplateProps) {
                     </p>
                   )}
                   {p.description && (
-                    <p className="mt-1 whitespace-pre-line text-[12px]" style={{ color: SUBTLE }}>
-                      {p.description}
-                    </p>
+<SplitBlocks text={p.description} className="mt-1 whitespace-pre-line break-words [overflow-wrap:anywhere] text-[12px]" style={{ color: SUBTLE }} />
                   )}
                 </div>
               ))}

@@ -2,7 +2,7 @@
 
 import { Mail, Phone, MapPin, Globe, Award, Briefcase } from "lucide-react";
 import type { ResumeTemplateProps } from "./shared";
-import { DateText, EmptyPaper, SectionShell } from "./shared";
+import { BannerSlot, DateText, EmptyPaper, SectionShell, SplitBlocks } from "./shared";
 
 const SEA = "#0284c7";
 const SEA_DARK = "#075985";
@@ -47,9 +47,10 @@ export function OceanWaveTemplate({ data }: ResumeTemplateProps) {
   return (
     <div className="cv-paper cv-paper-a4 bg-white text-[13px] leading-relaxed" style={{ color: INK }}>
       <div className="grid grid-cols-[34%_66%]">
-        <aside className="px-5 py-6 text-white" style={{ backgroundColor: SEA }}>
+        <aside className="min-w-0 px-5 py-6 text-white" style={{ backgroundColor: SEA }}>
           <div className="space-y-5">
             <div>
+              <BannerSlot data={data} className="mb-1 text-[10px] font-bold uppercase tracking-[0.24em]" style={{ color: "rgba(255,255,255,0.7)" }} />
               <p className="text-[22px] font-bold leading-tight text-white">{data.name || "Họ và tên"}</p>
               {data.title && <p className="mt-1 text-[12px] font-medium text-white/90">{data.title}</p>}
             </div>
@@ -107,11 +108,11 @@ export function OceanWaveTemplate({ data }: ResumeTemplateProps) {
           </div>
         </aside>
 
-        <div className="space-y-4 bg-white px-6 py-6">
+        <div className="min-w-0 space-y-4 bg-white px-6 py-6">
           {data.summary && (
             <SectionShell>
               <MainTitle>Tóm tắt</MainTitle>
-              <p className="cv-section-item whitespace-pre-line text-[13px]" style={{ color: SUBTLE }}>{data.summary}</p>
+              <SplitBlocks text={data.summary} className="whitespace-pre-line break-words [overflow-wrap:anywhere] text-[13px]" style={{ color: SUBTLE }} />
             </SectionShell>
           )}
 
@@ -134,7 +135,7 @@ export function OceanWaveTemplate({ data }: ResumeTemplateProps) {
                     </div>
                     <p className="text-[12px] font-semibold" style={{ color: SEA_DARK }}>{job.company}</p>
                     {job.description && (
-                      <p className="mt-1 whitespace-pre-line text-[13px]" style={{ color: SUBTLE }}>{job.description}</p>
+                      <SplitBlocks text={job.description} className="mt-1 whitespace-pre-line break-words [overflow-wrap:anywhere] text-[13px]" style={{ color: SUBTLE }} />
                     )}
                   </div>
                 ))}
@@ -156,7 +157,7 @@ export function OceanWaveTemplate({ data }: ResumeTemplateProps) {
                     </div>
                     {p.role && <p className="text-[12px] font-semibold" style={{ color: SEA_DARK }}>{p.role}</p>}
                     {p.description && (
-                      <p className="mt-1 whitespace-pre-line text-[13px]" style={{ color: SUBTLE }}>{p.description}</p>
+                      <SplitBlocks text={p.description} className="mt-1 whitespace-pre-line break-words [overflow-wrap:anywhere] text-[13px]" style={{ color: SUBTLE }} />
                     )}
                   </div>
                 ))}
@@ -176,7 +177,7 @@ export function OceanWaveTemplate({ data }: ResumeTemplateProps) {
                     </div>
                     {edu.degree && <p className="text-[12px] font-semibold" style={{ color: SEA_DARK }}>{edu.degree}</p>}
                     {edu.description && (
-                      <p className="mt-1 whitespace-pre-line text-[13px]" style={{ color: SUBTLE }}>{edu.description}</p>
+                      <SplitBlocks text={edu.description} className="mt-1 whitespace-pre-line break-words [overflow-wrap:anywhere] text-[13px]" style={{ color: SUBTLE }} />
                     )}
                   </div>
                 ))}

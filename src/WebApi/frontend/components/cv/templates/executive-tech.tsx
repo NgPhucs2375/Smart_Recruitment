@@ -1,7 +1,7 @@
 "use client";
 
 import type { ResumeData } from "@/features/tao-cv/resume-data";
-import { DateText, EmptyPaper, SectionShell } from "./shared";
+import { DateText, EmptyPaper, SectionShell, SplitBlocks, resolveBannerTitle, resolveSectionTitle } from "./shared";
 
 /**
  * Executive Tech — professional corporate composition with structured
@@ -40,7 +40,7 @@ export function ExecutiveTechTemplate({ data }: { data: ResumeData }) {
     <div className="cv-paper cv-paper-a4 px-9 py-7 text-[12.5px] leading-relaxed" style={{ color: INK }}>
       <header className="text-center">
         <p className="text-[10.5px] font-semibold uppercase tracking-[0.24em]" style={{ color: NAVY }}>
-          Curriculum Vitae
+          {resolveBannerTitle(data, "Curriculum Vitae")}
         </p>
         <h1 className="mt-1.5 text-[26px] font-bold leading-tight tracking-tight">
           {data.name || "Họ và tên"}
@@ -71,8 +71,8 @@ export function ExecutiveTechTemplate({ data }: { data: ResumeData }) {
       <div className="mt-5 space-y-4">
         {data.summary && (
           <SectionShell>
-            <ExecTitle>Hồ sơ năng lực</ExecTitle>
-            <p className="whitespace-pre-line text-center italic" style={{ color: SUBTLE }}>{data.summary}</p>
+            <ExecTitle>{resolveSectionTitle("summary", "Hồ sơ năng lực")}</ExecTitle>
+            <SplitBlocks text={data.summary} className="whitespace-pre-line break-words [overflow-wrap:anywhere] text-center italic" style={{ color: SUBTLE }} />
           </SectionShell>
         )}
 
@@ -84,15 +84,13 @@ export function ExecutiveTechTemplate({ data }: { data: ResumeData }) {
                 <div key={job.id} className="cv-section-item grid grid-cols-[1fr_auto] gap-x-4">
                   <h3 className="font-bold" style={{ color: INK }}>{job.role || "Chức danh"}</h3>
                   <DateText range={job.range} className="text-[11.5px] text-neutral-500" />
-                  <p className="text-[12px] font-semibold" style={{ color: NAVY }}>{job.company}</p>
+                  <p className="min-w-0 text-[12px] font-semibold" style={{ color: NAVY }}>{job.company}</p>
                   <span />
                   {job.description && (
-                    <p className="col-span-2 mt-0.5 whitespace-pre-line" style={{ color: SUBTLE }}>
-                      {job.description}
-                    </p>
+                    <SplitBlocks text={job.description} className="col-span-2 mt-0.5 min-w-0 whitespace-pre-line break-words [overflow-wrap:anywhere]" style={{ color: SUBTLE }} />
                   )}
                   {job.skills.length > 0 && (
-                    <p className="col-span-2 mt-0.5 text-[11.5px]" style={{ color: SUBTLE }}>
+                    <p className="col-span-2 mt-0.5 min-w-0 text-[11.5px]" style={{ color: SUBTLE }}>
                       {job.skills.join(" · ")}
                     </p>
                   )}
@@ -111,13 +109,11 @@ export function ExecutiveTechTemplate({ data }: { data: ResumeData }) {
                   <h3 className="font-bold" style={{ color: INK }}>{edu.school || "Trường"}</h3>
                   <DateText range={edu.range} className="text-[11.5px] text-neutral-500" />
                   {edu.degree && (
-                    <p className="font-medium" style={{ color: SUBTLE }}>{edu.degree}</p>
+                    <p className="min-w-0 font-medium" style={{ color: SUBTLE }}>{edu.degree}</p>
                   )}
                   <span />
                   {edu.description && (
-                    <p className="col-span-2 mt-0.5 whitespace-pre-line" style={{ color: SUBTLE }}>
-                      {edu.description}
-                    </p>
+                    <SplitBlocks text={edu.description} className="col-span-2 mt-0.5 min-w-0 whitespace-pre-line break-words [overflow-wrap:anywhere]" style={{ color: SUBTLE }} />
                   )}
                 </div>
               ))}
@@ -156,16 +152,14 @@ export function ExecutiveTechTemplate({ data }: { data: ResumeData }) {
                     <span />
                   )}
                   {p.role && (
-                    <p className="text-[12px] font-semibold" style={{ color: NAVY }}>{p.role}</p>
+                    <p className="min-w-0 text-[12px] font-semibold" style={{ color: NAVY }}>{p.role}</p>
                   )}
                   <span />
                   {p.description && (
-                    <p className="col-span-2 mt-0.5 whitespace-pre-line" style={{ color: SUBTLE }}>
-                      {p.description}
-                    </p>
+                    <SplitBlocks text={p.description} className="col-span-2 mt-0.5 min-w-0 whitespace-pre-line break-words [overflow-wrap:anywhere]" style={{ color: SUBTLE }} />
                   )}
                   {p.tech.length > 0 && (
-                    <p className="col-span-2 mt-0.5 text-[11.5px]" style={{ color: SUBTLE }}>
+                    <p className="col-span-2 mt-0.5 min-w-0 text-[11.5px]" style={{ color: SUBTLE }}>
                       {p.tech.join(" · ")}
                     </p>
                   )}
@@ -181,10 +175,10 @@ export function ExecutiveTechTemplate({ data }: { data: ResumeData }) {
             <div className="space-y-1.5">
               {data.certificates.map((c) => (
                 <div key={c.id} className="cv-section-item grid grid-cols-[1fr_auto] gap-x-4">
-                  <p className="font-bold" style={{ color: INK }}>{c.name || "Chứng chỉ"}</p>
+                  <p className="min-w-0 font-bold" style={{ color: INK }}>{c.name || "Chứng chỉ"}</p>
                   {c.date ? <span className="text-[11.5px] text-neutral-500">{c.date}</span> : <span />}
                   {[c.issuer, c.code].filter(Boolean).length > 0 && (
-                    <p className="col-span-2" style={{ color: SUBTLE }}>
+                    <p className="col-span-2 min-w-0" style={{ color: SUBTLE }}>
                       {[c.issuer, c.code].filter(Boolean).join(" · ")}
                     </p>
                   )}

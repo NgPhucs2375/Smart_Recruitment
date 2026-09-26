@@ -2,7 +2,7 @@
 
 import { Mail, Phone, MapPin, Globe, Award, Briefcase } from "lucide-react";
 import type { ResumeTemplateProps } from "./shared";
-import { DateText, EmptyPaper, SectionShell } from "./shared";
+import { DateText, EmptyPaper, SectionShell, SplitBlocks, resolveBannerTitle } from "./shared";
 
 /**
  * Research Scholar — học giả: cột chính 68% trên nền ivory + rail
@@ -73,11 +73,11 @@ export function ResearchScholarTemplate({ data }: ResumeTemplateProps) {
     >
       <header className="border-b-4 px-7 pb-4 pt-6" style={{ borderColor: DEEP }}>
         <p className="text-[10.5px] font-bold uppercase tracking-[0.24em]" style={{ color: DEEP }}>
-          Hồ sơ học thuật
+          {resolveBannerTitle(data, "Hồ sơ học thuật")}
         </p>
         <h1
           className="mt-1 text-[26px] font-bold leading-tight"
-          style={{ fontFamily: "Georgia, 'Times New Roman', serif", color: INK }}
+          style={{ fontFamily: "var(--font-serif)", color: INK }}
         >
           {data.name || "Họ và tên"}
         </h1>
@@ -111,7 +111,7 @@ export function ResearchScholarTemplate({ data }: ResumeTemplateProps) {
       </header>
 
       <div className="grid grid-cols-[68%_32%]">
-        <div className="space-y-5 px-7 py-5">
+        <div className="min-w-0 space-y-5 px-7 py-5">
           {data.summary && (
             <SectionShell>
               <MainLabel>Tóm tắt học thuật</MainLabel>
@@ -119,9 +119,7 @@ export function ResearchScholarTemplate({ data }: ResumeTemplateProps) {
                 className="cv-section-item rounded-md border-l-4 bg-white px-4 py-3"
                 style={{ borderColor: DEEP, borderTop: "1px solid #e5e0d2", borderRight: "1px solid #e5e0d2", borderBottom: "1px solid #e5e0d2" }}
               >
-                <p className="whitespace-pre-line text-[12.5px]" style={{ color: INK }}>
-                  {data.summary}
-                </p>
+                <SplitBlocks text={data.summary} className="whitespace-pre-line break-words [overflow-wrap:anywhere] text-[12.5px]" style={{ color: INK }} />
               </div>
             </SectionShell>
           )}
@@ -145,9 +143,7 @@ export function ResearchScholarTemplate({ data }: ResumeTemplateProps) {
                       </p>
                     )}
                     {job.description && (
-                      <p className="mt-1 whitespace-pre-line text-[12.5px]" style={{ color: MUTED }}>
-                        {job.description}
-                      </p>
+                      <SplitBlocks text={job.description} className="mt-1 whitespace-pre-line break-words [overflow-wrap:anywhere] text-[12.5px]" style={{ color: MUTED }} />
                     )}
                   </div>
                 ))}
@@ -208,9 +204,7 @@ export function ResearchScholarTemplate({ data }: ResumeTemplateProps) {
                       </p>
                     )}
                     {edu.description && (
-                      <p className="mt-1 whitespace-pre-line text-[12.5px]" style={{ color: MUTED }}>
-                        {edu.description}
-                      </p>
+                      <SplitBlocks text={edu.description} className="mt-1 whitespace-pre-line break-words [overflow-wrap:anywhere] text-[12.5px]" style={{ color: MUTED }} />
                     )}
                   </div>
                 ))}
@@ -219,7 +213,7 @@ export function ResearchScholarTemplate({ data }: ResumeTemplateProps) {
           )}
         </div>
 
-        <aside className="px-5 py-5 text-white" style={{ backgroundColor: DEEP }}>
+        <aside className="min-w-0 px-5 py-5 text-white" style={{ backgroundColor: DEEP }}>
           <div className="space-y-5">
             <SectionShell>
               <RailLabel>Chỉ số hồ sơ</RailLabel>
@@ -279,7 +273,7 @@ export function ResearchScholarTemplate({ data }: ResumeTemplateProps) {
       </div>
 
       {data.skills.length > 0 && (
-        <footer className="border-t px-7 py-3" style={{ borderColor: DEEP_SOFT, backgroundColor: "#fff" }}>
+        <footer className="border-t px-7 pb-6 pt-3" style={{ borderColor: DEEP_SOFT, backgroundColor: "#fff" }}>
           <p className="text-[11.5px] leading-relaxed" style={{ color: MUTED }}>
             <span className="font-bold uppercase tracking-[0.14em]" style={{ color: DEEP }}>
               Từ khóa:{" "}

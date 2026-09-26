@@ -2,7 +2,7 @@
 
 import { Mail, Phone, MapPin, Globe, Award, Briefcase } from "lucide-react";
 import type { ResumeTemplateProps } from "./shared";
-import { DateText, EmptyPaper, SectionShell } from "./shared";
+import { BannerSlot, DateText, EmptyPaper, SectionShell, SplitBlocks } from "./shared";
 
 const INK = "#1f2a37";
 const SUBTLE = "#5b6470";
@@ -43,6 +43,7 @@ export function AuroraMeshTemplate({ data }: ResumeTemplateProps) {
   return (
     <div className="cv-paper cv-paper-a4 bg-white text-[13px] leading-relaxed" style={{ color: INK }}>
       <header className="px-7 pb-6 pt-7" style={{ background: MESH }}>
+        <BannerSlot data={data} className="mb-1 text-[10px] font-bold uppercase tracking-[0.24em]" style={{ color: "rgba(255,255,255,0.75)" }} />
         <h1 className="text-[28px] font-bold leading-tight tracking-tight text-white">
           {data.name || "Họ và tên"}
         </h1>
@@ -50,7 +51,7 @@ export function AuroraMeshTemplate({ data }: ResumeTemplateProps) {
         {data.contacts.length > 0 && (
           <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1">
             {data.contacts.map((c, i) => (
-              <p key={`${c.label}-${i}`} className="cv-section-item flex items-center gap-1.5 text-[12px] text-white/90">
+              <p key={`${c.label}-${i}`} className="cv-section-item flex min-w-0 items-center gap-1.5 text-[12px] text-white/90">
                 <ContactIcon label={c.label} />
                 <span className="break-all">{c.value}</span>
               </p>
@@ -63,7 +64,7 @@ export function AuroraMeshTemplate({ data }: ResumeTemplateProps) {
         {data.summary && (
           <SectionShell>
             <MeshTitle>Tóm tắt</MeshTitle>
-            <p className="whitespace-pre-line text-[13px]" style={{ color: SUBTLE }}>{data.summary}</p>
+            <SplitBlocks text={data.summary} className="whitespace-pre-line break-words [overflow-wrap:anywhere] text-[13px]" style={{ color: SUBTLE }} />
           </SectionShell>
         )}
 
@@ -82,7 +83,7 @@ export function AuroraMeshTemplate({ data }: ResumeTemplateProps) {
                   </div>
                   <p className="text-[12px] font-semibold" style={{ color: "#60a5fa" }}>{job.company}</p>
                   {job.description && (
-                    <p className="mt-1 whitespace-pre-line text-[13px]" style={{ color: SUBTLE }}>{job.description}</p>
+                    <SplitBlocks text={job.description} className="mt-1 whitespace-pre-line break-words [overflow-wrap:anywhere] text-[13px]" style={{ color: SUBTLE }} />
                   )}
                 </div>
               ))}
@@ -121,7 +122,7 @@ export function AuroraMeshTemplate({ data }: ResumeTemplateProps) {
                   </div>
                   {p.role && <p className="text-[12px] font-semibold" style={{ color: "#60a5fa" }}>{p.role}</p>}
                   {p.description && (
-                    <p className="mt-1 whitespace-pre-line text-[13px]" style={{ color: SUBTLE }}>{p.description}</p>
+                    <SplitBlocks text={p.description} className="mt-1 whitespace-pre-line break-words [overflow-wrap:anywhere] text-[13px]" style={{ color: SUBTLE }} />
                   )}
                 </div>
               ))}
@@ -141,7 +142,7 @@ export function AuroraMeshTemplate({ data }: ResumeTemplateProps) {
                   </div>
                   {edu.degree && <p className="text-[12px] font-semibold" style={{ color: "#60a5fa" }}>{edu.degree}</p>}
                   {edu.description && (
-                    <p className="mt-1 whitespace-pre-line text-[13px]" style={{ color: SUBTLE }}>{edu.description}</p>
+                    <SplitBlocks text={edu.description} className="mt-1 whitespace-pre-line break-words [overflow-wrap:anywhere] text-[13px]" style={{ color: SUBTLE }} />
                   )}
                 </div>
               ))}

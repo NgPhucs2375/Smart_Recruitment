@@ -3,7 +3,7 @@
 import { Mail, Phone, MapPin, Globe } from "lucide-react";
 import type { ResumeContact } from "@/features/tao-cv/resume-data";
 import type { ResumeTemplateProps } from "./shared";
-import { DateText, EmptyPaper, SectionShell } from "./shared";
+import { BannerSlot, DateText, EmptyPaper, SectionShell, SplitBlocks } from "./shared";
 
 const INK = "#1f2937";
 const SUBTLE = "#5b6470";
@@ -61,15 +61,16 @@ export function OnePageExecTemplate({ data }: ResumeTemplateProps) {
           </div>
         </SectionShell>
         <div className="min-w-0 max-w-[260px] text-center">
+          <BannerSlot data={data} className="mb-1 text-[11px] font-bold uppercase tracking-[0.14em]" style={{ color: ACCENT }} />
           <h1 className="text-[20px] font-bold leading-tight tracking-tight">{data.name || "Họ và tên"}</h1>
           {data.title && (
             <p className="mt-0.5 text-[12px] font-semibold" style={{ color: ACCENT }}>
               {data.title}
             </p>
           )}
-          {data.summary && <p className="mx-auto mt-1 line-clamp-2 max-w-[240px] text-[11px]" style={{ color: SUBTLE }}>{data.summary}</p>}
+          {data.summary && <SplitBlocks text={data.summary} className="mx-auto mt-1  max-w-[240px] text-[11px]" style={{ color: SUBTLE }} />}
         </div>
-        <div className="text-right">
+        <div className="min-w-0 text-right">
           <h2 className="mb-1 text-[11px] font-bold uppercase tracking-[0.14em]" style={{ color: ACCENT }}>
             Địa chỉ
           </h2>
@@ -93,16 +94,14 @@ export function OnePageExecTemplate({ data }: ResumeTemplateProps) {
                 {data.experience.map((job) => (
                   <div key={job.id} className="cv-section-item">
                     <div className="flex items-baseline justify-between gap-2">
-                      <p className="truncate text-[12px]">
+                      <p className="min-w-0 break-words text-[12px] [overflow-wrap:anywhere]">
                         <span className="font-bold">{job.role || "Chức danh"}</span>
                         {job.company && <span style={{ color: SUBTLE }}> · {job.company}</span>}
                       </p>
                       <DateText range={job.range} className="text-[11px]" />
                     </div>
                     {job.description && (
-                      <p className="mt-0.5 line-clamp-2 whitespace-pre-line text-[11px]" style={{ color: SUBTLE }}>
-                        {job.description}
-                      </p>
+                      <SplitBlocks text={job.description} className="mt-0.5  whitespace-pre-line break-words [overflow-wrap:anywhere] text-[11px]" style={{ color: SUBTLE }} />
                     )}
                   </div>
                 ))}
@@ -116,19 +115,17 @@ export function OnePageExecTemplate({ data }: ResumeTemplateProps) {
                 {data.projects.map((p) => (
                   <div key={p.id} className="cv-section-item">
                     <div className="flex items-baseline justify-between gap-2">
-                      <p className="truncate text-[12px]">
+                      <p className="min-w-0 break-words text-[12px] [overflow-wrap:anywhere]">
                         <span className="font-bold">{p.name || "Dự án"}</span>
                         {p.role && <span style={{ color: SUBTLE }}> · {p.role}</span>}
                       </p>
                       {p.range && (p.range.start || p.range.end) && <DateText range={p.range} className="text-[11px]" />}
                     </div>
                     {p.description && (
-                      <p className="mt-0.5 line-clamp-2 whitespace-pre-line text-[11px]" style={{ color: SUBTLE }}>
-                        {p.description}
-                      </p>
+                      <SplitBlocks text={p.description} className="mt-0.5  whitespace-pre-line break-words [overflow-wrap:anywhere] text-[11px]" style={{ color: SUBTLE }} />
                     )}
                     {p.tech.length > 0 && (
-                      <p className="truncate text-[11px]" style={{ color: SUBTLE }}>{p.tech.join(", ")}</p>
+                      <p className="break-words text-[11px] [overflow-wrap:anywhere]" style={{ color: SUBTLE }}>{p.tech.join(", ")}</p>
                     )}
                   </div>
                 ))}
@@ -167,7 +164,7 @@ export function OnePageExecTemplate({ data }: ResumeTemplateProps) {
               <DenseTitle>Chứng chỉ</DenseTitle>
               <div className="space-y-1">
                 {data.certificates.map((c) => (
-                  <p key={c.id} className="cv-section-item truncate text-[11px]" style={{ color: SUBTLE }}>
+                  <p key={c.id} className="cv-section-item break-words text-[11px] [overflow-wrap:anywhere]" style={{ color: SUBTLE }}>
                     <span className="font-semibold" style={{ color: INK }}>{c.name || "Chứng chỉ"}</span>
                     {[c.issuer, c.date].filter(Boolean).length > 0 ? ` · ${[c.issuer, c.date].filter(Boolean).join(" · ")}` : ""}
                   </p>

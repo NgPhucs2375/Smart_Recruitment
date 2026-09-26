@@ -2,7 +2,7 @@
 
 import { Mail, Phone, MapPin, Globe, Award, Briefcase } from "lucide-react";
 import type { ResumeTemplateProps } from "./shared";
-import { DateText, EmptyPaper, SectionShell } from "./shared";
+import { BannerSlot, DateText, EmptyPaper, SectionShell, SplitBlocks } from "./shared";
 
 const ACCENT = "#c2410c";
 const INK = "#1f2937";
@@ -44,6 +44,7 @@ export function SunsetGradientTemplate({ data }: ResumeTemplateProps) {
         className="px-7 pb-6 pt-7 text-white"
         style={{ background: "linear-gradient(120deg, #f97316, #ec4899, #8b5cf6)" }}
       >
+        <BannerSlot data={data} className="mb-1 text-[10px] font-bold uppercase tracking-[0.24em]" style={{ color: "rgba(255,255,255,0.8)" }} />
         <h1 className="text-[28px] font-bold leading-tight tracking-tight text-white">
           {data.name || "Họ và tên"}
         </h1>
@@ -64,7 +65,7 @@ export function SunsetGradientTemplate({ data }: ResumeTemplateProps) {
         {data.summary && (
           <SectionShell>
             <SectionTitle>Tóm tắt</SectionTitle>
-            <p className="cv-section-item whitespace-pre-line text-[13px]" style={{ color: SUBTLE }}>{data.summary}</p>
+            <SplitBlocks text={data.summary} className="whitespace-pre-line break-words [overflow-wrap:anywhere] text-[13px]" style={{ color: SUBTLE }} />
           </SectionShell>
         )}
 
@@ -83,7 +84,7 @@ export function SunsetGradientTemplate({ data }: ResumeTemplateProps) {
                   </div>
                   <p className="text-[12px] font-semibold" style={{ color: ACCENT }}>{job.company}</p>
                   {job.description && (
-                    <p className="mt-1 whitespace-pre-line text-[13px]" style={{ color: SUBTLE }}>{job.description}</p>
+                    <SplitBlocks text={job.description} className="mt-1 whitespace-pre-line break-words [overflow-wrap:anywhere] text-[13px]" style={{ color: SUBTLE }} />
                   )}
                 </div>
               ))}
@@ -103,7 +104,7 @@ export function SunsetGradientTemplate({ data }: ResumeTemplateProps) {
                   </div>
                   {edu.degree && <p className="text-[12px] font-semibold" style={{ color: ACCENT }}>{edu.degree}</p>}
                   {edu.description && (
-                    <p className="mt-1 whitespace-pre-line text-[13px]" style={{ color: SUBTLE }}>{edu.description}</p>
+                    <SplitBlocks text={edu.description} className="mt-1 whitespace-pre-line break-words [overflow-wrap:anywhere] text-[13px]" style={{ color: SUBTLE }} />
                   )}
                 </div>
               ))}
@@ -142,7 +143,7 @@ export function SunsetGradientTemplate({ data }: ResumeTemplateProps) {
                   </div>
                   {p.role && <p className="text-[12px] font-semibold" style={{ color: ACCENT }}>{p.role}</p>}
                   {p.description && (
-                    <p className="mt-1 whitespace-pre-line text-[13px]" style={{ color: SUBTLE }}>{p.description}</p>
+                    <SplitBlocks text={p.description} className="mt-1 whitespace-pre-line break-words [overflow-wrap:anywhere] text-[13px]" style={{ color: SUBTLE }} />
                   )}
                   {p.tech.length > 0 && (
                     <p className="mt-1 text-[12px]" style={{ color: SUBTLE }}>{p.tech.join(" · ")}</p>

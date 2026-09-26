@@ -1,18 +1,32 @@
 import type { Metadata, Viewport } from "next";
 import { Suspense } from "react";
-import { Outfit, JetBrains_Mono } from "next/font/google";
+import { Be_Vietnam_Pro, JetBrains_Mono, Merriweather } from "next/font/google";
 import { Providers } from "@/components/providers";
 import "./globals.css";
 
-const sans = Outfit({
-  subsets: ["latin", "latin-ext"],
+// Be Vietnam Pro: font thiết kế cho tiếng Việt, có subset "vietnamese".
+// Thay Outfit (data next/font: chỉ latin/latin-ext → vỡ glyph Ệ/Trường).
+const sans = Be_Vietnam_Pro({
+  weight: ["400", "500", "600", "700", "800"],
+  subsets: ["latin", "latin-ext", "vietnamese"],
   variable: "--font-sans",
   display: "swap",
 });
 
 const mono = JetBrains_Mono({
-  subsets: ["latin", "latin-ext"],
+  // Như trên: chip kỹ năng/tags trong CV dùng font-mono chứa tiếng Việt.
+  subsets: ["latin", "latin-ext", "vietnamese"],
   variable: "--font-code",
+  display: "swap",
+});
+
+// Merriweather: serif có subset vietnamese cho tiêu đề CV (culinary,
+// legal, elegant-serif...). Georgia hệ thống thiếu trên một số nền tảng
+// nên chữ ư/ệ bị fallback giật nét — font này đảm bảo đồng nhất.
+const serif = Merriweather({
+  weight: ["400", "700", "900"],
+  subsets: ["latin", "vietnamese"],
+  variable: "--font-serif",
   display: "swap",
 });
 
@@ -58,7 +72,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="vi" suppressHydrationWarning className={`${sans.variable} ${mono.variable}`}>
+    <html lang="vi" suppressHydrationWarning className={`${sans.variable} ${mono.variable} ${serif.variable}`}>
       <body className="antialiased">
         <a
           href="#main-content"

@@ -2,7 +2,7 @@
 
 import { Mail, Phone, MapPin, Globe, Award, Briefcase } from "lucide-react";
 import type { ResumeTemplateProps } from "./shared";
-import { DateText, EmptyPaper, SectionShell } from "./shared";
+import { BannerSlot, DateText, EmptyPaper, SectionShell, SplitBlocks } from "./shared";
 
 const NAVY = "#0f2a44";
 const GOLD = "#c9a227";
@@ -46,6 +46,7 @@ export function VaultFinanceTemplate({ data }: ResumeTemplateProps) {
   return (
     <div className="cv-paper cv-paper-a4 bg-white text-[13px] leading-relaxed" style={{ color: INK }}>
       <header className="px-7 pb-5 pt-6" style={{ backgroundColor: NAVY }}>
+        <BannerSlot data={data} className="mb-1 text-[11px] font-bold uppercase tracking-[0.16em]" style={{ color: GOLD }} />
         <h1 className="text-[26px] font-bold leading-tight tracking-tight" style={{ color: "#ffffff" }}>
           {data.name || "Họ và tên"}
         </h1>
@@ -73,9 +74,7 @@ export function VaultFinanceTemplate({ data }: ResumeTemplateProps) {
         {data.summary && (
           <SectionShell>
             <VaultTitle>Tóm tắt</VaultTitle>
-            <p className="whitespace-pre-line border-l-2 pl-3 text-[12px]" style={{ color: SUBTLE, borderColor: GOLD }}>
-              {data.summary}
-            </p>
+            <SplitBlocks text={data.summary} className="whitespace-pre-line break-words [overflow-wrap:anywhere] border-l-2 pl-3 text-[12px]" style={{ color: SUBTLE, borderColor: GOLD }} />
           </SectionShell>
         )}
 
@@ -98,9 +97,7 @@ export function VaultFinanceTemplate({ data }: ResumeTemplateProps) {
                     </p>
                   )}
                   {job.description && (
-                    <p className="mt-1 whitespace-pre-line pl-5 text-[12px]" style={{ color: SUBTLE }}>
-                      {job.description}
-                    </p>
+                    <SplitBlocks text={job.description} className="mt-1 whitespace-pre-line break-words [overflow-wrap:anywhere] pl-5 text-[12px]" style={{ color: SUBTLE }} />
                   )}
                 </div>
               ))}
@@ -114,7 +111,7 @@ export function VaultFinanceTemplate({ data }: ResumeTemplateProps) {
             <div>
               {data.education.map((edu) => (
                 <div key={edu.id} className="cv-section-item flex items-baseline justify-between gap-3 border-b py-2" style={{ borderColor: "#e5e7eb" }}>
-                  <p className="text-[12px]">
+                  <p className="min-w-0 text-[12px]">
                     <span className="font-bold" style={{ color: NAVY }}>{edu.school || "Trường"}</span>
                     {edu.degree && <span style={{ color: SUBTLE }}> · {edu.degree}</span>}
                   </p>
@@ -128,7 +125,7 @@ export function VaultFinanceTemplate({ data }: ResumeTemplateProps) {
         {data.skills.length > 0 && (
           <SectionShell>
             <VaultTitle>Kỹ năng</VaultTitle>
-            <p className="cv-section-item text-[12px] leading-relaxed" style={{ color: SUBTLE, fontFamily: "Georgia, 'Times New Roman', serif" }}>
+            <p className="cv-section-item text-[12px] leading-relaxed" style={{ color: SUBTLE, fontFamily: "var(--font-serif)" }}>
               {data.skills.map((s) => s.name).join(", ")}
             </p>
           </SectionShell>
@@ -148,9 +145,7 @@ export function VaultFinanceTemplate({ data }: ResumeTemplateProps) {
                     <p className="text-[12px]" style={{ color: SUBTLE }}>{p.role}</p>
                   )}
                   {p.description && (
-                    <p className="mt-1 whitespace-pre-line text-[12px]" style={{ color: SUBTLE }}>
-                      {p.description}
-                    </p>
+                    <SplitBlocks text={p.description} className="mt-1 whitespace-pre-line break-words [overflow-wrap:anywhere] text-[12px]" style={{ color: SUBTLE }} />
                   )}
                 </div>
               ))}
@@ -181,7 +176,7 @@ export function VaultFinanceTemplate({ data }: ResumeTemplateProps) {
       </div>
 
       {data.contacts.length > 0 && (
-        <footer className="border-t px-7 py-3 text-center text-[12px] italic" style={{ color: SUBTLE, borderColor: GOLD }}>
+        <footer className="border-t px-7 pb-6 pt-3 text-center text-[12px] italic" style={{ color: SUBTLE, borderColor: GOLD }}>
           Tham chiếu theo yêu cầu
         </footer>
       )}

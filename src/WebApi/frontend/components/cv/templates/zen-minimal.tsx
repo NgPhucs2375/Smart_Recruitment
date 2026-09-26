@@ -1,7 +1,7 @@
 "use client";
 
 import type { ResumeTemplateProps } from "./shared";
-import { DateText, EmptyPaper, SectionShell } from "./shared";
+import { BannerSlot, DateText, EmptyPaper, SectionShell, SplitBlocks } from "./shared";
 
 const INK = "#111111";
 const MUTED = "#9ca3af";
@@ -30,6 +30,7 @@ export function ZenMinimalTemplate({ data }: ResumeTemplateProps) {
   return (
     <div className="cv-paper cv-paper-a4 bg-white px-12 py-12 text-[13px] leading-loose" style={{ color: INK }}>
       <header className="pb-2 text-center">
+        <BannerSlot data={data} className="mb-3 text-[12px] font-normal uppercase" style={{ color: MUTED, letterSpacing: "0.3em" }} />
         <h1 className="text-[28px] font-normal leading-tight" style={{ color: INK, letterSpacing: "0.02em" }}>
           {data.name || "Họ và tên"}
         </h1>
@@ -55,9 +56,7 @@ export function ZenMinimalTemplate({ data }: ResumeTemplateProps) {
         {data.summary && (
           <SectionShell>
             <ZenTitle>Tóm tắt</ZenTitle>
-            <p className="mx-auto max-w-[58ch] whitespace-pre-line text-center text-[13px] italic" style={{ color: INK }}>
-              {data.summary}
-            </p>
+            <SplitBlocks text={data.summary} className="mx-auto max-w-[58ch] whitespace-pre-line break-words [overflow-wrap:anywhere] text-center text-[13px] italic" style={{ color: INK }} />
           </SectionShell>
         )}
 
@@ -73,9 +72,7 @@ export function ZenMinimalTemplate({ data }: ResumeTemplateProps) {
                     <DateText range={job.range} />
                   </p>
                   {job.description && (
-                    <p className="mx-auto mt-3 max-w-[58ch] whitespace-pre-line text-[13px]" style={{ color: INK }}>
-                      {job.description}
-                    </p>
+                      <SplitBlocks text={job.description} className="mx-auto mt-3 max-w-[58ch] whitespace-pre-line break-words [overflow-wrap:anywhere] text-[13px]" style={{ color: INK }} />
                   )}
                 </div>
               ))}
@@ -111,9 +108,7 @@ export function ZenMinimalTemplate({ data }: ResumeTemplateProps) {
                     </p>
                   )}
                   {p.description && (
-                    <p className="mx-auto mt-3 max-w-[58ch] whitespace-pre-line text-[13px]" style={{ color: INK }}>
-                      {p.description}
-                    </p>
+                      <SplitBlocks text={p.description} className="mx-auto mt-3 max-w-[58ch] whitespace-pre-line break-words [overflow-wrap:anywhere] text-[13px]" style={{ color: INK }} />
                   )}
                 </div>
               ))}
@@ -133,9 +128,7 @@ export function ZenMinimalTemplate({ data }: ResumeTemplateProps) {
                     <DateText range={edu.range} />
                   </p>
                   {edu.description && (
-                    <p className="mx-auto mt-3 max-w-[58ch] whitespace-pre-line text-[13px]" style={{ color: INK }}>
-                      {edu.description}
-                    </p>
+                      <SplitBlocks text={edu.description} className="mx-auto mt-3 max-w-[58ch] whitespace-pre-line break-words [overflow-wrap:anywhere] text-[13px]" style={{ color: INK }} />
                   )}
                 </div>
               ))}

@@ -2,7 +2,7 @@
 
 import { Mail, Phone, MapPin, Globe, Award, Briefcase } from "lucide-react";
 import type { ResumeTemplateProps } from "./shared";
-import { DateText, EmptyPaper, SectionShell } from "./shared";
+import { BannerSlot, DateText, EmptyPaper, SectionShell, SplitBlocks } from "./shared";
 
 const INK = "#1e3a5f";
 const SUBTLE = "#5b6470";
@@ -38,6 +38,7 @@ export function BentoGridTemplate({ data }: ResumeTemplateProps) {
   return (
     <div className="cv-paper cv-paper-a4 bg-white px-6 py-6 text-[13px] leading-relaxed" style={{ color: INK }}>
       <header className="rounded-xl p-5" style={{ backgroundColor: TILE_BG, border: `1px solid ${TILE_BORDER}` }}>
+        <BannerSlot data={data} className="mb-1 text-[10px] font-bold uppercase tracking-[0.24em]" style={{ color: SUBTLE }} />
         <h1 className="text-[26px] font-bold leading-tight tracking-tight" style={{ color: INK }}>
           {data.name || "Họ và tên"}
         </h1>
@@ -45,7 +46,7 @@ export function BentoGridTemplate({ data }: ResumeTemplateProps) {
         {data.contacts.length > 0 && (
           <div className="mt-3 grid grid-cols-3 gap-x-4 gap-y-1.5">
             {data.contacts.map((c, i) => (
-              <p key={`${c.label}-${i}`} className="cv-section-item flex items-start gap-1.5 text-[12px]" style={{ color: SUBTLE }}>
+              <p key={`${c.label}-${i}`} className="cv-section-item flex min-w-0 items-start gap-1.5 text-[12px]" style={{ color: SUBTLE }}>
                 <ContactIcon label={c.label} />
                 <span className="break-all">{c.value}</span>
               </p>
@@ -56,12 +57,12 @@ export function BentoGridTemplate({ data }: ResumeTemplateProps) {
 
       <div className="mt-3 grid grid-cols-2 gap-3">
         {data.projects.length > 0 && (
-          <div className="col-span-2 rounded-xl p-4" style={{ backgroundColor: BLUE_BG, border: `1px solid ${BLUE_BORDER}` }}>
+          <div className="col-span-2 rounded-xl min-w-0 p-4" style={{ backgroundColor: BLUE_BG, border: `1px solid ${BLUE_BORDER}` }}>
             <SectionShell>
               <TileTitle>Dự án</TileTitle>
               <div className="grid grid-cols-2 gap-2.5">
                 {data.projects.map((p) => (
-                  <div key={p.id} className="cv-section-item rounded-xl border bg-white p-3" style={{ borderColor: BLUE_BORDER }}>
+                  <div key={p.id} className="cv-section-item min-w-0 rounded-xl border bg-white p-3" style={{ borderColor: BLUE_BORDER }}>
                     <div className="flex items-baseline justify-between gap-3">
                       <h3 className="font-bold" style={{ color: INK }}>{p.name || "Dự án"}</h3>
                       {p.range && (p.range.start || p.range.end) && (
@@ -70,7 +71,7 @@ export function BentoGridTemplate({ data }: ResumeTemplateProps) {
                     </div>
                     {p.role && <p className="text-[12px] font-semibold" style={{ color: SUBTLE }}>{p.role}</p>}
                     {p.description && (
-                      <p className="mt-1 whitespace-pre-line text-[13px]" style={{ color: SUBTLE }}>{p.description}</p>
+                      <SplitBlocks text={p.description} className="mt-1 whitespace-pre-line break-words [overflow-wrap:anywhere] text-[13px]" style={{ color: SUBTLE }} />
                     )}
                   </div>
                 ))}
@@ -80,16 +81,16 @@ export function BentoGridTemplate({ data }: ResumeTemplateProps) {
         )}
 
         {data.summary && (
-          <div className="rounded-xl p-4" style={{ backgroundColor: TILE_BG, border: `1px solid ${TILE_BORDER}` }}>
+          <div className="rounded-xl min-w-0 p-4" style={{ backgroundColor: TILE_BG, border: `1px solid ${TILE_BORDER}` }}>
             <SectionShell>
               <TileTitle>Tóm tắt</TileTitle>
-              <p className="cv-section-item whitespace-pre-line text-[13px]" style={{ color: SUBTLE }}>{data.summary}</p>
+              <SplitBlocks text={data.summary} className="whitespace-pre-line break-words [overflow-wrap:anywhere] text-[13px]" style={{ color: SUBTLE }} />
             </SectionShell>
           </div>
         )}
 
         {data.experience.length > 0 && (
-          <div className="rounded-xl p-4" style={{ backgroundColor: TILE_BG, border: `1px solid ${TILE_BORDER}` }}>
+          <div className="rounded-xl min-w-0 p-4" style={{ backgroundColor: TILE_BG, border: `1px solid ${TILE_BORDER}` }}>
             <SectionShell>
               <TileTitle>Kinh nghiệm</TileTitle>
               <div className="space-y-3">
@@ -104,7 +105,7 @@ export function BentoGridTemplate({ data }: ResumeTemplateProps) {
                     </div>
                     <p className="text-[12px] font-semibold" style={{ color: SUBTLE }}>{job.company}</p>
                     {job.description && (
-                      <p className="mt-1 whitespace-pre-line text-[13px]" style={{ color: SUBTLE }}>{job.description}</p>
+                      <SplitBlocks text={job.description} className="mt-1 whitespace-pre-line break-words [overflow-wrap:anywhere] text-[13px]" style={{ color: SUBTLE }} />
                     )}
                   </div>
                 ))}
@@ -114,7 +115,7 @@ export function BentoGridTemplate({ data }: ResumeTemplateProps) {
         )}
 
         {data.education.length > 0 && (
-          <div className="rounded-xl p-4" style={{ backgroundColor: TILE_BG, border: `1px solid ${TILE_BORDER}` }}>
+          <div className="rounded-xl min-w-0 p-4" style={{ backgroundColor: TILE_BG, border: `1px solid ${TILE_BORDER}` }}>
             <SectionShell>
               <TileTitle>Học vấn</TileTitle>
               <div className="space-y-3">
@@ -126,7 +127,7 @@ export function BentoGridTemplate({ data }: ResumeTemplateProps) {
                     </div>
                     {edu.degree && <p className="text-[12px] font-semibold" style={{ color: SUBTLE }}>{edu.degree}</p>}
                     {edu.description && (
-                      <p className="mt-1 whitespace-pre-line text-[13px]" style={{ color: SUBTLE }}>{edu.description}</p>
+                      <SplitBlocks text={edu.description} className="mt-1 whitespace-pre-line break-words [overflow-wrap:anywhere] text-[13px]" style={{ color: SUBTLE }} />
                     )}
                   </div>
                 ))}
@@ -136,7 +137,7 @@ export function BentoGridTemplate({ data }: ResumeTemplateProps) {
         )}
 
         {(data.skills.length > 0 || data.certificates.length > 0) && (
-          <div className="rounded-xl p-4" style={{ backgroundColor: TILE_BG, border: `1px solid ${TILE_BORDER}` }}>
+          <div className="rounded-xl min-w-0 p-4" style={{ backgroundColor: TILE_BG, border: `1px solid ${TILE_BORDER}` }}>
             <SectionShell>
               {data.skills.length > 0 && (
                 <div>
@@ -179,7 +180,7 @@ export function BentoGridTemplate({ data }: ResumeTemplateProps) {
         )}
 
         {data.contacts.length > 0 && (
-          <div className="rounded-xl p-4" style={{ backgroundColor: TILE_BG, border: `1px solid ${TILE_BORDER}` }}>
+          <div className="rounded-xl min-w-0 p-4" style={{ backgroundColor: TILE_BG, border: `1px solid ${TILE_BORDER}` }}>
             <SectionShell>
               <TileTitle>Liên hệ</TileTitle>
               <div className="space-y-1">

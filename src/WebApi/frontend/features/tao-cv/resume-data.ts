@@ -63,6 +63,9 @@ export type ResumeCertificate = {
 export type ResumeData = {
   name: string;
   title?: string;
+  /** B4-title: override banner trang trí (VD "Thực đơn nghề nghiệp").
+      Trống = template dùng literal mặc định của nó. Additive, không vỡ cũ. */
+  customTitle?: string;
   summary?: string;
   contacts: ResumeContact[];
   experience: ResumeExperience[];
@@ -163,6 +166,7 @@ export function toResumeData(data: CvFormData): ResumeData {
   return {
     name: lh.hoTen,
     title: lh.viTriUngTuyen || undefined,
+    customTitle: data.tieuDeHienThi?.trim() || undefined,
     summary: lh.gioiThieuBanThan || undefined,
     contacts,
     experience,

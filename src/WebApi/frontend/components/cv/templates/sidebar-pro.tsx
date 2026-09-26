@@ -1,7 +1,7 @@
 "use client";
 
 import type { ResumeData } from "@/features/tao-cv/resume-data";
-import { DateText, EmptyPaper, SectionShell, SkillChips } from "./shared";
+import { DateText, EmptyPaper, SectionShell, SkillChips, SplitBlocks, resolveBannerTitle3 } from "./shared";
 
 /**
  * Sidebar Pro — mirrored two-column layout with the rail on the RIGHT
@@ -42,7 +42,7 @@ export function SidebarProTemplate({ data }: { data: ResumeData }) {
     <div className="cv-paper cv-paper-a4 text-[12.5px] leading-relaxed" style={{ color: INK }}>
       <header className="px-7 pb-4 pt-6">
         <p className="text-[10.5px] font-semibold uppercase tracking-[0.22em]" style={{ color: NAVY }}>
-          {data.title || "Curriculum Vitae"}
+          {resolveBannerTitle3(data, data.title, "Curriculum Vitae")}
         </p>
         <h1 className="mt-1 text-[26px] font-bold leading-tight tracking-tight">
           {data.name || "Họ và tên"}
@@ -50,11 +50,11 @@ export function SidebarProTemplate({ data }: { data: ResumeData }) {
       </header>
 
       <div className="grid grid-cols-[70%_30%]">
-        <div className="space-y-4 px-7 py-5">
+        <div className="min-w-0 space-y-4 px-7 py-5">
           {data.summary && (
             <SectionShell>
               <MainTitle>Giới thiệu</MainTitle>
-              <p className="whitespace-pre-line" style={{ color: SUBTLE }}>{data.summary}</p>
+              <SplitBlocks text={data.summary} className="whitespace-pre-line break-words [overflow-wrap:anywhere]" style={{ color: SUBTLE }} />
             </SectionShell>
           )}
 
@@ -70,7 +70,7 @@ export function SidebarProTemplate({ data }: { data: ResumeData }) {
                     </div>
                     <p className="text-[12px] font-semibold" style={{ color: NAVY }}>{job.company}</p>
                     {job.description && (
-                      <p className="mt-0.5 whitespace-pre-line" style={{ color: SUBTLE }}>{job.description}</p>
+                      <SplitBlocks text={job.description} className="mt-0.5 whitespace-pre-line break-words [overflow-wrap:anywhere]" style={{ color: SUBTLE }} />
                     )}
                   </div>
                 ))}
@@ -86,7 +86,7 @@ export function SidebarProTemplate({ data }: { data: ResumeData }) {
                   <div key={p.id} className="cv-section-item">
                     <p className="font-bold" style={{ color: INK }}>{p.name || "Dự án"}</p>
                     {p.description && (
-                      <p className="mt-0.5 whitespace-pre-line" style={{ color: SUBTLE }}>{p.description}</p>
+                      <SplitBlocks text={p.description} className="mt-0.5 whitespace-pre-line break-words [overflow-wrap:anywhere]" style={{ color: SUBTLE }} />
                     )}
                     {p.tech.length > 0 && (
                       <p className="mt-0.5 font-mono text-[10.5px]" style={{ color: NAVY }}>
@@ -117,7 +117,7 @@ export function SidebarProTemplate({ data }: { data: ResumeData }) {
           )}
         </div>
 
-        <aside className="px-5 py-5" style={{ backgroundColor: "var(--hire-navy-soft)" }}>
+        <aside className="min-w-0 px-5 py-5" style={{ backgroundColor: "var(--hire-navy-soft)" }}>
           <div className="space-y-4">
             {data.skills.length > 0 && (
               <div className="cv-section-item">

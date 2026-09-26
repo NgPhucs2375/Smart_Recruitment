@@ -1,7 +1,7 @@
 "use client";
 
 import type { ResumeData } from "@/features/tao-cv/resume-data";
-import { DateText, EmptyPaper, SectionShell } from "./shared";
+import { BannerSlot, DateText, EmptyPaper, SectionShell, SplitBlocks } from "./shared";
 
 /**
  * Startup Modern — high-energy compact layout: oversized name, pill
@@ -36,6 +36,7 @@ export function StartupModernTemplate({ data }: { data: ResumeData }) {
   return (
     <div className="cv-paper cv-paper-a4 text-[12.5px] leading-relaxed" style={{ color: INK }}>
       <header className="px-7 pb-4 pt-6">
+        <BannerSlot data={data} className="mb-1 text-[10px] font-bold uppercase tracking-[0.24em]" style={{ color: SUBTLE }} />
         <h1 className="text-[30px] font-bold leading-none tracking-tighter">
           {data.name || "Họ và tên"}
           <span aria-hidden="true" style={{ color: NAVY }}>.</span>
@@ -65,7 +66,7 @@ export function StartupModernTemplate({ data }: { data: ResumeData }) {
       <div className="space-y-4 px-7 py-5" style={{ borderTop: "3px solid var(--hire-navy)" }}>
         {data.summary && (
           <SectionShell>
-            <p className="whitespace-pre-line text-[13px] font-medium" style={{ color: INK }}>{data.summary}</p>
+            <SplitBlocks text={data.summary} className="whitespace-pre-line break-words [overflow-wrap:anywhere] text-[13px] font-medium" style={{ color: INK }} />
           </SectionShell>
         )}
 
@@ -81,7 +82,7 @@ export function StartupModernTemplate({ data }: { data: ResumeData }) {
                   </div>
                   <p className="text-[12px] font-semibold" style={{ color: NAVY }}>{job.company}</p>
                   {job.description && (
-                    <p className="mt-1 whitespace-pre-line" style={{ color: SUBTLE }}>{job.description}</p>
+                    <SplitBlocks text={job.description} className="mt-1 whitespace-pre-line break-words [overflow-wrap:anywhere]" style={{ color: SUBTLE }} />
                   )}
                 </div>
               ))}
@@ -94,7 +95,7 @@ export function StartupModernTemplate({ data }: { data: ResumeData }) {
             <Title>Stack</Title>
             <div className="grid grid-cols-2 gap-1.5">
               {data.skills.map((s) => (
-                <p key={s.id} className="rounded-lg px-2.5 py-1.5 text-[11.5px] font-semibold" style={{ backgroundColor: "var(--hire-navy-soft)", color: NAVY }}>
+                <p key={s.id} className="min-w-0 rounded-lg px-2.5 py-1.5 text-[11.5px] font-semibold" style={{ backgroundColor: "var(--hire-navy-soft)", color: NAVY }}>
                   {s.name}
                 </p>
               ))}
@@ -111,11 +112,11 @@ export function StartupModernTemplate({ data }: { data: ResumeData }) {
                   <div className="flex items-baseline justify-between gap-3">
                     <h3 className="font-bold" style={{ color: INK }}>{p.name || "Dự án"}</h3>
                     {p.tech.length > 0 && (
-                      <p className="font-mono text-[10.5px]" style={{ color: NAVY }}>{p.tech.slice(0, 3).join(" · ")}</p>
+                      <p className="font-mono text-[10.5px]" style={{ color: NAVY }}>{p.tech.join(" · ")}</p>
                     )}
                   </div>
                   {p.description && (
-                    <p className="mt-0.5 whitespace-pre-line" style={{ color: SUBTLE }}>{p.description}</p>
+                    <SplitBlocks text={p.description} className="mt-0.5 whitespace-pre-line break-words [overflow-wrap:anywhere]" style={{ color: SUBTLE }} />
                   )}
                 </div>
               ))}

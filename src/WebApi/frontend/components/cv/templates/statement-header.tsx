@@ -2,7 +2,7 @@
 
 import { Mail, Phone, MapPin, Globe, Award, Briefcase } from "lucide-react";
 import type { ResumeTemplateProps } from "./shared";
-import { DateText, EmptyPaper, SectionShell } from "./shared";
+import { BannerSlot, DateText, EmptyPaper, SectionShell, SplitBlocks } from "./shared";
 
 const COBALT = "#1e40af";
 const INK = "#1f2a37";
@@ -46,6 +46,7 @@ export function StatementHeaderTemplate({ data }: ResumeTemplateProps) {
   return (
     <div className="cv-paper cv-paper-a4 bg-white text-[13px] leading-relaxed" style={{ color: INK }}>
       <header className="px-7 pb-6 pt-7" style={{ backgroundColor: COBALT }}>
+        <BannerSlot data={data} className="mb-1 text-[10px] font-bold uppercase tracking-[0.24em]" style={{ color: "rgba(255,255,255,0.7)" }} />
         <h1 className="text-[30px] font-bold leading-tight tracking-tight text-white">
           {data.name || "Họ và tên"}
         </h1>
@@ -66,7 +67,7 @@ export function StatementHeaderTemplate({ data }: ResumeTemplateProps) {
         {data.summary && (
           <SectionShell>
             <PlainTitle>Tóm tắt</PlainTitle>
-            <p className="whitespace-pre-line text-[13px]" style={{ color: SUBTLE }}>{data.summary}</p>
+            <SplitBlocks text={data.summary} className="whitespace-pre-line break-words [overflow-wrap:anywhere] text-[13px]" style={{ color: SUBTLE }} />
           </SectionShell>
         )}
 
@@ -85,7 +86,7 @@ export function StatementHeaderTemplate({ data }: ResumeTemplateProps) {
                   </div>
                   <p className="text-[12px] font-semibold" style={{ color: COBALT }}>{job.company}</p>
                   {job.description && (
-                    <p className="mt-1 whitespace-pre-line text-[13px]" style={{ color: SUBTLE }}>{job.description}</p>
+                    <SplitBlocks text={job.description} className="mt-1 whitespace-pre-line break-words [overflow-wrap:anywhere] text-[13px]" style={{ color: SUBTLE }} />
                   )}
                 </div>
               ))}
@@ -121,7 +122,7 @@ export function StatementHeaderTemplate({ data }: ResumeTemplateProps) {
                   </div>
                   {p.role && <p className="text-[12px] font-semibold" style={{ color: COBALT }}>{p.role}</p>}
                   {p.description && (
-                    <p className="mt-1 whitespace-pre-line text-[13px]" style={{ color: SUBTLE }}>{p.description}</p>
+                    <SplitBlocks text={p.description} className="mt-1 whitespace-pre-line break-words [overflow-wrap:anywhere] text-[13px]" style={{ color: SUBTLE }} />
                   )}
                 </div>
               ))}
@@ -141,7 +142,7 @@ export function StatementHeaderTemplate({ data }: ResumeTemplateProps) {
                   </div>
                   {edu.degree && <p className="text-[12px] font-semibold" style={{ color: COBALT }}>{edu.degree}</p>}
                   {edu.description && (
-                    <p className="mt-1 whitespace-pre-line text-[13px]" style={{ color: SUBTLE }}>{edu.description}</p>
+                    <SplitBlocks text={edu.description} className="mt-1 whitespace-pre-line break-words [overflow-wrap:anywhere] text-[13px]" style={{ color: SUBTLE }} />
                   )}
                 </div>
               ))}

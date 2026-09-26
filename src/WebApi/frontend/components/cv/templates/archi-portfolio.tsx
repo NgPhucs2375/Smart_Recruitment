@@ -3,7 +3,7 @@
 import { Mail, Phone, MapPin, Globe, Award, Briefcase } from "lucide-react";
 import type { ResumeContact } from "@/features/tao-cv/resume-data";
 import type { ResumeTemplateProps } from "./shared";
-import { DateText, EmptyPaper, SectionShell } from "./shared";
+import { DateText, EmptyPaper, SectionShell, SplitBlocks, resolveBannerTitle } from "./shared";
 
 const SLATE = "#334155";
 const STEEL = "#475569";
@@ -78,7 +78,7 @@ export function ArchiPortfolioTemplate({ data }: ResumeTemplateProps) {
         <div style={{ border: `1px solid ${LINE}`, backgroundColor: "#ffffff" }}>
           <div className="flex items-end justify-between gap-4 px-4 pb-3 pt-4">
             <div>
-              <TechLabel>Bản vẽ · Hồ sơ ứng viên</TechLabel>
+              <TechLabel>{resolveBannerTitle(data, "Bản vẽ · Hồ sơ ứng viên")}</TechLabel>
               <h1 className="mt-1 text-[26px] font-bold leading-tight tracking-tight" style={{ color: SLATE }}>
                 {data.name || "Họ và tên"}
               </h1>
@@ -88,7 +88,7 @@ export function ArchiPortfolioTemplate({ data }: ResumeTemplateProps) {
                 </p>
               )}
             </div>
-            <p className="font-mono text-[9px]" style={{ color: LINE }}>
+            <p className="min-w-0 font-mono text-[9px]" style={{ color: LINE }}>
               SHEET A-01 · SCALE 1:1
             </p>
           </div>
@@ -115,7 +115,7 @@ export function ArchiPortfolioTemplate({ data }: ResumeTemplateProps) {
             <Frame label="Liên hệ bổ sung" code="SEC-00">
               <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
                 {data.contacts.slice(3).map((c, i) => (
-                  <p key={`${c.label}-${i}`} className="cv-section-item flex items-start gap-2 text-[12px]" style={{ color: STEEL }}>
+                  <p key={`${c.label}-${i}`} className="cv-section-item flex min-w-0 items-start gap-2 text-[12px]" style={{ color: STEEL }}>
                     <ContactIcon label={c.label} />
                     <span className="break-all">
                       <span className="font-semibold" style={{ color: SLATE }}>
@@ -139,9 +139,7 @@ export function ArchiPortfolioTemplate({ data }: ResumeTemplateProps) {
         {data.summary && (
           <SectionShell>
             <Frame label="Tóm tắt · Ghi chú chung" code="SEC-01">
-              <p className="cv-section-item whitespace-pre-line" style={{ color: STEEL }}>
-                {data.summary}
-              </p>
+              <SplitBlocks text={data.summary} className="whitespace-pre-line break-words [overflow-wrap:anywhere]" style={{ color: STEEL }} />
             </Frame>
           </SectionShell>
         )}
@@ -165,9 +163,7 @@ export function ArchiPortfolioTemplate({ data }: ResumeTemplateProps) {
                       {job.company}
                     </p>
                     {job.description && (
-                      <p className="mt-1 whitespace-pre-line" style={{ color: STEEL }}>
-                        {job.description}
-                      </p>
+                      <SplitBlocks text={job.description} className="mt-1 whitespace-pre-line break-words [overflow-wrap:anywhere]" style={{ color: STEEL }} />
                     )}
                   </div>
                 ))}
@@ -181,7 +177,7 @@ export function ArchiPortfolioTemplate({ data }: ResumeTemplateProps) {
             <Frame label="Dự án · Mặt bằng" code="SEC-03">
               <div className="grid grid-cols-2 gap-3">
                 {data.projects.map((p) => (
-                  <div key={p.id} className="cv-section-item p-3" style={{ border: `1px solid ${LINE}` }}>
+                  <div key={p.id} className="cv-section-item min-w-0 p-3" style={{ border: `1px solid ${LINE}` }}>
                     <div className="flex items-baseline justify-between gap-2">
                       <h3 className="text-[12.5px] font-bold leading-snug" style={{ color: SLATE }}>
                         {p.name || "Dự án"}
@@ -196,9 +192,7 @@ export function ArchiPortfolioTemplate({ data }: ResumeTemplateProps) {
                       <DateText range={p.range} className="text-[11px]" />
                     )}
                     {p.description && (
-                      <p className="mt-1 whitespace-pre-line text-[12px]" style={{ color: STEEL }}>
-                        {p.description}
-                      </p>
+                      <SplitBlocks text={p.description} className="mt-1 whitespace-pre-line break-words [overflow-wrap:anywhere] text-[12px]" style={{ color: STEEL }} />
                     )}
                     {p.tech.length > 0 && (
                       <p className="mt-1 text-[11.5px]" style={{ color: STEEL }}>
@@ -230,9 +224,7 @@ export function ArchiPortfolioTemplate({ data }: ResumeTemplateProps) {
                       </p>
                     )}
                     {edu.description && (
-                      <p className="mt-1 whitespace-pre-line" style={{ color: STEEL }}>
-                        {edu.description}
-                      </p>
+                      <SplitBlocks text={edu.description} className="mt-1 whitespace-pre-line break-words [overflow-wrap:anywhere]" style={{ color: STEEL }} />
                     )}
                   </div>
                 ))}
@@ -246,7 +238,7 @@ export function ArchiPortfolioTemplate({ data }: ResumeTemplateProps) {
             <Frame label="Kỹ năng · Bảng vật liệu" code="SEC-05">
               <div className="cv-section-item grid grid-cols-2 gap-x-4 gap-y-1">
                 {data.skills.map((s, i) => (
-                  <p key={s.id} className="cv-section-item flex gap-2 border-b border-dashed pb-1 text-[12.5px]" style={{ borderColor: LINE, color: SLATE }}>
+                  <p key={s.id} className="cv-section-item flex min-w-0 gap-2 border-b border-dashed pb-1 text-[12.5px]" style={{ borderColor: LINE, color: SLATE }}>
                     <span className="font-mono text-[11px]" style={{ color: STEEL }}>
                       {String(i + 1).padStart(2, "0")}
                     </span>

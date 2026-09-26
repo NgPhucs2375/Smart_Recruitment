@@ -2,7 +2,7 @@
 
 import { Mail, Phone, MapPin, Globe, Award, Briefcase } from "lucide-react";
 import type { ResumeTemplateProps } from "./shared";
-import { DateText, EmptyPaper, SectionShell } from "./shared";
+import { BannerSlot, DateText, EmptyPaper, SectionShell, SplitBlocks } from "./shared";
 
 const BROWN = "#78350f";
 const ORANGE = "#ea580c";
@@ -54,6 +54,7 @@ export function HostWarmTemplate({ data }: ResumeTemplateProps) {
   return (
     <div className="cv-paper cv-paper-a4 text-[13px] leading-relaxed" style={{ color: BROWN }}>
       <header className="px-7 pb-2 pt-6 text-center">
+        <BannerSlot data={data} className="mb-1 text-[11px] font-bold uppercase tracking-[0.16em]" style={{ color: ORANGE }} />
         <div
           className="mx-auto flex h-14 w-14 items-center justify-center rounded-full text-[20px] font-extrabold"
           style={{ backgroundColor: ORANGE, color: "#ffffff" }}
@@ -104,9 +105,7 @@ export function HostWarmTemplate({ data }: ResumeTemplateProps) {
           <SectionShell>
             <div className="rounded-2xl px-5 py-4 text-center" style={{ backgroundColor: CREAM, border: `1px solid ${CREAM_BORDER}` }}>
               <WarmTitle>Tóm tắt</WarmTitle>
-              <p className="whitespace-pre-line text-[12px]" style={{ color: BROWN }}>
-                {data.summary}
-              </p>
+              <SplitBlocks text={data.summary} className="whitespace-pre-line break-words [overflow-wrap:anywhere] text-[12px]" style={{ color: BROWN }} />
             </div>
           </SectionShell>
         )}
@@ -130,9 +129,7 @@ export function HostWarmTemplate({ data }: ResumeTemplateProps) {
                     </p>
                   )}
                   {job.description && (
-                    <p className="mt-1 whitespace-pre-line text-[12px]" style={{ color: BROWN }}>
-                      {job.description}
-                    </p>
+                    <SplitBlocks text={job.description} className="mt-1 whitespace-pre-line break-words [overflow-wrap:anywhere] text-[12px]" style={{ color: BROWN }} />
                   )}
                 </div>
               ))}
@@ -155,9 +152,7 @@ export function HostWarmTemplate({ data }: ResumeTemplateProps) {
                     )}
                     <DateText range={edu.range} className="text-[12px]" />
                     {edu.description && (
-                      <p className="mt-1 whitespace-pre-line text-[12px]" style={{ color: BROWN }}>
-                        {edu.description}
-                      </p>
+                      <SplitBlocks text={edu.description} className="mt-1 whitespace-pre-line break-words [overflow-wrap:anywhere] text-[12px]" style={{ color: BROWN }} />
                     )}
                   </div>
                 ))}
@@ -182,9 +177,7 @@ export function HostWarmTemplate({ data }: ResumeTemplateProps) {
                     </p>
                   )}
                   {p.description && (
-                    <p className="mt-1 whitespace-pre-line text-[12px]" style={{ color: BROWN }}>
-                      {p.description}
-                    </p>
+                    <SplitBlocks text={p.description} className="mt-1 whitespace-pre-line break-words [overflow-wrap:anywhere] text-[12px]" style={{ color: BROWN }} />
                   )}
                 </div>
               ))}

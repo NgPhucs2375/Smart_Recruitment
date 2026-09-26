@@ -1,7 +1,7 @@
 "use client";
 
 import type { ResumeData } from "@/features/tao-cv/resume-data";
-import { DateText, EmptyPaper, SectionShell } from "./shared";
+import { BannerSlot, DateText, EmptyPaper, SectionShell, SplitBlocks } from "./shared";
 
 /**
  * Professional Split — clean two-column layout with a narrow sidebar and
@@ -45,6 +45,7 @@ export function ProfessionalSplitTemplate({ data }: { data: ResumeData }) {
   return (
     <div className="cv-paper cv-paper-a4 text-[12.5px] leading-relaxed" style={{ color: INK }}>
       <header className="px-7 pb-4 pt-6" style={{ borderBottom: "2px solid var(--hire-navy)" }}>
+        <BannerSlot data={data} className="mb-1 text-[10px] font-bold uppercase tracking-[0.24em]" style={{ color: SUBTLE }} />
         <h1 className="text-[24px] font-bold leading-tight tracking-tight">
           {data.name || "Họ và tên"}
         </h1>
@@ -56,7 +57,7 @@ export function ProfessionalSplitTemplate({ data }: { data: ResumeData }) {
       </header>
 
       <div className="grid grid-cols-[28%_72%]">
-        <aside className="px-5 py-5" style={{ backgroundColor: SIDEBAR_BG }}>
+        <aside className="min-w-0 px-5 py-5" style={{ backgroundColor: SIDEBAR_BG }}>
           <div className="space-y-4">
             {data.contacts.length > 0 && (
               <div className="cv-section-item">
@@ -119,11 +120,11 @@ export function ProfessionalSplitTemplate({ data }: { data: ResumeData }) {
           </div>
         </aside>
 
-        <div className="space-y-4 px-7 py-5">
+        <div className="min-w-0 space-y-4 px-7 py-5">
           {data.summary && (
             <SectionShell>
               <MainTitle>Tóm tắt</MainTitle>
-              <p className="whitespace-pre-line" style={{ color: SUBTLE }}>{data.summary}</p>
+              <SplitBlocks text={data.summary} className="whitespace-pre-line break-words [overflow-wrap:anywhere]" style={{ color: SUBTLE }} />
             </SectionShell>
           )}
 
@@ -139,7 +140,7 @@ export function ProfessionalSplitTemplate({ data }: { data: ResumeData }) {
                     </div>
                     <p className="text-[12px] font-semibold" style={{ color: NAVY }}>{job.company}</p>
                     {job.description && (
-                      <p className="mt-0.5 whitespace-pre-line" style={{ color: SUBTLE }}>{job.description}</p>
+                      <SplitBlocks text={job.description} className="mt-0.5 whitespace-pre-line break-words [overflow-wrap:anywhere]" style={{ color: SUBTLE }} />
                     )}
                     {job.skills.length > 0 && (
                       <p className="mt-0.5 text-[11px]" style={{ color: SUBTLE }}>{job.skills.join(" · ")}</p>
@@ -166,7 +167,7 @@ export function ProfessionalSplitTemplate({ data }: { data: ResumeData }) {
                       <p className="text-[12px] font-semibold" style={{ color: NAVY }}>{p.role}</p>
                     )}
                     {p.description && (
-                      <p className="mt-0.5 whitespace-pre-line" style={{ color: SUBTLE }}>{p.description}</p>
+                      <SplitBlocks text={p.description} className="mt-0.5 whitespace-pre-line break-words [overflow-wrap:anywhere]" style={{ color: SUBTLE }} />
                     )}
                     {p.tech.length > 0 && (
                       <p className="mt-0.5 text-[11px]" style={{ color: SUBTLE }}>{p.tech.join(" · ")}</p>

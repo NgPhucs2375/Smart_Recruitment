@@ -27,8 +27,9 @@ export function AppHeaderV2() {
 }
 
 function DesktopHeaderV2() {
+  // Chiều cao khóa với SidebarHeader qua --shell-header-h (globals.css).
   return (
-    <header className="sticky top-0 z-[var(--z-header)] flex h-[4.5rem] shrink-0 items-center justify-between gap-4 border-b border-workspace-border/70 bg-workspace-topbar/85 px-4 backdrop-blur-xl supports-[backdrop-filter]:bg-workspace-topbar/70 md:px-8">
+    <header className="sticky top-0 z-[var(--z-header)] flex h-[var(--shell-header-h)] shrink-0 items-center justify-between gap-4 border-b border-workspace-border/70 bg-workspace-topbar/85 px-4 backdrop-blur-xl supports-[backdrop-filter]:bg-workspace-topbar/70 md:px-8">
       <div className="flex flex-1 items-center gap-4 min-w-0">
          <SidebarTrigger
           className="flex h-10 w-10 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"

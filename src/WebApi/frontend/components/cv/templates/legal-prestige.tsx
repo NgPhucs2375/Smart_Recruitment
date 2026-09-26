@@ -3,13 +3,13 @@
 import { Mail, Phone, MapPin, Globe, Award, Briefcase } from "lucide-react";
 import type { ResumeContact } from "@/features/tao-cv/resume-data";
 import type { ResumeTemplateProps } from "./shared";
-import { DateText, EmptyPaper, SectionShell } from "./shared";
+import { DateText, EmptyPaper, SectionShell, SplitBlocks, resolveBannerTitle } from "./shared";
 
 const NAVY = "#1e3a5f";
 const GOLD = "#8a6d2f";
 const INK = "#1f2a37";
 const MUTED = "#5b6470";
-const SERIF = "Georgia, 'Times New Roman', serif";
+const SERIF = "var(--font-serif)";
 
 function toRoman(num: number): string {
   const table: Array<[number, string]> = [
@@ -64,7 +64,7 @@ export function LegalPrestigeTemplate({ data }: ResumeTemplateProps) {
       <header className="px-8 pb-5 pt-7">
         <div className="border-b-4 border-t-4 border-double px-4 py-5" style={{ borderColor: GOLD }}>
           <p className="text-[10.5px] font-semibold uppercase" style={{ color: GOLD, letterSpacing: "0.34em" }}>
-            Sơ yếu lý lịch
+            {resolveBannerTitle(data, "Sơ yếu lý lịch")}
           </p>
           <h1 className="mt-2 text-[30px] font-bold leading-tight" style={{ color: NAVY, fontFamily: SERIF }}>
             {data.name || "Họ và tên"}
@@ -78,7 +78,7 @@ export function LegalPrestigeTemplate({ data }: ResumeTemplateProps) {
         {data.contacts.length > 0 && (
           <div className="mx-auto mt-4 flex max-w-xl flex-wrap items-center justify-center gap-x-5 gap-y-1.5">
             {data.contacts.map((c: ResumeContact, i: number) => (
-              <p key={`${c.label}-${i}`} className="cv-section-item flex items-center gap-1.5 text-[12px]" style={{ color: MUTED }}>
+              <p key={`${c.label}-${i}`} className="cv-section-item flex min-w-0 items-center gap-1.5 text-[12px]" style={{ color: MUTED }}>
                 <ContactIcon label={c.label} />
                 {c.href ? (
                   <a href={c.href} className="underline decoration-neutral-300 underline-offset-2">
@@ -98,9 +98,7 @@ export function LegalPrestigeTemplate({ data }: ResumeTemplateProps) {
           <SectionShell>
             <div className="cv-section-item mx-auto max-w-xl">
               <CenterTitle>Tóm tắt</CenterTitle>
-              <p className="mt-2.5 whitespace-pre-line italic" style={{ color: MUTED, fontFamily: SERIF }}>
-                {data.summary}
-              </p>
+              <SplitBlocks text={data.summary} className="mt-2.5 whitespace-pre-line break-words [overflow-wrap:anywhere] italic" style={{ color: MUTED, fontFamily: SERIF }} />
             </div>
           </SectionShell>
         )}
@@ -126,9 +124,7 @@ export function LegalPrestigeTemplate({ data }: ResumeTemplateProps) {
                       {job.company}
                     </p>
                     {job.description && (
-                      <p className="mt-1 whitespace-pre-line" style={{ color: MUTED }}>
-                        {job.description}
-                      </p>
+                      <SplitBlocks text={job.description} className="mt-1 whitespace-pre-line break-words [overflow-wrap:anywhere]" style={{ color: MUTED }} />
                     )}
                     {i < data.experience.length - 1 && (
                       <div className="mx-auto mt-3 w-16 border-t" style={{ borderColor: GOLD }} />
@@ -160,9 +156,7 @@ export function LegalPrestigeTemplate({ data }: ResumeTemplateProps) {
                       <DateText range={p.range} className="text-[11.5px]" />
                     )}
                     {p.description && (
-                      <p className="mt-1 whitespace-pre-line" style={{ color: MUTED }}>
-                        {p.description}
-                      </p>
+                      <SplitBlocks text={p.description} className="mt-1 whitespace-pre-line break-words [overflow-wrap:anywhere]" style={{ color: MUTED }} />
                     )}
                   </div>
                 ))}
@@ -184,9 +178,7 @@ export function LegalPrestigeTemplate({ data }: ResumeTemplateProps) {
                     </h3>
                     <DateText range={edu.range} className="text-[11.5px]" />
                     {edu.description && (
-                      <p className="mt-0.5 whitespace-pre-line" style={{ color: MUTED }}>
-                        {edu.description}
-                      </p>
+                      <SplitBlocks text={edu.description} className="mt-0.5 whitespace-pre-line break-words [overflow-wrap:anywhere]" style={{ color: MUTED }} />
                     )}
                   </div>
                 ))}

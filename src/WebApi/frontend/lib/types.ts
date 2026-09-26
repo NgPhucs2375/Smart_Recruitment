@@ -146,6 +146,9 @@ export type CvFormData = {
   chungChi: ChungChiItem[];
   templateId: string;
   tenFile: string;
+  /** B4-title: tiêu đề banner do người dùng gõ (VD thay "Thực đơn nghề nghiệp").
+      FE-only — mapper KHÔNG đưa vào Payload backend. Trống = dùng mặc định mẫu. */
+  tieuDeHienThi?: string;
 };
 
 export type CvDatePrecision = "month_year" | "year_only";

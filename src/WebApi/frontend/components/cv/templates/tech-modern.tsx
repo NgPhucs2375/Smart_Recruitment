@@ -5,7 +5,7 @@ import { Mail, Phone, MapPin, Globe, Award } from "lucide-react";
 import { GithubIcon as Github, LinkedinIcon as Linkedin } from "@/components/icons/brand-icons";
 import type { ResumeContact } from "@/features/tao-cv/resume-data";
 import type { ResumeTemplateProps } from "./shared";
-import { DateText, EmptyPaper, SectionShell } from "./shared";
+import { DateText, EmptyPaper, SectionShell, SplitBlocks, resolveBannerTitle3 } from "./shared";
 
 /**
  * Tech Modern — asymmetric two-column layout (sidebar ~32% / main ~68%)
@@ -87,7 +87,7 @@ export function TechModernTemplate({ data }: ResumeTemplateProps) {
       <div className="h-1.5" style={{ backgroundColor: NAVY }} />
       <header className="px-7 pb-4 pt-5">
         <p className="text-[10.5px] font-semibold uppercase tracking-[0.22em]" style={{ color: NAVY }}>
-          Curriculum Vitae
+          {resolveBannerTitle3(data, data.title, "Curriculum Vitae")}
         </p>
         <h1 className="mt-1 text-[25px] font-bold leading-tight tracking-tight" style={{ color: INK }}>
           {data.name || "Họ và tên"}
@@ -101,7 +101,7 @@ export function TechModernTemplate({ data }: ResumeTemplateProps) {
 
       <div className="grid grid-cols-[32%_68%]">
         {/* Sidebar */}
-        <aside className="px-5 py-5" style={{ backgroundColor: SIDEBAR_BG }}>
+        <aside className="min-w-0 px-5 py-5" style={{ backgroundColor: SIDEBAR_BG }}>
           <div className="space-y-4">
             {data.contacts.length > 0 && (
               <div className="cv-section-item">
@@ -158,11 +158,11 @@ export function TechModernTemplate({ data }: ResumeTemplateProps) {
         </aside>
 
         {/* Main column */}
-        <div className="space-y-4 px-7 py-5">
+        <div className="min-w-0 space-y-4 px-7 py-5">
           {data.summary && (
             <SectionShell>
               <MainTitle>Tóm tắt</MainTitle>
-              <p className="whitespace-pre-line" style={{ color: SUBTLE }}>{data.summary}</p>
+              <SplitBlocks text={data.summary} className="whitespace-pre-line break-words [overflow-wrap:anywhere]" style={{ color: SUBTLE }} />
             </SectionShell>
           )}
 
@@ -178,7 +178,7 @@ export function TechModernTemplate({ data }: ResumeTemplateProps) {
                     </div>
                     <p className="text-[12.5px] font-semibold" style={{ color: NAVY }}>{job.company}</p>
                     {job.description && (
-                      <p className="mt-1 whitespace-pre-line" style={{ color: SUBTLE }}>{job.description}</p>
+                      <SplitBlocks text={job.description} className="mt-1 whitespace-pre-line break-words [overflow-wrap:anywhere]" style={{ color: SUBTLE }} />
                     )}
                     {job.skills.length > 0 && (
                       <p className="mt-1 text-[11.5px]" style={{ color: SUBTLE }}>
@@ -217,7 +217,7 @@ export function TechModernTemplate({ data }: ResumeTemplateProps) {
                       <DateText range={p.range} className="text-[11.5px]" />
                     )}
                     {p.description && (
-                      <p className="mt-1 whitespace-pre-line" style={{ color: SUBTLE }}>{p.description}</p>
+                      <SplitBlocks text={p.description} className="mt-1 whitespace-pre-line break-words [overflow-wrap:anywhere]" style={{ color: SUBTLE }} />
                     )}
                     {p.tech.length > 0 && (
                       <div className="mt-1.5 flex flex-wrap gap-1">
@@ -252,7 +252,7 @@ export function TechModernTemplate({ data }: ResumeTemplateProps) {
                       <p className="text-[12.5px] font-semibold" style={{ color: NAVY }}>{edu.degree}</p>
                     )}
                     {edu.description && (
-                      <p className="mt-1 whitespace-pre-line" style={{ color: SUBTLE }}>{edu.description}</p>
+                      <SplitBlocks text={edu.description} className="mt-1 whitespace-pre-line break-words [overflow-wrap:anywhere]" style={{ color: SUBTLE }} />
                     )}
                   </div>
                 ))}

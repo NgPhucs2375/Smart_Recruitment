@@ -1,7 +1,7 @@
 "use client";
 
 import type { ResumeData } from "@/features/tao-cv/resume-data";
-import { DateText, EmptyPaper, SectionShell, SkillChips } from "./shared";
+import { BannerSlot, DateText, EmptyPaper, SectionShell, SkillChips, SplitBlocks } from "./shared";
 
 /**
  * DevOps Stack — left date-rail timeline, tool-group blocks and a
@@ -46,6 +46,7 @@ export function DevopsStackTemplate({ data }: { data: ResumeData }) {
   return (
     <div className="cv-paper cv-paper-a4 text-[12.5px] leading-relaxed" style={{ color: INK }}>
       <header className="flex items-center justify-between gap-4 px-7 pb-4 pt-6" style={{ backgroundColor: "var(--hire-ivory)" }}>
+        <BannerSlot data={data} className="mb-1 font-mono text-[11.5px] font-bold uppercase tracking-[0.12em]" style={{ color: NAVY }} />
         <div>
           <h1 className="text-[24px] font-bold leading-tight tracking-tight">
             {data.name || "Họ và tên"}
@@ -57,7 +58,7 @@ export function DevopsStackTemplate({ data }: { data: ResumeData }) {
           )}
         </div>
         {data.contacts.length > 0 && (
-          <div className="shrink-0 space-y-1 text-right">
+          <div className="min-w-0 shrink-0 space-y-1 text-right">
             {data.contacts.slice(0, 4).map((c, i) => (
               <p key={`${c.label}-${i}`} className="font-mono text-[10.5px]" style={{ color: SUBTLE }}>
                 {c.href ? (
@@ -75,7 +76,7 @@ export function DevopsStackTemplate({ data }: { data: ResumeData }) {
         {data.summary && (
           <SectionShell>
             <Title>Mục tiêu</Title>
-            <p className="whitespace-pre-line" style={{ color: SUBTLE }}>{data.summary}</p>
+            <SplitBlocks text={data.summary} className="whitespace-pre-line break-words [overflow-wrap:anywhere]" style={{ color: SUBTLE }} />
           </SectionShell>
         )}
 
@@ -91,7 +92,7 @@ export function DevopsStackTemplate({ data }: { data: ResumeData }) {
                       {job.role || "Chức danh"} <span style={{ color: NAVY }}>· {job.company}</span>
                     </p>
                     {job.description && (
-                      <p className="mt-0.5 whitespace-pre-line" style={{ color: SUBTLE }}>{job.description}</p>
+                      <SplitBlocks text={job.description} className="mt-0.5 whitespace-pre-line break-words [overflow-wrap:anywhere]" style={{ color: SUBTLE }} />
                     )}
                     {job.skills.length > 0 && (
                       <p className="mt-0.5 font-mono text-[10.5px]" style={{ color: SUBTLE }}>
@@ -122,7 +123,7 @@ export function DevopsStackTemplate({ data }: { data: ResumeData }) {
                   <div>
                     <p className="font-bold" style={{ color: INK }}>{p.name || "Dự án"}</p>
                     {p.description && (
-                      <p className="mt-0.5 whitespace-pre-line" style={{ color: SUBTLE }}>{p.description}</p>
+                      <SplitBlocks text={p.description} className="mt-0.5 whitespace-pre-line break-words [overflow-wrap:anywhere]" style={{ color: SUBTLE }} />
                     )}
                     {p.tech.length > 0 && (
                       <p className="mt-0.5 font-mono text-[10.5px]" style={{ color: NAVY }}>

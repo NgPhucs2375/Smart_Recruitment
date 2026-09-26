@@ -2,7 +2,7 @@
 
 import { Mail, Phone, MapPin, Globe, Award, Briefcase } from "lucide-react";
 import type { ResumeTemplateProps } from "./shared";
-import { DateText, EmptyPaper, SectionShell } from "./shared";
+import { DateText, EmptyPaper, SectionShell, SplitBlocks, resolveBannerTitle3 } from "./shared";
 
 const NAVY = "#1e3a5f";
 const ORANGE = "#f97316";
@@ -43,7 +43,7 @@ export function CareerTimelineTemplate({ data }: ResumeTemplateProps) {
     <div className="cv-paper cv-paper-a4 bg-white px-7 py-6 text-[13px] leading-relaxed" style={{ color: INK }}>
       <header className="pb-5 text-center">
         <p className="text-[12px] font-bold uppercase tracking-[0.25em]" style={{ color: ORANGE }}>
-          Hồ sơ nghề nghiệp
+          {resolveBannerTitle3(data, data.title, "Hồ sơ nghề nghiệp")}
         </p>
         <h1 className="mt-1 text-[28px] font-bold leading-tight" style={{ color: NAVY }}>
           {data.name || "Họ và tên"}
@@ -54,7 +54,7 @@ export function CareerTimelineTemplate({ data }: ResumeTemplateProps) {
         {data.contacts.length > 0 && (
           <div className="mt-3 flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5">
             {data.contacts.map((c, i) => (
-              <p key={`${c.label}-${i}`} className="cv-section-item flex items-center gap-1.5 text-[12px]" style={{ color: SUBTLE }}>
+              <p key={`${c.label}-${i}`} className="cv-section-item flex min-w-0 items-center gap-1.5 text-[12px]" style={{ color: SUBTLE }}>
                 <ContactIcon label={c.label} />
                 <span className="break-all">{c.value}</span>
               </p>
@@ -68,9 +68,7 @@ export function CareerTimelineTemplate({ data }: ResumeTemplateProps) {
         {data.summary && (
           <SectionShell>
             <CenterTitle>Tóm tắt</CenterTitle>
-            <p className="mx-auto max-w-[60ch] whitespace-pre-line text-center text-[13px]" style={{ color: SUBTLE }}>
-              {data.summary}
-            </p>
+            <SplitBlocks text={data.summary} className="mx-auto max-w-[60ch] whitespace-pre-line break-words [overflow-wrap:anywhere] text-center text-[13px]" style={{ color: SUBTLE }} />
           </SectionShell>
         )}
 
@@ -99,7 +97,7 @@ export function CareerTimelineTemplate({ data }: ResumeTemplateProps) {
                         </h3>
                         <p className="text-[12px] font-semibold" style={{ color: INK }}>{job.company}</p>
                         {job.description && (
-                          <p className="mt-1 whitespace-pre-line text-[13px]" style={{ color: SUBTLE }}>{job.description}</p>
+                          <SplitBlocks text={job.description} className="mt-1 whitespace-pre-line break-words [overflow-wrap:anywhere] text-[13px]" style={{ color: SUBTLE }} />
                         )}
                       </div>
                       <div className={left ? "col-start-2" : ""} />
@@ -125,7 +123,7 @@ export function CareerTimelineTemplate({ data }: ResumeTemplateProps) {
                     </p>
                   )}
                   {p.description && (
-                    <p className="mt-1 whitespace-pre-line text-[13px]" style={{ color: SUBTLE }}>{p.description}</p>
+                    <SplitBlocks text={p.description} className="mt-1 whitespace-pre-line break-words [overflow-wrap:anywhere] text-[13px]" style={{ color: SUBTLE }} />
                   )}
                 </div>
               ))}
@@ -160,7 +158,7 @@ export function CareerTimelineTemplate({ data }: ResumeTemplateProps) {
                     <h3 className="font-bold" style={{ color: NAVY }}>{edu.school || "Trường"}</h3>
                     {edu.degree && <p className="text-[12px] font-semibold" style={{ color: INK }}>{edu.degree}</p>}
                     {edu.description && (
-                      <p className="mt-1 whitespace-pre-line text-[13px]" style={{ color: SUBTLE }}>{edu.description}</p>
+                      <SplitBlocks text={edu.description} className="mt-1 whitespace-pre-line break-words [overflow-wrap:anywhere] text-[13px]" style={{ color: SUBTLE }} />
                     )}
                   </div>
                   <DateText range={edu.range} className="text-[12px] font-bold" />
@@ -176,12 +174,12 @@ export function CareerTimelineTemplate({ data }: ResumeTemplateProps) {
             <div className="mx-auto max-w-[62ch] space-y-2">
               {data.certificates.map((c) => (
                 <div key={c.id} className="cv-section-item flex items-start justify-between gap-3">
-                  <p className="flex items-start gap-1.5 text-[12px] font-semibold" style={{ color: INK }}>
+                  <p className="flex min-w-0 items-start gap-1.5 text-[12px] font-semibold" style={{ color: INK }}>
                     <Award className="mt-0.5 size-3.5 shrink-0" style={{ color: ORANGE }} strokeWidth={2} />
                     {c.name || "Chứng chỉ"}
                   </p>
                   {[c.issuer, c.date].filter(Boolean).length > 0 && (
-                    <p className="shrink-0 text-[12px]" style={{ color: SUBTLE }}>
+                    <p className="min-w-0 shrink-0 text-[12px]" style={{ color: SUBTLE }}>
                       {[c.issuer, c.date].filter(Boolean).join(" · ")}
                     </p>
                   )}

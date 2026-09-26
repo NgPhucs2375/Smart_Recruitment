@@ -1,7 +1,7 @@
 "use client";
 
 import type { ResumeData } from "@/features/tao-cv/resume-data";
-import { DateText, EmptyPaper, SectionShell } from "./shared";
+import { BannerSlot, DateText, EmptyPaper, SectionShell, SplitBlocks } from "./shared";
 
 /**
  * ATS Classic — single-column, compact, decoration-free layout for
@@ -33,6 +33,7 @@ export function AtsClassicTemplate({ data }: { data: ResumeData }) {
   return (
     <div className="cv-paper cv-paper-a4 px-9 py-7 text-[12.5px] leading-relaxed text-neutral-800">
       <header className="text-center">
+        <BannerSlot data={data} className="mb-1 text-[10px] font-bold uppercase tracking-[0.24em]" style={{ color: "#737373" }} />
         <h1 className="text-[24px] font-bold leading-tight tracking-tight text-neutral-950">
           {data.name || "Họ và tên"}
         </h1>
@@ -59,7 +60,7 @@ export function AtsClassicTemplate({ data }: { data: ResumeData }) {
         {data.summary && (
           <SectionShell>
             <ClassicTitle>Tóm tắt</ClassicTitle>
-            <p className="whitespace-pre-line text-center">{data.summary}</p>
+            <SplitBlocks text={data.summary} className="whitespace-pre-line break-words [overflow-wrap:anywhere] text-center" />
           </SectionShell>
         )}
 
@@ -74,7 +75,7 @@ export function AtsClassicTemplate({ data }: { data: ResumeData }) {
                     <DateText range={job.range} className="text-[11.5px] text-neutral-500" />
                   </div>
                   <p className="font-medium text-neutral-700">{job.company}</p>
-                  {job.description && <p className="mt-0.5 whitespace-pre-line">{job.description}</p>}
+                  {job.description && <SplitBlocks text={job.description} className="mt-0.5 whitespace-pre-line break-words [overflow-wrap:anywhere]" />}
                   {job.skills.length > 0 && (
                     <p className="mt-0.5 text-[11.5px] text-neutral-600">{job.skills.join(" · ")}</p>
                   )}
@@ -95,7 +96,7 @@ export function AtsClassicTemplate({ data }: { data: ResumeData }) {
                     <DateText range={edu.range} className="text-[11.5px] text-neutral-500" />
                   </div>
                   {edu.degree && <p className="font-medium text-neutral-700">{edu.degree}</p>}
-                  {edu.description && <p className="mt-0.5 whitespace-pre-line">{edu.description}</p>}
+                  {edu.description && <SplitBlocks text={edu.description} className="mt-0.5 whitespace-pre-line break-words [overflow-wrap:anywhere]" />}
                 </div>
               ))}
             </div>
@@ -130,7 +131,7 @@ export function AtsClassicTemplate({ data }: { data: ResumeData }) {
                     )}
                   </div>
                   {p.role && <p className="font-medium text-neutral-700">{p.role}</p>}
-                  {p.description && <p className="mt-0.5 whitespace-pre-line">{p.description}</p>}
+                  {p.description && <SplitBlocks text={p.description} className="mt-0.5 whitespace-pre-line break-words [overflow-wrap:anywhere]" />}
                   {p.tech.length > 0 && (
                     <p className="mt-0.5 text-[11.5px] text-neutral-600">{p.tech.join(" · ")}</p>
                   )}

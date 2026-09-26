@@ -2,7 +2,7 @@
 
 import { Mail, Phone, MapPin, Globe, Award, Briefcase } from "lucide-react";
 import type { ResumeTemplateProps } from "./shared";
-import { DateText, EmptyPaper, SectionShell } from "./shared";
+import { DateText, EmptyPaper, SectionShell, SplitBlocks, resolveBannerTitle3 } from "./shared";
 
 const BG = "#0f172a";
 const PANEL = "#1e293b";
@@ -44,7 +44,7 @@ export function MidnightProTemplate({ data }: ResumeTemplateProps) {
     <div className="cv-paper cv-paper-a4 px-7 py-6 font-mono text-[13px] leading-relaxed" style={{ backgroundColor: BG, color: INK }}>
       <header className="border-b pb-4" style={{ borderColor: "#334155" }}>
         <p className="text-[11px] uppercase tracking-[0.28em]" style={{ color: NEON }}>
-          ./profile
+          {resolveBannerTitle3(data, data.title, "./profile")}
         </p>
         <h1 className="mt-1 font-mono text-[27px] font-bold leading-tight" style={{ color: INK }}>
           {data.name || "Họ và tên"}
@@ -57,7 +57,7 @@ export function MidnightProTemplate({ data }: ResumeTemplateProps) {
         {data.contacts.length > 0 && (
           <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1.5">
             {data.contacts.map((c, i) => (
-              <p key={`${c.label}-${i}`} className="cv-section-item flex items-start gap-2 font-mono text-[12px]" style={{ color: SUBTLE }}>
+              <p key={`${c.label}-${i}`} className="cv-section-item flex min-w-0 items-start gap-2 font-mono text-[12px]" style={{ color: SUBTLE }}>
                 <ContactIcon label={c.label} />
                 <span className="break-all">{c.value}</span>
               </p>
@@ -70,7 +70,7 @@ export function MidnightProTemplate({ data }: ResumeTemplateProps) {
         {data.summary && (
           <SectionShell>
             <SectionTitle>Tóm tắt</SectionTitle>
-            <p className="cv-section-item whitespace-pre-line font-mono text-[13px]" style={{ color: SUBTLE }}>{data.summary}</p>
+            <SplitBlocks text={data.summary} className="whitespace-pre-line break-words [overflow-wrap:anywhere] font-mono text-[13px]" style={{ color: SUBTLE }} />
           </SectionShell>
         )}
 
@@ -89,7 +89,7 @@ export function MidnightProTemplate({ data }: ResumeTemplateProps) {
                   </div>
                   <p className="font-mono text-[12px] font-semibold" style={{ color: NEON }}>{job.company}</p>
                   {job.description && (
-                    <p className="mt-1 whitespace-pre-line font-mono text-[13px]" style={{ color: SUBTLE }}>{job.description}</p>
+                    <SplitBlocks text={job.description} className="mt-1 whitespace-pre-line break-words [overflow-wrap:anywhere] font-mono text-[13px]" style={{ color: SUBTLE }} />
                   )}
                 </div>
               ))}
@@ -128,7 +128,7 @@ export function MidnightProTemplate({ data }: ResumeTemplateProps) {
                   </div>
                   {p.role && <p className="font-mono text-[12px] font-semibold" style={{ color: NEON }}>{p.role}</p>}
                   {p.description && (
-                    <p className="mt-1 whitespace-pre-line font-mono text-[13px]" style={{ color: SUBTLE }}>{p.description}</p>
+                    <SplitBlocks text={p.description} className="mt-1 whitespace-pre-line break-words [overflow-wrap:anywhere] font-mono text-[13px]" style={{ color: SUBTLE }} />
                   )}
                 </div>
               ))}
@@ -148,7 +148,7 @@ export function MidnightProTemplate({ data }: ResumeTemplateProps) {
                   </div>
                   {edu.degree && <p className="font-mono text-[12px] font-semibold" style={{ color: NEON }}>{edu.degree}</p>}
                   {edu.description && (
-                    <p className="mt-1 whitespace-pre-line font-mono text-[13px]" style={{ color: SUBTLE }}>{edu.description}</p>
+                    <SplitBlocks text={edu.description} className="mt-1 whitespace-pre-line break-words [overflow-wrap:anywhere] font-mono text-[13px]" style={{ color: SUBTLE }} />
                   )}
                 </div>
               ))}

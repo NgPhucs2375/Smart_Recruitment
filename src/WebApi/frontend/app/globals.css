@@ -142,6 +142,9 @@ html {
   --color-workspace-muted: var(--workspace-muted);
   --color-workspace-border: var(--workspace-border);
   --font-sans: var(--font-sans);
+  /* Serif CV (Merriweather subset vietnamese, nạp qua next/font) + Georgia
+     fallback khi offline. class font-serif toàn app ăn token này. */
+  --font-serif: var(--font-serif), Georgia, "Times New Roman", serif;
   --color-chart-5: var(--chart-5);
   --color-chart-4: var(--chart-4);
   --color-chart-3: var(--chart-3);
@@ -181,11 +184,17 @@ html {
   --color-frost: #eaf1f7;
   --color-blush: #f7ece3;
   --color-sandsoft: #f7eddc;
-  /* Type */
-  --font-heading: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  /* Type — dùng stack Outfit đã load qua next/font (có subset vietnamese).
+     KHÔNG trỏ thẳng "Inter": font đó chưa bao giờ được load nên là dead reference. */
+  --font-heading: var(--font-sans), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 
 :root {
+  /* Chiều cao chuẩn của shell header (topbar) và sidebar header.
+     Hai bên PHẢI dùng chung token này để đường border-b thẳng hàng —
+     tuyệt đối không hardcode h-[4.5rem] rời rạc ở từng component. */
+  --shell-header-h: 4.5rem;
+
   --background: #f7f3ec;
   --foreground: #2f3440;
 
@@ -248,7 +257,7 @@ html {
   --z-modal: 50;
   --z-dropdown: 100;
 
-  --font-body: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-body: var(--font-sans), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-code: "SFMono-Regular", Menlo, Monaco, Consolas, monospace;
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
@@ -1410,6 +1419,25 @@ html {
 
 .cv-sheet {
   min-width: 0;
+  /* BATCH-blank: khóa khung đúng khổ A4 — padding Batch 2 cộng dồn không
+     bao giờ đẩy sheet vượt khổ sinh trang ảo (aspect-ratio giữ chiều cao,
+     max-height là lưới an toàn thứ hai). */
+  min-height: 0;
+  max-height: 297mm;
+}
+
+/* Lưới dự phòng: paper rỗng (mọi con bị ẩn) không chiếm chỗ thành trang trắng. */
+.cv-sheet:has(> .cv-paper:empty) {
+  display: none;
+}
+
+/* BATCH2-print: trang tiếp nối (data-page 2+) bị ẩn header nên nội dung
+   sẽ dính sát mép trên — bù padding-top 8mm thay chỗ header. Đơn vị mm để
+   preview và print khớp tuyệt đối (WYSIWYG); paginate() đã trừ đúng lượng
+   này khỏi capacity nên item cuối không tràn sheet. Quy tắc nằm ngoài
+   @media print để 2 bản render nhìn giống hệt nhau. */
+.cv-sheet:not([data-page="1"]) .cv-paper {
+  padding-top: 5mm;
 }
 
 /* Hidden measurement pass: same width as the visible sheets, out of flow. */
@@ -1617,9 +1645,46 @@ html {
     max-width: none !important;
   }
 
-  /* Chỉ item đơn lẻ tránh tách giữa 2 trang; section vẫn tách được. */
+  /* Chỉ item đơn lẻ tránh tách giữa 2 trang; section vẫn tách được.
+     page-break-inside legacy cho engine in cũ — cùng hiệu lực, không hại. */
   .cv-section-item {
     break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* BATCH-print-1: item cao hơn cả trang A4 không vừa đâu cả — cho tách
+     nội bộ (kèm orphans/widows) thay vì bị cắt cụt chữ ở mép đáy. */
+  .cv-section-item--oversize {
+    break-inside: auto;
+    page-break-inside: auto;
+  }
+
+  /* Section chảy qua nhiều trang: đánh dấu tiếp nối ở heading đầu khối
+     trên các sheet sau (paginate() gắn data-continued). */
+  .cv-section-shell[data-continued="true"] > h1:first-of-type::after,
+  .cv-section-shell[data-continued="true"] > h2:first-of-type::after,
+  .cv-section-shell[data-continued="true"] > h3:first-of-type::after,
+  .cv-section-shell[data-continued="true"] > h4:first-of-type::after {
+    content: " (tiếp theo)";
+    font-weight: 400;
+  }
+
+  /* Heading không ở cuối trang một mình (orphan protection) — phủ mọi cấp
+     đề mục template dùng (h1..h4), kèm legacy page-break-after. */
+  .cv-section-shell > h1,
+  .cv-section-shell > h2,
+  .cv-section-shell > h3,
+  .cv-section-shell > h4 {
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+
+  /* Không cưa đôi ngang thân chữ: giữ ít nhất 3 dòng cùng nhau khi đoạn
+     văn bị chia qua trang (chỉ tác động lúc fragment khi in). */
+  .cv-paper p,
+  .cv-paper li {
+    orphans: 3;
+    widows: 3;
   }
 
   /* Heading không ở cuối trang một mình (orphan protection). */

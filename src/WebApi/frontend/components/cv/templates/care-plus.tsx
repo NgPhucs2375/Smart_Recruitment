@@ -2,7 +2,7 @@
 
 import { Mail, Phone, MapPin, Globe, Award, Briefcase } from "lucide-react";
 import type { ResumeTemplateProps } from "./shared";
-import { DateText, EmptyPaper, SectionShell } from "./shared";
+import { BannerSlot, DateText, EmptyPaper, SectionShell, SplitBlocks } from "./shared";
 
 const MED = "#0284c7";
 const MED_STRIP = "#e0f2fe";
@@ -46,6 +46,7 @@ export function CarePlusTemplate({ data }: ResumeTemplateProps) {
   return (
     <div className="cv-paper cv-paper-a4 bg-white text-[13px] leading-relaxed" style={{ color: INK }}>
       <header>
+        <BannerSlot data={data} className="mb-1 px-7 pt-5 text-[11px] font-bold uppercase tracking-[0.16em]" style={{ color: MED }} />
         <div className="flex items-center gap-4 px-7 pb-4 pt-6">
           <div
             className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-[32px] font-bold leading-none"
@@ -109,9 +110,7 @@ export function CarePlusTemplate({ data }: ResumeTemplateProps) {
         {data.summary && (
           <SectionShell>
             <MedTitle>Tóm tắt</MedTitle>
-            <p className="whitespace-pre-line text-[12px]" style={{ color: SUBTLE }}>
-              {data.summary}
-            </p>
+            <SplitBlocks text={data.summary} className="whitespace-pre-line break-words [overflow-wrap:anywhere] text-[12px]" style={{ color: SUBTLE }} />
           </SectionShell>
         )}
         {data.experience.length > 0 && (
@@ -133,9 +132,7 @@ export function CarePlusTemplate({ data }: ResumeTemplateProps) {
                     </p>
                   )}
                   {job.description && (
-                    <p className="mt-1 whitespace-pre-line text-[12px]" style={{ color: SUBTLE }}>
-                      {job.description}
-                    </p>
+                    <SplitBlocks text={job.description} className="mt-1 whitespace-pre-line break-words [overflow-wrap:anywhere] text-[12px]" style={{ color: SUBTLE }} />
                   )}
                 </div>
               ))}
@@ -158,9 +155,7 @@ export function CarePlusTemplate({ data }: ResumeTemplateProps) {
                     </p>
                   )}
                   {edu.description && (
-                    <p className="mt-1 whitespace-pre-line text-[12px]" style={{ color: SUBTLE }}>
-                      {edu.description}
-                    </p>
+                    <SplitBlocks text={edu.description} className="mt-1 whitespace-pre-line break-words [overflow-wrap:anywhere] text-[12px]" style={{ color: SUBTLE }} />
                   )}
                 </div>
               ))}
@@ -199,9 +194,7 @@ export function CarePlusTemplate({ data }: ResumeTemplateProps) {
                     </p>
                   )}
                   {p.description && (
-                    <p className="mt-1 whitespace-pre-line text-[12px]" style={{ color: SUBTLE }}>
-                      {p.description}
-                    </p>
+                    <SplitBlocks text={p.description} className="mt-1 whitespace-pre-line break-words [overflow-wrap:anywhere] text-[12px]" style={{ color: SUBTLE }} />
                   )}
                 </div>
               ))}

@@ -486,7 +486,8 @@ export const TEMPLATE_REGISTRY: Record<string, ResumeTemplateMeta> = {
     name: "Mentor Class",
     description: "Sidebar thành tích giảng dạy, bảng khóa đào tạo",
     tags: ["Giáo viên", "Đào tạo", "Học thuật"],
-    version: "1.0",
+    // 1.1: banner chuẩn hóa (custom → vị trí ứng tuyển → "Hồ sơ năng lực").
+    version: "1.1",
     Component: MentorClassTemplate,
     columns: 1,
     categories: ["corporate", "one-column"],
@@ -566,7 +567,9 @@ export const TEMPLATE_REGISTRY: Record<string, ResumeTemplateMeta> = {
     name: "Culinary Signature",
     description: "Phong cách menu nhà hàng cao cấp",
     tags: ["F&B", "Đầu bếp"],
-    version: "1.0",
+    // 1.1: banner/sections chuẩn hóa theo ngành (BATCH-print task).
+    // Version ghi vào Payload lúc lưu CV mới (mapper đọc từ đây).
+    version: "1.1",
     Component: CulinarySignatureTemplate,
     columns: 1,
     categories: ["creative", "one-column"],

@@ -1,7 +1,7 @@
 "use client";
 
 import type { ResumeData } from "@/features/tao-cv/resume-data";
-import { DateText, EmptyPaper, SectionShell, SkillChips } from "./shared";
+import { BannerSlot, DateText, EmptyPaper, SectionShell, SkillChips, SplitBlocks, resolveSectionTitle } from "./shared";
 
 /**
  * Academic CV — education-first ordering with numbered research and
@@ -29,6 +29,7 @@ export function AcademicCvTemplate({ data }: { data: ResumeData }) {
   return (
     <div className="cv-paper cv-paper-a4 px-9 py-7 text-[12.5px] leading-relaxed text-neutral-800">
       <header>
+        <BannerSlot data={data} className="mb-1 text-[10px] font-bold uppercase tracking-[0.24em]" style={{ color: "#737373" }} />
         <h1 className="text-[24px] font-bold leading-tight tracking-tight text-neutral-950">
           {data.name || "Họ và tên"}
         </h1>
@@ -52,8 +53,8 @@ export function AcademicCvTemplate({ data }: { data: ResumeData }) {
       <div className="mt-5 space-y-4">
         {data.summary && (
           <SectionShell>
-            <Title>Hồ sơ học thuật</Title>
-            <p className="whitespace-pre-line">{data.summary}</p>
+            <Title>{resolveSectionTitle("summary", "Hồ sơ học thuật")}</Title>
+            <SplitBlocks text={data.summary} className="whitespace-pre-line break-words [overflow-wrap:anywhere]" />
           </SectionShell>
         )}
 
@@ -70,7 +71,7 @@ export function AcademicCvTemplate({ data }: { data: ResumeData }) {
                       <DateText range={edu.range} className="ml-2 text-[11.5px] font-normal text-neutral-500" />
                     </p>
                     {edu.degree && <p className="italic text-neutral-700">{edu.degree}</p>}
-                    {edu.description && <p className="mt-0.5 whitespace-pre-line">{edu.description}</p>}
+                    {edu.description && <SplitBlocks text={edu.description} className="mt-0.5 whitespace-pre-line break-words [overflow-wrap:anywhere]" />}
                   </div>
                 </li>
               ))}
@@ -107,7 +108,7 @@ export function AcademicCvTemplate({ data }: { data: ResumeData }) {
                     <h3 className="font-bold text-neutral-950">{job.role || "Chức danh"} — {job.company}</h3>
                     <DateText range={job.range} className="text-[11.5px] text-neutral-500" />
                   </div>
-                  {job.description && <p className="mt-0.5 whitespace-pre-line">{job.description}</p>}
+                  {job.description && <SplitBlocks text={job.description} className="mt-0.5 whitespace-pre-line break-words [overflow-wrap:anywhere]" />}
                 </div>
               ))}
             </div>
@@ -121,7 +122,7 @@ export function AcademicCvTemplate({ data }: { data: ResumeData }) {
               {data.projects.map((p) => (
                 <div key={p.id} className="cv-section-item">
                   <p className="font-bold text-neutral-950">{p.name || "Dự án"}</p>
-                  {p.description && <p className="mt-0.5 whitespace-pre-line">{p.description}</p>}
+                  {p.description && <SplitBlocks text={p.description} className="mt-0.5 whitespace-pre-line break-words [overflow-wrap:anywhere]" />}
                 </div>
               ))}
             </div>

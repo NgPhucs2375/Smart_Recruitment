@@ -2,7 +2,7 @@
 
 import { Mail, Phone, MapPin, Globe, Award, Briefcase } from "lucide-react";
 import type { ResumeTemplateProps } from "./shared";
-import { DateText, EmptyPaper, SectionShell } from "./shared";
+import { BannerSlot, DateText, EmptyPaper, SectionShell, SplitBlocks } from "./shared";
 
 const INK = "#44403c";
 const SUBTLE = "#78716c";
@@ -58,7 +58,8 @@ export function PastelStudioTemplate({ data }: ResumeTemplateProps) {
         >
           {initials(data.name || "")}
         </span>
-        <div>
+        <div className="min-w-0">
+          <BannerSlot data={data} className="mb-1 text-[10px] font-bold uppercase tracking-[0.24em]" style={{ color: SUBTLE }} />
           <h1 className="text-[24px] font-bold leading-tight tracking-tight" style={{ color: INK }}>
             {data.name || "Họ và tên"}
           </h1>
@@ -67,7 +68,7 @@ export function PastelStudioTemplate({ data }: ResumeTemplateProps) {
       </header>
 
       <div className="mt-4 grid grid-cols-[35%_65%] gap-3">
-        <div className="space-y-3">
+        <div className="min-w-0 space-y-3">
           {data.contacts.length > 0 && (
             <SectionShell>
               <Card bg={PINK}>
@@ -127,12 +128,12 @@ export function PastelStudioTemplate({ data }: ResumeTemplateProps) {
           )}
         </div>
 
-        <div className="space-y-3">
+        <div className="min-w-0 space-y-3">
           {data.summary && (
             <SectionShell>
               <Card bg={LAVENDER}>
                 <CardTitle>Tóm tắt</CardTitle>
-                <p className="cv-section-item whitespace-pre-line text-[13px]" style={{ color: SUBTLE }}>{data.summary}</p>
+                <SplitBlocks text={data.summary} className="whitespace-pre-line break-words [overflow-wrap:anywhere] text-[13px]" style={{ color: SUBTLE }} />
               </Card>
             </SectionShell>
           )}
@@ -141,7 +142,7 @@ export function PastelStudioTemplate({ data }: ResumeTemplateProps) {
             <SectionShell>
               <Card bg={MINT}>
                 <CardTitle>Kinh nghiệm</CardTitle>
-                <div className="space-y-3">
+                <div className="min-w-0 space-y-3">
                   {data.experience.map((job) => (
                     <div key={job.id} className="cv-section-item rounded-xl bg-white/80 p-2.5">
                       <div className="flex items-baseline justify-between gap-3">
@@ -153,7 +154,7 @@ export function PastelStudioTemplate({ data }: ResumeTemplateProps) {
                       </div>
                       <p className="text-[12px] font-semibold" style={{ color: SUBTLE }}>{job.company}</p>
                       {job.description && (
-                        <p className="mt-1 whitespace-pre-line text-[13px]" style={{ color: SUBTLE }}>{job.description}</p>
+                        <SplitBlocks text={job.description} className="mt-1 whitespace-pre-line break-words [overflow-wrap:anywhere] text-[13px]" style={{ color: SUBTLE }} />
                       )}
                     </div>
                   ))}
@@ -177,7 +178,7 @@ export function PastelStudioTemplate({ data }: ResumeTemplateProps) {
                       </div>
                       {p.role && <p className="text-[12px] font-semibold" style={{ color: SUBTLE }}>{p.role}</p>}
                       {p.description && (
-                        <p className="mt-1 whitespace-pre-line text-[13px]" style={{ color: SUBTLE }}>{p.description}</p>
+                        <SplitBlocks text={p.description} className="mt-1 whitespace-pre-line break-words [overflow-wrap:anywhere] text-[13px]" style={{ color: SUBTLE }} />
                       )}
                     </div>
                   ))}
@@ -199,7 +200,7 @@ export function PastelStudioTemplate({ data }: ResumeTemplateProps) {
                       </div>
                       {edu.degree && <p className="text-[12px] font-semibold" style={{ color: SUBTLE }}>{edu.degree}</p>}
                       {edu.description && (
-                        <p className="mt-1 whitespace-pre-line text-[13px]" style={{ color: SUBTLE }}>{edu.description}</p>
+                        <SplitBlocks text={edu.description} className="mt-1 whitespace-pre-line break-words [overflow-wrap:anywhere] text-[13px]" style={{ color: SUBTLE }} />
                       )}
                     </div>
                   ))}

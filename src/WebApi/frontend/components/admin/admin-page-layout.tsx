@@ -40,7 +40,7 @@ interface AdminPageLayoutProps {
 
 function AdminPageLayout({ children }: AdminPageLayoutProps) {
   return (
-    <div className="min-h-[calc(100vh-4.5rem)] px-4 py-8 sm:px-6 lg:px-10">
+    <div className="min-h-[calc(100vh-var(--shell-header-h))] px-4 py-8 sm:px-6 lg:px-10">
       <div className="mx-auto max-w-7xl space-y-6">{children}</div>
     </div>
   );

@@ -3,7 +3,7 @@
 import { Mail, Phone, MapPin, Globe, Award, Briefcase } from "lucide-react";
 import type { ResumeContact } from "@/features/tao-cv/resume-data";
 import type { ResumeTemplateProps } from "./shared";
-import { DateText, EmptyPaper, SectionShell } from "./shared";
+import { BannerSlot, DateText, EmptyPaper, SectionShell, SplitBlocks } from "./shared";
 
 const CLAY = "#c2410c";
 const CLAY_SOFT = "#faf7f2";
@@ -78,6 +78,7 @@ export function SnapshotProTemplate({ data }: ResumeTemplateProps) {
             {monogram(data.name)}
           </div>
           <div className="min-w-0">
+            <BannerSlot data={data} className="mb-1 text-[11px] font-bold uppercase tracking-[0.16em]" style={{ color: CLAY }} />
             <h1 className="text-[26px] font-bold leading-tight tracking-tight">{data.name || "Họ và tên"}</h1>
             {data.title && (
               <p className="mt-1 text-[13px] font-semibold" style={{ color: CLAY }}>
@@ -104,15 +105,13 @@ export function SnapshotProTemplate({ data }: ResumeTemplateProps) {
         <div className="px-7 pb-4">
           <SectionShell>
             <MainTitle>Tóm tắt</MainTitle>
-            <p className="whitespace-pre-line text-[12px]" style={{ color: SUBTLE }}>
-              {data.summary}
-            </p>
+            <SplitBlocks text={data.summary} className="whitespace-pre-line break-words [overflow-wrap:anywhere] text-[12px]" style={{ color: SUBTLE }} />
           </SectionShell>
         </div>
       )}
 
       <div className="grid grid-cols-[65%_35%]">
-        <div className="space-y-4 px-7 py-5">
+        <div className="min-w-0 space-y-4 px-7 py-5">
           {data.experience.length > 0 && (
             <SectionShell>
               <MainTitle>Kinh nghiệm</MainTitle>
@@ -132,9 +131,7 @@ export function SnapshotProTemplate({ data }: ResumeTemplateProps) {
                       </p>
                     )}
                     {job.description && (
-                      <p className="mt-1 whitespace-pre-line text-[12px]" style={{ color: SUBTLE }}>
-                        {job.description}
-                      </p>
+                      <SplitBlocks text={job.description} className="mt-1 whitespace-pre-line break-words [overflow-wrap:anywhere] text-[12px]" style={{ color: SUBTLE }} />
                     )}
                   </div>
                 ))}
@@ -157,9 +154,7 @@ export function SnapshotProTemplate({ data }: ResumeTemplateProps) {
                       </p>
                     )}
                     {p.description && (
-                      <p className="mt-1 whitespace-pre-line text-[12px]" style={{ color: SUBTLE }}>
-                        {p.description}
-                      </p>
+                      <SplitBlocks text={p.description} className="mt-1 whitespace-pre-line break-words [overflow-wrap:anywhere] text-[12px]" style={{ color: SUBTLE }} />
                     )}
                     {p.tech.length > 0 && (
                       <p className="mt-1 text-[12px]" style={{ color: SUBTLE }}>
@@ -173,7 +168,7 @@ export function SnapshotProTemplate({ data }: ResumeTemplateProps) {
           )}
         </div>
 
-        <aside className="space-y-4 px-5 py-5" style={{ backgroundColor: CLAY_SOFT }}>
+        <aside className="min-w-0 space-y-4 px-5 py-5" style={{ backgroundColor: CLAY_SOFT }}>
           {data.skills.length > 0 && (
             <SectionShell>
               <RailTitle>Kỹ năng</RailTitle>
@@ -204,9 +199,7 @@ export function SnapshotProTemplate({ data }: ResumeTemplateProps) {
                     )}
                     <DateText range={edu.range} className="text-[12px]" />
                     {edu.description && (
-                      <p className="mt-1 whitespace-pre-line text-[12px]" style={{ color: SUBTLE }}>
-                        {edu.description}
-                      </p>
+                      <SplitBlocks text={edu.description} className="mt-1 whitespace-pre-line break-words [overflow-wrap:anywhere] text-[12px]" style={{ color: SUBTLE }} />
                     )}
                   </div>
                 ))}

@@ -2,7 +2,7 @@
 
 import { Mail, Phone, MapPin, Globe, Award, Briefcase } from "lucide-react";
 import type { ResumeTemplateProps } from "./shared";
-import { DateText, EmptyPaper, SectionShell } from "./shared";
+import { BannerSlot, DateText, EmptyPaper, SectionShell, SplitBlocks } from "./shared";
 
 const TEAL = "#0d9488";
 const TEAL_DARK = "#0f766e";
@@ -59,11 +59,12 @@ export function InfographicProTemplate({ data }: ResumeTemplateProps) {
   return (
     <div className="cv-paper cv-paper-a4 bg-white text-[13px] leading-relaxed" style={{ color: INK }}>
       <header className="px-7 pb-5 pt-6" style={{ backgroundColor: TEAL }}>
+        <BannerSlot data={data} className="mb-1 text-[10px] font-bold uppercase tracking-[0.24em]" style={{ color: "rgba(255,255,255,0.75)" }} />
         <h1 className="text-[26px] font-bold leading-tight text-white">{data.name || "Họ và tên"}</h1>
         {data.title && <p className="mt-1 text-[13px] font-medium text-white/85">{data.title}</p>}
         <div className="mt-4 grid grid-cols-3 gap-3">
           {stats.map((s) => (
-            <div key={s.label} className="cv-section-item rounded-md px-3 py-2 text-center" style={{ backgroundColor: TEAL_DARK }}>
+            <div key={s.label} className="cv-section-item min-w-0 rounded-md px-3 py-2 text-center" style={{ backgroundColor: TEAL_DARK }}>
               <p className="text-[24px] font-black leading-none text-white">{s.value}</p>
               <p className="mt-1 text-[12px] font-semibold uppercase tracking-widest text-white/85">{s.label}</p>
             </div>
@@ -72,11 +73,11 @@ export function InfographicProTemplate({ data }: ResumeTemplateProps) {
       </header>
 
       <div className="grid grid-cols-[65%_35%]">
-        <div className="space-y-4 px-7 py-5">
+        <div className="min-w-0 space-y-4 px-7 py-5">
           {data.summary && (
             <SectionShell>
               <MainTitle>Tóm tắt</MainTitle>
-              <p className="whitespace-pre-line text-[13px]" style={{ color: SUBTLE }}>{data.summary}</p>
+              <SplitBlocks text={data.summary} className="whitespace-pre-line break-words [overflow-wrap:anywhere] text-[13px]" style={{ color: SUBTLE }} />
             </SectionShell>
           )}
 
@@ -97,7 +98,7 @@ export function InfographicProTemplate({ data }: ResumeTemplateProps) {
                     </div>
                     <p className="mt-0.5 text-[12px] font-semibold" style={{ color: TEAL_DARK }}>{job.company}</p>
                     {job.description && (
-                      <p className="mt-1 whitespace-pre-line text-[13px]" style={{ color: SUBTLE }}>{job.description}</p>
+                      <SplitBlocks text={job.description} className="mt-1 whitespace-pre-line break-words [overflow-wrap:anywhere] text-[13px]" style={{ color: SUBTLE }} />
                     )}
                   </div>
                 ))}
@@ -121,7 +122,7 @@ export function InfographicProTemplate({ data }: ResumeTemplateProps) {
                     </div>
                     {p.role && <p className="text-[12px] font-semibold" style={{ color: TEAL_DARK }}>{p.role}</p>}
                     {p.description && (
-                      <p className="mt-1 whitespace-pre-line text-[13px]" style={{ color: SUBTLE }}>{p.description}</p>
+                      <SplitBlocks text={p.description} className="mt-1 whitespace-pre-line break-words [overflow-wrap:anywhere] text-[13px]" style={{ color: SUBTLE }} />
                     )}
                   </div>
                 ))}
@@ -141,7 +142,7 @@ export function InfographicProTemplate({ data }: ResumeTemplateProps) {
                     </div>
                     {edu.degree && <p className="text-[12px] font-semibold" style={{ color: TEAL_DARK }}>{edu.degree}</p>}
                     {edu.description && (
-                      <p className="mt-1 whitespace-pre-line text-[13px]" style={{ color: SUBTLE }}>{edu.description}</p>
+                      <SplitBlocks text={edu.description} className="mt-1 whitespace-pre-line break-words [overflow-wrap:anywhere] text-[13px]" style={{ color: SUBTLE }} />
                     )}
                   </div>
                 ))}
@@ -150,7 +151,7 @@ export function InfographicProTemplate({ data }: ResumeTemplateProps) {
           )}
         </div>
 
-        <aside className="space-y-5 px-5 py-5" style={{ backgroundColor: TEAL_DARK }}>
+        <aside className="min-w-0 space-y-5 px-5 py-5" style={{ backgroundColor: TEAL_DARK }}>
           {data.contacts.length > 0 && (
             <div className="cv-section-item">
               <RailTitle>Liên hệ</RailTitle>
