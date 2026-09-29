@@ -128,10 +128,7 @@ services:
   frontend:
     build:
       context: ./src/WebApi/frontend
-      dockerfile: Dockerfile
-      args:
-        NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${NEXT_PUBLIC_GOOGLE_CLIENT_ID:-}
-        NEXT_PUBLIC_COPILOTKIT_THREADS_ENABLED: ${NEXT_PUBLIC_COPILOTKIT_THREADS_ENABLED:-}
+      dockerfile: Dockerfile.dev
     container_name: frontend
     restart: unless-stopped
     ports:
@@ -143,7 +140,7 @@ services:
       NEXT_PUBLIC_COPILOT_AGENT_URL: http://localhost:${BACKEND_PORT:-8000}
       # Chặn Turbopack/Node phình bộ nhớ làm host cạn RAM (trước đây gây
       # "Out of memory (os error 12)" -> module resolve lỗi ngẫu nhiên -> 500).
-      NODE_OPTIONS: --max-old-space-size=2048
+      NODE_OPTIONS: --max-old-space-size=${FRONTEND_MAX_MEM:-3072}
       # Docker Desktop bind mounts do not always emit native Linux file events.
       WATCHPACK_POLLING: "true"
       CHOKIDAR_USEPOLLING: "true"
@@ -160,6 +157,8 @@ services:
 volumes:
   postgres_data:
   minio_data:
+  frontend_node_modules:
+  frontend_next_cache:
 
 networks:
   kltn_network:
