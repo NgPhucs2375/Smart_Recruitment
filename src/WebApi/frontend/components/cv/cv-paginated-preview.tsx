@@ -6,6 +6,9 @@ import type { ResumeData } from "@/features/tao-cv/resume-data";
 
 const A4_RATIO = 297 / 210;
 
+/** A4 @96dpi — mốc quy đổi hằng px cứng thành tỉ lệ bất biến zoom. */
+const A4_PX = 794;
+
 /** Ngưỡng text chrome: khối không-item dài hơn mức này không được đu theo. */
 const CHROME_TEXT_LIMIT = 200;
 
@@ -60,7 +63,12 @@ export function CvPaginatedPreview({ resume, Component, templateKey, onPageCount
 
     const paperRect = paper.getBoundingClientRect();
     if (paperRect.width === 0) return;
-    const capacity = paperRect.width * A4_RATIO;
+    // Toán bất biến zoom: mọi đại lượng quy về tỉ lệ theo chiều rộng giấy —
+    // zoom/scale triệt tiêu trong phép chia nên đo ở Fit 50% hay 100% đều
+    // ra cùng số trang và điểm ngắt. Container hẹp đổi line-wrap là khác
+    // (đúng như Word đổi khổ giấy), không phải lỗi đo.
+    const unit = paperRect.width;
+    const capacity = A4_RATIO;
     const items = Array.from(paper.querySelectorAll<HTMLElement>(".cv-section-item"));
 
     if (items.length === 0) {
@@ -73,9 +81,9 @@ export function CvPaginatedPreview({ resume, Component, templateKey, onPageCount
       return;
     }
 
-    const tops = items.map((el) => el.getBoundingClientRect().top - paperRect.top);
-    const bottoms = items.map((el, i) => tops[i] + el.getBoundingClientRect().height);
-    const heights = items.map((el) => el.getBoundingClientRect().height);
+    const tops = items.map((el) => (el.getBoundingClientRect().top - paperRect.top) / unit);
+    const bottoms = items.map((el, i) => tops[i] + el.getBoundingClientRect().height / unit);
+    const heights = items.map((el) => el.getBoundingClientRect().height / unit);
 
     // BATCH-print-1: nhóm Section -> Items trên bản đo. Mỗi top-level child
     // chứa item là một owner; chrome (heading/banner/divider, không item)
@@ -146,12 +154,14 @@ export function CvPaginatedPreview({ resume, Component, templateKey, onPageCount
     // Trang tiếp nối có padding-top bù (CSS .cv-sheet) nên sức chứa thực tế
     // giảm đúng bằng đó — trừ ra ở đây để item cuối không tràn khỏi sheet
     // (cả preview aspect-ratio lẫn print đều khớp, giữ WYSIWYG).
-    const pxPerMm = paperRect.width / 210;
-    const continuationPad = pxPerMm * CONTINUATION_TOP_PAD_MM;
+    // Đơn vị tỉ lệ giấy: 5mm / 210mm — bất biến zoom như mọi đại lượng khác.
+    const continuationPad = CONTINUATION_TOP_PAD_MM / 210;
 
-    // B2-ĐÁY AN TOÀN (density pass): 28px (~7.4mm) — chỉ chống làm tròn
+    // B2-ĐÁY AN TOÀN (density pass): ~7.4mm — chỉ chống làm tròn
     // sub-pixel + chân chữ descender; paper vốn đã có padding đáy riêng.
-    const BOTTOM_SAFETY_MARGIN_PX = 28;
+    // Quy về tỉ lệ (28px @96dpi): hằng px cứng cũ ngốn gấp đôi tỉ lệ trang
+    // ở Fit 50%, đẩy item xuống trang sau sớm gây khoảng trắng trang 1.
+    const BOTTOM_SAFETY_MARGIN = 28 / A4_PX;
 
     // Y-PARTITION (thay index-slice): mỗi item thuộc về trang K đầu tiên
     // chứa trọn đáy của nó trong biên dùng được cộng dồn. Biên trang K:
@@ -163,7 +173,7 @@ export function CvPaginatedPreview({ resume, Component, templateKey, onPageCount
     // (minimal-ats) giữ nguyên số trang; khác biệt duy nhất: gán per-item
     // thay vì lát cắt index — đúng cho layout nhiều cột.
     const pageCapacity = (k: number): number =>
-      capacity - (k === 0 ? 0 : continuationPad) - BOTTOM_SAFETY_MARGIN_PX;
+      capacity - (k === 0 ? 0 : continuationPad) - BOTTOM_SAFETY_MARGIN;
     const pageOf: ItemPages = new Array(items.length).fill(0);
     let bound = 0;
     let K = 0;
@@ -311,12 +321,15 @@ export function CvPaginatedPreview({ resume, Component, templateKey, onPageCount
         }
         const show = visible || (gs === ge && page === 0);
         const disp = show ? "" : "none";
+        // Word-like flow: trang tiếp nối chỉ cho item chảy, ẩn tiêu đề/
+        // divider (chrome) để không "tạo lại field" mỗi trang. Trang đầu giữ nguyên.
+        const first = ref ? groupFirstPage.get(ref) : undefined;
+        const continued = show && first !== undefined && page > first;
         if (g.owner) {
           g.owner.style.display = disp;
           // Tiếp nối: group bắt đầu từ trang trước và còn item ở trang này.
-          const first = ref ? groupFirstPage.get(ref) : undefined;
           if (g.owner.tagName === "SECTION") {
-            if (show && first !== undefined && page > first) {
+            if (continued) {
               g.owner.setAttribute("data-continued", "true");
             } else {
               g.owner.removeAttribute("data-continued");
@@ -324,7 +337,7 @@ export function CvPaginatedPreview({ resume, Component, templateKey, onPageCount
           }
         }
         g.chrome.forEach((c) => {
-          c.style.display = disp;
+          c.style.display = continued ? "none" : disp;
         });
       });
       const header = paper.querySelector<HTMLElement>("header");
@@ -365,6 +378,15 @@ export function CvPaginatedPreview({ resume, Component, templateKey, onPageCount
           (g) => nodeAlive(g.owner) || g.chrome.some((c) => nodeAlive(c)),
         );
       (sheet as HTMLElement).style.display = sheetAlive ? "" : "none";
+      // Lưới an toàn: trang chứa item cao hơn cả khổ A4 không vừa đâu cả —
+      // cho sheet dãn chiều cao (screen) để không cụt chữ; print tự tách
+      // qua break-inside: auto đã có. Không bao giờ mất nội dung.
+      const hasOversize = Array.from(oversize).some((i) => pageOf[i] === page);
+      if (hasOversize) {
+        (sheet as HTMLElement).setAttribute("data-oversize-page", "true");
+      } else {
+        (sheet as HTMLElement).removeAttribute("data-oversize-page");
+      }
     });
   }, [pages, resume, templateKey]);
 
@@ -376,6 +398,11 @@ export function CvPaginatedPreview({ resume, Component, templateKey, onPageCount
         {visible.map((_, page) => (
           <div key={`${templateKey}-p${page}`} className="cv-sheet" data-page={page + 1}>
             <Component data={resume} />
+            {visible.length > 1 && (
+              <p className="cv-sheet-footer" aria-hidden="true">
+                Trang {page + 1}/{visible.length}
+              </p>
+            )}
           </div>
         ))}
       </div>

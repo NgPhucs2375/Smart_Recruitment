@@ -42,8 +42,9 @@ export const isValidVnDate = (v: string) => v.trim() === "" || vnToIsoDate(v) !=
 /* ─── CV partial dates: MM/YYYY | YYYY (FE-only, backend still gets ISO) ─── */
 
 /**
- * Accepts legacy dd/mm/yyyy, MM/YYYY, YYYY and ISO yyyy-MM-dd(+time).
- * Returns null when unparseable. Never throws, never returns undefined parts.
+ * Accepts legacy dd/mm/yyyy, MM/YYYY, YYYY, ISO yyyy-MM-dd(+time)
+ * and JSON Resume yyyy-MM. Returns null when unparseable.
+ * Never throws, never returns undefined parts.
  */
 export function parseCvPartialDate(v: string | null | undefined): CvPartialDate | null {
   if (v == null) return null;
@@ -68,6 +69,12 @@ export function parseCvPartialDate(v: string | null | undefined): CvPartialDate 
     const month = Number(m[1]);
     if (month < 1 || month > 12) return null;
     return { year: Number(m[2]), month };
+  }
+  m = /^(\d{4})-(\d{2})$/.exec(s);
+  if (m) {
+    const month = Number(m[2]);
+    if (month < 1 || month > 12) return null;
+    return { year: Number(m[1]), month };
   }
   m = /^(\d{4})$/.exec(s);
   if (m) return { year: Number(m[1]) };

@@ -86,11 +86,11 @@ export function OceanWaveTemplate({ data }: ResumeTemplateProps) {
             )}
 
             {data.certificates.length > 0 && (
-              <div className="cv-section-item">
+              <div>
                 <SideTitle>Chứng chỉ</SideTitle>
                 <div className="space-y-2">
                   {data.certificates.map((c) => (
-                    <div key={c.id}>
+                    <div key={c.id} className="cv-section-item">
                       <p className="flex items-start gap-1.5 text-[12px] font-semibold leading-snug text-white">
                         <Award className="mt-0.5 size-3.5 shrink-0 text-white" strokeWidth={2} />
                         {c.name || "Chứng chỉ"}

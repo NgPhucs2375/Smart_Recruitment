@@ -195,7 +195,7 @@ export function SkillChips({
   if (skills.length === 0) return null;
   if (variant === "plain") {
     return (
-      <p className={`min-w-0 break-words leading-loose [overflow-wrap:anywhere] ${className}`}>
+      <p className={`cv-section-item min-w-0 break-words leading-loose [overflow-wrap:anywhere] ${className}`}>
         {skills.map((s, i) => (
           <span key={s.id}>
             {i > 0 && <span className="mx-1.5 text-neutral-400">·</span>}
@@ -210,7 +210,7 @@ export function SkillChips({
       ? "rounded-full px-2.5 py-0.5 text-[11px] font-semibold"
       : "rounded-md px-2 py-1 text-[11.5px] font-semibold";
   return (
-    <div className={`flex min-w-0 flex-wrap gap-1.5 ${className}`}>
+    <div className={`cv-section-item flex min-w-0 flex-wrap gap-1.5 ${className}`}>
       {skills.map((s) => (
         <span
           key={s.id}

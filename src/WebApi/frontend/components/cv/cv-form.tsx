@@ -200,6 +200,17 @@ export function CvForm({ data, onChange, onAiRewrite }: CvFormProps) {
   // UI-only: id of the repeat item added most recently, so only it plays
   // the enter animation (no mount cascade on pre-filled data).
   const [freshId, setFreshId] = useState<string | null>(null);
+  // Item mới append cuối list (giữ đúng thứ tự nhập) + rAF đưa view tới
+  // card vừa thêm rồi focus ô đầu để gõ ngay, khỏi lướt tay tìm.
+  useEffect(() => {
+    if (!freshId) return;
+    const raf = requestAnimationFrame(() => {
+      const card = document.querySelector(`[data-cv-item-id="${freshId}"]`);
+      card?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+      card?.querySelector<HTMLElement>("input:not([disabled]), textarea:not([disabled])")?.focus({ preventScroll: true });
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [freshId]);
   useEffect(() => {
     const onFocus = (event: Event) => {
       const section = (event as CustomEvent<{ section?: unknown }>).detail?.section;
@@ -411,7 +422,7 @@ export function CvForm({ data, onChange, onAiRewrite }: CvFormProps) {
             const mode = modeFor(k.id, k.tuNgay, k.denNgay);
             const err = rangeErrorText(k.tuNgay, k.denNgay, k.isHienTai);
             return (
-            <div key={k.id} className={`cv-repeat-item${freshId === k.id ? " cv-repeat-enter" : ""}`} onAnimationEnd={() => setFreshId((f) => (f === k.id ? null : f))} style={{ marginBottom: "0.75rem" }}>
+            <div key={k.id} data-cv-item-id={k.id} className={`cv-repeat-item${freshId === k.id ? " cv-repeat-enter" : ""}`} onAnimationEnd={() => setFreshId((f) => (f === k.id ? null : f))} style={{ marginBottom: "0.75rem" }}>
               <div style={{ display: "flex", gap: "1rem", marginBottom: "0.75rem" }}>
                 <Input placeholder="Công ty *" maxLength={CV_MAX_LENGTH.shortTitle} value={k.congTy} onChange={(e) => updateList("kinhNghiemLamViec", k.id, "congTy", e.target.value)} style={{ flex: 1 }} />
                 <Input placeholder="Chức danh *" value={k.chucDanh} onChange={(e) => updateList("kinhNghiemLamViec", k.id, "chucDanh", e.target.value)} style={{ flex: 1 }} />
@@ -420,15 +431,17 @@ export function CvForm({ data, onChange, onAiRewrite }: CvFormProps) {
                 </Button>
               </div>
               <PrecisionToggle mode={mode} onSwitch={(m) => switchRangePrecision("kinhNghiemLamViec", k.id, "tuNgay", "denNgay", m)} />
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem", marginBottom: err ? "0.25rem" : "0.75rem" }}>
-                <PartialDateField label="Thời gian bắt đầu" precision={mode} value={k.tuNgay} onChange={(v) => updateList("kinhNghiemLamViec", k.id, "tuNgay", v)} />
-                <PartialDateField label="Thời gian kết thúc" precision={mode} value={k.denNgay} disabled={k.isHienTai} onChange={(v) => updateList("kinhNghiemLamViec", k.id, "denNgay", v)} />
+              <div className="flex flex-wrap items-end gap-x-4 gap-y-2" style={{ marginBottom: err ? "0.25rem" : "0.75rem" }}>
+                <div className="grid min-w-60 flex-1" style={{ gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
+                  <PartialDateField label="Thời gian bắt đầu" precision={mode} value={k.tuNgay} onChange={(v) => updateList("kinhNghiemLamViec", k.id, "tuNgay", v)} />
+                  <PartialDateField label="Thời gian kết thúc" precision={mode} value={k.denNgay} disabled={k.isHienTai} onChange={(v) => updateList("kinhNghiemLamViec", k.id, "denNgay", v)} />
+                </div>
+                <label className="inline-flex items-center gap-2 text-sm" style={{ paddingBottom: "0.6rem" }}>
+                  <Checkbox checked={k.isHienTai} onCheckedChange={(v) => setCurrentFlag("kinhNghiemLamViec", k.id, v === true)} />
+                  Tôi hiện vẫn đang làm việc ở đây
+                </label>
               </div>
               {err && <p className="text-xs text-destructive mt-1" style={{ marginBottom: "0.75rem" }}>{err}</p>}
-              <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.75rem", fontSize: "0.875rem" }}>
-                <Checkbox checked={k.isHienTai} onCheckedChange={(v) => setCurrentFlag("kinhNghiemLamViec", k.id, v === true)} />
-                Tôi hiện vẫn đang làm việc ở đây
-              </label>
               <div className="relative" style={{ marginBottom: "0.25rem" }}>
                 <Textarea
                   placeholder="Mô tả công việc, thành tựu..."
@@ -484,7 +497,7 @@ export function CvForm({ data, onChange, onAiRewrite }: CvFormProps) {
             const mode = modeFor(h.id, h.tuNgay, h.denNgay, "year_only");
             const err = rangeErrorText(h.tuNgay, h.denNgay, h.isHienTai);
             return (
-            <div key={h.id} className={`cv-repeat-item${freshId === h.id ? " cv-repeat-enter" : ""}`} onAnimationEnd={() => setFreshId((f) => (f === h.id ? null : f))} style={{ marginBottom: "0.75rem" }}>
+            <div key={h.id} data-cv-item-id={h.id} className={`cv-repeat-item${freshId === h.id ? " cv-repeat-enter" : ""}`} onAnimationEnd={() => setFreshId((f) => (f === h.id ? null : f))} style={{ marginBottom: "0.75rem" }}>
               <div style={{ display: "flex", gap: "1rem", marginBottom: "0.75rem" }}>
                 <Input placeholder="Trường *" value={h.truong} onChange={(e) => updateList("hocVan", h.id, "truong", e.target.value)} style={{ flex: 1 }} />
                 <Input placeholder="Chuyên ngành" value={h.chuyenNganh} onChange={(e) => updateList("hocVan", h.id, "chuyenNganh", e.target.value)} style={{ flex: 1 }} />
@@ -493,15 +506,17 @@ export function CvForm({ data, onChange, onAiRewrite }: CvFormProps) {
                 </Button>
               </div>
               <PrecisionToggle mode={mode} onSwitch={(m) => switchRangePrecision("hocVan", h.id, "tuNgay", "denNgay", m)} />
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem", marginBottom: err ? "0.25rem" : "0.75rem" }}>
-                <PartialDateField label="Thời gian bắt đầu" precision={mode} value={h.tuNgay} onChange={(v) => updateList("hocVan", h.id, "tuNgay", v)} />
-                <PartialDateField label="Thời gian kết thúc" precision={mode} value={h.denNgay} disabled={h.isHienTai} onChange={(v) => updateList("hocVan", h.id, "denNgay", v)} />
+              <div className="flex flex-wrap items-end gap-x-4 gap-y-2" style={{ marginBottom: err ? "0.25rem" : "0.75rem" }}>
+                <div className="grid min-w-60 flex-1" style={{ gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
+                  <PartialDateField label="Thời gian bắt đầu" precision={mode} value={h.tuNgay} onChange={(v) => updateList("hocVan", h.id, "tuNgay", v)} />
+                  <PartialDateField label="Thời gian kết thúc" precision={mode} value={h.denNgay} disabled={h.isHienTai} onChange={(v) => updateList("hocVan", h.id, "denNgay", v)} />
+                </div>
+                <label className="inline-flex items-center gap-2 text-sm" style={{ paddingBottom: "0.6rem" }}>
+                  <Checkbox checked={h.isHienTai === true} onCheckedChange={(v) => setCurrentFlag("hocVan", h.id, v === true)} />
+                  Tôi hiện vẫn đang học tập ở đây
+                </label>
               </div>
               {err && <p className="text-xs text-destructive mt-1" style={{ marginBottom: "0.75rem" }}>{err}</p>}
-              <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.75rem", fontSize: "0.875rem" }}>
-                <Checkbox checked={h.isHienTai === true} onCheckedChange={(v) => setCurrentFlag("hocVan", h.id, v === true)} />
-                Tôi hiện vẫn đang học tập ở đây
-              </label>
               <Textarea placeholder="Mô tả thêm..." value={h.moTa} onChange={(e) => updateList("hocVan", h.id, "moTa", e.target.value)} rows={2} />
             </div>
             );
@@ -516,6 +531,7 @@ export function CvForm({ data, onChange, onAiRewrite }: CvFormProps) {
           <Button variant="outline" size="sm" onClick={() => {
             const item: KyNangItem = { id: newId(), tenKyNang: "", mucDoThanhThao: "0", soNamKinhNghiem: "" };
             onChange({ ...data, kyNang: [...data.kyNang, item] });
+            setFreshId(item.id);
           }}>
             <Plus className="h-4 w-4 mr-1" />Thêm
           </Button>
@@ -525,7 +541,7 @@ export function CvForm({ data, onChange, onAiRewrite }: CvFormProps) {
             <div className="cv-empty-form" style={{ marginBottom: "0.75rem" }}><FileText className="h-4 w-4" /><span>Chưa có kỹ năng nào. Nhấn &quot;Thêm&quot; để bắt đầu.</span></div>
           )}
           {data.kyNang.map((k) => (
-            <div key={k.id} style={{ display: "flex", gap: "0.75rem", marginBottom: "0.75rem", alignItems: "center" }}>
+            <div key={k.id} data-cv-item-id={k.id} style={{ display: "flex", gap: "0.75rem", marginBottom: "0.75rem", alignItems: "center" }}>
               <Input placeholder="Tên kỹ năng *" maxLength={CV_MAX_LENGTH.skillTag} value={k.tenKyNang} onChange={(e) => updateList("kyNang", k.id, "tenKyNang", e.target.value)} style={{ flex: 2 }} />
                 <Select value={k.mucDoThanhThao || "0"} onValueChange={(value) => updateList("kyNang", k.id, "mucDoThanhThao", value)}>
                   <SelectTrigger className="h-9 flex-1" aria-label="Mức độ thành thạo"><SelectValue /></SelectTrigger>
@@ -564,7 +580,7 @@ export function CvForm({ data, onChange, onAiRewrite }: CvFormProps) {
             const mode = modeFor(d.id, d.tuNgay, d.denNgay);
             const err = rangeErrorText(d.tuNgay, d.denNgay, d.isHienTai);
             return (
-            <div key={d.id} className={`cv-repeat-item${freshId === d.id ? " cv-repeat-enter" : ""}`} onAnimationEnd={() => setFreshId((f) => (f === d.id ? null : f))} style={{ marginBottom: "0.75rem" }}>
+            <div key={d.id} data-cv-item-id={d.id} className={`cv-repeat-item${freshId === d.id ? " cv-repeat-enter" : ""}`} onAnimationEnd={() => setFreshId((f) => (f === d.id ? null : f))} style={{ marginBottom: "0.75rem" }}>
               <div style={{ display: "flex", gap: "1rem", marginBottom: "0.75rem" }}>
                 <Input placeholder="Tên dự án *" maxLength={CV_MAX_LENGTH.shortTitle} value={d.tenDuAn} onChange={(e) => updateList("duAn", d.id, "tenDuAn", e.target.value)} style={{ flex: 1 }} />
                 <Input placeholder="Vai trò" value={d.vaiTro} onChange={(e) => updateList("duAn", d.id, "vaiTro", e.target.value)} style={{ flex: 1 }} />
@@ -573,15 +589,17 @@ export function CvForm({ data, onChange, onAiRewrite }: CvFormProps) {
                 </Button>
               </div>
               <PrecisionToggle mode={mode} onSwitch={(m) => switchRangePrecision("duAn", d.id, "tuNgay", "denNgay", m)} />
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem", marginBottom: err ? "0.25rem" : "0.75rem" }}>
-                <PartialDateField label="Thời gian bắt đầu" precision={mode} value={d.tuNgay} onChange={(v) => updateList("duAn", d.id, "tuNgay", v)} />
-                <PartialDateField label="Thời gian kết thúc" precision={mode} value={d.denNgay} disabled={d.isHienTai} onChange={(v) => updateList("duAn", d.id, "denNgay", v)} />
+              <div className="flex flex-wrap items-end gap-x-4 gap-y-2" style={{ marginBottom: err ? "0.25rem" : "0.75rem" }}>
+                <div className="grid min-w-60 flex-1" style={{ gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
+                  <PartialDateField label="Thời gian bắt đầu" precision={mode} value={d.tuNgay} onChange={(v) => updateList("duAn", d.id, "tuNgay", v)} />
+                  <PartialDateField label="Thời gian kết thúc" precision={mode} value={d.denNgay} disabled={d.isHienTai} onChange={(v) => updateList("duAn", d.id, "denNgay", v)} />
+                </div>
+                <label className="inline-flex items-center gap-2 text-sm" style={{ paddingBottom: "0.6rem" }}>
+                  <Checkbox checked={d.isHienTai === true} onCheckedChange={(v) => setCurrentFlag("duAn", d.id, v === true)} />
+                  Đang thực hiện
+                </label>
               </div>
               {err && <p className="text-xs text-destructive mt-1" style={{ marginBottom: "0.75rem" }}>{err}</p>}
-              <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.75rem", fontSize: "0.875rem" }}>
-                <Checkbox checked={d.isHienTai === true} onCheckedChange={(v) => setCurrentFlag("duAn", d.id, v === true)} />
-                Đang thực hiện
-              </label>
               <ChipInput
                 values={d.congNghe}
                 onChange={(v) => updateList("duAn", d.id, "congNghe", v)}
@@ -632,7 +650,7 @@ export function CvForm({ data, onChange, onAiRewrite }: CvFormProps) {
           ) : data.chungChi.map((c) => {
             const mode = modeFor(c.id, c.ngayCap, "");
             return (
-            <div key={c.id} className={`cv-repeat-item${freshId === c.id ? " cv-repeat-enter" : ""}`} onAnimationEnd={() => setFreshId((f) => (f === c.id ? null : f))} style={{ marginBottom: "0.75rem" }}>
+            <div key={c.id} data-cv-item-id={c.id} className={`cv-repeat-item${freshId === c.id ? " cv-repeat-enter" : ""}`} onAnimationEnd={() => setFreshId((f) => (f === c.id ? null : f))} style={{ marginBottom: "0.75rem" }}>
               <div style={{ display: "flex", gap: "1rem", marginBottom: "0.75rem" }}>
                 <Input placeholder="Tên chứng chỉ *" value={c.tenChungChi} onChange={(e) => updateList("chungChi", c.id, "tenChungChi", e.target.value)} style={{ flex: 1 }} />
                 <Input placeholder="Đơn vị cấp" value={c.donViCap} onChange={(e) => updateList("chungChi", c.id, "donViCap", e.target.value)} style={{ flex: 1 }} />

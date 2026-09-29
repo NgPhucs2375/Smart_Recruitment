@@ -125,7 +125,7 @@ export function ExecutiveTechTemplate({ data }: { data: ResumeData }) {
           <SectionShell>
             <ExecTitle>Kỹ năng chuyên môn</ExecTitle>
             {/* Names only — no years, no proficiency suffixes. */}
-            <div className="flex flex-wrap gap-1.5">
+            <div className="cv-section-item flex flex-wrap gap-1.5">
               {data.skills.map((s) => (
                 <span
                   key={s.id}

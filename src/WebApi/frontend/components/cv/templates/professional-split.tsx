@@ -98,11 +98,11 @@ export function ProfessionalSplitTemplate({ data }: { data: ResumeData }) {
             )}
 
             {data.education.length > 0 && (
-              <div className="cv-section-item">
+              <div>
                 <RailTitle>Học vấn</RailTitle>
                 <div className="space-y-2.5">
                   {data.education.map((edu) => (
-                    <div key={edu.id}>
+                    <div key={edu.id} className="cv-section-item">
                       <p className="text-[12px] font-bold leading-snug" style={{ color: INK }}>
                         {edu.school || "Trường"}
                       </p>

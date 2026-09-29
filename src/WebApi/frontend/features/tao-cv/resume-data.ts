@@ -80,6 +80,13 @@ export type ResumeData = {
   hasContent: boolean;
 };
 
+const hasText = (v: string | null | undefined): boolean => (v ?? "").trim() !== "";
+
+/**
+ * Card test trống (chưa gõ chữ nào) không lên preview: tránh hàng
+ * "Chức danh"/"Trường" giả chiếm chỗ, đẩy section sau và để lại
+ * khoảng trắng chết cuối trang. Dữ liệu form giữ nguyên.
+ */
 const fmtPartial = (v: string | null | undefined): string => normalizeCvPartialDate(v);
 
 const toRange = (
@@ -115,7 +122,9 @@ export function toResumeData(data: CvFormData): ResumeData {
   if (lh.github) contacts.push({ label: "GitHub", value: lh.github, href: asLink(lh.github) });
   if (lh.portfolio) contacts.push({ label: "Portfolio", value: lh.portfolio, href: asLink(lh.portfolio) });
 
-  const experience: ResumeExperience[] = data.kinhNghiemLamViec.map((k) => ({
+  const experience: ResumeExperience[] = data.kinhNghiemLamViec
+    .filter((k) => hasText(k.congTy) || hasText(k.chucDanh) || hasText(k.moTa) || k.kyNangSuDung.length > 0)
+    .map((k) => ({
     id: k.id,
     role: k.chucDanh,
     company: k.congTy,
@@ -125,7 +134,9 @@ export function toResumeData(data: CvFormData): ResumeData {
     skills: k.kyNangSuDung,
   }));
 
-  const education: ResumeEducation[] = data.hocVan.map((h) => ({
+  const education: ResumeEducation[] = data.hocVan
+    .filter((h) => hasText(h.truong) || hasText(h.chuyenNganh) || hasText(h.moTa))
+    .map((h) => ({
     id: h.id,
     school: h.truong,
     degree: h.chuyenNganh || undefined,
@@ -134,13 +145,17 @@ export function toResumeData(data: CvFormData): ResumeData {
     description: h.moTa || undefined,
   }));
 
-  const skills: ResumeSkill[] = data.kyNang.map((k) => ({
+  const skills: ResumeSkill[] = data.kyNang
+    .filter((k) => hasText(k.tenKyNang))
+    .map((k) => ({
     id: k.id,
     name: k.tenKyNang,
     detail: [k.soNamKinhNghiem, k.mucDoThanhThao].filter(Boolean).join(" · ") || undefined,
   }));
 
-  const projects: ResumeProject[] = data.duAn.map((d) => {
+  const projects: ResumeProject[] = data.duAn
+    .filter((d) => hasText(d.tenDuAn) || hasText(d.vaiTro) || hasText(d.moTa) || d.congNghe.length > 0)
+    .map((d) => {
     const r = renderCvDateRange(d.tuNgay, d.denNgay, d.isHienTai);
     return {
       id: d.id,
@@ -153,7 +168,9 @@ export function toResumeData(data: CvFormData): ResumeData {
     };
   });
 
-  const certificates: ResumeCertificate[] = data.chungChi.map((c) => ({
+  const certificates: ResumeCertificate[] = data.chungChi
+    .filter((c) => hasText(c.tenChungChi) || hasText(c.donViCap))
+    .map((c) => ({
     id: c.id,
     name: c.tenChungChi,
     issuer: c.donViCap || undefined,

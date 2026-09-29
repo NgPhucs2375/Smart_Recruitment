@@ -1,7 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import { Plus, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 interface ChipInputProps {
   values: string[];
@@ -11,7 +14,7 @@ interface ChipInputProps {
   maxLength?: number;
 }
 
-/** Ô nhập nhiều giá trị dạng chip: gõ + Enter để thêm, click × để xóa. */
+/** Ô nhập tag hiện đại: gõ + Enter (hoặc nút +) để thêm, X để xóa nhanh. */
 export function ChipInput({ values, onChange, placeholder, maxLength }: ChipInputProps) {
   const [draft, setDraft] = useState("");
 
@@ -23,38 +26,60 @@ export function ChipInput({ values, onChange, placeholder, maxLength }: ChipInpu
 
   return (
     <div>
-      <Input
-        value={draft}
-        maxLength={maxLength}
-        onChange={(e) => setDraft(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") {
-            e.preventDefault();
-            commit();
-          }
-        }}
-        onBlur={commit}
-        placeholder={placeholder}
-      />
+      <div className="flex items-center gap-2">
+        <Input
+          value={draft}
+          maxLength={maxLength}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              commit();
+            }
+          }}
+          onBlur={commit}
+          placeholder={placeholder}
+          className="flex-1"
+        />
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          className="shrink-0 rounded-full"
+          aria-label="Thêm thẻ"
+          title="Thêm thẻ"
+          onClick={commit}
+          disabled={!draft.trim()}
+        >
+          <Plus className="size-4" />
+        </Button>
+      </div>
       {values.length > 0 && (
-        <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap", marginTop: "0.5rem" }}>
+        <div className="mt-2 flex flex-wrap gap-1.5">
           {values.map((v) => (
-            <button
+            <Badge
               key={v}
-              type="button"
-              onClick={() => onChange(values.filter((x) => x !== v))}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  onChange(values.filter((x) => x !== v));
-                }
-              }}
-              aria-label={`Xóa ${v}`}
-              title="Xóa"
-              className="inline-flex h-5 w-fit shrink-0 cursor-pointer items-center justify-center gap-1 overflow-hidden rounded-md border border-transparent bg-secondary px-2 py-0.5 text-xs font-medium text-secondary-foreground transition-colors hover:bg-destructive/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              variant="secondary"
+              className="flex items-center gap-1.5 rounded-full bg-secondary/80 px-3 py-1 text-xs font-medium transition-colors hover:bg-secondary"
             >
-              {v} <span aria-hidden="true">✕</span>
-            </button>
+              {v}
+              <span
+                role="button"
+                tabIndex={0}
+                aria-label={`Xóa ${v}`}
+                title="Xóa"
+                className="inline-flex cursor-pointer items-center"
+                onClick={() => onChange(values.filter((x) => x !== v))}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    onChange(values.filter((x) => x !== v));
+                  }
+                }}
+              >
+                <X className="size-3 hover:text-destructive" />
+              </span>
+            </Badge>
           ))}
         </div>
       )}

@@ -25,7 +25,11 @@ interface CharacterCounterProps {
 export function CharacterCounter({ currentLength, maxLength, label }: CharacterCounterProps) {
   const ratio = maxLength > 0 ? currentLength / maxLength : 0;
   const tone =
-    ratio > 1 ? "text-red-500 font-bold" : ratio >= 0.85 ? "text-amber-500 font-medium" : "text-slate-400";
+    ratio > 1
+      ? "text-red-500 font-bold"
+      : ratio >= 0.85
+        ? "text-amber-500 font-medium"
+        : "text-muted-foreground";
   return (
     <span
       aria-label={label ?? `Đã nhập ${currentLength} trên ${maxLength} ký tự`}

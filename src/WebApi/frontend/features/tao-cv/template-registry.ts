@@ -22,20 +22,14 @@ import { ProductBuilderTemplate } from "@/components/cv/templates/product-builde
 import { StartupModernTemplate } from "@/components/cv/templates/startup-modern";
 import { ElegantSerifTemplate } from "@/components/cv/templates/elegant-serif";
 import { MinimalGridTemplate } from "@/components/cv/templates/minimal-grid";
-import { SunsetGradientTemplate } from "@/components/cv/templates/sunset-gradient";
 import { OceanWaveTemplate } from "@/components/cv/templates/ocean-wave";
 import { ForestFreshTemplate } from "@/components/cv/templates/forest-fresh";
-import { MidnightProTemplate } from "@/components/cv/templates/midnight-pro";
 import { PastelStudioTemplate } from "@/components/cv/templates/pastel-studio";
 import { BentoGridTemplate } from "@/components/cv/templates/bento-grid";
 import { AuroraMeshTemplate } from "@/components/cv/templates/aurora-mesh";
 import { PopArtBoldTemplate } from "@/components/cv/templates/pop-art-bold";
-import { CareerTimelineTemplate } from "@/components/cv/templates/career-timeline";
-import { InfographicProTemplate } from "@/components/cv/templates/infographic-pro";
-import { StatementHeaderTemplate } from "@/components/cv/templates/statement-header";
 import { ZenMinimalTemplate } from "@/components/cv/templates/zen-minimal";
 import { SnapshotProTemplate } from "@/components/cv/templates/snapshot-pro";
-import { OnePageExecTemplate } from "@/components/cv/templates/one-page-exec";
 import { CarePlusTemplate } from "@/components/cv/templates/care-plus";
 import { MentorClassTemplate } from "@/components/cv/templates/mentor-class";
 import { VaultFinanceTemplate } from "@/components/cv/templates/vault-finance";
@@ -46,8 +40,6 @@ import { LegalPrestigeTemplate } from "@/components/cv/templates/legal-prestige"
 import { MotionCreativeTemplate } from "@/components/cv/templates/motion-creative";
 import { ResearchScholarTemplate } from "@/components/cv/templates/research-scholar";
 import { CulinarySignatureTemplate } from "@/components/cv/templates/culinary-signature";
-import { FashionEditorialTemplate } from "@/components/cv/templates/fashion-editorial";
-import { IndustrialBlueprintTemplate } from "@/components/cv/templates/industrial-blueprint";
 
 export type TemplateCategory =
   | "ats"
@@ -331,16 +323,6 @@ export const TEMPLATE_REGISTRY: Record<string, ResumeTemplateMeta> = {
     columns: 2,
     categories: ["developer", "creative", "two-column"],
   },
-  "sunset-gradient": {
-    id: "sunset-gradient",
-    name: "Sunset Gradient",
-    description: "Header gradient rực rỡ, tên nổi bật cho ngành sáng tạo",
-    tags: ["Marketing", "Content", "Social", "Branding", "Event"],
-    version: "1.0",
-    Component: SunsetGradientTemplate,
-    columns: 1,
-    categories: ["creative", "one-column"],
-  },
   "ocean-wave": {
     id: "ocean-wave",
     name: "Ocean Wave",
@@ -360,16 +342,6 @@ export const TEMPLATE_REGISTRY: Record<string, ResumeTemplateMeta> = {
     Component: ForestFreshTemplate,
     columns: 1,
     categories: ["creative", "one-column"],
-  },
-  "midnight-pro": {
-    id: "midnight-pro",
-    name: "Midnight Pro",
-    description: "Nền tối, skill tags mono cho dân kỹ thuật",
-    tags: ["Developer", "DevOps", "Game", "Github"],
-    version: "1.0",
-    Component: MidnightProTemplate,
-    columns: 1,
-    categories: ["developer", "one-column"],
   },
   "pastel-studio": {
     id: "pastel-studio",
@@ -411,36 +383,6 @@ export const TEMPLATE_REGISTRY: Record<string, ResumeTemplateMeta> = {
     columns: 1,
     categories: ["creative", "one-column"],
   },
-  "career-timeline": {
-    id: "career-timeline",
-    name: "Career Timeline",
-    description: "Trục thời gian dọc kể hành trình thăng tiến",
-    tags: ["Thăng tiến", "Quản lý", "Kinh nghiệm"],
-    version: "1.0",
-    Component: CareerTimelineTemplate,
-    columns: 1,
-    categories: ["corporate", "one-column"],
-  },
-  "infographic-pro": {
-    id: "infographic-pro",
-    name: "Infographic Pro",
-    description: "Thanh/donut % kỹ năng và số liệu trực quan",
-    tags: ["Kỹ năng", "KPI", "Data"],
-    version: "1.0",
-    Component: InfographicProTemplate,
-    columns: 2,
-    categories: ["developer", "two-column"],
-  },
-  "statement-header": {
-    id: "statement-header",
-    name: "Statement Header",
-    description: "Header màu đặc, tên khổng lồ khó quên",
-    tags: ["Quản lý", "Thương hiệu cá nhân"],
-    version: "1.0",
-    Component: StatementHeaderTemplate,
-    columns: 1,
-    categories: ["corporate", "one-column"],
-  },
   "zen-minimal": {
     id: "zen-minimal",
     name: "Zen Minimal",
@@ -460,16 +402,6 @@ export const TEMPLATE_REGISTRY: Record<string, ResumeTemplateMeta> = {
     Component: SnapshotProTemplate,
     columns: 2,
     categories: ["corporate", "two-column"],
-  },
-  "one-page-exec": {
-    id: "one-page-exec",
-    name: "One-Page Exec",
-    description: "Ép 1 trang mật độ cao cho lãnh đạo bận rộn",
-    tags: ["C-level", "Tư vấn", "Súc tích"],
-    version: "1.0",
-    Component: OnePageExecTemplate,
-    columns: 2,
-    categories: ["senior", "two-column"],
   },
   "care-plus": {
     id: "care-plus",
@@ -573,26 +505,6 @@ export const TEMPLATE_REGISTRY: Record<string, ResumeTemplateMeta> = {
     Component: CulinarySignatureTemplate,
     columns: 1,
     categories: ["creative", "one-column"],
-  },
-  "fashion-editorial": {
-    id: "fashion-editorial",
-    name: "Fashion Editorial",
-    description: "Lookbook, type-scale thời trang",
-    tags: ["Thời trang", "Lookbook"],
-    version: "1.0",
-    Component: FashionEditorialTemplate,
-    columns: 1,
-    categories: ["creative", "one-column"],
-  },
-  "industrial-blueprint": {
-    id: "industrial-blueprint",
-    name: "Industrial Blueprint",
-    description: "Lưới blueprint, specs-table kỹ thuật",
-    tags: ["Cơ khí", "Bản vẽ", "Kỹ thuật"],
-    version: "1.0",
-    Component: IndustrialBlueprintTemplate,
-    columns: 1,
-    categories: ["developer", "one-column"],
   },
 };
 

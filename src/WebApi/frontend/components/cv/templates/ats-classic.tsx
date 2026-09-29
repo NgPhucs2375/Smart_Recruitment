@@ -107,7 +107,7 @@ export function AtsClassicTemplate({ data }: { data: ResumeData }) {
           <SectionShell>
             <ClassicTitle>Kỹ năng</ClassicTitle>
             {/* Names only — no years, no proficiency suffixes. */}
-            <p className="text-center leading-loose">
+            <p className="cv-section-item text-center leading-loose">
               {data.skills.map((s, i) => (
                 <span key={s.id}>
                   {i > 0 && <span className="mx-1.5 text-neutral-400">·</span>}

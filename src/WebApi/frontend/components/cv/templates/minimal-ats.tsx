@@ -105,7 +105,7 @@ export function MinimalAtsTemplate({ data }: ResumeTemplateProps) {
           <SectionShell>
             <AtsTitle>Kỹ năng</AtsTitle>
             {/* Names only — no years, no proficiency suffixes. */}
-            <p className="leading-snug">
+            <p className="cv-section-item leading-snug">
               {data.skills.map((s, i) => (
                 <span key={s.id}>
                   {i > 0 && <span className="mx-1.5 text-neutral-400">·</span>}

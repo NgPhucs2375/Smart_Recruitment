@@ -95,7 +95,7 @@ export function StartupModernTemplate({ data }: { data: ResumeData }) {
             <Title>Stack</Title>
             <div className="grid grid-cols-2 gap-1.5">
               {data.skills.map((s) => (
-                <p key={s.id} className="min-w-0 rounded-lg px-2.5 py-1.5 text-[11.5px] font-semibold" style={{ backgroundColor: "var(--hire-navy-soft)", color: NAVY }}>
+                <p key={s.id} className="cv-section-item min-w-0 rounded-lg px-2.5 py-1.5 text-[11.5px] font-semibold" style={{ backgroundColor: "var(--hire-navy-soft)", color: NAVY }}>
                   {s.name}
                 </p>
               ))}

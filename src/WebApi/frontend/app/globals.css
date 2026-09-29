@@ -1591,10 +1591,10 @@ html {
 }
 
 .cv-form-card {
-  border: 1px solid var(--border);
-  border-radius: 1.2rem;
+  border: 1px solid color-mix(in srgb, var(--border) 55%, transparent);
+  border-radius: 0.9rem;
   background: var(--card);
-  box-shadow: 0 2px 10px #26352b08;
+  box-shadow: 0 1px 2px rgb(15 23 42 / 0.04);
 }
 
 .cv-form-card [data-slot="card-header"] {
@@ -1608,6 +1608,7 @@ html {
   gap: .55rem;
   font-size: 1rem;
   font-weight: 600;
+  letter-spacing: -0.01em;
   color: var(--foreground);
 }
 
@@ -1644,9 +1645,9 @@ html {
   display: grid;
   gap: .75rem;
   padding: 1rem;
-  border: 1px solid var(--border);
+  border: 1px dashed color-mix(in srgb, var(--border) 70%, transparent);
   border-radius: .9rem;
-  background: var(--card);
+  background: transparent;
 }
 
 .cv-empty-form {
@@ -1842,8 +1843,41 @@ html {
 
 .cv-pages {
   display: grid;
-  gap: 1rem;
+  gap: 2rem;
   align-content: start;
+  justify-items: center;
+}
+
+/* Chân trang sheet "Trang x/y" — chỉ hiển thị trên web, cấm vào bản in. */
+.cv-sheet-footer {
+  margin-top: 0.75rem;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--muted-foreground);
+}
+
+/* Khung preview docked trong cột sticky của /tao-cv: cột cha giữ sticky +
+   chiều cao cố định, frame bỏ sticky riêng và dẫn flex-chain (kèm min-h-0)
+   xuống scroller để sheet trang 2 không bị cắt. Trang xem CV của NTD
+   (dùng .cv-preview-frame trần) giữ nguyên sticky cũ. */
+.cv-preview-frame--docked {
+  position: static;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.cv-preview-frame--docked > .cv-preview-bar {
+  flex-shrink: 0;
+}
+
+.cv-preview-frame--docked > [data-manual-cv-pdf] {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
 }
 
 .cv-sheet {
@@ -1858,6 +1892,12 @@ html {
 /* Lưới dự phòng: paper rỗng (mọi con bị ẩn) không chiếm chỗ thành trang trắng. */
 .cv-sheet:has(> .cv-paper:empty) {
   display: none;
+}
+
+/* Sheet chứa item oversize: dãn chiều cao để không cụt chữ trên màn hình.
+   Print giữ nguyên (tự tách qua break-inside: auto của item). */
+.cv-sheet[data-oversize-page] {
+  max-height: none;
 }
 
 /* BATCH2-print: trang tiếp nối (data-page 2+) bị ẩn header nên nội dung
@@ -1977,6 +2017,10 @@ html {
   /* Screen stacking gap must not leak blank space into paged output. */
   .cv-pages {
     gap: 0;
+  }
+
+  .cv-sheet-footer {
+    display: none !important;
   }
 
   /* Each sheet is one printed page; the last sheet must not force a

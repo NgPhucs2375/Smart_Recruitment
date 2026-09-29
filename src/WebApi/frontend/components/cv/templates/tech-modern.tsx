@@ -134,11 +134,11 @@ export function TechModernTemplate({ data }: ResumeTemplateProps) {
             )}
 
             {data.certificates.length > 0 && (
-              <div className="cv-section-item">
+              <div>
                 <SideTitle>Chứng chỉ</SideTitle>
                 <div className="space-y-2.5">
                   {data.certificates.map((c) => (
-                    <div key={c.id}>
+                    <div key={c.id} className="cv-section-item">
                       <p className="flex items-start gap-1.5 text-[12px] font-semibold leading-snug" style={{ color: INK }}>
                         <Award className="mt-0.5 size-3.5 shrink-0" style={{ color: NAVY }} strokeWidth={2} />
                         {c.name || "Chứng chỉ"}

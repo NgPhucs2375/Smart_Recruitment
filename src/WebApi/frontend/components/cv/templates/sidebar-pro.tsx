@@ -120,7 +120,7 @@ export function SidebarProTemplate({ data }: { data: ResumeData }) {
         <aside className="min-w-0 px-5 py-5" style={{ backgroundColor: "var(--hire-navy-soft)" }}>
           <div className="space-y-4">
             {data.skills.length > 0 && (
-              <div className="cv-section-item">
+              <div>
                 <RailTitle>Kỹ năng chính</RailTitle>
                 <SkillChips skills={data.skills} variant="outline" />
               </div>
@@ -144,11 +144,11 @@ export function SidebarProTemplate({ data }: { data: ResumeData }) {
             )}
 
             {data.certificates.length > 0 && (
-              <div className="cv-section-item">
+              <div>
                 <RailTitle>Chứng chỉ</RailTitle>
                 <div className="space-y-2">
                   {data.certificates.map((c) => (
-                    <div key={c.id}>
+                    <div key={c.id} className="cv-section-item">
                       <p className="text-[11.5px] font-bold leading-snug" style={{ color: INK }}>{c.name}</p>
                       {[c.issuer, c.date].filter(Boolean).length > 0 && (
                         <p className="text-[11px]" style={{ color: SUBTLE }}>
