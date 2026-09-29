@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 type Rule = {
   Id: number;
@@ -134,10 +135,13 @@ export default function QuyTacKiemDuyetPage() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="rule-type">Loại rule</Label>
-                  <select id="rule-type" className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm" value={form.loai} onChange={(event) => setForm((current) => ({ ...current, loai: Number(event.target.value) }))}>
-                    <option value={1}>Từ khóa cấm, từ chối ngay</option>
-                    <option value={2}>Tín hiệu rủi ro, trừ điểm</option>
-                  </select>
+                  <Select value={String(form.loai)} onValueChange={(value) => setForm((current) => ({ ...current, loai: Number(value) }))}>
+                    <SelectTrigger id="rule-type" className="h-9 w-full"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1">Từ khóa cấm, từ chối ngay</SelectItem>
+                      <SelectItem value="2">Tín hiệu rủi ro, trừ điểm</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="score">Điểm trừ</Label>

@@ -20,3 +20,16 @@ p, SuperAdmin, roleclaims, edit
 p, SuperAdmin, roleclaims, delete
 
 docker run -e "ACCEPT_EULA=Y" -e "SA_PASSWORD=sql@pa22w0rd" -p 1433:1433 -d --name=sqlserver mcr.microsoft.com/mssql/server:2022-preview-ubuntu-22.04
+
+
+
+
+# DB
+make db-sh
+\r : reset cau lenh
+"NguoiDungs";
+
+\dt : xem ten bang
+Space : trang tiep theo
+Enter: dong tiep theo
+q: thoat phan xem

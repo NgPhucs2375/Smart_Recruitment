@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { ArrowLeft, Mail, Phone, MapPin, Send, Clock, Shield } from "lucide-react";
 import { toast } from "sonner";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function LienHePage() {
   const [sent, setSent] = useState(false);
@@ -73,13 +74,18 @@ export default function LienHePage() {
                 </div>
                 <label className="space-y-1.5">
                   <span className="text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">Chủ đề</span>
-                  <select className="h-10 w-full rounded-xl border border-border/15 bg-background px-3 text-sm outline-none focus:border-border/40">
-                    <option>Hỗ trợ tài khoản</option>
-                    <option>Báo tin tuyển dụng vi phạm</option>
-                    <option>Khiếu nại / Tranh chấp</option>
-                    <option>Hợp tác doanh nghiệp</option>
-                    <option>Khác</option>
-                  </select>
+                  <Select defaultValue="account">
+                    <SelectTrigger className="h-10 w-full rounded-xl border-border/15 bg-background px-3 text-sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="account">Hỗ trợ tài khoản</SelectItem>
+                      <SelectItem value="report">Báo tin tuyển dụng vi phạm</SelectItem>
+                      <SelectItem value="legal">Khiếu nại / Tranh chấp</SelectItem>
+                      <SelectItem value="business">Hợp tác doanh nghiệp</SelectItem>
+                      <SelectItem value="other">Khác</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </label>
                 <label className="space-y-1.5">
                   <span className="text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">Nội dung</span>

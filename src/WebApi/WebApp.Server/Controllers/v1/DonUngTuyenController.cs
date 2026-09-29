@@ -92,16 +92,24 @@ namespace WebApp.Server.Controllers.v1
             int id,
             [FromBody] CapNhatDonUngTuyenDto dto)
         {
+            if (id != dto.Id)
+            {
+                return BadRequest();
+            }
+
+            // Ứng viên không cần quyền HR "edit" để rút chính đơn của mình.
+            // Quyền truy cập và ownership được kiểm tra trong state machine.
+            if (dto.Trigger == Domain.Enums.TriggerDonUngTuyen.RutDon)
+            {
+                var withdrawCommand = _mapper.Map<UpdateDonUngTuyenCommand>(dto);
+                return Ok(await Mediator.Send(withdrawCommand));
+            }
+
             return await EnforcePermissionAndExecute(
                 "donungtuyens",
                 "edit",
                 async () =>
                 {
-                    if (id != dto.Id)
-                    {
-                        return BadRequest();
-                    }
-
                     var command =
                         _mapper.Map<UpdateDonUngTuyenCommand>(dto);
 

@@ -165,6 +165,9 @@ function NotificationBellInner({
       }
       connection = buildConnection();
       connection.on("ReceiveNotification", () => {
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new CustomEvent("recruitment:notification"));
+        }
         void refetchRef.current?.();
       });
       connection.onclose(() => {

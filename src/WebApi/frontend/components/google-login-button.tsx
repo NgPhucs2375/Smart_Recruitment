@@ -1,11 +1,17 @@
 "use client";
+
+import { useEffect, useRef, useState } from "react";
 import { GoogleLogin } from "@react-oauth/google";
 
 const CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? "";
 
 function GoogleMark() {
   return (
-    <svg viewBox="0 0 24 24" className="size-4 shrink-0" aria-hidden="true">
+    <svg
+      viewBox="0 0 24 24"
+      className="size-4 shrink-0"
+      aria-hidden="true"
+    >
       <path
         fill="#4285F4"
         d="M23.5 12.3c0-.9-.1-1.5-.3-2.3H12v4.3h6.5c-.1 1.1-.8 2.7-2.4 3.8l3.6 2.8c2.3-2.1 3.8-5.2 3.8-8.6z"
@@ -34,12 +40,6 @@ interface Props {
   onError?: (message: string) => void;
 }
 
-/**
- * Google login CTA. Uses the official widget when a client ID is configured.
- * Without NEXT_PUBLIC_GOOGLE_CLIENT_ID the widget renders nothing, so we
- * show an honest same-size fallback button that explains the missing config
- * instead of leaving an empty gap. Never fakes authentication.
- */
 export function GoogleLoginButton({
   mode = "login",
   onSuccess,
@@ -47,29 +47,78 @@ export function GoogleLoginButton({
   text = "Đăng nhập với Google",
   onError,
 }: Props) {
+  const wrapperRef = useRef<HTMLDivElement>(null);
+
+  const [buttonWidth, setButtonWidth] = useState<string>();
+
+  useEffect(() => {
+    const element = wrapperRef.current;
+
+    if (!element) return;
+
+    const updateWidth = () => {
+      const width = Math.floor(element.getBoundingClientRect().width);
+
+      if (width > 0) {
+        setButtonWidth(String(width));
+      }
+    };
+
+    updateWidth();
+
+    const observer = new ResizeObserver(updateWidth);
+
+    observer.observe(element);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
+
   if (CLIENT_ID) {
     return (
       <div
-        className={`flex min-h-11 w-full items-center justify-center overflow-hidden rounded-xl bg-white [&>div]:!w-full [&_iframe]:!w-full ${disabled ? "pointer-events-none opacity-50" : ""}`}
+        ref={wrapperRef}
+        className={`
+          flex min-h-11
+          w-full max-w-full
+          items-center justify-center
+          overflow-hidden
+          rounded-xl
+          bg-white
+          ${disabled ? "pointer-events-none opacity-50" : ""}
+        `}
       >
-        <GoogleLogin
-          type="standard"
-          theme="outline"
-          size="large"
-          text={mode === "register" ? "signup_with" : "continue_with"}
-          shape="rectangular"
-          logo_alignment="left"
-          width="400"
-          onSuccess={(credentialResponse) => {
-            if (credentialResponse.credential) {
-              onSuccess(credentialResponse.credential);
-            } else {
-              onError?.("Đăng nhập Google thất bại (thiếu credential).");
+        {buttonWidth && (
+          <GoogleLogin
+            type="standard"
+            theme="outline"
+            size="large"
+            text={
+              mode === "register"
+                ? "signup_with"
+                : "continue_with"
             }
-          }}
-          onError={() => onError?.("Đăng nhập Google thất bại. Vui lòng thử lại.")}
-          useOneTap={false}
-        />
+            shape="rectangular"
+            logo_alignment="left"
+            width={buttonWidth}
+            onSuccess={(credentialResponse) => {
+              if (credentialResponse.credential) {
+                onSuccess(credentialResponse.credential);
+              } else {
+                onError?.(
+                  "Đăng nhập Google thất bại (thiếu credential)."
+                );
+              }
+            }}
+            onError={() =>
+              onError?.(
+                "Đăng nhập Google thất bại. Vui lòng thử lại."
+              )
+            }
+            useOneTap={false}
+          />
+        )}
       </div>
     );
   }
@@ -79,9 +128,25 @@ export function GoogleLoginButton({
       type="button"
       disabled={disabled}
       onClick={() =>
-        onError?.("Đăng nhập Google chưa được cấu hình (thiếu NEXT_PUBLIC_GOOGLE_CLIENT_ID).")
+        onError?.(
+          "Đăng nhập Google chưa được cấu hình (thiếu NEXT_PUBLIC_GOOGLE_CLIENT_ID)."
+        )
       }
-      className="flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-border bg-white px-4 text-sm font-medium text-foreground shadow-sm transition hover:-translate-y-px hover:border-primary/35 hover:bg-muted/50 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60"
+      className="
+        flex h-11
+        w-full max-w-full
+        items-center justify-center gap-2
+        rounded-xl border border-border
+        bg-white px-4
+        text-sm font-medium text-foreground
+        shadow-sm transition
+        hover:-translate-y-px
+        hover:border-primary/35
+        hover:bg-muted/50
+        hover:shadow-md
+        disabled:cursor-not-allowed
+        disabled:opacity-60
+      "
     >
       <GoogleMark />
       {text}

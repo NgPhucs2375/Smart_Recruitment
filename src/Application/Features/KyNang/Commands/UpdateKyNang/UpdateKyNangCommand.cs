@@ -1,7 +1,9 @@
 using Application.Interfaces;
 using Application.Wrappers;
+using Application.Features.KyNang.Cache;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Distributed;
 
 namespace Application.Features.KyNang.Commands.UpdateKyNang;
 
@@ -15,7 +17,8 @@ public class UpdateKyNangCommand : IRequest<Response<int>>
 }
 
 public class UpdateKyNangCommandHandler(
-    IApplicationDbContext context)
+    IApplicationDbContext context,
+    IDistributedCache cache)
     : IRequestHandler<UpdateKyNangCommand, Response<int>>
 {
     public async Task<Response<int>> Handle(
@@ -50,6 +53,11 @@ public class UpdateKyNangCommandHandler(
         entity.MoTa = request.MoTa?.Trim();
 
         await context.SaveChangesAsync(
+            cancellationToken);
+
+        await cache.SetStringAsync(
+            KyNangCache.VersionKey,
+            Guid.NewGuid().ToString("N"),
             cancellationToken);
 
         return new Response<int>(

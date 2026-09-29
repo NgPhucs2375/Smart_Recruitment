@@ -252,7 +252,7 @@ export function TaoCvView() {
     selectCv: (id) => handleSelect(id),
   });
 
-function CvBuilderSkeleton() {
+ function CvBuilderSkeleton() {
   return (
     <div className="grid gap-8 xl:grid-cols-[46fr_54fr]" aria-label="Đang tải trình tạo CV" aria-busy="true">
       <div className="space-y-4">
@@ -676,6 +676,16 @@ function CvBuilderSkeleton() {
     }
   };
 
+  const handleSetDefault = async (id: number) => {
+    try {
+      await cvApi.setDefault(id);
+      if (hoSo) setCvList(await cvApi.listCvs(hoSo.id));
+      toast.success("Đã đặt CV làm mặc định cho gợi ý việc làm.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Không thể đặt CV mặc định");
+    }
+  };
+
   const handleExportJsonResume = () => {
     const blob = new Blob([JSON.stringify(cvDataToJsonResume(cvData), null, 2)], {
       type: "application/json",
@@ -896,16 +906,29 @@ function CvBuilderSkeleton() {
           <span className="text-sm font-medium text-muted-foreground">CV của tôi ({cvList.length}):</span>
           <div className="flex flex-wrap gap-2">
             {cvList.map((c) => (
-              <Button
-                key={c.id}
-                variant={c.id === selectedId ? "default" : "outline"}
-                size="sm"
-                className="rounded-full"
-                onClick={() => handleSelect(c.id)}
-              >
-                {c.tenFile || `CV #${c.id}`}
-                {c.isDefault ? " ★" : ""}
-              </Button>
+              <div key={c.id} className="flex items-center gap-1">
+                <Button
+                  variant={c.id === selectedId ? "default" : "outline"}
+                  size="sm"
+                  className="rounded-full"
+                  onClick={() => handleSelect(c.id)}
+                >
+                  {c.tenFile || `CV #${c.id}`}
+                  {c.isDefault ? " ★" : ""}
+                </Button>
+                {!c.isDefault && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 rounded-full px-2 text-xs text-muted-foreground hover:text-primary"
+                    onClick={() => void handleSetDefault(c.id)}
+                    title="Đặt làm CV mặc định"
+                  >
+                    Đặt mặc định
+                  </Button>
+                )}
+              </div>
             ))}
           </div>
           <div className="ml-auto flex items-center gap-2">

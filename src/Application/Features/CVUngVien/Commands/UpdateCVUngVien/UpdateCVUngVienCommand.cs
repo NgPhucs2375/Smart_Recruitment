@@ -1,8 +1,10 @@
 using Application.DTOs.CV;
+using Application.Features.CVUngVien.Cache;
 using Application.Interfaces;
 using Application.Wrappers;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Distributed;
 
 namespace Application.Features.CVUngVien.Commands.UpdateCVUngVien;
 
@@ -17,7 +19,8 @@ public class UpdateCVUngVienCommand : IRequest<Response<int>>
 
 public class UpdateCVUngVienCommandHandler(
     IApplicationDbContext context,
-    ICurrentNguoiDungService currentNguoiDungService)
+    ICurrentNguoiDungService currentNguoiDungService,
+    IDistributedCache cache)
     : IRequestHandler<UpdateCVUngVienCommand, Response<int>>
 {
     public async Task<Response<int>> Handle(
@@ -74,6 +77,7 @@ public class UpdateCVUngVienCommandHandler(
         }
 
         var isDefault = request.IsDefault;
+        var affectedCvIds = new List<int> { entity.Id };
         if (entity.IsDefault && !request.IsDefault)
         {
             var replacement = await context.CVUngViens
@@ -93,6 +97,7 @@ public class UpdateCVUngVienCommandHandler(
                 // không track — Attach cùng reference (không throw duplicate-track).
                 context.CVUngViens.Attach(replacement);
                 replacement.IsDefault = true;
+                affectedCvIds.Add(replacement.Id);
             }
         }
 
@@ -102,6 +107,11 @@ public class UpdateCVUngVienCommandHandler(
         CvEntityMapper.ApplyContent(entity, request.NoiDung);
 
         await context.SaveChangesAsync(cancellationToken);
+        await CVUngVienListCache.InvalidateAsync(
+            cache,
+            currentUser.Id,
+            cancellationToken,
+            affectedCvIds.ToArray());
         return new Response<int>(data: entity.Id, message: "Cập nhật CV thành công.");
     }
 }

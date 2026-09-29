@@ -21,9 +21,11 @@ publish
 **/coverage
 **/npm-debug.log
 
-# Env / secrets
+# Env / secrets — không bao giờ đưa vào Docker image
 .env
 **/.env
+**/.env*.local
+**/appsettings.Development.json
 **/secrets.dev.yaml
 **/values.dev.yaml
 

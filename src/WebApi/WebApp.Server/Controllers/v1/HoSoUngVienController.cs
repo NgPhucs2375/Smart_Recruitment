@@ -120,15 +120,22 @@ namespace WebApp.Server.Controllers.v1
 
         [AllowAnonymous]
         [HttpGet("{id}/avatar")]
-        public async Task<IActionResult> GetAvatar(int id, CancellationToken cancellationToken)
+        public async Task<IActionResult> GetAvatar(int id, [FromQuery] string? key, CancellationToken cancellationToken)
         {
-            var objectName = await _context.HoSoUngViens
+            var storedObjectName = await _context.HoSoUngViens
                 .AsNoTracking()
                 .Where(profile => profile.Id == id)
                 .Select(profile => profile.AnhDaiDienUrl)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (string.IsNullOrWhiteSpace(objectName) || !objectName.StartsWith("avatars/"))
+            // The key is only accepted for this profile's avatar prefix. This keeps
+            // the endpoint scoped while allowing the freshly returned upload key to
+            // render before a stale profile projection is refreshed.
+            var objectName = !string.IsNullOrWhiteSpace(key) && key.StartsWith($"avatars/{id}/", StringComparison.Ordinal)
+                ? key
+                : storedObjectName;
+
+            if (string.IsNullOrWhiteSpace(objectName) || !objectName.StartsWith($"avatars/{id}/", StringComparison.Ordinal))
                 return NotFound();
 
             var stream = await _storage.DownloadAsync(objectName, cancellationToken);

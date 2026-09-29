@@ -621,11 +621,12 @@ namespace Infrastructure.Identity.Services
             if (account == null) return;
 
             var code = await _userManager.GeneratePasswordResetTokenAsync(account);
-            var route = "api/account/reset-password/";
-            var _enpointUri = new Uri(string.Concat($"{origin}/", route));
+            var resetUri = QueryHelpers.AddQueryString(
+                $"{origin.TrimEnd('/')}/reset-password",
+                new Dictionary<string, string> { ["email"] = model.Email, ["token"] = code });
             var emailRequest = new EmailRequest()
             {
-                Body = $"Mã đặt lại của bạn là - {code}",
+                Body = $"<p>Bạn vừa yêu cầu đặt lại mật khẩu HIREAI.</p><p><a href=\"{resetUri}\">Đặt lại mật khẩu</a></p><p>Liên kết có thể hết hạn. Nếu bạn không yêu cầu, hãy bỏ qua email này.</p>",
                 To = model.Email,
                 Subject = "Đặt lại Mật khẩu",
             };
@@ -645,6 +646,26 @@ namespace Infrastructure.Identity.Services
             {
                 throw new ApiException($"Đã xảy ra lỗi khi đặt lại mật khẩu.");
             }
+        }
+
+        public async Task<Response<string>> ChangePasswordAsync(YeuCauDoiMatKhau model)
+        {
+            if (string.IsNullOrWhiteSpace(_authenticatedUserService.UserId))
+                throw new ApiException("Phiên đăng nhập không hợp lệ.", 401);
+
+            var account = await _userManager.FindByIdAsync(_authenticatedUserService.UserId);
+            if (account == null) throw new ApiException("Không tìm thấy tài khoản.", 404);
+
+            var result = await _userManager.ChangePasswordAsync(account, model.MatKhauHienTai, model.MatKhauMoi);
+            if (!result.Succeeded)
+            {
+                var error = result.Errors.FirstOrDefault();
+                throw new ApiException(error?.Code == "PasswordMismatch"
+                    ? "Mật khẩu hiện tại không đúng."
+                    : error?.Description ?? "Không thể đổi mật khẩu.");
+            }
+
+            return new Response<string>(account.Email, "Đổi mật khẩu thành công.");
         }
 
         public async Task ResendVerificationEmailAsync(string email, string origin)

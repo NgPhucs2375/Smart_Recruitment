@@ -1,11 +1,13 @@
 using System.Globalization;
 using Application.DTOs.CV;
+using Application.Features.CVUngVien.Cache;
 using Application.Interfaces;
 using Application.Wrappers;
 using Domain.Entities;
 using Domain.Enums;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Distributed;
 
 namespace Application.Features.CVUngVien.Commands.ImportCvUngVien;
 
@@ -13,7 +15,8 @@ public class ImportCvCommand : ConfirmCvImportDto, IRequest<Response<int>>;
 
 public class ImportCvCommandHandler(
     IApplicationDbContext context,
-    ICurrentNguoiDungService currentNguoiDungService)
+    ICurrentNguoiDungService currentNguoiDungService,
+    IDistributedCache cache)
     : IRequestHandler<ImportCvCommand, Response<int>>
 {
     public async Task<Response<int>> Handle(
@@ -54,6 +57,7 @@ public class ImportCvCommandHandler(
                 x => x.HoSoUngVienId == hoSoUngVien.Id && !x.IsDaXoa,
                 cancellationToken);
         var isDefault = request.IsDefault || !hasAnyCv;
+        var affectedCvIds = new List<int>();
 
         if (isDefault)
         {
@@ -69,6 +73,7 @@ public class ImportCvCommandHandler(
                     context.CVUngViens.Attach(currentDefaultCv);
                 currentDefaultCv.IsDefault = false;
             }
+            affectedCvIds.AddRange(currentDefaultCvs.Select(x => x.Id));
         }
 
         var cv = new Domain.Entities.CVUngVien
@@ -84,6 +89,11 @@ public class ImportCvCommandHandler(
 
         await context.CVUngViens.AddAsync(cv, cancellationToken);
         await context.SaveChangesAsync(cancellationToken);
+        await CVUngVienListCache.InvalidateAsync(
+            cache,
+            currentUser.Id,
+            cancellationToken,
+            affectedCvIds.Append(cv.Id).ToArray());
 
         return new Response<int>(
             data: cv.Id,

@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Application.DTOs.CV;
+using Application.Features.CVUngVien.Cache;
 using Application.Interfaces;
 using Application.Wrappers;
 using Domain.Entities;
@@ -7,6 +8,7 @@ using Domain.Enums;
 using MediatR;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Distributed;
 
 namespace Application.Features.CVUngVien.Commands.SaveCvVersion;
 
@@ -40,7 +42,8 @@ public class SaveCvVersionResult
 public class SaveCvVersionCommandHandler(
     IApplicationDbContext context,
     ICurrentNguoiDungService currentNguoiDungService,
-    IFileStorageService fileStorageService)
+    IFileStorageService fileStorageService,
+    IDistributedCache cache)
     : IRequestHandler<SaveCvVersionCommand, Response<SaveCvVersionResult>>
 {
     public async Task<Response<SaveCvVersionResult>> Handle(
@@ -237,6 +240,12 @@ public class SaveCvVersionCommandHandler(
                 await fileStorageService.DeleteAsync(generatedKey, cancellationToken);
             throw;
         }
+
+        await CVUngVienListCache.InvalidateAsync(
+            cache,
+            currentUser.Id,
+            cancellationToken,
+            cv.Id);
 
         return new Response<SaveCvVersionResult>(new SaveCvVersionResult
         {

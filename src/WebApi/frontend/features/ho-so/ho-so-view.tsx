@@ -2,6 +2,7 @@
 
 import { useEffect, useEffectEvent, useRef, useState, type ChangeEvent } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import {
   User,
   Phone,
@@ -25,11 +26,12 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { hoSoApi, cvApi } from "@/lib/api/cv-api";
+import { avatarProxyUrl, hoSoApi, cvApi } from "@/lib/api/cv-api";
 import type { HoSoVm, CvVm } from "@/lib/types";
 import { formatVndInput, parseVndInput } from "@/lib/format-vnd";
 import { isoToVnDate, isValidVnDate, maskDateVn, vnToIsoDate } from "@/features/tao-cv/cv-data";
@@ -274,16 +276,42 @@ export function HoSoView() {
         });
       }
 
-      if (avatarFile) await hoSoApi.uploadAvatar(profileId, avatarFile);
-      else if (avatarRemoved && hoSo?.anhDaiDienUrl) await hoSoApi.deleteAvatar(profileId);
+      const uploadedAvatar = avatarFile ? await hoSoApi.uploadAvatar(profileId, avatarFile) : null;
+      const deletedAvatar = !uploadedAvatar && avatarRemoved && Boolean(hoSo?.anhDaiDienUrl);
+      if (deletedAvatar) await hoSoApi.deleteAvatar(profileId);
+      if (uploadedAvatar || deletedAvatar) {
+        window.dispatchEvent(new Event("hireai:avatar-changed"));
+      }
 
       toast.success(hoSo ? "Cập nhật hồ sơ thành công!" : "Tạo mới hồ sơ ứng viên thành công!");
 
-      await loadData();
+      if (uploadedAvatar && hoSo) {
+        const nextAvatarUrl = avatarProxyUrl(profileId, uploadedAvatar);
+        setAnhDaiDienUrl(nextAvatarUrl);
+        setHoSo((current) => current ? { ...current, anhDaiDienUrl: nextAvatarUrl } : current);
+        setAvatarFile(null);
+        if (avatarPreviewRef.current) {
+          URL.revokeObjectURL(avatarPreviewRef.current);
+          avatarPreviewRef.current = null;
+        }
+        setIsEditing(false);
+      } else {
+        await loadData();
+      }
     } catch (error: unknown) {
       toast.error(error instanceof Error ? error.message : "Có lỗi xảy ra khi lưu hồ sơ.");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleSetDefaultCv = async (cvId: number) => {
+    try {
+      await cvApi.setDefault(cvId);
+      if (hoSo) setCvs(await cvApi.listCvs(hoSo.id));
+      toast.success("Đã đặt CV làm mặc định cho gợi ý việc làm.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Không thể đặt CV mặc định.");
     }
   };
 
@@ -359,12 +387,8 @@ export function HoSoView() {
           {/* Card Thông tin chính */}
           <Card className="h-full md:col-span-1">
             <CardHeader className="text-center">
-               <div
-                 className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-primary/10 bg-cover bg-center text-2xl font-bold text-primary ring-2 ring-border"
-                 style={hoSo.anhDaiDienUrl ? { backgroundImage: `url("${hoSo.anhDaiDienUrl}")` } : undefined}
-                 role={hoSo.anhDaiDienUrl ? "img" : undefined}
-                 aria-label={hoSo.anhDaiDienUrl ? `Ảnh đại diện của ${hoSo.hoTen}` : undefined}
-               >
+               <div className="relative mx-auto flex h-20 w-20 items-center justify-center overflow-hidden rounded-full bg-primary/10 text-2xl font-bold text-primary ring-2 ring-border">
+                  {hoSo.anhDaiDienUrl && <Image src={hoSo.anhDaiDienUrl} alt={`Ảnh đại diện của ${hoSo.hoTen}`} fill sizes="80px" unoptimized className="object-cover" />}
                  <span className={hoSo.anhDaiDienUrl ? "sr-only" : undefined}>
                  {hoSo.hoTen
                   ? hoSo.hoTen
@@ -512,6 +536,16 @@ export function HoSoView() {
                       </div>
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
+                      {!cv.isDefault && (
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => void handleSetDefaultCv(cv.id)}
+                        >
+                          Đặt làm mặc định
+                        </Button>
+                      )}
                       <Link href={cvHref(cv)}>
                         <Button variant="outline" size="sm">
                           <Pencil className="mr-1.5 h-3.5 w-3.5" />
@@ -558,14 +592,10 @@ export function HoSoView() {
                   1. Thông tin cá nhân
                 </h3>
                 <div className="flex flex-col gap-4 rounded-xl border border-border bg-muted/30 p-4 sm:flex-row sm:items-center">
-                  <div
-                    className="flex size-20 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary/10 bg-cover bg-center text-xl font-semibold text-primary ring-2 ring-border"
-                    style={anhDaiDienUrl ? { backgroundImage: `url("${anhDaiDienUrl}")` } : undefined}
-                    role={anhDaiDienUrl ? "img" : undefined}
-                    aria-label={anhDaiDienUrl ? "Xem trước ảnh đại diện" : undefined}
-                  >
-                    {!anhDaiDienUrl && <User className="size-8" />}
-                  </div>
+                   <div className="relative flex size-20 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary/10 text-xl font-semibold text-primary ring-2 ring-border">
+                      {anhDaiDienUrl && <Image src={anhDaiDienUrl} alt="Xem trước ảnh đại diện" fill sizes="80px" unoptimized className="object-cover" />}
+                     {!anhDaiDienUrl && <User className="size-8" />}
+                   </div>
                   <div className="min-w-0 flex-1 space-y-2">
                     <label className="text-xs font-medium text-foreground">Ảnh đại diện</label>
                     <input
@@ -686,16 +716,15 @@ export function HoSoView() {
                   <div className="space-y-1.5">
                     <label className="text-xs font-medium text-foreground">Giới tính</label>
                     <div className="relative">
-                      <User className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                      <select
-                        className="flex h-10 w-full rounded-xl border border-input bg-card pl-10 pr-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                        value={gioiTinh}
-                        onChange={(e) => setGioiTinh(e.target.value)}
-                      >
-                        <option value="Nam">Nam</option>
-                        <option value="Nữ">Nữ</option>
-                        <option value="Khác">Khác</option>
-                      </select>
+                      <User className="pointer-events-none absolute left-3.5 top-1/2 z-10 size-4 -translate-y-1/2 text-muted-foreground" />
+                      <Select value={gioiTinh} onValueChange={(value) => { if (value !== null) setGioiTinh(value); }}>
+                        <SelectTrigger className="h-10 w-full rounded-xl border-input bg-card pl-10 text-sm"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Nam">Nam</SelectItem>
+                          <SelectItem value="Nữ">Nữ</SelectItem>
+                          <SelectItem value="Khác">Khác</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
                 </div>

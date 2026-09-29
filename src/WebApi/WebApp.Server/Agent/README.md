@@ -8,12 +8,18 @@ part of `WebApp.Server`; it is not a separate microservice.
 ```text
 Agent/
   AgentExtensions.cs                 # DI registration and AG-UI endpoint mapping
-  CvAssistant/
-    CvAssistantInstructions.cs       # Stable agent identity and system prompt
-    CvAssistantAgentFactory.cs       # Composes model, tools, and decorators
-    ScopedCvAssistantAgent.cs        # Resolves a scoped agent per HTTP request
+  SharedStateAgent.cs                # AG-UI shared-state decorator
+  SharedStateStore.cs                # Request-scoped state store
+  Adam/
+    AdamInstructions.cs              # Global candidate assistant prompt
+    AdamAgentFactory.cs              # Global agent composition
+    ScopedAdamAgent.cs               # Scoped global agent resolver
     Tools/
-      CvQueryTools.cs                # Read-only tool adapters (exposed to LLM)
+      CvQueryTools.cs                # Read-only CV tool adapters
+  Recommen-Adam/
+    ScopedRecommenAdamAgent.cs       # Role-aware agent resolver
+    Candidate/                        # Candidate tools, prompt, and factory
+    Recruiter/                       # Recruiter tools, prompt, and factory
 ```
 
 ## Tools

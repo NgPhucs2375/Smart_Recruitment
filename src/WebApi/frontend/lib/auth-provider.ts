@@ -233,9 +233,12 @@ function parseJwtExp(token: string): number | null {
   try {
     const parts = token.split(".");
     if (parts.length < 2 || !parts[1]) return null;
-    const json = atob(parts[1].replace(/-/g, "+").replace(/_/g, "/"));
+    const encoded = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+    const padded = encoded.padEnd(encoded.length + ((4 - (encoded.length % 4)) % 4), "=");
+    const json = atob(padded);
     const payload = JSON.parse(json) as { exp?: unknown };
-    return typeof payload.exp === "number" ? payload.exp * 1000 : null;
+    const exp = typeof payload.exp === "number" ? payload.exp : Number(payload.exp);
+    return Number.isFinite(exp) ? exp * 1000 : null;
   } catch {
     return null;
   }
@@ -255,7 +258,7 @@ export async function getValidToken(): Promise<string | null> {
 /** Re-fetch /me and refresh the cached identity + permissions in localStorage.
  *  Call after any server-side permission change (e.g. saving the permission matrix). */
 export async function refreshIdentity(): Promise<void> {
-  const token = getToken();
+  const token = await getValidToken();
   if (token) await fetchAndSaveMe(token);
 }
 
@@ -487,6 +490,50 @@ export async function requestMagicLink(payload: {
       message: err instanceof Error ? err.message : "Lỗi kết nối máy chủ",
     };
   }
+}
+
+type AccountActionResult = { success: boolean; message?: string };
+
+async function accountAction(
+  endpoint: string,
+  body: Record<string, string>,
+  authenticated = false,
+): Promise<AccountActionResult> {
+  try {
+    const token = authenticated ? await getValidToken() : null;
+    if (authenticated && !token) return { success: false, message: "Phiên đăng nhập đã hết hạn." };
+
+    const res = await fetch(`${API_URL}/${endpoint}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify(body),
+    });
+    const responseBody = await res.json().catch(() => ({}));
+    const message = responseBody?.Message ?? responseBody?.message ?? responseBody?.detail ?? responseBody?.title;
+    return res.ok
+      ? { success: true, message }
+      : { success: false, message: message || "Yêu cầu không thành công." };
+  } catch (err) {
+    return { success: false, message: err instanceof Error ? err.message : "Lỗi kết nối máy chủ." };
+  }
+}
+
+export function requestPasswordReset(email: string): Promise<AccountActionResult> {
+  return accountAction("forgot-password", { Email: email });
+}
+
+export function resetPassword(email: string, token: string, password: string): Promise<AccountActionResult> {
+  return accountAction("reset-password", { Email: email, Token: token, Password: password });
+}
+
+export function changePassword(currentPassword: string, newPassword: string): Promise<AccountActionResult> {
+  return accountAction("change-password", {
+    MatKhauHienTai: currentPassword,
+    MatKhauMoi: newPassword,
+  }, true);
 }
 
 export async function magicLogin(payload: {

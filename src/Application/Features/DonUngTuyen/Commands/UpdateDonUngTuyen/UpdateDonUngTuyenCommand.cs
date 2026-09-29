@@ -35,6 +35,9 @@ namespace Application.Features.DonUngTuyen.Commands.UpdateDonUngTuyen
             }
 
             var entity = await context.DonUngTuyens
+                // DbContext dùng NoTracking mặc định; transition state machine phải
+                // được thực hiện trên entity đang được EF theo dõi để SaveChanges lưu state mới.
+                .AsTracking()
                 .Include(d => d.TinTuyenDung)
                 .Include(d => d.CVUngVien).ThenInclude(cv => cv.HoSoUngVien)
                 .FirstOrDefaultAsync(
@@ -58,7 +61,8 @@ namespace Application.Features.DonUngTuyen.Commands.UpdateDonUngTuyen
                 await sm.FireAsync(
                     request.Trigger,
                     request.GhiChu ?? string.Empty,
-                    cancellationToken);
+                    cancellationToken,
+                    runSideEffects: false);
             }
             catch (ApiException ex)
             {
@@ -78,6 +82,15 @@ namespace Application.Features.DonUngTuyen.Commands.UpdateDonUngTuyen
 
             await context.SaveChangesAsync(
                 cancellationToken);
+
+            // Persist the state before publishing the notification/realtime event.
+            await workflow.HandleSideEffectsAsync(
+                entity,
+                request.Trigger,
+                request.GhiChu ?? string.Empty,
+                cancellationToken);
+
+            await context.SaveChangesAsync(cancellationToken);
 
             return new Response<int>(
                 data: entity.Id,

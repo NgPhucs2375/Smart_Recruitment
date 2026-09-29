@@ -6,6 +6,7 @@ using Application.Features.CVUngVien.Commands.ParseCvText;
 using Application.Features.CVUngVien.Commands.PrepareCvImport;
 using Application.Features.CVUngVien.Commands.SaveCvVersion;
 using Application.Features.CVUngVien.Commands.UpdateCVUngVien;
+using Application.Features.CVUngVien.Commands.SetDefaultCVUngVien;
 using Application.Features.CVUngVien.Queries.GetAllCVUngViens;
 using Application.Features.CVUngVien.Queries.GetCVDownloadUrl;
 using Application.Features.CVUngVien.Queries.GetCVUngVienById;
@@ -137,6 +138,15 @@ namespace WebApp.Server.Controllers.v1
                 {
                     return Ok(await Mediator.Send(command));
                 });
+        }
+
+        [HttpPost("{id:int}/set-default")]
+        public async Task<IActionResult> SetDefault(int id)
+        {
+            return await EnforcePermissionAndExecute(
+                "cvungviens",
+                "edit",
+                async () => Ok(await Mediator.Send(new SetDefaultCVUngVienCommand { Id = id })));
         }
 
         [HttpPost("import/prepare")]

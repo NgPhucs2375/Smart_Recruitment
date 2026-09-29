@@ -5,6 +5,7 @@ import { Plus, Pencil, Trash2, X, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AdminPageLayout, AdminPageHeader, AdminCard, AdminCardHeader, AdminEmptyState, AdminLoadingState } from "@/components/admin/admin-page-layout";
 
 type KyNang = { id: number; tenKyNang: string; moTa: string };
@@ -174,10 +175,13 @@ export default function KyNangUngVienPage() {
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <Label>Kỹ năng *</Label>
-              <select value={form.kyNangId} onChange={e => setForm(f => ({ ...f, kyNangId: Number(e.target.value) }))} className="flex h-9 w-full rounded-lg border border-input bg-background px-2.5 text-sm" disabled={!!editing}>
-                <option value={0}>Chọn kỹ năng...</option>
-                {availableSkills.map(k => <option key={k.id} value={k.id}>{k.tenKyNang}</option>)}
-              </select>
+              <Select value={String(form.kyNangId)} onValueChange={value => setForm(f => ({ ...f, kyNangId: Number(value) }))} disabled={!!editing}>
+                <SelectTrigger className="h-9 w-full"><SelectValue placeholder="Chọn kỹ năng..." /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="0">Chọn kỹ năng...</SelectItem>
+                  {availableSkills.map(k => <SelectItem key={k.id} value={String(k.id)}>{k.tenKyNang}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2">
               <Label>Số năm kinh nghiệm</Label>

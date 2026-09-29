@@ -1,4 +1,4 @@
-import { getAuthToken } from "../auth-provider";
+import { getValidToken, refreshSession } from "../auth-provider";
 import type {
   CapNhatHoSoInput,
   CvImportSessionVm,
@@ -54,9 +54,9 @@ function errorMessage(body: unknown, fallback: string): string {
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const token = getAuthToken();
+  let token = await getValidToken();
   const isFormData = typeof FormData !== "undefined" && init?.body instanceof FormData;
-  const res = await fetch(`/api/dotnet/${path}`, {
+  const send = () => fetch(`/api/dotnet/${path}`, {
     ...init,
     headers: {
       Accept: "application/json",
@@ -65,6 +65,12 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
       ...init?.headers,
     },
   });
+
+  let res = await send();
+  if (res.status === 401 && await refreshSession()) {
+    token = await getValidToken();
+    res = await send();
+  }
   const body = (await res.json().catch(() => null)) as Record<string, unknown> | null;
   if (!res.ok) {
     if (typeof window !== "undefined" && process.env.NODE_ENV === "development") {
@@ -117,6 +123,10 @@ export function normalizeCv(raw: unknown): CvVm {
     viTriUngTuyen: (r.viTriUngTuyen ?? r.ViTriUngTuyen ?? null) as string | null,
     hoTen: (r.hoTen ?? r.HoTen ?? null) as string | null,
   };
+}
+
+export function avatarProxyUrl(profileId: number, objectName: string): string {
+  return `/api/dotnet/hosoungviens/${profileId}/avatar?key=${encodeURIComponent(objectName)}&v=${encodeURIComponent(objectName)}`;
 }
 
 const record = (value: unknown): Record<string, unknown> =>
@@ -252,6 +262,8 @@ export const cvApi = {
     request<number>("cvungviens", { method: "POST", body: JSON.stringify(payload) }),
   updateCv: (id: number, payload: object) =>
     request<number>(`cvungviens/${id}`, { method: "PUT", body: JSON.stringify(payload) }),
+  setDefault: (id: number) =>
+    request<number>(`cvungviens/${id}/set-default`, { method: "POST", body: JSON.stringify({}) }),
   deleteCv: (id: number) => request<number>(`cvungviens/${id}`, { method: "DELETE" }),
   parseCv: (input: ParseCvTextInput) =>
     request<Record<string, unknown>>("cvungviens/parse-text", {

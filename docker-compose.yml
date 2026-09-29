@@ -25,6 +25,11 @@ services:
     restart: unless-stopped
     ports:
       - "${REDIS_PORT:-6379}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
     networks:
       - kltn_network
 
@@ -60,15 +65,17 @@ services:
   backend:
     build:
       context: .
-      dockerfile: src/WebApi/WebApp.Server/Dockerfile
+      dockerfile: src/WebApi/WebApp.Server/Dockerfile.dev
     container_name: backend
     restart: unless-stopped
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ASPNETCORE_URLS: http://+:8080
+      DOTNET_USE_POLLING_FILE_WATCHER: "1"
+      DOTNET_WATCH_SUPPRESS_LAUNCH_BROWSER: "1"
+      DOTNET_WATCH_RESTART_ON_RUDE_EDIT: "1"
 
       ConnectionStrings__PostgresConnection: Host=postgres;Port=5432;Database=smart_recruitment_db;Username=postgres;Password=${POSTGRES_PASSWORD:-SuperStrongPassword123!}
-
       JWTSettings__Key: ${JWT_KEY:-UmVjcnVpdG1lbnRTbWFydC1EZXZlbG9wbWVudC1KV1QtS2V5LTIwMjYtQ2hhbmdlLU1l}
       JWTSettings__Issuer: ${JWT_ISSUER:-Identity}
       JWTSettings__Audience: ${JWT_AUDIENCE:-IdentityUser}
@@ -80,12 +87,16 @@ services:
       RabbitMq__Port: "5672"
       RabbitMq__VHost: ""
 
+      ConnectionStrings__Redis: redis:6379,abortConnect=false
+
       GROQ_API_KEY: ${GROQ_API_KEY:-dev-placeholder}
 
       # 9Router chạy ngoài compose (network bridge), backend ở kltn_network nên
       # localhost:20128 trong container != host. Dùng host-gateway để tới 9Router.
-      Ai__Endpoint: http://host.docker.internal:20128/v1
-      Ai__Model: Ahihi
+      # 9Router is an external container joined to proj_cv_kltn_network.
+      Ai__Endpoint: http://9router:20128/v1
+      Ai__Model: gemini/gemini-2.5-flash-lite
+      # Ahihi
 
       Minio__Endpoint: minio:9000
       Minio__PublicEndpoint: localhost:9000
@@ -96,13 +107,17 @@ services:
 
     ports:
       - "${BACKEND_PORT:-8000}:8080"
+    volumes:
+      # Source remains on Windows; build artifacts stay inside the container
+      # at /artifacts via dotnet watch --artifacts-path.
+      - .:/workspace
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:
       postgres:
         condition: service_healthy
       redis:
-        condition: service_started
+        condition: service_healthy
       rabbitmq:
         condition: service_started
       minio:
@@ -113,26 +128,38 @@ services:
   frontend:
     build:
       context: ./src/WebApi/frontend
-      dockerfile: Dockerfile
-      args:
-        NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${NEXT_PUBLIC_GOOGLE_CLIENT_ID:-}
-        NEXT_PUBLIC_COPILOTKIT_THREADS_ENABLED: ${NEXT_PUBLIC_COPILOTKIT_THREADS_ENABLED:-}
+      dockerfile: Dockerfile.dev
     container_name: frontend
     restart: unless-stopped
     ports:
-      - "${FRONTEND_PORT:-3000}:3000"
+      - "${FRONTEND_PORT:-3001}:3000"
     environment:
       DOTNET_API_URL: http://backend:8080
       DOTNET_AGENT_URL: http://backend:8080/api/copilotkit
+      NEXT_PUBLIC_API_URL: http://localhost:${BACKEND_PORT:-8000}
+      NEXT_PUBLIC_COPILOT_AGENT_URL: http://localhost:${BACKEND_PORT:-8000}
+      # Chặn Turbopack/Node phình bộ nhớ làm host cạn RAM (trước đây gây
+      # "Out of memory (os error 12)" -> module resolve lỗi ngẫu nhiên -> 500).
+      NODE_OPTIONS: --max-old-space-size=2048
+      # Docker Desktop bind mounts do not always emit native Linux file events.
+      WATCHPACK_POLLING: "true"
+      CHOKIDAR_USEPOLLING: "true"
+      NEXT_TELEMETRY_DISABLED: "1"
+    volumes:
+      - ./src/WebApi/frontend:/app
+      - frontend_node_modules:/app/node_modules
+      - frontend_next_cache:/app/.next
     depends_on:
       - backend
     networks:
       - kltn_network
 
-volumes:
-  postgres_data:
-  minio_data:
-
 networks:
   kltn_network:
     driver: bridge
+
+volumes:
+  postgres_data:
+  minio_data:
+  frontend_node_modules:
+  frontend_next_cache:

@@ -1,0 +1,26 @@
+FROM mcr.microsoft.com/dotnet/sdk:10.0
+
+WORKDIR /workspace
+
+# Restore from project metadata first so package downloads stay cached until
+# a project file changes. Source code is supplied by the Compose bind mount.
+COPY RecruitmentSmart.sln ./
+COPY src/WebApi/WebApp.Server/WebApp.Server.csproj src/WebApi/WebApp.Server/
+COPY src/Application/Application.csproj src/Application/
+COPY src/Domain/Domain.csproj src/Domain/
+COPY src/Infrastructure/Infrastructure.Identity/Infrastructure.Identity.csproj src/Infrastructure/Infrastructure.Identity/
+COPY src/Infrastructure/Infrastructure.Persistence/Infrastructure.Persistence.csproj src/Infrastructure/Infrastructure.Persistence/
+COPY src/Infrastructure/Infrastructure.Shared/Infrastructure.Shared.csproj src/Infrastructure/Infrastructure.Shared/
+
+RUN dotnet restore src/WebApi/WebApp.Server/WebApp.Server.csproj --artifacts-path /artifacts
+
+ENV ASPNETCORE_ENVIRONMENT=Development \
+    ASPNETCORE_URLS=http://0.0.0.0:8080 \
+    DOTNET_USE_POLLING_FILE_WATCHER=1 \
+    DOTNET_WATCH_SUPPRESS_LAUNCH_BROWSER=1 \
+    DOTNET_WATCH_RESTART_ON_RUDE_EDIT=1 \
+    NUGET_XMLDOC_MODE=skip
+
+EXPOSE 8080
+
+CMD ["dotnet", "watch", "--project", "src/WebApi/WebApp.Server/WebApp.Server.csproj", "--artifacts-path", "/artifacts", "--non-interactive", "run", "--no-launch-profile"]

@@ -48,7 +48,11 @@ namespace WebApp.Server.Controllers
         [HttpPost("forgot-password")]
         public async Task<IActionResult> ForgotPassword([FromBody] YeuCauQuenMatKhau model)
         {
-            await _accountService.ForgotPassword(model, Request.Headers["origin"].ToString());
+            var origin = Request.Headers["origin"].ToString();
+            if (string.IsNullOrWhiteSpace(origin))
+                origin = $"{Request.Scheme}://{Request.Host}";
+
+            await _accountService.ForgotPassword(model, origin);
             return Ok();
         }
 
@@ -57,6 +61,13 @@ namespace WebApp.Server.Controllers
         public async Task<IActionResult> ResetPassword([FromBody] YeuCauGuiLaiXacMinh model)
         {
             return Ok(await _accountService.ResetPassword(model));
+        }
+
+        [Authorize]
+        [HttpPost("change-password")]
+        public async Task<IActionResult> ChangePassword([FromBody] YeuCauDoiMatKhau model)
+        {
+            return Ok(await _accountService.ChangePasswordAsync(model));
         }
 
         // Lấy thông tin tài khoản hiện tại từ JWT

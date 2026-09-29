@@ -62,14 +62,22 @@ export function CandidateHeader() {
 
   useEffect(() => {
     let active = true;
-    void hoSoApi.getMyHoSo()
-      .then((profile) => {
-        if (active) setAvatarUrl(profile.anhDaiDienUrl || "");
-      })
-      .catch(() => {
-        if (active) setAvatarUrl("");
-      });
-    return () => { active = false; };
+    const loadAvatar = () => {
+      void hoSoApi.getMyHoSo()
+        .then((profile) => {
+          if (active) setAvatarUrl(profile.anhDaiDienUrl || "");
+        })
+        .catch(() => {
+          if (active) setAvatarUrl("");
+        });
+    };
+
+    loadAvatar();
+    window.addEventListener("hireai:avatar-changed", loadAvatar);
+    return () => {
+      active = false;
+      window.removeEventListener("hireai:avatar-changed", loadAvatar);
+    };
   }, []);
 
   return (
@@ -116,7 +124,7 @@ export function CandidateHeader() {
           <ModeToggle />
           <DropdownMenu>
             <DropdownMenuTrigger className="flex size-9 items-center justify-center rounded-full bg-workspace-primary text-sm font-semibold text-workspace-on-primary ring-2 ring-workspace-secondary/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-workspace-primary" aria-label="Tài khoản">
-              {avatarUrl ? <Image src={avatarUrl} alt="Ảnh đại diện" width={36} height={36} className="size-full rounded-full object-cover" /> : initials}
+              {avatarUrl ? <Image src={avatarUrl} alt="Ảnh đại diện" width={36} height={36} unoptimized className="size-full rounded-full object-cover" /> : initials}
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
               <div className="px-3 py-2">

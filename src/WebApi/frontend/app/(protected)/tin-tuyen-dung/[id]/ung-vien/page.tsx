@@ -7,6 +7,7 @@ import { Dialog as DialogPrimitive } from "@base-ui/react/dialog";
 import { ArrowLeft, CheckCheck, Eye, FileText, Loader2, Star, UserX, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
   AdminPageLayout,
   AdminCard,
@@ -48,9 +49,9 @@ const TRANG_THAI: Record<number, { label: string; variant: "default" | "secondar
   1: { label: "Lỗi xử lý hồ sơ", variant: "destructive" },
   2: { label: "Chờ xử lý", variant: "default" },
   3: { label: "Đã xem", variant: "secondary" },
-  4: { label: "Phù hợp", variant: "default" },
-  5: { label: "Đã từ chối", variant: "destructive" },
-  6: { label: "Ứng viên rút đơn", variant: "secondary" },
+  4: { label: "Ứng viên rút đơn", variant: "secondary" },
+  5: { label: "Phù hợp", variant: "default" },
+  6: { label: "Đã từ chối", variant: "destructive" },
   7: { label: "Quá hạn xử lý", variant: "destructive" },
   8: { label: "Tin bị đóng", variant: "secondary" },
   9: { label: "Vô hiệu", variant: "destructive" },
@@ -59,11 +60,31 @@ const TRANG_THAI: Record<number, { label: string; variant: "default" | "secondar
 // Trigger số của backend (Domain/Enums/TriggerDonUngTuyen.cs) — hành động của HR
 const TRIGGER = { XemDon: 5, DanhGiaPhuHop: 6, TuChoi: 7 } as const;
 
+const STATUS_BY_NAME: Record<string, number> = {
+  khoitao: 0,
+  loixulyhoso: 1,
+  choxuly: 2,
+  daxem: 3,
+  phuhop: 5,
+  tuchoi: 6,
+  ungvienrutdon: 4,
+  quahanxuly: 7,
+  tintuyendungbidong: 8,
+  vohieuhoa: 9,
+};
+
 const API = "/api/dotnet/donungtuyens";
 const DG_API = "/api/dotnet/danhgias";
 const ok = (r: ApiResponse<unknown>): boolean => r.Succeeded ?? r.succeeded ?? true;
 const msg = (r: ApiResponse<unknown>): string => r.Message ?? r.message ?? "";
 const extractData = <T,>(r: ApiResponse<T>): T | undefined => r.Data ?? r.data;
+
+function parseTrangThai(value: unknown): number {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  const text = `${value ?? ""}`.trim();
+  if (/^\d+$/.test(text)) return Number(text);
+  return STATUS_BY_NAME[text.toLowerCase().replace(/[\s_-]/g, "")] ?? -1;
+}
 
 function fmtDate(d: string) {
   if (!d) return "—";
@@ -77,6 +98,7 @@ function fmtDate(d: string) {
 export default function UngVienTheoTinPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
+  const { confirm, prompt } = useConfirmDialog();
   const tinId = Number(params.id);
 
   const [tieuDe, setTieuDe] = useState("");
@@ -98,6 +120,7 @@ export default function UngVienTheoTinPage() {
     const token = localStorage.getItem("access_token");
     const res = await fetch(url, {
       ...opts,
+      cache: "no-store",
       headers: {
         "Content-Type": "application/json",
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -137,7 +160,7 @@ export default function UngVienTheoTinPage() {
           tinTuyenDungId: Number(r.tinTuyenDungId ?? r.TinTuyenDungId ?? 0),
           cvUngVienId: Number(r.cvUngVienId ?? r.CVUngVienId ?? 0),
           cvPhienBanId: r.cvPhienBanId ?? r.CVPhienBanId ?? null,
-          trangThai: Number(r.trangThai ?? r.TrangThai ?? 0),
+          trangThai: parseTrangThai(r.trangThai ?? r.TrangThai),
           ghiChu: `${r.ghiChu ?? r.GhiChu ?? ""}`,
           ngayUngTuyen: `${r.ngayUngTuyen ?? r.NgayUngTuyen ?? ""}`,
         } as DonUngTuyen;
@@ -199,22 +222,43 @@ export default function UngVienTheoTinPage() {
   async function handleAction(item: DonUngTuyen, trigger: number, label: string, needReason = false) {
     let ghiChu = "";
     if (needReason) {
-      const input = window.prompt(`Lý do từ chối đơn của ${hoSoNames[item.hoSoUngVienId] ?? `hồ sơ #${item.hoSoUngVienId}`} (tùy chọn):`);
+      const input = await prompt({
+        title: `Từ chối đơn của ${hoSoNames[item.hoSoUngVienId] ?? `hồ sơ #${item.hoSoUngVienId}`}`,
+        description: "Lý do sẽ được lưu cùng đơn ứng tuyển và có thể được gửi tới ứng viên.",
+        placeholder: "Nhập lý do (tùy chọn)",
+        confirmLabel: "Tiếp tục",
+        destructive: true,
+      });
       if (input === null) return;
       ghiChu = input.trim();
-      if (!window.confirm(`Từ chối đơn #${item.id}?`)) return;
-    } else if (!window.confirm(`${label} đơn #${item.id}?`)) {
+      if (!await confirm({
+        title: "Từ chối đơn ứng tuyển?",
+        description: `Đơn #${item.id} sẽ được chuyển sang trạng thái Từ chối.`,
+        confirmLabel: "Từ chối đơn",
+        destructive: true,
+      })) return;
+    } else if (!await confirm({
+      title: `${label[0].toUpperCase()}${label.slice(1)} đơn ứng tuyển?`,
+      description: `Đơn #${item.id} sẽ được cập nhật trong quy trình tuyển dụng.`,
+      confirmLabel: label[0].toUpperCase() + label.slice(1),
+    })) {
       return;
     }
     try {
       setActingId(item.id);
       setErr("");
       setSuccessMsg("");
-      const res: ApiResponse<unknown> = await apiFetch(`${API}/${item.id}`, {
+       const res: ApiResponse<unknown> = await apiFetch(`${API}/${item.id}`, {
         method: "PUT",
         body: JSON.stringify({ id: item.id, trigger, ghiChu }),
       });
       if (!ok(res)) throw new Error(msg(res) || "Không thể cập nhật đơn");
+       const nextStatus = trigger === TRIGGER.TuChoi ? 6 : trigger === TRIGGER.DanhGiaPhuHop ? 5 : undefined;
+      if (nextStatus !== undefined) {
+        setItems((current) => current.map((entry) =>
+          entry.id === item.id ? { ...entry, trangThai: nextStatus, ghiChu } : entry,
+        ));
+      }
       setSuccessMsg(msg(res) || `Đã ${label.toLowerCase()} đơn #${item.id}.`);
       await load();
     } catch (e) {
@@ -227,23 +271,26 @@ export default function UngVienTheoTinPage() {
   async function handleViewCv(item: DonUngTuyen) {
     if (actingId === item.id) return;
 
-    // Mở CV chính là hành động XemDon. Chỉ fire một lần khi đơn còn chờ xử lý;
-    // các trạng thái sau đó chỉ cần mở CV, không tạo thông báo lặp lại.
-    if (!canXem(item.trangThai)) {
-      router.push(`/tin-tuyen-dung/${tinId}/ung-vien/cv/${item.cvUngVienId}`);
-      return;
-    }
-
     try {
       setActingId(item.id);
       setErr("");
       setSuccessMsg("");
-      const res: ApiResponse<unknown> = await apiFetch(`${API}/${item.id}`, {
-        method: "PUT",
-        body: JSON.stringify({ id: item.id, trigger: TRIGGER.XemDon, ghiChu: "" }),
-      });
-      if (!ok(res)) throw new Error(msg(res) || "Không thể ghi nhận đã xem hồ sơ");
-      router.push(`/tin-tuyen-dung/${tinId}/ung-vien/cv/${item.cvUngVienId}`);
+      // Luôn đọc state từ server để tránh dùng dữ liệu cũ trong danh sách.
+      const detail: ApiResponse<unknown> = await apiFetch(`${API}/show/${item.id}`);
+      const detailData = (extractData(detail) ?? {}) as Record<string, unknown>;
+      const currentStatus = parseTrangThai(detailData.trangThai ?? detailData.TrangThai);
+      if (currentStatus === 2) {
+        const res: ApiResponse<unknown> = await apiFetch(`${API}/${item.id}`, {
+          method: "PUT",
+          body: JSON.stringify({ id: item.id, trigger: TRIGGER.XemDon, ghiChu: "" }),
+        });
+        if (!ok(res)) throw new Error(msg(res) || "Không thể ghi nhận đã xem hồ sơ");
+      }
+      setItems((current) => current.map((entry) =>
+        entry.id === item.id ? { ...entry, trangThai: 3 } : entry,
+      ));
+      const returnTo = encodeURIComponent(`/tin-tuyen-dung/${tinId}/ung-vien`);
+      router.push(`/tin-tuyen-dung/${tinId}/ung-vien/cv/${item.cvUngVienId}?donId=${item.id}&returnTo=${returnTo}`);
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Không thể mở hồ sơ ứng viên");
       setActingId(null);
@@ -251,11 +298,10 @@ export default function UngVienTheoTinPage() {
   }
 
   // Quyền fire theo state machine: XemDon từ Chờ xử lý, Phù hợp từ Đã xem, Từ chối ở các bước HR.
-  const canXem = (s: number) => s === 2;
   const canPhuHop = (s: number) => s === 3;
-  const canTuChoi = (s: number) => s === 2 || s === 3 || s === 4;
+  const canTuChoi = (s: number) => s === 2 || s === 3;
   // Đánh giá & Kết luận là bước END — chỉ khi đơn đã Phù hợp và chưa có đánh giá.
-  const canDanhGia = (item: DonUngTuyen) => item.trangThai === 4 && !danhGias[item.id];
+  const canDanhGia = (item: DonUngTuyen) => item.trangThai === 5 && !danhGias[item.id];
 
   function openEval(item: DonUngTuyen) {
     setEvalDon(item);
@@ -362,9 +408,9 @@ export default function UngVienTheoTinPage() {
                     <Button variant="outline" size="sm" disabled={busy} onClick={() => void handleViewCv(item)}>
                       <Eye className="size-4" /> Xem CV
                     </Button>
-                    {canPhuHop(item.trangThai) && (
-                      <Button variant="default" size="sm" disabled={busy} onClick={() => void handleAction(item, TRIGGER.DanhGiaPhuHop, "Đánh giá phù hợp")}>
-                        <CheckCheck className="size-4" /> Phù hợp
+                     {canPhuHop(item.trangThai) && (
+                       <Button variant="default" size="sm" disabled={busy} onClick={() => void handleAction(item, TRIGGER.DanhGiaPhuHop, "duyệt phù hợp")}>
+                         <CheckCheck className="size-4" /> Duyệt phù hợp
                       </Button>
                     )}
                     {canTuChoi(item.trangThai) && (

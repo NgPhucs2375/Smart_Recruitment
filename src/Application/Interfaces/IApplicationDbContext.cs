@@ -29,6 +29,9 @@ namespace Application.Interfaces
         DbSet<CVPhienBan> CVPhienBans { get; set; }
         DbSet<DanhGia> DanhGias { get; set; }
         DbSet<CvTheme> CvThemes { get; set; }
+        DbSet<Conversation> Conversations { get; set; }
+        DbSet<Message> Messages { get; set; }
+        DbSet<MarketingBanner> MarketingBanners { get; set; }
         Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
     }
 }

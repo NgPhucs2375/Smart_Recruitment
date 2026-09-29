@@ -1,15 +1,18 @@
 using Application.Interfaces;
 using Application.Wrappers;
+using Application.Features.DanhMucNghe.Cache;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
-namespace Application.Features.DanhMucNghe.Commands.DeleteDanhMucNghe;
+using Microsoft.Extensions.Caching.Distributed;
+namespace Application.Features.DanhMucNghe.Commands.DeleteDanhMucNghe{
 public class DeleteDanhMucNgheByIdCommand : IRequest<Response<int>>
 {
     public int Id { get; set; }
 }
 
 public class DeleteDanhMucNgheByIdCommandHandler(
-    IApplicationDbContext context)
+    IApplicationDbContext context,
+    IDistributedCache cache)
     : IRequestHandler<DeleteDanhMucNgheByIdCommand, Response<int>>
 {
     public async Task<Response<int>> Handle(
@@ -42,8 +45,14 @@ public class DeleteDanhMucNgheByIdCommandHandler(
         await context.SaveChangesAsync(
             cancellationToken);
 
+        await cache.SetStringAsync(
+            DanhMucNgheCache.VersionKey,
+            Guid.NewGuid().ToString("N"),
+            cancellationToken);
+
         return new Response<int>(
             data: entity.Id,
             message: "Xóa danh mục nghề thành công.");
     }
+}
 }
