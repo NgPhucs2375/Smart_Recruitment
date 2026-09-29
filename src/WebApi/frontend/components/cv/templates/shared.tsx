@@ -128,9 +128,26 @@ export function resolveSectionTitle(key: ResumeSectionKey, fallback: string): st
  */
 
 export function formatRange(range: ResumeDateRange): string {
-  const { start, end } = range;
+  const { start, end, current } = range;
+  if (current) return start ? `${start} – Hiện tại` : "Hiện tại";
+  // Legacy payload "Nay" (pre-Upzi) -> chuẩn hiển thị "Hiện tại".
+  const normEnd = end === "Nay" ? "Hiện tại" : end;
+  if (!start && !normEnd) return "";
+  return `${start || "?"} – ${normEnd || "?"}`;
+}
+
+/**
+ * Upzi-style: chuẩn hóa hiển thị thời gian linh hoạt cho cột THỜI GIAN.
+ * - isCurrent=true -> "start – Hiện tại" (hoặc "Hiện tại" khi thiếu start)
+ * - Ngược lại nối start/end, bỏ trống 2 đầu, "" khi cả 3 đều trống.
+ */
+export function formatDateRange(startDate?: string, endDate?: string, isCurrent?: boolean): string {
+  const start = startDate ? startDate.trim() : "";
+  if (isCurrent) return start ? `${start} – Hiện tại` : "Hiện tại";
+  const end = endDate ? endDate.trim() : "";
   if (!start && !end) return "";
-  return `${start || "?"} – ${end || "?"}`;
+  if (start && end) return `${start} – ${end}`;
+  return start || end || "";
 }
 
 export function DateText({ range, className = "" }: { range: ResumeDateRange; className?: string }) {

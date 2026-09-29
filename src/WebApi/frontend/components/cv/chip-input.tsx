@@ -7,10 +7,12 @@ interface ChipInputProps {
   values: string[];
   onChange: (values: string[]) => void;
   placeholder?: string;
+  /** Upzi: chặn độ dài từng thẻ (VD kỹ năng đơn lẻ = 30). */
+  maxLength?: number;
 }
 
 /** Ô nhập nhiều giá trị dạng chip: gõ + Enter để thêm, click × để xóa. */
-export function ChipInput({ values, onChange, placeholder }: ChipInputProps) {
+export function ChipInput({ values, onChange, placeholder, maxLength }: ChipInputProps) {
   const [draft, setDraft] = useState("");
 
   const commit = () => {
@@ -23,6 +25,7 @@ export function ChipInput({ values, onChange, placeholder }: ChipInputProps) {
     <div>
       <Input
         value={draft}
+        maxLength={maxLength}
         onChange={(e) => setDraft(e.target.value)}
         onKeyDown={(e) => {
           if (e.key === "Enter") {

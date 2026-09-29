@@ -645,7 +645,7 @@ export const SAMPLE_RESUME: ResumeData = {
       id: "sample-exp-1",
       role: "Frontend Developer",
       company: "Tech Company",
-      range: { start: "06/2022", end: "Nay", current: true },
+      range: { start: "06/2022", end: "Hiện tại", current: true },
       description: "Phát triển giao diện với React và TypeScript.",
       skills: ["React", "TypeScript"],
     },

@@ -24,6 +24,8 @@ export type ResumeExperience = {
   role: string;
   company: string;
   range: ResumeDateRange;
+  /** Upzi: cờ "hiện vẫn đang làm ở đây" — mirror của range.current. */
+  isCurrent?: boolean;
   description?: string;
   skills: string[];
 };
@@ -33,6 +35,8 @@ export type ResumeEducation = {
   school: string;
   degree?: string;
   range: ResumeDateRange;
+  /** Upzi: cờ "hiện vẫn đang học ở đây" — mirror của range.current. */
+  isCurrent?: boolean;
   description?: string;
 };
 
@@ -116,6 +120,7 @@ export function toResumeData(data: CvFormData): ResumeData {
     role: k.chucDanh,
     company: k.congTy,
     range: toRange(k.tuNgay, k.denNgay, k.isHienTai),
+    isCurrent: k.isHienTai || undefined,
     description: k.moTa || undefined,
     skills: k.kyNangSuDung,
   }));
@@ -125,6 +130,7 @@ export function toResumeData(data: CvFormData): ResumeData {
     school: h.truong,
     degree: h.chuyenNganh || undefined,
     range: toRange(h.tuNgay, h.denNgay, h.isHienTai),
+    isCurrent: h.isHienTai || undefined,
     description: h.moTa || undefined,
   }));
 

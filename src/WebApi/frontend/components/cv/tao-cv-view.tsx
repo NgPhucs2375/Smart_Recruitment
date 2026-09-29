@@ -1011,7 +1011,7 @@ export function TaoCvView() {
       ) : (
       <>
       {/* Mobile/tablet: Tabs layout */}
-      <div className="xl:hidden">
+      <div className="md:hidden">
         <Tabs defaultValue="form" className="w-full">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="form" className="gap-2">
@@ -1052,12 +1052,11 @@ export function TaoCvView() {
         </Tabs>
       </div>
 
-      {/* Desktop: 2-column layout — page scrolls naturally, no nested
-          scroll container; preview stays sticky without trapping scroll. */}
-      <div className="hidden xl:block">
-        <div className="grid gap-8" style={{ gridTemplateColumns: "minmax(0, 46fr) minmax(0, 54fr)" }}>
-          {/* Editor column */}
-          <div className="min-w-0">
+      {/* Desktop: 2-column Upzi layout — form cuộn độc lập, preview dính. */}
+      <div className="hidden md:block">
+        <div className="grid gap-6 md:grid-cols-[1.1fr_0.9fr]">
+          {/* Editor column: cuộn độc lập */}
+          <div className="min-w-0 md:max-h-[calc(100vh-80px)] md:overflow-y-auto md:pr-1">
             <div className="mb-4 flex items-end justify-between">
               <h2 className="text-xl font-semibold tracking-tight text-foreground">Thông tin CV</h2>
               <span className="flex items-center gap-1.5 rounded-full bg-teal/10 px-2.5 py-1 text-xs font-semibold text-primary">
@@ -1074,8 +1073,8 @@ export function TaoCvView() {
             </div>
           </div>
 
-          {/* Preview column */}
-          <div className="min-w-0">
+          {/* Preview column: khung dính, sheets A4 xếp dọc trên nền xám */}
+          <div className="min-w-0 md:sticky md:top-4 md:h-[calc(100vh-80px)] md:overflow-hidden">
             <div className="mb-4 flex items-end justify-between gap-2">
               <h2 className="text-xl font-semibold tracking-tight text-foreground">Xem trước</h2>
               <div className="flex items-center gap-2">
@@ -1106,7 +1105,9 @@ export function TaoCvView() {
                 disabled={loading}
               />
               <div data-manual-cv-pdf style={{ zoom: `${zoom}%` } as CSSProperties}>
-                <CvPreview data={deferredCvData} onPageCount={setPageCount} />
+                <div className="h-full overflow-y-auto rounded-xl bg-slate-100 p-3 dark:bg-zinc-900">
+                  <CvPreview data={deferredCvData} onPageCount={setPageCount} />
+                </div>
               </div>
               {pageCount > 2 && (
                 <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-center text-xs leading-5 text-amber-800 dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-200">

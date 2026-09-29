@@ -133,7 +133,7 @@ export function partialDateToIso(v: string | null | undefined): string | null {
 }
 
 /**
- * Render parts for preview: "10/2024", "2022", "Nay" or "".
+ * Render parts for preview: "10/2024", "2022", "Hiện tại" or "".
  * Never emits "undefined" segments.
  */
 export function renderCvDateRange(
@@ -143,6 +143,6 @@ export function renderCvDateRange(
 ): { start: string; end: string } {
   return {
     start: normalizeCvPartialDate(tu),
-    end: hienTai ? "Nay" : normalizeCvPartialDate(den),
+    end: hienTai ? "Hiện tại" : normalizeCvPartialDate(den),
   };
 }

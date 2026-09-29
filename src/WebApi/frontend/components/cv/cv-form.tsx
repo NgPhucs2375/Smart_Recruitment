@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ChipInput } from "./chip-input";
+import { CharacterCounter, CV_MAX_LENGTH } from "./character-counter";
 import type {
   CvFormData,
   LienHe,
@@ -32,6 +33,8 @@ import { focusCvSectionInDom, getCvFocusEventName, type CvFocusSection } from "@
 interface CvFormProps {
   data: CvFormData;
   onChange: (data: CvFormData) => void;
+  /** Hook AI backend cho nút "Viết chuẩn Harvard". Không truyền = mockup vô hiệu hóa nhẹ. */
+  onAiRewrite?: (text: string, field: string) => void;
 }
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
@@ -136,7 +139,63 @@ function rangeErrorText(tu: string, den: string, endDisabled?: boolean): string 
   return compareCvPartialDates(tu, den) > 0 ? "Thời gian bắt đầu phải không sau thời gian kết thúc." : null;
 }
 
-export function CvForm({ data, onChange }: CvFormProps) {
+/** Upzi: checklist Do's & Don'ts thu nhỏ dưới mỗi card section lớn. */
+function WritingTips({ items }: { items: string[] }) {
+  return (
+    <ul className="mb-3 space-y-1 rounded-lg border border-dashed border-input bg-muted/40 px-3 py-2 text-xs leading-5 text-muted-foreground">
+      {items.map((tip) => (
+        <li key={tip} className="flex gap-1.5">
+          <span aria-hidden="true" className="text-teal">✓</span>
+          <span>{tip}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/** Upzi: thanh công cụ mini dưới textarea mô tả. */
+function QuickActionBar({
+  value,
+  maxLength,
+  field,
+  onApply,
+  onAiRewrite,
+}: {
+  value: string;
+  maxLength: number;
+  field: string;
+  onApply: (next: string) => void;
+  onAiRewrite?: (text: string, field: string) => void;
+}) {
+  const overSafe = value.length > maxLength;
+  const shorten = () => {
+    const cut = value.slice(0, maxLength);
+    const lastSpace = cut.lastIndexOf(" ");
+    onApply(lastSpace > maxLength * 0.5 ? cut.slice(0, lastSpace) : cut);
+  };
+  return (
+    <div className="mt-1.5 flex flex-wrap gap-1.5">
+      {overSafe && (
+        <Button type="button" variant="outline" size="sm" className="h-7 text-xs" onClick={shorten}>
+          ⚡ Rút gọn câu
+        </Button>
+      )}
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        className="h-7 text-xs"
+        data-hook="harvard-rewrite"
+        title="Chuẩn bị kết nối API AI backend"
+        onClick={() => onAiRewrite?.(value, field)}
+      >
+        Viết chuẩn Harvard
+      </Button>
+    </div>
+  );
+}
+
+export function CvForm({ data, onChange, onAiRewrite }: CvFormProps) {
   const lh = data.thongTinLienHe;
   // UI-only: id of the repeat item added most recently, so only it plays
   // the enter animation (no mount cascade on pre-filled data).
@@ -157,6 +216,18 @@ export function CvForm({ data, onChange }: CvFormProps) {
   const updateList = (key: ListKey, id: string, field: string, value: unknown) => {
     const list = (data[key] as { id: string }[]).map((it) =>
       it.id === id ? { ...it, [field]: value } : it,
+    );
+    onChange({ ...data, [key]: list } as CvFormData);
+  };
+
+  /** Upzi isCurrent: tích chọn -> disable + xóa ngày kết thúc, bỏ chọn -> nhập lại. */
+  const setCurrentFlag = (
+    key: "hocVan" | "kinhNghiemLamViec" | "duAn",
+    id: string,
+    value: boolean,
+  ) => {
+    const list = (data[key] as { id: string }[]).map((it) =>
+      it.id === id ? { ...it, isHienTai: value, ...(value ? { denNgay: "" } : {}) } : it,
     );
     onChange({ ...data, [key]: list } as CvFormData);
   };
@@ -276,13 +347,14 @@ export function CvForm({ data, onChange }: CvFormProps) {
             </div>
             <div>
               <label style={{ display: "block", marginBottom: "0.5rem" }}>Vị trí ứng tuyển</label>
-              <Input value={lh.viTriUngTuyen} onChange={(e) => setLienHe("viTriUngTuyen", e.target.value)} placeholder="VD: Backend .NET" />
+              <Input value={lh.viTriUngTuyen} maxLength={CV_MAX_LENGTH.shortTitle} onChange={(e) => setLienHe("viTriUngTuyen", e.target.value)} placeholder="VD: Backend .NET" />
             </div>
           </div>
           <div style={{ marginBottom: "1rem" }}>
             <label style={{ display: "block", marginBottom: "0.5rem" }}>Tiêu đề hiển thị trên CV</label>
             <Input
               value={data.tieuDeHienThi ?? ""}
+              maxLength={CV_MAX_LENGTH.shortTitle}
               onChange={(e) => onChange({ ...data, tieuDeHienThi: e.target.value })}
               placeholder="VD: Hồ sơ ứng viên — để trống dùng mặc định của mẫu"
             />
@@ -299,7 +371,20 @@ export function CvForm({ data, onChange }: CvFormProps) {
           </div>
           <div>
             <label style={{ display: "block", marginBottom: "0.5rem" }}>Giới thiệu bản thân</label>
-            <Textarea value={lh.gioiThieuBanThan} onChange={(e) => setLienHe("gioiThieuBanThan", e.target.value)} placeholder="Tóm tắt mục tiêu nghề nghiệp và điểm mạnh..." rows={4} />
+            <WritingTips
+              items={["2–3 câu nêu bật thế mạnh, không dùng đại từ nhân xưng"]}
+            />
+            <div className="relative">
+              <Textarea
+                value={lh.gioiThieuBanThan}
+                maxLength={CV_MAX_LENGTH.summary}
+                onChange={(e) => setLienHe("gioiThieuBanThan", e.target.value)}
+                placeholder="Tóm tắt mục tiêu nghề nghiệp và điểm mạnh..."
+                rows={4}
+                className="pb-5"
+              />
+              <CharacterCounter currentLength={lh.gioiThieuBanThan.length} maxLength={CV_MAX_LENGTH.summary} />
+            </div>
           </div>
         </div>
       </div>
@@ -317,6 +402,9 @@ export function CvForm({ data, onChange }: CvFormProps) {
           </Button>
         </div>
         <div data-slot="card-content" style={{ padding: "1rem" }}>
+          <WritingTips
+            items={["Bắt đầu bằng động từ hành động, nêu rõ kết quả định lượng"]}
+          />
           {data.kinhNghiemLamViec.length === 0 ? (
             <div className="cv-empty-form"><FileText className="h-4 w-4" /><span>Chưa có kinh nghiệm nào. Nhấn &quot;Thêm&quot; để bắt đầu.</span></div>
           ) : data.kinhNghiemLamViec.map((k) => {
@@ -325,7 +413,7 @@ export function CvForm({ data, onChange }: CvFormProps) {
             return (
             <div key={k.id} className={`cv-repeat-item${freshId === k.id ? " cv-repeat-enter" : ""}`} onAnimationEnd={() => setFreshId((f) => (f === k.id ? null : f))} style={{ marginBottom: "0.75rem" }}>
               <div style={{ display: "flex", gap: "1rem", marginBottom: "0.75rem" }}>
-                <Input placeholder="Công ty *" value={k.congTy} onChange={(e) => updateList("kinhNghiemLamViec", k.id, "congTy", e.target.value)} style={{ flex: 1 }} />
+                <Input placeholder="Công ty *" maxLength={CV_MAX_LENGTH.shortTitle} value={k.congTy} onChange={(e) => updateList("kinhNghiemLamViec", k.id, "congTy", e.target.value)} style={{ flex: 1 }} />
                 <Input placeholder="Chức danh *" value={k.chucDanh} onChange={(e) => updateList("kinhNghiemLamViec", k.id, "chucDanh", e.target.value)} style={{ flex: 1 }} />
                 <Button variant="ghost" size="icon" className="shrink-0 text-muted-foreground hover:text-destructive" onClick={() => removeFrom("kinhNghiemLamViec", k.id)}>
                   <Trash2 className="h-4 w-4" />
@@ -338,15 +426,36 @@ export function CvForm({ data, onChange }: CvFormProps) {
               </div>
               {err && <p className="text-xs text-destructive mt-1" style={{ marginBottom: "0.75rem" }}>{err}</p>}
               <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.75rem", fontSize: "0.875rem" }}>
-                <Checkbox checked={k.isHienTai} onCheckedChange={(v) => updateList("kinhNghiemLamViec", k.id, "isHienTai", v === true)} />
-                Đang làm việc tại đây
+                <Checkbox checked={k.isHienTai} onCheckedChange={(v) => setCurrentFlag("kinhNghiemLamViec", k.id, v === true)} />
+                Tôi hiện vẫn đang làm việc ở đây
               </label>
-              <Textarea placeholder="Mô tả công việc, thành tựu..." value={k.moTa} onChange={(e) => updateList("kinhNghiemLamViec", k.id, "moTa", e.target.value)} rows={3} style={{ marginBottom: "0.75rem" }} />
+              <div className="relative" style={{ marginBottom: "0.25rem" }}>
+                <Textarea
+                  placeholder="Mô tả công việc, thành tựu..."
+                  value={k.moTa}
+                  maxLength={CV_MAX_LENGTH.bullet}
+                  onChange={(e) => updateList("kinhNghiemLamViec", k.id, "moTa", e.target.value)}
+                  rows={3}
+                  className="pb-5"
+                  style={{ marginBottom: "0" }}
+                />
+                <CharacterCounter currentLength={k.moTa.length} maxLength={CV_MAX_LENGTH.bullet} />
+              </div>
+              <QuickActionBar
+                value={k.moTa}
+                maxLength={CV_MAX_LENGTH.bullet}
+                field={`kinhNghiem:${k.id}`}
+                onApply={(next) => updateList("kinhNghiemLamViec", k.id, "moTa", next)}
+                onAiRewrite={onAiRewrite}
+              />
+              <div style={{ marginTop: "0.75rem" }}>
               <ChipInput
                 values={k.kyNangSuDung}
                 onChange={(v) => updateList("kinhNghiemLamViec", k.id, "kyNangSuDung", v)}
                 placeholder="Kỹ năng sử dụng — gõ rồi Enter"
+                maxLength={CV_MAX_LENGTH.skillTag}
               />
+              </div>
             </div>
             );
           })}
@@ -366,6 +475,9 @@ export function CvForm({ data, onChange }: CvFormProps) {
           </Button>
         </div>
         <div data-slot="card-content" style={{ padding: "1rem" }}>
+          <WritingTips
+            items={["Ghi rõ niên khóa, chuyên ngành và thành tích nổi bật nếu có"]}
+          />
           {data.hocVan.length === 0 ? (
             <div className="cv-empty-form"><FileText className="h-4 w-4" /><span>Chưa có học vấn nào. Nhấn &quot;Thêm&quot; để bắt đầu.</span></div>
           ) : data.hocVan.map((h) => {
@@ -387,8 +499,8 @@ export function CvForm({ data, onChange }: CvFormProps) {
               </div>
               {err && <p className="text-xs text-destructive mt-1" style={{ marginBottom: "0.75rem" }}>{err}</p>}
               <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.75rem", fontSize: "0.875rem" }}>
-                <Checkbox checked={h.isHienTai === true} onCheckedChange={(v) => updateList("hocVan", h.id, "isHienTai", v === true)} />
-                Đang học
+                <Checkbox checked={h.isHienTai === true} onCheckedChange={(v) => setCurrentFlag("hocVan", h.id, v === true)} />
+                Tôi hiện vẫn đang học tập ở đây
               </label>
               <Textarea placeholder="Mô tả thêm..." value={h.moTa} onChange={(e) => updateList("hocVan", h.id, "moTa", e.target.value)} rows={2} />
             </div>
@@ -414,7 +526,7 @@ export function CvForm({ data, onChange }: CvFormProps) {
           )}
           {data.kyNang.map((k) => (
             <div key={k.id} style={{ display: "flex", gap: "0.75rem", marginBottom: "0.75rem", alignItems: "center" }}>
-              <Input placeholder="Tên kỹ năng *" value={k.tenKyNang} onChange={(e) => updateList("kyNang", k.id, "tenKyNang", e.target.value)} style={{ flex: 2 }} />
+              <Input placeholder="Tên kỹ năng *" maxLength={CV_MAX_LENGTH.skillTag} value={k.tenKyNang} onChange={(e) => updateList("kyNang", k.id, "tenKyNang", e.target.value)} style={{ flex: 2 }} />
                 <Select value={k.mucDoThanhThao || "0"} onValueChange={(value) => updateList("kyNang", k.id, "mucDoThanhThao", value)}>
                   <SelectTrigger className="h-9 flex-1" aria-label="Mức độ thành thạo"><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -454,7 +566,7 @@ export function CvForm({ data, onChange }: CvFormProps) {
             return (
             <div key={d.id} className={`cv-repeat-item${freshId === d.id ? " cv-repeat-enter" : ""}`} onAnimationEnd={() => setFreshId((f) => (f === d.id ? null : f))} style={{ marginBottom: "0.75rem" }}>
               <div style={{ display: "flex", gap: "1rem", marginBottom: "0.75rem" }}>
-                <Input placeholder="Tên dự án *" value={d.tenDuAn} onChange={(e) => updateList("duAn", d.id, "tenDuAn", e.target.value)} style={{ flex: 1 }} />
+                <Input placeholder="Tên dự án *" maxLength={CV_MAX_LENGTH.shortTitle} value={d.tenDuAn} onChange={(e) => updateList("duAn", d.id, "tenDuAn", e.target.value)} style={{ flex: 1 }} />
                 <Input placeholder="Vai trò" value={d.vaiTro} onChange={(e) => updateList("duAn", d.id, "vaiTro", e.target.value)} style={{ flex: 1 }} />
                 <Button variant="ghost" size="icon" className="shrink-0 text-muted-foreground hover:text-destructive" onClick={() => removeFrom("duAn", d.id)}>
                   <Trash2 className="h-4 w-4" />
@@ -467,16 +579,35 @@ export function CvForm({ data, onChange }: CvFormProps) {
               </div>
               {err && <p className="text-xs text-destructive mt-1" style={{ marginBottom: "0.75rem" }}>{err}</p>}
               <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.75rem", fontSize: "0.875rem" }}>
-                <Checkbox checked={d.isHienTai === true} onCheckedChange={(v) => updateList("duAn", d.id, "isHienTai", v === true)} />
+                <Checkbox checked={d.isHienTai === true} onCheckedChange={(v) => setCurrentFlag("duAn", d.id, v === true)} />
                 Đang thực hiện
               </label>
               <ChipInput
                 values={d.congNghe}
                 onChange={(v) => updateList("duAn", d.id, "congNghe", v)}
                 placeholder="Công nghệ — gõ rồi Enter"
+                maxLength={CV_MAX_LENGTH.skillTag}
               />
               <Input placeholder="Link dự án" value={d.link} onChange={(e) => updateList("duAn", d.id, "link", e.target.value)} style={{ marginBottom: "0.75rem" }} />
-              <Textarea placeholder="Mô tả dự án..." value={d.moTa} onChange={(e) => updateList("duAn", d.id, "moTa", e.target.value)} rows={2} />
+              <div className="relative" style={{ marginBottom: "0.25rem" }}>
+                <Textarea
+                  placeholder="Mô tả dự án..."
+                  value={d.moTa}
+                  maxLength={CV_MAX_LENGTH.bullet}
+                  onChange={(e) => updateList("duAn", d.id, "moTa", e.target.value)}
+                  rows={2}
+                  className="pb-5"
+                  style={{ marginBottom: "0" }}
+                />
+                <CharacterCounter currentLength={d.moTa.length} maxLength={CV_MAX_LENGTH.bullet} />
+              </div>
+              <QuickActionBar
+                value={d.moTa}
+                maxLength={CV_MAX_LENGTH.bullet}
+                field={`duAn:${d.id}`}
+                onApply={(next) => updateList("duAn", d.id, "moTa", next)}
+                onAiRewrite={onAiRewrite}
+              />
             </div>
             );
           })}
