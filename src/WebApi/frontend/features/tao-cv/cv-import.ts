@@ -4,6 +4,7 @@ import type { CvFormData, JsonResume } from "@/lib/types";
 import { newId } from "./cv-data";
 import { defaultCvData } from "./constants";
 import { jsonResumeToCvData } from "./json-resume";
+import { normalizeLayoutConfig } from "./resume-data";
 import { cvApi } from "@/lib/api/cv-api";
 import { extractCvText } from "@/lib/cv/extract-cv-text";
 
@@ -215,6 +216,7 @@ export function normalizeResumeData(raw: unknown): Partial<CvFormData> | null {
     duAn: withFreshIds(duAn),
     kyNang: withFreshIds(kyNang),
     chungChi: withFreshIds(chungChi),
+    layoutConfig: normalizeLayoutConfig(isRecord(raw) ? (raw as Record<string, unknown>).layoutConfig : undefined),
   };
 }
 

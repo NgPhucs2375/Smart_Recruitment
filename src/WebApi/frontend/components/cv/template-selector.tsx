@@ -17,6 +17,7 @@ import {
   type ResumeTemplateMeta,
   type TemplateCategory,
 } from "@/features/tao-cv/template-registry";
+import { CustomThemeOptions, usePublishedThemes } from "./custom-theme-picker";
 
 interface TemplateSelectorProps {
   selectedId: string;
@@ -111,6 +112,8 @@ export function TemplatePicker({ selectedId, onSelect, cvId }: TemplateSelectorP
   const listRef = useRef<HTMLDivElement>(null);
   const { active, activeId, query, setQuery, category, setCategory, visible, templates } =
     useTemplateBrowse(selectedId);
+  const published = usePublishedThemes();
+  const customActive = !active ? published.find((t) => t.id === selectedId) : undefined;
 
   // Select immediately and keep the popover open: closing + parent refetch
   // on every click caused the list jump and repeated-click feeling.
@@ -153,12 +156,17 @@ export function TemplatePicker({ selectedId, onSelect, cvId }: TemplateSelectorP
               Mẫu CV
             </span>
             <span className="block truncate text-sm font-semibold text-foreground">
-              {active?.name ?? "Chọn mẫu"}
+              {active?.name ?? customActive?.name ?? "Chọn mẫu"}
             </span>
           </span>
           {active && TEMPLATE_BADGES[active.id] && (
             <span className="shrink-0 rounded-full bg-navy px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white">
               {TEMPLATE_BADGES[active.id]}
+            </span>
+          )}
+          {customActive && (
+            <span className="shrink-0 rounded-full bg-teal px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white">
+              Studio
             </span>
           )}
           <ChevronDown className={cn("size-4 shrink-0 text-muted-foreground transition-transform duration-200", open && "rotate-180")} />
@@ -208,13 +216,12 @@ export function TemplatePicker({ selectedId, onSelect, cvId }: TemplateSelectorP
             ))}
           </div>
           <div ref={listRef} className="cv-thin-scroll mt-2 min-h-0 flex-1 overflow-y-auto" role="listbox" aria-label="Danh sách mẫu CV">
-          {visible.length === 0 ? (
+                    {visible.length === 0 ? (
             <p className="rounded-xl border border-dashed border-border px-3 py-5 text-center text-xs text-muted-foreground">
               Không tìm thấy mẫu phù hợp.
             </p>
           ) : (
-            visible.map((template) => {
-              const { Component } = template;
+            visible.map((template) => {const { Component } = template;
               const isActive = activeId === template.id;
               return (
                 <button
@@ -257,6 +264,7 @@ export function TemplatePicker({ selectedId, onSelect, cvId }: TemplateSelectorP
             })
           )}
           </div>
+          <CustomThemeOptions variant="row" activeId={activeId} onPick={pick} />
           <Link
             href={cvId != null ? `/mau-cv?cv=${cvId}` : "/mau-cv"}
             className="mt-2 flex w-full shrink-0 items-center justify-center gap-1.5 rounded-xl border border-border px-3 py-2 text-xs font-semibold text-foreground transition hover:border-primary/50 hover:text-primary"
@@ -359,6 +367,7 @@ export function TemplateSelector({ selectedId, onSelect }: TemplateSelectorProps
           })}
         </div>
       )}
+      <CustomThemeOptions variant="card" activeId={activeId} onPick={onSelect} query={query} />
     </div>
   );
 }

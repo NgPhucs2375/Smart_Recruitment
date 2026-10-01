@@ -3,6 +3,7 @@
 // Template ATS chỉ nhận dữ liệu trình bày đã chuẩn hóa, không đọc form/API.
 import type { ResumeTemplateProps } from "./shared";
 import { BannerSlot, DateText, EmptyPaper, SectionShell, SplitBlocks } from "./shared";
+import type { CvSectionId } from "@/features/tao-cv/resume-data";
 
 /**
  * Minimal ATS — single column, black/charcoal on white, no graphics,
@@ -26,6 +27,8 @@ export function MinimalAtsTemplate({ data }: ResumeTemplateProps) {
       </div>
     );
   }
+  // Sóng 1 modular: thứ tự section theo layoutConfig (kéo thả ở form).
+  const orderOf = (id: CvSectionId): number => data.layout.sectionOrder.indexOf(id);
 
   return (
     <div className="cv-paper cv-paper-a4 px-8 py-6 text-[12.5px] leading-normal text-neutral-800">
@@ -54,15 +57,18 @@ export function MinimalAtsTemplate({ data }: ResumeTemplateProps) {
         )}
       </header>
 
-      <div className="mt-4 space-y-3">
+      <div className="mt-4 flex flex-col gap-3">
         {data.summary && (
+          <div style={{ order: orderOf("summary") }}>
           <SectionShell>
             <AtsTitle>Tóm tắt</AtsTitle>
             <SplitBlocks text={data.summary} className="whitespace-pre-line break-words [overflow-wrap:anywhere]" />
           </SectionShell>
+          </div>
         )}
 
         {data.experience.length > 0 && (
+          <div style={{ order: orderOf("experience") }}>
           <SectionShell>
             <AtsTitle>Kinh nghiệm làm việc</AtsTitle>
             <div className="space-y-2">
@@ -81,9 +87,11 @@ export function MinimalAtsTemplate({ data }: ResumeTemplateProps) {
               ))}
             </div>
           </SectionShell>
+          </div>
         )}
 
         {data.education.length > 0 && (
+          <div style={{ order: orderOf("education") }}>
           <SectionShell>
             <AtsTitle>Học vấn</AtsTitle>
             <div className="space-y-2">
@@ -99,9 +107,11 @@ export function MinimalAtsTemplate({ data }: ResumeTemplateProps) {
               ))}
             </div>
           </SectionShell>
+          </div>
         )}
 
         {data.skills.length > 0 && (
+          <div style={{ order: orderOf("skills") }}>
           <SectionShell>
             <AtsTitle>Kỹ năng</AtsTitle>
             {/* Names only — no years, no proficiency suffixes. */}
@@ -114,9 +124,11 @@ export function MinimalAtsTemplate({ data }: ResumeTemplateProps) {
               ))}
             </p>
           </SectionShell>
+          </div>
         )}
 
         {data.projects.length > 0 && (
+          <div style={{ order: orderOf("projects") }}>
           <SectionShell>
             <AtsTitle>Dự án</AtsTitle>
             <div className="space-y-2">
@@ -142,9 +154,11 @@ export function MinimalAtsTemplate({ data }: ResumeTemplateProps) {
               ))}
             </div>
           </SectionShell>
+          </div>
         )}
 
         {data.certificates.length > 0 && (
+          <div style={{ order: orderOf("certificates") }}>
           <SectionShell>
             <AtsTitle>Chứng chỉ</AtsTitle>
             <div className="space-y-2">
@@ -161,6 +175,7 @@ export function MinimalAtsTemplate({ data }: ResumeTemplateProps) {
               ))}
             </div>
           </SectionShell>
+          </div>
         )}
       </div>
     </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import type { ResumeData } from "@/features/tao-cv/resume-data";
+import type { CvSectionId, ResumeData } from "@/features/tao-cv/resume-data";
 import { DateText, EmptyPaper, SectionShell, SkillChips, SplitBlocks, resolveBannerTitle3 } from "./shared";
 
 /**
@@ -38,6 +38,9 @@ export function SidebarProTemplate({ data }: { data: ResumeData }) {
     );
   }
 
+  // Sóng 1 modular: thứ tự section theo layoutConfig (kéo thả ở form).
+  const orderOf = (id: CvSectionId): number => data.layout.sectionOrder.indexOf(id);
+
   return (
     <div className="cv-paper cv-paper-a4 text-[12.5px] leading-relaxed" style={{ color: INK }}>
       <header className="px-7 pb-4 pt-6">
@@ -50,15 +53,18 @@ export function SidebarProTemplate({ data }: { data: ResumeData }) {
       </header>
 
       <div className="grid grid-cols-[70%_30%]">
-        <div className="min-w-0 space-y-4 px-7 py-5">
+        <div className="flex min-w-0 flex-col gap-4 px-7 py-5">
           {data.summary && (
+            <div style={{ order: orderOf("summary") }}>
             <SectionShell>
               <MainTitle>Giới thiệu</MainTitle>
               <SplitBlocks text={data.summary} className="whitespace-pre-line break-words [overflow-wrap:anywhere]" style={{ color: SUBTLE }} />
             </SectionShell>
+            </div>
           )}
 
           {data.experience.length > 0 && (
+            <div style={{ order: orderOf("experience") }}>
             <SectionShell>
               <MainTitle>Kinh nghiệm</MainTitle>
               <div className="space-y-3">
@@ -76,9 +82,11 @@ export function SidebarProTemplate({ data }: { data: ResumeData }) {
                 ))}
               </div>
             </SectionShell>
+            </div>
           )}
 
           {data.projects.length > 0 && (
+            <div style={{ order: orderOf("projects") }}>
             <SectionShell>
               <MainTitle>Dự án</MainTitle>
               <div className="space-y-2.5">
@@ -97,9 +105,11 @@ export function SidebarProTemplate({ data }: { data: ResumeData }) {
                 ))}
               </div>
             </SectionShell>
+            </div>
           )}
 
           {data.education.length > 0 && (
+            <div style={{ order: orderOf("education") }}>
             <SectionShell>
               <MainTitle>Học vấn</MainTitle>
               <div className="space-y-2">
@@ -114,15 +124,18 @@ export function SidebarProTemplate({ data }: { data: ResumeData }) {
                 ))}
               </div>
             </SectionShell>
+            </div>
           )}
         </div>
 
         <aside className="min-w-0 px-5 py-5" style={{ backgroundColor: "var(--hire-navy-soft)" }}>
-          <div className="space-y-4">
+          <div className="flex flex-col gap-4">
             {data.skills.length > 0 && (
+              <div style={{ order: orderOf("skills") }}>
               <div>
                 <RailTitle>Kỹ năng chính</RailTitle>
                 <SkillChips skills={data.skills} variant="outline" />
+              </div>
               </div>
             )}
 
@@ -144,6 +157,7 @@ export function SidebarProTemplate({ data }: { data: ResumeData }) {
             )}
 
             {data.certificates.length > 0 && (
+              <div style={{ order: orderOf("certificates") }}>
               <div>
                 <RailTitle>Chứng chỉ</RailTitle>
                 <div className="space-y-2">
@@ -158,6 +172,7 @@ export function SidebarProTemplate({ data }: { data: ResumeData }) {
                     </div>
                   ))}
                 </div>
+              </div>
               </div>
             )}
           </div>

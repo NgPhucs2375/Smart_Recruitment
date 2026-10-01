@@ -26,6 +26,8 @@ import { CvForm } from "./cv-form";
 import { CvPreview } from "./cv-preview";
 import { TemplatePicker } from "./template-selector";
 import { CvImportDialog } from "./cv-import-dialog";
+import { LayoutManager } from "./dnd/layout-manager-popover";
+import { normalizeLayoutConfig } from "@/features/tao-cv/resume-data";
 import { defaultCvData } from "@/features/tao-cv/constants";
 import { resolveTemplateId, isKnownTemplateId } from "@/features/tao-cv/template-registry";
 import type { CvFormData, CvVersionVm, CvVm, HoSoVm } from "@/lib/types";
@@ -850,6 +852,7 @@ export function TaoCvView() {
     setCvData((prev) => ({
       ...prev,
       thongTinLienHe: { ...prev.thongTinLienHe, ...(partial.thongTinLienHe ?? {}) },
+      layoutConfig: partial.layoutConfig ?? prev.layoutConfig,
       hocVan: (partial.hocVan ?? prev.hocVan).map((h) => ({ ...h, ...normRange(h as { tuNgay?: unknown; denNgay?: unknown }) })),
       kinhNghiemLamViec: (partial.kinhNghiemLamViec ?? prev.kinhNghiemLamViec).map((k) => ({
         ...k,
@@ -942,6 +945,13 @@ export function TaoCvView() {
           </span>
         </div>
         <div className="flex shrink-0 items-center gap-2">
+          <LayoutManager
+            layout={normalizeLayoutConfig(cvData.layoutConfig)}
+            onChange={(layoutConfig) => {
+              setCvData((prev) => ({ ...prev, layoutConfig }));
+              setDirty(true);
+            }}
+          />
           <Button size="sm" onClick={handleSave} disabled={saving || loading}>
             <Save className="h-4 w-4 mr-1.5" />
             {saving ? "Đang lưu..." : "Lưu CV"}

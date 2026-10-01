@@ -1,7 +1,26 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Plus, Trash2, FileText } from "lucide-react";
+import { Plus, Trash2, FileText, Briefcase, GraduationCap, Wrench, FolderGit2, Award } from "lucide-react";
+import {
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  TouchSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { SortableSectionCard } from "./dnd/sortable-section-card";
+import { SortableItem } from "./dnd/sortable-item";
+import { normalizeLayoutConfig, type CvSectionId } from "@/features/tao-cv/resume-data";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -243,6 +262,56 @@ export function CvForm({ data, onChange, onAiRewrite }: CvFormProps) {
     onChange({ ...data, [key]: list } as CvFormData);
   };
 
+  // Modular layout: thứ tự + ẩn/hiện section (kéo thả ở form, render ở template).
+  const layout = normalizeLayoutConfig(data.layoutConfig);
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+  const updateLayout = (sectionOrder: CvSectionId[], isVisible?: Partial<Record<CvSectionId, boolean>>) => {
+    const sections = { ...layout.sections };
+    if (isVisible) {
+      for (const [id, v] of Object.entries(isVisible)) {
+        const key = id as CvSectionId;
+        sections[key] = { ...sections[key], isVisible: v ?? true };
+      }
+    }
+    onChange({ ...data, layoutConfig: { sectionOrder, sections } });
+  };
+  const toggleSection = (id: CvSectionId) => {
+    const s = layout.sections[id];
+    updateLayout(layout.sectionOrder, { [id]: !s.isVisible });
+  };
+  const isSectionVisible = (id: CvSectionId): boolean => layout.sections[id]?.isVisible !== false;
+  const orderOf = (id: CvSectionId): number => layout.sectionOrder.indexOf(id) + 1;
+  const countLabel = (n: number, unit: string): string | undefined => (n > 0 ? `${n} ${unit}` : undefined);
+
+  const handleFormDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const a = String(active.id);
+    const o = String(over.id);
+    // Kéo section trong form.
+    if ((layout.sectionOrder as string[]).includes(a) && (layout.sectionOrder as string[]).includes(o)) {
+      const from = layout.sectionOrder.indexOf(a as CvSectionId);
+      const to = layout.sectionOrder.indexOf(o as CvSectionId);
+      updateLayout(arrayMove(layout.sectionOrder, from, to));
+      return;
+    }
+    // Kéo item trong Kinh nghiệm / Dự án.
+    for (const key of ["kinhNghiemLamViec", "duAn"] as const) {
+      const ids = (data[key] as { id: string }[]).map((it) => it.id);
+      const from = ids.indexOf(a);
+      const to = ids.indexOf(o);
+      if (from >= 0 && to >= 0) {
+        const list = arrayMove(data[key] as { id: string }[], from, to);
+        onChange({ ...data, [key]: list } as CvFormData);
+        return;
+      }
+    }
+  };
+
   const removeFrom = (key: ListKey, id: string) => {
     const list = (data[key] as { id: string }[]).filter((it) => it.id !== id);
     setDateMode((m) => {
@@ -311,6 +380,11 @@ export function CvForm({ data, onChange, onAiRewrite }: CvFormProps) {
   };
 
   return (
+    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleFormDragEnd}>
+      <SortableContext
+        items={layout.sectionOrder.filter((id) => id !== "summary")}
+        strategy={verticalListSortingStrategy}
+      >
     <div className="cv-form-stack">
       {/* 1. Thông tin liên hệ */}
       <div id="cv-section-contact" data-cv-section="contact" className="cv-form-card">
@@ -401,9 +475,17 @@ export function CvForm({ data, onChange, onAiRewrite }: CvFormProps) {
       </div>
 
       {/* 2. Kinh nghiệm làm việc */}
-      <div id="cv-section-experience" data-cv-section="experience" className="cv-form-card">
-        <div data-slot="card-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div data-slot="card-title"><FileText className="h-5 w-5" />Kinh nghiệm làm việc</div>
+      <SortableSectionCard
+        id="experience"
+        anchorId="cv-section-experience"
+        sectionKey="experience"
+        order={orderOf("experience")}
+        title="Kinh nghiệm làm việc"
+        icon={<Briefcase className="h-5 w-5" />}
+        countLabel={countLabel(data.kinhNghiemLamViec.length, "kinh nghiệm")}
+        visible={isSectionVisible("experience")}
+        onToggleVisibility={() => toggleSection("experience")}
+        actions={
           <Button variant="outline" size="sm" onClick={() => {
             const item: KinhNghiemItem = { id: newId(), congTy: "", chucDanh: "", tuNgay: "", denNgay: "", isHienTai: false, moTa: "", kyNangSuDung: [] };
             onChange({ ...data, kinhNghiemLamViec: [...data.kinhNghiemLamViec, item] });
@@ -411,18 +493,22 @@ export function CvForm({ data, onChange, onAiRewrite }: CvFormProps) {
           }}>
             <Plus className="h-4 w-4 mr-1" />Thêm
           </Button>
-        </div>
+        }
+      >
         <div data-slot="card-content" style={{ padding: "1rem" }}>
           <WritingTips
             items={["Bắt đầu bằng động từ hành động, nêu rõ kết quả định lượng"]}
           />
           {data.kinhNghiemLamViec.length === 0 ? (
             <div className="cv-empty-form"><FileText className="h-4 w-4" /><span>Chưa có kinh nghiệm nào. Nhấn &quot;Thêm&quot; để bắt đầu.</span></div>
-          ) : data.kinhNghiemLamViec.map((k) => {
+          ) : (
+            <SortableContext items={data.kinhNghiemLamViec.map((it) => it.id)} strategy={verticalListSortingStrategy}>
+              {data.kinhNghiemLamViec.map((k) => {
             const mode = modeFor(k.id, k.tuNgay, k.denNgay);
             const err = rangeErrorText(k.tuNgay, k.denNgay, k.isHienTai);
             return (
-            <div key={k.id} data-cv-item-id={k.id} className={`cv-repeat-item${freshId === k.id ? " cv-repeat-enter" : ""}`} onAnimationEnd={() => setFreshId((f) => (f === k.id ? null : f))} style={{ marginBottom: "0.75rem" }}>
+            <SortableItem key={k.id} id={k.id}>
+            <div data-cv-item-id={k.id} className={`cv-repeat-item${freshId === k.id ? " cv-repeat-enter" : ""}`} onAnimationEnd={() => setFreshId((f) => (f === k.id ? null : f))} style={{ marginBottom: "0.75rem" }}>
               <div style={{ display: "flex", gap: "1rem", marginBottom: "0.75rem" }}>
                 <Input placeholder="Công ty *" maxLength={CV_MAX_LENGTH.shortTitle} value={k.congTy} onChange={(e) => updateList("kinhNghiemLamViec", k.id, "congTy", e.target.value)} style={{ flex: 1 }} />
                 <Input placeholder="Chức danh *" value={k.chucDanh} onChange={(e) => updateList("kinhNghiemLamViec", k.id, "chucDanh", e.target.value)} style={{ flex: 1 }} />
@@ -470,15 +556,26 @@ export function CvForm({ data, onChange, onAiRewrite }: CvFormProps) {
               />
               </div>
             </div>
+            </SortableItem>
             );
           })}
+            </SortableContext>
+          )}
         </div>
-      </div>
+      </SortableSectionCard>
 
       {/* 3. Học vấn */}
-      <div id="cv-section-education" data-cv-section="education" className="cv-form-card">
-        <div data-slot="card-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div data-slot="card-title"><FileText className="h-5 w-5" />Học vấn</div>
+      <SortableSectionCard
+        id="education"
+        anchorId="cv-section-education"
+        sectionKey="education"
+        order={orderOf("education")}
+        title="Học vấn"
+        icon={<GraduationCap className="h-5 w-5" />}
+        countLabel={countLabel(data.hocVan.length, "học vấn")}
+        visible={isSectionVisible("education")}
+        onToggleVisibility={() => toggleSection("education")}
+        actions={
           <Button variant="outline" size="sm" onClick={() => {
             const item: HocVanItem = { id: newId(), truong: "", chuyenNganh: "", tuNgay: "", denNgay: "", moTa: "" };
             onChange({ ...data, hocVan: [...data.hocVan, item] });
@@ -486,7 +583,8 @@ export function CvForm({ data, onChange, onAiRewrite }: CvFormProps) {
           }}>
             <Plus className="h-4 w-4 mr-1" />Thêm
           </Button>
-        </div>
+        }
+      >
         <div data-slot="card-content" style={{ padding: "1rem" }}>
           <WritingTips
             items={["Ghi rõ niên khóa, chuyên ngành và thành tích nổi bật nếu có"]}
@@ -522,12 +620,20 @@ export function CvForm({ data, onChange, onAiRewrite }: CvFormProps) {
             );
           })}
         </div>
-      </div>
+      </SortableSectionCard>
 
       {/* 4. Kỹ năng */}
-      <div id="cv-section-skills" data-cv-section="skills" className="cv-form-card">
-        <div data-slot="card-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div data-slot="card-title"><FileText className="h-5 w-5" />Kỹ năng</div>
+      <SortableSectionCard
+        id="skills"
+        anchorId="cv-section-skills"
+        sectionKey="skills"
+        order={orderOf("skills")}
+        title="Kỹ năng"
+        icon={<Wrench className="h-5 w-5" />}
+        countLabel={countLabel(data.kyNang.length, "kỹ năng")}
+        visible={isSectionVisible("skills")}
+        onToggleVisibility={() => toggleSection("skills")}
+        actions={
           <Button variant="outline" size="sm" onClick={() => {
             const item: KyNangItem = { id: newId(), tenKyNang: "", mucDoThanhThao: "0", soNamKinhNghiem: "" };
             onChange({ ...data, kyNang: [...data.kyNang, item] });
@@ -535,7 +641,8 @@ export function CvForm({ data, onChange, onAiRewrite }: CvFormProps) {
           }}>
             <Plus className="h-4 w-4 mr-1" />Thêm
           </Button>
-        </div>
+        }
+      >
         <div data-slot="card-content" style={{ padding: "1rem" }}>
           {data.kyNang.length === 0 && (
             <div className="cv-empty-form" style={{ marginBottom: "0.75rem" }}><FileText className="h-4 w-4" /><span>Chưa có kỹ năng nào. Nhấn &quot;Thêm&quot; để bắt đầu.</span></div>
@@ -559,12 +666,20 @@ export function CvForm({ data, onChange, onAiRewrite }: CvFormProps) {
             </div>
           ))}
         </div>
-      </div>
+      </SortableSectionCard>
 
       {/* 5. Dự án */}
-      <div id="cv-section-projects" data-cv-section="projects" className="cv-form-card">
-        <div data-slot="card-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div data-slot="card-title"><FileText className="h-5 w-5" />Dự án</div>
+      <SortableSectionCard
+        id="projects"
+        anchorId="cv-section-projects"
+        sectionKey="projects"
+        order={orderOf("projects")}
+        title="Dự án"
+        icon={<FolderGit2 className="h-5 w-5" />}
+        countLabel={countLabel(data.duAn.length, "dự án")}
+        visible={isSectionVisible("projects")}
+        onToggleVisibility={() => toggleSection("projects")}
+        actions={
           <Button variant="outline" size="sm" onClick={() => {
             const item: DuAnItem = { id: newId(), tenDuAn: "", vaiTro: "", congNghe: [], link: "", moTa: "", tuNgay: "", denNgay: "" };
             onChange({ ...data, duAn: [...data.duAn, item] });
@@ -572,15 +687,19 @@ export function CvForm({ data, onChange, onAiRewrite }: CvFormProps) {
           }}>
             <Plus className="h-4 w-4 mr-1" />Thêm
           </Button>
-        </div>
+        }
+      >
         <div data-slot="card-content" style={{ padding: "1rem" }}>
           {data.duAn.length === 0 ? (
             <div className="cv-empty-form"><FileText className="h-4 w-4" /><span>Chưa có dự án nào.</span></div>
-          ) : data.duAn.map((d) => {
+          ) : (
+            <SortableContext items={data.duAn.map((it) => it.id)} strategy={verticalListSortingStrategy}>
+              {data.duAn.map((d) => {
             const mode = modeFor(d.id, d.tuNgay, d.denNgay);
             const err = rangeErrorText(d.tuNgay, d.denNgay, d.isHienTai);
             return (
-            <div key={d.id} data-cv-item-id={d.id} className={`cv-repeat-item${freshId === d.id ? " cv-repeat-enter" : ""}`} onAnimationEnd={() => setFreshId((f) => (f === d.id ? null : f))} style={{ marginBottom: "0.75rem" }}>
+            <SortableItem key={d.id} id={d.id}>
+            <div data-cv-item-id={d.id} className={`cv-repeat-item${freshId === d.id ? " cv-repeat-enter" : ""}`} onAnimationEnd={() => setFreshId((f) => (f === d.id ? null : f))} style={{ marginBottom: "0.75rem" }}>
               <div style={{ display: "flex", gap: "1rem", marginBottom: "0.75rem" }}>
                 <Input placeholder="Tên dự án *" maxLength={CV_MAX_LENGTH.shortTitle} value={d.tenDuAn} onChange={(e) => updateList("duAn", d.id, "tenDuAn", e.target.value)} style={{ flex: 1 }} />
                 <Input placeholder="Vai trò" value={d.vaiTro} onChange={(e) => updateList("duAn", d.id, "vaiTro", e.target.value)} style={{ flex: 1 }} />
@@ -627,15 +746,26 @@ export function CvForm({ data, onChange, onAiRewrite }: CvFormProps) {
                 onAiRewrite={onAiRewrite}
               />
             </div>
+            </SortableItem>
             );
           })}
+            </SortableContext>
+          )}
         </div>
-      </div>
+      </SortableSectionCard>
 
       {/* 6. Chứng chỉ */}
-      <div id="cv-section-certificates" data-cv-section="certificates" className="cv-form-card">
-        <div data-slot="card-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div data-slot="card-title"><FileText className="h-5 w-5" />Chứng chỉ</div>
+      <SortableSectionCard
+        id="certificates"
+        anchorId="cv-section-certificates"
+        sectionKey="certificates"
+        order={orderOf("certificates")}
+        title="Chứng chỉ"
+        icon={<Award className="h-5 w-5" />}
+        countLabel={countLabel(data.chungChi.length, "chứng chỉ")}
+        visible={isSectionVisible("certificates")}
+        onToggleVisibility={() => toggleSection("certificates")}
+        actions={
           <Button variant="outline" size="sm" onClick={() => {
             const item: ChungChiItem = { id: newId(), tenChungChi: "", donViCap: "", ngayCap: "", maXacMinh: "" };
             onChange({ ...data, chungChi: [...data.chungChi, item] });
@@ -643,7 +773,8 @@ export function CvForm({ data, onChange, onAiRewrite }: CvFormProps) {
           }}>
             <Plus className="h-4 w-4 mr-1" />Thêm
           </Button>
-        </div>
+        }
+      >
         <div data-slot="card-content" style={{ padding: "1rem" }}>
           {data.chungChi.length === 0 ? (
             <div className="cv-empty-form"><FileText className="h-4 w-4" /><span>Chưa có chứng chỉ nào.</span></div>
@@ -670,7 +801,9 @@ export function CvForm({ data, onChange, onAiRewrite }: CvFormProps) {
             );
           })}
         </div>
-      </div>
+      </SortableSectionCard>
     </div>
+      </SortableContext>
+    </DndContext>
   );
 }

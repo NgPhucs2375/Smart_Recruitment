@@ -3,6 +3,7 @@
 // Registry thống nhất metadata và props của template, không chứa logic form/export.
 import type { ComponentType } from "react";
 import type { ResumeData } from "./resume-data";
+import { createDefaultLayoutConfig } from "./resume-data";
 import type { ResumeTemplateProps } from "@/components/cv/templates/shared";
 import { MinimalAtsTemplate } from "@/components/cv/templates/minimal-ats";
 import { TechModernTemplate } from "@/components/cv/templates/tech-modern";
@@ -593,4 +594,5 @@ export const SAMPLE_RESUME: ResumeData = {
   ],
   certificates: [{ id: "sample-ce-1", name: "AWS Basics", issuer: "Amazon" }],
   hasContent: true,
+  layout: createDefaultLayoutConfig(),
 };

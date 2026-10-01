@@ -1,6 +1,6 @@
 "use client";
 
-import type { ResumeData } from "@/features/tao-cv/resume-data";
+import type { CvSectionId, ResumeData } from "@/features/tao-cv/resume-data";
 import { BannerSlot, DateText, EmptyPaper, SectionShell, SplitBlocks } from "./shared";
 
 /**
@@ -30,6 +30,9 @@ export function AtsClassicTemplate({ data }: { data: ResumeData }) {
     );
   }
 
+  // Sóng 1 modular: thứ tự section theo layoutConfig (kéo thả ở form).
+  const orderOf = (id: CvSectionId): number => data.layout.sectionOrder.indexOf(id);
+
   return (
     <div className="cv-paper cv-paper-a4 px-9 py-7 text-[12.5px] leading-relaxed text-neutral-800">
       <header className="text-center">
@@ -56,15 +59,18 @@ export function AtsClassicTemplate({ data }: { data: ResumeData }) {
         )}
       </header>
 
-      <div className="mt-5 space-y-4">
+      <div className="mt-5 flex flex-col gap-4">
         {data.summary && (
+          <div style={{ order: orderOf("summary") }}>
           <SectionShell>
             <ClassicTitle>Tóm tắt</ClassicTitle>
             <SplitBlocks text={data.summary} className="whitespace-pre-line break-words [overflow-wrap:anywhere] text-center" />
           </SectionShell>
+          </div>
         )}
 
         {data.experience.length > 0 && (
+          <div style={{ order: orderOf("experience") }}>
           <SectionShell>
             <ClassicTitle>Kinh nghiệm làm việc</ClassicTitle>
             <div className="space-y-3">
@@ -83,9 +89,11 @@ export function AtsClassicTemplate({ data }: { data: ResumeData }) {
               ))}
             </div>
           </SectionShell>
+          </div>
         )}
 
         {data.education.length > 0 && (
+          <div style={{ order: orderOf("education") }}>
           <SectionShell>
             <ClassicTitle>Học vấn</ClassicTitle>
             <div className="space-y-2">
@@ -101,9 +109,11 @@ export function AtsClassicTemplate({ data }: { data: ResumeData }) {
               ))}
             </div>
           </SectionShell>
+          </div>
         )}
 
         {data.skills.length > 0 && (
+          <div style={{ order: orderOf("skills") }}>
           <SectionShell>
             <ClassicTitle>Kỹ năng</ClassicTitle>
             {/* Names only — no years, no proficiency suffixes. */}
@@ -116,9 +126,11 @@ export function AtsClassicTemplate({ data }: { data: ResumeData }) {
               ))}
             </p>
           </SectionShell>
+          </div>
         )}
 
         {data.projects.length > 0 && (
+          <div style={{ order: orderOf("projects") }}>
           <SectionShell>
             <ClassicTitle>Dự án</ClassicTitle>
             <div className="space-y-3">
@@ -139,9 +151,11 @@ export function AtsClassicTemplate({ data }: { data: ResumeData }) {
               ))}
             </div>
           </SectionShell>
+          </div>
         )}
 
         {data.certificates.length > 0 && (
+          <div style={{ order: orderOf("certificates") }}>
           <SectionShell>
             <ClassicTitle>Chứng chỉ</ClassicTitle>
             <div className="space-y-1.5">
@@ -158,6 +172,7 @@ export function AtsClassicTemplate({ data }: { data: ResumeData }) {
               ))}
             </div>
           </SectionShell>
+          </div>
         )}
       </div>
     </div>
