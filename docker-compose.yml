@@ -47,18 +47,79 @@ services:
       - kltn_network
 
   minio:
-    image: quay.io/minio/minio:latest
+    # Local S3-compatible storage. The MinIO SDK used by the backend works with RustFS.
+    image: rustfs/rustfs:latest
     container_name: smart-recruitment-minio
     restart: unless-stopped
+    depends_on:
+      minio-volume-permission:
+        condition: service_completed_successfully
     environment:
-      MINIO_ROOT_USER: smartadmin
-      MINIO_ROOT_PASSWORD: SmartMinio@123456
+      RUSTFS_VOLUMES: /data/rustfs{0...3}
+      RUSTFS_ADDRESS: 0.0.0.0:9000
+      RUSTFS_CONSOLE_ADDRESS: 0.0.0.0:9001
+      RUSTFS_CONSOLE_ENABLE: "true"
+      RUSTFS_ACCESS_KEY: ${MINIO_ACCESS_KEY:-smartadmin}
+      RUSTFS_SECRET_KEY: ${MINIO_SECRET_KEY:-SmartMinio@123456}
+      RUSTFS_OBS_LOGGER_LEVEL: info
+      # Docker Desktop exposes every named volume on one virtual disk. This is
+      # acceptable only for the single-host development compose, never production.
+      RUSTFS_UNSAFE_BYPASS_DISK_CHECK: "true"
     ports:
       - "9000:9000"
       - "9001:9001"
     volumes:
-      - minio_data:/data
-    command: server /data --console-address ":9001"
+      - rustfs_data_0:/data/rustfs0
+      - rustfs_data_1:/data/rustfs1
+      - rustfs_data_2:/data/rustfs2
+      - rustfs_data_3:/data/rustfs3
+      - rustfs_logs:/app/logs
+    networks:
+      - kltn_network
+
+  minio-volume-permission:
+    image: alpine:3.22
+    restart: "no"
+    volumes:
+      - rustfs_data_0:/data0
+      - rustfs_data_1:/data1
+      - rustfs_data_2:/data2
+      - rustfs_data_3:/data3
+      - rustfs_logs:/logs
+    command: >
+      sh -c "chown -R 10001:10001 /data0 /data1 /data2 /data3 /logs &&
+      echo 'RustFS volume permissions fixed'"
+    networks:
+      - kltn_network
+
+  minio-init:
+    image: amazon/aws-cli:2.37.7
+    restart: "no"
+    depends_on:
+      minio:
+        condition: service_started
+    environment:
+      AWS_ACCESS_KEY_ID: ${MINIO_ACCESS_KEY:-smartadmin}
+      AWS_SECRET_ACCESS_KEY: ${MINIO_SECRET_KEY:-SmartMinio@123456}
+      AWS_DEFAULT_REGION: us-east-1
+      AWS_EC2_METADATA_DISABLED: "true"
+      MINIO_BUCKET_NAME: ${MINIO_BUCKET_NAME:-smart-recruitment-files}
+    entrypoint: ["/bin/sh", "-ec"]
+    command:
+      - |
+        for attempt in $(seq 1 30); do
+          if aws s3api head-bucket --bucket "$${MINIO_BUCKET_NAME}" --endpoint-url http://minio:9000 >/dev/null 2>&1; then
+            echo "Object-storage bucket is ready: $${MINIO_BUCKET_NAME}"
+            exit 0
+          fi
+          if aws s3api create-bucket --bucket "$${MINIO_BUCKET_NAME}" --endpoint-url http://minio:9000 >/dev/null 2>&1; then
+            echo "Created object-storage bucket: $${MINIO_BUCKET_NAME}"
+            exit 0
+          fi
+          sleep 2
+        done
+        echo "Could not connect to object storage or create bucket: $${MINIO_BUCKET_NAME}" >&2
+        exit 1
     networks:
       - kltn_network
 
@@ -100,9 +161,9 @@ services:
 
       Minio__Endpoint: minio:9000
       Minio__PublicEndpoint: localhost:9000
-      Minio__AccessKey: smartadmin
-      Minio__SecretKey: SmartMinio@123456
-      Minio__BucketName: smart-recruitment-files
+      Minio__AccessKey: ${MINIO_ACCESS_KEY:-smartadmin}
+      Minio__SecretKey: ${MINIO_SECRET_KEY:-SmartMinio@123456}
+      Minio__BucketName: ${MINIO_BUCKET_NAME:-smart-recruitment-files}
       Minio__UseSSL: "false"
 
     ports:
@@ -120,8 +181,8 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_started
-      minio:
-        condition: service_started
+      minio-init:
+        condition: service_completed_successfully
     networks:
       - kltn_network
 
@@ -160,6 +221,12 @@ networks:
 
 volumes:
   postgres_data:
+  # Legacy MinIO volume retained so any existing local objects are not removed.
   minio_data:
+  rustfs_data_0:
+  rustfs_data_1:
+  rustfs_data_2:
+  rustfs_data_3:
+  rustfs_logs:
   frontend_node_modules:
   frontend_next_cache:
