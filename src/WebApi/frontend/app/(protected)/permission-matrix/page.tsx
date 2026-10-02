@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getAuthToken, refreshIdentity } from "@/lib/auth-provider";
+import { getAuthToken, redirectToLogin, refreshIdentity } from "@/lib/auth-provider";
 import { loadIdentity } from "@/lib/access-control-provider";
 import { hasPermission } from "@/lib/permissions";
 import { toast } from "sonner";
@@ -77,6 +77,10 @@ export default function PermissionMatrixPage() {
   }, [identity]);
 
   useEffect(() => {
+    if (!getAuthToken()) {
+      redirectToLogin();
+      return;
+    }
     void refreshIdentity().then(() => setIdentity(loadIdentity()));
   }, []);
 
@@ -85,9 +89,17 @@ export default function PermissionMatrixPage() {
     setError(null);
     try {
       const token = getAuthToken();
+      if (!token) {
+        redirectToLogin();
+        return;
+      }
       const res = await fetch("/api/dotnet/roleclaims/matrix", {
-        headers: { Authorization: `Bearer ${token ?? ""}`, Accept: "application/json" },
+        headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
       });
+      if (res.status === 401) {
+        redirectToLogin();
+        return;
+      }
       if (!res.ok) {
         const text = await res.text();
         let msg = `HTTP ${res.status}`;
@@ -162,11 +174,19 @@ export default function PermissionMatrixPage() {
     setSaving(true);
     try {
       const token = getAuthToken();
+      if (!token) {
+        redirectToLogin();
+        return;
+      }
       const res = await fetch("/api/dotnet/roleclaims/matrix", {
         method: "PUT",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token ?? ""}` },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ Matrix: draft }),
       });
+      if (res.status === 401) {
+        redirectToLogin();
+        return;
+      }
       if (!res.ok) {
         const text = await res.text();
         let msg = `HTTP ${res.status}`;

@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { Calendar } from "@/components/ui/calendar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -160,6 +161,9 @@ function CandidateDashboard() {
   const [jobTitles, setJobTitles] = useState<Record<number, string>>({});
   const [notifications, setNotifications] = useState<DashboardNotification[]>([]);
   const [notificationRefresh, setNotificationRefresh] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const [retryTick, setRetryTick] = useState(0);
   const { count: savedCount } = useBookmarks();
 
   const apiFetch = useCallback((url: string) => fetchDashboardApi(url), []);
@@ -174,6 +178,13 @@ function CandidateDashboard() {
         apiFetch("/api/dotnet/Notifications"),
       ]);
 
+      // Toàn bộ nguồn chính fail (mạng/401...) → báo lỗi thay vì hiện số 0.
+      if (!donRes && !hsRes && !pqRes && !tinRes) {
+        setLoadError(true);
+        setLoading(false);
+        return;
+      }
+      setLoadError(false);
       if (donRes && ok(donRes)) {
         const items = extractArray(donRes).map((v: unknown) => {
           const r = v as Record<string, unknown>;
@@ -237,8 +248,9 @@ function CandidateDashboard() {
       } catch {
         setCvCount(null);
       }
+      setLoading(false);
     })();
-  }, [apiFetch, notificationRefresh]);
+  }, [apiFetch, notificationRefresh, retryTick]);
 
   const profileCompletion = getProfileCompletion(profile);
 
@@ -275,8 +287,25 @@ function CandidateDashboard() {
         </CardContent>
       </Card>
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        {[
+      {loadError ? (
+        <AdminErrorState
+          message="Không tải được dữ liệu dashboard. Vui lòng thử lại."
+          onRetry={() => { setLoading(true); setLoadError(false); setRetryTick((value) => value + 1); }}
+        />
+      ) : (
+        <>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {loading
+            ? Array.from({ length: 4 }, (_, index) => (
+                <Card key={index} className="h-full border-border/80 shadow-sm">
+                  <CardContent className="p-5">
+                    <Skeleton className="h-3 w-24" />
+                    <Skeleton className="mt-4 h-9 w-16" />
+                    <Skeleton className="mt-2 h-3 w-28" />
+                  </CardContent>
+                </Card>
+              ))
+            : [
           { label: "CV của bạn", value: cvCount ?? "—", note: "Quản lý CV", icon: FileText, href: "/CV" },
           { label: "Sẵn sàng ứng tuyển", value: appliedCount, note: "Theo dõi trạng thái", icon: Send, href: "/viec-lam/da-ung-tuyen" },
           { label: "Việc phù hợp với bạn", value: matchCount, note: "Adam đã tìm thấy", icon: TrendingUp, href: "/viec-lam/phu-hop" },
@@ -295,7 +324,7 @@ function CandidateDashboard() {
             </Card>
           </Link>
         ))}
-      </div>
+        </div>
 
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1.35fr)_minmax(300px,.65fr)]">
         <div className="space-y-6">
@@ -310,7 +339,20 @@ function CandidateDashboard() {
               <Link href="/viec-lam/da-ung-tuyen" className="shrink-0 text-xs font-medium text-primary hover:underline">Xem tất cả</Link>
             </CardHeader>
             <CardContent className="p-0">
-              {recentApplied.length === 0 ? (
+              {loading ? (
+                <div className="space-y-4 px-5 py-5 sm:px-6">
+                  {Array.from({ length: 3 }, (_, index) => (
+                    <div key={index} className="flex items-center gap-3">
+                      <Skeleton className="size-9 rounded-xl" />
+                      <div className="flex-1 space-y-2">
+                        <Skeleton className="h-4 w-3/4" />
+                        <Skeleton className="h-3 w-24" />
+                      </div>
+                      <Skeleton className="h-6 w-16" />
+                    </div>
+                  ))}
+                </div>
+              ) : recentApplied.length === 0 ? (
                 <div className="px-5 py-10 text-center sm:px-6">
                   <Send className="mx-auto size-8 text-muted-foreground/50" />
                   <p className="mt-3 text-sm text-muted-foreground">Chưa có đơn ứng tuyển nào.</p>
@@ -420,6 +462,8 @@ function CandidateDashboard() {
           </Card>
         </div>
       </div>
+        </>
+      )}
     </AdminPageLayout>
   );
 }
@@ -480,8 +524,9 @@ function RecruiterControlCenter() {
 
   const apiFetch = useCallback((url: string) => fetchDashboardApi(url), []);
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async (silent = false) => {
+    // Refresh ngầm (interval/focus) không bật loading — tránh flash toàn trang mỗi 30s.
+    if (!silent) setLoading(true);
     setErr("");
     try {
       const [jobRes, donRes] = await Promise.all([
@@ -544,7 +589,7 @@ function RecruiterControlCenter() {
 
   useEffect(() => {
     const refreshWhenActive = () => {
-      if (document.visibilityState === "visible") void load();
+      if (document.visibilityState === "visible") void load(true);
     };
     const interval = window.setInterval(refreshWhenActive, 30_000);
     window.addEventListener("focus", refreshWhenActive);

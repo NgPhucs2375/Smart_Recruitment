@@ -15,7 +15,7 @@ import { getNavigableRoute, type NavigablePage } from "@/components/navigation/n
 import {
   CV_FOCUS_SECTIONS,
   getCvFocusSectionLabel,
-  requestCvSectionFocus,
+  requestCvSectionsFocus,
   type CvFocusSection,
 } from "@/features/ai-cv/cv-focus";
 import {
@@ -93,10 +93,14 @@ const pageSchema = z.object({
   ]).describe("Page key trong danh sách route được phép. Không truyền URL.")
 });
 
-const focusSectionSchema = z.object({
-  section: z.enum([...CV_FOCUS_SECTIONS, "skill"] as [string, ...string[]]).describe(
-    "Section cần đưa vào tầm nhìn: contact, experience, education, skills (hoặc skill), projects hoặc certificates.",
-  ),
+const focusSectionsSchema = z.object({
+  sections: z
+    .array(z.enum([...CV_FOCUS_SECTIONS, "skill"] as [string, ...string[]]))
+    .min(1)
+    .max(3)
+    .describe(
+      "Tối đa 3 section cần đưa vào tầm nhìn: contact, experience, education, skills (hoặc skill), projects hoặc certificates. Section quan trọng nhất đặt đầu tiên.",
+    ),
 });
 
 export function useGlobalCvAssistant({ enabled = true }: { enabled?: boolean } = {}) {
@@ -152,20 +156,22 @@ export function useGlobalCvAssistant({ enabled = true }: { enabled?: boolean } =
 
   useFrontendTool(
     {
-      name: "focusSection",
+      name: "focusSections",
       description:
-        "Đưa một section CV vào tầm nhìn của user để Adam chỉ đúng phần đang thiếu hoặc yếu. " +
-        "Tool sẽ tự scroll tới section, highlight rõ trong khoảng 2-3 giây rồi fade dần. " +
-        "Dùng sau khi phân tích CV và chỉ gọi với section cụ thể, không dùng thay cho câu trả lời nhận xét.",
+        "Đưa tối đa 3 section CV vào tầm nhìn của user để Adam chỉ đúng các phần đang thiếu hoặc yếu. " +
+        "Tool sẽ scroll tới section đầu tiên và highlight đồng thời các section trong khoảng 2-3 giây rồi fade dần. " +
+        "BẮT BUỘC gọi sau khi phân tích CV nếu vừa chỉ ra điểm yếu, thiếu sót hoặc đề xuất bổ sung " +
+        "cho một hoặc nhiều section, kể cả khi chưa sửa dữ liệu. Nếu nói về nhiều mục, truyền chúng trong một lần gọi. " +
+        "Không chỉ mô tả bằng text rồi bỏ qua focus; tool này không thay cho câu trả lời nhận xét.",
       agentId: "default",
-      parameters: focusSectionSchema,
+      parameters: focusSectionsSchema,
       available: enabled && isEditor,
-      handler: async ({ section }) => {
-        const normalizedSection = section === "skill" ? "skills" : section;
-        const label = getCvFocusSectionLabel(normalizedSection as CvFocusSection);
-        if (!isEditor) return `Chưa thể focus ${label} vì user chưa mở trình soạn CV.`;
-        requestCvSectionFocus(normalizedSection as CvFocusSection);
-        return `Đã đưa phần ${label} vào tầm nhìn và highlight để user kiểm tra.`;
+      handler: async ({ sections }) => {
+        const normalizedSections = [...new Set(sections.map((section) => section === "skill" ? "skills" : section))] as CvFocusSection[];
+        const labels = normalizedSections.map((section) => getCvFocusSectionLabel(section));
+        if (!isEditor) return `Chưa thể focus ${labels.join(", ")} vì user chưa mở trình soạn CV.`;
+        requestCvSectionsFocus(normalizedSections);
+        return `Đã đưa ${labels.join(", ")} vào tầm nhìn và highlight để user kiểm tra.`;
       },
     },
     [enabled, isEditor],

@@ -1,8 +1,10 @@
 using Application.Interfaces;
+using Application.Features.KetQuaPhuHop.Cache;
 using Application.Wrappers;
 using Domain.Enums;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Distributed;
 
 namespace Application.Features.KetQuaPhuHop.Queries.SuggestCandidatesForJob;
 
@@ -27,7 +29,8 @@ public class SuggestedCandidateViewModel
 
 public class GetSuggestedCandidatesForJobQueryHandler(
     IApplicationDbContext context,
-    ICurrentNguoiDungService currentNguoiDungService)
+    ICurrentNguoiDungService currentNguoiDungService,
+    IDistributedCache cache)
     : IRequestHandler<GetSuggestedCandidatesForJobQuery, Response<List<SuggestedCandidateViewModel>>>
 {
     private static readonly Dictionary<MucDoYC, float> MucDoWeights = new()
@@ -57,6 +60,33 @@ public class GetSuggestedCandidatesForJobQueryHandler(
                 cancellationToken);
         if (job == null)
             return new Response<List<SuggestedCandidateViewModel>>("Không tìm thấy tin tuyển dụng thuộc doanh nghiệp của bạn.");
+
+        var jobVersion = await RecommendationCache.GetVersionAsync(
+            cache,
+            RecommendationCache.JobsVersionKey,
+            cancellationToken);
+        var candidateVersion = await RecommendationCache.GetVersionAsync(
+            cache,
+            RecommendationCache.CandidatePoolVersionKey,
+            cancellationToken);
+        var cacheKey = RecommendationCache.CandidateRecommendationsKey(
+            current.DoanhNghiepId.Value,
+            job.Id,
+            jobVersion,
+            candidateVersion,
+            Math.Clamp(request.TopN, 1, 20));
+        var cached = await RecommendationCache.GetAsync<List<SuggestedCandidateViewModel>>(
+            cache,
+            cacheKey,
+            cancellationToken);
+        if (cached != null)
+        {
+            return new Response<List<SuggestedCandidateViewModel>>(
+                cached,
+                cached.Count == 0
+                    ? "Chưa tìm thấy ứng viên phù hợp với tin tuyển dụng này."
+                    : $"Tìm thấy {cached.Count} ứng viên phù hợp.");
+        }
 
         var requirements = job.KyNangTinTuyenDungs
             .Where(x => x.KyNang != null && !string.IsNullOrWhiteSpace(x.KyNang.TenKyNang))
@@ -134,6 +164,7 @@ public class GetSuggestedCandidatesForJobQueryHandler(
             .ThenBy(x => x.HoTen)
             .Take(Math.Clamp(request.TopN, 1, 20))
             .ToList();
+        await RecommendationCache.SetAsync(cache, cacheKey, top, cancellationToken);
         return new Response<List<SuggestedCandidateViewModel>>(top,
             top.Count == 0 ? "Chưa tìm thấy ứng viên phù hợp với tin tuyển dụng này." : $"Tìm thấy {top.Count} ứng viên phù hợp.");
     }

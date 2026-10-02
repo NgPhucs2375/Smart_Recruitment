@@ -71,6 +71,9 @@ export type AssistantItemRef = {
 };
 
 export type AssistantSnapshot = {
+  source: "current_cv_editor";
+  saved: false;
+  cvId: null;
   contact: Record<string, string>;
   counts: Record<CvSectionKey, number>;
   /** id + tên gợi nhớ + toàn bộ field: agent dùng id khi SỬA, đọc fields khi viết lại nội dung. */
@@ -120,6 +123,9 @@ export function buildAssistantSnapshot(data: CvFormData): AssistantSnapshot {
     chungChi: data.chungChi.map((it) => ({ id: it.id, label: it.tenChungChi, fields: itemFields(it) })),
   } satisfies Record<CvSectionKey, AssistantItemRef[]>;
   return {
+    source: "current_cv_editor",
+    saved: false,
+    cvId: null,
     contact,
     counts,
     items,

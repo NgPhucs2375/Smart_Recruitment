@@ -1,10 +1,12 @@
 using Application.Exceptions;
+using Application.Features.KetQuaPhuHop.Cache;
 using Application.Interfaces;
 using Application.Services.StateMachineTinTuyenDung;
 using Application.Wrappers;
 using Domain.Enums;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Distributed;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -26,7 +28,8 @@ namespace Application.Features.TinTuyenDung.Commands.FireTinTuyenDungTrigger
         IApplicationDbContext context,
         ICurrentNguoiDungService current,
         ITinTuyenDungWorkflowService workflow,
-        ITinTuyenDungFunnelService funnel)
+        ITinTuyenDungFunnelService funnel,
+        IDistributedCache cache)
         : IRequestHandler<FireTinTuyenDungTriggerCommand, Response<int>>
     {
         public async Task<Response<int>> Handle(
@@ -108,6 +111,7 @@ namespace Application.Features.TinTuyenDung.Commands.FireTinTuyenDungTrigger
                     // và báo rõ lỗi — không mất trạng thái gửi duyệt của HR.
                     context.TinTuyenDungs.Update(entity);
                     await context.SaveChangesAsync(cancellationToken);
+                    await RecommendationCache.InvalidateJobsAsync(cache, cancellationToken);
                     return new Response<int>(
                         data: entity.Id,
                         message: $"Tin đã gửi duyệt nhưng sàng lọc tự động gặp lỗi: {ex.Message}");
@@ -119,6 +123,7 @@ namespace Application.Features.TinTuyenDung.Commands.FireTinTuyenDungTrigger
             context.TinTuyenDungs.Update(entity);
             await context.SaveChangesAsync(
                 cancellationToken);
+            await RecommendationCache.InvalidateJobsAsync(cache, cancellationToken);
 
             var persistedState = await context.TinTuyenDungs
                 .AsNoTracking()

@@ -9,7 +9,7 @@ import type {
   CrudSort,
 } from "@refinedev/core";
 // v2: bearer token auth via Authorization header (replaced cookie-based fetcher)
-import { getAuthToken } from "./auth-provider";
+import { getAuthToken, redirectToLogin } from "./auth-provider";
 
 // ─── Response types from .NET Clean Architecture backend ─────────────────────
 
@@ -70,6 +70,7 @@ async function safeParseJson(res: Response): Promise<unknown> {
 
 async function processErrorResponse(res: Response): Promise<never> {
   if (res.status === 401) {
+    redirectToLogin();
     return Promise.reject(
       Object.assign(new Error("Unauthorized"), { statusCode: 401 })
     );

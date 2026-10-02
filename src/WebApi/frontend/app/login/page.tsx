@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Mail, Lock, ArrowRight, Loader2, UserRound, Eye, EyeOff, Briefcase, Sparkles, Users } from "lucide-react";
 import { sanitizeNext, type PortalKind } from "@/lib/portal-roles";
+import { GoogleOAuthProvider } from "@react-oauth/google";
 
 function LoginContent() {
   const [tab, setTab] = useState<"password" | "magic">("password");
@@ -100,7 +101,7 @@ function LoginContent() {
       </div>
 
       <Link
-        href="/tao-cv"
+        href="/register?next=%2Ftao-cv"
         className="mt-4 inline-flex max-w-md items-center gap-2 rounded-full border border-white/20 bg-white/[0.06] px-5 py-2.5 text-sm font-semibold text-white backdrop-blur-sm transition hover:border-white/40 hover:bg-white/[0.10]"
       >
         Tạo CV miễn phí <ArrowRight className="size-4" aria-hidden="true" />
@@ -155,11 +156,13 @@ function LoginContent() {
                 autoComplete="username"
                 placeholder="name@company.com"
                 {...register("email")}
+                aria-invalid={!!errors.email}
+                aria-describedby="email-error"
                 disabled={isPending}
                 className="h-11 rounded-xl border-input bg-white pl-10 text-sm transition focus-visible:ring-1 focus-visible:ring-primary"
               />
             </div>
-            {errors.email && <p className="text-xs text-red-500">{errors.email.message}</p>}
+            {errors.email && <p id="email-error" role="alert" className="text-xs text-red-500">{errors.email.message}</p>}
           </div>
 
           <div className="space-y-1.5">
@@ -179,6 +182,8 @@ function LoginContent() {
                 autoComplete="current-password"
                 placeholder="••••••••"
                 {...register("password")}
+                aria-invalid={!!errors.password}
+                aria-describedby="password-error"
                 disabled={isPending}
                 className="h-11 rounded-xl border-input bg-white pl-10 pr-10 text-sm transition focus-visible:ring-1 focus-visible:ring-primary"
               />
@@ -193,7 +198,7 @@ function LoginContent() {
                 {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
               </button>
             </div>
-            {errors.password && <p className="text-xs text-red-500">{errors.password.message}</p>}
+            {errors.password && <p id="password-error" role="alert" className="text-xs text-red-500">{errors.password.message}</p>}
           </div>
 
           <div className="flex items-center gap-2 pt-0.5">
@@ -257,7 +262,9 @@ function LoginContent() {
 export default function LoginPage() {
   return (
     <Suspense fallback={<div className="min-h-dvh bg-background" />}>
-      <LoginContent />
+      <GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? ""}>
+        <LoginContent />
+      </GoogleOAuthProvider>
     </Suspense>
   );
 }

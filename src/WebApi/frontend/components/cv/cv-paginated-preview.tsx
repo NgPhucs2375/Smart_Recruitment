@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { ComponentType } from "react";
 import type { ResumeData } from "@/features/tao-cv/resume-data";
+import { focusCvSectionsInDom, getCvFocusEventName, type CvFocusSection } from "@/features/ai-cv/cv-focus";
 
 const A4_RATIO = 297 / 210;
 
@@ -32,6 +33,18 @@ export function CvPaginatedPreview({ resume, Component, templateKey, onPageCount
   const lastCountRef = useRef<number>(1);
   const [ranges, setRanges] = useState<PageRange[] | null>(null);
 
+  useEffect(() => {
+    const onFocus = (event: Event) => {
+      const sections = (event as CustomEvent<{ sections?: unknown }>).detail?.sections;
+      if (Array.isArray(sections)) {
+        focusCvSectionsInDom(sections.filter((section): section is CvFocusSection => typeof section === "string"));
+      }
+    };
+
+    window.addEventListener(getCvFocusEventName(), onFocus);
+    return () => window.removeEventListener(getCvFocusEventName(), onFocus);
+  }, []);
+
   const paginate = useCallback(() => {
     const measure = measureRef.current;
     if (!measure) return;
@@ -57,7 +70,10 @@ export function CvPaginatedPreview({ resume, Component, templateKey, onPageCount
 
     const pages: PageRange[] = [];
     let start = 0;
-    let startTop = tops[0] ?? 0;
+    // Page one includes the template header and top padding, so measure from
+    // the actual top of the paper. Subtracting the first item's top gave page
+    // one extra space and allowed long content to run below the A4 boundary.
+    let startTop = 0;
     for (let i = 0; i < items.length; i += 1) {
       // Continuation sheets hide the repeated header, so they gain a little
       // room; first-page capacity stays strict so page 1 never overflows.
@@ -87,43 +103,47 @@ export function CvPaginatedPreview({ resume, Component, templateKey, onPageCount
       raf = window.requestAnimationFrame(() => paginate());
     };
     window.addEventListener("resize", schedule);
+    const observer = new ResizeObserver(schedule);
+    const measuredPaper = measureRef.current?.firstElementChild;
+    if (measuredPaper) observer.observe(measuredPaper);
     document.fonts?.ready.then(() => paginate()).catch(() => undefined);
     return () => {
       window.cancelAnimationFrame(raf);
       window.removeEventListener("resize", schedule);
+      observer.disconnect();
     };
   }, [paginate]);
 
-  // Apply the computed ranges to the visible sheets: hide out-of-range
-  // items and the repeated header on continuation sheets.
+  // The template is expensive and the visible pages are display-only. Clone
+  // the measured DOM instead of mounting the React template once per page.
+  // This keeps one React render for the whole document, even for long CVs.
   useLayoutEffect(() => {
     const host = pagesRef.current;
     if (!host || !ranges) return;
-    Array.from(host.children).forEach((sheet, page) => {
-      const range = ranges[page];
-      if (!range) return;
-      const [start, end] = range;
-      const paper = sheet.firstElementChild as HTMLElement | null;
-      if (!paper) return;
+    const measuredPaper = measureRef.current?.firstElementChild as HTMLElement | null;
+    if (!measuredPaper) return;
+
+    host.replaceChildren();
+    ranges.forEach(([start, end], page) => {
+      const sheet = document.createElement("div");
+      sheet.className = "cv-sheet";
+      sheet.dataset.page = String(page + 1);
+
+      const paper = measuredPaper.cloneNode(true) as HTMLElement;
       paper.querySelectorAll<HTMLElement>(".cv-section-item").forEach((el, i) => {
         el.style.display = i >= start && i < end ? "" : "none";
       });
       const header = paper.querySelector<HTMLElement>("header");
       if (header) header.style.display = page === 0 ? "" : "none";
+
+      sheet.appendChild(paper);
+      host.appendChild(sheet);
     });
   }, [ranges, resume, templateKey]);
 
-  const visible: PageRange[] = ranges ?? [[0, Number.MAX_SAFE_INTEGER]];
-
   return (
-    <div className="cv-pages-root" data-cv-document>
-      <div ref={pagesRef} className="cv-pages cv-preview-crossfade" key={templateKey}>
-        {visible.map((_, page) => (
-          <div key={`${templateKey}-p${page}`} className="cv-sheet" data-page={page + 1}>
-            <Component data={resume} />
-          </div>
-        ))}
-      </div>
+    <div className="cv-pages-root" data-cv-document data-cv-surface="preview">
+      <div ref={pagesRef} className="cv-pages cv-preview-crossfade" />
       <div ref={measureRef} className="cv-measure" aria-hidden="true">
         <Component data={resume} />
       </div>

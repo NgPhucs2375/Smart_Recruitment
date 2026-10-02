@@ -27,7 +27,7 @@ export function MagicLinkSentSuccess({
         onClick={onResend}
         className="mt-4 h-9 text-xs"
       >
-        Gửi lại liên kết khác
+        Dùng email khác
       </Button>
     </div>
   );

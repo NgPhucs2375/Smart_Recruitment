@@ -225,7 +225,26 @@ async function attemptRefresh(): Promise<boolean> {
 // ─── Exported helpers ─────────────────────────────────────────────────────────
 
 export function getAuthToken(): string | null {
-  return getToken();
+  const token = getToken();
+  if (!token) return null;
+
+  const exp = parseJwtExp(token);
+  if (exp !== null && exp <= Date.now()) {
+    clearAuth();
+    return null;
+  }
+  return token;
+}
+
+/** End the local session and force unauthenticated pages to the correct login portal. */
+export function redirectToLogin(): void {
+  if (typeof window === "undefined") return;
+
+  const target = loginRouteForPortal();
+  clearAuth();
+  if (window.location.pathname !== target) {
+    window.location.replace(target);
+  }
 }
 
 function parseJwtExp(token: string): number | null {
@@ -251,14 +270,21 @@ export async function getValidToken(): Promise<string | null> {
   if (exp !== null && exp - Date.now() > 60_000) return token;
   // Hết hạn hoặc không đọc được exp → thử refresh
   const refreshed = await attemptRefresh();
-  return refreshed ? getToken() : null;
+  if (!refreshed) {
+    clearAuth();
+    return null;
+  }
+  return getToken();
 }
 
-/** Re-fetch /me and refresh the cached identity + permissions in localStorage.
- *  Call after any server-side permission change (e.g. saving the permission matrix). */
-export async function refreshIdentity(): Promise<void> {
+/** Re-fetch /me and refresh the cached identity + permissions in localStorage. */
+export async function refreshIdentity(): Promise<boolean> {
   const token = await getValidToken();
-  if (token) await fetchAndSaveMe(token);
+  // khong co access token -> tra false
+  if(!token) return false;
+
+  const me = await fetchAndSaveMe(token);
+  return me !== null;
 }
 
 /** Force a new JWT after a server-side role change. */
@@ -425,7 +451,7 @@ export const authProvider: AuthProvider = {
     if (error?.statusCode === 401) {
       const refreshed = await attemptRefresh();
       if (refreshed) return { error };
-      clearAuth();
+      redirectToLogin();
       return {
         logout: true,
         redirectTo: loginRouteForPortal(),

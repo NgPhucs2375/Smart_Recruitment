@@ -2,15 +2,16 @@
 
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { useSearchParams, usePathname } from "next/navigation";
-import { FileText, Save, Eye, Pencil, Plus, Trash2, Printer, Check, ListChecks, Sparkles, Upload, LayoutTemplate, UserRound, Download, ZoomIn, ZoomOut } from "lucide-react";
+import { Eye, Pencil, ZoomIn, ZoomOut, Maximize2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { CvForm } from "./cv-form";
 import { CvPreview } from "./cv-preview";
 import { TemplatePicker } from "./template-selector";
 import { CvImportDialog } from "./cv-import-dialog";
+import { CvBuilderToolbar } from "./cv-builder-toolbar";
+import { CvCompletion } from "./cv-completion";
 import { defaultCvData } from "@/features/tao-cv/constants";
 import { resolveTemplateId, isKnownTemplateId } from "@/features/tao-cv/template-registry";
 import type { CvFormData, CvVersionVm, CvVm, HoSoVm } from "@/lib/types";
@@ -29,8 +30,6 @@ import { useCvAssistant } from "@/hooks/use-cv-assistant";
 
 const DRAFT_KEY = "hireai:manual-cv-draft";
 const AUTOSAVE_DELAY_MS = 1500;
-
-type SaveStatus = "saving" | "dirty" | "saved";
 
 function formatClock(d: Date | null): string {
   if (!d) return "";
@@ -77,54 +76,27 @@ function isBlankWorkingCopy(d: CvFormData): boolean {
  * Mirrors the header buttons — same handlers, no duplicated logic.
  */
 export function PreviewActionBar({
-  status,
-  savedAt,
-  draftAt,
+  pageCount,
   zoom,
   onZoom,
-  onSave,
-  onExport,
-  saving,
-  exportingPdf,
   disabled,
 }: {
-  status: SaveStatus;
-  savedAt: Date | null;
-  draftAt: Date | null;
+  pageCount: number;
   zoom: number;
   onZoom: (next: number) => void;
-  onSave: () => void;
-  onExport: () => void;
-  saving: boolean;
-  exportingPdf: boolean;
   disabled: boolean;
 }) {
-  const dot =
-    status === "saving" ? "bg-primary" : status === "dirty" ? "bg-bronze" : "bg-teal";
-  const label =
-    status === "saving"
-      ? "Đang lưu..."
-      : status === "dirty"
-        ? draftAt
-          ? `Chưa lưu • Nháp ${formatClock(draftAt)}`
-          : "Chưa lưu"
-        : savedAt
-          ? `Đã lưu ${formatClock(savedAt)}`
-          : "Đã lưu";
   return (
     <div className="cv-preview-bar">
-      <p className="flex min-w-0 items-center gap-1.5 text-xs font-medium text-muted-foreground" aria-live="polite">
-        <span className={`size-2 shrink-0 rounded-full ${dot}`} aria-hidden="true" />
-        <span className="truncate">{label}</span>
-      </p>
+      <p className="text-xs font-medium text-muted-foreground" aria-live="polite">{pageCount} trang</p>
       <div className="flex shrink-0 items-center gap-1.5">
-        <div className="flex items-center rounded-full border border-border bg-card" role="group" aria-label="Phóng to preview">
+        <div className="flex items-center rounded-md border border-border bg-card" role="group" aria-label="Phóng to preview">
           <button
             type="button"
             onClick={() => onZoom(Math.max(70, zoom - 10))}
             disabled={disabled || zoom <= 70}
             aria-label="Thu nhỏ preview"
-            className="flex size-7 items-center justify-center rounded-full text-muted-foreground transition hover:bg-muted disabled:opacity-40"
+            className="flex size-7 items-center justify-center rounded-md text-muted-foreground transition hover:bg-muted disabled:opacity-40"
           >
             <ZoomOut className="size-3.5" />
           </button>
@@ -136,70 +108,34 @@ export function PreviewActionBar({
             onClick={() => onZoom(Math.min(130, zoom + 10))}
             disabled={disabled || zoom >= 130}
             aria-label="Phóng to preview"
-            className="flex size-7 items-center justify-center rounded-full text-muted-foreground transition hover:bg-muted disabled:opacity-40"
+            className="flex size-7 items-center justify-center rounded-md text-muted-foreground transition hover:bg-muted disabled:opacity-40"
           >
             <ZoomIn className="size-3.5" />
           </button>
         </div>
-        <Button type="button" variant="outline" size="sm" className="h-8 rounded-full text-xs" onClick={onExport} disabled={disabled || exportingPdf}>
-          <Printer className="mr-1 size-3.5" />
-          {exportingPdf ? "Đang xuất..." : "Xuất PDF"}
-        </Button>
-        <Button type="button" size="sm" className="h-8 rounded-full text-xs" onClick={onSave} disabled={disabled || saving}>
-          <Save className="mr-1 size-3.5" />
-          {saving ? "Đang lưu..." : "Lưu nháp"}
-        </Button>
+        <button
+          type="button"
+          aria-label="Mở xem trước toàn màn hình"
+          disabled={disabled}
+          onClick={(event) => void event.currentTarget.closest(".cv-preview-frame")?.requestFullscreen?.()}
+          className="flex size-8 items-center justify-center rounded-md text-muted-foreground transition hover:bg-muted hover:text-foreground disabled:opacity-40"
+        >
+          <Maximize2 className="size-4" />
+        </button>
       </div>
     </div>
   );
 }
 
-export function ChecklistCard({ items, doneCount }: { items: { label: string; done: boolean }[]; doneCount: number }) {
+function CvBuilderSkeleton() {
   return (
-    <div className="rounded-3xl border border-border bg-card p-5 shadow-sm">
-      <div className="flex items-center justify-between gap-2">
-        <p className="flex items-center gap-2 text-sm font-semibold text-foreground">
-          <ListChecks className="size-4 text-primary" /> Checklist hoàn thiện
-        </p>
-        <span className="rounded-full bg-teal/10 px-2.5 py-1 text-xs font-bold text-primary">
-          {doneCount}/{items.length}
-        </span>
+    <div className="grid gap-6 xl:grid-cols-[44fr_56fr]" aria-label="Đang tải trình tạo CV" aria-busy="true">
+      <div className="space-y-3 rounded-xl border border-border bg-card p-5">
+        {[0, 1, 2, 3, 4].map((item) => <div key={item} className="h-14 animate-pulse rounded-lg bg-muted" />)}
       </div>
-      <ul className="mt-4 space-y-2">
-        {items.map((item) => (
-          <li key={item.label} className="flex items-center gap-2.5 text-sm">
-            <span
-              className={`cv-check-dot flex size-5 shrink-0 items-center justify-center rounded-full border transition ${
-                item.done ? "border-teal bg-teal text-white" : "border-border bg-muted text-transparent"
-              }`}
-              data-done={item.done}
-            >
-              <Check className="size-3" />
-            </span>
-            <span className={item.done ? "font-medium text-foreground" : "text-muted-foreground"}>{item.label}</span>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
-export function QualityCard({ progress, label, note }: { progress: number; label: string; note: string }) {
-  return (
-    <div className="rounded-3xl border border-border bg-card p-5 shadow-sm">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="flex items-center gap-2 text-sm font-semibold text-foreground">
-          <Sparkles className="size-4 text-teal" /> Chất lượng CV
-          <strong className="font-mono text-primary">{progress}%</strong>
-        </p>
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-navy px-3 py-1 text-xs font-semibold text-white">
-          <span className="size-1.5 rounded-full bg-teal" /> {label}
-        </span>
+      <div className="animate-pulse rounded-xl border border-border bg-muted p-6">
+        <div className="mx-auto aspect-[210/297] w-full max-w-md rounded-md bg-card" />
       </div>
-      <div className="mt-3 h-2 overflow-hidden rounded-full bg-muted">
-        <div className="h-full rounded-full bg-teal transition-all duration-300 ease-out" style={{ width: `${progress}%` }} />
-      </div>
-      <p className="mt-2.5 text-xs text-muted-foreground">{note}</p>
     </div>
   );
 }
@@ -252,27 +188,6 @@ export function TaoCvView() {
     selectCv: (id) => handleSelect(id),
   });
 
- function CvBuilderSkeleton() {
-  return (
-    <div className="grid gap-8 xl:grid-cols-[46fr_54fr]" aria-label="Đang tải trình tạo CV" aria-busy="true">
-      <div className="space-y-4">
-        {[0, 1, 2].map((i) => (
-          <div key={i} className="animate-pulse rounded-3xl border border-border bg-card p-5">
-            <div className="h-4 w-1/3 rounded bg-muted" />
-            <div className="mt-3 space-y-2">
-              <div className="h-9 rounded-xl bg-muted" />
-              <div className="h-9 rounded-xl bg-muted" />
-            </div>
-          </div>
-        ))}
-      </div>
-      <div className="animate-pulse rounded-3xl border border-border bg-card p-6">
-        <div className="mx-auto aspect-[210/297] w-full max-w-md rounded-lg bg-muted" />
-      </div>
-    </div>
-  );
-}
-
   // Pick a template without touching form content, and sync the choice
   // into ?template= so refresh/share keeps the selection (?cv= preserved).
   // Uses history.replaceState (not router.replace) so the URL updates
@@ -298,14 +213,6 @@ export function TaoCvView() {
     },
     [pathname, queryString],
   );
-
-  // Scroll to the first VISIBLE templates/AI block (mobile tabs + desktop
-  // column both render them; hidden ones are skipped).
-  const scrollToSection = (target: string) => {
-    const els = Array.from(document.querySelectorAll(`[data-scroll-target="${target}"]`));
-    const visible = els.find((el) => (el as HTMLElement).offsetParent !== null) as HTMLElement | undefined;
-    visible?.scrollIntoView({ behavior: "smooth", block: "start" });
-  };
 
   const loadAll = useCallback(async () => {
     const seq = loadSeqRef.current;
@@ -514,15 +421,18 @@ export function TaoCvView() {
     const draftOwner = (parsed.selectedId ?? null) as number | null;
     if (draftOwner !== selectedId) return;
     if (JSON.stringify(parsed.cvData) === JSON.stringify(cvData)) return;
-    setPendingDraft({
-      savedAt: typeof parsed.savedAt === "string" ? parsed.savedAt : new Date().toISOString(),
-      cvData: parsed.cvData,
-      selectedId: draftOwner,
-    });
-    if (typeof parsed.savedAt === "string" && parsed.savedAt) {
-      const t = new Date(parsed.savedAt);
-      if (!Number.isNaN(t.getTime())) setDraftAt(t);
-    }
+    const timer = window.setTimeout(() => {
+      setPendingDraft({
+        savedAt: typeof parsed.savedAt === "string" ? parsed.savedAt : new Date().toISOString(),
+        cvData: parsed.cvData!,
+        selectedId: draftOwner,
+      });
+      if (typeof parsed.savedAt === "string" && parsed.savedAt) {
+        const t = new Date(parsed.savedAt);
+        if (!Number.isNaN(t.getTime())) setDraftAt(t);
+      }
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [loading, loadError, cvData, selectedId]);
 
   const applyDraft = () => {
@@ -803,333 +713,105 @@ export function TaoCvView() {
     return { items, doneCount, label };
   }, [cvData, progress]);
 
-  const saveStatus: SaveStatus = saving ? "saving" : dirty ? "dirty" : "saved";
+  const saveLabel = loading
+    ? "Đang tải..."
+    : saving
+      ? "Đang lưu..."
+      : dirty
+        ? draftAt ? `Bản nháp lúc ${formatClock(draftAt)} · Chưa lưu` : "Chưa lưu thay đổi"
+        : lastSavedAt ? `Đã lưu lúc ${formatClock(lastSavedAt)}` : selectedId ? "Đã lưu" : "CV mới";
+
+  const preview = (
+    <div className="cv-preview-frame">
+      <PreviewActionBar pageCount={pageCount} zoom={zoom} onZoom={setZoom} disabled={loading} />
+      <div data-manual-cv-pdf style={{ zoom: `${zoom}%` } as CSSProperties}>
+        <CvPreview data={deferredCvData} onPageCount={setPageCount} />
+      </div>
+      {pageCount > 2 ? <p className="mt-3 border-t border-border px-3 pt-3 text-center text-xs text-amber-700 dark:text-amber-300">CV dài hơn 2 trang. Cân nhắc rút gọn nội dung.</p> : null}
+    </div>
+  );
 
   return (
-    <div className="cv-builder-print-host mx-auto w-full max-w-[1440px] space-y-5 px-4 py-6 sm:px-6 sm:py-8">
-      {/* Breadcrumb + save state */}
-      <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
-        <p className="flex items-center gap-1.5">
-          <FileText className="size-3.5 text-primary" />
-          Tạo CV <span className="text-muted-foreground">/</span> {selectedId ? "Chỉnh sửa CV" : "CV mới"}
-        </p>
-        <p className="flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1 font-medium">
-          <span className="size-1.5 rounded-full bg-teal" />
-          {loading ? "Đang tải..." : selectedId ? `CV #${selectedId}` : "Đang soạn"}
-        </p>
-      </div>
-
-      {/* Header */}
-      <div className="flex flex-col gap-5 rounded-[2rem] border border-border bg-card p-6 shadow-sm sm:p-8 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <p className="inline-flex items-center gap-2 rounded-full border border-teal/25 bg-teal/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-primary">
-            <span className="size-1.5 rounded-full bg-teal" /> Tạo CV thông minh
-          </p>
-          <h1 className="mt-3 text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
-            Tạo CV <span className="text-primary">chuyên nghiệp</span>
-          </h1>
-          <p className="mt-2 max-w-xl text-sm leading-6 text-muted-foreground">
-            Nhập thông tin từng mục, chọn mẫu yêu thích và xem trước trực tiếp.
-            Lưu về tài khoản của bạn bất cứ lúc nào, in PDF khi sẵn sàng.
-          </p>
-          <div className="mt-3 flex flex-wrap gap-2 text-xs">
-            <button
-              type="button"
-              onClick={() => scrollToSection("templates")}
-              className="inline-flex items-center gap-1 font-medium text-primary hover:text-primary hover:underline"
-            >
-              <LayoutTemplate className="h-3.5 w-3.5" />
-              Chọn mẫu CV
-            </button>
-            <span aria-hidden="true" className="text-muted-foreground">•</span>
-            <button
-              type="button"
-              onClick={fillFromHoSo}
-              disabled={!hoSo}
-              className="inline-flex items-center gap-1 font-medium text-primary hover:text-primary hover:underline disabled:opacity-50"
-            >
-              <UserRound className="h-3.5 w-3.5" />
-              Tạo từ hồ sơ
-            </button>
-          </div>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Button variant="outline" size="sm" className="rounded-full" onClick={handleNew}>
-            <Plus className="h-4 w-4 mr-1.5" />
-            CV mới
-          </Button>
-          <Button variant="outline" size="sm" className="rounded-full" onClick={fillFromHoSo} disabled={!hoSo}>
-            Đổ từ hồ sơ
-          </Button>
-          <Button variant="outline" size="sm" className="rounded-full" onClick={() => setImportOpen(true)}>
-            <Upload className="h-4 w-4 mr-1.5" />
-            Tải CV lên
-          </Button>
-          {selectedId && (
-            <Button variant="outline" size="sm" className="rounded-full" onClick={handleDelete}>
-              <Trash2 className="h-4 w-4 mr-1.5" />
-              Xóa
-            </Button>
-          )}
-          <Button size="sm" className="rounded-full" onClick={handleSave} disabled={saving || loading}>
-            <Save className="h-4 w-4 mr-1.5" />
-            {saving ? "Đang lưu..." : "Lưu CV"}
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="rounded-full"
-            onClick={() => void handleExportPdf()}
-            disabled={exportingPdf || loading}
-          >
-            <Printer className="h-4 w-4 mr-1.5" />
-            {exportingPdf ? "Đang xuất..." : "Xuất PDF"}
-          </Button>
-          <Button variant="outline" size="sm" className="rounded-full" onClick={handleExportJsonResume}>
-            <FileText className="h-4 w-4 mr-1.5" />
-            JSON Resume
-          </Button>
-        </div>
-      </div>
-
-      <CvImportDialog
-        open={importOpen}
-        onOpenChange={setImportOpen}
-        hoSoUngVienId={hoSo?.id ?? null}
-        onImported={handleImported}
-        onManualImported={handleManualImported}
+    <div className="cv-builder-print-host mx-auto min-h-dvh w-full max-w-[1440px] px-4 pb-8 sm:px-6">
+      <CvBuilderToolbar
+        title={cvData.tenFile}
+        onTitleChange={(tenFile) => setCvData((current) => ({ ...current, tenFile }))}
+        status={saveLabel}
+        cvList={cvList}
+        selectedId={selectedId}
+        templateId={cvData.templateId}
+        versions={versions}
+        onSelectCv={(id) => void handleSelect(id)}
+        onSelectTemplate={selectTemplate}
+        onSetDefault={(id) => void handleSetDefault(id)}
+        onNew={handleNew}
+        onImport={() => setImportOpen(true)}
+        onFillProfile={fillFromHoSo}
+        onExportJson={handleExportJsonResume}
+        onDownloadVersion={(id) => void handleDownloadStoredFile(id)}
+        onDownloadOriginal={() => void handleDownloadStoredFile(undefined, true)}
+        onDelete={() => void handleDelete()}
+        onExportPdf={() => void handleExportPdf()}
+        onSave={() => void handleSave()}
+        saving={saving}
+        disabled={loading || exportingPdf}
       />
 
-      {/* CV selector */}
-      {cvList.length > 0 && (
-        <div className="flex flex-wrap items-center gap-3 rounded-3xl border border-border bg-card px-4 py-3.5 shadow-sm">
-          <span className="text-sm font-medium text-muted-foreground">CV của tôi ({cvList.length}):</span>
-          <div className="flex flex-wrap gap-2">
-            {cvList.map((c) => (
-              <div key={c.id} className="flex items-center gap-1">
-                <Button
-                  variant={c.id === selectedId ? "default" : "outline"}
-                  size="sm"
-                  className="rounded-full"
-                  onClick={() => handleSelect(c.id)}
-                >
-                  {c.tenFile || `CV #${c.id}`}
-                  {c.isDefault ? " ★" : ""}
-                </Button>
-                {!c.isDefault && (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 rounded-full px-2 text-xs text-muted-foreground hover:text-primary"
-                    onClick={() => void handleSetDefault(c.id)}
-                    title="Đặt làm CV mặc định"
-                  >
-                    Đặt mặc định
-                  </Button>
-                )}
-              </div>
-            ))}
-          </div>
-          <div className="ml-auto flex items-center gap-2">
-            <span className="text-sm text-muted-foreground">Tên file:</span>
-            <Input
-              value={cvData.tenFile}
-              onChange={(e) => setCvData({ ...cvData, tenFile: e.target.value })}
-              placeholder="CV-Backend-2026"
-              className="w-[200px] rounded-full"
-            />
+      <CvImportDialog open={importOpen} onOpenChange={setImportOpen} hoSoUngVienId={hoSo?.id ?? null} onImported={handleImported} onManualImported={handleManualImported} />
+
+      {!loading && !loadError && pendingDraft ? (
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-muted/50 px-4 py-3" role="status">
+          <p className="text-sm text-foreground">Có bản nháp tự lưu lúc {formatClock(new Date(pendingDraft.savedAt))}.</p>
+          <div className="flex gap-2">
+            <Button type="button" variant="ghost" size="sm" onClick={discardDraft}>Bỏ qua</Button>
+            <Button type="button" size="sm" onClick={applyDraft}>Khôi phục</Button>
           </div>
         </div>
-      )}
-
-      {selectedId && versions.length > 0 && (
-        <div className="flex flex-wrap items-center gap-2 rounded-3xl border border-border bg-card px-4 py-3 shadow-sm">
-          <span className="mr-1 text-sm font-medium text-muted-foreground">Lịch sử:</span>
-          {versions.map((version) => (
-            <Button
-              key={version.id}
-              type="button"
-              variant="outline"
-              size="sm"
-              className="rounded-full"
-              onClick={() => void handleDownloadStoredFile(version.id)}
-            >
-              <Download className="mr-1.5 size-3.5" />
-              Bản {version.soPhienBan}
-            </Button>
-          ))}
-          {versions.some((version) => version.hasOriginal) && (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="rounded-full"
-              onClick={() => void handleDownloadStoredFile(undefined, true)}
-            >
-              <Upload className="mr-1.5 size-3.5" /> File gốc
-            </Button>
-          )}
-        </div>
-      )}
-
-      {/* Quality feedback */}
-      <QualityCard
-        progress={progress}
-        label={quality.label}
-        note={selectedId ? `Đang sửa CV #${selectedId}` : "CV mới chưa lưu — hoàn thành checklist để đạt 100%"}
-      />
-
-      {!loading && !loadError && pendingDraft && (
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-3xl border border-marine/30 bg-muted px-4 py-3.5" role="status">
-          <p className="text-sm text-foreground">
-            Đã tìm thấy bản nháp tự lưu (chưa lưu lên server) của{" "}
-            {pendingDraft.selectedId != null ? `CV #${pendingDraft.selectedId}` : "CV mới đang soạn"}
-            {pendingDraft.savedAt ? ` lúc ${formatClock(new Date(pendingDraft.savedAt))}` : ""}. Khôi phục nội dung nháp?
-          </p>
-          <div className="flex shrink-0 gap-2">
-            <Button type="button" variant="outline" size="sm" className="rounded-full" onClick={discardDraft}>
-              Bỏ qua
-            </Button>
-            <Button type="button" size="sm" className="rounded-full" onClick={applyDraft}>
-              Khôi phục nháp
-            </Button>
-          </div>
-        </div>
-      )}
+      ) : null}
 
       {loading ? (
-        <CvBuilderSkeleton />
+        <div className="pt-6"><CvBuilderSkeleton /></div>
       ) : loadError ? (
-        <div className="flex flex-col items-center gap-3 rounded-3xl border border-destructive/30 bg-card px-6 py-14 text-center" role="alert">
+        <div className="mt-6 flex flex-col items-center gap-3 rounded-xl border border-destructive/30 bg-card px-6 py-14 text-center" role="alert">
           <p className="text-sm font-semibold text-foreground">Không tải được dữ liệu CV</p>
           <p className="max-w-sm text-sm text-muted-foreground">{loadError}</p>
-          <Button type="button" variant="outline" className="mt-1 rounded-full" onClick={() => void loadAll()}>
-            Thử lại
-          </Button>
+          <Button type="button" variant="outline" onClick={() => void loadAll()}>Thử lại</Button>
         </div>
       ) : (
-      <>
-      {/* Mobile/tablet: Tabs layout */}
-      <div className="xl:hidden">
-        <Tabs defaultValue="form" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="form" className="gap-2">
-              <Pencil className="h-4 w-4" />
-              Nhập liệu
-            </TabsTrigger>
-            <TabsTrigger value="preview" className="gap-2">
-              <Eye className="h-4 w-4" />
-              Xem trước
-            </TabsTrigger>
-          </TabsList>
-          <TabsContent value="form" className="mt-4 space-y-4">
-            <ChecklistCard items={quality.items} doneCount={quality.doneCount} />
-            <div data-scroll-target="templates">
-              <TemplatePicker selectedId={cvData.templateId} onSelect={selectTemplate} cvId={selectedId} />
-            </div>
-            <CvForm data={cvData} onChange={setCvData} />
-          </TabsContent>
-          <TabsContent value="preview" className="mt-4">
-            <div className="sticky top-20 rounded-[1.35rem] border border-border bg-muted p-3">
-              <PreviewActionBar
-                status={saveStatus}
-                savedAt={lastSavedAt}
-                draftAt={draftAt}
-                zoom={zoom}
-                onZoom={setZoom}
-                onSave={() => void handleSave()}
-                onExport={() => void handleExportPdf()}
-                saving={saving}
-                exportingPdf={exportingPdf}
-                disabled={loading}
-              />
-              <div data-manual-cv-pdf style={{ zoom: `${zoom}%` } as CSSProperties}>
-                <CvPreview data={deferredCvData} onPageCount={setPageCount} />
-              </div>
-            </div>
-          </TabsContent>
-        </Tabs>
-      </div>
+        <>
+          <div className="mt-4 md:hidden"><TemplatePicker selectedId={cvData.templateId} onSelect={selectTemplate} cvId={selectedId} compact /></div>
 
-      {/* Desktop: 2-column layout — page scrolls naturally, no nested
-          scroll container; preview stays sticky without trapping scroll. */}
-      <div className="hidden xl:block">
-        <div className="grid gap-8" style={{ gridTemplateColumns: "minmax(0, 46fr) minmax(0, 54fr)" }}>
-          {/* Editor column */}
-          <div className="min-w-0">
-            <div className="mb-4 flex items-end justify-between">
-              <h2 className="text-xl font-semibold tracking-tight text-foreground">Thông tin CV</h2>
-              <span className="flex items-center gap-1.5 rounded-full bg-teal/10 px-2.5 py-1 text-xs font-semibold text-primary">
-                <FileText className="size-3 text-teal" />
-                6 mục
-              </span>
-            </div>
-            <div className="space-y-4">
-              <ChecklistCard items={quality.items} doneCount={quality.doneCount} />
-              <div data-scroll-target="templates">
-                <TemplatePicker selectedId={cvData.templateId} onSelect={selectTemplate} cvId={selectedId} />
+          <div className="mt-5 xl:hidden">
+            <Tabs defaultValue="form" className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="form" className="gap-2"><Pencil className="size-4" /> Nội dung</TabsTrigger>
+                <TabsTrigger value="preview" className="gap-2"><Eye className="size-4" /> Xem trước</TabsTrigger>
+              </TabsList>
+              <TabsContent value="form" className="mt-4 space-y-3">
+                <CvCompletion progress={progress} items={quality.items} />
+                <CvForm data={cvData} onChange={setCvData} />
+              </TabsContent>
+              <TabsContent value="preview" className="mt-4">{preview}</TabsContent>
+            </Tabs>
+          </div>
+
+          <main className="mt-6 hidden grid-cols-[minmax(0,44fr)_minmax(0,56fr)] gap-6 xl:grid">
+            <section className="min-w-0" aria-label="Nội dung CV">
+              <div className="mb-3 flex items-center justify-between">
+                <h1 className="text-lg font-semibold tracking-tight text-foreground">Nội dung CV</h1>
               </div>
+              <div className="mb-3"><CvCompletion progress={progress} items={quality.items} /></div>
               <CvForm data={cvData} onChange={setCvData} />
-            </div>
-          </div>
-
-          {/* Preview column */}
-          <div className="min-w-0">
-            <div className="mb-4 flex items-end justify-between gap-2">
-              <h2 className="text-xl font-semibold tracking-tight text-foreground">Xem trước</h2>
-              <div className="flex items-center gap-2">
-                <span
-                  className="rounded-full border border-border bg-card px-2.5 py-1 font-mono text-xs font-semibold text-muted-foreground"
-                  aria-live="polite"
-                  title="Số trang A4 của bản xem trước"
-                >
-                  {pageCount} trang
-                </span>
-                <span className="flex items-center gap-1.5 rounded-full bg-navy px-2.5 py-1 text-xs font-semibold text-white">
-                  <Eye className="size-3" />
-                  Thời gian thực
-                </span>
-              </div>
-            </div>
-            <div className="cv-preview-frame">
-              <PreviewActionBar
-                status={saveStatus}
-                savedAt={lastSavedAt}
-                draftAt={draftAt}
-                zoom={zoom}
-                onZoom={setZoom}
-                onSave={() => void handleSave()}
-                onExport={() => void handleExportPdf()}
-                saving={saving}
-                exportingPdf={exportingPdf}
-                disabled={loading}
-              />
-              <div data-manual-cv-pdf style={{ zoom: `${zoom}%` } as CSSProperties}>
-                <CvPreview data={deferredCvData} onPageCount={setPageCount} />
-              </div>
-              {pageCount > 2 && (
-                <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-center text-xs leading-5 text-amber-800 dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-200">
-                  CV đang dài hơn 2 trang. Hãy rút gọn nội dung để dễ đọc hơn.
-                </p>
-              )}
-              <div className="cv-preview-hint">
-                <Sparkles className="size-3.5 text-teal" />
-                <span>Gợi ý: hoàn thành checklist bên trái để CV đạt 100%</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      </>
+            </section>
+            <aside className="min-w-0" aria-label="Xem trước CV">
+              <h2 className="mb-3 text-lg font-semibold tracking-tight text-foreground">Xem trước</h2>
+              <div className="sticky top-20">{preview}</div>
+            </aside>
+          </main>
+        </>
       )}
 
-      {/* Render riêng cho bản in để không phụ thuộc tab/breakpoint đang hiển thị. */}
-      {!loading && !loadError && (
-        <div className="cv-print-root" data-cv-print-root aria-hidden="true">
-          <CvPreview data={deferredCvData} />
-        </div>
-      )}
+      {!loading && !loadError ? <div className="cv-print-root" data-cv-print-root aria-hidden="true"><CvPreview data={deferredCvData} /></div> : null}
     </div>
   );
 }

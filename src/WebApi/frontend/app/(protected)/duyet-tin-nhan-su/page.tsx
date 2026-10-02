@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { AdminPageLayout, AdminPageHeader, AdminCard, AdminCardHeader, AdminEmptyState, AdminLoadingState } from "@/components/admin/admin-page-layout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { getAuthToken } from "@/lib/auth-provider";
 
 type TinChoDuyet = {
@@ -30,6 +31,7 @@ export default function DuyetTinNhanSuPage() {
   const [items, setItems] = useState<TinChoDuyet[]>([]);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<number | null>(null);
+  const { confirm } = useConfirmDialog();
 
   const request = useCallback(async (url: string, init?: RequestInit) => {
     const response = await fetch(url, {
@@ -47,7 +49,8 @@ export default function DuyetTinNhanSuPage() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const body = await request(`${API}?_start=0&_end=0`);
+      // _end=0 trả 0 dòng → hàng chờ duyệt luôn rỗng; cần _end>0 như mọi list call khác.
+      const body = await request(`${API}?_start=0&_end=100`);
       const raw = body?.Data ?? body?.data;
       const rows = Array.isArray(raw) ? raw : [];
       setItems(rows.map((item) => {
@@ -74,8 +77,14 @@ export default function DuyetTinNhanSuPage() {
   useEffect(() => { void load(); }, [load]);
 
   async function decide(item: TinChoDuyet, approve: boolean) {
-    const action = approve ? "duyệt" : "từ chối";
-    if (!window.confirm(`Bạn chắc chắn muốn ${action} tin “${item.tieuDe}”?`)) return;
+    const action = approve ? "Duyệt" : "Từ chối";
+    const confirmed = await confirm({
+      title: `${action} tin?`,
+      description: `Bạn chắc chắn muốn ${action.toLowerCase()} tin "${item.tieuDe}"?`,
+      confirmLabel: action,
+      destructive: !approve,
+    });
+    if (!confirmed) return;
     setBusyId(item.id);
     try {
       await request(`${API}/${item.id}/fire`, {

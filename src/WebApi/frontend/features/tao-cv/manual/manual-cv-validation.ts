@@ -10,8 +10,9 @@ export function validateManualCv(data: CvFormData): string | null {
   if (!/^\S+@\S+\.\S+$/.test(contact.email.trim())) {
     return "Email không hợp lệ.";
   }
-  if (!/^\+?[0-9\s.-]{8,20}$/.test(contact.sdt.trim())) {
-    return "Số điện thoại không hợp lệ.";
+  const phoneDigits = contact.sdt.replace(/\D/g, "");
+  if (!/^\d{10}$/.test(phoneDigits)) {
+    return "Số điện thoại phải có đúng 10 chữ số.";
   }
   if (!isValidVnDate(contact.ngaySinh)) {
     return "Ngày sinh phải đúng định dạng dd/mm/yyyy.";

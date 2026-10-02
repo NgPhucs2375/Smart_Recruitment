@@ -208,7 +208,7 @@ html {
   --secondary: #eaf1f8;
   --secondary-foreground: #2d4f79;
   --muted: #f0eee8;
-  --muted-foreground: #6d7480;
+  --muted-foreground: #646b78;
   --accent: #eaf1f8;
   --accent-foreground: #2d4f79;
   --destructive: #b3362b;
@@ -242,7 +242,7 @@ html {
   --workspace-secondary-soft: #efe9df;
   --workspace-on-secondary: #2f3440;
   --workspace-text: #2f3440;
-  --workspace-muted: #6d7480;
+  --workspace-muted: #646b78;
   --workspace-border: #ddd4c7;
 
   --radius: 0.625rem;
@@ -301,7 +301,7 @@ html {
   --workspace-secondary-soft: #eaf4ef;
   --workspace-on-secondary: #2f3440;
   --workspace-text: #2f3440;
-  --workspace-muted: #6d7480;
+  --workspace-muted: #646b78;
   --workspace-border: #ddd4c7;
 }
 
@@ -337,7 +337,7 @@ html {
   --workspace-secondary-soft: #eaf4ef;
   --workspace-on-secondary: #2f3440;
   --workspace-text: #2f3440;
-  --workspace-muted: #6d7480;
+  --workspace-muted: #646b78;
   --workspace-border: #ddd4c7;
 }
 
@@ -372,7 +372,7 @@ html {
   --workspace-secondary-soft: #eaf4ef;
   --workspace-on-secondary: #2f3440;
   --workspace-text: #2f3440;
-  --workspace-muted: #6d7480;
+  --workspace-muted: #646b78;
   --workspace-border: #ddd4c7;
 }
 
@@ -489,7 +489,7 @@ html {
   --secondary: #eaf1f8;
   --secondary-foreground: #2d4f79;
   --muted: #f0eee8;
-  --muted-foreground: #6d7480;
+  --muted-foreground: #646b78;
   --accent: #eaf1f8;
   --accent-foreground: #2d4f79;
   --destructive: #b3362b;
@@ -518,7 +518,7 @@ html {
   --workspace-secondary-soft: #efe9df;
   --workspace-on-secondary: #2f3440;
   --workspace-text: #2f3440;
-  --workspace-muted: #6d7480;
+  --workspace-muted: #646b78;
   --workspace-border: #ddd4c7;
 }
 
@@ -1070,6 +1070,57 @@ html {
   color: #15803d;
 }
 
+/* Dual-range slider (job filters): appearance-none strips native thumbs in
+   Chrome/WebKit, so thumbs get explicit visible styling for both engines.
+   pointer-events:auto on thumbs only — the two stacked inputs must not
+   swallow each other's drags across the full track. */
+.slider-thumb::-webkit-slider-thumb {
+  pointer-events: auto;
+  width: 1.1rem;
+  height: 1.1rem;
+  border: 2px solid var(--background);
+  border-radius: 999px;
+  background: var(--primary);
+  box-shadow: 0 1px 4px rgb(15 23 42 / 0.25);
+  cursor: grab;
+  transition: transform 120ms ease, box-shadow 120ms ease;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.slider-thumb::-webkit-slider-thumb:hover {
+  transform: scale(1.12);
+}
+
+.slider-thumb:active::-webkit-slider-thumb {
+  cursor: grabbing;
+  transform: scale(1.05);
+}
+
+.slider-thumb:focus-visible::-webkit-slider-thumb {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ring) 45%, transparent);
+}
+
+.slider-thumb::-moz-range-thumb {
+  pointer-events: auto;
+  width: 1.1rem;
+  height: 1.1rem;
+  border: 2px solid var(--background);
+  border-radius: 999px;
+  background: var(--primary);
+  box-shadow: 0 1px 4px rgb(15 23 42 / 0.25);
+  cursor: grab;
+  transition: transform 120ms ease, box-shadow 120ms ease;
+}
+
+.slider-thumb:active::-moz-range-thumb {
+  cursor: grabbing;
+}
+
+.slider-thumb:focus-visible::-moz-range-thumb {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ring) 45%, transparent);
+}
+
 @keyframes adam-pulse {
   50% { opacity: 0.35; transform: scale(0.8); }
 }
@@ -1253,6 +1304,10 @@ html {
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
+  }
+  .animate-pulse,
+  .animate-spin {
+    animation: none;
   }
   .animate-float,
   .animate-pulse-soft,
@@ -1562,13 +1617,18 @@ html {
 }
 
 .cv-preview-frame {
-  position: sticky;
-  top: 5.5rem;
+  position: relative;
   padding: clamp(.8rem, 2vw, 1.5rem);
   border: 1px solid var(--border);
-  border-radius: 1.35rem;
+  border-radius: .75rem;
   background: var(--muted);
-  box-shadow: inset 0 0 0 1px var(--card), 0 12px 30px #29362b0b;
+  box-shadow: none;
+}
+
+.cv-preview-frame:fullscreen {
+  overflow: auto;
+  padding: 1.5rem;
+  background: var(--background);
 }
 
 .cv-builder-layout {
@@ -1624,10 +1684,32 @@ html {
 
 .cv-paper {
   overflow: hidden;
+  max-width: 100%;
   background: #fff;
   color: #3f454a;
   box-shadow: 0 8px 25px #26352b16;
   font-family: Arial, sans-serif;
+}
+
+/* User-entered CV content can contain long URLs, technology names, or text
+   without spaces. Keep every template inside the A4 paper instead of letting
+   flex/grid children expand beyond their column. */
+.cv-paper *,
+.cv-document-shell * {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.cv-paper p,
+.cv-paper li,
+.cv-paper a,
+.cv-paper span,
+.cv-document-shell p,
+.cv-document-shell li,
+.cv-document-shell a,
+.cv-document-shell span {
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .cv-paper-header {
@@ -1739,6 +1821,8 @@ html {
 
 .cv-sheet {
   min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 /* Hidden measurement pass: same width as the visible sheets, out of flow. */
@@ -1764,6 +1848,9 @@ html {
 
 .cv-section-item {
   break-inside: avoid;
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
 }
 
 /* In CV: chỉ in tài liệu CV (window.print -> Save as PDF), ẩn toàn bộ app shell.

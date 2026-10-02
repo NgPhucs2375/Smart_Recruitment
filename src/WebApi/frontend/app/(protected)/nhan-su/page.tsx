@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AdminPageLayout, AdminPageHeader, AdminCard, AdminCardHeader, AdminEmptyState, AdminLoadingState } from "@/components/admin/admin-page-layout";
 import { Badge } from "@/components/ui/badge";
+import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { getPendingLoiMoi, cancelLoiMoi, type LoiMoiPending } from "@/lib/api/nhan-su-api";
 
 type NhanSu = {
@@ -33,6 +34,7 @@ export default function NhanSuPage() {
   const [successMsg, setSuccessMsg] = useState("");
   const [inviteLink, setInviteLink] = useState("");
   const [form, setForm] = useState({ email: "", hoTen: "", chucVu: "" });
+  const { confirm } = useConfirmDialog();
 
   const apiFetch = useCallback(async (url: string, opts?: RequestInit) => {
     const token = localStorage.getItem("access_token");
@@ -129,7 +131,13 @@ export default function NhanSuPage() {
   }
 
   async function handleCancelInvite(id: number, email: string) {
-    if (!window.confirm(`Hủy lời mời tới "${email}"?`)) return;
+    const confirmed = await confirm({
+      title: "Hủy lời mời?",
+      description: `Hủy lời mời tới "${email}"? Người được mời sẽ không thể dùng link này.`,
+      confirmLabel: "Hủy lời mời",
+      destructive: true,
+    });
+    if (!confirmed) return;
     try {
       setErr(""); setSuccessMsg("");
       const message = await cancelLoiMoi(id);
@@ -141,7 +149,13 @@ export default function NhanSuPage() {
   }
 
   async function handleDelete(item: NhanSu) {
-    if (!window.confirm(`Xóa nhân sự "${item.hoTen}"?`)) return;
+    const confirmed = await confirm({
+      title: "Xóa nhân sự?",
+      description: `Xóa "${item.hoTen}" khỏi doanh nghiệp? Hành động này không thể hoàn tác.`,
+      confirmLabel: "Xóa",
+      destructive: true,
+    });
+    if (!confirmed) return;
     try {
       setErr(""); setSuccessMsg("");
       // Backend tra theo HoSo.Id (fallback NguoiDungId) — luôn gửi hoSoId để tránh xóa nhầm.
@@ -158,8 +172,8 @@ export default function NhanSuPage() {
     <AdminPageLayout>
       <AdminPageHeader icon={Users} title="Quản lý nhân sự" description="Mời và quản lý nhân sự thuộc doanh nghiệp của bạn." actions={<Button onClick={() => { setErr(""); setSuccessMsg(""); setShowInvite(true); }}><UserPlus className="size-4" /> Mời nhân sự</Button>} />
 
-      {successMsg && <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{successMsg}</div>}
-      {err && <div className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">{err}</div>}
+      {successMsg && <div role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{successMsg}</div>}
+      {err && <div role="alert" className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">{err}</div>}
 
       {showInvite && (
         <form onSubmit={handleInvite} className="rounded-2xl border border-border bg-card p-6 shadow-sm">
@@ -172,21 +186,21 @@ export default function NhanSuPage() {
           </div>
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label>Email *</Label>
+              <Label htmlFor="ns-email">Email *</Label>
               <div className="relative">
                 <Mail className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                <Input type="email" required value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} placeholder="nhansu@company.com" className="pl-10" />
+                <Input id="ns-email" type="email" required autoComplete="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} placeholder="nhansu@company.com" className="pl-10" />
               </div>
             </div>
             <div className="space-y-2">
-              <Label>Họ tên</Label>
-              <Input value={form.hoTen} onChange={e => setForm(f => ({ ...f, hoTen: e.target.value }))} placeholder="Nguyễn Văn A" />
+              <Label htmlFor="ns-ho-ten">Họ tên</Label>
+              <Input id="ns-ho-ten" autoComplete="name" value={form.hoTen} onChange={e => setForm(f => ({ ...f, hoTen: e.target.value }))} placeholder="Nguyễn Văn A" />
             </div>
             <div className="space-y-2 md:col-span-2">
-              <Label>Chức vụ</Label>
+              <Label htmlFor="ns-chuc-vu">Chức vụ</Label>
               <div className="relative">
                 <Briefcase className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                <Input value={form.chucVu} onChange={e => setForm(f => ({ ...f, chucVu: e.target.value }))} placeholder="Nhân viên tuyển dụng" className="pl-10" />
+                <Input id="ns-chuc-vu" autoComplete="organization-title" value={form.chucVu} onChange={e => setForm(f => ({ ...f, chucVu: e.target.value }))} placeholder="Nhân viên tuyển dụng" className="pl-10" />
               </div>
             </div>
           </div>

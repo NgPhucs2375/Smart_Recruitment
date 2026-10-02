@@ -1,7 +1,7 @@
 "use client";
 
 // Kiểu props dùng chung cho mọi template, bảo đảm template chỉ nhận ResumeData.
-import type { ReactNode } from "react";
+import { Children, isValidElement, type ReactNode } from "react";
 import type { ResumeData, ResumeDateRange, ResumeSkill } from "@/features/tao-cv/resume-data";
 
 export type ResumeTemplateProps = { data: ResumeData };
@@ -39,8 +39,31 @@ export function EmptyPaper({ hint }: { hint: string }) {
  * phép tách qua trang khi in, tránh khoảng trống lớn + trang trắng.
  * cv-section-shell chỉ phục vụ orphan protection cho heading.
  */
-export function SectionShell({ children }: { children: ReactNode }) {
-  return <section className="cv-section-shell">{children}</section>;
+type CvSection = "contact" | "experience" | "education" | "skills" | "projects" | "certificates";
+
+function textFromNode(node: ReactNode): string {
+  return Children.toArray(node).map((child) => {
+    if (typeof child === "string" || typeof child === "number") return String(child);
+    if (isValidElement(child)) {
+      return textFromNode((child.props as { children?: ReactNode }).children);
+    }
+    return "";
+  }).join(" ");
+}
+
+function inferSection(children: ReactNode): CvSection | undefined {
+  const heading = textFromNode(Children.toArray(children)[0]).toLocaleLowerCase("vi");
+  if (heading.includes("liên hệ") || heading.includes("contact") || heading.includes("profile")) return "contact";
+  if (heading.includes("kinh nghiệm") || heading.includes("experience")) return "experience";
+  if (heading.includes("học vấn") || heading.includes("đào tạo") || heading.includes("education")) return "education";
+  if (heading.includes("kỹ năng") || heading.includes("skill") || heading.includes("competenc")) return "skills";
+  if (heading.includes("dự án") || heading.includes("project")) return "projects";
+  if (heading.includes("chứng chỉ") || heading.includes("certificate")) return "certificates";
+  return undefined;
+}
+
+export function SectionShell({ children, section }: { children: ReactNode; section?: CvSection }) {
+  return <section className="cv-section-shell" data-cv-section={section ?? inferSection(children)}>{children}</section>;
 }
 
 /**

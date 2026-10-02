@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 
 type Rule = {
   Id: number;
@@ -31,6 +32,7 @@ export default function QuyTacKiemDuyetPage() {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
+  const { confirm } = useConfirmDialog();
 
   const load = useCallback(async (filter?: string) => {
     setLoading(true);
@@ -98,7 +100,13 @@ export default function QuyTacKiemDuyetPage() {
   }
 
   async function remove(item: Rule) {
-    if (!window.confirm(`Xóa rule “${item.TuKhoa}”?`)) return;
+    const confirmed = await confirm({
+      title: "Xóa rule kiểm duyệt?",
+      description: `Xóa rule "${item.TuKhoa}"? Hành động này không thể hoàn tác.`,
+      confirmLabel: "Xóa",
+      destructive: true,
+    });
+    if (!confirmed) return;
     try {
       await adminApi.remove(`/quytackiemduyettins/${item.Id}`);
       setItems((current) => current.filter((rule) => rule.Id !== item.Id));
@@ -171,7 +179,7 @@ export default function QuyTacKiemDuyetPage() {
             action={
               <form className="relative w-full sm:w-72" onSubmit={(event) => { event.preventDefault(); void load(search || undefined); }}>
                 <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                <Input className="pl-9" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Tìm từ khóa hoặc mô tả..." />
+                <Input className="pl-9" aria-label="Tìm rule kiểm duyệt" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Tìm từ khóa hoặc mô tả..." />
               </form>
             }
           />

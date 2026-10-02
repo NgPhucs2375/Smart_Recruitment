@@ -65,7 +65,7 @@ export function ConfirmDialogProvider({ children }: { children: ReactNode }) {
         <DialogPrimitive.Portal>
           <DialogPrimitive.Backdrop className="fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px]" />
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <DialogPrimitive.Popup className="w-full max-w-md rounded-3xl border border-border bg-card p-6 shadow-xl outline-none">
+            <DialogPrimitive.Popup className="w-full max-w-md rounded-xl border border-border bg-card p-6 shadow-xl outline-none">
               <div className="flex items-start gap-3">
                 <span className={`flex size-10 shrink-0 items-center justify-center rounded-xl ${options?.destructive ? "bg-destructive/10 text-destructive" : "bg-primary/10 text-primary"}`}>
                   <AlertTriangle className="size-5" />
@@ -90,6 +90,13 @@ export function ConfirmDialogProvider({ children }: { children: ReactNode }) {
                   autoFocus
                   value={value}
                   onChange={(event) => setValue(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      event.preventDefault();
+                      close(value);
+                    }
+                  }}
+                  aria-label={request.options.title}
                   placeholder={request.options.placeholder}
                   className="mt-5"
                 />

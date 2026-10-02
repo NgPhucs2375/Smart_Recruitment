@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { Briefcase, Trash2, RotateCcw, Search, CheckCircle2, XCircle, Ban } from "lucide-react";
 import { AdminGate } from "@/features/admin/AdminGate";
 import { adminApi, TRIGGER_TIN } from "@/features/admin/api";
+import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 
 interface TinRow {
   Id: number;
@@ -44,6 +45,7 @@ export default function AdminTinTuyenDungPage() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("");
   const [busyId, setBusyId] = useState<number | null>(null);
+  const { confirm } = useConfirmDialog();
 
   const fetchRows = useCallback(async (kw?: string) => {
     setLoading(true);
@@ -63,7 +65,13 @@ export default function AdminTinTuyenDungPage() {
   }, [fetchRows]);
 
   const handleFire = async (row: TinRow, trigger: number, label: string) => {
-    if (!window.confirm(`${label} tin "${row.TieuDe}"?`)) return;
+    const confirmed = await confirm({
+      title: `${label} tin?`,
+      description: `${label} tin "${row.TieuDe}"?`,
+      confirmLabel: label,
+      destructive: trigger === TRIGGER_TIN.AdminTuChoi || trigger === TRIGGER_TIN.AdminCuongCheKhoa,
+    });
+    if (!confirmed) return;
     setBusyId(row.Id);
     try {
       await adminApi.post(`/tintuyendungs/${row.Id}/fire`, {
@@ -81,7 +89,13 @@ export default function AdminTinTuyenDungPage() {
   };
 
   const handleDelete = async (row: TinRow) => {
-    if (!window.confirm(`Xóa tin "${row.TieuDe}"? Tin sẽ bị đóng qua state machine.`)) return;
+    const confirmed = await confirm({
+      title: "Xóa tin tuyển dụng?",
+      description: `Xóa tin "${row.TieuDe}"? Tin sẽ bị đóng qua state machine và không khôi phục được.`,
+      confirmLabel: "Xóa",
+      destructive: true,
+    });
+    if (!confirmed) return;
     setBusyId(row.Id);
     try {
       await adminApi.remove(`/tintuyendungs/${row.Id}`);
@@ -125,6 +139,7 @@ export default function AdminTinTuyenDungPage() {
                 <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   className="pl-9"
+                  aria-label="Tìm tin tuyển dụng"
                   placeholder="Tìm theo tiêu đề..."
                   value={filter}
                   onChange={(e) => setFilter(e.target.value)}

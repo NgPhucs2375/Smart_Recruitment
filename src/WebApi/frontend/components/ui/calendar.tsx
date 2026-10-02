@@ -39,18 +39,26 @@ export function Calendar({ className, selected, markedDates = [], onSelect }: Ca
         <p className="text-sm font-semibold capitalize text-foreground">{label}</p>
         <button type="button" aria-label="Tháng sau" onClick={() => setMonth((value) => new Date(value.getFullYear(), value.getMonth() + 1, 1))} className="flex size-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground"><ChevronRight className="size-4" /></button>
       </div>
-      <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-semibold text-muted-foreground">
-        {WEEKDAYS.map((day) => <span key={day} className="py-1">{day}</span>)}
+      <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-semibold text-muted-foreground" role="grid">
+        {WEEKDAYS.map((day) => <span key={day} aria-hidden="true" className="py-1">{day}</span>)}
         {days.map((date, index) => {
           const isMarked = date ? markedDates.some((marked) => sameDay(marked, date)) : false;
           const isSelected = date && selected ? sameDay(selected, date) : false;
           const isToday = date ? sameDay(new Date(), date) : false;
           return date ? (
-            <button key={date.toISOString()} type="button" onClick={() => onSelect?.(date)} className={cn("relative flex aspect-square items-center justify-center rounded-lg text-xs transition-colors hover:bg-muted", isSelected && "bg-primary font-semibold text-primary-foreground hover:bg-primary", !isSelected && isToday && "ring-1 ring-primary", isMarked && !isSelected && "font-semibold text-primary")}>
+            <button
+              key={date.toISOString()}
+              type="button"
+              aria-label={date.toLocaleDateString("vi-VN", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
+              aria-pressed={isSelected}
+              aria-current={!isSelected && isToday ? "date" : undefined}
+              onClick={() => onSelect?.(date)}
+              className={cn("relative flex aspect-square items-center justify-center rounded-lg text-xs transition-colors hover:bg-muted", isSelected && "bg-primary font-semibold text-primary-foreground hover:bg-primary", !isSelected && isToday && "ring-1 ring-primary", isMarked && !isSelected && "font-semibold text-primary")}
+            >
               {date.getDate()}
-              {isMarked && <span className={cn("absolute bottom-1 size-1 rounded-full bg-primary", isSelected && "bg-primary-foreground")} />}
+              {isMarked && <span className={cn("absolute bottom-1 size-1 rounded-full bg-primary", isSelected && "bg-primary-foreground")} aria-hidden="true" />}
             </button>
-          ) : <span key={`empty-${index}`} />;
+          ) : <span key={`empty-${index}`} aria-hidden="true" />;
         })}
       </div>
     </div>

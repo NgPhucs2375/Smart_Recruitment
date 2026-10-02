@@ -48,7 +48,7 @@ export function AuthLayout({ children, leftPanel }: AuthLayoutProps) {
         </div>
 
         {/* Security badge footer */}
-        <div className="relative z-10 flex items-center gap-2 text-xs text-white/50">
+        <div className="relative z-10 flex items-center gap-2 text-xs text-white/70">
           <ShieldCheck className="size-4 text-sage" />
           <span>Hệ thống bảo vệ dữ liệu hồ sơ theo tiêu chuẩn mã hóa SHA-256</span>
         </div>

@@ -1,6 +1,7 @@
 "use client";
 
 // Wrapper giao diện preview; nội dung CV render qua Template Registry + phân trang A4.
+import { useDeferredValue } from "react";
 import type { CvFormData } from "@/lib/types";
 import { toResumeData } from "@/features/tao-cv/resume-data";
 import { resolveTemplate } from "@/features/tao-cv/template-registry";
@@ -18,8 +19,9 @@ interface CvPreviewProps {
  * Pagination is a pure visual wrapper — ResumeData is passed through.
  */
 export function CvPreview({ data, onPageCount }: CvPreviewProps) {
-  const resume = toResumeData(data);
-  const template = resolveTemplate(data.templateId);
+  const deferredData = useDeferredValue(data);
+  const resume = toResumeData(deferredData);
+  const template = resolveTemplate(deferredData.templateId);
   return (
     <CvPaginatedPreview
       resume={resume}

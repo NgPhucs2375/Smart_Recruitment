@@ -212,7 +212,7 @@ function NotificationBellInner({
     <DropdownMenu open={open} onOpenChange={setOpen}>
       {/* DropdownMenuTrigger renders as <button> — do NOT use asChild + Button to avoid button>button */}
       <DropdownMenuTrigger
-        aria-label="Notifications"
+        aria-label={unreadCount > 0 ? `Thông báo (${unreadCount} chưa đọc)` : "Thông báo"}
         className="relative flex h-8 w-8 items-center justify-center rounded-md text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
       >
         <Bell className="h-4 w-4" />
@@ -252,6 +252,7 @@ function NotificationBellInner({
                   key={n.id}
                   role="button"
                   tabIndex={n.isRead ? -1 : 0}
+                  aria-label={n.isRead ? n.message : `Đánh dấu đã đọc: ${n.message}`}
                   onClick={() => { if (!n.isRead) handleMarkRead(n.id); }}
                   onKeyDown={(event) => {
                     if (!n.isRead && (event.key === "Enter" || event.key === " ")) {

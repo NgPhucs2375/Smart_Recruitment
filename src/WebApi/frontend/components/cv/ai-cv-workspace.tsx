@@ -1,15 +1,13 @@
 "use client";
 
 import {
-  useEffect,
   forwardRef,
-  useRef,
+  memo,
   useState,
   type ComponentProps,
   type Dispatch,
   type HTMLAttributes,
   type ReactElement,
-  type RefObject,
   type SetStateAction,
 } from "react";
 import {
@@ -37,7 +35,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
-import { CvDocument } from "@/components/cv/cv-document";
+import { CvPreview } from "@/components/cv/cv-preview";
 import { defaultCvData } from "@/features/tao-cv/constants";
 import { createManualCvPayload } from "@/features/tao-cv/manual";
 import { DEFAULT_TEMPLATE_ID, TEMPLATE_REGISTRY } from "@/features/tao-cv/template-registry";
@@ -50,7 +48,6 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { adamMessageView } from "@/components/ai/adam-markdown";
-import { focusCvSectionInDom, getCvFocusEventName, type CvFocusSection } from "@/features/ai-cv/cv-focus";
 
 const cloneDefaultCv = (): CvFormData => JSON.parse(JSON.stringify(defaultCvData)) as CvFormData;
 
@@ -92,20 +89,10 @@ function contextualSuggestions(data: CvFormData) {
 }
 
 export function AiCvWorkspace() {
-  const documentRef = useRef<HTMLDivElement>(null);
   const [cvData, setCvData] = useState<CvFormData>(cloneDefaultCv);
   const [zoom, setZoom] = useState(1);
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
-
-  useEffect(() => {
-    const onFocus = (event: Event) => {
-      const section = (event as CustomEvent<{ section?: unknown }>).detail?.section;
-      if (typeof section === "string") focusCvSectionInDom(section as CvFocusSection);
-    };
-    window.addEventListener(getCvFocusEventName(), onFocus);
-    return () => window.removeEventListener(getCvFocusEventName(), onFocus);
-  }, []);
 
   useCvAssistant({
     data: cvData,
@@ -162,13 +149,13 @@ export function AiCvWorkspace() {
         <aside className="cv-assistant-column">
           <ChatPanel data={cvData} />
         </aside>
-        <PreviewPanel data={cvData} zoom={zoom} setZoom={setZoom} documentRef={documentRef} onTemplateChange={(templateId) => { setCvData((current) => ({ ...current, templateId })); setDirty(true); }} />
+        <PreviewPanel data={cvData} zoom={zoom} setZoom={setZoom} onTemplateChange={(templateId) => { setCvData((current) => ({ ...current, templateId })); setDirty(true); }} />
       </div>
     </main>
   );
 }
 
-function ChatPanel({ data }: { data: CvFormData }) {
+const ChatPanel = memo(function ChatPanel({ data }: { data: CvFormData }) {
   const [composerValue, setComposerValue] = useState("");
   const { agent } = useAgent({ agentId: "default" });
   const hasContent = hasPreviewContent(data);
@@ -232,7 +219,7 @@ function ChatPanel({ data }: { data: CvFormData }) {
       </div>
     </section>
   );
-}
+});
 
 type AgentWelcomeScreenProps = {
   input: ReactElement;
@@ -294,10 +281,10 @@ function AgentDisclaimer(props: HTMLAttributes<HTMLDivElement>) {
   return <div {...props} className="adam-composer__disclaimer">Adam có thể mắc lỗi. Hãy kiểm tra thông tin quan trọng.</div>;
 }
 
-function PreviewPanel({ data, zoom, setZoom, documentRef, onTemplateChange }: { data: CvFormData; zoom: number; setZoom: Dispatch<SetStateAction<number>>; documentRef: RefObject<HTMLDivElement | null>; onTemplateChange: (templateId: string) => void }) {
+const PreviewPanel = memo(function PreviewPanel({ data, zoom, setZoom, onTemplateChange }: { data: CvFormData; zoom: number; setZoom: Dispatch<SetStateAction<number>>; onTemplateChange: (templateId: string) => void }) {
   const template = TEMPLATE_REGISTRY[data.templateId];
   return (
-    <Card className="cv-preview">
+     <Card className="cv-preview" data-cv-surface="preview">
       <div className="cv-preview__bar">
         <div className="cv-preview__label"><FileText size={16} /><strong>Preview CV</strong><span>Realtime</span></div>
          <Select value={data.templateId} onValueChange={(value) => { if (value !== null) onTemplateChange(value); }}>
@@ -310,12 +297,12 @@ function PreviewPanel({ data, zoom, setZoom, documentRef, onTemplateChange }: { 
          <Button variant="outline" size="sm" type="button" onClick={() => window.print()}><FileDown className="size-4" /> PDF</Button>
       </div>
       <div className="cv-preview__canvas">
-        {hasPreviewContent(data) ? <div className="cv-document" style={{ width: `${100 / zoom}%`, transform: `scale(${zoom})` }}><CvDocument data={data} documentRef={documentRef} /></div> : <EmptyPreview />}
+        {hasPreviewContent(data) ? <div className="cv-document" style={{ width: `${100 / zoom}%`, transform: `scale(${zoom})` }}><CvPreview data={data} /></div> : <EmptyPreview />}
       </div>
       <div className="cv-preview__footer"><span>{template?.name ?? DEFAULT_TEMPLATE_ID}</span><span>Chỉ lưu khi bạn bấm Lưu CV</span></div>
     </Card>
   );
-}
+});
 
 function EmptyPreview() {
   return <div className="cv-empty"><span className="cv-empty__icon"><FileText className="size-7" /></span><strong>Preview sẽ xuất hiện ở đây</strong><span>Hãy trò chuyện với Adam hoặc chọn mẫu để bắt đầu.</span><div className="cv-empty__hint"><CheckCircle2 className="size-4" /> Nội dung được cập nhật realtime</div></div>;

@@ -18,7 +18,7 @@ import { useStoredIdentity } from "@/hooks/use-stored-identity";
 import { adamMessageView } from "@/components/ai/adam-markdown";
 import {
   getCvFocusSectionLabel,
-  requestCvSectionFocus,
+  requestCvSectionsFocus,
   type CvFocusSection,
 } from "@/features/ai-cv/cv-focus";
 
@@ -192,7 +192,7 @@ function ToolActivityMount() {
             {complete && sectionLabel ? <>Đã cập nhật <strong>{sectionLabel}</strong></> : complete ? `${label} xong` : activityLabel}
           </span>
           {complete && section && (
-            <button type="button" className="adam-tool-activity__action" onClick={() => requestCvSectionFocus(section)}>
+            <button type="button" className="adam-tool-activity__action" onClick={() => requestCvSectionsFocus([section])}>
               Xem thay đổi
             </button>
           )}
