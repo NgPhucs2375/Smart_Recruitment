@@ -3,12 +3,8 @@
 import React, { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { AppLayout } from "@/components/layout/layout";
-<<<<<<< HEAD
-import { getAuthToken, loginRouteForPortal, refreshIdentity } from "@/lib/auth-provider";
-=======
 import { getAuthToken, redirectToLogin, refreshIdentity } from "@/lib/auth-provider";
 import { loadIdentity } from "@/lib/access-control-provider";
->>>>>>> origin/dev-Phuc2
 
  const CopilotProvider = dynamic(
   async () => {
@@ -27,20 +23,7 @@ export default function ProtectedLayout({
   const redirecting = useRef(false);
 
   useEffect(() => {
-<<<<<<< HEAD
-    if (!getAuthToken()) {
-      // Về đúng cổng đã dùng (employer không bị đá sang /login candidate).
-      router.replace(loginRouteForPortal());
-      return;
-    }
-    // Làm mới identity nền (quyền trong localStorage có thể cũ sau khi
-    // backend đổi policy). Sidebar tự cập nhật qua subscription,
-    // layout không cần re-render nên không gây chớp nháy.
-    void refreshIdentity();
-  }, [router]);
-=======
     let cancelled = false;
->>>>>>> origin/dev-Phuc2
 
     function forceLoginRedirect() {
       if (redirecting.current) return;
