@@ -1,5 +1,15 @@
-import { GoogleLoginButton } from "@/components/google-login-button";
+"use client";
+
+import dynamic from "next/dynamic";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+
+const GoogleLoginButton = dynamic(
+  () => import("@/components/google-login-button").then((module) => module.GoogleLoginButton),
+  {
+    ssr: false,
+    loading: () => <div className="h-11 w-full animate-pulse rounded-xl bg-muted" aria-hidden="true" />,
+  },
+);
 
 interface GoogleAuthSectionProps {
   mode?: "login" | "register";

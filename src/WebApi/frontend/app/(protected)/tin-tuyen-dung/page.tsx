@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { AdminPageLayout, AdminPageHeader, AdminCard, AdminCardHeader, AdminEmptyState, AdminLoadingState } from "@/components/admin/admin-page-layout";
 import { Badge } from "@/components/ui/badge";
 
@@ -126,6 +127,8 @@ export default function TinTuyenDungPage() {
   const [donCounts, setDonCounts] = useState<Record<number, number>>({});
 
   const [form, setForm] = useState({ ...EMPTY_FORM });
+  const [errField, setErrField] = useState<string | null>(null);
+  const { confirm } = useConfirmDialog();
 
   const apiFetch = useCallback(async (url: string, opts?: RequestInit) => {
     const token = localStorage.getItem("access_token");
@@ -193,7 +196,7 @@ export default function TinTuyenDungPage() {
 
   const loadDanhMucs = useCallback(async () => {
     try {
-      const res: ApiResponse<unknown> = await apiFetch(`${DM_API}?_start=0&_end=0`);
+      const res: ApiResponse<unknown> = await apiFetch(`${DM_API}?_start=0&_end=100`);
       if (!ok(res)) return;
       const d = extractData(res);
       const arr = Array.isArray(d) ? d : [];
@@ -212,12 +215,13 @@ export default function TinTuyenDungPage() {
   function resetForm() {
     setEditing(null);
     setForm({ ...EMPTY_FORM });
+    setErrField(null);
     setShowForm(false);
   }
 
-  function openCreate() { setSuccessMsg(""); setErr(""); setEditing(null); setForm({ ...EMPTY_FORM }); setShowForm(true); }
+  function openCreate() { setSuccessMsg(""); setErr(""); setErrField(null); setEditing(null); setForm({ ...EMPTY_FORM }); setShowForm(true); }
   function openEdit(item: TinTuyenDung) {
-    setSuccessMsg(""); setErr(""); setEditing(item);
+    setSuccessMsg(""); setErr(""); setErrField(null); setEditing(item);
     setForm({
       danhMucNgheId: item.danhMucNgheId,
       tieuDe: item.tieuDe,
@@ -234,23 +238,23 @@ export default function TinTuyenDungPage() {
     setShowForm(true);
   }
 
-  function validate(): string | null {
-    if (!form.tieuDe.trim()) return "Tiêu đề không được để trống";
-    if (!form.danhMucNgheId || form.danhMucNgheId <= 0) return "Vui lòng chọn danh mục nghề";
-    if (!form.moTaCongViec.trim()) return "Mô tả công việc không được để trống";
-    if (!form.yeuCauCongViec.trim()) return "Yêu cầu công việc không được để trống";
-    if (!form.diaDiemLamViec.trim()) return "Địa điểm làm việc không được để trống";
-    if (form.luongToiThieu < 0 || form.luongToiDa < 0) return "Lương phải >= 0";
-    if (form.luongToiDa < form.luongToiThieu) return "Lương tối đa phải >= lương tối thiểu";
-    return null;
+  function validate(): { field: string | null; message: string } {
+    if (!form.tieuDe.trim()) return { field: "tieuDe", message: "Tiêu đề không được để trống" };
+    if (!form.danhMucNgheId || form.danhMucNgheId <= 0) return { field: "danhMucNgheId", message: "Vui lòng chọn danh mục nghề" };
+    if (!form.moTaCongViec.trim()) return { field: "moTaCongViec", message: "Mô tả công việc không được để trống" };
+    if (!form.yeuCauCongViec.trim()) return { field: "yeuCauCongViec", message: "Yêu cầu công việc không được để trống" };
+    if (!form.diaDiemLamViec.trim()) return { field: "diaDiemLamViec", message: "Địa điểm làm việc không được để trống" };
+    if (form.luongToiThieu < 0 || form.luongToiDa < 0) return { field: "luong", message: "Lương phải >= 0" };
+    if (form.luongToiDa < form.luongToiThieu) return { field: "luong", message: "Lương tối đa phải >= lương tối thiểu" };
+    return { field: null, message: "" };
   }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    const errMsg = validate();
-    if (errMsg) { setErr(errMsg); return; }
+    const validation = validate();
+    if (validation.field) { setErr(validation.message); setErrField(validation.field); return; }
     try {
-      setSaving(true); setErr(""); setSuccessMsg("");
+      setSaving(true); setErr(""); setErrField(null); setSuccessMsg("");
       const isEditing = editing !== null;
       const url = isEditing ? `${API}/${editing.id}` : API;
       const body = isEditing
@@ -289,7 +293,13 @@ export default function TinTuyenDungPage() {
   }
 
   async function handleFire(item: TinTuyenDung, trigger: number, label: string, confirmMsg?: string) {
-    if (!window.confirm(confirmMsg ?? `${label} tin "${item.tieuDe}"?`)) return;
+    const confirmed = await confirm({
+      title: `${label} tin?`,
+      description: confirmMsg ?? `${label} tin "${item.tieuDe}"?`,
+      confirmLabel: label,
+      destructive: trigger === TRIGGER.NguoiDaiDienTuChoi || trigger === TRIGGER.DongTin,
+    });
+    if (!confirmed) return;
     try {
       setFiringId(item.id); setErr(""); setSuccessMsg("");
       const res: ApiResponse<unknown> = await apiFetch(`${API}/${item.id}/fire`, {
@@ -318,7 +328,13 @@ export default function TinTuyenDungPage() {
   }
 
   async function handleDelete(item: TinTuyenDung) {
-    if (!window.confirm(`Xóa tin "${item.tieuDe}"?`)) return;
+    const confirmed = await confirm({
+      title: "Xóa tin tuyển dụng?",
+      description: `Xóa tin "${item.tieuDe}"? Hành động này không thể hoàn tác.`,
+      confirmLabel: "Xóa",
+      destructive: true,
+    });
+    if (!confirmed) return;
     try {
       setErr(""); setSuccessMsg("");
       const res: ApiResponse<unknown> = await apiFetch(`${API}/${item.id}`, { method: "DELETE" });
@@ -333,8 +349,8 @@ export default function TinTuyenDungPage() {
     <AdminPageLayout>
       <AdminPageHeader icon={Briefcase} title="Quản lý tin tuyển dụng" description="Tạo và quản lý các tin tuyển dụng của doanh nghiệp." actions={<Button onClick={openCreate}><Plus className="size-4" /> Tạo tin mới</Button>} />
 
-      {successMsg && <div className="rounded-xl border border-border bg-card px-4 py-3 text-sm text-foreground shadow-sm">{successMsg}</div>}
-      {err && <div className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">{err}</div>}
+      {successMsg && <div role="status" className="rounded-xl border border-border bg-card px-4 py-3 text-sm text-foreground shadow-sm">{successMsg}</div>}
+      {err && <div role="alert" className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">{err}</div>}
 
       {showForm && (
         <form onSubmit={handleSubmit} className="rounded-2xl border border-border bg-card p-6 shadow-sm">
@@ -347,13 +363,13 @@ export default function TinTuyenDungPage() {
           </div>
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2 md:col-span-2">
-              <Label>Tiêu đề *</Label>
-              <Input value={form.tieuDe} onChange={e => setForm(f => ({ ...f, tieuDe: e.target.value }))} required placeholder="VD: Senior Frontend Developer" />
+              <Label htmlFor="ttd-tieu-de">Tiêu đề *</Label>
+              <Input id="ttd-tieu-de" aria-invalid={errField === "tieuDe"} value={form.tieuDe} onChange={e => setForm(f => ({ ...f, tieuDe: e.target.value }))} required placeholder="VD: Senior Frontend Developer" />
             </div>
             <div className="space-y-2">
-              <Label>Danh mục nghề *</Label>
+              <Label htmlFor="ttd-danh-muc">Danh mục nghề *</Label>
               <Select value={String(form.danhMucNgheId)} onValueChange={value => setForm(f => ({ ...f, danhMucNgheId: Number(value) }))}>
-                <SelectTrigger className="h-10 w-full"><SelectValue placeholder="-- Chọn danh mục nghề --" /></SelectTrigger>
+                <SelectTrigger id="ttd-danh-muc" aria-invalid={errField === "danhMucNgheId"} className="h-10 w-full"><SelectValue placeholder="-- Chọn danh mục nghề --" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="0">-- Chọn danh mục nghề --</SelectItem>
                   {danhMucs.map(d => <SelectItem key={d.id} value={String(d.id)}>{d.tenNghe}</SelectItem>)}
@@ -361,13 +377,13 @@ export default function TinTuyenDungPage() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Địa điểm *</Label>
-              <Input value={form.diaDiemLamViec} onChange={e => setForm(f => ({ ...f, diaDiemLamViec: e.target.value }))} required placeholder="VD: Hà Nội, TP. Hồ Chí Minh" />
+              <Label htmlFor="ttd-dia-diem">Địa điểm *</Label>
+              <Input id="ttd-dia-diem" aria-invalid={errField === "diaDiemLamViec"} value={form.diaDiemLamViec} onChange={e => setForm(f => ({ ...f, diaDiemLamViec: e.target.value }))} required placeholder="VD: Hà Nội, TP. Hồ Chí Minh" />
             </div>
             <div className="space-y-2">
-              <Label>Phương thức làm việc *</Label>
+              <Label htmlFor="ttd-phuong-thuc">Phương thức làm việc *</Label>
               <Select value={String(form.phuongThucLamViec)} onValueChange={value => setForm(f => ({ ...f, phuongThucLamViec: Number(value) }))}>
-                <SelectTrigger className="h-10 w-full"><SelectValue /></SelectTrigger>
+                <SelectTrigger id="ttd-phuong-thuc" className="h-10 w-full"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="0">Onsite</SelectItem>
                   <SelectItem value="1">Remote</SelectItem>
@@ -377,12 +393,14 @@ export default function TinTuyenDungPage() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Ngày hết hạn</Label>
-              <Input type="date" value={form.ngayHetHan} onChange={e => setForm(f => ({ ...f, ngayHetHan: e.target.value }))} />
+              <Label htmlFor="ttd-het-han">Ngày hết hạn</Label>
+              <Input id="ttd-het-han" type="date" value={form.ngayHetHan} onChange={e => setForm(f => ({ ...f, ngayHetHan: e.target.value }))} />
             </div>
             <div className="space-y-2">
-              <Label>Lương tối thiểu (VND)</Label>
+              <Label htmlFor="ttd-luong-min">Lương tối thiểu (VND)</Label>
               <Input
+                id="ttd-luong-min"
+                aria-invalid={errField === "luong"}
                 inputMode="numeric"
                 value={fmtMoneyInput(form.luongToiThieu)}
                 onChange={e => setForm(f => ({ ...f, luongToiThieu: parseMoney(e.target.value) }))}
@@ -390,8 +408,10 @@ export default function TinTuyenDungPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label>Lương tối đa (VND)</Label>
+              <Label htmlFor="ttd-luong-max">Lương tối đa (VND)</Label>
               <Input
+                id="ttd-luong-max"
+                aria-invalid={errField === "luong"}
                 inputMode="numeric"
                 value={fmtMoneyInput(form.luongToiDa)}
                 onChange={e => setForm(f => ({ ...f, luongToiDa: parseMoney(e.target.value) }))}
@@ -399,20 +419,20 @@ export default function TinTuyenDungPage() {
               />
             </div>
             <div className="space-y-2 md:col-span-2">
-              <Label>Mô tả công việc *</Label>
-              <textarea value={form.moTaCongViec} onChange={e => setForm(f => ({ ...f, moTaCongViec: e.target.value }))} rows={4} className="flex w-full rounded-lg border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" placeholder="Mô tả trách nhiệm, công việc hằng ngày..." />
+              <Label htmlFor="ttd-mo-ta">Mô tả công việc *</Label>
+              <textarea id="ttd-mo-ta" aria-invalid={errField === "moTaCongViec"} value={form.moTaCongViec} onChange={e => setForm(f => ({ ...f, moTaCongViec: e.target.value }))} rows={4} className="flex w-full rounded-lg border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" placeholder="Mô tả trách nhiệm, công việc hằng ngày..." />
             </div>
             <div className="space-y-2 md:col-span-2">
-              <Label>Yêu cầu công việc *</Label>
-              <textarea value={form.yeuCauCongViec} onChange={e => setForm(f => ({ ...f, yeuCauCongViec: e.target.value }))} rows={4} className="flex w-full rounded-lg border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" placeholder="Yêu cầu kỹ năng, bằng cấp..." />
+              <Label htmlFor="ttd-yeu-cau">Yêu cầu công việc *</Label>
+              <textarea id="ttd-yeu-cau" aria-invalid={errField === "yeuCauCongViec"} value={form.yeuCauCongViec} onChange={e => setForm(f => ({ ...f, yeuCauCongViec: e.target.value }))} rows={4} className="flex w-full rounded-lg border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" placeholder="Yêu cầu kỹ năng, bằng cấp..." />
             </div>
             <div className="space-y-2 md:col-span-2">
-              <Label>Kinh nghiệm yêu cầu</Label>
-              <textarea value={form.kinhNghiemYeuCau} onChange={e => setForm(f => ({ ...f, kinhNghiemYeuCau: e.target.value }))} rows={2} className="flex w-full rounded-lg border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" placeholder="VD: 2+ năm kinh nghiệm React..." />
+              <Label htmlFor="ttd-kinh-nghiem">Kinh nghiệm yêu cầu</Label>
+              <textarea id="ttd-kinh-nghiem" value={form.kinhNghiemYeuCau} onChange={e => setForm(f => ({ ...f, kinhNghiemYeuCau: e.target.value }))} rows={2} className="flex w-full rounded-lg border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" placeholder="VD: 2+ năm kinh nghiệm React..." />
             </div>
             <div className="space-y-2 md:col-span-2">
-              <Label>Quyền lợi</Label>
-              <textarea value={form.quyenLoi} onChange={e => setForm(f => ({ ...f, quyenLoi: e.target.value }))} rows={2} className="flex w-full rounded-lg border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" placeholder="VD: Bảo hiểm, thưởng tháng 13..." />
+              <Label htmlFor="ttd-quyen-loi">Quyền lợi</Label>
+              <textarea id="ttd-quyen-loi" value={form.quyenLoi} onChange={e => setForm(f => ({ ...f, quyenLoi: e.target.value }))} rows={2} className="flex w-full rounded-lg border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" placeholder="VD: Bảo hiểm, thưởng tháng 13..." />
             </div>
           </div>
           <div className="mt-5 flex justify-end gap-2">
@@ -423,7 +443,7 @@ export default function TinTuyenDungPage() {
       )}
 
       <AdminCard>
-        <AdminCardHeader title="Danh sách tin tuyển dụng" description={`${items.length} tin`} action={<div className="relative w-full sm:w-64"><Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Tìm tin..." /></div>} />
+        <AdminCardHeader title="Danh sách tin tuyển dụng" description={search ? `${filtered.length}/${items.length} tin (đang lọc)` : `${items.length} tin`} action={<div className="relative w-full sm:w-64"><Input aria-label="Tìm tin tuyển dụng" value={search} onChange={e => setSearch(e.target.value)} placeholder="Tìm tin..." /></div>} />
         {loading ? <AdminLoadingState /> : filtered.length === 0 ? (
           <AdminEmptyState icon={Briefcase} title={search ? "Không tìm thấy" : "Chưa có tin tuyển dụng"} description="Bắt đầu tạo tin tuyển dụng để tìm ứng viên phù hợp." action={!search ? <Button onClick={openCreate} size="sm"><Plus className="size-4" /> Tạo tin mới</Button> : undefined} />
         ) : (
@@ -477,7 +497,7 @@ export default function TinTuyenDungPage() {
                       <Button variant="outline" size="sm" disabled={busy} onClick={() => void handleFire(item, TRIGGER.DongTin, "Đóng tin", `Đóng tin "${item.tieuDe}"? Tin đã đóng không mở lại được.`)}><Lock className="size-4" /> Đóng tin</Button>
                     )}
                     <Button variant="outline" size="sm" onClick={() => openEdit(item)}><Pencil className="size-4" /> Sửa</Button>
-                    <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => void handleDelete(item)}><Trash2 className="size-4" /></Button>
+                    <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" aria-label={`Xóa tin: ${item.tieuDe}`} onClick={() => void handleDelete(item)}><Trash2 className="size-4" /></Button>
                   </div>
                 </div>
               );

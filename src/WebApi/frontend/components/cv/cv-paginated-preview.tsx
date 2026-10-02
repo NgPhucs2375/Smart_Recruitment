@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { ComponentType } from "react";
 import type { ResumeData } from "@/features/tao-cv/resume-data";
+import { focusCvSectionsInDom, getCvFocusEventName, type CvFocusSection } from "@/features/ai-cv/cv-focus";
 
 const A4_RATIO = 297 / 210;
 
@@ -55,6 +56,18 @@ export function CvPaginatedPreview({ resume, Component, templateKey, onPageCount
   const pageOfRef = useRef<ItemPages>([]);
   const [pages, setPages] = useState<number[] | null>(null);
 
+  useEffect(() => {
+    const onFocus = (event: Event) => {
+      const sections = (event as CustomEvent<{ sections?: unknown }>).detail?.sections;
+      if (Array.isArray(sections)) {
+        focusCvSectionsInDom(sections.filter((section): section is CvFocusSection => typeof section === "string"));
+      }
+    };
+
+    window.addEventListener(getCvFocusEventName(), onFocus);
+    return () => window.removeEventListener(getCvFocusEventName(), onFocus);
+  }, []);
+
   const paginate = useCallback(() => {
     const measure = measureRef.current;
     if (!measure) return;
@@ -85,6 +98,7 @@ export function CvPaginatedPreview({ resume, Component, templateKey, onPageCount
     const bottoms = items.map((el, i) => tops[i] + el.getBoundingClientRect().height / unit);
     const heights = items.map((el) => el.getBoundingClientRect().height / unit);
 
+<<<<<<< HEAD
     // BATCH-print-1: nhóm Section -> Items trên bản đo. Mỗi top-level child
     // chứa item là một owner; chrome (heading/banner/divider, không item)
     // nào cũng gắn xuôi vào owner CÓ ITEM KẾ TIẾP — để tiêu đề không bao giờ
@@ -101,6 +115,21 @@ export function CvPaginatedPreview({ resume, Component, templateKey, onPageCount
       else if (pendingChrome.length > 0 && groups.length > 0) {
         // Chrome dôi cuối giấy (footer...) — gắn vào nhóm cuối.
         groups[groups.length - 1].chrome.push(...pendingChrome);
+=======
+    const pages: PageRange[] = [];
+    let start = 0;
+    // Page one includes the template header and top padding, so measure from
+    // the actual top of the paper. Subtracting the first item's top gave page
+    // one extra space and allowed long content to run below the A4 boundary.
+    let startTop = 0;
+    for (let i = 0; i < items.length; i += 1) {
+      // Continuation sheets hide the repeated header, so they gain a little
+      // room; first-page capacity stays strict so page 1 never overflows.
+      if (bottoms[i] - startTop > capacity && i > start) {
+        pages.push([start, i]);
+        start = i;
+        startTop = tops[i];
+>>>>>>> origin/dev-Phuc2
       }
       // Không nhóm nào cả (giấy không item): giữ hiện ở trang duy nhất,
       // xử lý ở apply (pages [0]).
@@ -207,13 +236,18 @@ export function CvPaginatedPreview({ resume, Component, templateKey, onPageCount
       raf = window.requestAnimationFrame(() => paginate());
     };
     window.addEventListener("resize", schedule);
+    const observer = new ResizeObserver(schedule);
+    const measuredPaper = measureRef.current?.firstElementChild;
+    if (measuredPaper) observer.observe(measuredPaper);
     document.fonts?.ready.then(() => paginate()).catch(() => undefined);
     return () => {
       window.cancelAnimationFrame(raf);
       window.removeEventListener("resize", schedule);
+      observer.disconnect();
     };
   }, [paginate]);
 
+<<<<<<< HEAD
   // Apply the computed pages to the visible sheets:
   // - item ngoài range: ẩn; item oversize: gắn class cho tách nội bộ.
   // - BATCH-print-1: section (owner + chrome) không còn item nào thuộc trang:
@@ -406,6 +440,38 @@ export function CvPaginatedPreview({ resume, Component, templateKey, onPageCount
           </div>
         ))}
       </div>
+=======
+  // The template is expensive and the visible pages are display-only. Clone
+  // the measured DOM instead of mounting the React template once per page.
+  // This keeps one React render for the whole document, even for long CVs.
+  useLayoutEffect(() => {
+    const host = pagesRef.current;
+    if (!host || !ranges) return;
+    const measuredPaper = measureRef.current?.firstElementChild as HTMLElement | null;
+    if (!measuredPaper) return;
+
+    host.replaceChildren();
+    ranges.forEach(([start, end], page) => {
+      const sheet = document.createElement("div");
+      sheet.className = "cv-sheet";
+      sheet.dataset.page = String(page + 1);
+
+      const paper = measuredPaper.cloneNode(true) as HTMLElement;
+      paper.querySelectorAll<HTMLElement>(".cv-section-item").forEach((el, i) => {
+        el.style.display = i >= start && i < end ? "" : "none";
+      });
+      const header = paper.querySelector<HTMLElement>("header");
+      if (header) header.style.display = page === 0 ? "" : "none";
+
+      sheet.appendChild(paper);
+      host.appendChild(sheet);
+    });
+  }, [ranges, resume, templateKey]);
+
+  return (
+    <div className="cv-pages-root" data-cv-document data-cv-surface="preview">
+      <div ref={pagesRef} className="cv-pages cv-preview-crossfade" />
+>>>>>>> origin/dev-Phuc2
       <div ref={measureRef} className="cv-measure" aria-hidden="true">
         <Component data={resume} />
       </div>

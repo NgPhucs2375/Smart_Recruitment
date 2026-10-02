@@ -1,8 +1,12 @@
 "use client";
 
 // Wrapper giao diện preview; nội dung CV render qua Template Registry + phân trang A4.
+<<<<<<< HEAD
 // Theme custom (Studio, đã duyệt policy) render qua ThemeCanvas generic.
 import { useEffect, useMemo, useState } from "react";
+=======
+import { useDeferredValue } from "react";
+>>>>>>> origin/dev-Phuc2
 import type { CvFormData } from "@/lib/types";
 import { toResumeData, type ResumeData } from "@/features/tao-cv/resume-data";
 import { resolveTemplate } from "@/features/tao-cv/template-registry";
@@ -25,6 +29,7 @@ interface CvPreviewProps {
  * của theme đó; template hệ thống giữ nguyên.
  */
 export function CvPreview({ data, onPageCount }: CvPreviewProps) {
+<<<<<<< HEAD
   const resume = toResumeData(data);
   const template = resolveTemplate(data.templateId);
   const [customTheme, setCustomTheme] = useState<CvThemeConfig | null>(null);
@@ -54,6 +59,11 @@ export function CvPreview({ data, onPageCount }: CvPreviewProps) {
     );
   }
 
+=======
+  const deferredData = useDeferredValue(data);
+  const resume = toResumeData(deferredData);
+  const template = resolveTemplate(deferredData.templateId);
+>>>>>>> origin/dev-Phuc2
   return (
     <CvPaginatedPreview
       resume={resume}

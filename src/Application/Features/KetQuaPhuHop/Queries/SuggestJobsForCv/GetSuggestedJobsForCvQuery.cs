@@ -1,10 +1,13 @@
 using Application.Interfaces;
+using Application.Features.CVUngVien.Cache;
+using Application.Features.KetQuaPhuHop.Cache;
 using Application.Wrappers;
 using Domain.Entities;
 using Domain.Enums;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Caching.Distributed;
 using System.Diagnostics;
 
 namespace Application.Features.KetQuaPhuHop.Queries.SuggestJobsForCv;
@@ -39,7 +42,8 @@ public class SuggestedJobViewModel
 public class GetSuggestedJobsForCvQueryHandler(
     IApplicationDbContext context,
     ICurrentNguoiDungService currentNguoiDungService,
-    ILogger<GetSuggestedJobsForCvQueryHandler> logger)
+    ILogger<GetSuggestedJobsForCvQueryHandler> logger,
+    IDistributedCache cache)
     : IRequestHandler<GetSuggestedJobsForCvQuery, Response<List<SuggestedJobViewModel>>>
 {
     private static readonly Dictionary<MucDoYC, float> MucDoWeights = new()
@@ -79,6 +83,33 @@ public class GetSuggestedJobsForCvQueryHandler(
         if (cv == null)
             return new Response<List<SuggestedJobViewModel>>(
                 "Không tìm thấy CV phù hợp. Hãy tạo hoặc chọn một CV mặc định trước.");
+
+        var cvVersion = await RecommendationCache.GetVersionAsync(
+            cache,
+            CVUngVienListCache.DetailVersionKey(cv.Id),
+            cancellationToken);
+        var jobsVersion = await RecommendationCache.GetVersionAsync(
+            cache,
+            RecommendationCache.JobsVersionKey,
+            cancellationToken);
+        var cacheKey = RecommendationCache.JobRecommendationsKey(
+            currentUser.Id,
+            cv.Id,
+            cvVersion,
+            jobsVersion,
+            Math.Max(1, request.TopN));
+        var cached = await RecommendationCache.GetAsync<List<SuggestedJobViewModel>>(
+            cache,
+            cacheKey,
+            cancellationToken);
+        if (cached != null)
+        {
+            return new Response<List<SuggestedJobViewModel>>(
+                cached,
+                cached.Count == 0
+                    ? "Chưa có tin tuyển dụng nào phù hợp với CV này (kiểm tra lại kỹ năng đã điền trong CV)."
+                    : $"Tìm thấy {cached.Count} tin tuyển dụng phù hợp.");
+        }
 
         var skillIds = cv.KyNangs
             .Where(k => k.KyNangId.HasValue)
@@ -205,6 +236,9 @@ public class GetSuggestedJobsForCvQueryHandler(
         }
         await context.SaveChangesAsync(cancellationToken);
 
+        var responseData = top.Select(r => r.Vm).ToList();
+        await RecommendationCache.SetAsync(cache, cacheKey, responseData, cancellationToken);
+
         logger.LogInformation("Job recommendation completed in {ElapsedMs} ms. Results={ResultCount}.",
             timer.ElapsedMilliseconds, top.Count);
 
@@ -212,7 +246,7 @@ public class GetSuggestedJobsForCvQueryHandler(
             ? "Chưa có tin tuyển dụng nào phù hợp với CV này (kiểm tra lại kỹ năng đã điền trong CV)."
             : $"Tìm thấy {top.Count} tin tuyển dụng phù hợp.";
         return new Response<List<SuggestedJobViewModel>>(
-            top.Select(r => r.Vm).ToList(), message);
+            responseData, message);
     }
 
     private static SuggestedJobViewModel ToVm(JobMatchPosting t, float diem) => new()

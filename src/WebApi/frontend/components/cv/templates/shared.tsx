@@ -1,7 +1,11 @@
 "use client";
 
 // Kiểu props dùng chung cho mọi template, bảo đảm template chỉ nhận ResumeData.
+<<<<<<< HEAD
 import type { CSSProperties, ReactNode } from "react";
+=======
+import { Children, isValidElement, type ReactNode } from "react";
+>>>>>>> origin/dev-Phuc2
 import type { ResumeData, ResumeDateRange, ResumeSkill } from "@/features/tao-cv/resume-data";
 
 export type ResumeTemplateProps = { data: ResumeData };
@@ -172,10 +176,38 @@ export function EmptyPaper({ hint }: { hint: string }) {
  * phép tách qua trang khi in, tránh khoảng trống lớn + trang trắng.
  * cv-section-shell chỉ phục vụ orphan protection cho heading.
  */
+<<<<<<< HEAD
 export function SectionShell({ children }: { children: ReactNode }) {
   // BATCH1-wrap: min-w-0 để con flex/grid không đẩy phình section,
   // overflow-wrap để chuỗi dài bẻ dòng trong khung.
   return <section className="cv-section-shell min-w-0 break-words [overflow-wrap:anywhere]">{children}</section>;
+=======
+type CvSection = "contact" | "experience" | "education" | "skills" | "projects" | "certificates";
+
+function textFromNode(node: ReactNode): string {
+  return Children.toArray(node).map((child) => {
+    if (typeof child === "string" || typeof child === "number") return String(child);
+    if (isValidElement(child)) {
+      return textFromNode((child.props as { children?: ReactNode }).children);
+    }
+    return "";
+  }).join(" ");
+}
+
+function inferSection(children: ReactNode): CvSection | undefined {
+  const heading = textFromNode(Children.toArray(children)[0]).toLocaleLowerCase("vi");
+  if (heading.includes("liên hệ") || heading.includes("contact") || heading.includes("profile")) return "contact";
+  if (heading.includes("kinh nghiệm") || heading.includes("experience")) return "experience";
+  if (heading.includes("học vấn") || heading.includes("đào tạo") || heading.includes("education")) return "education";
+  if (heading.includes("kỹ năng") || heading.includes("skill") || heading.includes("competenc")) return "skills";
+  if (heading.includes("dự án") || heading.includes("project")) return "projects";
+  if (heading.includes("chứng chỉ") || heading.includes("certificate")) return "certificates";
+  return undefined;
+}
+
+export function SectionShell({ children, section }: { children: ReactNode; section?: CvSection }) {
+  return <section className="cv-section-shell" data-cv-section={section ?? inferSection(children)}>{children}</section>;
+>>>>>>> origin/dev-Phuc2
 }
 
 /**

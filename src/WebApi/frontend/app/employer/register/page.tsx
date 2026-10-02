@@ -218,41 +218,44 @@ export default function EmployerRegisterPage() {
           <>
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-1">
-                <Label className="text-xs font-medium text-gray-700">Họ và tên</Label>
+                <Label htmlFor="emp-ho-ten" className="text-xs font-medium text-gray-700">Họ và tên</Label>
                 <div className="relative">
                   <User className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
-                  <Input {...register("hoTen")} disabled={isPending} placeholder="Nguyễn Văn A" className="h-10 rounded-xl border-input bg-white pl-10 text-sm" />
+                  <Input id="emp-ho-ten" autoComplete="name" {...register("hoTen")} aria-invalid={!!errors.hoTen} aria-describedby="emp-ho-ten-error" disabled={isPending} placeholder="Nguyễn Văn A" className="h-10 rounded-xl border-input bg-white pl-10 text-sm" />
                 </div>
-                {errors.hoTen && <p className="text-xs text-red-500">{errors.hoTen.message}</p>}
+                {errors.hoTen && <p id="emp-ho-ten-error" role="alert" className="text-xs text-red-500">{errors.hoTen.message}</p>}
               </div>
               <div className="space-y-1">
-                <Label className="text-xs font-medium text-gray-700">Điện thoại</Label>
+                <Label htmlFor="emp-so-dien-thoai" className="text-xs font-medium text-gray-700">Điện thoại</Label>
                 <div className="relative">
                   <Phone className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
-                  <Input {...register("soDienThoai")} disabled={isPending} placeholder="090 123 4567" className="h-10 rounded-xl border-input bg-white pl-10 text-sm" />
+                  <Input id="emp-so-dien-thoai" autoComplete="tel" {...register("soDienThoai")} aria-invalid={!!errors.soDienThoai} aria-describedby="emp-so-dien-thoai-error" disabled={isPending} placeholder="090 123 4567" className="h-10 rounded-xl border-input bg-white pl-10 text-sm" />
                 </div>
-                {errors.soDienThoai && <p className="text-xs text-red-500">{errors.soDienThoai.message}</p>}
+                {errors.soDienThoai && <p id="emp-so-dien-thoai-error" role="alert" className="text-xs text-red-500">{errors.soDienThoai.message}</p>}
               </div>
             </div>
 
             <div className="space-y-1">
-              <Label className="text-xs font-medium text-gray-700">Email</Label>
+              <Label htmlFor="emp-email" className="text-xs font-medium text-gray-700">Email</Label>
               <div className="relative">
                 <Mail className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
-                <Input type="email" {...register("email")} disabled={isPending} placeholder="hr@company.com" className="h-10 rounded-xl border-input bg-white pl-10 text-sm" />
+                <Input id="emp-email" type="email" autoComplete="email" {...register("email")} aria-invalid={!!errors.email} aria-describedby="emp-email-error" disabled={isPending} placeholder="hr@company.com" className="h-10 rounded-xl border-input bg-white pl-10 text-sm" />
               </div>
-              {errors.email && <p className="text-xs text-red-500">{errors.email.message}</p>}
+              {errors.email && <p id="emp-email-error" role="alert" className="text-xs text-red-500">{errors.email.message}</p>}
             </div>
 
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-1">
-                <Label className="text-xs font-medium text-gray-700">Mật khẩu</Label>
+                <Label htmlFor="emp-password" className="text-xs font-medium text-gray-700">Mật khẩu</Label>
                 <div className="relative">
                   <Lock className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
                   <Input
+                    id="emp-password"
                     type={showPassword ? "text" : "password"}
                     autoComplete="new-password"
                     {...register("password")}
+                    aria-invalid={!!errors.password}
+                    aria-describedby="emp-password-error"
                     disabled={isPending}
                     placeholder="••••••••"
                     className="h-10 rounded-xl border-input bg-white pl-10 pr-9 text-sm"
@@ -262,27 +265,31 @@ export default function EmployerRegisterPage() {
                     onClick={() => setShowPassword((v) => !v)}
                     aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
                     aria-pressed={showPassword}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    disabled={isPending}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 rounded p-0.5 text-gray-400 transition hover:text-gray-600 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary disabled:opacity-50"
                   >
                     {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                   </button>
                 </div>
-                {errors.password && <p className="text-xs text-red-500">{errors.password.message}</p>}
+                {errors.password && <p id="emp-password-error" role="alert" className="text-xs text-red-500">{errors.password.message}</p>}
               </div>
               <div className="space-y-1">
-                <Label className="text-xs font-medium text-gray-700">Nhập lại mật khẩu</Label>
+                <Label htmlFor="emp-confirm-password" className="text-xs font-medium text-gray-700">Nhập lại mật khẩu</Label>
                 <div className="relative">
                   <Lock className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
                   <Input
+                    id="emp-confirm-password"
                     type={showPassword ? "text" : "password"}
                     autoComplete="new-password"
                     {...register("confirmPassword")}
+                    aria-invalid={!!errors.confirmPassword}
+                    aria-describedby="emp-confirm-password-error"
                     disabled={isPending}
                     placeholder="••••••••"
                     className="h-10 rounded-xl border-input bg-white pl-10 text-sm"
                   />
                 </div>
-                {errors.confirmPassword && <p className="text-xs text-red-500">{errors.confirmPassword.message}</p>}
+                {errors.confirmPassword && <p id="emp-confirm-password-error" role="alert" className="text-xs text-red-500">{errors.confirmPassword.message}</p>}
               </div>
             </div>
           </>
@@ -292,30 +299,30 @@ export default function EmployerRegisterPage() {
         {step === 1 && (
           <>
             <div className="space-y-1">
-              <Label className="text-xs font-medium text-gray-700">Tên doanh nghiệp</Label>
+              <Label htmlFor="emp-ten-doanh-nghiep" className="text-xs font-medium text-gray-700">Tên doanh nghiệp</Label>
               <div className="relative">
                 <Building2 className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
-                <Input {...register("tenDoanhNghiep")} disabled={isPending} placeholder="Công ty Công nghệ..." className="h-10 rounded-xl border-input bg-white pl-10 text-sm" />
+                <Input id="emp-ten-doanh-nghiep" autoComplete="organization" {...register("tenDoanhNghiep")} aria-invalid={!!errors.tenDoanhNghiep} aria-describedby="emp-ten-doanh-nghiep-error" disabled={isPending} placeholder="Công ty Công nghệ..." className="h-10 rounded-xl border-input bg-white pl-10 text-sm" />
               </div>
-              {errors.tenDoanhNghiep && <p className="text-xs text-red-500">{errors.tenDoanhNghiep.message}</p>}
+              {errors.tenDoanhNghiep && <p id="emp-ten-doanh-nghiep-error" role="alert" className="text-xs text-red-500">{errors.tenDoanhNghiep.message}</p>}
             </div>
 
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-1">
-                <Label className="text-xs font-medium text-gray-700">Địa chỉ doanh nghiệp</Label>
+                <Label htmlFor="emp-dia-chi-doanh-nghiep" className="text-xs font-medium text-gray-700">Địa chỉ doanh nghiệp</Label>
                 <div className="relative">
                   <MapPin className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
-                  <Input {...register("diaChiDoanhNghiep")} disabled={isPending} placeholder="Số nhà, đường, quận..." className="h-10 rounded-xl border-input bg-white pl-10 text-sm" />
+                  <Input id="emp-dia-chi-doanh-nghiep" {...register("diaChiDoanhNghiep")} aria-invalid={!!errors.diaChiDoanhNghiep} aria-describedby="emp-dia-chi-doanh-nghiep-error" disabled={isPending} placeholder="Số nhà, đường, quận..." className="h-10 rounded-xl border-input bg-white pl-10 text-sm" />
                 </div>
-                {errors.diaChiDoanhNghiep && <p className="text-xs text-red-500">{errors.diaChiDoanhNghiep.message}</p>}
+                {errors.diaChiDoanhNghiep && <p id="emp-dia-chi-doanh-nghiep-error" role="alert" className="text-xs text-red-500">{errors.diaChiDoanhNghiep.message}</p>}
               </div>
               <div className="space-y-1">
-                <Label className="text-xs font-medium text-gray-700">Chức vụ của bạn</Label>
+                <Label htmlFor="emp-chuc-vu" className="text-xs font-medium text-gray-700">Chức vụ của bạn</Label>
                 <div className="relative">
                   <Briefcase className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
-                  <Input {...register("chucVu")} disabled={isPending} placeholder="VD: HR Manager" className="h-10 rounded-xl border-input bg-white pl-10 text-sm" />
+                  <Input id="emp-chuc-vu" {...register("chucVu")} aria-invalid={!!errors.chucVu} aria-describedby="emp-chuc-vu-error" disabled={isPending} placeholder="VD: HR Manager" className="h-10 rounded-xl border-input bg-white pl-10 text-sm" />
                 </div>
-                {errors.chucVu && <p className="text-xs text-red-500">{errors.chucVu.message}</p>}
+                {errors.chucVu && <p id="emp-chuc-vu-error" role="alert" className="text-xs text-red-500">{errors.chucVu.message}</p>}
               </div>
             </div>
 
@@ -352,12 +359,12 @@ export default function EmployerRegisterPage() {
 
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-1">
-                <Label className="text-xs font-medium text-gray-700">Website (không bắt buộc)</Label>
-                <Input {...register("website")} disabled={isPending} placeholder="https://company.com" className="h-10 rounded-xl border-input bg-white text-sm" />
+                <Label htmlFor="emp-website" className="text-xs font-medium text-gray-700">Website (không bắt buộc)</Label>
+                <Input id="emp-website" {...register("website")} disabled={isPending} placeholder="https://company.com" className="h-10 rounded-xl border-input bg-white text-sm" />
               </div>
               <div className="space-y-1">
-                <Label className="text-xs font-medium text-gray-700">Mã số thuế (không bắt buộc)</Label>
-                <Input {...register("maSoThue")} disabled={isPending} placeholder="0312345678" className="h-10 rounded-xl border-input bg-white text-sm" />
+                <Label htmlFor="emp-ma-so-thue" className="text-xs font-medium text-gray-700">Mã số thuế (không bắt buộc)</Label>
+                <Input id="emp-ma-so-thue" {...register("maSoThue")} disabled={isPending} placeholder="0312345678" className="h-10 rounded-xl border-input bg-white text-sm" />
               </div>
             </div>
           </>
@@ -401,8 +408,9 @@ export default function EmployerRegisterPage() {
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-1">
-                <Label className="text-xs font-medium text-gray-700">Số lượng dự kiến</Label>
+                <Label htmlFor="emp-so-luong" className="text-xs font-medium text-gray-700">Số lượng dự kiến</Label>
                 <Input
+                  id="emp-so-luong"
                   type="number"
                   min="1"
                   value={quantity}
@@ -413,8 +421,9 @@ export default function EmployerRegisterPage() {
                 />
               </div>
               <div className="space-y-1">
-                <Label className="text-xs font-medium text-gray-700">Ghi chú thêm</Label>
+                <Label htmlFor="emp-ghi-chu" className="text-xs font-medium text-gray-700">Ghi chú thêm</Label>
                 <Input
+                  id="emp-ghi-chu"
                   value={intentNote}
                   onChange={(e) => setIntentNote(e.target.value)}
                   disabled={isPending}

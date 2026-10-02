@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { ShieldAlert } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { getAuthToken, redirectToLogin } from "@/lib/auth-provider";
 import { isAdmin } from "./api";
 
 /** Chặn trang admin nếu không phải QUAN_TRI_VIEN. */
@@ -13,7 +14,11 @@ export function AdminGate({ children }: { children: React.ReactNode }) {
   const [allowed, setAllowed] = useState<boolean | null>(null);
 
   useEffect(() => {
-    setAllowed(isAdmin());
+    if (!getAuthToken()) {
+      redirectToLogin();
+      return;
+    }
+    void Promise.resolve().then(() => setAllowed(isAdmin()));
   }, []);
 
   if (allowed === null) return <div className="p-6 text-muted-foreground">Đang kiểm tra quyền...</div>;

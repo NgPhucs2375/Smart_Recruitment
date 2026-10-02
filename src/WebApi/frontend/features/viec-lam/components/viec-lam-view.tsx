@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense, useCallback, useMemo } from "react";
+import { useState, useEffect, useRef, Suspense, useCallback, useMemo } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Bookmark, Briefcase, ArrowRight, RefreshCw } from "lucide-react";
@@ -106,7 +106,10 @@ function ViecLamContent() {
   const router = useRouter();
   const { bookmarkedIds, count: savedCount } = useBookmarks();
   const [showSavedOnly, setShowSavedOnly] = useState(() => searchParams.get("saved") === "1");
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useState(() => {
+    const parsed = Number(searchParams.get("page"));
+    return Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : 1;
+  });
   const [filters, setFilters] = useState<JobFilters>(() => ({
     keyword: searchParams.get("keyword") ?? "",
     location: searchParams.get("location") ?? "",
@@ -132,6 +135,47 @@ function ViecLamContent() {
   const handleFilterChange = useCallback((next: JobFilters) => {
     setFilters(next);
     setPage(1);
+  }, []);
+
+  // Ghi filter/page ngược vào URL (debounced theo keyword) để back/refresh
+  // giữ nguyên bộ lọc — tránh reset khi bấm vào chi tiết rồi quay lại.
+  const urlSynced = useRef(false);
+  useEffect(() => {
+    if (!urlSynced.current) {
+      urlSynced.current = true;
+      return;
+    }
+    const params = new URLSearchParams();
+    if (debouncedKeyword) params.set("keyword", debouncedKeyword);
+    if (filters.location) params.set("location", filters.location);
+    if (filters.level) params.set("level", filters.level);
+    if (filters.employmentType) params.set("employmentType", filters.employmentType);
+    if (filters.salaryMin !== undefined) params.set("salaryMin", String(filters.salaryMin));
+    if (filters.salaryMax !== undefined) params.set("salaryMax", String(filters.salaryMax));
+    if (filters.workMode) params.set("workMode", filters.workMode);
+    if (page > 1) params.set("page", String(page));
+    if (showSavedOnly) params.set("saved", "1");
+    const query = params.toString();
+    router.replace(query ? `/viec-lam?${query}` : "/viec-lam", { scroll: false });
+  }, [
+    debouncedKeyword,
+    filters.location,
+    filters.level,
+    filters.employmentType,
+    filters.salaryMin,
+    filters.salaryMax,
+    filters.workMode,
+    page,
+    showSavedOnly,
+    router,
+  ]);
+
+  // Chuyển trang: cuộn về đầu danh sách thay vì ở vị trí cũ khi danh sách ghép trang.
+  const handlePageChange = useCallback((next: number) => {
+    setPage(next);
+    requestAnimationFrame(() => {
+      document.getElementById("viec-lam-results")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
   }, []);
 
   const visibleJobs = useMemo(
@@ -189,7 +233,7 @@ function ViecLamContent() {
         </div>
       )}
 
-      <div className="grid gap-5 sm:gap-6">
+      <div id="viec-lam-results" className="grid gap-5 sm:gap-6">
         {loading && jobs.length === 0 ? (
           <>
             <JobCardSkeleton />
@@ -246,7 +290,7 @@ function ViecLamContent() {
           <p className="text-xs text-muted-foreground">
             Trang {page}/{totalPages} • Tổng {totalCount} tin
           </p>
-          <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
+          <Pagination page={page} totalPages={totalPages} onPageChange={handlePageChange} />
         </div>
       )}
 

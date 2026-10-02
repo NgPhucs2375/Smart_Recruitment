@@ -1,4 +1,5 @@
 using Application.Exceptions;
+using Application.Features.KetQuaPhuHop.Cache;
 using Application.Interfaces;
 using Application.Services.StateMachineTinTuyenDung;
 using Application.Wrappers;
@@ -6,6 +7,7 @@ using Domain.Entities;
 using Domain.Enums;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Distributed;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -30,7 +32,8 @@ namespace Application.Features.TinTuyenDung.Commands.CreateTinTuyenDung
         IApplicationDbContext context,
         ICurrentNguoiDungService current,
         ITinTuyenDungWorkflowService workflow,
-        ITinTuyenDungFunnelService funnel)
+        ITinTuyenDungFunnelService funnel,
+        IDistributedCache cache)
         : IRequestHandler<CreateTinTuyenDungCommand, Response<int>>
     {
         public async Task<Response<int>> Handle(
@@ -82,6 +85,7 @@ namespace Application.Features.TinTuyenDung.Commands.CreateTinTuyenDung
 
             await context.SaveChangesAsync(
                 cancellationToken);
+            await RecommendationCache.InvalidateJobsAsync(cache, cancellationToken);
 
             string message = "Tạo tin tuyển dụng thành công.";
             // Luồng duyệt khi đăng tin mới (áp dụng cho cả Nhân sự và Người đại diện):

@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Building2 } from "lucide-react";
+import { ArrowLeft, Building2, RefreshCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { CompanyAbout } from "@/components/company/company-about";
 import { CompanyHeader } from "@/components/company/company-header";
 import { CompanyInfoSidebar } from "@/components/company/company-info-sidebar";
@@ -22,6 +23,7 @@ export function CongTyDetailView({ id }: { id: number }) {
   const [loading, setLoading] = useState(true);
   const [jobsLoading, setJobsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [reloadTick, setReloadTick] = useState(0);
   const { isFollowed, toggle } = useFollowedCompanies();
 
   useEffect(() => {
@@ -41,7 +43,7 @@ export function CongTyDetailView({ id }: { id: number }) {
       .catch((reason: unknown) => { if (active) setError(reason instanceof Error ? reason.message : "Không tải được doanh nghiệp."); })
       .finally(() => { if (active) { setLoading(false); setJobsLoading(false); } });
     return () => { active = false; };
-  }, [id]);
+  }, [id, reloadTick]);
 
-  return <main className="mx-auto w-full max-w-7xl space-y-6 px-4 py-6 sm:px-6 sm:py-10"><Link href="/doanh-nghiep" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"><ArrowLeft className="size-4" />Về danh sách doanh nghiệp</Link>{loading ? <div className="grid gap-5 lg:grid-cols-[1fr_20rem]"><CompanyCardSkeleton /><CompanyCardSkeleton compact /></div> : error ? <Card className="border-destructive/30"><CardContent className="py-10 text-center text-destructive">{error}</CardContent></Card> : !company ? <Card><CardContent className="flex min-h-64 flex-col items-center justify-center text-center"><Building2 className="size-8 text-muted-foreground" /><h1 className="mt-4 font-semibold">Không tìm thấy doanh nghiệp</h1><p className="mt-1 text-sm text-muted-foreground">Hồ sơ này không tồn tại hoặc không còn công khai.</p></CardContent></Card> : <><CompanyHeader company={company} followed={isFollowed(company.id)} onToggleFollow={() => toggle(company.id)} /><div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]"><div className="space-y-6"><CompanyAbout description={company.moTa} /><RecommendedCompanyJobs jobs={jobs} /><CompanyJobList jobs={jobs} loading={jobsLoading} matchScores={matchScores} /></div><CompanyInfoSidebar company={company} /></div></>}</main>;
+  return <main className="mx-auto w-full max-w-7xl space-y-6 px-4 py-6 sm:px-6 sm:py-10"><Link href="/doanh-nghiep" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"><ArrowLeft className="size-4" />Về danh sách doanh nghiệp</Link>{loading ? <div className="grid gap-5 lg:grid-cols-[1fr_20rem]"><CompanyCardSkeleton /><CompanyCardSkeleton compact /></div> : error ? <Card className="border-destructive/30"><CardContent className="flex flex-col items-center gap-4 py-10 text-center text-destructive">{error}<Button variant="outline" size="sm" onClick={() => { setLoading(true); setError(null); setReloadTick((tick) => tick + 1); }}><RefreshCw className="mr-2 size-4" /> Thử lại</Button></CardContent></Card> : !company ?<Card><CardContent className="flex min-h-64 flex-col items-center justify-center text-center"><Building2 className="size-8 text-muted-foreground" /><h1 className="mt-4 font-semibold">Không tìm thấy doanh nghiệp</h1><p className="mt-1 text-sm text-muted-foreground">Hồ sơ này không tồn tại hoặc không còn công khai.</p></CardContent></Card> : <><CompanyHeader company={company} followed={isFollowed(company.id)} onToggleFollow={() => toggle(company.id)} /><div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]"><div className="space-y-6"><CompanyAbout description={company.moTa} /><RecommendedCompanyJobs jobs={jobs} /><CompanyJobList jobs={jobs} loading={jobsLoading} matchScores={matchScores} /></div><CompanyInfoSidebar company={company} /></div></>}</main>;
 }

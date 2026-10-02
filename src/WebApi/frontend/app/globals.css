@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 @import "tailwindcss";
 @import "tw-animate-css";
 
@@ -2416,3 +2417,2289 @@ html {
   .cv-chat__copilot .adam-composer { transition: none !important; }
   .cv-ai-focused { animation: none; outline: 3px solid color-mix(in srgb, var(--primary) 45%, transparent); }
 }
+=======
+@import "tailwindcss";
+
+/* Layout CV dùng một document duy nhất; mobile chỉ đổi thứ tự hai panel. */
+html {
+  scroll-behavior: smooth;
+}
+
+/* AI CV workspace: deliberately plain CSS so the editor reads as one tool,
+   not a stack of nested cards. */
+.cv-workspace {
+  display: flex;
+  width: 100%;
+  height: calc(100dvh - 4rem);
+  min-height: 0;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--workspace-bg, var(--background));
+  color: var(--workspace-text, var(--foreground));
+}
+
+.cv-workspace__topbar {
+  display: flex;
+  min-height: 3.5rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 1px solid var(--workspace-border, var(--border));
+  background: var(--workspace-topbar, var(--background));
+  padding: 0.65rem 1.25rem;
+}
+
+.cv-workspace__title { min-width: 0; }
+.cv-workspace__eyebrow { display: flex; align-items: center; gap: 0.4rem; color: var(--workspace-primary, var(--primary)); font-size: 0.65rem; font-weight: 700; letter-spacing: 0.16em; }
+.cv-workspace__title h1 { margin: 0.2rem 0 0; font-size: 1.05rem; font-weight: 650; letter-spacing: -0.015em; }
+.cv-workspace__actions { display: flex; align-items: center; gap: 0.5rem; }
+.cv-status { color: var(--muted-foreground); font-size: 0.7rem; }
+.cv-status--dirty { color: var(--workspace-primary, var(--primary)); font-weight: 650; }
+.cv-button { display: inline-flex; min-height: 2rem; align-items: center; justify-content: center; gap: 0.4rem; border: 1px solid transparent; border-radius: 0.45rem; padding: 0.35rem 0.7rem; font-size: 0.75rem; font-weight: 600; transition: background-color 140ms ease, border-color 140ms ease, opacity 140ms ease; }
+.cv-button:focus-visible, .cv-link-button:focus-visible, .cv-zoom button:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+.cv-button:disabled { cursor: not-allowed; opacity: 0.55; }
+.cv-button--quiet { border-color: var(--workspace-border, var(--border)); background: transparent; color: var(--workspace-text, var(--foreground)); }
+.cv-button--quiet:hover { background: var(--workspace-surface-soft, var(--muted)); }
+.cv-button--primary { border-color: var(--workspace-primary, var(--primary)); background: var(--workspace-primary, var(--primary)); color: var(--workspace-on-primary, var(--primary-foreground)); }
+.cv-button--primary:hover { opacity: 0.9; }
+
+.cv-workspace__body { display: grid; min-height: 0; flex: 1; grid-template-columns: minmax(20rem, 38%) minmax(0, 1fr); direction: ltr; align-items: stretch; }
+.cv-assistant-column { display: flex; width: 100%; min-width: 0; min-height: 0; flex-direction: column; border-right: 1px solid var(--workspace-border, var(--border)); background: var(--background); }
+.cv-avatar { display: inline-flex; width: 2rem; height: 2rem; align-items: center; justify-content: center; border-radius: 0.55rem; background: var(--workspace-primary, var(--primary)); color: var(--workspace-on-primary, var(--primary-foreground)); }
+
+.cv-chat { display: flex; width: 100%; height: 100%; min-height: 0; flex: 1; flex-direction: column; background: var(--workspace-surface-soft, var(--muted)); }
+.cv-chat__bar { display: flex; min-height: 3.3rem; align-items: center; justify-content: space-between; gap: 0.75rem; border-bottom: 1px solid var(--workspace-border, var(--border)); background: var(--background); padding: 0.65rem 1.1rem; }
+.cv-chat__bar > div { display: flex; min-width: 0; flex-direction: column; }
+.cv-chat__identity { flex-direction: row !important; align-items: center; gap: 0.65rem; }
+.cv-chat__bar strong { font-size: 0.78rem; }
+.cv-chat__bar span:not(.cv-online) { margin-top: 0.15rem; color: var(--muted-foreground); font-size: 0.67rem; }
+.cv-online { display: inline-flex; align-items: center; gap: 0.35rem; color: #18804b; font-size: 0.65rem; font-weight: 650; }
+.cv-online i { width: 0.38rem; height: 0.38rem; border-radius: 999px; background: #22a866; }
+.cv-chat__content { display: flex; width: 100%; min-width: 0; min-height: 0; flex: 1 1 auto; overflow: hidden; padding: 0; }
+.cv-chat__copilot { display: flex; width: 100%; height: 100%; min-width: 0; min-height: 0; flex: 1 1 auto; flex-direction: column; overflow: hidden; border: 0 !important; border-radius: 0 !important; background: transparent !important; box-shadow: none !important; }
+.cv-chat__copilot [data-copilotkit] form,
+.cv-chat__copilot [data-copilotkit] div:has(> textarea[data-testid="copilot-chat-textarea"]) {
+  flex-shrink: 0;
+  margin-top: auto;
+}
+.cv-chat__copilot [data-copilotkit] form { order: 2; }
+.cv-chat__copilot p, .cv-chat__copilot pre, .cv-chat__copilot code, .cv-chat__copilot textarea { max-width: 100%; overflow-wrap: anywhere; word-break: break-word; }
+.cv-chat__copilot textarea[data-testid="copilot-chat-textarea"] { max-height: 8rem !important; overflow-y: auto !important; resize: none; }
+
+.cv-preview { display: flex; min-width: 0; min-height: 0; flex-direction: column; background: var(--workspace-surface-soft, var(--muted)); }
+.cv-preview__bar { display: flex; min-height: 3.3rem; flex-wrap: wrap; align-items: center; gap: 0.5rem; border-bottom: 1px solid var(--workspace-border, var(--border)); background: var(--background); padding: 0.55rem 1rem; }
+.cv-preview__label { display: flex; min-width: 0; flex: 1; align-items: center; gap: 0.45rem; color: var(--workspace-primary, var(--primary)); }
+.cv-preview__label strong { color: var(--workspace-text, var(--foreground)); font-size: 0.78rem; }
+.cv-preview__label span { color: var(--muted-foreground); font-size: 0.65rem; }
+.cv-preview select { height: 2rem; max-width: 10rem; border: 1px solid var(--workspace-border, var(--border)); border-radius: 0.4rem; background: var(--background); padding: 0 0.45rem; color: var(--foreground); font-size: 0.7rem; }
+.cv-zoom { display: inline-flex; height: 2rem; align-items: center; border: 1px solid var(--workspace-border, var(--border)); border-radius: 0.4rem; background: var(--background); }
+.cv-zoom button { display: inline-flex; width: 1.9rem; height: 100%; align-items: center; justify-content: center; border: 0; background: transparent; color: var(--muted-foreground); }
+.cv-zoom button:hover:not(:disabled) { background: var(--muted); color: var(--foreground); }
+.cv-zoom button:disabled { opacity: 0.35; }
+.cv-zoom span { width: 2.5rem; color: var(--muted-foreground); font-size: 0.65rem; text-align: center; }
+.cv-preview__canvas { min-height: 0; flex: 1; overflow: auto; padding: 1rem; }
+.cv-document { transform-origin: top center; margin: 0 auto; border-radius: 0.35rem; background: white; box-shadow: 0 8px 28px rgb(0 0 0 / 0.12); }
+.cv-ai-focused { animation: cv-ai-focus 3s ease-out both; scroll-margin-block: 7rem; }
+@keyframes cv-ai-focus {
+  0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--primary) 0%, transparent), 0 8px 28px rgb(0 0 0 / 0.12); }
+  12% { box-shadow: 0 0 0 0.35rem color-mix(in srgb, var(--primary) 32%, transparent), 0 12px 34px color-mix(in srgb, var(--primary) 24%, transparent); }
+  60% { box-shadow: 0 0 0 0.2rem color-mix(in srgb, var(--primary) 18%, transparent), 0 12px 34px color-mix(in srgb, var(--primary) 14%, transparent); }
+  100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--primary) 0%, transparent), 0 8px 28px rgb(0 0 0 / 0.12); }
+}
+.cv-empty { display: flex; height: 100%; min-height: 20rem; flex-direction: column; align-items: center; justify-content: center; border: 1px dashed var(--workspace-border, var(--border)); background: var(--background); color: var(--muted-foreground); text-align: center; }
+.cv-empty svg { margin-bottom: 0.7rem; color: var(--workspace-primary, var(--primary)); }
+.cv-empty strong { color: var(--foreground); font-size: 0.8rem; }
+.cv-empty span { margin-top: 0.3rem; font-size: 0.7rem; }
+.cv-preview__footer { display: flex; min-height: 2rem; align-items: center; justify-content: space-between; gap: 1rem; border-top: 1px solid var(--workspace-border, var(--border)); background: var(--background); padding: 0 1rem; color: var(--muted-foreground); font-size: 0.64rem; }
+
+@media (max-width: 900px) {
+  .cv-workspace { height: auto; min-height: calc(100dvh - 4rem); overflow: visible; }
+  .cv-workspace__topbar { padding: 0.65rem 0.85rem; }
+  .cv-workspace__eyebrow { font-size: 0.58rem; }
+  .cv-workspace__title h1 { font-size: 0.95rem; }
+  .cv-status { display: none; }
+  .cv-workspace__body { display: flex; flex-direction: column; }
+  .cv-preview { order: 1; min-height: 58dvh; }
+  .cv-assistant-column { order: 2; min-height: 38rem; border-right: 0; border-top: 1px solid var(--workspace-border, var(--border)); }
+  .cv-preview__canvas { min-height: 22rem; padding: 0.75rem; }
+  .cv-preview__footer { padding: 0 0.75rem; }
+}
+
+/* ============================================================
+   SMART RECRUITMENT — DESIGN TOKENS (Phase 1)
+   - Semantic tokens use `@theme inline` so utilities emit
+     `var(--...)` and keep following `:root` / `.dark` overrides
+     at runtime (theme toggle keeps working).
+   - Brand tokens are static values for direct use
+     (bg-ivory, text-charcoal, bg-marine, ...).
+   ============================================================ */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-primary-hover: var(--primary-hover);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  /* Semantic workspace layer (role-aware shells consume these) */
+  --color-workspace: var(--workspace-bg);
+  --color-workspace-surface: var(--workspace-surface);
+  --color-workspace-soft: var(--workspace-surface-soft);
+  --color-workspace-sidebar: var(--workspace-sidebar);
+  --color-workspace-topbar: var(--workspace-topbar);
+  --color-workspace-primary: var(--workspace-primary);
+  --color-workspace-primary-hover: var(--workspace-primary-hover);
+  --color-workspace-primary-soft: var(--workspace-primary-soft);
+  --color-workspace-on-primary: var(--workspace-on-primary);
+  --color-workspace-secondary: var(--workspace-secondary);
+  --color-workspace-secondary-soft: var(--workspace-secondary-soft);
+  --color-workspace-on-secondary: var(--workspace-on-secondary);
+  --color-workspace-text: var(--workspace-text);
+  --color-workspace-muted: var(--workspace-muted);
+  --color-workspace-border: var(--workspace-border);
+}
+
+@theme {
+  /* Surfaces */
+  --color-ivory: #faf8f3;
+  --color-parchment: #f7f5f1;
+  --color-cream: #f1eadf;
+  /* Text + lines */
+  --color-charcoal: #2f3440;
+  --color-linen: #ddd4c7;
+  /* Brand accents (unified navy + beige identity) */
+  --color-navy: #355c8c;
+  --color-marine: #35638f;
+  --color-mist: #8fb3cf;
+  --color-teal: #7fae9b;
+  --color-sand: #d7b98e;
+  /* Unified brand palette (single identity across public + workspaces) */
+  --color-brand: #355c8c;
+  --color-brand-hover: #2d4f79;
+  --color-brand-soft: #eaf1f8;
+  --color-sage: #7fae9b;
+  --color-soft-sage: #eaf4ef;
+  --color-sandgold: #d7b98e;
+  --color-bronze: #8a6a3b;
+  --color-soft-gold: #f6ebdd;
+  --color-lavender: #8e80c7;
+  --color-soft-lavender: #f1ecfa;
+  /* Soft directional tints (shared, sparing use) */
+  --color-frost: #eaf1f7;
+  --color-blush: #f7ece3;
+  --color-sandsoft: #f7eddc;
+  /* Type */
+  --font-heading: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+:root {
+  --background: #f7f3ec;
+  --foreground: #2f3440;
+
+  /* CopilotKit V2 theme variables */
+  --card: #fffdf9;
+  --card-foreground: #2f3440;
+  --popover: #fffdf9;
+  --popover-foreground: #2f3440;
+  --primary: #355c8c;
+  --primary-foreground: #ffffff;
+  --primary-hover: #2d4f79;
+  --secondary: #eaf1f8;
+  --secondary-foreground: #2d4f79;
+  --muted: #f0eee8;
+  --muted-foreground: #646b78;
+  --accent: #eaf1f8;
+  --accent-foreground: #2d4f79;
+  --destructive: #b3362b;
+  --destructive-foreground: #ffffff;
+  --border: #ddd4c7;
+  --input: #d8d3c8;
+  --ring: #355c8c;
+
+  /* Sidebar colors */
+  --sidebar: #f7f5f1;
+  --sidebar-foreground: #2f3440;
+  --sidebar-primary: #355c8c;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #eaf1f8;
+  --sidebar-accent-foreground: #2d4f79;
+  --sidebar-border: #ddd4c7;
+  --sidebar-ring: #355c8c;
+
+  /* Workspace layer defaults = shared warm-neutral foundation (light).
+     Role tone classes (.tone-*) override these per workspace. */
+  --workspace-bg: #f7f3ec;
+  --workspace-surface: #fffdf9;
+  --workspace-surface-soft: #f1eadf;
+  --workspace-sidebar: #f7f5f1;
+  --workspace-topbar: #f7f3ec;
+  --workspace-primary: #355c8c;
+  --workspace-primary-hover: #2d4f79;
+  --workspace-primary-soft: #eaf1f8;
+  --workspace-on-primary: #ffffff;
+  --workspace-secondary: #9a938a;
+  --workspace-secondary-soft: #efe9df;
+  --workspace-on-secondary: #2f3440;
+  --workspace-text: #2f3440;
+  --workspace-muted: #646b78;
+  --workspace-border: #ddd4c7;
+
+  --radius: 0.625rem;
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  /* System layer order (single source of truth for sticky/chrome z). */
+  --z-header: 40;
+  --z-modal: 50;
+  --z-dropdown: 100;
+
+  --font-body: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-code: "SFMono-Regular", Menlo, Monaco, Consolas, monospace;
+}
+
+/* ============================================================
+   ROLE TONES (LIGHT) — final role color system.
+   One shared warm-neutral foundation; role color is accent /
+   system identity only, never a full-page paint.
+   Scoped wrappers rendered by AppLayout (.tone-* with `contents`
+   so layout is untouched).
+   Contrast pairs: white text on role primaries, charcoal on
+   light role surfaces. No pure black anywhere.
+   ============================================================ */
+.tone-candidate {
+  /* Candidate: brand navy primary + sage secondary (growth/career
+     accents only). Warm neutral chrome, beige content — youthful
+     but one product with the rest of the system. */
+  --primary: #355c8c;
+  --primary-foreground: #ffffff;
+  --secondary: #eaf1f8;
+  --secondary-foreground: #2d4f79;
+  --accent: #eaf1f8;
+  --accent-foreground: #2d4f79;
+  --ring: #355c8c;
+  --sidebar: #f5f1e8;
+  --sidebar-foreground: #2f3440;
+  --sidebar-primary: #355c8c;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #eaf1f8;
+  --sidebar-accent-foreground: #2d4f79;
+  --sidebar-border: #ddd4c7;
+  --sidebar-ring: #355c8c;
+  --workspace-bg: #f7f3ec;
+  --workspace-surface: #fffdf9;
+  --workspace-surface-soft: #f1eadf;
+  --workspace-sidebar: #f5f1e8;
+  --workspace-topbar: #fbf8f1;
+  --workspace-primary: #355c8c;
+  --workspace-primary-hover: #2d4f79;
+  --workspace-primary-soft: #eaf1f8;
+  --workspace-on-primary: #ffffff;
+  --workspace-secondary: #7fae9b;
+  --workspace-secondary-soft: #eaf4ef;
+  --workspace-on-secondary: #2f3440;
+  --workspace-text: #2f3440;
+  --workspace-muted: #646b78;
+  --workspace-border: #ddd4c7;
+}
+
+.tone-recruiter {
+  /* Recruiter: brand navy primary + sage secondary (KPI/priority/
+     attention accents only). Warm neutral chrome, beige content —
+     sage is an accent, never a full-page paint. */
+  --primary: #355c8c;
+  --primary-foreground: #ffffff;
+  --secondary: #eaf1f8;
+  --secondary-foreground: #2d4f79;
+  --accent: #eaf1f8;
+  --accent-foreground: #2d4f79;
+  --ring: #355c8c;
+  --sidebar: #f1efe6;
+  --sidebar-foreground: #2f3440;
+  --sidebar-primary: #355c8c;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #eaf1f8;
+  --sidebar-accent-foreground: #2d4f79;
+  --sidebar-border: #ddd4c7;
+  --sidebar-ring: #355c8c;
+  --workspace-bg: #f7f3ec;
+  --workspace-surface: #fffdf9;
+  --workspace-surface-soft: #f1eadf;
+  --workspace-sidebar: #f1efe6;
+  --workspace-topbar: #faf6ef;
+  --workspace-primary: #355c8c;
+  --workspace-primary-hover: #2d4f79;
+  --workspace-primary-soft: #eaf1f8;
+  --workspace-on-primary: #ffffff;
+  --workspace-secondary: #7fae9b;
+  --workspace-secondary-soft: #eaf4ef;
+  --workspace-on-secondary: #2f3440;
+  --workspace-text: #2f3440;
+  --workspace-muted: #646b78;
+  --workspace-border: #ddd4c7;
+}
+
+.tone-admin {
+  /* Admin: brand navy primary + soft navy chrome (a touch deeper
+     than public). Content stays beige/ivory — structured, not cold. */
+  --primary: #355c8c;
+  --primary-foreground: #ffffff;
+  --secondary: #eaf1f8;
+  --secondary-foreground: #2d4f79;
+  --accent: #eaf1f8;
+  --accent-foreground: #2d4f79;
+  --ring: #355c8c;
+  --sidebar: #e2e8f2;
+  --sidebar-foreground: #2f3440;
+  --sidebar-primary: #2d4f79;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #eaf1f8;
+  --sidebar-accent-foreground: #2d4f79;
+  --sidebar-border: #cfd8e4;
+  --sidebar-ring: #355c8c;
+  --workspace-bg: #f7f3ec;
+  --workspace-surface: #fffdf9;
+  --workspace-surface-soft: #f1eadf;
+  --workspace-sidebar: #e2e8f2;
+  --workspace-topbar: #e7edf5;
+  --workspace-primary: #355c8c;
+  --workspace-primary-hover: #2d4f79;
+  --workspace-primary-soft: #eaf1f8;
+  --workspace-on-primary: #ffffff;
+  --workspace-secondary: #7fae9b;
+  --workspace-secondary-soft: #eaf4ef;
+  --workspace-on-secondary: #2f3440;
+  --workspace-text: #2f3440;
+  --workspace-muted: #646b78;
+  --workspace-border: #ddd4c7;
+}
+
+/* Dark foundation: warm-tinted charcoal (beige identity transformed,
+   never generic navy, never pure black). Role tones below refine it
+   per workspace via `.dark .tone-*` (higher specificity, so dark mode
+   can never collapse roles back into one theme). */
+.dark {
+  --background: #242321;
+  --foreground: #ede6d8;
+  --card: #2d2b28;
+  --card-foreground: #ede6d8;
+  --popover: #2d2b28;
+  --popover-foreground: #ede6d8;
+  --primary: #b0a696;
+  --primary-foreground: #242321;
+  --primary-hover: #c2b8a6;
+  --secondary: #38342e;
+  --secondary-foreground: #d8d2c4;
+  --muted: #34312d;
+  --muted-foreground: #a49d90;
+  --accent: #38342e;
+  --accent-foreground: #d8d2c4;
+  --destructive: #e07a6a;
+  --destructive-foreground: #242321;
+  --border: #3e3a34;
+  --input: #3e3a34;
+  --ring: #b0a696;
+  --sidebar: #2b2925;
+  --sidebar-foreground: #ede6d8;
+  --sidebar-primary: #b0a696;
+  --sidebar-primary-foreground: #242321;
+  --sidebar-accent: #38342e;
+  --sidebar-accent-foreground: #d8d2c4;
+  --sidebar-border: #3e3a34;
+  --sidebar-ring: #b0a696;
+  --workspace-bg: #242321;
+  --workspace-surface: #2d2b28;
+  --workspace-surface-soft: #34312d;
+  --workspace-sidebar: #2b2925;
+  --workspace-topbar: #2b2925;
+  --workspace-primary: #b0a696;
+  --workspace-primary-hover: #bfb5a4;
+  --workspace-primary-soft: #34312d;
+  --workspace-on-primary: #242321;
+  --workspace-secondary: #8e887e;
+  --workspace-secondary-soft: #38342e;
+  --workspace-on-secondary: #ede6d8;
+  --workspace-text: #ede6d8;
+  --workspace-muted: #a49d90;
+  --workspace-border: #3e3a34;
+}
+
+/* ============================================================
+   ROLE TONES (DARK) — each role keeps its identity in dark mode.
+   `.dark .tone-*` (0,2,0) outranks both `.dark` and `.tone-*`
+   (0,1,0), so switching dark/light never changes the role.
+   ============================================================ */
+.dark .tone-candidate {
+  /* Candidate dark: warm charcoal base, navy-tinted chrome.
+     Lavender reserved for AI/insight accents only. */
+  --primary: #8ea6cf;
+  --primary-foreground: #23262e;
+  --secondary: #33364a;
+  --secondary-foreground: #d3d9e8;
+  --accent: #33364a;
+  --accent-foreground: #d3d9e8;
+  --ring: #8ea6cf;
+  --sidebar: #2a2c33;
+  --sidebar-foreground: #ede6da;
+  --sidebar-primary: #8ea6cf;
+  --sidebar-primary-foreground: #23262e;
+  --sidebar-accent: #33364a;
+  --sidebar-accent-foreground: #dcd2e8;
+  --sidebar-border: #3a3f4d;
+  --sidebar-ring: #8ea6cf;
+  --workspace-bg: #242321;
+  --workspace-surface: #2d2b28;
+  --workspace-surface-soft: #34312d;
+  --workspace-sidebar: #2a2c33;
+  --workspace-topbar: #2a2c33;
+  --workspace-primary: #8ea6cf;
+  --workspace-primary-hover: #9db4d8;
+  --workspace-primary-soft: #33364a;
+  --workspace-on-primary: #23262e;
+  --workspace-secondary: #8e80c7;
+  --workspace-secondary-soft: #33364a;
+  --workspace-on-secondary: #e6eaf2;
+  --workspace-text: #ede6da;
+  --workspace-muted: #a49d90;
+  --workspace-border: #3e3a34;
+}
+
+/* ============================================================
+   AUTH THEME BOUNDARY — public auth pages (login/register) always
+   render the light public theme, even when `.dark` persists on
+   <html> from a previous protected session (e.g. after logout).
+   The stored theme preference and <html> class are untouched, so
+   logging back in restores the workspace theme.
+   Same specificity as `.dark` (0,1,0); placed later so it wins
+   for descendants. No tone classes ever apply inside auth.
+   ============================================================ */
+.theme-auth {
+  color-scheme: light;
+  --background: #f7f3ec;
+  --foreground: #2f3440;
+  --card: #fffdf9;
+  --card-foreground: #2f3440;
+  --popover: #fffdf9;
+  --popover-foreground: #2f3440;
+  --primary: #355c8c;
+  --primary-foreground: #ffffff;
+  --primary-hover: #2d4f79;
+  --secondary: #eaf1f8;
+  --secondary-foreground: #2d4f79;
+  --muted: #f0eee8;
+  --muted-foreground: #646b78;
+  --accent: #eaf1f8;
+  --accent-foreground: #2d4f79;
+  --destructive: #b3362b;
+  --destructive-foreground: #ffffff;
+  --border: #ddd4c7;
+  --input: #d8d3c8;
+  --ring: #355c8c;
+  --sidebar: #f7f5f1;
+  --sidebar-foreground: #2f3440;
+  --sidebar-primary: #355c8c;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #eaf1f8;
+  --sidebar-accent-foreground: #2d4f79;
+  --sidebar-border: #ddd4c7;
+  --sidebar-ring: #355c8c;
+  --workspace-bg: #f7f3ec;
+  --workspace-surface: #fffdf9;
+  --workspace-surface-soft: #f1eadf;
+  --workspace-sidebar: #f7f5f1;
+  --workspace-topbar: #f7f3ec;
+  --workspace-primary: #355c8c;
+  --workspace-primary-hover: #2d4f79;
+  --workspace-primary-soft: #eaf1f8;
+  --workspace-on-primary: #ffffff;
+  --workspace-secondary: #9a938a;
+  --workspace-secondary-soft: #efe9df;
+  --workspace-on-secondary: #2f3440;
+  --workspace-text: #2f3440;
+  --workspace-muted: #646b78;
+  --workspace-border: #ddd4c7;
+}
+
+.dark .tone-recruiter {
+  /* Recruiter dark: navy-dominant like light mode; sage kept ONLY as
+     secondary accent (dots/highlights). Chrome is neutral warm
+     charcoal — no green wash, matching the unified brand. */
+  --primary: #8ea6cf;
+  --primary-foreground: #23262e;
+  --secondary: #33364a;
+  --secondary-foreground: #d3d9e8;
+  --accent: #33364a;
+  --accent-foreground: #d3d9e8;
+  --ring: #8ea6cf;
+  --sidebar: #262b33;
+  --sidebar-foreground: #e8ede9;
+  --sidebar-primary: #8ea6cf;
+  --sidebar-primary-foreground: #23262e;
+  --sidebar-accent: #33364a;
+  --sidebar-accent-foreground: #d3d9e8;
+  --sidebar-border: #3a4152;
+  --sidebar-ring: #8ea6cf;
+  --workspace-bg: #242321;
+  --workspace-surface: #2d2b28;
+  --workspace-surface-soft: #34312d;
+  --workspace-sidebar: #262b33;
+  --workspace-topbar: #262b33;
+  --workspace-primary: #8ea6cf;
+  --workspace-primary-hover: #9db4d8;
+  --workspace-primary-soft: #33364a;
+  --workspace-on-primary: #23262e;
+  --workspace-secondary: #7fae9b;
+  --workspace-secondary-soft: #323a35;
+  --workspace-on-secondary: #ede6da;
+  --workspace-text: #e8ede9;
+  --workspace-muted: #9aa5a0;
+  --workspace-border: #3a4152;
+}
+
+.dark .tone-admin {
+  /* Admin dark: shared neutral base, shell tinted slate-navy.
+     Coolest of the three, but never saturated full-navy. */
+  --primary: #829bc5;
+  --primary-foreground: #23262e;
+  --secondary: #33364a;
+  --secondary-foreground: #d3d9e8;
+  --accent: #33364a;
+  --accent-foreground: #d3d9e8;
+  --ring: #829bc5;
+  --sidebar: #28303d;
+  --sidebar-foreground: #e6eaf2;
+  --sidebar-primary: #829bc5;
+  --sidebar-primary-foreground: #23262e;
+  --sidebar-accent: #33364a;
+  --sidebar-accent-foreground: #d3d9e8;
+  --sidebar-border: #3a4152;
+  --sidebar-ring: #829bc5;
+  --workspace-bg: #242321;
+  --workspace-surface: #2d2b28;
+  --workspace-surface-soft: #34312d;
+  --workspace-sidebar: #28303d;
+  --workspace-topbar: #28303d;
+  --workspace-primary: #829bc5;
+  --workspace-primary-hover: #8ea7cf;
+  --workspace-primary-soft: #33364a;
+  --workspace-on-primary: #23262e;
+  --workspace-secondary: #9a8fc4;
+  --workspace-secondary-soft: #33364a;
+  --workspace-on-secondary: #e6eaf2;
+  --workspace-text: #e6eaf2;
+  --workspace-muted: #9aa0b4;
+  --workspace-border: #3a4152;
+}
+
+/* Dark header: neutral warm overlays only — the background itself is
+   driven by --workspace-topbar so each role keeps its identity. */
+.dark header .text-muted-foreground {
+  color: rgba(255, 255, 255, 0.6) !important;
+}
+.dark header .hover\:bg-accent:hover {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+}
+.dark header .hover\:text-foreground:hover,
+.dark header .hover\:text-accent-foreground:hover {
+  color: #ffffff !important;
+}
+.dark header input {
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  background-color: rgba(255, 255, 255, 0.05) !important;
+  color: #ededed !important;
+}
+.dark header input::placeholder {
+  color: rgba(255, 255, 255, 0.3) !important;
+}
+.dark header kbd {
+  color: rgba(255, 255, 255, 0.3) !important;
+  background-color: rgba(255, 255, 255, 0.1) !important;
+}
+.dark header .text-foreground {
+  color: #ededed !important;
+}
+
+/* Sidebar in dark mode: neutral overlays only — background, active
+   item and borders are driven by role tone variables. */
+.dark [data-slot="sidebar-inner"] .hover\:bg-accent:hover {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+}
+.dark [data-slot="sidebar-inner"] .hover\:text-foreground:hover,
+.dark [data-slot="sidebar-inner"] .hover\:text-destructive:hover {
+  color: inherit !important;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-body);
+}
+
+/* Dropdown / menu item highlight on hover */
+[data-slot="dropdown-menu-content"],
+[data-slot="select-content"] {
+  background-color: var(--popover);
+  color: var(--popover-foreground);
+}
+[data-slot="dropdown-menu-content"] [data-slot="dropdown-menu-item"],
+[data-slot="dropdown-menu-content"] [data-slot="dropdown-menu-checkbox-item"],
+[data-slot="dropdown-menu-content"] [data-slot="dropdown-menu-radio-item"],
+[data-slot="dropdown-menu-content"] [data-slot="dropdown-menu-sub-trigger"] {
+  transition: background-color 0.1s, color 0.1s;
+}
+[data-slot="dropdown-menu-content"] [data-slot="dropdown-menu-item"]:hover,
+[data-slot="dropdown-menu-content"] [data-slot="dropdown-menu-item"][data-highlighted],
+[data-slot="dropdown-menu-content"] [data-slot="dropdown-menu-checkbox-item"]:hover,
+[data-slot="dropdown-menu-content"] [data-slot="dropdown-menu-checkbox-item"][data-highlighted],
+[data-slot="dropdown-menu-content"] [data-slot="dropdown-menu-radio-item"]:hover,
+[data-slot="dropdown-menu-content"] [data-slot="dropdown-menu-radio-item"][data-highlighted],
+[data-slot="dropdown-menu-content"] [data-slot="dropdown-menu-sub-trigger"]:hover,
+[data-slot="dropdown-menu-content"] [data-slot="dropdown-menu-sub-trigger"][data-highlighted] {
+  background-color: var(--muted);
+  color: var(--foreground);
+}
+
+/* Select dropdown item highlight */
+[data-slot="select-content"] [data-slot="select-item"]:hover,
+[data-slot="select-content"] [data-slot="select-item"][data-highlighted] {
+  background-color: var(--muted);
+  color: var(--foreground);
+}
+
+body,
+html {
+  height: 100%;
+}
+
+/* Give Adam a distinct floating assistant presence without taking workspace space.
+   Single motion contract: CopilotKit unmounts the popup 200ms after close
+   (see CopilotPopupViewInternal) with a 200ms exit, so every Adam-side
+   transition below uses the same 200ms — one duration, no split layers. */
+/* ─── Adam chat: giao diện xanh dương, độc lập với theme app ────────────────
+   Root cause của "2 khung / khung đen đứng sau": CopilotKit v2 tự định nghĩa
+   token scope riêng ([data-copilotkit] light + .dark [data-copilotkit] dark,
+   specificity cao hơn override cũ (0,1,0)) → khung popup bị tô đen thành một
+   slab đen. Fix: re-point TOÀN BỘ token của CopilotKit vào palette xanh
+   dương tường minh với specificity cao hơn mọi scope của CopilotKit, cùng
+   một palette cho cả light + dark → một khung duy nhất, không còn slab đen. */
+[data-testid="copilot-chat-toggle"].adam-chat-toggle {
+  border-radius: 9999px !important;
+  border: 1px solid #1d4ed8 !important;
+  background: linear-gradient(135deg, #3b82f6, #2563eb) !important;
+  box-shadow: 0 12px 28px rgba(37, 99, 235, 0.35), 0 0 0 6px rgba(37, 99, 235, 0.12) !important;
+  transition: transform 200ms ease, box-shadow 200ms ease !important;
+}
+
+[data-testid="copilot-chat-toggle"].adam-chat-toggle::after {
+  position: absolute;
+  right: 1px;
+  bottom: 1px;
+  width: 11px;
+  height: 11px;
+  border: 2px solid #ffffff;
+  border-radius: 9999px;
+  background: #22c55e;
+  content: "";
+}
+
+[data-testid="copilot-chat-toggle"].adam-chat-toggle:hover {
+  transform: translateY(-2px) scale(1.03);
+  box-shadow: 0 16px 34px rgba(37, 99, 235, 0.42), 0 0 0 8px rgba(37, 99, 235, 0.14) !important;
+}
+
+/* CopilotPopup v2 đặt panel trong một wrapper fixed inset-0 có data-copilotkit.
+   Reset background của wrapper để nó không thành một lớp full-screen phía sau
+   panel thật; chỉ panel [data-copilot-popup] được phép có nền. */
+[data-copilotkit]:has(> [data-copilot-popup]) {
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+/* Popup: (0,2,0)/(0,3,0) — thắng cả scope light lẫn dark của CopilotKit. */
+[data-copilotkit] [data-copilot-popup="true"],
+.dark [data-copilotkit] [data-copilot-popup="true"],
+[data-copilotkit].dark [data-copilot-popup="true"] {
+  --background: #ffffff;
+  --foreground: #1e293b;
+  --card: #ffffff;
+  --card-foreground: #1e293b;
+  --popover: #ffffff;
+  --popover-foreground: #1e293b;
+  --primary: #2563eb;
+  --primary-foreground: #ffffff;
+  --primary-hover: #1d4ed8;
+  --secondary: #eff6ff;
+  --secondary-foreground: #1d4ed8;
+  --muted: #f1f5f9;
+  --muted-foreground: #64748b;
+  --accent: #eff6ff;
+  --accent-foreground: #1d4ed8;
+  --destructive: #dc2626;
+  --destructive-foreground: #ffffff;
+  --border: #dbeafe;
+  --input: #bfdbfe;
+  --ring: #2563eb;
+  color-scheme: light;
+  border-color: color-mix(in oklab, #2563eb 30%, #dbeafe) !important;
+  border-radius: 22px !important;
+  overflow: hidden;
+  background: #ffffff !important;
+  box-shadow: 0 18px 50px rgba(37, 99, 235, 0.16), 0 0 0 1px rgba(37, 99, 235, 0.1) !important;
+  max-width: calc(100vw - 2rem) !important;
+  max-height: calc(100dvh - 2rem) !important;
+}
+
+[data-copilotkit] [data-copilot-popup="true"] table {
+  width: max-content;
+  min-width: 100%;
+  max-width: none;
+  table-layout: auto;
+  border-collapse: collapse;
+}
+
+[data-copilotkit] [data-copilot-popup="true"] > *,
+[data-copilotkit] [data-copilot-popup="true"] [data-copilotkit] {
+  min-width: 0;
+  max-width: 100%;
+}
+
+[data-copilotkit] [data-copilot-popup="true"] .adam-markdown-table {
+  width: 100%;
+  max-width: 100%;
+  margin: 0.75rem 0;
+  overflow-x: auto;
+  border: 1px solid #dbeafe;
+  border-radius: 0.65rem;
+  overscroll-behavior-inline: contain;
+}
+
+[data-copilotkit] [data-copilot-popup="true"] .adam-markdown-table:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
+[data-copilotkit] [data-copilot-popup="true"] th,
+[data-copilotkit] [data-copilot-popup="true"] td {
+  min-width: 7rem;
+  max-width: 18rem;
+  padding: 0.55rem 0.7rem;
+  overflow-wrap: break-word;
+  white-space: normal;
+  vertical-align: top;
+  text-align: left;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+[data-copilotkit] [data-copilot-popup="true"] th {
+  background: #eff6ff;
+  color: #1e3a8a;
+  font-size: 0.72rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+[data-copilotkit] [data-copilot-popup="true"] tr:last-child td {
+  border-bottom: 0;
+}
+
+[data-copilotkit] [data-copilot-popup="true"] td code,
+[data-copilotkit] [data-copilot-popup="true"] th code {
+  overflow-wrap: anywhere;
+}
+
+[data-copilotkit] [data-copilot-popup="true"] pre {
+  max-width: 100%;
+  overflow-x: auto;
+  border-radius: 0.65rem;
+  padding: 0.75rem;
+}
+
+[data-copilotkit] [data-copilot-popup="true"] h1,
+[data-copilotkit] [data-copilot-popup="true"] h2,
+[data-copilotkit] [data-copilot-popup="true"] h3,
+[data-copilotkit] [data-copilot-popup="true"] p,
+[data-copilotkit] [data-copilot-popup="true"] ul,
+[data-copilotkit] [data-copilot-popup="true"] ol,
+[data-copilotkit] [data-copilot-popup="true"] blockquote {
+  min-width: 0;
+  overflow-wrap: break-word;
+}
+
+[data-copilotkit] [data-copilot-popup="true"] h1,
+[data-copilotkit] [data-copilot-popup="true"] h2,
+[data-copilotkit] [data-copilot-popup="true"] h3 {
+  margin: 0.8rem 0 0.35rem;
+  color: #1e3a8a;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+[data-copilotkit] [data-copilot-popup="true"] p {
+  margin: 0.35rem 0;
+  line-height: 1.55;
+}
+
+[data-copilotkit] [data-copilot-popup="true"] ul,
+[data-copilotkit] [data-copilot-popup="true"] ol {
+  margin: 0.45rem 0;
+  padding-left: 1.25rem;
+}
+
+[data-copilotkit] [data-copilot-popup="true"] li {
+  margin: 0.2rem 0;
+}
+
+[data-copilotkit] [data-copilot-popup="true"] blockquote {
+  margin: 0.65rem 0;
+  border-left: 3px solid #93c5fd;
+  padding-left: 0.75rem;
+  color: #475569;
+}
+
+[data-copilotkit] [data-copilot-popup="true"] :not(pre) > code {
+  border-radius: 0.3rem;
+  background: #eff6ff;
+  padding: 0.1rem 0.3rem;
+  color: #1d4ed8;
+  font-size: 0.88em;
+}
+
+[data-copilotkit] [data-copilot-popup="true"] a {
+  color: #1d4ed8;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+[data-copilotkit] [data-copilot-popup="true"] strong {
+  color: #172554;
+  font-weight: 700;
+}
+
+.dark [data-copilotkit] [data-copilot-popup="true"] .adam-markdown-table,
+[data-copilotkit].dark [data-copilot-popup="true"] .adam-markdown-table {
+  border-color: #1e40af;
+}
+
+.dark [data-copilotkit] [data-copilot-popup="true"] th,
+[data-copilotkit].dark [data-copilot-popup="true"] th {
+  background: #172554;
+  color: #dbeafe;
+  border-color: #1e3a8a;
+}
+
+.dark [data-copilotkit] [data-copilot-popup="true"] td,
+[data-copilotkit].dark [data-copilot-popup="true"] td {
+  border-color: #1e3a8a;
+}
+
+.dark [data-copilotkit] [data-copilot-popup="true"] h1,
+.dark [data-copilotkit] [data-copilot-popup="true"] h2,
+.dark [data-copilotkit] [data-copilot-popup="true"] h3,
+[data-copilotkit].dark [data-copilot-popup="true"] h1,
+[data-copilotkit].dark [data-copilot-popup="true"] h2,
+[data-copilotkit].dark [data-copilot-popup="true"] h3 {
+  color: #bfdbfe;
+}
+
+.dark [data-copilotkit] [data-copilot-popup="true"] blockquote,
+[data-copilotkit].dark [data-copilot-popup="true"] blockquote {
+  color: #cbd5e1;
+  border-color: #60a5fa;
+}
+
+.dark [data-copilotkit] [data-copilot-popup="true"] :not(pre) > code,
+[data-copilotkit].dark [data-copilot-popup="true"] :not(pre) > code {
+  background: #172554;
+  color: #bfdbfe;
+}
+
+.dark [data-copilotkit] [data-copilot-popup="true"] strong,
+[data-copilotkit].dark [data-copilot-popup="true"] strong {
+  color: #dbeafe;
+}
+
+.adam-tool-activity {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 0.35rem 0;
+  border: 1px solid #dbeafe;
+  border-radius: 0.8rem;
+  background: #f8fbff;
+  padding: 0.55rem 0.7rem;
+  color: #1e3a8a;
+  font-size: 0.78rem;
+}
+
+.adam-tool-activity__icon {
+  width: 0.55rem;
+  height: 0.55rem;
+  flex: 0 0 auto;
+  border-radius: 9999px;
+  background: #2563eb;
+  box-shadow: 0 0 0 0.25rem rgba(37, 99, 235, 0.12);
+  animation: adam-pulse 1.4s ease-in-out infinite;
+}
+
+.adam-tool-activity__icon.is-complete {
+  background: #16a34a;
+  box-shadow: 0 0 0 0.25rem rgba(22, 163, 74, 0.12);
+  animation: none;
+}
+
+.adam-tool-activity__label {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.adam-tool-activity__status {
+  flex: 0 0 auto;
+  color: #64748b;
+  font-size: 0.7rem;
+}
+
+.adam-recommendations {
+  margin: 0.45rem 0;
+  overflow: hidden;
+  border: 1px solid #dbeafe;
+  border-radius: 1rem;
+  background: #ffffff;
+  box-shadow: 0 8px 22px rgba(37, 99, 235, 0.08);
+}
+
+.adam-recommendations__header {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  border-bottom: 1px solid #dbeafe;
+  background: linear-gradient(135deg, #eff6ff, #f8fbff);
+  padding: 0.8rem 0.9rem;
+}
+
+.adam-recommendations__eyebrow {
+  margin: 0;
+  color: #2563eb;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.adam-recommendations__header h3 {
+  margin: 0.18rem 0 0;
+  color: #172554;
+  font-size: 0.9rem;
+}
+
+.adam-recommendations__header > span {
+  max-width: 10rem;
+  color: #64748b;
+  font-size: 0.68rem;
+  text-align: right;
+}
+
+.adam-recommendations__list {
+  display: grid;
+  gap: 0.45rem;
+  max-height: 20rem;
+  margin: 0;
+  padding: 0.65rem;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.adam-recommendation-card {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.6rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.75rem;
+  background: #fff;
+  padding: 0.55rem;
+}
+
+.adam-recommendation-card__rank,
+.adam-recommendation-card__score {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.adam-recommendation-card__rank {
+  width: 1.45rem;
+  height: 1.45rem;
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.adam-recommendation-card__body {
+  display: grid;
+  min-width: 0;
+  flex: 1;
+  gap: 0.08rem;
+}
+
+.adam-recommendation-card__body strong,
+.adam-recommendation-card__body span,
+.adam-recommendation-card__body small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.adam-recommendation-card__body strong { color: #1e293b; font-size: 0.76rem; }
+.adam-recommendation-card__body span { color: #475569; font-size: 0.7rem; }
+.adam-recommendation-card__body small { color: #64748b; font-size: 0.65rem; }
+
+.adam-recommendation-card__score {
+  min-width: 2.25rem;
+  padding: 0.25rem 0.4rem;
+  background: #ecfdf5;
+  color: #15803d;
+}
+
+/* Dual-range slider (job filters): appearance-none strips native thumbs in
+   Chrome/WebKit, so thumbs get explicit visible styling for both engines.
+   pointer-events:auto on thumbs only — the two stacked inputs must not
+   swallow each other's drags across the full track. */
+.slider-thumb::-webkit-slider-thumb {
+  pointer-events: auto;
+  width: 1.1rem;
+  height: 1.1rem;
+  border: 2px solid var(--background);
+  border-radius: 999px;
+  background: var(--primary);
+  box-shadow: 0 1px 4px rgb(15 23 42 / 0.25);
+  cursor: grab;
+  transition: transform 120ms ease, box-shadow 120ms ease;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.slider-thumb::-webkit-slider-thumb:hover {
+  transform: scale(1.12);
+}
+
+.slider-thumb:active::-webkit-slider-thumb {
+  cursor: grabbing;
+  transform: scale(1.05);
+}
+
+.slider-thumb:focus-visible::-webkit-slider-thumb {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ring) 45%, transparent);
+}
+
+.slider-thumb::-moz-range-thumb {
+  pointer-events: auto;
+  width: 1.1rem;
+  height: 1.1rem;
+  border: 2px solid var(--background);
+  border-radius: 999px;
+  background: var(--primary);
+  box-shadow: 0 1px 4px rgb(15 23 42 / 0.25);
+  cursor: grab;
+  transition: transform 120ms ease, box-shadow 120ms ease;
+}
+
+.slider-thumb:active::-moz-range-thumb {
+  cursor: grabbing;
+}
+
+.slider-thumb:focus-visible::-moz-range-thumb {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ring) 45%, transparent);
+}
+
+@keyframes adam-pulse {
+  50% { opacity: 0.35; transform: scale(0.8); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .adam-tool-activity__icon { animation: none; }
+}
+
+/* Dark mode của app: popup vẫn giữ theme xanh dương sáng — một khung duy nhất,
+   không để scope dark của CopilotKit tô đen. */
+.dark [data-copilotkit] [data-copilot-popup="true"] {
+  background: #ffffff !important;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(37, 99, 235, 0.12) !important;
+}
+
+[data-testid="copilot-modal-header"].adam-chat-header {
+  background: linear-gradient(135deg, #eff6ff, #ffffff) !important;
+  border-bottom-color: #dbeafe !important;
+}
+
+[data-testid="copilot-header-title"] {
+  position: relative;
+  font-weight: 700 !important;
+  color: var(--foreground) !important;
+}
+
+[data-testid="copilot-header-title"]::before {
+  display: inline-flex;
+  width: 8px;
+  height: 8px;
+  margin-right: 8px;
+  border-radius: 9999px;
+  background: #22c55e;
+  box-shadow: 0 0 0 4px color-mix(in oklab, #22c55e 15%, transparent);
+  content: "";
+  vertical-align: 1px;
+}
+
+@keyframes slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-slide-in {
+  animation: slide-in 0.3s ease-out;
+}
+
+/* Hero load-in sequence: fade + slight rise, staggered via delay utils.
+   Transform/opacity only, runs once on mount. */
+@keyframes hero-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-hero-fade-up {
+  animation: hero-fade-up 0.5s ease-out both;
+}
+
+.animate-hero-delay-1 {
+  animation-delay: 0.08s;
+}
+
+.animate-hero-delay-2 {
+  animation-delay: 0.16s;
+}
+
+.animate-hero-delay-3 {
+  animation-delay: 0.24s;
+}
+
+@keyframes hero-scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-hero-scale {
+  animation: hero-scale-in 0.5s ease-out both;
+}
+
+/* Scroll reveal for landing sections: one-time fade + rise, staggered
+   via --reveal-delay on children. Initial hidden state gated behind
+   no-preference so content stays visible with reduced motion or no JS. */
+@media (prefers-reduced-motion: no-preference) {
+  .reveal {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+}
+
+.reveal.is-visible {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 0.5s ease-out,
+    transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  transition-delay: var(--reveal-delay, 0ms);
+}
+
+/* Staggered children: grid cards enter in sequence without wrappers.
+   Transform-only, so grid layout never shifts. */
+@media (prefers-reduced-motion: no-preference) {
+  .reveal-stagger > * {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+}
+
+.reveal-stagger.is-visible > * {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 0.45s ease-out,
+    transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.reveal-stagger.is-visible > *:nth-child(2) { transition-delay: 70ms; }
+.reveal-stagger.is-visible > *:nth-child(3) { transition-delay: 140ms; }
+.reveal-stagger.is-visible > *:nth-child(4) { transition-delay: 210ms; }
+.reveal-stagger.is-visible > *:nth-child(5) { transition-delay: 280ms; }
+.reveal-stagger.is-visible > *:nth-child(6) { transition-delay: 350ms; }
+.reveal-stagger.is-visible > *:nth-child(7) { transition-delay: 420ms; }
+.reveal-stagger.is-visible > *:nth-child(8) { transition-delay: 490ms; }
+
+@keyframes float-card {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+.animate-float {
+  animation: float-card 6s ease-in-out infinite;
+}
+
+@keyframes pulse-soft {
+  0%,
+  100% {
+    opacity: 0.16;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.28;
+    transform: scale(1.08);
+  }
+}
+
+.animate-pulse-soft {
+  animation: pulse-soft 8s ease-in-out infinite;
+}
+
+@keyframes marquee {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  .animate-pulse,
+  .animate-spin {
+    animation: none;
+  }
+  .animate-float,
+  .animate-pulse-soft,
+  .animate-slide-in,
+  .animate-hero-fade-up,
+  .animate-hero-scale,
+  .animate-spin,
+  .animate-pulse,
+  .cv-preview-crossfade,
+  .cv-check-dot[data-done="true"],
+  .cv-repeat-enter {
+    animation: none;
+  }
+  .template-card,
+  .cv-check-dot {
+    transition: none;
+  }
+  [style*="marquee"],
+  [class*="marquee"] {
+    animation: none !important;
+    transform: none !important;
+  }
+}
+
+/* CV Builder Styles */
+:root {
+  --cv-accent: #35638f;
+  /* HIREAI paper tokens shared by all CV templates (no per-file hex). */
+  --hire-navy: #274b73;
+  --hire-navy-soft: #eaf1f8;
+  --hire-ink: #1f2a37;
+  --hire-subtle: #5b6470;
+  --hire-ivory: #f7f5f1;
+  --hire-line: #e6e0d6;
+  --hire-chip-border: #d7e1ee;
+  --hire-burgundy: #7a3b4d;
+}
+
+.cv-builder-shell {
+  min-height: calc(100vh - 2rem);
+  background: #faf8f3;
+  color: #3f454a;
+  padding: 1.5rem clamp(1rem, 3vw, 3.5rem) 4rem;
+}
+
+.cv-builder-topline,
+.cv-builder-header,
+.cv-progress-row {
+  max-width: 1440px;
+  margin-inline: auto;
+}
+
+.cv-builder-topline {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #e6e0d6;
+  padding-bottom: .9rem;
+  color: #6b6660;
+  font-family: var(--font-code);
+  font-size: .68rem;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+
+.cv-breadcrumb {
+  display: flex;
+  gap: .7rem;
+  align-items: center;
+}
+
+.cv-breadcrumb strong {
+  color: #3f454a;
+}
+
+.cv-save-state {
+  display: flex;
+  align-items: center;
+  gap: .45rem;
+  letter-spacing: .06em;
+  text-transform: none;
+}
+
+.cv-live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #6f9e9a;
+  box-shadow: 0 0 0 4px #6f9e9a1c;
+}
+
+.cv-builder-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 2rem;
+  padding: 3rem 0 2rem;
+}
+
+.cv-eyebrow {
+  margin: 0 0 .7rem;
+  color: #6b6660;
+  font-family: var(--font-code);
+  font-size: .68rem;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+}
+
+.cv-builder-header h1 {
+  margin: 0;
+  font-size: clamp(2.5rem, 5vw, 4.8rem);
+  font-weight: 500;
+  letter-spacing: -.07em;
+  line-height: .95;
+}
+
+.cv-builder-header h1 em {
+  color: #35638f;
+  font-style: normal;
+}
+
+.cv-builder-subtitle {
+  max-width: 520px;
+  margin: 1.1rem 0 0;
+  color: #6b6660;
+  font-size: .95rem;
+}
+
+.cv-header-actions {
+  display: flex;
+  gap: .7rem;
+  flex-wrap: wrap;
+}
+
+.cv-progress-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 0;
+  border-top: 1px solid #e6e0d6;
+  border-bottom: 1px solid #e6e0d6;
+  margin-bottom: 1.75rem;
+}
+
+.cv-progress-label {
+  display: flex;
+  gap: .5rem;
+  align-items: center;
+  min-width: 148px;
+  font-family: var(--font-code);
+  font-size: .66rem;
+  letter-spacing: .1em;
+  color: #6b6660;
+}
+
+.cv-progress-label strong {
+  color: #3f454a;
+}
+
+.cv-progress-track {
+  height: 5px;
+  flex: 1;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #eaf1f7;
+}
+
+.cv-progress-track div {
+  height: 100%;
+  border-radius: inherit;
+  background: #6f9e9a;
+  transition: width .3s ease;
+}
+
+.cv-progress-note {
+  color: #6b6660;
+  font-size: .78rem;
+  white-space: nowrap;
+}
+
+.cv-builder-grid {
+  max-width: 1440px;
+  margin-inline: auto;
+  grid-template-columns: minmax(0, 5fr) minmax(420px, 7fr);
+  gap: 2rem;
+}
+
+.cv-editor-column {
+  min-width: 0;
+}
+
+.cv-preview-column {
+  min-width: 0;
+}
+
+.cv-section-heading,
+.cv-preview-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 1.25rem;
+}
+
+.cv-section-heading h2,
+.cv-preview-toolbar h2 {
+  margin: 0;
+  font-size: 1.45rem;
+  font-weight: 500;
+  letter-spacing: -.04em;
+}
+
+.cv-section-heading > span,
+.cv-preview-status {
+  display: flex;
+  align-items: center;
+  gap: .35rem;
+  color: #6f9e9a;
+  font-family: var(--font-code);
+  font-size: .68rem;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+}
+
+.cv-form-stack {
+  display: grid;
+  gap: 1rem;
+}
+
+.cv-form-card {
+  border: 1px solid var(--border);
+  border-radius: 1.2rem;
+  background: var(--card);
+  box-shadow: 0 2px 10px #26352b08;
+}
+
+.cv-form-card [data-slot="card-header"] {
+  padding: 1rem 1rem 0.8rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.cv-form-card [data-slot="card-title"] {
+  display: flex;
+  align-items: center;
+  gap: .55rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+.cv-form-card [data-slot="card-title"] svg {
+  color: var(--primary);
+}
+
+.cv-form-card label {
+  color: var(--muted-foreground);
+  font-family: var(--font-code);
+  font-size: .67rem;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.cv-form-card input,
+.cv-form-card textarea {
+  border-color: var(--input);
+  border-radius: .7rem;
+  background: var(--card);
+}
+
+.cv-required,
+.cv-card-helper {
+  margin-left: auto;
+  color: var(--muted-foreground);
+  font-family: var(--font-code);
+  font-size: .62rem;
+  font-weight: 400;
+  letter-spacing: .08em;
+}
+
+.cv-repeat-item {
+  display: grid;
+  gap: .75rem;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: .9rem;
+  background: var(--card);
+}
+
+.cv-empty-form {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .6rem;
+  min-height: 5rem;
+  border: 1px dashed var(--border);
+  border-radius: .8rem;
+  color: var(--muted-foreground);
+  font-size: .82rem;
+  text-align: center;
+}
+
+.cv-empty-form svg {
+  color: var(--primary);
+}
+
+.cv-preview-toolbar {
+  margin-bottom: 1rem;
+}
+
+.cv-preview-frame {
+  position: relative;
+  padding: clamp(.8rem, 2vw, 1.5rem);
+  border: 1px solid var(--border);
+  border-radius: .75rem;
+  background: var(--muted);
+  box-shadow: none;
+}
+
+.cv-preview-frame:fullscreen {
+  overflow: auto;
+  padding: 1.5rem;
+  background: var(--background);
+}
+
+.cv-builder-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(420px, 7fr);
+  gap: 1.5rem;
+}
+
+.cv-document-shell {
+  width: 210mm;
+  min-width: 210mm;
+  background: #fff;
+}
+
+@media (max-width: 1279px) {
+  .cv-builder-layout {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .cv-editor-panel {
+    order: 1;
+  }
+
+  .cv-preview-panel {
+    order: 2;
+  }
+}
+
+.cv-preview-hint {
+  display: flex;
+  align-items: center;
+  gap: .45rem;
+  justify-content: center;
+  color: #6b6660;
+  font-size: .76rem;
+  margin-top: 1rem;
+}
+
+/* Quick actions pinned at the top of the A4 preview pane. The frame
+   itself is sticky, so the bar stays visible while scrolling the long
+   editor column. Never captured into PDF/print output. */
+.cv-preview-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .5rem .75rem;
+  flex-wrap: wrap;
+  margin-bottom: .75rem;
+  padding: 0 .25rem .75rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.cv-paper {
+  overflow: hidden;
+  max-width: 100%;
+  background: #fff;
+  color: #3f454a;
+  box-shadow: 0 8px 25px #26352b16;
+  font-family: Arial, sans-serif;
+}
+
+/* User-entered CV content can contain long URLs, technology names, or text
+   without spaces. Keep every template inside the A4 paper instead of letting
+   flex/grid children expand beyond their column. */
+.cv-paper *,
+.cv-document-shell * {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.cv-paper p,
+.cv-paper li,
+.cv-paper a,
+.cv-paper span,
+.cv-document-shell p,
+.cv-document-shell li,
+.cv-document-shell a,
+.cv-document-shell span {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.cv-paper-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 2rem 2rem 1.7rem;
+  background: var(--cv-accent);
+  color: #fff;
+}
+
+.cv-paper-kicker,
+.cv-paper-label {
+  margin: 0 0 .7rem;
+  font-family: var(--font-code);
+  font-size: .52rem;
+  letter-spacing: .17em;
+}
+
+.cv-paper-header h1 {
+  margin: 0;
+  font-size: clamp(1.8rem, 3vw, 2.5rem);
+  letter-spacing: -.06em;
+  line-height: 1;
+}
+
+.cv-paper-role {
+  margin: .55rem 0 0;
+  color: #dcebe5;
+  font-size: .9rem;
+}
+
+.cv-paper-mark {
+  width: 2.7rem;
+  height: 2.7rem;
+  padding-top: .35rem;
+  border: 1px solid #fff7;
+  border-radius: 50%;
+  text-align: center;
+  font-family: var(--font-code);
+  font-size: .53rem;
+  line-height: .9;
+}
+
+.cv-paper-mark span {
+  font-size: .7rem;
+}
+
+.cv-paper-body {
+  display: grid;
+  grid-template-columns: 34% 66%;
+  min-height: 550px;
+}
+
+.cv-paper-sidebar {
+  padding: 1.5rem 1rem 2rem 1.5rem;
+  background: #f7f5f1;
+}
+
+.cv-paper-main {
+  padding: 1.5rem;
+}
+
+.cv-sidebar-block,
+.cv-paper-section {
+  margin-bottom: 1.7rem;
+}
+
+.cv-paper-label {
+  color: var(--cv-accent);
+  font-weight: 700;
+}
+
+.cv-contact {
+  display: flex;
+  align-items: flex-start;
+  gap: .35rem;
+  margin: .55rem 0;
+  color: #6b6660;
+  font-size: .6rem;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.cv-contact svg {
+  flex: 0 0 auto;
+  color: var(--cv-accent);
+}
+
+/* Resume paper: real A4 sheets. Each .cv-paper-a4 is one physical page
+   (210mm wide, 297/210 aspect as minimum height, grows only if a single
+   unbreakable block overflows). Sheets stack with a gap on the neutral
+   frame background — never one infinitely long white surface. */
+.cv-paper-a4 {
+  width: 210mm;
+  max-width: 100%;
+  aspect-ratio: 210 / 297;
+}
+
+.cv-pages-root {
+  position: relative;
+}
+
+.cv-pages {
+  display: grid;
+  gap: 1rem;
+  align-content: start;
+}
+
+.cv-sheet {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+/* Hidden measurement pass: same width as the visible sheets, out of flow. */
+.cv-measure {
+  position: absolute;
+  inset: 0 0 auto 0;
+  visibility: hidden;
+  pointer-events: none;
+  z-index: -1;
+  overflow: hidden;
+}
+
+/* Keep a fully laid-out copy for printing so pagination can be measured even
+   when the responsive screen preview is inside an inactive tab. */
+.cv-print-root {
+  position: absolute;
+  left: -100000px;
+  top: 0;
+  width: 210mm;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.cv-section-item {
+  break-inside: avoid;
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+/* In CV: chỉ in tài liệu CV (window.print -> Save as PDF), ẩn toàn bộ app shell.
+   Quy tắc break: CHỈ item đơn lẻ avoid-split; section dài phải tách qua trang
+   (tránh khoảng trống lớn cuối trang + trang trắng khi section dài hơn 1 trang). */
+/* ── Restrained micro-interactions (transform/opacity only, 150–250ms) ── */
+.cv-preview-crossfade {
+  animation: cv-fade 180ms ease-out;
+}
+
+@keyframes cv-fade {
+  from { opacity: 0.35; }
+  to { opacity: 1; }
+}
+
+.template-card {
+  transition: border-color 200ms ease, box-shadow 200ms ease, background-color 200ms ease;
+}
+
+.cv-check-dot {
+  transition: transform 200ms ease, background-color 200ms ease, border-color 200ms ease;
+}
+
+.cv-check-dot[data-done="true"] {
+  animation: cv-pop 200ms ease-out;
+}
+
+@keyframes cv-pop {
+  from { transform: scale(0.6); }
+  to { transform: scale(1); }
+}
+
+.cv-repeat-enter {
+  animation: cv-rise 200ms ease-out;
+}
+
+/* Thin themed scrollbar for single-scroll regions (e.g. template list).
+   Keeps wheel/touch scrolling, avoids heavy native scrollbars. */
+.cv-thin-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+.cv-thin-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+.cv-thin-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.cv-thin-scroll::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 9999px;
+}
+.cv-thin-scroll::-webkit-scrollbar-thumb:hover {
+  background: var(--muted-foreground);
+}
+
+@keyframes cv-rise {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media print {
+  @page {
+    size: A4;
+    margin: 8mm;
+  }
+
+  html,
+  body {
+    background: #fff !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .cv-preview-hint {
+    display: none !important;
+  }
+
+  .cv-preview-bar {
+    display: none !important;
+  }
+
+  /* Screen stacking gap must not leak blank space into paged output. */
+  .cv-pages {
+    gap: 0;
+  }
+
+  /* Each sheet is one printed page; the last sheet must not force a
+     trailing blank page. Compact vertical rhythm for print density. */
+  .cv-pages > .cv-sheet {
+    break-after: page;
+  }
+
+  .cv-pages > .cv-sheet:last-child {
+    break-after: auto;
+  }
+
+  .cv-paper {
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+
+  .cv-paper-a4 {
+    width: auto;
+    max-width: none;
+    aspect-ratio: auto;
+  }
+
+  .cv-sidebar-block,
+  .cv-paper-section {
+    margin-bottom: 1.1rem;
+  }
+
+  .cv-section-item {
+    break-inside: avoid;
+    break-after: auto;
+  }
+
+  * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Chỉ giữ bản render dành riêng cho in và chuỗi tổ tiên của nó. Preview
+     trên màn hình có thể nằm trong tab ẩn hoặc wrapper responsive. */
+  body *:not([data-cv-print-root]):not([data-cv-print-root] *):not(:has([data-cv-print-root])) {
+    display: none !important;
+  }
+
+  .cv-builder-print-host {
+    width: auto !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .cv-print-root {
+    position: static !important;
+    width: auto !important;
+    visibility: visible !important;
+    pointer-events: auto;
+  }
+
+  /* Tài liệu về dòng chảy tự nhiên (bỏ absolute trick) để fragment
+     qua nhiều trang đúng; grid 2 cột của builder về block để CV dùng
+     trọn chiều rộng trang in. */
+  .cv-preview-frame {
+    position: static !important;
+    inset: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    background: #fff !important;
+    overflow: visible !important;
+    box-shadow: none !important;
+  }
+
+  .cv-builder-layout {
+    display: block !important;
+  }
+
+  .cv-paper,
+  .cv-paper-a4 {
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    /* overflow:hidden ở screen (bo góc) sẽ cắt nội dung khi fragment qua trang */
+    overflow: visible !important;
+  }
+
+  .cv-document-shell {
+    width: auto !important;
+    min-width: 0 !important;
+  }
+
+  .cv-paper-a4 {
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+  }
+
+  /* Chỉ item đơn lẻ tránh tách giữa 2 trang; section vẫn tách được. */
+  .cv-section-item {
+    break-inside: avoid;
+  }
+
+  /* Heading không ở cuối trang một mình (orphan protection). */
+  .cv-section-shell > h2 {
+    break-after: avoid;
+  }
+
+  /* Khung preview có inline transform:scale (zoom) — vô hiệu khi in. */
+  .cv-preview-frame > * {
+    transform: none !important;
+    width: auto !important;
+  }
+
+  /* Tao-cv-view dùng CSS `zoom` cho preview — reset khi in để đủ cỡ A4. */
+  [data-manual-cv-pdf] {
+    zoom: 1 !important;
+  }
+}
+
+/* AI CV Studio polish: clear hierarchy, calmer surfaces, and touch-friendly controls. */
+.cv-workspace {
+  height: calc(100dvh - 4rem);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--background) 94%, var(--primary) 6%), var(--muted));
+}
+
+.cv-workspace__topbar {
+  min-height: 4.25rem;
+  border-bottom-color: color-mix(in srgb, var(--border) 72%, transparent);
+  background: color-mix(in srgb, var(--background) 94%, transparent);
+  padding: 0.75rem clamp(1rem, 2.5vw, 2rem);
+  backdrop-filter: blur(16px);
+}
+
+.cv-workspace__title { display: flex; align-items: center; gap: 0.75rem; }
+.cv-workspace__brandmark { display: grid; width: 2.25rem; height: 2.25rem; place-items: center; border-radius: 0.75rem; background: var(--primary); color: var(--primary-foreground); box-shadow: 0 8px 20px color-mix(in srgb, var(--primary) 20%, transparent); }
+.cv-workspace__eyebrow { color: var(--primary); font-size: 0.62rem; letter-spacing: 0.18em; }
+.cv-workspace__title h1 { font-size: 1.12rem; font-weight: 700; }
+.cv-workspace__actions { gap: 0.6rem; }
+.cv-status { gap: 0.4rem; border-radius: 999px; padding: 0.25rem 0.65rem; font-size: 0.68rem; }
+.cv-status__dot { display: inline-block; width: 0.4rem; height: 0.4rem; border-radius: 999px; background: #16a34a; }
+.cv-status__dot--dirty { background: #d97706; }
+
+.cv-workspace__body { gap: 1rem; padding: 1rem clamp(1rem, 2.5vw, 2rem); grid-template-columns: minmax(21rem, 34%) minmax(0, 1fr); }
+.cv-assistant-column, .cv-preview { overflow: hidden; border: 1px solid color-mix(in srgb, var(--border) 80%, transparent); border-radius: 1rem; box-shadow: 0 14px 40px rgb(15 23 42 / 0.06); }
+.cv-assistant-column { background: var(--card); }
+.cv-chat { border: 0; border-radius: 0; background: var(--card); padding: 0; }
+.cv-chat__bar { min-height: 3.7rem; padding: 0.8rem 1.25rem; }
+.cv-chat__bar strong { font-size: 0.82rem; }
+.cv-chat__content { background: color-mix(in srgb, var(--muted) 55%, var(--card)); }
+.cv-preview { background: color-mix(in srgb, var(--muted) 68%, var(--card)); padding: 0; }
+.cv-preview__bar { min-height: 3.7rem; padding: 0.7rem 1rem; }
+.cv-preview__label { gap: 0.55rem; }
+.cv-preview__label strong { font-size: 0.82rem; }
+.cv-preview__canvas { padding: clamp(1rem, 2vw, 2rem); }
+.cv-document { box-shadow: 0 18px 44px rgb(15 23 42 / 0.16); }
+.cv-empty { min-height: 24rem; border: 1px dashed color-mix(in srgb, var(--primary) 30%, var(--border)); border-radius: 0.85rem; background: color-mix(in srgb, var(--card) 88%, var(--primary) 12%); }
+.cv-empty__icon { display: grid; width: 3.5rem; height: 3.5rem; place-items: center; margin-bottom: 0.8rem; border-radius: 1rem; background: color-mix(in srgb, var(--primary) 12%, transparent); color: var(--primary); }
+.cv-empty strong { font-size: 0.9rem; }
+.cv-empty span:not(.cv-empty__icon), .cv-empty__hint { font-size: 0.74rem; }
+.cv-empty__hint { display: inline-flex; align-items: center; gap: 0.35rem; margin-top: 1rem; color: #15803d; }
+.cv-preview__footer { min-height: 2.5rem; padding: 0 1rem; }
+
+@media (max-width: 900px) {
+  .cv-workspace { height: auto; min-height: calc(100dvh - 4rem); }
+  .cv-workspace__body { gap: 0.75rem; padding: 0.75rem; }
+  .cv-assistant-column, .cv-preview { border-radius: 0.85rem; }
+  .cv-preview { min-height: 58dvh; }
+  .cv-assistant-column { min-height: 38rem; }
+}
+
+@media (max-width: 520px) {
+  .cv-workspace__topbar { align-items: flex-start; }
+  .cv-workspace__actions { flex-wrap: wrap; justify-content: flex-end; }
+  .cv-preview__bar { align-items: flex-start; }
+  .cv-preview__label { flex-basis: calc(100% - 1rem); }
+  .cv-preview__footer { font-size: 0.58rem; }
+}
+
+/* Embedded Adam CV agent: CopilotKit keeps ownership of messages and runs;
+   these classes only customize its workspace slots. */
+.adam-welcome {
+  display: flex;
+  width: 100%;
+  min-height: 100%;
+  flex-direction: column;
+  padding: clamp(1.25rem, 4vh, 2.5rem) 1rem 8.5rem;
+}
+
+.adam-welcome__body {
+  display: flex;
+  width: min(100%, 34rem);
+  margin: auto;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.adam-welcome__avatar {
+  display: grid;
+  width: 2.75rem;
+  height: 2.75rem;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--primary) 24%, var(--border));
+  border-radius: 0.85rem;
+  background: color-mix(in srgb, var(--primary) 8%, var(--card));
+  color: var(--primary);
+}
+
+.adam-welcome__copy { margin-top: 0.9rem; }
+.adam-welcome__copy h2 { color: var(--foreground); font-size: 1rem; font-weight: 680; letter-spacing: -0.015em; }
+.adam-welcome__copy p { max-width: 29rem; margin-top: 0.35rem; color: var(--muted-foreground); font-size: 0.78rem; line-height: 1.55; }
+
+.adam-suggestions { width: 100%; margin-top: 1.15rem; }
+.adam-suggestions__list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.55rem; }
+
+.adam-starter-action,
+.adam-context-action {
+  display: flex;
+  min-width: 0;
+  min-height: 3.6rem;
+  align-items: center;
+  gap: 0.65rem;
+  border: 1px solid color-mix(in srgb, var(--border) 84%, transparent);
+  border-radius: 0.75rem;
+  background: var(--card);
+  color: var(--foreground);
+  text-align: left;
+  transition: border-color 180ms ease, background-color 180ms ease, transform 180ms ease;
+}
+
+.adam-starter-action { padding: 0.7rem 0.75rem; }
+.adam-starter-action:hover,
+.adam-context-action:hover { border-color: color-mix(in srgb, var(--primary) 38%, var(--border)); background: color-mix(in srgb, var(--primary) 5%, var(--card)); }
+.adam-starter-action:active,
+.adam-context-action:active { transform: translateY(1px); }
+.adam-starter-action:focus-visible,
+.adam-context-action:focus-visible { outline: 2px solid color-mix(in srgb, var(--ring) 65%, transparent); outline-offset: 2px; }
+.adam-starter-action:disabled,
+.adam-context-action:disabled { cursor: wait; opacity: 0.6; }
+
+.adam-suggestion__icon {
+  display: grid;
+  width: 2rem;
+  height: 2rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 0.55rem;
+  background: var(--muted);
+  color: var(--foreground);
+}
+
+.adam-suggestion__copy { display: flex; min-width: 0; flex-direction: column; gap: 0.08rem; }
+.adam-suggestion__copy strong { overflow: hidden; color: var(--foreground); font-size: 0.75rem; font-weight: 650; text-overflow: ellipsis; white-space: nowrap; }
+.adam-suggestion__copy small { overflow: hidden; color: var(--muted-foreground); font-size: 0.65rem; line-height: 1.35; text-overflow: ellipsis; white-space: nowrap; }
+
+.adam-suggestions--context {
+  margin: 0;
+  padding: 0 1rem 0.45rem;
+}
+.adam-suggestions__label { display: block; margin-bottom: 0.4rem; color: var(--muted-foreground); font-size: 0.65rem; font-weight: 600; }
+.adam-suggestions--context .adam-suggestions__list { display: flex; gap: 0.4rem; overflow-x: auto; padding: 0.1rem 0.1rem 0.2rem; scrollbar-width: none; }
+.adam-suggestions--context .adam-suggestions__list::-webkit-scrollbar { display: none; }
+.adam-context-action { min-height: 2.5rem; flex: 0 0 auto; padding: 0.45rem 0.65rem; border-radius: 0.65rem; }
+.adam-context-action .adam-suggestion__icon { width: 1.5rem; height: 1.5rem; background: transparent; color: var(--muted-foreground); }
+.adam-context-action .adam-suggestion__copy strong { font-size: 0.7rem; }
+
+.cv-chat__copilot [data-testid="copilot-input-overlay"] { background: transparent; }
+.cv-chat__copilot .adam-composer {
+  border: 1px solid color-mix(in srgb, var(--border) 90%, transparent) !important;
+  border-radius: 1rem !important;
+  background: var(--card) !important;
+  box-shadow: 0 6px 24px rgb(15 23 42 / 0.09) !important;
+  transition: border-color 180ms ease, box-shadow 180ms ease !important;
+}
+.cv-chat__copilot .adam-composer:focus-within {
+  border-color: color-mix(in srgb, var(--ring) 55%, var(--border)) !important;
+  box-shadow: 0 8px 26px rgb(15 23 42 / 0.1), 0 0 0 3px color-mix(in srgb, var(--ring) 13%, transparent) !important;
+}
+.cv-chat__copilot .adam-composer__textarea {
+  min-height: 3rem !important;
+  max-height: 9rem !important;
+  color: var(--foreground) !important;
+  font-size: 0.86rem !important;
+  line-height: 1.5 !important;
+}
+.cv-chat__copilot .adam-composer__textarea::placeholder { color: color-mix(in srgb, var(--muted-foreground) 78%, transparent) !important; }
+.cv-chat__copilot .adam-composer__send,
+.cv-chat__copilot .adam-composer__add { width: 2.5rem !important; height: 2.5rem !important; min-width: 2.5rem !important; }
+.cv-chat__copilot .adam-composer__send { background: var(--foreground) !important; color: var(--background) !important; }
+.cv-chat__copilot .adam-composer__send:hover:not(:disabled) { opacity: 0.82; }
+.cv-chat__copilot .adam-composer__add { color: var(--muted-foreground) !important; }
+.adam-composer__disclaimer { padding: 0.45rem 0.5rem 0.15rem; color: var(--muted-foreground); font-size: 0.62rem; line-height: 1.35; text-align: center; }
+
+.adam-message { animation: adam-message-in 180ms ease-out both; }
+.adam-message--assistant { color: var(--foreground); }
+.adam-message--assistant h1,
+.adam-message--assistant h2,
+.adam-message--assistant h3 { color: var(--foreground); letter-spacing: -0.01em; }
+.adam-message--assistant li { margin-block: 0.18rem; }
+.adam-message--user > div:first-child { border: 1px solid color-mix(in srgb, var(--border) 78%, transparent); background: var(--muted) !important; color: var(--foreground); }
+
+.cv-online.is-working { color: #a16207; }
+.cv-online.is-working i { background: #d97706; animation: adam-pulse 1.4s ease-in-out infinite; }
+
+.adam-tool-activity {
+  border-color: color-mix(in srgb, var(--border) 86%, transparent);
+  background: color-mix(in srgb, var(--muted) 55%, var(--card));
+  color: var(--foreground);
+}
+.adam-tool-activity__label strong { color: inherit; }
+.adam-tool-activity__action {
+  min-height: 2.25rem;
+  flex: 0 0 auto;
+  border-radius: 0.5rem;
+  padding: 0 0.55rem;
+  color: var(--primary);
+  font-size: 0.7rem;
+  font-weight: 650;
+  transition: background-color 160ms ease;
+}
+.adam-tool-activity__action:hover { background: color-mix(in srgb, var(--primary) 9%, transparent); }
+.adam-tool-activity__action:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+.adam-tool-activity--change .adam-tool-activity__status { display: none; }
+
+@keyframes adam-message-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 520px) {
+  .adam-welcome { padding-inline: 0.75rem; }
+  .adam-suggestions__list { grid-template-columns: 1fr; }
+  .adam-starter-action { min-height: 3.25rem; }
+  .adam-suggestions--context { padding-inline: 0.75rem; }
+  .adam-tool-activity { flex-wrap: wrap; }
+  .adam-tool-activity__action { min-height: 2.5rem; margin-left: auto; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .adam-message,
+  .cv-online.is-working i { animation: none; }
+  .adam-starter-action,
+  .adam-context-action,
+  .cv-chat__copilot .adam-composer { transition: none !important; }
+  .cv-ai-focused { animation: none; outline: 3px solid color-mix(in srgb, var(--primary) 45%, transparent); }
+}
+>>>>>>> origin/dev-Phuc2

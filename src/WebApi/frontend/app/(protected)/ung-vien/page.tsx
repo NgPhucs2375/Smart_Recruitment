@@ -109,6 +109,7 @@ export default function UngVienPage() {
   const [items, setItems] = useState<Application[]>([]);
   const [profiles, setProfiles] = useState<Record<number, CandidateProfile>>({});
   const [loading, setLoading] = useState(true);
+  const [reachedCap, setReachedCap] = useState(false);
   const [err, setErr] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
   const [search, setSearch] = useState("");
@@ -161,6 +162,8 @@ export default function UngVienPage() {
         tieuDe: `${value.tieuDe ?? value.TieuDe ?? "Tin tuyển dụng"}`,
       }));
       setItems(applications);
+      // API giới hạn 100 đơn/trang: báo cho người dùng biết khi danh sách bị cắt.
+      setReachedCap(applications.length >= 100);
 
       const profileMap: Record<number, CandidateProfile> = {};
       for (const value of extractArray<Record<string, unknown>>(profilesResponse)) {
@@ -279,7 +282,7 @@ export default function UngVienPage() {
       <AdminCard>
         <AdminCardHeader
           title="Đơn ứng tuyển"
-          description={`${filtered.length} đơn trong phạm vi bạn được phân quyền`}
+          description={reachedCap ? "Hiển thị 100 đơn đầu tiên — dùng bộ lọc để thu hẹp danh sách" : `${filtered.length} đơn trong phạm vi bạn được phân quyền`}
           action={
             <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
               <Select value={statusFilter} onValueChange={(value) => { if (value !== null) setStatusFilter(value); }}>
@@ -294,7 +297,7 @@ export default function UngVienPage() {
               </Select>
               <div className="relative w-full sm:w-64">
                 <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Tìm ứng viên hoặc tin..." className="pl-9" />
+                <Input aria-label="Tìm ứng viên hoặc tin" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Tìm ứng viên hoặc tin..." className="pl-9" />
               </div>
             </div>
           }

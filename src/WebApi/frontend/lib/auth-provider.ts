@@ -226,7 +226,26 @@ async function attemptRefresh(): Promise<boolean> {
 // ─── Exported helpers ─────────────────────────────────────────────────────────
 
 export function getAuthToken(): string | null {
-  return getToken();
+  const token = getToken();
+  if (!token) return null;
+
+  const exp = parseJwtExp(token);
+  if (exp !== null && exp <= Date.now()) {
+    clearAuth();
+    return null;
+  }
+  return token;
+}
+
+/** End the local session and force unauthenticated pages to the correct login portal. */
+export function redirectToLogin(): void {
+  if (typeof window === "undefined") return;
+
+  const target = loginRouteForPortal();
+  clearAuth();
+  if (window.location.pathname !== target) {
+    window.location.replace(target);
+  }
 }
 
 function parseJwtExp(token: string): number | null {
@@ -252,14 +271,21 @@ export async function getValidToken(): Promise<string | null> {
   if (exp !== null && exp - Date.now() > 60_000) return token;
   // Hết hạn hoặc không đọc được exp → thử refresh
   const refreshed = await attemptRefresh();
-  return refreshed ? getToken() : null;
+  if (!refreshed) {
+    clearAuth();
+    return null;
+  }
+  return getToken();
 }
 
-/** Re-fetch /me and refresh the cached identity + permissions in localStorage.
- *  Call after any server-side permission change (e.g. saving the permission matrix). */
-export async function refreshIdentity(): Promise<void> {
+/** Re-fetch /me and refresh the cached identity + permissions in localStorage. */
+export async function refreshIdentity(): Promise<boolean> {
   const token = await getValidToken();
-  if (token) await fetchAndSaveMe(token);
+  // khong co access token -> tra false
+  if(!token) return false;
+
+  const me = await fetchAndSaveMe(token);
+  return me !== null;
 }
 
 /** Force a new JWT after a server-side role change. */
@@ -361,28 +387,59 @@ export const authProvider: AuthProvider = {
     }
   },
 
+  // 1. POST /account/register → success/failure
   register: async (payload) =>{
     try{
       const res = await fetch(`${API_URL}/register`,{
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+           "Content-Type": "application/json" 
+          },
         body: JSON.stringify(payload),
       });
-      if(!res.ok){
-        let message = "Đăng ký không thành công !";
-        try{
-          const body = await res.json();
-          message = body.detail ?? body?.title ?? body?.Message ?? message;
-        }catch{}
-        return {success:false,error:{name:"Lỗi đăng ký",message}};
+
+      // Đọc response body trước
+      const body = await res.json().catch(() => null);
+
+      // Check Status code nghiệp vụ của BE
+      const succeeded = 
+        body?.Scucceeded ??
+        body?.succeeded;
+
+      // Get Message BE
+      const message = 
+        body?.Message ??
+        body?.message ??
+        body?.detail ??
+        body?.title ??
+        "Đăng ký không thành công.";
+
+      // Check cả HTTP và nghiệp vụ
+      if(!res.ok || succeeded !== true){
+        return{
+          success: false,
+          error:{
+            name: "Lỗi đăng ký",
+            message,
+          },
+        };
       }
-      return {success:true,redirectTo:"/login"};
-    }catch(err){
+
+      // Chỉ tới đây khi thật sự thành công 
+      return {
+        success:true,
+        redirectTo:"/login"
+      };
+    }
+    catch(err){
       return{
         success: false,
         error:{
           name: "Lỗi kết nối",
-          message: err instanceof Error ? err.message : "Không thể kết nối máy chủ",
+          message: 
+          err instanceof Error 
+            ? err.message
+            : "Không thể kết nối máy chủ",
         },
       };
     }
@@ -418,7 +475,7 @@ export const authProvider: AuthProvider = {
     if (error?.statusCode === 401) {
       const refreshed = await attemptRefresh();
       if (refreshed) return { error };
-      clearAuth();
+      redirectToLogin();
       return {
         logout: true,
         redirectTo: loginRouteForPortal(),
@@ -501,7 +558,11 @@ async function accountAction(
 ): Promise<AccountActionResult> {
   try {
     const token = authenticated ? await getValidToken() : null;
-    if (authenticated && !token) return { success: false, message: "Phiên đăng nhập đã hết hạn." };
+    if (authenticated && !token) 
+      return { 
+        success: false,
+        message: "Phiên đăng nhập đã hết hạn." 
+      };
 
     const res = await fetch(`${API_URL}/${endpoint}`, {
       method: "POST",
@@ -511,13 +572,38 @@ async function accountAction(
       },
       body: JSON.stringify(body),
     });
+
+    // Đọc response Body trước
     const responseBody = await res.json().catch(() => ({}));
-    const message = responseBody?.Message ?? responseBody?.message ?? responseBody?.detail ?? responseBody?.title;
-    return res.ok
-      ? { success: true, message }
-      : { success: false, message: message || "Yêu cầu không thành công." };
-  } catch (err) {
-    return { success: false, message: err instanceof Error ? err.message : "Lỗi kết nối máy chủ." };
+    
+    // Lấy thông báo
+    const message = 
+      responseBody?.Message ??
+      responseBody?.message ?? 
+      responseBody?.detail ?? 
+      responseBody?.title;
+
+    // Check Status code nghiệp vụ của BE
+    const succeeded =
+      responseBody?.Succeeded ??
+      responseBody?.succeeded;
+    
+    if(!res.ok || succeeded !== true){
+      return {
+        success: false,
+        message: message ?? "Thao tác không thành công.",
+      };
+    }
+    return {
+      success: true,
+      message: message ?? "Thao tác thành công.",
+    }
+  } 
+  catch (err) {
+    return { 
+      success: false,
+      message: err instanceof Error 
+        ? err.message : "Lỗi kết nối máy chủ." };
   }
 }
 

@@ -153,7 +153,7 @@ export function CandidateHeader() {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="w-56">
                 {menu.items.map(([label, href]) => (
-                  <DropdownMenuItem key={href} onClick={() => { window.location.href = href; }}>
+                  <DropdownMenuItem key={href} onClick={() => router.push(href)}>
                     {label}
                   </DropdownMenuItem>
                 ))}
@@ -163,7 +163,7 @@ export function CandidateHeader() {
                     <DropdownMenuGroup>
                       <DropdownMenuLabel>{group.title}</DropdownMenuLabel>
                       {group.items.map(([label, href]) => (
-                        <DropdownMenuItem key={href} onClick={() => { window.location.href = href; }}>
+                        <DropdownMenuItem key={href} onClick={() => router.push(href)}>
                           {label}
                         </DropdownMenuItem>
                       ))}

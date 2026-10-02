@@ -54,7 +54,8 @@ internal sealed class CandidateAdamAgentFactory
                     MaxOutputTokens = 512,
                     // The model must receive the tool result and produce a user-facing
                     // answer in the same run; false ends the stream at TOOL_CALL_RESULT.
-                    AllowMultipleToolCalls = true,
+                    // Frontend tool calls must be resumed one at a time by AG-UI.
+                    AllowMultipleToolCalls = false,
                     Reasoning = new ReasoningOptions
                     {
                         Effort = ReasoningEffort.None,

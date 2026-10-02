@@ -233,5 +233,3 @@ p, UNG_VIEN, thongbaos, list
 p, UNG_VIEN, thongbaos, show
 p, UNG_VIEN, tintuyendungs, list
 p, UNG_VIEN, tintuyendungs, show
-p, UNG_VIEN, users, list
-p, UNG_VIEN, users, show

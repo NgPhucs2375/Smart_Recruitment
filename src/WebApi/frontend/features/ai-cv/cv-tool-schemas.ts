@@ -29,8 +29,9 @@ const educationCreateSchema = z.object({
   moTa: optionalText.describe("GPA hoặc mô tả học vấn"),
 }).strict();
 
-const experienceCreateSchema = z.object({
-  congTy: z.string().min(1).describe("Tên công ty"),
+const experienceCreateFields = {
+  congTy: optionalText.describe("Tên công ty"),
+  truong: optionalText.describe("Alias tương thích: nếu section là kinh nghiệm thì hiểu là tên công ty"),
   chucDanh: z.string().min(1).describe("Chức danh"),
   diaChi: optionalText.describe("Địa điểm làm việc"),
   tuNgay: optionalText.describe("Ngày bắt đầu, MM/YYYY hoặc YYYY"),
@@ -38,7 +39,12 @@ const experienceCreateSchema = z.object({
   isHienTai: z.boolean().optional().describe("Hiện vẫn đang làm"),
   moTa: optionalText.describe("Các trách nhiệm hoặc thành tích, ngăn cách bằng xuống dòng"),
   kyNangSuDung: optionalTextList.describe("Danh sách kỹ năng hoặc công nghệ sử dụng"),
-}).strict();
+};
+
+const experienceCreateSchema = z.union([
+  z.object({ ...experienceCreateFields, congTy: z.string().min(1).describe("Tên công ty") }).strict(),
+  z.object({ ...experienceCreateFields, truong: z.string().min(1).describe("Tên công ty (alias)") }).strict(),
+]);
 
 const projectCreateSchema = z.object({
   tenDuAn: z.string().min(1).describe("Tên dự án"),
@@ -57,14 +63,21 @@ const skillCreateSchema = z.object({
   soNamKinhNghiem: optionalText.describe("Số năm kinh nghiệm nếu user cung cấp"),
 }).strict();
 
-const certificateCreateSchema = z.object({
-  tenChungChi: z.string().min(1).describe("Tên chứng chỉ"),
+const certificateCreateFields = {
+  tenChungChi: optionalText.describe("Tên chứng chỉ"),
+  truong: optionalText.describe("Alias tương thích: tên chứng chỉ nếu model gửi nhầm field"),
   donViCap: optionalText.describe("Đơn vị cấp"),
   ngayCap: optionalText.describe("Ngày cấp, MM/YYYY hoặc YYYY"),
+  moTa: optionalText.describe("Alias tương thích: ngày cấp nếu model gửi nhầm field"),
   ngayHetHan: optionalText.describe("Ngày hết hạn, MM/YYYY hoặc YYYY"),
   maXacMinh: optionalText.describe("Mã xác minh"),
   credentialUrl: optionalText.describe("URL chứng chỉ"),
-}).strict();
+};
+
+const certificateCreateSchema = z.union([
+  z.object({ ...certificateCreateFields, tenChungChi: z.string().min(1).describe("Tên chứng chỉ") }).strict(),
+  z.object({ ...certificateCreateFields, truong: z.string().min(1).describe("Tên chứng chỉ (alias)") }).strict(),
+]);
 
 export const cvSectionCreateSchema = z.discriminatedUnion("section", [
   z.object({ section: z.literal("hocVan"), items: z.array(educationCreateSchema).min(1).max(20) }).strict(),
@@ -78,8 +91,8 @@ const upsertItem = <T extends z.ZodRawShape>(shape: T) => z.object({ id: optiona
 
 export const cvSectionUpsertSchema = z.discriminatedUnion("section", [
   z.object({ section: z.literal("hocVan"), items: z.array(upsertItem(educationCreateSchema.shape)).min(1).max(20) }).strict(),
-  z.object({ section: z.literal("kinhNghiemLamViec"), items: z.array(upsertItem(experienceCreateSchema.shape)).min(1).max(20) }).strict(),
+  z.object({ section: z.literal("kinhNghiemLamViec"), items: z.array(upsertItem(experienceCreateFields)).min(1).max(20) }).strict(),
   z.object({ section: z.literal("duAn"), items: z.array(upsertItem(projectCreateSchema.shape)).min(1).max(20) }).strict(),
   z.object({ section: z.literal("kyNang"), items: z.array(upsertItem(skillCreateSchema.shape)).min(1).max(20) }).strict(),
-  z.object({ section: z.literal("chungChi"), items: z.array(upsertItem(certificateCreateSchema.shape)).min(1).max(20) }).strict(),
+  z.object({ section: z.literal("chungChi"), items: z.array(upsertItem(certificateCreateFields)).min(1).max(20) }).strict(),
 ]);

@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { Tags, Pencil, Trash2, Plus, RotateCcw, Search } from "lucide-react";
 import { AdminGate } from "@/features/admin/AdminGate";
 import { adminApi } from "@/features/admin/api";
+import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 
 interface DanhMucRow {
   Id: number;
@@ -68,6 +69,7 @@ function CatalogTable({ config }: { config: CatalogConfig }) {
   const [ten, setTen] = useState("");
   const [moTa, setMoTa] = useState("");
   const [saving, setSaving] = useState(false);
+  const { confirm } = useConfirmDialog();
 
   const fetchRows = useCallback(async (kw?: string) => {
     setLoading(true);
@@ -126,7 +128,13 @@ function CatalogTable({ config }: { config: CatalogConfig }) {
   };
 
   const handleDelete = async (row: DanhMucRow) => {
-    if (!window.confirm(`Xóa "${row.Ten}"?`)) return;
+    const confirmed = await confirm({
+      title: `Xóa ${config.label.toLowerCase()}?`,
+      description: `Xóa "${row.Ten}"? Hành động này không thể hoàn tác.`,
+      confirmLabel: "Xóa",
+      destructive: true,
+    });
+    if (!confirmed) return;
     try {
       await adminApi.remove(`${config.listPath}/${row.Id}`);
       toast.success("Đã xóa");
@@ -150,6 +158,7 @@ function CatalogTable({ config }: { config: CatalogConfig }) {
             <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               className="pl-9"
+              aria-label={`Tìm ${config.label.toLowerCase()}`}
               placeholder={`Tìm ${config.label.toLowerCase()}...`}
               value={filter}
               onChange={(e) => setFilter(e.target.value)}

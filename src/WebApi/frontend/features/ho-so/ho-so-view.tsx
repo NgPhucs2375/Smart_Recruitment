@@ -63,6 +63,8 @@ export function HoSoView() {
   const [isTimViec, setIsTimViec] = useState(true);
   const [cvs, setCvs] = useState<CvVm[]>([]);
   const [cvsLoading, setCvsLoading] = useState(false);
+  const [cvsError, setCvsError] = useState(false);
+  const [loadError, setLoadError] = useState("");
   const [isMock, setIsMock] = useState(false);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarRemoved, setAvatarRemoved] = useState(false);
@@ -156,6 +158,7 @@ export function HoSoView() {
       // ignore location errors, fall through to real load
     }
     setLoading(true);
+    setLoadError("");
     try {
       const data = await hoSoApi.getMyHoSo();
       if (data) {
@@ -163,11 +166,19 @@ export function HoSoView() {
         populateForm(data);
         setIsEditing(false);
       }
-    } catch {
-      // 404 / Bạn chưa có hồ sơ
-      setHoSo(null);
-      setIsEditing(true);
-      if (identity?.name) setHoTen(identity.name);
+    } catch (e) {
+      // Chỉ 404 / "chưa có hồ sơ" mới là trạng thái chưa có hồ sơ; các lỗi
+      // khác (500, mạng, token) phải hiện lỗi — không mở form tạo trống,
+      // tránh lưu trùng lặp khi người dùng không hay biết.
+      const status = (e as Error & { status?: number }).status;
+      const isNoProfile = status === 404 || (e instanceof Error && /chưa có hồ sơ/i.test(e.message));
+      if (isNoProfile) {
+        setHoSo(null);
+        setIsEditing(true);
+        if (identity?.name) setHoTen(identity.name);
+      } else {
+        setLoadError(e instanceof Error ? e.message : "Không tải được hồ sơ.");
+      }
     } finally {
       setLoading(false);
     }
@@ -217,10 +228,10 @@ export function HoSoView() {
       cvApi
         .listCvs(hoSoId)
         .then((list) => {
-          if (!cancelled) setCvs(list);
+          if (!cancelled) { setCvs(list); setCvsError(false); }
         })
         .catch(() => {
-          if (!cancelled) setCvs([]);
+          if (!cancelled) { setCvs([]); setCvsError(true); }
         })
         .finally(() => {
           if (!cancelled) setCvsLoading(false);
@@ -331,6 +342,14 @@ export function HoSoView() {
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
+      {loadError && (
+        <div role="alert" className="flex flex-col gap-3 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm text-destructive">Không tải được hồ sơ: {loadError}</p>
+          <Button variant="outline" size="sm" onClick={() => void loadData()}>
+            Thử lại
+          </Button>
+        </div>
+      )}
       {isMock && (
         <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-xs text-amber-800 dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-200">
           Chế độ xem trước giao diện (dữ liệu minh họa) — thao tác lưu và tải danh sách thật bị tắt cho tới khi BE hoạt động. Xóa <span className="font-mono">?xem-truoc=1</span> để dùng dữ liệu thật.
@@ -495,6 +514,22 @@ export function HoSoView() {
                 <Loader2 className="h-4 w-4 animate-spin" />
                 Đang tải danh sách CV...
               </div>
+            ) : cvsError ? (
+              <div className="flex flex-col items-start gap-3 py-6 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-sm text-destructive">Không tải được danh sách CV.</p>
+                <Button variant="outline" size="sm" onClick={() => {
+                  const hoSoId = hoSo?.id;
+                  if (!hoSoId || hoSoId <= 0) return;
+                  setCvsLoading(true);
+                  cvApi
+                    .listCvs(hoSoId)
+                    .then((list) => { setCvs(list); setCvsError(false); })
+                    .catch(() => { setCvs([]); setCvsError(true); })
+                    .finally(() => setCvsLoading(false));
+                }}>
+                  Thử lại
+                </Button>
+              </div>
             ) : cvs.length === 0 ? (
               <div className="flex flex-col items-center py-8 text-center">
                 <span className="flex size-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
@@ -637,12 +672,13 @@ export function HoSoView() {
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-1.5">
-                    <label className="text-xs font-medium text-foreground">
+                    <label htmlFor="ho-so-ho-ten" className="text-xs font-medium text-foreground">
                       Họ và tên <span className="text-destructive">*</span>
                     </label>
                     <div className="relative">
                       <User className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                       <Input
+                        id="ho-so-ho-ten"
                         placeholder="Nguyễn Văn A"
                         value={hoTen}
                         onChange={(e) => setHoTen(e.target.value)}
@@ -653,10 +689,11 @@ export function HoSoView() {
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-xs font-medium text-foreground">Số điện thoại</label>
+                    <label htmlFor="ho-so-sdt" className="text-xs font-medium text-foreground">Số điện thoại</label>
                     <div className="relative">
                       <Phone className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                       <Input
+                        id="ho-so-sdt"
                         placeholder="0912345678"
                         value={sdt}
                         onChange={(e) => setSdt(e.target.value)}
@@ -668,10 +705,11 @@ export function HoSoView() {
 
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-1.5">
-                    <label className="text-xs font-medium text-foreground">Ngày sinh</label>
+                    <label htmlFor="ho-so-ngay-sinh" className="text-xs font-medium text-foreground">Ngày sinh</label>
                     <div className="relative">
                       <Calendar className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                       <Input
+                        id="ho-so-ngay-sinh"
                         type="text"
                         inputMode="numeric"
                         placeholder="dd/mm/yyyy"
@@ -679,6 +717,8 @@ export function HoSoView() {
                         value={ngaySinh}
                         onChange={handleNgaySinhChange}
                         onBlur={handleNgaySinhBlur}
+                        aria-invalid={ngaySinh.trim() !== "" && !isValidVnDate(ngaySinh)}
+                        aria-describedby="ho-so-ngay-sinh-error"
                         className="h-10 rounded-xl border-input bg-card pl-10 pr-10 text-sm"
                       />
                       {/* Date picker ẩn: bấm icon lịch để chọn ngày, gõ tay không bị nhảy số */}
@@ -709,16 +749,16 @@ export function HoSoView() {
                       </button>
                     </div>
                     {ngaySinh.trim() !== "" && !isValidVnDate(ngaySinh) && (
-                      <p className="text-xs text-destructive">Ngày không hợp lệ (dd/mm/yyyy)</p>
+                      <p id="ho-so-ngay-sinh-error" role="alert" className="text-xs text-destructive">Ngày không hợp lệ (dd/mm/yyyy)</p>
                     )}
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-xs font-medium text-foreground">Giới tính</label>
+                    <label htmlFor="ho-so-gioi-tinh" className="text-xs font-medium text-foreground">Giới tính</label>
                     <div className="relative">
                       <User className="pointer-events-none absolute left-3.5 top-1/2 z-10 size-4 -translate-y-1/2 text-muted-foreground" />
                       <Select value={gioiTinh} onValueChange={(value) => { if (value !== null) setGioiTinh(value); }}>
-                        <SelectTrigger className="h-10 w-full rounded-xl border-input bg-card pl-10 text-sm"><SelectValue /></SelectTrigger>
+                        <SelectTrigger id="ho-so-gioi-tinh" className="h-10 w-full rounded-xl border-input bg-card pl-10 text-sm"><SelectValue /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="Nam">Nam</SelectItem>
                           <SelectItem value="Nữ">Nữ</SelectItem>
@@ -730,10 +770,11 @@ export function HoSoView() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-foreground">Địa chỉ hiện tại</label>
+                  <label htmlFor="ho-so-dia-chi" className="text-xs font-medium text-foreground">Địa chỉ hiện tại</label>
                   <div className="relative">
                     <MapPin className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
+                      id="ho-so-dia-chi"
                       placeholder="Quận 1, TP. Hồ Chí Minh"
                       value={diaChi}
                       onChange={(e) => setDiaChi(e.target.value)}
@@ -750,10 +791,11 @@ export function HoSoView() {
                 </h3>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-1.5">
-                    <label className="text-xs font-medium text-foreground">Vị trí mong muốn / Chức danh</label>
+                    <label htmlFor="ho-so-vi-tri" className="text-xs font-medium text-foreground">Vị trí mong muốn / Chức danh</label>
                     <div className="relative">
                       <Briefcase className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                       <Input
+                        id="ho-so-vi-tri"
                         placeholder="Fullstack .NET Developer"
                         value={viTriUngTuyen}
                         onChange={(e) => setViTriUngTuyen(e.target.value)}
@@ -763,10 +805,11 @@ export function HoSoView() {
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-xs font-medium text-foreground">Mức lương mong muốn (VNĐ)</label>
+                    <label htmlFor="ho-so-muc-luong" className="text-xs font-medium text-foreground">Mức lương mong muốn (VNĐ)</label>
                     <div className="relative">
                       <DollarSign className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                       <Input
+                        id="ho-so-muc-luong"
                         type="text"
                         inputMode="numeric"
                         placeholder="15.000.000"

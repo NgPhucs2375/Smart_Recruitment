@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { BellRing, Building2, Loader2 } from "lucide-react";
+import { BellRing, Building2, Loader2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useFollowedCompanies } from "@/hooks/use-followed-companies";
 import { CompanyCard } from "./company-card";
@@ -13,10 +13,12 @@ export function CongTyTheoDoiView() {
   const [companies, setCompanies] = useState<DoanhNghiepVm[]>([]);
   const [loading, setLoading] = useState(true);
   const [unavailable, setUnavailable] = useState(false);
+  const [reloadTick, setReloadTick] = useState(0);
   const { followedIds, isFollowed, toggle, hydrated } = useFollowedCompanies();
 
   useEffect(() => {
     let cancelled = false;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true);
     doanhNghiepApi
       .list()
@@ -32,7 +34,7 @@ export function CongTyTheoDoiView() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [reloadTick]);
 
   const followed = useMemo(
     () => companies.filter((c) => followedIds.has(c.id)),
@@ -62,8 +64,11 @@ export function CongTyTheoDoiView() {
           Đang tải...
         </div>
       ) : unavailable ? (
-        <div className="rounded-2xl border border-destructive/30 bg-destructive/5 px-4 py-6 text-center text-sm text-destructive">
+        <div className="flex flex-col items-center gap-3 rounded-2xl border border-destructive/30 bg-destructive/5 px-4 py-6 text-center text-sm text-destructive">
           Không tải được danh bạ công ty lúc này.
+          <Button variant="outline" size="sm" onClick={() => { setLoading(true); setUnavailable(false); setReloadTick((tick) => tick + 1); }}>
+            <RefreshCw className="mr-2 size-4" /> Thử lại
+          </Button>
         </div>
       ) : followed.length === 0 ? (
         <div className="flex flex-col items-center gap-2 rounded-2xl border border-dashed border-border bg-card px-4 py-12 text-center">

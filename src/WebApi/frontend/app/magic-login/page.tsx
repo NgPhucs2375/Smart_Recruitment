@@ -24,7 +24,7 @@ function MagicLoginContent() {
 
   return (
     <Card className="w-full max-w-md rounded-2xl border-border bg-white/90 p-2 shadow-xl backdrop-blur-md">
-      <CardContent className="p-8 text-center space-y-4">
+      <CardContent className="p-8 text-center space-y-4" aria-live="polite">
         <h1 className="text-2xl font-bold text-foreground mb-2">Xác thực Đăng nhập</h1>
 
         {status === "loading" && (

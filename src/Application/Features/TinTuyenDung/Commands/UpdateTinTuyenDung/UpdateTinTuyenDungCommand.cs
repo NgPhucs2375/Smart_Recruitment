@@ -1,10 +1,12 @@
 using Application.Exceptions;
+using Application.Features.KetQuaPhuHop.Cache;
 using Application.Interfaces;
 using Application.Services.StateMachineTinTuyenDung;
 using Application.Wrappers;
 using Domain.Enums;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Distributed;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -30,7 +32,8 @@ namespace Application.Features.TinTuyenDung.Commands.UpdateTinTuyenDung
         IApplicationDbContext context,
         ICurrentNguoiDungService current,
         ITinTuyenDungWorkflowService workflow,
-        ITinTuyenDungFunnelService funnel)
+        ITinTuyenDungFunnelService funnel,
+        IDistributedCache cache)
         : IRequestHandler<UpdateTinTuyenDungCommand, Response<int>>
     {
         public async Task<Response<int>> Handle(
@@ -132,6 +135,7 @@ namespace Application.Features.TinTuyenDung.Commands.UpdateTinTuyenDung
                 catch (System.Exception ex)
                 {
                     await context.SaveChangesAsync(cancellationToken);
+                    await RecommendationCache.InvalidateJobsAsync(cache, cancellationToken);
                     return new Response<int>(
                         data: entity.Id,
                         message: $"Tin đã tự động gửi duyệt nhưng sàng lọc gặp lỗi: {ex.Message}");
@@ -139,6 +143,7 @@ namespace Application.Features.TinTuyenDung.Commands.UpdateTinTuyenDung
             }
 
             await context.SaveChangesAsync(cancellationToken);
+            await RecommendationCache.InvalidateJobsAsync(cache, cancellationToken);
 
             return new Response<int>(
                 data: entity.Id,

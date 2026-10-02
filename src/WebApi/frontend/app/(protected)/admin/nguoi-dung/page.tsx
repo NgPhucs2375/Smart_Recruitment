@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { Users, Pencil, Trash2, Lock, LockOpen, Plus, RotateCcw, Search } from "lucide-react";
 import { AdminGate } from "@/features/admin/AdminGate";
 import { adminApi, VAI_TRO } from "@/features/admin/api";
+import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { getAuthToken } from "@/lib/auth-provider";
 
 interface NguoiDungRow {
@@ -36,6 +37,7 @@ export default function AdminNguoiDungPage() {
   const [editing, setEditing] = useState<NguoiDungRow | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
+  const { confirm } = useConfirmDialog();
 
   const fetchRows = useCallback(async (kw?: string) => {
     setLoading(true);
@@ -113,7 +115,13 @@ export default function AdminNguoiDungPage() {
   };
 
   const handleDelete = async (row: NguoiDungRow) => {
-    if (!window.confirm(`Xóa người dùng "${row.Email ?? row.UserName ?? `#${row.Id}`}"? Tài khoản đăng nhập liên kết cũng sẽ bị xóa.`)) return;
+    const confirmed = await confirm({
+      title: "Xóa người dùng?",
+      description: `Xóa "${row.Email ?? row.UserName ?? `#${row.Id}`}"? Tài khoản đăng nhập liên kết cũng sẽ bị xóa.`,
+      confirmLabel: "Xóa",
+      destructive: true,
+    });
+    if (!confirmed) return;
     try {
       await adminApi.remove(`/nguoidungs/${row.Id}`);
       toast.success("Đã xóa người dùng");
@@ -128,7 +136,13 @@ export default function AdminNguoiDungPage() {
       toast.error("Người dùng chưa liên kết tài khoản đăng nhập");
       return;
     }
-    if (!window.confirm(`${lock ? "Khóa" : "Mở khóa"} tài khoản "${row.Email ?? row.UserName ?? `#${row.Id}`}"?`)) return;
+    const confirmed = await confirm({
+      title: lock ? "Khóa tài khoản?" : "Mở khóa tài khoản?",
+      description: `${lock ? "Khóa" : "Mở khóa"} tài khoản "${row.Email ?? row.UserName ?? `#${row.Id}`}"?`,
+      confirmLabel: lock ? "Khóa" : "Mở khóa",
+      destructive: lock,
+    });
+    if (!confirmed) return;
     try {
       await adminApi.put(`/users/${row.ApplicationUserId}/${lock ? "lock" : "unlock"}`);
       toast.success(lock ? "Đã khóa tài khoản" : "Đã mở khóa tài khoản");
@@ -176,6 +190,7 @@ export default function AdminNguoiDungPage() {
                 <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   className="pl-9"
+                  aria-label="Tìm người dùng"
                   placeholder="Tìm theo email hoặc tên đăng nhập..."
                   value={filter}
                   onChange={(e) => setFilter(e.target.value)}
@@ -207,9 +222,9 @@ export default function AdminNguoiDungPage() {
                 />
               </div>
               <div className="grid gap-2">
-                <Label>Vai trò</Label>
+                <Label htmlFor="vai-tro">Vai trò</Label>
                 <Select value={form.VaiTro} onValueChange={(v) => setForm({ ...form, VaiTro: v ?? "4" })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger id="vai-tro"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {Object.entries(VAI_TRO).map(([v, name]) => (
                       <SelectItem key={v} value={v}>{name}</SelectItem>

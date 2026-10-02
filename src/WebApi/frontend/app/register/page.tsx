@@ -29,6 +29,7 @@ import {
   FileText,
   BellRing,
 } from "lucide-react";
+import { GoogleOAuthProvider } from "@react-oauth/google";
 
 function RegisterContent() {
   const [method, setMethod] = useState<"password" | "magic">("password");
@@ -125,7 +126,7 @@ function RegisterContent() {
             </div>
           ))}
         </div>
-        <p className="mt-3 border-t border-white/10 pt-2.5 font-mono text-[10px] uppercase tracking-[0.14em] text-white/45">
+        <p className="mt-3 border-t border-white/10 pt-2.5 font-mono text-[10px] uppercase tracking-[0.14em] text-white/70">
           18 mẫu CV • ATS-friendly
         </p>
       </div>
@@ -145,7 +146,7 @@ function RegisterContent() {
         </div>
       </div>
 
-      <p className="mt-5 max-w-md text-xs leading-5 text-white/45">
+      <p className="mt-5 max-w-md text-xs leading-5 text-white/70">
         Miễn phí cho ứng viên • Không cần thẻ tín dụng • Xóa tài khoản bất cứ lúc nào
       </p>
     </div>
@@ -187,94 +188,112 @@ function RegisterContent() {
 
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-1">
-              <Label className="text-xs font-medium text-gray-700">Họ và tên</Label>
+              <Label htmlFor="reg-ho-ten" className="text-xs font-medium text-gray-700">Họ và tên</Label>
               <div className="relative">
                 <User className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
                  <Input
+                   id="reg-ho-ten"
                    type="text"
                    autoComplete="name"
                   {...registerPwd("hoTen")}
+                  aria-invalid={!!pwdErrors.hoTen}
+                  aria-describedby="reg-ho-ten-error"
                   disabled={isPwdPending}
                   placeholder="Nguyễn Văn A"
                   className="h-10 rounded-xl border-input bg-white pl-10 text-sm"
                 />
               </div>
-              {pwdErrors.hoTen && <p className="text-xs text-red-500">{pwdErrors.hoTen.message}</p>}
+              {pwdErrors.hoTen && <p id="reg-ho-ten-error" role="alert" className="text-xs text-red-500">{pwdErrors.hoTen.message}</p>}
             </div>
 
             <div className="space-y-1">
-              <Label className="text-xs font-medium text-gray-700">Số điện thoại</Label>
+              <Label htmlFor="reg-so-dien-thoai" className="text-xs font-medium text-gray-700">Số điện thoại</Label>
               <div className="relative">
                 <Phone className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
                  <Input
+                   id="reg-so-dien-thoai"
                    type="tel"
                    autoComplete="tel"
                   {...registerPwd("soDienThoai")}
+                  aria-invalid={!!pwdErrors.soDienThoai}
+                  aria-describedby="reg-so-dien-thoai-error"
                   disabled={isPwdPending}
                   placeholder="090 123 4567"
                   className="h-10 rounded-xl border-input bg-white pl-10 text-sm"
                 />
               </div>
-              {pwdErrors.soDienThoai && <p className="text-xs text-red-500">{pwdErrors.soDienThoai.message}</p>}
+              {pwdErrors.soDienThoai && <p id="reg-so-dien-thoai-error" role="alert" className="text-xs text-red-500">{pwdErrors.soDienThoai.message}</p>}
             </div>
           </div>
 
           <div className="space-y-1">
-            <Label className="text-xs font-medium text-gray-700">Email</Label>
+            <Label htmlFor="reg-email" className="text-xs font-medium text-gray-700">Email</Label>
             <div className="relative">
               <Mail className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
                <Input
+                   id="reg-email"
                    type="email"
                    autoComplete="email"
                   {...registerPwd("email")}
+                  aria-invalid={!!pwdErrors.email}
+                  aria-describedby="reg-email-error"
                   disabled={isPwdPending}
                   readOnly={isInvitation}
                 placeholder="name@domain.com"
                 className="h-10 rounded-xl border-input bg-white pl-10 text-sm"
               />
             </div>
-            {pwdErrors.email && <p className="text-xs text-red-500">{pwdErrors.email.message}</p>}
+            {pwdErrors.email && <p id="reg-email-error" role="alert" className="text-xs text-red-500">{pwdErrors.email.message}</p>}
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-1">
-              <Label className="text-xs font-medium text-gray-700">Mật khẩu</Label>
+              <Label htmlFor="reg-password" className="text-xs font-medium text-gray-700">Mật khẩu</Label>
               <div className="relative">
                 <Lock className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
                 <Input
+                  id="reg-password"
                   type={showPassword ? "text" : "password"}
                   autoComplete="new-password"
                   {...registerPwd("password")}
+                  aria-invalid={!!pwdErrors.password}
+                  aria-describedby="reg-password-error"
                   disabled={isPwdPending}
                   placeholder="••••••••"
                   className="h-10 rounded-xl border-input bg-white pl-10 pr-9 text-sm"
                 />
                 <button
                   type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  onClick={() => setShowPassword((v) => !v)}
+                  aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+                  aria-pressed={showPassword}
+                  disabled={isPwdPending}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 rounded p-0.5 text-gray-400 transition hover:text-gray-600 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary disabled:opacity-50"
                 >
                   {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                 </button>
               </div>
-              {pwdErrors.password && <p className="text-xs text-red-500">{pwdErrors.password.message}</p>}
+              {pwdErrors.password && <p id="reg-password-error" role="alert" className="text-xs text-red-500">{pwdErrors.password.message}</p>}
             </div>
 
             <div className="space-y-1">
-              <Label className="text-xs font-medium text-gray-700">Xác nhận mật khẩu</Label>
+              <Label htmlFor="reg-confirm-password" className="text-xs font-medium text-gray-700">Xác nhận mật khẩu</Label>
               <div className="relative">
                 <Lock className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
                 <Input
+                  id="reg-confirm-password"
                   type={showPassword ? "text" : "password"}
                   autoComplete="new-password"
                   {...registerPwd("confirmPassword")}
+                  aria-invalid={!!pwdErrors.confirmPassword}
+                  aria-describedby="reg-confirm-password-error"
                   disabled={isPwdPending}
                   placeholder="••••••••"
                   className="h-10 rounded-xl border-input bg-white pl-10 text-sm"
                 />
               </div>
               {pwdErrors.confirmPassword && (
-                <p className="text-xs text-red-500">{pwdErrors.confirmPassword.message}</p>
+                <p id="reg-confirm-password-error" role="alert" className="text-xs text-red-500">{pwdErrors.confirmPassword.message}</p>
               )}
             </div>
           </div>
@@ -303,7 +322,10 @@ function RegisterContent() {
           )}
 
           <p className="text-center text-[11px] text-muted-foreground">
-            Bằng việc tiếp tục, bạn đồng ý với Điều khoản dịch vụ & Chính sách bảo mật.
+            Bằng việc tiếp tục, bạn đồng ý với{" "}
+            <Link href="/dieu-khoan" className="underline underline-offset-2 hover:text-foreground">Điều khoản dịch vụ</Link>
+            {" & "}
+            <Link href="/bao-mat" className="underline underline-offset-2 hover:text-foreground">Chính sách bảo mật</Link>.
           </p>
         </form>
       )}
@@ -322,48 +344,60 @@ function RegisterContent() {
               )}
 
               <div className="space-y-1">
-                <Label className="text-xs font-medium text-gray-700">Họ và tên</Label>
+                <Label htmlFor="reg-magic-ho-ten" className="text-xs font-medium text-gray-700">Họ và tên</Label>
                 <div className="relative">
                   <User className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
                   <Input
+                    id="reg-magic-ho-ten"
                     type="text"
+                    autoComplete="name"
                     {...registerMagic("hoTen")}
+                    aria-invalid={!!magicErrors.hoTen}
+                    aria-describedby="reg-magic-ho-ten-error"
                     disabled={magicLoading}
                     placeholder="Nguyễn Văn A"
                     className="h-10 rounded-xl border-input bg-white pl-10 text-sm"
                   />
                 </div>
-                {magicErrors.hoTen && <p className="text-xs text-red-500">{magicErrors.hoTen.message}</p>}
+                {magicErrors.hoTen && <p id="reg-magic-ho-ten-error" role="alert" className="text-xs text-red-500">{magicErrors.hoTen.message}</p>}
               </div>
 
               <div className="space-y-1">
-                <Label className="text-xs font-medium text-gray-700">Email nhận liên kết</Label>
+                <Label htmlFor="reg-magic-email" className="text-xs font-medium text-gray-700">Email nhận liên kết</Label>
                 <div className="relative">
                   <Mail className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
                   <Input
+                    id="reg-magic-email"
                     type="email"
+                    autoComplete="email"
                     {...registerMagic("email")}
+                    aria-invalid={!!magicErrors.email}
+                    aria-describedby="reg-magic-email-error"
                     disabled={magicLoading}
                     placeholder="name@domain.com"
                     className="h-10 rounded-xl border-input bg-white pl-10 text-sm"
                   />
                 </div>
-                {magicErrors.email && <p className="text-xs text-red-500">{magicErrors.email.message}</p>}
+                {magicErrors.email && <p id="reg-magic-email-error" role="alert" className="text-xs text-red-500">{magicErrors.email.message}</p>}
               </div>
 
               <div className="space-y-1">
-                <Label className="text-xs font-medium text-gray-700">Số điện thoại</Label>
+                <Label htmlFor="reg-magic-so-dien-thoai" className="text-xs font-medium text-gray-700">Số điện thoại</Label>
                 <div className="relative">
                   <Phone className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
                   <Input
+                    id="reg-magic-so-dien-thoai"
                     type="text"
+                    autoComplete="tel"
                     {...registerMagic("soDienThoai")}
+                    aria-invalid={!!magicErrors.soDienThoai}
+                    aria-describedby="reg-magic-so-dien-thoai-error"
                     disabled={magicLoading}
                     placeholder="090 123 4567"
                     className="h-10 rounded-xl border-input bg-white pl-10 text-sm"
                   />
                 </div>
-                {magicErrors.soDienThoai && <p className="text-xs text-red-500">{magicErrors.soDienThoai.message}</p>}
+                {magicErrors.soDienThoai && <p id="reg-magic-so-dien-thoai-error" role="alert" className="text-xs text-red-500">{magicErrors.soDienThoai.message}</p>}
               </div>
 
               <Button
@@ -401,7 +435,9 @@ function RegisterContent() {
 export default function RegisterPage() {
   return (
     <Suspense fallback={<div className="min-h-dvh bg-background" />}>
-      <RegisterContent />
+      <GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? ""}>
+        <RegisterContent />
+      </GoogleOAuthProvider>
     </Suspense>
   );
 }

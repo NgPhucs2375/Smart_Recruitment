@@ -24,6 +24,7 @@ interface TemplateSelectorProps {
   onSelect: (id: string) => void;
   /** ID CV đang soạn (nếu có): gallery giữ ?cv= để quay về đúng CV, không mất nội dung. */
   cvId?: number | null;
+  compact?: boolean;
 }
 
 /**
@@ -107,7 +108,7 @@ function useTemplateBrowse(selectedId: string) {
  * active template opens a popover with search + category filter and a
  * compact row list (small live thumbnails). Full gallery stays at /mau-cv.
  */
-export function TemplatePicker({ selectedId, onSelect, cvId }: TemplateSelectorProps) {
+export function TemplatePicker({ selectedId, onSelect, cvId, compact = false }: TemplateSelectorProps) {
   const [open, setOpen] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
   const { active, activeId, query, setQuery, category, setCategory, visible, templates } =
@@ -146,20 +147,30 @@ export function TemplatePicker({ selectedId, onSelect, cvId }: TemplateSelectorP
     >
       <DropdownMenuTrigger
         aria-label="Chọn mẫu CV"
-        className="flex w-full items-center gap-3 rounded-2xl border border-border bg-card p-3 text-left shadow-sm transition hover:border-primary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+        className={cn(
+          "flex items-center text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+          compact
+            ? "h-9 gap-2 rounded-md border border-border bg-card px-3 hover:bg-muted"
+            : "w-full gap-3 rounded-xl border border-border bg-card p-3 hover:border-primary/50",
+        )}
       >
-          <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+          <span className={cn("shrink-0 items-center justify-center bg-primary/10", compact ? "hidden" : "flex size-10 rounded-lg")}>
             <LayoutTemplate className="size-5 text-primary" />
           </span>
           <span className="min-w-0 flex-1">
-            <span className="block text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+            <span className={cn("text-[11px] font-medium uppercase tracking-wider text-muted-foreground", compact ? "inline" : "block")}>
               Mẫu CV
             </span>
+<<<<<<< HEAD
             <span className="block truncate text-sm font-semibold text-foreground">
               {active?.name ?? customActive?.name ?? "Chọn mẫu"}
+=======
+            <span className={cn("truncate text-sm font-semibold text-foreground", compact ? "ml-2 inline" : "block")}>
+              {active?.name ?? "Chọn mẫu"}
+>>>>>>> origin/dev-Phuc2
             </span>
           </span>
-          {active && TEMPLATE_BADGES[active.id] && (
+          {!compact && active && TEMPLATE_BADGES[active.id] && (
             <span className="shrink-0 rounded-full bg-navy px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white">
               {TEMPLATE_BADGES[active.id]}
             </span>

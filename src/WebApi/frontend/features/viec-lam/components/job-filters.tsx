@@ -18,6 +18,11 @@ import { Slider } from "@/components/ui/slider";
 import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { locations } from "../constants";
 
+const SKILL_SUGGESTIONS = ["React", "TypeScript", "Python", "Product Manager", "UI/UX", "Data Analyst"];
+
+// Định dạng "tr" cho nhãn khoảng lương tùy chỉnh (slider) trong Select.
+const fmtTriệu = (v?: number) => (v === undefined || v === null ? "" : `${Math.round(v / 1_000_000)}tr`);
+
 interface JobFiltersBarProps {
   filters: JobFilters;
   onFilterChange: (filters: JobFilters) => void;
@@ -27,7 +32,7 @@ interface JobFiltersBarProps {
 export function JobFiltersBar({ filters, onFilterChange, totalJobs }: JobFiltersBarProps) {
   const [query, setQuery] = React.useState(filters.keyword);
   const [advancedOpen, setAdvancedOpen] = React.useState(false);
-  const suggestions = ["React", "TypeScript", "Python", "Product Manager", "UI/UX", "Data Analyst"].filter((item) => item.toLowerCase().includes(query.toLowerCase()));
+  const suggestions = SKILL_SUGGESTIONS.filter((item) => item.toLowerCase().includes(query.toLowerCase()));
   const updateFilter = (key: keyof JobFilters, value: string | number | undefined) => {
     onFilterChange({ ...filters, [key]: value } as JobFilters);
   };
@@ -36,6 +41,9 @@ export function JobFiltersBar({ filters, onFilterChange, totalJobs }: JobFilters
     filters.salaryMin !== undefined || filters.salaryMax !== undefined
       ? `${filters.salaryMin ?? ""}-${filters.salaryMax ?? ""}`
       : "all";
+  // Giá trị từ slider không trùng preset nào: thêm một item "Tùy chỉnh" để
+  // trigger hiển thị nhãn đẹp thay vì chuỗi thô "5000000-".
+  const isPresetSalary = salaryValue === "all" || salaryRanges.some((range: SalaryRange) => `${range.min}-${range.max ?? ""}` === salaryValue);
 
   const handleSalaryChange = (v: string | null) => {
     if (!v || v === "all") {
@@ -79,11 +87,18 @@ export function JobFiltersBar({ filters, onFilterChange, totalJobs }: JobFilters
       <div className="flex flex-col gap-3 sm:flex-row">
         <div className="relative flex-1">
           <Command className="relative border border-border bg-muted shadow-none">
-            <CommandInput placeholder="Tìm việc, kỹ năng hoặc công ty..." value={query} onChange={(event) => { setQuery(event.target.value); updateFilter("keyword", event.target.value); }} />
+            <CommandInput aria-label="Tìm việc, kỹ năng hoặc công ty" placeholder="Tìm việc, kỹ năng hoặc công ty..." value={query} onChange={(event) => { setQuery(event.target.value); updateFilter("keyword", event.target.value); }} />
             {query && <CommandList className="absolute left-0 right-0 top-full z-20 mt-2 rounded-xl border border-border bg-popover shadow-xl"><CommandEmpty>Nhấn Enter để tìm “{query}”</CommandEmpty>{suggestions.map((item) => <CommandItem key={item} onClick={() => { setQuery(item); updateFilter("keyword", item); }}>{item}<Check className="ml-auto size-4 text-primary opacity-0 group-hover:opacity-100" /></CommandItem>)}</CommandList>}
           </Command>
         </div>
-        <Button className="h-12 rounded-full px-7 text-sm font-semibold"><Search className="mr-2 size-4" />Tìm việc</Button>
+        <Button
+          type="button"
+          className="h-12 rounded-full px-7 text-sm font-semibold"
+          onClick={() => {
+            updateFilter("keyword", query);
+            document.getElementById("viec-lam-results")?.scrollIntoView({ behavior: "smooth", block: "start" });
+          }}
+        ><Search className="mr-2 size-4" />Tìm việc</Button>
       </div>
 
       {/* Pill selects */}
@@ -135,7 +150,7 @@ export function JobFiltersBar({ filters, onFilterChange, totalJobs }: JobFilters
             <SheetHeader><SheetTitle>Bộ lọc nâng cao</SheetTitle><SheetDescription>Tinh chỉnh kết quả theo thu nhập và kỹ năng.</SheetDescription></SheetHeader>
             <div className="space-y-7 px-4 pb-6">
               <div><div className="mb-3 flex items-center justify-between"><label className="text-sm font-semibold">Khoảng lương mong muốn</label><span className="text-sm font-semibold text-primary">{filters.salaryMin ? `${filters.salaryMin / 1_000_000}tr` : "0"} - {filters.salaryMax ? `${filters.salaryMax / 1_000_000}tr` : "200tr+"}</span></div><Slider min={0} max={200_000_000} step={5_000_000} value={[filters.salaryMin ?? 0, filters.salaryMax ?? 200_000_000]} onValueChange={([salaryMin, salaryMax]) => onFilterChange({ ...filters, salaryMin: salaryMin || undefined, salaryMax: salaryMax === 200_000_000 ? undefined : salaryMax })} /></div>
-              <div><label className="mb-3 block text-sm font-semibold">Kỹ năng</label><div className="flex flex-wrap gap-2">{suggestions.map((skill) => <Button key={skill} variant="outline" size="sm" className="rounded-full" onClick={() => { setQuery(skill); updateFilter("keyword", skill); }}><Sparkles className="mr-1.5 size-3.5" />{skill}</Button>)}</div></div>
+              <div><label className="mb-3 block text-sm font-semibold">Kỹ năng</label><div className="flex flex-wrap gap-2">{SKILL_SUGGESTIONS.map((skill) => <Button key={skill} variant="outline" size="sm" className="rounded-full" onClick={() => { setQuery(skill); updateFilter("keyword", skill); }}><Sparkles className="mr-1.5 size-3.5" />{skill}</Button>)}</div></div>
               <div><label className="mb-3 block text-sm font-semibold">Địa điểm</label><div className="grid grid-cols-2 gap-2">{locations.map((location) => <Button key={location} variant={filters.location === location ? "default" : "outline"} size="sm" className="justify-start rounded-xl" onClick={() => updateFilter("location", filters.location === location ? "" : location)}>{location}</Button>)}</div></div>
               <Button className="w-full rounded-xl" onClick={() => setAdvancedOpen(false)}>Áp dụng bộ lọc</Button>
             </div>
@@ -148,6 +163,11 @@ export function JobFiltersBar({ filters, onFilterChange, totalJobs }: JobFilters
           </SelectTrigger>
           <SelectContent>
             <SelectItem key="all" value="all">Tất cả</SelectItem>
+            {!isPresetSalary && (
+              <SelectItem key="custom" value={salaryValue}>
+                Tùy chỉnh{filters.salaryMin !== undefined ? ` ${fmtTriệu(filters.salaryMin)}` : " 0tr"} – {filters.salaryMax !== undefined ? `${fmtTriệu(filters.salaryMax)}` : "200tr+"}
+              </SelectItem>
+            )}
             {salaryRanges.map((range: SalaryRange) => (
               <SelectItem key={range.label} value={`${range.min}-${range.max ?? ""}`}>{range.label}</SelectItem>
             ))}

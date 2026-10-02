@@ -51,7 +51,7 @@ export function AppSidebarV2() {
 
       <SidebarContent className="px-3 py-5">
         <nav className="space-y-1" aria-label="Điều hướng chính">
-          <p className={cn("mb-2 px-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-workspace-muted", !open && "sr-only")}>Workspace</p>
+          <p className={cn("mb-2 px-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-workspace-muted", !open && "sr-only")}>Workspace</p>
           {visibleItems.map((item) => {
             const active = pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href));
             const Icon = item.icon;
@@ -98,7 +98,7 @@ function SidebarProfile({ open, isAdministrator }: { open: boolean; isAdministra
         <>
           <div className="min-w-0 flex-1">
             <p className="truncate text-xs font-semibold text-workspace-text">{identity?.name ?? "Người dùng"}</p>
-            <p className="truncate text-[10px] text-workspace-muted">{isAdministrator ? "Quản trị viên" : identity?.email}</p>
+            <p className="truncate text-[11px] text-workspace-muted">{isAdministrator ? "Quản trị viên" : identity?.email}</p>
           </div>
           <button className="rounded-lg p-1.5 text-workspace-muted transition hover:bg-destructive/10 hover:text-destructive disabled:opacity-50" onClick={() => logout()} disabled={isPending} aria-label="Đăng xuất">
             <LogOut className="size-4" />

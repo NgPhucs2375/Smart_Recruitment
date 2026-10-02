@@ -1,8 +1,10 @@
 using Application.Interfaces;
+using Application.Features.KetQuaPhuHop.Cache;
 using Application.Wrappers;
 using Domain.Enums;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Distributed;
 using System.Linq;
 
 namespace Application.Features.KyNangTinTuyenDung.Commands.UpdateKyNangTinTuyenDung;
@@ -20,7 +22,8 @@ public class UpdateKyNangTinTuyenDungCommand : IRequest<Response<int>>
 
 public class UpdateKyNangTinTuyenDungCommandHandler(
     IApplicationDbContext context,
-    ICurrentNguoiDungService current)
+    ICurrentNguoiDungService current,
+    IDistributedCache cache)
     : IRequestHandler<UpdateKyNangTinTuyenDungCommand, Response<int>>
 {
     public async Task<Response<int>> Handle(
@@ -104,6 +107,7 @@ public class UpdateKyNangTinTuyenDungCommandHandler(
 
         await context.SaveChangesAsync(
             cancellationToken);
+        await RecommendationCache.InvalidateJobsAsync(cache, cancellationToken);
 
         return new Response<int>(
             data: entity.Id,

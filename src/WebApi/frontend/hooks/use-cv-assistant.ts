@@ -26,6 +26,7 @@ import {
   removeSectionItem,
   sectionReport,
 } from "@/features/ai-cv/merge-cv-patch";
+import { reviewCurrentCv } from "@/features/ai-cv/review-current-cv";
 import {
   cvContactPatchSchema,
   cvSectionUpsertSchema,
@@ -138,9 +139,28 @@ export function useCvAssistant({
   useAgentContext({
     description:
       "Dữ liệu CV đang mở trong trình soạn thảo (nguồn đúng nhất). " +
-      "Điền form bằng frontend tool, KHÔNG yêu cầu user gõ lại thứ đã có ở đây.",
+      "Điền form bằng frontend tool, KHÔNG yêu cầu user gõ lại thứ đã có ở đây. " +
+      "Khi user yêu cầu review/kiểm tra CV hoặc hỏi điểm yếu cần bổ sung, hãy xác định section " +
+      "liên quan từ snapshot và BẮT BUỘC gọi focusSections để scroll + highlight đúng các khu vực " +
+      "trước hoặc cùng lúc với phần giải thích. Nếu user đồng ý bổ sung thì mới gọi tool cập nhật dữ liệu.",
     value: snapshot,
   });
+
+  useFrontendTool(
+    {
+      name: "reviewCurrentUnsavedCv",
+      description:
+        "Đọc và kiểm tra CV NHÁP đang mở trong trình chỉnh sửa. " +
+        "Không đọc CV database. Dùng tool này khi user hỏi CV hiện tại còn thiếu gì, " +
+        "có những section nào hoặc cần bổ sung nội dung nào. " +
+        "Phải dựa vào answer và dữ liệu trả về, không tự liệt kê thiếu các field đang có " +
+        "và không yêu cầu làm lại toàn bộ CV.",
+      parameters: z.object({}).strict(),
+      available: enabled,
+      handler: async () => JSON.stringify(reviewCurrentCv(dataRef.current)),
+    },
+    [enabled],
+  );
 
   useFrontendTool(
     {
@@ -269,8 +289,11 @@ export function useCvAssistant({
     {
       name: "getCvFormSnapshot",
       description:
-        "Đọc tóm tắt form hiện tại: field bắt buộc còn thiếu, số lượng từng mục, id các item. " +
-        "Gọi trước khi sửa item đã có hoặc khi cần biết còn thiếu gì.",
+        "Đọc toàn bộ trạng thái CV NHÁP hiện đang mở trong /CV. " +
+        "Đây là nguồn chính xác nhất để review hoặc chỉnh CV chưa lưu. " +
+        "Bao gồm thông tin liên hệ, section, item, field, template và field còn thiếu. " +
+        "Không đọc CV đã lưu trong database.",
+      parameters: z.object({}).strict(),
       available: enabled,
       handler: async () => {
         const d = dataRef.current;

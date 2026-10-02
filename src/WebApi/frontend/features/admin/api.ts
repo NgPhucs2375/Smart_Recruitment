@@ -1,6 +1,6 @@
 "use client";
 
-import { getAuthToken } from "@/lib/auth-provider";
+import { getAuthToken, redirectToLogin } from "@/lib/auth-provider";
 import { loadIdentity } from "@/lib/access-control-provider";
 import { hasPermission } from "@/lib/permissions";
 
@@ -33,7 +33,10 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
       ...init?.headers,
     },
   });
-  if (res.status === 401) throw new Error("Hết phiên đăng nhập, vui lòng đăng nhập lại");
+  if (res.status === 401) {
+    redirectToLogin();
+    throw new Error("Hết phiên đăng nhập, vui lòng đăng nhập lại");
+  }
   if (res.status === 403) throw new Error("Bạn không có quyền thực hiện thao tác này");
   let body: unknown = null;
   try {
