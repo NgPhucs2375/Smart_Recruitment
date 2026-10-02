@@ -25,6 +25,8 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { ColorField } from "@/features/tao-cv/components/color-field";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
@@ -154,11 +156,13 @@ function LayoutRow({
   title,
   visible,
   onToggle,
+  move,
 }: {
   id: CvSectionId;
   title: string;
   visible: boolean;
   onToggle: () => void;
+  move?: { label: string; onMove: () => void };
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
   return (
@@ -184,6 +188,17 @@ function LayoutRow({
       </span>
       <Checkbox checked={visible} onCheckedChange={onToggle} aria-label={`Hiện ${title}`} />
       <span className="flex-1 text-sm">{title}</span>
+      {move && (
+        <button
+          type="button"
+          onClick={move.onMove}
+          title={move.label}
+          aria-label={`${move.label}: ${title}`}
+          className="rounded-md px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground"
+        >
+          {move.label}
+        </button>
+      )}
       {visible ? <Eye className="size-3.5 text-muted-foreground" /> : <EyeOff className="size-3.5 text-muted-foreground" />}
     </div>
   );
@@ -254,7 +269,31 @@ function StudioWorkbench() {
     const from = order.indexOf(active.id as CvSectionId);
     const to = order.indexOf(over.id as CvSectionId);
     if (from < 0 || to < 0) return;
-    patch({ layout: { ...theme.layout, sectionOrder: arrayMove(order, from, to) } });
+    const rail = new Set(theme.layout.sidebarSections ?? []);
+    const nextRail = new Set(rail);
+    // Kéo qua danh sách cột khác → chuyển slot cột của item.
+    if (rail.has(active.id as CvSectionId) !== rail.has(over.id as CvSectionId)) {
+      if (rail.has(over.id as CvSectionId)) nextRail.add(active.id as CvSectionId);
+      else nextRail.delete(active.id as CvSectionId);
+    }
+    patch({
+      layout: {
+        ...theme.layout,
+        sectionOrder: arrayMove(order, from, to),
+        sidebarSections: [...nextRail],
+      },
+    });
+  };
+
+  const moveToRail = (id: CvSectionId) => {
+    const rail = theme.layout.sidebarSections ?? [];
+    if (!rail.includes(id)) patch({ layout: { ...theme.layout, sidebarSections: [...rail, id] } });
+  };
+
+  const moveToMain = (id: CvSectionId) => {
+    patch({
+      layout: { ...theme.layout, sidebarSections: (theme.layout.sidebarSections ?? []).filter((x) => x !== id) },
+    });
   };
 
   const toggleSection = (id: CvSectionId) => {
@@ -375,20 +414,104 @@ function StudioWorkbench() {
             </TabsList>
 
             <TabsContent value="layout" className="mt-4 space-y-3">
-              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-                <SortableContext items={theme.layout.sectionOrder} strategy={verticalListSortingStrategy}>
-                  <div className="space-y-0.5">
-                    {theme.layout.sectionOrder.map((id) => (
-                      <LayoutRow
-                        key={id}
-                        id={id}
-                        title={theme.layout.sections[id]?.title ?? id}
-                        visible={theme.layout.sections[id]?.isVisible !== false}
-                        onToggle={() => toggleSection(id)}
-                      />
-                    ))}
+              <div>
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Khung xương</p>
+                <div className="grid grid-cols-2 gap-1.5">
+                  {(
+                    [
+                      ["single", "1 cột ATS"],
+                      ["sidebar-left", "Sidebar trái"],
+                      ["sidebar-right", "Sidebar phải"],
+                      ["banner-top", "Banner ngang"],
+                    ] as const
+                  ).map(([v, label]) => (
+                    <button
+                      key={v}
+                      type="button"
+                      onClick={() => patch({ structure: v })}
+                      aria-pressed={(theme.structure ?? "single") === v}
+                      className={cn(
+                        "rounded-lg border px-2 py-2 text-left text-xs font-medium transition",
+                        (theme.structure ?? "single") === v
+                          ? "border-primary bg-primary/5 text-foreground"
+                          : "border-border text-muted-foreground hover:border-primary/40 hover:text-foreground",
+                      )}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {(theme.structure === "sidebar-left" || theme.structure === "sidebar-right") && (
+                <div>
+                  <div className="mb-1 flex items-center justify-between">
+                    <Label className="text-xs">Rộng sidebar</Label>
+                    <span className="font-mono text-[11px] text-muted-foreground">{theme.sidebarWidthPct ?? 32}%</span>
                   </div>
-                </SortableContext>
+                  <input
+                    type="range"
+                    min={25}
+                    max={45}
+                    step={1}
+                    value={theme.sidebarWidthPct ?? 32}
+                    onChange={(e) => patch({ sidebarWidthPct: Number(e.target.value) })}
+                    className="w-full accent-primary"
+                    aria-label="Rộng sidebar phần trăm"
+                  />
+                </div>
+              )}
+              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                {(() => {
+                  const rail = new Set(theme.layout.sidebarSections ?? []);
+                  const mainIds = theme.layout.sectionOrder.filter((id) => !rail.has(id));
+                  const railIds = theme.layout.sectionOrder.filter((id) => rail.has(id));
+                  const isTwoCol = theme.structure === "sidebar-left" || theme.structure === "sidebar-right";
+                  const row = (id: CvSectionId, inRail: boolean) => (
+                    <LayoutRow
+                      key={id}
+                      id={id}
+                      title={theme.layout.sections[id]?.title ?? id}
+                      visible={theme.layout.sections[id]?.isVisible !== false}
+                      onToggle={() => toggleSection(id)}
+                      move={
+                        isTwoCol
+                          ? inRail
+                            ? { label: "→ Chính", onMove: () => moveToMain(id) }
+                            : { label: "→ Phụ", onMove: () => moveToRail(id) }
+                          : undefined
+                      }
+                    />
+                  );
+                  return (
+                    <>
+                      <div>
+                        <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                          {isTwoCol ? "Cột chính" : "Thứ tự mục"}
+                        </p>
+                        <SortableContext items={mainIds} strategy={verticalListSortingStrategy}>
+                          <div className="space-y-0.5">{mainIds.map((id) => row(id, false))}</div>
+                        </SortableContext>
+                      </div>
+                      {isTwoCol && (
+                        <div>
+                          <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                            Cột phụ (sidebar)
+                          </p>
+                          <SortableContext items={railIds} strategy={verticalListSortingStrategy}>
+                            <div className="space-y-0.5">
+                              {railIds.map((id) => row(id, true))}
+                              {railIds.length === 0 && (
+                                <p className="rounded-lg border border-dashed border-border px-2 py-2 text-center text-[11px] text-muted-foreground">
+                                  Kéo mục vào đây hoặc bấm “→ Phụ”
+                                </p>
+                              )}
+                            </div>
+                          </SortableContext>
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
               </DndContext>
               <div className="flex gap-1.5">
                 <Button
@@ -455,25 +578,37 @@ function StudioWorkbench() {
                   ["paperBackground", "Nền giấy"],
                 ] as const
               ).map(([key, label]) => (
-                <div key={key} className="flex items-center gap-2">
-                  <input
-                    type="color"
-                    aria-label={label}
-                    value={theme.colors[key]}
-                    onChange={(e) => patchColors({ [key]: e.target.value } as Partial<CvThemeConfig["colors"]>)}
-                    className="size-9 shrink-0 cursor-pointer rounded-lg border border-border bg-card p-1"
-                  />
-                  <div className="min-w-0 flex-1">
-                    <Label className="text-xs">{label}</Label>
-                    <Input
-                      value={theme.colors[key]}
-                      maxLength={7}
-                      onChange={(e) => patchColors({ [key]: e.target.value } as Partial<CvThemeConfig["colors"]>)}
-                      className="mt-1 h-8 font-mono text-xs"
-                    />
-                  </div>
-                </div>
+                <ColorField
+                  key={key}
+                  label={label}
+                  value={theme.colors[key]}
+                  onChange={(next) => patchColors({ [key]: next } as Partial<CvThemeConfig["colors"]>)}
+                />
               ))}
+              <div>
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Màu phân vùng
+                </p>
+                <div className="space-y-2">
+                  <ColorField
+                    label="Nền header / banner"
+                    value={theme.zones?.headerBg ?? "transparent"}
+                    onChange={(headerBg) => patch({ zones: { ...theme.zones, headerBg } as CvThemeConfig["zones"] })}
+                    alpha
+                  />
+                  <ColorField
+                    label="Nền sidebar"
+                    value={theme.zones?.sidebarBg ?? "#f1f5f9"}
+                    onChange={(sidebarBg) => patch({ zones: { ...theme.zones, sidebarBg } as CvThemeConfig["zones"] })}
+                    alpha
+                  />
+                  <ColorField
+                    label="Nền nội dung chính"
+                    value={theme.zones?.mainBg ?? "transparent"}
+                    onChange={(mainBg) => patch({ zones: { ...theme.zones, mainBg } as CvThemeConfig["zones"] })}
+                  />
+                </div>
+              </div>
             </TabsContent>
 
             <TabsContent value="type" className="mt-4 space-y-4">
@@ -561,6 +696,96 @@ function StudioWorkbench() {
                     </Button>
                   ))}
                 </div>
+              </div>
+              <div>
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Đường phân cách
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {(
+                    [
+                      ["solid", "Liền nét"],
+                      ["dashed", "Nét đứt"],
+                      ["gradient", "Mờ dần"],
+                      ["accent-dot", "Chấm tròn"],
+                      ["none", "Ẩn"],
+                    ] as const
+                  ).map(([v, label]) => (
+                    <Button
+                      key={v}
+                      type="button"
+                      variant={(theme.typography.dividerStyle ?? "solid") === v ? "default" : "outline"}
+                      size="sm"
+                      className="h-7 text-xs"
+                      onClick={() => patchTypography({ dividerStyle: v })}
+                    >
+                      {label}
+                    </Button>
+                  ))}
+                </div>
+                {(theme.typography.dividerStyle === "solid" || theme.typography.dividerStyle === "dashed") && (
+                  <div className="mt-2 flex gap-1.5">
+                    {([1, 2] as const).map((w) => (
+                      <Button
+                        key={w}
+                        type="button"
+                        variant={(theme.typography.dividerWidthPx ?? 2) === w ? "default" : "outline"}
+                        size="sm"
+                        className="h-7 flex-1 text-xs"
+                        onClick={() => patchTypography({ dividerWidthPx: w })}
+                      >
+                        {w}px
+                      </Button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div>
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Khung section
+                </p>
+                <div className="flex gap-1.5">
+                  {(
+                    [
+                      ["flat", "Phẳng"],
+                      ["boxed", "Khung viền"],
+                      ["left-pill", "Tiêu đề pill"],
+                    ] as const
+                  ).map(([v, label]) => (
+                    <Button
+                      key={v}
+                      type="button"
+                      variant={(theme.typography.enclosure ?? "flat") === v ? "default" : "outline"}
+                      size="sm"
+                      className="h-7 flex-1 text-xs"
+                      onClick={() => patchTypography({ enclosure: v })}
+                    >
+                      {label}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+              <div className="rounded-lg border border-border px-3 py-2.5">
+                <label className="flex items-center justify-between gap-3 text-sm">
+                  <span>
+                    <span className="block font-medium">Nhãn chữ dọc mép giấy</span>
+                    <span className="block text-xs text-muted-foreground">Dải vertical editorial như tạp chí</span>
+                  </span>
+                  <Checkbox
+                    checked={theme.typography.verticalTagEnabled === true}
+                    onCheckedChange={(v) => patchTypography({ verticalTagEnabled: v === true })}
+                    aria-label="Bật nhãn chữ dọc"
+                  />
+                </label>
+                {theme.typography.verticalTagEnabled && (
+                  <Input
+                    value={theme.typography.verticalTagText ?? ""}
+                    maxLength={40}
+                    onChange={(e) => patchTypography({ verticalTagText: e.target.value })}
+                    placeholder="Trống = dùng chức danh"
+                    className="mt-2 h-8 text-xs"
+                  />
+                )}
               </div>
             </TabsContent>
 

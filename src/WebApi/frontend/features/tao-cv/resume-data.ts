@@ -26,7 +26,12 @@ export interface SectionConfig {
 export interface ResumeLayoutConfig {
   sectionOrder: CvSectionId[];
   sections: Record<CvSectionId, SectionConfig>;
+  /** Section nào vào sidebar khi theme dùng layout 2 cột (config từng theme). */
+  sidebarSections?: CvSectionId[];
 }
+
+/** Mặc định sidebar: liên hệ không có id riêng nên chỉ gồm skills + certificates. */
+export const DEFAULT_SIDEBAR_SECTIONS: CvSectionId[] = ["skills", "certificates"];
 
 export const DEFAULT_SECTION_ORDER: CvSectionId[] = [
   "summary",
@@ -51,14 +56,14 @@ export function createDefaultLayoutConfig(): ResumeLayoutConfig {
   for (const id of DEFAULT_SECTION_ORDER) {
     sections[id] = { id, title: SECTION_TITLES[id], isVisible: true };
   }
-  return { sectionOrder: [...DEFAULT_SECTION_ORDER], sections };
+  return { sectionOrder: [...DEFAULT_SECTION_ORDER], sections, sidebarSections: [...DEFAULT_SIDEBAR_SECTIONS] };
 }
 
 /** Chuẩn hóa config từ JSON/draft cũ: thiếu → default, id lạ → bỏ. */
 export function normalizeLayoutConfig(raw: unknown): ResumeLayoutConfig {
   const fallback = createDefaultLayoutConfig();
   if (!raw || typeof raw !== "object") return fallback;
-  const r = raw as { sectionOrder?: unknown; sections?: unknown };
+  const r = raw as { sectionOrder?: unknown; sections?: unknown; sidebarSections?: unknown };
   const order = Array.isArray(r.sectionOrder)
     ? (r.sectionOrder as unknown[]).filter(
         (id): id is CvSectionId => typeof id === "string" && (DEFAULT_SECTION_ORDER as string[]).includes(id),
@@ -80,8 +85,13 @@ export function normalizeLayoutConfig(raw: unknown): ResumeLayoutConfig {
       };
     }
   }
-  return { sectionOrder: merged, sections };
+  const sidebar = validSidebar(r.sidebarSections) ? [...r.sidebarSections] : [...DEFAULT_SIDEBAR_SECTIONS];
+  return { sectionOrder: merged, sections, sidebarSections: sidebar };
 }
+
+const validSidebar = (v: unknown): v is CvSectionId[] =>
+  Array.isArray(v) &&
+  v.every((id) => typeof id === "string" && (DEFAULT_SECTION_ORDER as string[]).includes(id));
 
 export type ResumeDateRange = {
   start: string;

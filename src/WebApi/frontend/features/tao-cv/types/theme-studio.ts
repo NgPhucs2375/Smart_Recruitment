@@ -3,6 +3,9 @@ import type { CvSectionId, ResumeLayoutConfig } from "../resume-data";
 export type FontFamilyToken = "font-sans" | "font-serif" | "font-mono";
 export type HeadingVariant = "underline" | "left-border" | "pill" | "minimal" | "accent-bg";
 export type SpacingDensity = "compact" | "normal" | "relaxed";
+export type LayoutStructure = "single" | "sidebar-left" | "sidebar-right" | "banner-top";
+export type DividerStyle = "solid" | "dashed" | "gradient" | "accent-dot" | "none";
+export type SectionEnclosure = "flat" | "boxed" | "left-pill";
 
 export interface CvColorPalette {
   /** Màu thương hiệu (tiêu đề, gạch chân, icon, tag). */
@@ -23,6 +26,16 @@ export interface CvTypographyConfig {
   baseFontSizePx: number;
   headingVariant: HeadingVariant;
   uppercaseHeadings: boolean;
+  /** Kiểu đường phân cách giữa các mục. */
+  dividerStyle: DividerStyle;
+  /** Độ dày nét liền/nét đứt (1 | 2). */
+  dividerWidthPx: 1 | 2;
+  /** Kiểu bọc section. */
+  enclosure: SectionEnclosure;
+  /** Dải chữ xoay dọc mép giấy. */
+  verticalTagEnabled: boolean;
+  /** Chữ trong dải dọc (trống = dùng chức danh). */
+  verticalTagText?: string;
 }
 
 export interface CvSpacingConfig {
@@ -33,6 +46,15 @@ export interface CvSpacingConfig {
   itemGapMm: number;
   /** Lề 4 phía tờ A4 (default 15mm). */
   pagePaddingMm: number;
+}
+
+export interface CvZoneBackgrounds {
+  /** Nền khối header/banner (hỗ trợ rgba trong suốt). */
+  headerBg: string;
+  /** Nền cột sidebar (hỗ trợ rgba trong suốt). */
+  sidebarBg: string;
+  /** Nền phần nội dung chính. */
+  mainBg: string;
 }
 
 export interface CvPublishPolicy {
@@ -58,11 +80,16 @@ export interface CvThemeConfig {
   updatedAt: string;
   isDefault?: boolean;
 
-  // 4 trụ cột theme
+  // 4 trụ cột theme + vùng màu & khung xương mở rộng
   layout: ResumeLayoutConfig;
+  /** Khung xương: 1 cột / sidebar trái-phải / banner. */
+  structure: LayoutStructure;
+  /** Rộng sidebar % (25–45) khi layout 2 cột. */
+  sidebarWidthPct: number;
   colors: CvColorPalette;
   typography: CvTypographyConfig;
   spacing: CvSpacingConfig;
+  zones: CvZoneBackgrounds;
   policy: CvPublishPolicy;
 }
 

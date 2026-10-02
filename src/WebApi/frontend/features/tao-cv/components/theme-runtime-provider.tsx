@@ -15,6 +15,7 @@ interface ThemeRuntimeProviderProps {
  * không cần viết lại CSS tĩnh. Không ảnh hưởng template cứng.
  */
 export function ThemeRuntimeProvider({ theme, children, className = "" }: ThemeRuntimeProviderProps) {
+  const zones = theme.zones ?? { headerBg: "transparent", sidebarBg: "#f1f5f9", mainBg: "transparent" };
   const style = {
     "--cv-primary": theme.colors.primary,
     "--cv-secondary": theme.colors.secondary,
@@ -31,6 +32,11 @@ export function ThemeRuntimeProvider({ theme, children, className = "" }: ThemeR
     "--cv-section-gap": `${theme.spacing.sectionGapMm}mm`,
     "--cv-item-gap": `${theme.spacing.itemGapMm}mm`,
     "--cv-page-padding": `${theme.spacing.pagePaddingMm}mm`,
+    "--cv-sidebar-width": `${theme.sidebarWidthPct ?? 32}%`,
+    "--cv-sidebar-bg": zones.sidebarBg,
+    "--cv-header-bg": zones.headerBg,
+    "--cv-main-bg": zones.mainBg,
+    "--cv-divider-style": theme.typography.dividerStyle ?? "solid",
     backgroundColor: "var(--cv-paper-bg)",
     color: "var(--cv-text)",
     padding: "var(--cv-page-padding)",

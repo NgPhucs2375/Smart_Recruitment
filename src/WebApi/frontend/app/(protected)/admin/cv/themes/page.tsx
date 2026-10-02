@@ -2,6 +2,9 @@
 
 import { useState } from "react";
 import dynamic from "next/dynamic";
+import { useRouter } from "next/navigation";
+import { Palette } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -37,15 +40,20 @@ const CvThemesTable = dynamic(
 /** Tab Thư viện dùng renderer thật + tab Metadata & AI reuse CRUD hiện có. */
 export default function AdminCvThemesPage() {
   const [tab, setTab] = useState<"library" | "metadata">("library");
+  const router = useRouter();
 
   return (
     <div className="pb-6">
       <Tabs value={tab} defaultValue="library" onValueChange={(v) => setTab(v as "library" | "metadata")}>
-        <div className="px-6 pt-4">
+        <div className="flex flex-wrap items-center justify-between gap-3 px-6 pt-4">
           <TabsList>
             <TabsTrigger value="library">Thư viện mẫu</TabsTrigger>
             <TabsTrigger value="metadata">Metadata & AI</TabsTrigger>
           </TabsList>
+          <Button variant="outline" size="sm" onClick={() => router.push("/tao-theme-cv")}>
+            <Palette className="mr-1.5 size-4" />
+            Mở Theme Studio
+          </Button>
         </div>
         <TabsContent value="library" className="mt-0">
           <CvThemeLibrary onEdit={() => setTab("metadata")} />

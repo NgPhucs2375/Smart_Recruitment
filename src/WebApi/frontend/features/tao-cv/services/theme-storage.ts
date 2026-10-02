@@ -4,6 +4,7 @@ import type {
   CvSpacingConfig,
   CvThemeConfig,
   CvTypographyConfig,
+  CvZoneBackgrounds,
 } from "../types/theme-studio";
 
 const STORAGE_KEY = "smart_cv_custom_themes_v1";
@@ -21,6 +22,16 @@ const DEFAULT_TYPOGRAPHY: CvTypographyConfig = {
   baseFontSizePx: 13.5,
   headingVariant: "underline",
   uppercaseHeadings: true,
+  dividerStyle: "solid",
+  dividerWidthPx: 2,
+  enclosure: "flat",
+  verticalTagEnabled: false,
+};
+
+const DEFAULT_ZONES: CvZoneBackgrounds = {
+  headerBg: "transparent",
+  sidebarBg: "#f1f5f9",
+  mainBg: "transparent",
 };
 
 const DEFAULT_SPACING: CvSpacingConfig = {
@@ -47,9 +58,12 @@ function seedTheme(
     updatedAt: now,
     isDefault: true,
     layout: createDefaultLayoutConfig(),
+    structure: "single",
+    sidebarWidthPct: 32,
     colors,
     typography: { ...DEFAULT_TYPOGRAPHY },
     spacing: { ...DEFAULT_SPACING },
+    zones: { ...DEFAULT_ZONES },
     policy: { policyApproved: true },
   };
 }
@@ -130,9 +144,25 @@ function persist(themes: CvThemeConfig[]): void {
 }
 
 export function getAllThemes(): CvThemeConfig[] {
-  const custom = readStored();
+  const custom = readStored().map(normalizeTheme);
   const ids = new Set(custom.map((t) => t.id));
   return [...custom, ...defaultThemes().filter((t) => !ids.has(t.id))];
+}
+
+/** Theme cũ thiếu field mới → đắp default, không vỡ Studio/picker. */
+function normalizeTheme(t: CvThemeConfig): CvThemeConfig {
+  return {
+    ...t,
+    structure: t.structure ?? "single",
+    sidebarWidthPct:
+      typeof t.sidebarWidthPct === "number"
+        ? Math.max(25, Math.min(45, t.sidebarWidthPct))
+        : 32,
+    typography: { ...DEFAULT_TYPOGRAPHY, ...(t.typography ?? {}) },
+    spacing: { ...DEFAULT_SPACING, ...(t.spacing ?? {}) },
+    zones: { ...DEFAULT_ZONES, ...(t.zones ?? {}) },
+    policy: t.policy ?? { policyApproved: false },
+  };
 }
 
 /** Chỉ theme duyệt policy mới lên TemplatePicker của ứng viên. */
@@ -161,11 +191,14 @@ export function newThemeDraft(name = ""): CvThemeConfig {
     updatedAt: now,
     isDefault: false,
     layout: createDefaultLayoutConfig(),
+    structure: "single",
+    sidebarWidthPct: 32,
     colors: { ...DEFAULT_COLORS },
     typography: { ...DEFAULT_TYPOGRAPHY },
     spacing: { ...DEFAULT_SPACING },
+    zones: { ...DEFAULT_ZONES },
     policy: { policyApproved: false },
   };
 }
 
-export { DEFAULT_COLORS, DEFAULT_TYPOGRAPHY, DEFAULT_SPACING };
+export { DEFAULT_COLORS, DEFAULT_TYPOGRAPHY, DEFAULT_SPACING, DEFAULT_ZONES };
