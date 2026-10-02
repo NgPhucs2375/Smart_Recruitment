@@ -1,11 +1,8 @@
 "use client";
 
 // Kiểu props dùng chung cho mọi template, bảo đảm template chỉ nhận ResumeData.
-<<<<<<< HEAD
 import type { CSSProperties, ReactNode } from "react";
-=======
-import { Children, isValidElement, type ReactNode } from "react";
->>>>>>> origin/dev-Phuc2
+import { Children, isValidElement } from "react";
 import type { ResumeData, ResumeDateRange, ResumeSkill } from "@/features/tao-cv/resume-data";
 
 export type ResumeTemplateProps = { data: ResumeData };
@@ -176,12 +173,6 @@ export function EmptyPaper({ hint }: { hint: string }) {
  * phép tách qua trang khi in, tránh khoảng trống lớn + trang trắng.
  * cv-section-shell chỉ phục vụ orphan protection cho heading.
  */
-<<<<<<< HEAD
-export function SectionShell({ children }: { children: ReactNode }) {
-  // BATCH1-wrap: min-w-0 để con flex/grid không đẩy phình section,
-  // overflow-wrap để chuỗi dài bẻ dòng trong khung.
-  return <section className="cv-section-shell min-w-0 break-words [overflow-wrap:anywhere]">{children}</section>;
-=======
 type CvSection = "contact" | "experience" | "education" | "skills" | "projects" | "certificates";
 
 function textFromNode(node: ReactNode): string {
@@ -206,8 +197,9 @@ function inferSection(children: ReactNode): CvSection | undefined {
 }
 
 export function SectionShell({ children, section }: { children: ReactNode; section?: CvSection }) {
-  return <section className="cv-section-shell" data-cv-section={section ?? inferSection(children)}>{children}</section>;
->>>>>>> origin/dev-Phuc2
+  // BATCH1-wrap: min-w-0 để con flex/grid không đẩy phình section,
+  // overflow-wrap để chuỗi dài bẻ dòng trong khung.
+  return <section className="cv-section-shell min-w-0 break-words [overflow-wrap:anywhere]" data-cv-section={section ?? inferSection(children)}>{children}</section>;
 }
 
 /**

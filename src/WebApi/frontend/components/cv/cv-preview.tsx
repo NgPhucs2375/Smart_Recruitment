@@ -1,12 +1,8 @@
 "use client";
 
 // Wrapper giao diện preview; nội dung CV render qua Template Registry + phân trang A4.
-<<<<<<< HEAD
 // Theme custom (Studio, đã duyệt policy) render qua ThemeCanvas generic.
-import { useEffect, useMemo, useState } from "react";
-=======
-import { useDeferredValue } from "react";
->>>>>>> origin/dev-Phuc2
+import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import type { CvFormData } from "@/lib/types";
 import { toResumeData, type ResumeData } from "@/features/tao-cv/resume-data";
 import { resolveTemplate } from "@/features/tao-cv/template-registry";
@@ -29,16 +25,16 @@ interface CvPreviewProps {
  * của theme đó; template hệ thống giữ nguyên.
  */
 export function CvPreview({ data, onPageCount }: CvPreviewProps) {
-<<<<<<< HEAD
-  const resume = toResumeData(data);
-  const template = resolveTemplate(data.templateId);
+  const deferredData = useDeferredValue(data);
+  const resume = toResumeData(deferredData);
+  const template = resolveTemplate(deferredData.templateId);
   const [customTheme, setCustomTheme] = useState<CvThemeConfig | null>(null);
 
   // localStorage chỉ có ở client: resolve sau mount để tránh hydration mismatch.
   useEffect(() => {
-    const found = getPublishedThemes().find((t) => t.id === data.templateId) ?? null;
+    const found = getPublishedThemes().find((t) => t.id === deferredData.templateId) ?? null;
     setCustomTheme(found);
-  }, [data.templateId]);
+  }, [deferredData.templateId]);
 
   const CustomPaper = useMemo(() => {
     if (!customTheme) return null;
@@ -58,12 +54,6 @@ export function CvPreview({ data, onPageCount }: CvPreviewProps) {
       />
     );
   }
-
-=======
-  const deferredData = useDeferredValue(data);
-  const resume = toResumeData(deferredData);
-  const template = resolveTemplate(deferredData.templateId);
->>>>>>> origin/dev-Phuc2
   return (
     <CvPaginatedPreview
       resume={resume}

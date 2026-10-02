@@ -3,13 +3,8 @@
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-<<<<<<< HEAD
 import { loginWithPasswordService } from "@/components/auth/auth-service";
-import { ArrowUpRight, Bookmark, Building2, Check, ChevronRight, Clock, Code2, FileText, Flame, Home, Laptop, Layers, Loader2, Lock, Mail, MapPin, Phone, Search, Shield, Sparkles, Users, X } from "lucide-react";
-=======
-import { useLogin } from "@refinedev/core";
 import { ArrowUpRight, Bookmark, Building2, Check, ChevronRight, Clock, Code2, Eye, EyeOff, FileText, Flame, Home, Laptop, Layers, Loader2, Lock, Mail, MapPin, Phone, Search, Shield, Sparkles, Users, X } from "lucide-react";
->>>>>>> origin/dev-Phuc2
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { HeroBackgroundIllustration } from "@/features/landing/brand-illustration-card";
 import { PublicHeader } from "@/components/landing/public-header";

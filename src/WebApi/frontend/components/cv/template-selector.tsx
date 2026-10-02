@@ -161,13 +161,8 @@ export function TemplatePicker({ selectedId, onSelect, cvId, compact = false }: 
             <span className={cn("text-[11px] font-medium uppercase tracking-wider text-muted-foreground", compact ? "inline" : "block")}>
               Mẫu CV
             </span>
-<<<<<<< HEAD
             <span className="block truncate text-sm font-semibold text-foreground">
               {active?.name ?? customActive?.name ?? "Chọn mẫu"}
-=======
-            <span className={cn("truncate text-sm font-semibold text-foreground", compact ? "ml-2 inline" : "block")}>
-              {active?.name ?? "Chọn mẫu"}
->>>>>>> origin/dev-Phuc2
             </span>
           </span>
           {!compact && active && TEMPLATE_BADGES[active.id] && (
