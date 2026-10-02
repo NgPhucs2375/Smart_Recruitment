@@ -98,9 +98,11 @@ namespace Infrastructure.Identity.Services
                 throw new ApiException($"Thông tin đăng nhập không hợp lệ cho '{request.Email}'.");
             }
 
-            // Không tự động xác thực email ở đây — giữ nguyên trạng thái EmailConfirmed
-            // để luồng xác thực email thực tế hoạt động khi SMTP được cấu hình.
-            // Đăng nhập vẫn cho phép để không khóa user cũ; IsVerified phản ánh đúng.
+            if (!user.EmailConfirmed)
+            {
+                throw new ApiException(
+                    "Email chưa được xác minh. Vui lòng kiểm tra hộp thư hoặc gửi lại email xác minh.");
+            }
            
             // 1. Khởi tạo Access Token và Refresh Token
             JwtSecurityToken jwtSecurityToken = await GenerateJWToken(user).ConfigureAwait(false);
@@ -234,13 +236,10 @@ namespace Infrastructure.Identity.Services
             }
 
             // 8. Tạo mã xác nhận và gửi email.
-            // Chỉ auto-confirm khi gửi email thất bại (SMTP chưa cấu hình — dev fallback).
-            // Khi SMTP hoạt động, giữ EmailConfirmed=false để xác thực email thực tế.
-            string verificationUri = null;
-            bool emailSent = false;
+            // EmailConfirmed phải giữ false cho tới khi người dùng bấm link xác nhận.
             try
             {
-                verificationUri = await SendVerificationEmail(user, origin).ConfigureAwait(false);
+                var verificationUri = await SendVerificationEmail(user, origin).ConfigureAwait(false);
                 await _emailService.SendAsync(new EmailRequest
                 {
                     From = null,
@@ -248,22 +247,22 @@ namespace Infrastructure.Identity.Services
                     Body = $"Vui lòng xác nhận tài khoản của bạn bằng cách nhấn vào liên kết: {verificationUri}",
                     Subject = "Xác nhận Đăng ký Tài khoản"
                 }).ConfigureAwait(false);
-                emailSent = true;
+                _logger.LogInformation(
+                    "Verification email sent for user {UserId}",
+                    user.Id);
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Gửi email xác thực thất bại cho {Email} — auto-confirm fallback.", user.Email);
-                verificationUri = null;
-                emailSent = false;
+                // Không auto-confirm khi SMTP lỗi: người dùng phải gửi lại email.
+                _logger.LogWarning(
+                    ex,
+                    "Gửi email xác thực thất bại cho {Email}",
+                    user.Email);
             }
 
-            if (!emailSent && !user.EmailConfirmed)
-            {
-                user.EmailConfirmed = true;
-                await _userManager.UpdateAsync(user).ConfigureAwait(false);
-            }
-
-            return new Response<string>(user.Id, $"Người dùng đã đăng ký thành công{(verificationUri != null && emailSent ? $". Vui lòng xác nhận tài khoản qua email: {verificationUri}" : "")}");
+            return new Response<string>(
+                user.Id,
+                "Tài khoản đã được tạo. Vui lòng kiểm tra email để xác minh hoặc gửi lại email xác minh.");
         }
 
         ///<summary>
@@ -671,7 +670,7 @@ namespace Infrastructure.Identity.Services
         public async Task ResendVerificationEmailAsync(string email, string origin)
         {
             var user = await _userManager.FindByEmailAsync(email);
-            if (user == null) return;
+            if (user == null || user.EmailConfirmed) return;
 
             var verificationUri = await SendVerificationEmail(user, origin);
             await _emailService.SendAsync(new EmailRequest { 
