@@ -394,28 +394,59 @@ export const authProvider: AuthProvider = {
     }
   },
 
+  // 1. POST /account/register → success/failure
   register: async (payload) =>{
     try{
       const res = await fetch(`${API_URL}/register`,{
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+           "Content-Type": "application/json" 
+          },
         body: JSON.stringify(payload),
       });
-      if(!res.ok){
-        let message = "Đăng ký không thành công !";
-        try{
-          const body = await res.json();
-          message = body.detail ?? body?.title ?? body?.Message ?? message;
-        }catch{}
-        return {success:false,error:{name:"Lỗi đăng ký",message}};
+
+      // Đọc response body trước
+      const body = await res.json().catch(() => null);
+
+      // Check Status code nghiệp vụ của BE
+      const succeeded = 
+        body?.Scucceeded ??
+        body?.succeeded;
+
+      // Get Message BE
+      const message = 
+        body?.Message ??
+        body?.message ??
+        body?.detail ??
+        body?.title ??
+        "Đăng ký không thành công.";
+
+      // Check cả HTTP và nghiệp vụ
+      if(!res.ok || succeeded !== true){
+        return{
+          success: false,
+          error:{
+            name: "Lỗi đăng ký",
+            message,
+          },
+        };
       }
-      return {success:true,redirectTo:"/login"};
-    }catch(err){
+
+      // Chỉ tới đây khi thật sự thành công 
+      return {
+        success:true,
+        redirectTo:"/login"
+      };
+    }
+    catch(err){
       return{
         success: false,
         error:{
           name: "Lỗi kết nối",
-          message: err instanceof Error ? err.message : "Không thể kết nối máy chủ",
+          message: 
+          err instanceof Error 
+            ? err.message
+            : "Không thể kết nối máy chủ",
         },
       };
     }
@@ -544,12 +575,14 @@ async function accountAction(
       },
       body: JSON.stringify(body),
     });
+
     const responseBody = await res.json().catch(() => ({}));
     const message = responseBody?.Message ?? responseBody?.message ?? responseBody?.detail ?? responseBody?.title;
     return res.ok
       ? { success: true, message }
       : { success: false, message: message || "Yêu cầu không thành công." };
-  } catch (err) {
+  } 
+  catch (err) {
     return { success: false, message: err instanceof Error ? err.message : "Lỗi kết nối máy chủ." };
   }
 }
