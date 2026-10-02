@@ -12,7 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { JobCard } from '@/features/jobs/components/job-card';
-import { jobsApi } from '@/features/jobs/api/jobs-api';
+import { jobsApi, USE_MOCK_JOBS } from '@/features/jobs/api/jobs-api';
 import type { Job } from '@/features/jobs/types';
 import { useTheme } from '@/hooks/use-theme';
 
@@ -113,9 +113,16 @@ export default function JobsScreen() {
                 </ThemedText>
               </View>
               <View style={[styles.liveBadge, { backgroundColor: theme.backgroundSelected }]}>
-                <ThemedText style={[styles.liveBadgeText, { color: theme.primary }]}>MỚI</ThemedText>
+                <ThemedText style={[styles.liveBadgeText, { color: theme.primary }]}>
+                  {USE_MOCK_JOBS ? 'DEMO' : 'MỚI'}
+                </ThemedText>
               </View>
             </View>
+            {USE_MOCK_JOBS ? (
+              <ThemedText style={[styles.demoNotice, { color: theme.textSecondary }]}>
+                Đang dùng việc làm mẫu trên thiết bị, chưa lấy dữ liệu từ backend.
+              </ThemedText>
+            ) : null}
           </View>
         }
         ListEmptyComponent={
@@ -173,6 +180,7 @@ const styles = StyleSheet.create({
   sectionCaption: { fontSize: 12, marginTop: 4 },
   liveBadge: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 99 },
   liveBadgeText: { fontSize: 10, fontWeight: '800', letterSpacing: 0.5 },
+  demoNotice: { fontSize: 12, lineHeight: 18, marginBottom: 14 },
   emptyState: { alignItems: 'center', borderWidth: 1, borderRadius: 18, padding: 24, gap: 10, minHeight: 150, justifyContent: 'center' },
   emptyTitle: { fontSize: 16, fontWeight: '700', textAlign: 'center' },
   emptyMessage: { fontSize: 13, lineHeight: 19, textAlign: 'center' },

@@ -1,7 +1,12 @@
 import { apiRequest } from '@/services/api/client';
+import { getMockJobById, searchMockJobs } from '@/features/jobs/mock-jobs';
 import type { Job } from '@/features/jobs/types';
 
 type JobsPage = { jobs: Job[]; totalCount: number };
+
+/** Use the demo dataset by default in development; production always calls the API. */
+export const USE_MOCK_JOBS =
+  __DEV__ && process.env.EXPO_PUBLIC_USE_MOCK_DATA !== 'false';
 
 function asRecord(value: unknown): Record<string, unknown> | null {
   return value !== null && typeof value === 'object' ? (value as Record<string, unknown>) : null;
@@ -74,6 +79,11 @@ function unwrapData(payload: unknown): unknown {
 
 export const jobsApi = {
   async getJobs(keyword = ''): Promise<JobsPage> {
+    if (USE_MOCK_JOBS) {
+      const jobs = searchMockJobs(keyword);
+      return { jobs, totalCount: jobs.length };
+    }
+
     const params = new URLSearchParams({ _start: '0', _end: '20' });
     if (keyword.trim()) params.set('_filter', keyword.trim());
 
@@ -87,6 +97,8 @@ export const jobsApi = {
   },
 
   async getJobById(id: string): Promise<Job | null> {
+    if (USE_MOCK_JOBS) return getMockJobById(id);
+
     const payload = await apiRequest<unknown>(`tintuyendungs/show/${encodeURIComponent(id)}`);
     return normalizeJob(unwrapData(payload));
   },

@@ -38,6 +38,7 @@
 **/.next/
 **/out/
 **/dist/
+**/.expo/
 
 
 # Loại bỏ các file log lỗi của NPM
