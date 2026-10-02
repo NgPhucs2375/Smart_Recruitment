@@ -565,7 +565,11 @@ async function accountAction(
 ): Promise<AccountActionResult> {
   try {
     const token = authenticated ? await getValidToken() : null;
-    if (authenticated && !token) return { success: false, message: "Phiên đăng nhập đã hết hạn." };
+    if (authenticated && !token) 
+      return { 
+        success: false,
+        message: "Phiên đăng nhập đã hết hạn." 
+      };
 
     const res = await fetch(`${API_URL}/${endpoint}`, {
       method: "POST",
@@ -576,14 +580,37 @@ async function accountAction(
       body: JSON.stringify(body),
     });
 
+    // Đọc response Body trước
     const responseBody = await res.json().catch(() => ({}));
-    const message = responseBody?.Message ?? responseBody?.message ?? responseBody?.detail ?? responseBody?.title;
-    return res.ok
-      ? { success: true, message }
-      : { success: false, message: message || "Yêu cầu không thành công." };
+    
+    // Lấy thông báo
+    const message = 
+      responseBody?.Message ??
+      responseBody?.message ?? 
+      responseBody?.detail ?? 
+      responseBody?.title;
+
+    // Check Status code nghiệp vụ của BE
+    const succeeded =
+      responseBody?.Succeeded ??
+      responseBody?.succeeded;
+    
+    if(!res.ok || succeeded !== true){
+      return {
+        success: false,
+        message: message ?? "Thao tác không thành công.",
+      };
+    }
+    return {
+      success: true,
+      message: message ?? "Thao tác thành công.",
+    }
   } 
   catch (err) {
-    return { success: false, message: err instanceof Error ? err.message : "Lỗi kết nối máy chủ." };
+    return { 
+      success: false,
+      message: err instanceof Error 
+        ? err.message : "Lỗi kết nối máy chủ." };
   }
 }
 
