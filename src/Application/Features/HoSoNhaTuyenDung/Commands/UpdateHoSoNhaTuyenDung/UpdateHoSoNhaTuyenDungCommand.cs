@@ -39,6 +39,10 @@ public class UpdateHoSoNhaTuyenDungCommandHandler(
                 "Không tìm thấy hồ sơ nhà tuyển dụng.");
         }
 
+        // DbContext NoTracking toàn cục: Find/FirstOrDefault trả về entity
+        // không track — Attach cùng reference (không throw duplicate-track).
+        context.HoSoNhaTuyenDungs.Attach(entity);
+
         var ctx = await current.ResolveAsync();
 
         var doanhNghiep = await context.DoanhNghieps

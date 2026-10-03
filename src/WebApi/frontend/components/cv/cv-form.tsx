@@ -274,7 +274,7 @@ export function CvForm({ data, onChange }: CvFormProps) {
   const contact = data.thongTinLienHe;
 
   const setContact = (field: keyof LienHe, value: string) => onChange({ ...data, thongTinLienHe: { ...contact, [field]: value } });
-  const updateList: UpdateList = (key, id, field, value) => onChange({ ...data, [key]: (data[key] as { id: string }[]).map((item) => item.id === id ? { ...item, [field]: value } : item) } as CvFormData);
+  const updateList: UpdateList = (key, id, field, value) => onChange({ ...data, [key]: (data[key] as { id: string }[]).map((item) => item.id === id ? { ...item, [field]: value, ...(field === "isHienTai" && value === true ? { denNgay: "" } : {}) } : item) } as CvFormData);
   const remove = (key: ListKey, id: string) => {
     onChange({ ...data, [key]: (data[key] as { id: string }[]).filter((item) => item.id !== id) });
     setEditing(null);
@@ -316,6 +316,7 @@ export function CvForm({ data, onChange }: CvFormProps) {
       <CvEditorSection title="Nội dung">
         {openSection === "summary" ? (
           <InlineEditor>
+            <Field label="Tiêu đề hiển thị trên CV"><Input value={data.tieuDeHienThi ?? ""} onChange={(e) => onChange({ ...data, tieuDeHienThi: e.target.value })} placeholder="Để trống dùng mặc định của mẫu" /></Field>
             <Field label="Giới thiệu bản thân"><Textarea rows={6} value={contact.gioiThieuBanThan} onChange={(e) => setContact("gioiThieuBanThan", e.target.value)} /></Field>
             <EditorActions onDone={() => setOpenSection(null)} />
           </InlineEditor>

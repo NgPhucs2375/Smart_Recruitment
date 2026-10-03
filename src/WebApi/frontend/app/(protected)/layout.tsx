@@ -42,6 +42,8 @@ export default function ProtectedLayout({
       // Reusing it avoids a second blocking /me request on every navigation.
       if (loadIdentity()) {
         if (!cancelled) setAuthenticated(true);
+        // Refresh permissions in the background without blocking the cached session.
+        void refreshIdentity();
         return;
       }
 

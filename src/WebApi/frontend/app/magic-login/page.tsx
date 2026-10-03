@@ -7,7 +7,6 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { useMagicLoginVerify } from "@/hooks";
-import { WrongPortalAlert } from "@/components/auth";
 import { sanitizeNext, type PortalKind } from "@/lib/portal-roles";
 import { Loader2 } from "lucide-react";
 
@@ -21,7 +20,7 @@ function MagicLoginContent() {
     rawPortal === "candidate" || rawPortal === "employer" ? rawPortal : undefined;
   const next = sanitizeNext(rawNext);
 
-  const { status, message, wrongPortal } = useMagicLoginVerify(token, email, { portal, next });
+  const { status, message } = useMagicLoginVerify(token, email, { portal, next });
 
   return (
     <Card className="w-full max-w-md rounded-2xl border-border bg-white/90 p-2 shadow-xl backdrop-blur-md">
@@ -43,14 +42,13 @@ function MagicLoginContent() {
 
         {status === "error" && (
           <div className="space-y-3 text-left">
-            {wrongPortal && <WrongPortalAlert portal={wrongPortal} />}
             <Alert variant="destructive" className="border-red-200 bg-red-50 text-red-700">
               <AlertDescription>{message}</AlertDescription>
             </Alert>
           </div>
         )}
 
-        {status === "error" && !wrongPortal && (
+        {status === "error" && (
           <div className="w-full mt-6">
             <Link href={portal === "employer" ? "/employer/login" : "/login"} className="block w-full">
               <Button className="w-full h-11 rounded-xl bg-primary text-primary-foreground hover:bg-primary-hover">

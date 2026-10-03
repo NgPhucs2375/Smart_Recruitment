@@ -1,7 +1,7 @@
 "use client";
 
 import type { ResumeData } from "@/features/tao-cv/resume-data";
-import { DateText, EmptyPaper, SectionShell, SkillChips } from "./shared";
+import { BannerSlot, DateText, EmptyPaper, SectionShell, SkillChips, SplitBlocks } from "./shared";
 
 /**
  * Minimal Grid — modular structure: full-width header and experience,
@@ -44,7 +44,8 @@ export function MinimalGridTemplate({ data }: { data: ResumeData }) {
   return (
     <div className="cv-paper cv-paper-a4 text-[12.5px] leading-relaxed" style={{ color: INK }}>
       <header className="flex items-end justify-between gap-4 px-7 pb-4 pt-6">
-        <div>
+        <div className="min-w-0">
+          <BannerSlot data={data} className="mb-1 text-[10px] font-bold uppercase tracking-[0.24em]" style={{ color: SUBTLE }} />
           <h1 className="text-[24px] font-bold leading-tight tracking-tight">
             {data.name || "Họ và tên"}
           </h1>
@@ -71,7 +72,7 @@ export function MinimalGridTemplate({ data }: { data: ResumeData }) {
         {data.summary && (
           <SectionShell>
             <Cell>
-              <p className="whitespace-pre-line" style={{ color: SUBTLE }}>{data.summary}</p>
+              <SplitBlocks text={data.summary} className="whitespace-pre-line break-words [overflow-wrap:anywhere]" style={{ color: SUBTLE }} />
             </Cell>
           </SectionShell>
         )}
@@ -90,7 +91,7 @@ export function MinimalGridTemplate({ data }: { data: ResumeData }) {
                       <DateText range={job.range} className="shrink-0 text-[11px]" />
                     </div>
                     {job.description && (
-                      <p className="mt-0.5 whitespace-pre-line" style={{ color: SUBTLE }}>{job.description}</p>
+                      <SplitBlocks text={job.description} className="mt-0.5 whitespace-pre-line break-words [overflow-wrap:anywhere]" style={{ color: SUBTLE }} />
                     )}
                   </div>
                 ))}
@@ -117,9 +118,7 @@ export function MinimalGridTemplate({ data }: { data: ResumeData }) {
                     <div key={p.id} className="cv-section-item">
                       <p className="text-[12px] font-bold leading-snug" style={{ color: INK }}>{p.name}</p>
                       {p.description && (
-                        <p className="mt-0.5 text-[11.5px] whitespace-pre-line" style={{ color: SUBTLE }}>
-                          {p.description}
-                        </p>
+                        <SplitBlocks text={p.description} className="mt-0.5 text-[11.5px] whitespace-pre-line break-words [overflow-wrap:anywhere]" style={{ color: SUBTLE }} />
                       )}
                       {p.tech.length > 0 && (
                         <p className="mt-0.5 font-mono text-[10px]" style={{ color: NAVY }}>

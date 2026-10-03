@@ -1,7 +1,7 @@
 "use client";
 
 import type { ResumeData } from "@/features/tao-cv/resume-data";
-import { DateText, EmptyPaper, SectionShell, SkillChips } from "./shared";
+import { BannerSlot, DateText, EmptyPaper, SectionShell, SkillChips, SplitBlocks } from "./shared";
 
 /**
  * Compact Developer — one-column dense layout for fresher / junior IT.
@@ -29,11 +29,12 @@ export function CompactDeveloperTemplate({ data }: { data: ResumeData }) {
   return (
     <div className="cv-paper cv-paper-a4 px-8 py-6 text-[12px] leading-snug text-neutral-800">
       <header>
+        <BannerSlot data={data} className="mb-1 text-[10px] font-bold uppercase tracking-[0.24em]" style={{ color: "#737373" }} />
         <div className="flex items-baseline justify-between gap-3">
           <h1 className="text-[22px] font-bold leading-tight tracking-tight text-neutral-950">
             {data.name || "Họ và tên"}
           </h1>
-          {data.title && <p className="shrink-0 text-[12px] font-semibold text-neutral-700">{data.title}</p>}
+          {data.title && <p className="min-w-0 shrink-0 text-[12px] font-semibold text-neutral-700">{data.title}</p>}
         </div>
         {data.contacts.length > 0 && (
           <p className="mt-1 text-[11px] text-neutral-600">
@@ -55,7 +56,7 @@ export function CompactDeveloperTemplate({ data }: { data: ResumeData }) {
         {data.summary && (
           <SectionShell>
             <Title>Tóm tắt</Title>
-            <p className="whitespace-pre-line">{data.summary}</p>
+            <SplitBlocks text={data.summary} className="whitespace-pre-line break-words [overflow-wrap:anywhere]" />
           </SectionShell>
         )}
 
@@ -69,7 +70,7 @@ export function CompactDeveloperTemplate({ data }: { data: ResumeData }) {
                     {job.role || "Chức danh"} <span className="font-medium text-neutral-600">— {job.company}</span>
                     <DateText range={job.range} className="float-right text-[11px] font-normal text-neutral-500" />
                   </p>
-                  {job.description && <p className="mt-0.5 whitespace-pre-line">{job.description}</p>}
+                  {job.description && <SplitBlocks text={job.description} className="mt-0.5 whitespace-pre-line break-words [overflow-wrap:anywhere]" />}
                 </div>
               ))}
             </div>
@@ -97,7 +98,7 @@ export function CompactDeveloperTemplate({ data }: { data: ResumeData }) {
                       </span>
                     )}
                   </p>
-                  {p.description && <p className="mt-0.5 whitespace-pre-line">{p.description}</p>}
+                  {p.description && <SplitBlocks text={p.description} className="mt-0.5 whitespace-pre-line break-words [overflow-wrap:anywhere]" />}
                 </div>
               ))}
             </div>

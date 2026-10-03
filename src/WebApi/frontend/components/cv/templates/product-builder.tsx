@@ -1,7 +1,7 @@
 "use client";
 
 import type { ResumeData } from "@/features/tao-cv/resume-data";
-import { DateText, EmptyPaper, SectionShell, SkillChips } from "./shared";
+import { BannerSlot, DateText, EmptyPaper, SectionShell, SkillChips, SplitBlocks } from "./shared";
 
 /**
  * Product Builder — project-first ordering with bold outcome lead lines.
@@ -36,6 +36,7 @@ export function ProductBuilderTemplate({ data }: { data: ResumeData }) {
   return (
     <div className="cv-paper cv-paper-a4 text-[12.5px] leading-relaxed" style={{ color: INK }}>
       <header className="px-7 pb-4 pt-6">
+        <BannerSlot data={data} className="mb-1 text-[10px] font-bold uppercase tracking-[0.24em]" style={{ color: SUBTLE }} />
         <h1 className="text-[26px] font-bold leading-tight tracking-tight">
           {data.name || "Họ và tên"}
         </h1>
@@ -57,9 +58,7 @@ export function ProductBuilderTemplate({ data }: { data: ResumeData }) {
           </p>
         )}
         {data.summary && (
-          <p className="mt-3 whitespace-pre-line border-l-2 pl-3 italic" style={{ borderColor: NAVY, color: SUBTLE }}>
-            {data.summary}
-          </p>
+          <SplitBlocks text={data.summary} className="mt-3 whitespace-pre-line break-words [overflow-wrap:anywhere] border-l-2 pl-3 italic" style={{ borderColor: NAVY, color: SUBTLE }} />
         )}
       </header>
 
@@ -80,7 +79,7 @@ export function ProductBuilderTemplate({ data }: { data: ResumeData }) {
                     <p className="text-[12px] font-semibold" style={{ color: NAVY }}>{p.role}</p>
                   )}
                   {p.description && (
-                    <p className="mt-1 whitespace-pre-line" style={{ color: SUBTLE }}>{p.description}</p>
+                    <SplitBlocks text={p.description} className="mt-1 whitespace-pre-line break-words [overflow-wrap:anywhere]" style={{ color: SUBTLE }} />
                   )}
                   {p.tech.length > 0 && (
                     <p className="mt-1 text-[11px] font-medium" style={{ color: SUBTLE }}>
@@ -99,7 +98,7 @@ export function ProductBuilderTemplate({ data }: { data: ResumeData }) {
             <div className="space-y-2.5">
               {data.experience.map((job) => (
                 <div key={job.id} className="cv-section-item flex items-baseline justify-between gap-3">
-                  <p>
+                  <p className="min-w-0">
                     <span className="font-bold" style={{ color: INK }}>{job.role || "Chức danh"}</span>
                     <span style={{ color: SUBTLE }}> — {job.company}</span>
                   </p>
@@ -109,7 +108,7 @@ export function ProductBuilderTemplate({ data }: { data: ResumeData }) {
               {data.experience.some((j) => j.description) && (
                 <div className="space-y-2 pt-1">
                   {data.experience.filter((j) => j.description).map((job) => (
-                    <p key={`${job.id}-d`} className="whitespace-pre-line text-[12px]" style={{ color: SUBTLE }}>
+                    <p key={`${job.id}-d`} className="whitespace-pre-line break-words [overflow-wrap:anywhere] text-[12px]" style={{ color: SUBTLE }}>
                       <span className="font-semibold" style={{ color: INK }}>{job.role}: </span>
                       {job.description}
                     </p>

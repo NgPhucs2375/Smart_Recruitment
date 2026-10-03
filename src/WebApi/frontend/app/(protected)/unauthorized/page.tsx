@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 
 export default function UnauthorizedPage() {
   return (
-    <div className="flex min-h-[calc(100vh-4.5rem)] flex-col items-center justify-center px-4 py-16 text-center">
+    <div className="flex min-h-[calc(100vh-var(--shell-header-h))] flex-col items-center justify-center px-4 py-16 text-center">
       <div className="mb-6 flex size-16 items-center justify-center rounded-2xl bg-destructive/10">
         <ShieldX className="size-8 text-destructive" />
       </div>

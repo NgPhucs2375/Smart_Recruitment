@@ -1,33 +1,18 @@
 "use client";
 
-import { useLogin } from "@refinedev/core";
-import { useState } from "react";
 import type { PortalKind } from "@/lib/portal-roles";
-import { WRONG_PORTAL_ERROR } from "./use-password-login";
+import { useAuthLogin } from "@/components/auth/use-auth";
 
+/**
+ * Google-login presenter. Delegates to the shared `useAuthLogin` engine.
+ */
 export function useGoogleAuth(portal?: PortalKind, next?: string | null) {
-  const [error, setError] = useState<string | null>(null);
-  const [wrongPortal, setWrongPortal] = useState<PortalKind | null>(null);
-  const { mutateAsync: login, isPending } = useLogin();
-
-  async function handleGoogleLogin(credential: string) {
-    setError(null);
-    setWrongPortal(null);
-    const result = await login({ providerName: "google", credential, portal, redirectTo: next });
-    if (!result.success && result.error) {
-      if (result.error.name === WRONG_PORTAL_ERROR && portal) {
-        setWrongPortal(portal);
-      }
-      setError(result.error.message ?? "Đăng nhập Google thất bại");
-    }
-  }
+  const auth = useAuthLogin(portal, next);
 
   return {
-    handleGoogleLogin,
-    isPending,
-    error,
-    setError,
-    wrongPortal,
-    clearWrongPortal: () => setWrongPortal(null),
+    handleGoogleLogin: auth.loginWithGoogle,
+    isPending: auth.isPending,
+    error: auth.error,
+    setError: auth.setError,
   };
 }

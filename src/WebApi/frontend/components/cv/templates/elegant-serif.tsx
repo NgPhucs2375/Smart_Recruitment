@@ -1,15 +1,16 @@
 "use client";
 
 import type { ResumeData } from "@/features/tao-cv/resume-data";
-import { DateText, EmptyPaper, SectionShell, SkillChips } from "./shared";
+import { BannerSlot, DateText, EmptyPaper, SectionShell, SkillChips, SplitBlocks } from "./shared";
 
 /**
- * Elegant Serif — restrained serif headings (Georgia/Charter stack,
+ * Elegant Serif — restrained serif headings (Merriweather w/ vietnamese
+ * subset via --font-serif, Georgia fallback),
  * print-safe) with a readable sans body. Premium editorial feel that
  * stays ATS-friendly. HIREAI-native, ResumeData only.
  */
 
-const SERIF = "Georgia, 'Times New Roman', Charter, serif";
+const SERIF = "var(--font-serif)";
 
 function Title({ children }: { children: React.ReactNode }) {
   return (
@@ -34,6 +35,7 @@ export function ElegantSerifTemplate({ data }: { data: ResumeData }) {
   return (
     <div className="cv-paper cv-paper-a4 px-10 py-8 text-[12.5px] leading-relaxed text-neutral-700">
       <header className="border-b border-neutral-300 pb-5">
+        <BannerSlot data={data} className="mb-1 text-[10px] font-bold uppercase tracking-[0.24em]" style={{ color: "#737373" }} />
         <h1
           className="text-[30px] font-bold leading-tight tracking-tight text-neutral-950"
           style={{ fontFamily: SERIF }}
@@ -64,9 +66,7 @@ export function ElegantSerifTemplate({ data }: { data: ResumeData }) {
       <div className="mt-5 space-y-4">
         {data.summary && (
           <SectionShell>
-            <p className="whitespace-pre-line border-l-2 border-neutral-300 pl-4 italic" style={{ fontFamily: SERIF }}>
-              {data.summary}
-            </p>
+            <SplitBlocks text={data.summary} className="whitespace-pre-line break-words [overflow-wrap:anywhere] border-l-2 border-neutral-300 pl-4 italic" style={{ fontFamily: SERIF }} />
           </SectionShell>
         )}
 
@@ -85,7 +85,7 @@ export function ElegantSerifTemplate({ data }: { data: ResumeData }) {
                   <p className="text-[12px] font-semibold uppercase tracking-[0.08em] text-neutral-500">
                     {job.company}
                   </p>
-                  {job.description && <p className="mt-1 whitespace-pre-line">{job.description}</p>}
+                  {job.description && <SplitBlocks text={job.description} className="mt-1 whitespace-pre-line break-words [overflow-wrap:anywhere]" />}
                 </div>
               ))}
             </div>
@@ -127,7 +127,7 @@ export function ElegantSerifTemplate({ data }: { data: ResumeData }) {
                   <h3 className="text-[13px] font-bold text-neutral-900" style={{ fontFamily: SERIF }}>
                     {p.name || "Dự án"}
                   </h3>
-                  {p.description && <p className="mt-0.5 whitespace-pre-line">{p.description}</p>}
+                  {p.description && <SplitBlocks text={p.description} className="mt-0.5 whitespace-pre-line break-words [overflow-wrap:anywhere]" />}
                 </div>
               ))}
             </div>

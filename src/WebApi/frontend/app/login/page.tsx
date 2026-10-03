@@ -9,7 +9,6 @@ import {
   TabSwitcher,
   SocialAuthSection,
   MagicLinkForm,
-  WrongPortalAlert,
 } from "@/components/auth";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -37,7 +36,6 @@ function LoginContent() {
     isPending,
     submitError,
     remember,
-    wrongPortal: passwordWrongPortal,
   } = usePasswordLogin(portal, next);
 
   const {
@@ -45,7 +43,6 @@ function LoginContent() {
     isPending: isGooglePending,
     error: googleError,
     setError: setGoogleError,
-    wrongPortal: googleWrongPortal,
   } = useGoogleAuth(portal, next);
 
   const {
@@ -57,8 +54,6 @@ function LoginContent() {
     handleSubmit: handleMagicSubmit,
     reset: resetMagic,
   } = useMagicLink("Login", { portal, next: next ?? "/dashboard" });
-
-  const wrongPortal = passwordWrongPortal ?? googleWrongPortal;
 
   const leftPanelContent = (
     <div className="relative">
@@ -128,12 +123,6 @@ function LoginContent() {
         active={tab}
         onChange={(id) => setTab(id as "password" | "magic")}
       />
-
-      {wrongPortal && (
-        <div className="mb-3">
-          <WrongPortalAlert portal={wrongPortal} />
-        </div>
-      )}
 
       {/* 1. EMAIL & MẬT KHẨU */}
       {tab === "password" && (

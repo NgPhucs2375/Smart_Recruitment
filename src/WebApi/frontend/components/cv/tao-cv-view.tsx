@@ -80,11 +80,17 @@ export function PreviewActionBar({
   zoom,
   onZoom,
   disabled,
+  fitMode,
+  onToggleFit,
+  displayZoom,
 }: {
   pageCount: number;
   zoom: number;
   onZoom: (next: number) => void;
   disabled: boolean;
+  fitMode?: boolean;
+  onToggleFit?: () => void;
+  displayZoom?: number;
 }) {
   return (
     <div className="cv-preview-bar">
@@ -101,7 +107,7 @@ export function PreviewActionBar({
             <ZoomOut className="size-3.5" />
           </button>
           <span className="min-w-10 text-center font-mono text-[11px] font-semibold text-muted-foreground" aria-live="polite">
-            {zoom}%
+            {displayZoom ?? zoom}%
           </span>
           <button
             type="button"
@@ -113,6 +119,11 @@ export function PreviewActionBar({
             <ZoomIn className="size-3.5" />
           </button>
         </div>
+        {onToggleFit ? (
+          <button type="button" onClick={onToggleFit} disabled={disabled} aria-pressed={fitMode} className="h-8 rounded-md px-2 text-xs font-semibold text-muted-foreground hover:bg-muted">
+            {fitMode ? "100%" : "Fit"}
+          </button>
+        ) : null}
         <button
           type="button"
           aria-label="Mở xem trước toàn màn hình"
@@ -136,6 +147,44 @@ function CvBuilderSkeleton() {
       <div className="animate-pulse rounded-xl border border-border bg-muted p-6">
         <div className="mx-auto aspect-[210/297] w-full max-w-md rounded-md bg-card" />
       </div>
+    </div>
+  );
+}
+
+function CvPreviewPanel({ data, pageCount, onPageCount, zoom, onZoom, disabled }: {
+  data: CvFormData;
+  pageCount: number;
+  onPageCount: (count: number) => void;
+  zoom: number;
+  onZoom: (zoom: number) => void;
+  disabled: boolean;
+}) {
+  const frameRef = useRef<HTMLDivElement>(null);
+  const [fitMode, setFitMode] = useState(true);
+  const [fitScale, setFitScale] = useState(1);
+  useEffect(() => {
+    const frame = frameRef.current;
+    if (!frame) return;
+    const measure = () => {
+      if (frame.clientWidth === 0) return;
+      const style = getComputedStyle(frame);
+      const width = frame.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+      const next = Math.min(width / 794, 1);
+      setFitScale((previous) => Math.abs(next - previous) > 0.005 ? next : previous);
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(frame);
+    return () => observer.disconnect();
+  }, []);
+  const effectiveZoom = fitMode ? Math.max(10, Math.round(zoom * fitScale)) : zoom;
+  return (
+    <div ref={frameRef} className="cv-preview-frame">
+      <PreviewActionBar pageCount={pageCount} zoom={zoom} displayZoom={effectiveZoom} onZoom={onZoom} disabled={disabled} fitMode={fitMode} onToggleFit={() => setFitMode((current) => !current)} />
+      <div data-manual-cv-pdf style={{ zoom: `${effectiveZoom}%` } as CSSProperties}>
+        <CvPreview data={data} onPageCount={onPageCount} />
+      </div>
+      {pageCount > 2 ? <p className="mt-3 border-t border-border px-3 pt-3 text-center text-xs text-amber-700 dark:text-amber-300">CV dài hơn 2 trang. Cân nhắc rút gọn nội dung.</p> : null}
     </div>
   );
 }
@@ -722,13 +771,7 @@ export function TaoCvView() {
         : lastSavedAt ? `Đã lưu lúc ${formatClock(lastSavedAt)}` : selectedId ? "Đã lưu" : "CV mới";
 
   const preview = (
-    <div className="cv-preview-frame">
-      <PreviewActionBar pageCount={pageCount} zoom={zoom} onZoom={setZoom} disabled={loading} />
-      <div data-manual-cv-pdf style={{ zoom: `${zoom}%` } as CSSProperties}>
-        <CvPreview data={deferredCvData} onPageCount={setPageCount} />
-      </div>
-      {pageCount > 2 ? <p className="mt-3 border-t border-border px-3 pt-3 text-center text-xs text-amber-700 dark:text-amber-300">CV dài hơn 2 trang. Cân nhắc rút gọn nội dung.</p> : null}
-    </div>
+    <CvPreviewPanel data={deferredCvData} pageCount={pageCount} onPageCount={setPageCount} zoom={zoom} onZoom={setZoom} disabled={loading} />
   );
 
   return (

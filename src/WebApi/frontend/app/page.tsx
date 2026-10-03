@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { useLogin } from "@refinedev/core";
-import { ArrowUpRight, Bookmark, Building2, Check, ChevronRight, Clock, Code2, Eye, EyeOff, FileText, Flame, Home, Laptop, Layers, Loader2, Lock, Mail, MapPin, Phone, Search, Shield, Sparkles, Users, X } from "lucide-react";
+import { loginWithPasswordService } from "@/components/auth/auth-service";
+import { ArrowUpRight, Bookmark, Building2, Check, ChevronRight, Clock, Code2, FileText, Flame, Home, Laptop, Layers, Loader2, Lock, Mail, MapPin, Phone, Search, Shield, Sparkles, Users, X } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { HeroBackgroundIllustration } from "@/features/landing/brand-illustration-card";
 import { PublicHeader } from "@/components/landing/public-header";
@@ -195,9 +195,8 @@ export default function LandingPage() {
   const router = useRouter();
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
-  const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
-  const { mutateAsync: login, isPending: loginPending } = useLogin();
+  const [loginPending, setLoginPending] = useState(false);
   const [searchKeyword, setSearchKeyword] = useState("");
   const [searchLocation, setSearchLocation] = useState("");
   const [searchLevel, setSearchLevel] = useState("");
@@ -252,13 +251,20 @@ export default function LandingPage() {
   async function handleLandingLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setLoginError(null);
+    setLoginPending(true);
     try {
-      const result = await login({ email: loginEmail, password: loginPassword });
+      // Shared engine (same as the login pages); portal stays undefined
+      // so role routing comes purely from /account/me.
+      const result = await loginWithPasswordService(loginEmail, loginPassword);
       if (!result.success) {
-        setLoginError(result.error?.message ?? "Email hoặc mật khẩu không đúng");
+        setLoginError(result.message ?? "Email hoặc mật khẩu không đúng");
+      } else if (result.redirectTo) {
+        router.push(result.redirectTo);
       }
     } catch (error) {
       setLoginError(error instanceof Error ? error.message : "Không thể kết nối máy chủ");
+    } finally {
+      setLoginPending(false);
     }
   }
 
@@ -308,7 +314,7 @@ export default function LandingPage() {
                 Nền tảng tuyển dụng IT giúp ứng viên và nhà tuyển dụng kết nối nhanh hơn bằng AI matching.
               </p>
               <div className="animate-hero-fade-up animate-hero-delay-2 mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row sm:flex-wrap">
-                <Link href="/viec-lam" className="group flex items-center justify-center gap-2 rounded-full bg-marine px-6 py-3.5 text-sm font-semibold text-white shadow-[0_10px_24px_rgba(53,92,140,0.30)] transition hover:bg-navy">
+                <Link href="/register" className="group flex items-center justify-center gap-2 rounded-full bg-marine px-6 py-3.5 text-sm font-semibold text-white shadow-[0_10px_24px_rgba(53,92,140,0.30)] transition hover:bg-navy">
                   Tìm việc phù hợp <ArrowUpRight className="size-4 transition group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
                 </Link>
                 <Link href="/nha-tuyen-dung" className="flex items-center justify-center gap-2 rounded-full border border-linen bg-ivory px-6 py-3.5 text-sm font-medium text-navy transition hover:border-marine/40 hover:bg-frost">
@@ -411,8 +417,7 @@ export default function LandingPage() {
                   <Mail className="absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-mist" />
                    <input
                      type="email"
-                     autoComplete="email"
-                     aria-label="Email"
+                     autoComplete="username"
                      required
                     value={loginEmail}
                     onChange={(event) => setLoginEmail(event.target.value)}
@@ -420,29 +425,18 @@ export default function LandingPage() {
                     className="h-11 w-full rounded-2xl border border-linen bg-ivory pl-9 pr-3 text-sm text-charcoal outline-none transition placeholder:text-charcoal/40 focus:border-marine/50 focus:ring-2 focus:ring-marine/10"
                   />
                 </label>
-                <div className="relative">
+                <label className="relative">
                   <Lock className="absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-mist" />
                   <input
-                    type={showLoginPassword ? "text" : "password"}
+                    type="password"
                     autoComplete="current-password"
                     required
-                    aria-label="Mật khẩu"
                     value={loginPassword}
                     onChange={(event) => setLoginPassword(event.target.value)}
                     placeholder="Mật khẩu"
-                    className="h-11 w-full rounded-2xl border border-linen bg-ivory pl-9 pr-9 text-sm text-charcoal outline-none transition placeholder:text-charcoal/40 focus:border-marine/50 focus:ring-2 focus:ring-marine/10"
+                    className="h-11 w-full rounded-2xl border border-linen bg-ivory pl-9 pr-3 text-sm text-charcoal outline-none transition placeholder:text-charcoal/40 focus:border-marine/50 focus:ring-2 focus:ring-marine/10"
                   />
-                  <button
-                    type="button"
-                    onClick={() => setShowLoginPassword((v) => !v)}
-                    aria-label={showLoginPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
-                    aria-pressed={showLoginPassword}
-                    disabled={loginPending}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded p-0.5 text-mist transition hover:text-marine focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-marine/20 disabled:opacity-50"
-                  >
-                    {showLoginPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-                  </button>
-                </div>
+                </label>
               </div>
               <button type="submit" disabled={loginPending} className="mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-full bg-marine text-sm font-semibold text-white transition hover:bg-navy disabled:cursor-not-allowed disabled:opacity-60">
                 {loginPending && <Loader2 className="size-4 animate-spin" />}
@@ -625,11 +619,10 @@ export default function LandingPage() {
               const bookmarked = isBookmarked(job.id);
               const wm = workModeMeta[job.workMode];
               const WIcon = wm.icon;
-              const jobHref = `/viec-lam?${new URLSearchParams({ keyword: job.title }).toString()}`;
               return (
                 <article
                   key={job.id}
-                  onClick={() => router.push(jobHref)}
+                  onClick={() => router.push(`/viec-lam?${new URLSearchParams({ keyword: job.title }).toString()}`)}
                   className="group relative flex cursor-pointer flex-col rounded-[1.75rem] border border-linen bg-white p-6 text-left transition duration-300 hover:-translate-y-1 hover:border-marine/30 hover:shadow-[0_20px_48px_rgba(53,92,140,0.12)]"
                 >
                   {job.isHot && (
@@ -645,9 +638,7 @@ export default function LandingPage() {
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-[11px] font-semibold uppercase tracking-[0.14em] text-marine">{job.company}</p>
                         <h3 className="mt-1 line-clamp-2 text-base font-semibold leading-snug tracking-[-0.02em] text-charcoal transition group-hover:text-navy">
-                          <Link href={jobHref} onClick={(e) => e.stopPropagation()} className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-marine/20">
-                            {job.title}
-                          </Link>
+                          {job.title}
                         </h3>
                       </div>
                     </div>
@@ -838,11 +829,11 @@ export default function LandingPage() {
               </p>
               <h2 className="mt-5 text-4xl font-semibold tracking-[-0.03em] text-navy sm:text-5xl">Nơi những sản phẩm mới được tạo ra.</h2>
             </div>
-            <Link href="/register" className="inline-flex items-center gap-2 self-start rounded-full border border-navy/20 bg-white px-4 py-2 text-sm font-medium text-navy transition hover:border-navy hover:bg-navy hover:text-white md:self-auto">Đăng ký để xem tất cả công ty <ArrowUpRight className="size-4" /></Link>
+            <Link href="/register" className="inline-flex items-center gap-2 self-start rounded-full border border-navy/20 bg-white px-4 py-2 text-sm font-medium text-navy transition hover:border-navy hover:bg-navy hover:text-white md:self-auto">Xem tất cả công ty <ArrowUpRight className="size-4" /></Link>
           </div>
           <Reveal stagger className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
             {techCompanies.map(([name, field, openings], companyIndex) => (
-              <Link href="/viec-lam" key={name} className="group rounded-[1.75rem] border border-linen bg-white p-6 transition duration-300 hover:-translate-y-1 hover:border-marine/30 hover:shadow-[0_20px_48px_rgba(53,92,140,0.10)]">
+              <Link href="/register" key={name} className="group rounded-[1.75rem] border border-linen bg-white p-6 transition duration-300 hover:-translate-y-1 hover:border-marine/30 hover:shadow-[0_20px_48px_rgba(53,92,140,0.10)]">
                 <div className={`flex size-12 items-center justify-center rounded-2xl font-mono text-[10px] font-bold text-white ${companyIndex % 2 === 0 ? "bg-navy" : "bg-marine"}`}>{name.slice(0, 2)}</div>
                 <h3 className="mt-8 font-semibold tracking-tight text-charcoal">{name}</h3>
                 <p className="mt-1.5 text-sm text-charcoal/60">{field}</p>
@@ -1012,6 +1003,12 @@ export default function LandingPage() {
                   Nền tảng tuyển dụng chuyên sâu cho ngành IT — kết nối đúng kỹ năng, đúng đội ngũ và đúng cơ hội phát triển bằng AI matching.
                 </p>
                 <div className="mt-6 flex gap-2">
+                  <a href="https://github.com" target="_blank" rel="noopener noreferrer" aria-label="GitHub" className="flex size-9 items-center justify-center rounded-full border border-white/15 bg-white/5 text-white/70 transition hover:border-transparent hover:bg-sand hover:text-navy">
+                    <svg viewBox="0 0 24 24" className="size-4 fill-current"><path d="M12 2.5a9.5 9.5 0 0 0-3 18.5c.47.09.64-.2.64-.45v-1.6c-2.6.57-3.15-1.1-3.15-1.1-.43-1.08-1.05-1.37-1.05-1.37-.86-.58.06-.57.06-.57.95.07 1.45.98 1.45.98.84 1.44 2.2 1.02 2.74.78.08-.6.33-1.02.6-1.26-2.1-.24-4.3-1.05-4.3-4.67 0-1.03.37-1.87.98-2.53-.1-.24-.42-1.2.09-2.5 0 0 .8-.26 2.62.97a9 9 0 0 1 4.77 0c1.82-1.23 2.62-.97 2.62-.97.51 1.3.19 2.26.09 2.5.61.66.98 1.5.98 2.53 0 3.63-2.2 4.43-4.3 4.67.34.29.65.86.65 1.73v2.57c0 .25.17.54.64.45A9.5 9.5 0 0 0 12 2.5Z" /></svg>
+                  </a>
+                  <a href="https://linkedin.com" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn" className="flex size-9 items-center justify-center rounded-full border border-white/15 bg-white/5 text-white/70 transition hover:border-transparent hover:bg-sand hover:text-navy">
+                    <svg viewBox="0 0 24 24" className="size-4 fill-current"><path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14Zm-9 14V10H7v7h3Zm1.5-9a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3ZM17 17v-4c0-1.1-.9-2-2-2s-2 .9-2 2v4h-3V10h3v1c.6-1 1.5-1.5 2.7-1.5 2 0 3.3 1.3 3.3 3.8V17h-2Z" /></svg>
+                  </a>
                   <a href="mailto:support@hireai.vn" aria-label="Email" className="flex size-9 items-center justify-center rounded-full border border-white/15 bg-white/5 text-white/70 transition hover:border-transparent hover:bg-sand hover:text-navy">
                     <Mail className="size-4" />
                   </a>
@@ -1030,7 +1027,7 @@ export default function LandingPage() {
                   <li><Link href="/#companies" className="transition hover:text-white">Công ty IT</Link></li>
                   <li><Link href="/tao-cv" className="transition hover:text-white">Tạo CV & Hồ sơ</Link></li>
                   <li><Link href="/#intelligence" className="transition hover:text-white">AI Matching</Link></li>
-                  <li><Link href="/employer/login" className="transition hover:text-white">Dành cho doanh nghiệp</Link></li>
+                  <li><Link href="/dashboard" className="transition hover:text-white">Dành cho doanh nghiệp</Link></li>
                 </ul>
               </div>
 
@@ -1098,7 +1095,7 @@ export default function LandingPage() {
 
         <div className="px-4 py-6 sm:px-10 lg:px-16">
           <div className="mx-auto flex max-w-7xl flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <div className="flex flex-wrap items-center gap-3 text-xs text-white/65">
+            <div className="flex flex-wrap items-center gap-3 text-xs text-white/50">
               <span>© 2026 HIRE//AI. Bảo lưu mọi quyền.</span>
               <span className="hidden sm:inline text-white/20">•</span>
               <span className="inline-flex items-center gap-1.5">Vận hành bởi <span className="font-medium text-white/75">HIREAI</span> <span className="rounded-full border border-white/15 px-2 py-0.5 font-mono text-[10px] leading-none">v2.4 • SOC 2</span></span>
@@ -1107,6 +1104,8 @@ export default function LandingPage() {
               <div className="flex items-center gap-2 text-white/50">
                 <span className="hidden sm:inline">Ngôn ngữ:</span>
                 <span className="font-medium text-white">Tiếng Việt</span>
+                <span className="text-white/20">|</span>
+                <a href="#" className="transition hover:text-white">English</a>
               </div>
               <div className="flex items-center gap-1.5">
                 <span className="rounded border border-white/10 bg-white/5 px-2 py-1 font-mono text-[10px] tracking-[0.12em] text-white/55">TLS 1.3</span>
@@ -1115,7 +1114,7 @@ export default function LandingPage() {
               </div>
             </div>
           </div>
-          <p className="mx-auto mt-6 max-w-7xl border-t border-white/10 pt-6 text-[11px] leading-5 text-white/65">
+          <p className="mx-auto mt-6 max-w-7xl border-t border-white/10 pt-6 text-[11px] leading-5 text-white/45">
             HIREAI là sàn giao dịch TMĐT việc làm chuyên ngành IT. Mọi tin tuyển dụng được kiểm duyệt; ứng viên tự chịu trách nhiệm về tính chính xác của hồ sơ. Tranh chấp được giải quyết theo <Link href="/quy-che#co-che-giai-quyet" className="underline decoration-white/20 underline-offset-4 hover:text-white/70">Quy chế hoạt động</Link> và pháp luật Việt Nam. Không thu phí ứng viên; nhà tuyển dụng chịu phí theo bảng giá công khai.
           </p>
         </div>

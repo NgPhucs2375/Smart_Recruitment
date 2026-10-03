@@ -1,6 +1,6 @@
 "use client";
 
-import { Github } from "lucide-react";
+import { GithubIcon as Github } from "@/components/icons/brand-icons";
 import { Button } from "@/components/ui/button";
 
 /**

@@ -28,8 +28,11 @@ export function AppSidebarV2() {
   return (
     <Sidebar collapsible="icon" className="border-r border-workspace-border bg-workspace-sidebar">
       <SidebarRail />
-      <SidebarHeader className="border-b border-workspace-border p-3">
-        <div className={cn("flex items-center gap-3 rounded-xl px-2 py-2", !open && "justify-center px-0")}>
+      {/* Chiều cao khóa với topbar qua --shell-header-h (globals.css):
+          một lớp padding duy nhất, nội dung căn giữa dọc — đường border-b
+          thẳng hàng với topbar ở cả 2 trạng thái mở rộng / thu gọn. */}
+      <SidebarHeader className="h-[var(--shell-header-h)] shrink-0 justify-center border-b border-workspace-border px-3 py-0">
+        <div className={cn("flex items-center gap-3 rounded-xl px-2", !open && "justify-center px-0")}>
           {open ? (
             <BrandLogo
               href="/dashboard"

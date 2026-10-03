@@ -25,6 +25,7 @@ internal sealed class AdamAgentFactory
             AIFunctionFactory.Create(_queryTools.GetCvDetailAsync, new AIFunctionFactoryOptions { Name = "get_cv_detail" }),
             AIFunctionFactory.Create(_queryTools.GetMyCvsAsync, new AIFunctionFactoryOptions { Name = "list_my_cvs" }),
             AIFunctionFactory.Create(_queryTools.SuggestJobsForMyCvAsync, new AIFunctionFactoryOptions { Name = "suggest_jobs_for_my_cv" }),
+            AIFunctionFactory.Create(_queryTools.SuggestCvThemeAsync, new AIFunctionFactoryOptions { Name = "suggest_cv_theme" }),
         };
 
         return new ChatClientAgent(

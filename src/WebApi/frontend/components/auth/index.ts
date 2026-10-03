@@ -5,5 +5,7 @@ export * from "./magic-link-sent";
 export * from "./magic-link-form";
 export * from "./google-auth-section";
 export * from "./github-login-button";
-export * from "./wrong-portal-alert";
 export * from "./social-auth-section";
+export * from "./login-handler";
+export * from "./use-auth";
+export * from "./auth-service";

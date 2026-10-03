@@ -1,7 +1,7 @@
 "use client";
 
 import type { ResumeData } from "@/features/tao-cv/resume-data";
-import { DateText, EmptyPaper, SectionShell, SkillChips } from "./shared";
+import { BannerSlot, DateText, EmptyPaper, SectionShell, SkillChips, SplitBlocks } from "./shared";
 
 /**
  * Creative Portfolio — strongest visual hierarchy of the set: display
@@ -33,6 +33,7 @@ export function CreativePortfolioTemplate({ data }: { data: ResumeData }) {
   return (
     <div className="cv-paper cv-paper-a4 text-[12.5px] leading-relaxed" style={{ color: INK }}>
       <header className="px-7 pb-5 pt-7">
+        <BannerSlot data={data} className="mb-1 text-[10px] font-bold uppercase tracking-[0.24em]" style={{ color: ACCENT }} />
         <div className="h-1.5 w-14 rounded-full" style={{ backgroundColor: ACCENT }} />
         <h1 className="mt-3 text-[30px] font-bold leading-none tracking-tight">
           {data.name || "Họ và tên"}
@@ -59,9 +60,7 @@ export function CreativePortfolioTemplate({ data }: { data: ResumeData }) {
       <div className="space-y-4 px-7 py-5">
         {data.summary && (
           <SectionShell>
-            <p className="whitespace-pre-line text-[13px] font-medium leading-relaxed" style={{ color: INK }}>
-              {data.summary}
-            </p>
+            <SplitBlocks text={data.summary} className="whitespace-pre-line break-words [overflow-wrap:anywhere] text-[13px] font-medium leading-relaxed" style={{ color: INK }} />
           </SectionShell>
         )}
 
@@ -72,15 +71,13 @@ export function CreativePortfolioTemplate({ data }: { data: ResumeData }) {
               {data.projects.map((p) => (
                 <div
                   key={p.id}
-                  className="cv-section-item rounded-xl p-3"
+                  className="cv-section-item min-w-0 rounded-xl p-3"
                   style={{ backgroundColor: "var(--hire-ivory)" }}
                 >
                   <p className="font-bold leading-snug" style={{ color: INK }}>{p.name || "Dự án"}</p>
                   {p.role && <p className="text-[11.5px] font-semibold" style={{ color: ACCENT }}>{p.role}</p>}
                   {p.description && (
-                    <p className="mt-1 whitespace-pre-line text-[11.5px]" style={{ color: SUBTLE }}>
-                      {p.description}
-                    </p>
+                    <SplitBlocks text={p.description} className="mt-1 whitespace-pre-line break-words [overflow-wrap:anywhere] text-[11.5px]" style={{ color: SUBTLE }} />
                   )}
                   {p.tech.length > 0 && (
                     <p className="mt-1 font-mono text-[10px]" style={{ color: SUBTLE }}>{p.tech.join(" · ")}</p>
@@ -103,7 +100,7 @@ export function CreativePortfolioTemplate({ data }: { data: ResumeData }) {
                   </div>
                   <p className="text-[12px] font-semibold" style={{ color: ACCENT }}>{job.company}</p>
                   {job.description && (
-                    <p className="mt-0.5 whitespace-pre-line" style={{ color: SUBTLE }}>{job.description}</p>
+                    <SplitBlocks text={job.description} className="mt-0.5 whitespace-pre-line break-words [overflow-wrap:anywhere]" style={{ color: SUBTLE }} />
                   )}
                 </div>
               ))}

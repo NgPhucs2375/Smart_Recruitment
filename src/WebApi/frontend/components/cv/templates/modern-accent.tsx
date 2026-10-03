@@ -1,7 +1,7 @@
 "use client";
 
 import type { ResumeData } from "@/features/tao-cv/resume-data";
-import { DateText, EmptyPaper, SectionShell } from "./shared";
+import { BannerSlot, DateText, EmptyPaper, SectionShell, SplitBlocks } from "./shared";
 
 /**
  * Modern Accent — contemporary layout with a solid navy header band and
@@ -38,6 +38,7 @@ export function ModernAccentTemplate({ data }: { data: ResumeData }) {
   return (
     <div className="cv-paper cv-paper-a4 text-[12.5px] leading-relaxed" style={{ color: INK }}>
       <header className="px-7 pb-5 pt-6 text-white" style={{ backgroundColor: NAVY }}>
+        <BannerSlot data={data} className="mb-1 text-[10px] font-bold uppercase tracking-[0.24em]" style={{ color: "rgba(255,255,255,0.65)" }} />
         <h1 className="text-[24px] font-bold leading-tight tracking-tight">
           {data.name || "Họ và tên"}
         </h1>
@@ -64,7 +65,7 @@ export function ModernAccentTemplate({ data }: { data: ResumeData }) {
         {data.summary && (
           <SectionShell>
             <AccentTitle>Tóm tắt</AccentTitle>
-            <p className="whitespace-pre-line" style={{ color: SUBTLE }}>{data.summary}</p>
+            <SplitBlocks text={data.summary} className="whitespace-pre-line break-words [overflow-wrap:anywhere]" style={{ color: SUBTLE }} />
           </SectionShell>
         )}
 
@@ -80,7 +81,7 @@ export function ModernAccentTemplate({ data }: { data: ResumeData }) {
                   </div>
                   <p className="text-[12px] font-semibold" style={{ color: NAVY }}>{job.company}</p>
                   {job.description && (
-                    <p className="mt-0.5 whitespace-pre-line" style={{ color: SUBTLE }}>{job.description}</p>
+                    <SplitBlocks text={job.description} className="mt-0.5 whitespace-pre-line break-words [overflow-wrap:anywhere]" style={{ color: SUBTLE }} />
                   )}
                   {job.skills.length > 0 && (
                     <p className="mt-0.5 text-[11px]" style={{ color: SUBTLE }}>{job.skills.join(" · ")}</p>
@@ -148,7 +149,7 @@ export function ModernAccentTemplate({ data }: { data: ResumeData }) {
                     <p className="text-[12px] font-semibold" style={{ color: NAVY }}>{p.role}</p>
                   )}
                   {p.description && (
-                    <p className="mt-0.5 whitespace-pre-line" style={{ color: SUBTLE }}>{p.description}</p>
+                    <SplitBlocks text={p.description} className="mt-0.5 whitespace-pre-line break-words [overflow-wrap:anywhere]" style={{ color: SUBTLE }} />
                   )}
                   {p.tech.length > 0 && (
                     <p className="mt-0.5 text-[11px]" style={{ color: SUBTLE }}>{p.tech.join(" · ")}</p>

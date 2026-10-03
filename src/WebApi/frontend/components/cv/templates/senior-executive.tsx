@@ -1,7 +1,7 @@
 "use client";
 
 import type { ResumeData } from "@/features/tao-cv/resume-data";
-import { DateText, EmptyPaper, SectionShell, SkillChips } from "./shared";
+import { BannerSlot, DateText, EmptyPaper, SectionShell, SkillChips, SplitBlocks } from "./shared";
 
 /**
  * Senior Executive — generous whitespace, leadership statement first,
@@ -29,6 +29,7 @@ export function SeniorExecutiveTemplate({ data }: { data: ResumeData }) {
   return (
     <div className="cv-paper cv-paper-a4 px-10 py-9 text-[13px] font-light leading-loose text-neutral-700">
       <header className="text-center">
+        <BannerSlot data={data} className="mb-1 text-[10px] font-bold uppercase tracking-[0.24em]" style={{ color: "#737373" }} />
         <h1 className="text-[28px] font-semibold leading-tight tracking-tight text-neutral-950">
           {data.name || "Họ và tên"}
         </h1>
@@ -54,9 +55,7 @@ export function SeniorExecutiveTemplate({ data }: { data: ResumeData }) {
       <div className="mt-6 space-y-6">
         {data.summary && (
           <SectionShell>
-            <p className="whitespace-pre-line text-center text-[13.5px] italic leading-relaxed text-neutral-700">
-              {data.summary}
-            </p>
+            <SplitBlocks text={data.summary} className="whitespace-pre-line break-words [overflow-wrap:anywhere] text-center text-[13.5px] italic leading-relaxed text-neutral-700" />
           </SectionShell>
         )}
 
@@ -70,7 +69,7 @@ export function SeniorExecutiveTemplate({ data }: { data: ResumeData }) {
                   <p className="mt-0.5 font-medium text-neutral-600">{job.company}</p>
                   <DateText range={job.range} className="mt-0.5 block text-[11.5px] uppercase tracking-[0.14em] text-neutral-400" />
                   {job.description && (
-                    <p className="mx-auto mt-2 max-w-xl whitespace-pre-line">{job.description}</p>
+                    <SplitBlocks text={job.description} className="mx-auto mt-2 max-w-xl whitespace-pre-line break-words [overflow-wrap:anywhere]" />
                   )}
                 </div>
               ))}
@@ -110,7 +109,7 @@ export function SeniorExecutiveTemplate({ data }: { data: ResumeData }) {
               {data.projects.map((p) => (
                 <div key={p.id} className="cv-section-item">
                   <p className="font-semibold text-neutral-900">{p.name || "Dự án"}</p>
-                  {p.description && <p className="mt-1 whitespace-pre-line">{p.description}</p>}
+                  {p.description && <SplitBlocks text={p.description} className="mt-1 whitespace-pre-line break-words [overflow-wrap:anywhere]" />}
                 </div>
               ))}
             </div>

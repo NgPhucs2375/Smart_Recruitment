@@ -59,12 +59,163 @@ function camelize(value: unknown): unknown {
 const skillNames = (value: unknown): string[] =>
   Array.isArray(value)
     ? value
-        .map((item) => (isRecord(item) ? pickString(item, ["tenKyNang"]) : typeof item === "string" ? item : ""))
+        .map((item) => {
+          if (typeof item === "string") return item;
+          if (!isRecord(item)) return "";
+          // VN/AI-flat: tenKyNang | ten | name, categories: gom items con.
+          const direct = pickString(item, ["tenKyNang", "ten", "name", "label"]);
+          if (direct) return direct;
+          const nested = item.items ?? item.keywords;
+          if (Array.isArray(nested))
+            return nested
+              .map((n) => (typeof n === "string" ? n : isRecord(n) ? pickString(n, ["tenKyNang", "ten", "name"]) : ""))
+              .filter(Boolean)
+              .join(", ");
+          return "";
+        })
+        .flatMap((s) => s.split(","))
+        .map((s) => s.trim())
         .filter(Boolean)
     : [];
 
 function withFreshIds<T extends object>(arr: T[]): (T & { id: string })[] {
   return arr.map((it) => ({ ...it, id: newId() }));
+}
+
+const isCurrentFlag = (v: unknown): boolean => v === true;
+
+const pickDate = (obj: Record<string, unknown>, keys: string[]): string => pickString(obj, keys);
+
+/**
+ * Chuẩn hóa 2 chiều mọi JSON dán/upload về form VN của app.
+ * Nhận: JSON Resume (basics/work/education) | VN-form (thongTinLienHe/hoTen/...)
+ * | EN-flat (fullName/title/role/company/skills, personalInfo).
+ * Không ẩn block thiếu role; trả null khi không có gì ăn được.
+ */
+export function normalizeResumeData(raw: unknown): Partial<CvFormData> | null {
+  if (!isRecord(raw)) return null;
+
+  const isJsonResume = isRecord(raw.basics) || Array.isArray(raw.work) || Array.isArray(raw.education);
+  if (isJsonResume) {
+    try {
+      const mapped = jsonResumeToCvData(raw as unknown as JsonResume, defaultCvData);
+      return mapped;
+    } catch {
+      return null;
+    }
+  }
+
+  const personal = isRecord(raw.personalInfo) ? raw.personalInfo : {};
+  const info = isRecord(raw.thongTinLienHe) ? raw.thongTinLienHe : {};
+  const str = (obj: Record<string, unknown>, keys: string[]): string => pickString(obj, keys);
+
+  const thongTinLienHe = {
+    hoTen: str(info, ["hoTen"]) || str(personal, ["fullName"]) || str(raw, ["fullName", "hoTen", "name"]),
+    email: str(info, ["email"]) || str(personal, ["email"]) || str(raw, ["email"]),
+    sdt: str(info, ["sdt"]) || str(personal, ["phone", "sdt"]) || str(raw, ["phone", "sdt"]),
+    diaChi:
+      str(info, ["diaChi"]) ||
+      str(personal, ["address", "diaChi"]) ||
+      str(raw, ["diaChi", "address", "location"]),
+    github: str(info, ["github", "gitHub"]) || str(raw, ["github"]),
+    linkedIn: str(info, ["linkedIn"]) || str(raw, ["linkedIn"]),
+    portfolio: str(info, ["portfolio"]) || str(raw, ["portfolio", "website", "url"]),
+    gioiTinh: str(info, ["gioiTinh"]) || "",
+    ngaySinh: str(info, ["ngaySinh"]) || "",
+    viTriUngTuyen:
+      str(info, ["viTriUngTuyen"]) ||
+      str(personal, ["title"]) ||
+      str(raw, ["title", "viTriUngTuyen", "label", "position"]),
+    mucLuongMongMuon: info.mucLuongMongMuon == null ? "" : String(info.mucLuongMongMuon),
+    gioiThieuBanThan:
+      str(info, ["gioiThieuBanThan"]) ||
+      str(personal, ["summary"]) ||
+      str(raw, ["summary", "gioiThieuBanThan"]),
+  };
+
+  const expSrc: unknown[] = Array.isArray(raw.kinhNghiemLamViec)
+    ? raw.kinhNghiemLamViec
+    : Array.isArray(raw.experience)
+      ? raw.experience
+      : Array.isArray(raw.work)
+        ? raw.work
+        : [];
+  const kinhNghiemLamViec = expSrc.filter(isRecord).map((e) => ({
+    congTy: str(e, ["congTy", "tenCongTy", "company", "name"]),
+    chucDanh: str(e, ["chucDanh", "role", "viTri", "position", "title"]),
+    tuNgay: pickDate(e, ["tuNgay", "startDate", "start", "from"]),
+    denNgay: pickDate(e, ["denNgay", "endDate", "end", "to"]),
+    isHienTai: isCurrentFlag(e.isHienTai) || isCurrentFlag(e.isCurrent) || isCurrentFlag(e.current),
+    moTa: str(e, ["moTa", "description", "summary"]) || "",
+    kyNangSuDung: skillNames(e.kyNangSuDung ?? e.skills ?? e.keywords),
+  }));
+
+  const eduSrc: unknown[] = Array.isArray(raw.hocVan)
+    ? raw.hocVan
+    : Array.isArray(raw.education)
+      ? raw.education
+      : [];
+  const hocVan = eduSrc.filter(isRecord).map((h) => ({
+    truong: str(h, ["truong", "school", "institution", "name"]),
+    chuyenNganh: str(h, ["chuyenNganh", "degree", "area", "major", "field"]),
+    tuNgay: pickDate(h, ["tuNgay", "startDate", "start", "from"]),
+    denNgay: pickDate(h, ["denNgay", "endDate", "end", "to"]),
+    isHienTai: isCurrentFlag(h.isHienTai) || isCurrentFlag(h.isCurrent) || isCurrentFlag(h.current),
+    moTa: str(h, ["moTa", "description", "summary"]) || "",
+  }));
+
+  const projSrc: unknown[] = Array.isArray(raw.duAn)
+    ? raw.duAn
+    : Array.isArray(raw.projects)
+      ? raw.projects
+      : [];
+  const duAn = projSrc.filter(isRecord).map((d) => ({
+    tenDuAn: str(d, ["tenDuAn", "name", "title"]),
+    vaiTro: str(d, ["vaiTro", "role"]) || "",
+    congNghe: skillNames(d.congNghe ?? d.skills ?? d.keywords ?? d.tech),
+    link: str(d, ["link", "url"]) || "",
+    moTa: str(d, ["moTa", "description", "summary"]) || "",
+    tuNgay: pickDate(d, ["tuNgay", "startDate", "start", "from"]),
+    denNgay: pickDate(d, ["denNgay", "endDate", "end", "to"]),
+    isHienTai: isCurrentFlag(d.isHienTai) || isCurrentFlag(d.isCurrent) || isCurrentFlag(d.current),
+  }));
+
+  const skillSrc: unknown = raw.kyNang ?? raw.skills;
+  const kyNang = skillNames(skillSrc).map((name) => ({
+    tenKyNang: name,
+    mucDoThanhThao: "",
+    soNamKinhNghiem: "",
+  }));
+
+  const certSrc: unknown[] = Array.isArray(raw.chungChi)
+    ? raw.chungChi
+    : Array.isArray(raw.certificates)
+      ? raw.certificates
+      : [];
+  const chungChi = certSrc.filter(isRecord).map((c) => ({
+    tenChungChi: str(c, ["tenChungChi", "name", "title"]),
+    donViCap: str(c, ["donViCap", "issuer", "organization"]) || "",
+    ngayCap: pickDate(c, ["ngayCap", "date", "issuedDate"]) || "",
+    maXacMinh: str(c, ["maXacMinh", "code"]) || "",
+  }));
+
+  const hasAny =
+    Object.values(thongTinLienHe).some((v) => v !== "") ||
+    kinhNghiemLamViec.some((k) => k.congTy || k.chucDanh || k.moTa) ||
+    hocVan.some((h) => h.truong || h.chuyenNganh) ||
+    duAn.some((d) => d.tenDuAn || d.moTa) ||
+    kyNang.length > 0 ||
+    chungChi.length > 0;
+  if (!hasAny) return null;
+
+  return {
+    thongTinLienHe,
+    hocVan: withFreshIds(hocVan),
+    kinhNghiemLamViec: withFreshIds(kinhNghiemLamViec),
+    duAn: withFreshIds(duAn),
+    kyNang: withFreshIds(kyNang),
+    chungChi: withFreshIds(chungChi),
+  };
 }
 
 /**
@@ -90,21 +241,36 @@ export async function parseCvFile(file: File): Promise<Partial<CvFormData>> {
   }
 
   if (ext === ".json") {
+    let parsed: unknown;
     try {
-      const parsed = JSON.parse(await file.text()) as JsonResume;
-      if (!parsed || typeof parsed !== "object" || (!parsed.basics && !parsed.work && !parsed.education)) {
-        throw new Error("JSON không đúng cấu trúc JSON Resume.");
-      }
-      return {
-        ...jsonResumeToCvData(parsed, defaultCvData),
-        tenFile: file.name.replace(/\.json$/i, ""),
-      };
-    } catch (error) {
-      throw new CvImportError(
-        "invalid-shape",
-        error instanceof Error ? error.message : "Không đọc được JSON Resume.",
-      );
+      parsed = JSON.parse(await file.text());
+    } catch {
+      throw new CvImportError("invalid-shape", "Không đọc được JSON Resume.");
     }
+    if (!parsed || typeof parsed !== "object") {
+      throw new CvImportError("invalid-shape", "File JSON không chứa dữ liệu CV hợp lệ.");
+    }
+    // Chuẩn JSON Resume đi đường cũ; mọi chuẩn khác (VN-form, EN-flat AI)
+    // qua normalizer khoan dung thay vì ném lỗi.
+    const rec = parsed as Record<string, unknown>;
+    if (rec.basics || rec.work || rec.education) {
+      try {
+        return {
+          ...jsonResumeToCvData(parsed as JsonResume, defaultCvData),
+          tenFile: file.name.replace(/\.json$/i, ""),
+        };
+      } catch (error) {
+        throw new CvImportError(
+          "invalid-shape",
+          error instanceof Error ? error.message : "Không đọc được JSON Resume.",
+        );
+      }
+    }
+    const normalized = normalizeResumeData(parsed);
+    if (!normalized) {
+      throw new CvImportError("invalid-shape", "File JSON không chứa dữ liệu CV hợp lệ.");
+    }
+    return { ...normalized, tenFile: file.name.replace(/\.json$/i, "") };
   }
 
   let raw: unknown;

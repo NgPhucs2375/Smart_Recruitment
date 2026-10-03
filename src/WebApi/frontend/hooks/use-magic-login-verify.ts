@@ -19,7 +19,6 @@ export function useMagicLoginVerify(
       ? "Liên kết đăng nhập không hợp lệ hoặc thiếu thông tin."
       : "Đang xác thực thông tin đăng nhập..."
   );
-  const [wrongPortal, setWrongPortal] = useState<PortalKind | null>(null);
 
   useEffect(() => {
     if (!token || !email) return;
@@ -61,7 +60,6 @@ export function useMagicLoginVerify(
           }, 800);
         } else {
           setStatus("error");
-          if (res.wrongPortal) setWrongPortal(res.wrongPortal);
           setMessage(res.error || "Xác thực Magic Link thất bại.");
         }
       } catch {
@@ -78,5 +76,5 @@ export function useMagicLoginVerify(
     };
   }, [token, email, router, opts?.portal, opts?.next]);
 
-  return { status, message, wrongPortal };
+  return { status, message };
 }
