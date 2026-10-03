@@ -16,7 +16,7 @@ namespace Infrastructure.Persistence.Migrations
     [Migration("20261003000000_AddCvThemeCauHinhJson")]
     partial class AddCvThemeCauHinhJson
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
