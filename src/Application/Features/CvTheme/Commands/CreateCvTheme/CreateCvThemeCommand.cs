@@ -28,6 +28,8 @@ public class CreateCvThemeCommand : IRequest<Response<int>>
     public bool LaMacDinh { get; set; }
     public bool IsActive { get; set; } = true;
     public int ThuTu { get; set; }
+    /// <summary>JSON cấu hình design Theme Studio (capped ở handler).</summary>
+    public string CauHinhJson { get; set; }
 }
 
 public class CreateCvThemeCommandHandler(
@@ -79,7 +81,8 @@ public class CreateCvThemeCommandHandler(
             GoiYAI = request.GoiYAI?.Trim(),
             LaMacDinh = request.LaMacDinh,
             IsActive = request.IsActive,
-            ThuTu = request.ThuTu
+            ThuTu = request.ThuTu,
+            CauHinhJson = CapCauHinhJson(request.CauHinhJson)
         };
 
         await context.CvThemes.AddAsync(
@@ -92,5 +95,13 @@ public class CreateCvThemeCommandHandler(
         return new Response<int>(
             data: entity.Id,
             message: "Tạo theme CV thành công.");
+    }
+
+    /// <summary>Chặn JSON config quá khổ (tối đa ~100KB).</summary>
+    internal static string CapCauHinhJson(string json)
+    {
+        if (string.IsNullOrWhiteSpace(json)) return null;
+        var trimmed = json.Trim();
+        return trimmed.Length > 102400 ? trimmed.Substring(0, 102400) : trimmed;
     }
 }

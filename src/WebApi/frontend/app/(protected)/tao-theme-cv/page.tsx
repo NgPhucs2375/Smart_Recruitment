@@ -19,19 +19,32 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Check, Eye, EyeOff, GripVertical, Plus, Save, Trash2 } from "lucide-react";
+import {
+  Check,
+  Eye,
+  EyeOff,
+  GripVertical,
+  Plus,
+  Save,
+  Trash2,
+} from "lucide-react";
 import { AdminGate } from "@/features/admin/AdminGate";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { ColorField } from "@/features/tao-cv/components/color-field";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { ThemeCanvas } from "@/features/tao-cv/components/theme-canvas";
+import { syncThemeToDb } from "@/features/tao-cv/services/theme-db-sync";
 import {
   deleteTheme,
   getAllThemes,
@@ -62,10 +75,27 @@ const COLOR_PRESETS = [
   { name: "Minimal Pitch Black", primary: "#111827", paper: "#ffffff" },
 ];
 
-const PRESET_FRESHER: CvSectionId[] = ["education", "skills", "projects", "experience", "certificates", "summary"];
-const PRESET_PRO: CvSectionId[] = ["experience", "projects", "skills", "education", "summary", "certificates"];
+const PRESET_FRESHER: CvSectionId[] = [
+  "education",
+  "skills",
+  "projects",
+  "experience",
+  "certificates",
+  "summary",
+];
+const PRESET_PRO: CvSectionId[] = [
+  "experience",
+  "projects",
+  "skills",
+  "education",
+  "summary",
+  "certificates",
+];
 
-const DENSITY_GAPS: Record<SpacingDensity, { sectionGapMm: number; itemGapMm: number }> = {
+const DENSITY_GAPS: Record<
+  SpacingDensity,
+  { sectionGapMm: number; itemGapMm: number }
+> = {
   compact: { sectionGapMm: 3, itemGapMm: 2 },
   normal: { sectionGapMm: 5, itemGapMm: 3 },
   relaxed: { sectionGapMm: 7, itemGapMm: 4 },
@@ -164,7 +194,14 @@ function LayoutRow({
   onToggle: () => void;
   move?: { label: string; onMove: () => void };
 }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id });
   return (
     <div
       ref={setNodeRef}
@@ -186,7 +223,11 @@ function LayoutRow({
       >
         <GripVertical className="size-3.5" />
       </span>
-      <Checkbox checked={visible} onCheckedChange={onToggle} aria-label={`Hiện ${title}`} />
+      <Checkbox
+        checked={visible}
+        onCheckedChange={onToggle}
+        aria-label={`Hiện ${title}`}
+      />
       <span className="flex-1 text-sm">{title}</span>
       {move && (
         <button
@@ -199,7 +240,11 @@ function LayoutRow({
           {move.label}
         </button>
       )}
-      {visible ? <Eye className="size-3.5 text-muted-foreground" /> : <EyeOff className="size-3.5 text-muted-foreground" />}
+      {visible ? (
+        <Eye className="size-3.5 text-muted-foreground" />
+      ) : (
+        <EyeOff className="size-3.5 text-muted-foreground" />
+      )}
     </div>
   );
 }
@@ -215,7 +260,8 @@ function StudioWorkbench() {
   const scrollerRef = useRef<HTMLDivElement>(null);
   const dummy = useMemo(() => dummyResume(), []);
 
-  const patch = (p: Partial<CvThemeConfig>) => setTheme((t) => ({ ...t, ...p }));
+  const patch = (p: Partial<CvThemeConfig>) =>
+    setTheme((t) => ({ ...t, ...p }));
   const patchColors = (p: Partial<CvThemeConfig["colors"]>) =>
     setTheme((t) => ({ ...t, colors: { ...t.colors, ...p } }));
   const patchTypography = (p: Partial<CvThemeConfig["typography"]>) =>
@@ -225,8 +271,12 @@ function StudioWorkbench() {
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 5 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+    useSensor(TouchSensor, {
+      activationConstraint: { delay: 150, tolerance: 5 },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
   );
 
   useEffect(() => {
@@ -256,13 +306,19 @@ function StudioWorkbench() {
   const visibleCount = theme.layout.sectionOrder.filter(
     (id) => theme.layout.sections[id]?.isVisible !== false,
   ).length;
-  const ratio = contrastRatio(theme.colors.textPrimary, theme.colors.paperBackground);
+  const ratio = contrastRatio(
+    theme.colors.textPrimary,
+    theme.colors.paperBackground,
+  );
   const auditName = theme.name.trim().length >= 4;
   const auditSections = visibleCount >= 3;
   const auditContrast = ratio >= 4.5;
   const isAuditPassed = auditName && auditSections && auditContrast;
 
-  const handleDragEnd = (event: { active: { id: string | number }; over: { id: string | number } | null }) => {
+  const handleDragEnd = (event: {
+    active: { id: string | number };
+    over: { id: string | number } | null;
+  }) => {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
     const order = theme.layout.sectionOrder;
@@ -272,8 +328,11 @@ function StudioWorkbench() {
     const rail = new Set(theme.layout.sidebarSections ?? []);
     const nextRail = new Set(rail);
     // Kéo qua danh sách cột khác → chuyển slot cột của item.
-    if (rail.has(active.id as CvSectionId) !== rail.has(over.id as CvSectionId)) {
-      if (rail.has(over.id as CvSectionId)) nextRail.add(active.id as CvSectionId);
+    if (
+      rail.has(active.id as CvSectionId) !== rail.has(over.id as CvSectionId)
+    ) {
+      if (rail.has(over.id as CvSectionId))
+        nextRail.add(active.id as CvSectionId);
       else nextRail.delete(active.id as CvSectionId);
     }
     patch({
@@ -287,18 +346,32 @@ function StudioWorkbench() {
 
   const moveToRail = (id: CvSectionId) => {
     const rail = theme.layout.sidebarSections ?? [];
-    if (!rail.includes(id)) patch({ layout: { ...theme.layout, sidebarSections: [...rail, id] } });
+    if (!rail.includes(id))
+      patch({ layout: { ...theme.layout, sidebarSections: [...rail, id] } });
   };
 
   const moveToMain = (id: CvSectionId) => {
     patch({
-      layout: { ...theme.layout, sidebarSections: (theme.layout.sidebarSections ?? []).filter((x) => x !== id) },
+      layout: {
+        ...theme.layout,
+        sidebarSections: (theme.layout.sidebarSections ?? []).filter(
+          (x) => x !== id,
+        ),
+      },
     });
   };
 
   const toggleSection = (id: CvSectionId) => {
     const s = theme.layout.sections[id];
-    patch({ layout: { ...theme.layout, sections: { ...theme.layout.sections, [id]: { ...s, isVisible: !s.isVisible } } } });
+    patch({
+      layout: {
+        ...theme.layout,
+        sections: {
+          ...theme.layout.sections,
+          [id]: { ...s, isVisible: !s.isVisible },
+        },
+      },
+    });
   };
 
   const applyPresetOrder = (order: CvSectionId[]) => {
@@ -309,21 +382,32 @@ function StudioWorkbench() {
     patch({ layout: { ...theme.layout, sectionOrder: merged } });
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!auditName) return;
     const next: CvThemeConfig = {
       ...theme,
       name: theme.name.trim(),
       policy: {
         ...theme.policy,
-        approvedAt: theme.policy.policyApproved ? new Date().toISOString() : theme.policy.approvedAt,
+        approvedAt: theme.policy.policyApproved
+          ? new Date().toISOString()
+          : theme.policy.approvedAt,
       },
     };
     saveTheme(next);
     setThemes(getAllThemes());
     setTheme(next);
-    setSavedTick("Đã lưu theme");
-    window.setTimeout(() => setSavedTick(null), 2500);
+    // Đồng bộ lên DB để hiện ở bảng admin (localStorage chỉ giữ bản local).
+    setSavedTick("Đã lưu theme (đang đồng bộ DB…)…");
+    const synced = await syncThemeToDb(next);
+    if (synced.mode === "created") {
+      setSavedTick(`Đã lưu theme + tạo mới trong DB (#${synced.id})`);
+    } else if (synced.mode === "updated") {
+      setSavedTick(`Đã lưu theme + cập nhật DB (#${synced.id})`);
+    } else {
+      setSavedTick(`Đã lưu local (DB: ${synced.error})`);
+    }
+    window.setTimeout(() => setSavedTick(null), 3500);
   };
 
   const handleDelete = () => {
@@ -333,14 +417,19 @@ function StudioWorkbench() {
     setTheme(newThemeDraft());
   };
 
-  const previewData: ResumeData = useMemo(() => ({ ...dummy, layout: theme.layout }), [dummy, theme.layout]);
+  const previewData: ResumeData = useMemo(
+    () => ({ ...dummy, layout: theme.layout }),
+    [dummy, theme.layout],
+  );
   const zoomPct = fitMode ? Math.max(10, Math.round(100 * fitScale)) : 100;
 
   return (
     <div className="mx-auto w-full max-w-[1440px] px-4 py-6 sm:px-6">
       <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
         <div>
-          <p className="text-xs text-muted-foreground">Quản trị / Theme Studio</p>
+          <p className="text-xs text-muted-foreground">
+            Quản trị / Theme Studio
+          </p>
           <h1 className="text-lg font-semibold tracking-tight">Tạo theme CV</h1>
         </div>
         <div className="flex items-center gap-2">
@@ -374,7 +463,11 @@ function StudioWorkbench() {
           </Button>
         </div>
       </div>
-      {savedTick && <p className="mb-3 text-sm font-medium text-teal" role="status">{savedTick}</p>}
+      {savedTick && (
+        <p className="mb-3 text-sm font-medium text-teal" role="status">
+          {savedTick}
+        </p>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-[460px_minmax(0,1fr)]">
         {/* Dock trái */}
@@ -389,7 +482,20 @@ function StudioWorkbench() {
                 onChange={(e) => patch({ name: e.target.value })}
                 placeholder="VD: Fullstack Dev Theme 2026"
                 className="mt-1.5"
+                aria-describedby="theme-name-hint"
               />
+              <p
+                id="theme-name-hint"
+                className={
+                  theme.name.trim().length >= 4
+                    ? "mt-1 text-[11px] text-teal"
+                    : "mt-1 text-[11px] font-medium text-destructive"
+                }
+              >
+                {theme.name.trim().length >= 4
+                  ? "Tên hợp lệ — đủ điều kiện lưu theme."
+                  : `Tên cần tối thiểu 4 ký tự mới lưu được (đang ${theme.name.trim().length}).`}
+              </p>
             </div>
             <div>
               <Label htmlFor="theme-desc">Mô tả</Label>
@@ -415,7 +521,9 @@ function StudioWorkbench() {
 
             <TabsContent value="layout" className="mt-4 space-y-3">
               <div>
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Khung xương</p>
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Khung xương
+                </p>
                 <div className="grid grid-cols-2 gap-1.5">
                   {(
                     [
@@ -442,11 +550,14 @@ function StudioWorkbench() {
                   ))}
                 </div>
               </div>
-              {(theme.structure === "sidebar-left" || theme.structure === "sidebar-right") && (
+              {(theme.structure === "sidebar-left" ||
+                theme.structure === "sidebar-right") && (
                 <div>
                   <div className="mb-1 flex items-center justify-between">
                     <Label className="text-xs">Rộng sidebar</Label>
-                    <span className="font-mono text-[11px] text-muted-foreground">{theme.sidebarWidthPct ?? 32}%</span>
+                    <span className="font-mono text-[11px] text-muted-foreground">
+                      {theme.sidebarWidthPct ?? 32}%
+                    </span>
                   </div>
                   <input
                     type="range"
@@ -454,18 +565,30 @@ function StudioWorkbench() {
                     max={45}
                     step={1}
                     value={theme.sidebarWidthPct ?? 32}
-                    onChange={(e) => patch({ sidebarWidthPct: Number(e.target.value) })}
+                    onChange={(e) =>
+                      patch({ sidebarWidthPct: Number(e.target.value) })
+                    }
                     className="w-full accent-primary"
                     aria-label="Rộng sidebar phần trăm"
                   />
                 </div>
               )}
-              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleDragEnd}
+              >
                 {(() => {
                   const rail = new Set(theme.layout.sidebarSections ?? []);
-                  const mainIds = theme.layout.sectionOrder.filter((id) => !rail.has(id));
-                  const railIds = theme.layout.sectionOrder.filter((id) => rail.has(id));
-                  const isTwoCol = theme.structure === "sidebar-left" || theme.structure === "sidebar-right";
+                  const mainIds = theme.layout.sectionOrder.filter(
+                    (id) => !rail.has(id),
+                  );
+                  const railIds = theme.layout.sectionOrder.filter((id) =>
+                    rail.has(id),
+                  );
+                  const isTwoCol =
+                    theme.structure === "sidebar-left" ||
+                    theme.structure === "sidebar-right";
                   const row = (id: CvSectionId, inRail: boolean) => (
                     <LayoutRow
                       key={id}
@@ -488,8 +611,13 @@ function StudioWorkbench() {
                         <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                           {isTwoCol ? "Cột chính" : "Thứ tự mục"}
                         </p>
-                        <SortableContext items={mainIds} strategy={verticalListSortingStrategy}>
-                          <div className="space-y-0.5">{mainIds.map((id) => row(id, false))}</div>
+                        <SortableContext
+                          items={mainIds}
+                          strategy={verticalListSortingStrategy}
+                        >
+                          <div className="space-y-0.5">
+                            {mainIds.map((id) => row(id, false))}
+                          </div>
                         </SortableContext>
                       </div>
                       {isTwoCol && (
@@ -497,7 +625,10 @@ function StudioWorkbench() {
                           <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                             Cột phụ (sidebar)
                           </p>
-                          <SortableContext items={railIds} strategy={verticalListSortingStrategy}>
+                          <SortableContext
+                            items={railIds}
+                            strategy={verticalListSortingStrategy}
+                          >
                             <div className="space-y-0.5">
                               {railIds.map((id) => row(id, true))}
                               {railIds.length === 0 && (
@@ -522,8 +653,14 @@ function StudioWorkbench() {
                     patch({
                       layout: {
                         ...theme.layout,
-                        sectionOrder: [...PRESET_FRESHER.filter((id) => theme.layout.sectionOrder.includes(id)),
-                          ...theme.layout.sectionOrder.filter((id) => !PRESET_FRESHER.includes(id))],
+                        sectionOrder: [
+                          ...PRESET_FRESHER.filter((id) =>
+                            theme.layout.sectionOrder.includes(id),
+                          ),
+                          ...theme.layout.sectionOrder.filter(
+                            (id) => !PRESET_FRESHER.includes(id),
+                          ),
+                        ],
                       },
                     })
                   }
@@ -538,8 +675,14 @@ function StudioWorkbench() {
                     patch({
                       layout: {
                         ...theme.layout,
-                        sectionOrder: [...PRESET_PRO.filter((id) => theme.layout.sectionOrder.includes(id)),
-                          ...theme.layout.sectionOrder.filter((id) => !PRESET_PRO.includes(id))],
+                        sectionOrder: [
+                          ...PRESET_PRO.filter((id) =>
+                            theme.layout.sectionOrder.includes(id),
+                          ),
+                          ...theme.layout.sectionOrder.filter(
+                            (id) => !PRESET_PRO.includes(id),
+                          ),
+                        ],
                       },
                     })
                   }
@@ -551,18 +694,27 @@ function StudioWorkbench() {
 
             <TabsContent value="colors" className="mt-4 space-y-4">
               <div>
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Preset nhanh</p>
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Preset nhanh
+                </p>
                 <div className="grid grid-cols-2 gap-1.5">
                   {COLOR_PRESETS.map((p) => (
                     <button
                       key={p.name}
                       type="button"
-                      onClick={() => patchColors({ primary: p.primary, paperBackground: p.paper })}
+                      onClick={() =>
+                        patchColors({
+                          primary: p.primary,
+                          paperBackground: p.paper,
+                        })
+                      }
                       className="flex items-center gap-2 rounded-lg border border-border px-2 py-1.5 text-left text-xs transition hover:border-primary/50"
                     >
                       <span
                         className="size-5 shrink-0 rounded-full border border-border"
-                        style={{ background: `linear-gradient(135deg, ${p.primary}, ${p.paper})` }}
+                        style={{
+                          background: `linear-gradient(135deg, ${p.primary}, ${p.paper})`,
+                        }}
                       />
                       {p.name}
                     </button>
@@ -582,7 +734,11 @@ function StudioWorkbench() {
                   key={key}
                   label={label}
                   value={theme.colors[key]}
-                  onChange={(next) => patchColors({ [key]: next } as Partial<CvThemeConfig["colors"]>)}
+                  onChange={(next) =>
+                    patchColors({ [key]: next } as Partial<
+                      CvThemeConfig["colors"]
+                    >)
+                  }
                 />
               ))}
               <div>
@@ -593,19 +749,40 @@ function StudioWorkbench() {
                   <ColorField
                     label="Nền header / banner"
                     value={theme.zones?.headerBg ?? "transparent"}
-                    onChange={(headerBg) => patch({ zones: { ...theme.zones, headerBg } as CvThemeConfig["zones"] })}
+                    onChange={(headerBg) =>
+                      patch({
+                        zones: {
+                          ...theme.zones,
+                          headerBg,
+                        } as CvThemeConfig["zones"],
+                      })
+                    }
                     alpha
                   />
                   <ColorField
                     label="Nền sidebar"
                     value={theme.zones?.sidebarBg ?? "#f1f5f9"}
-                    onChange={(sidebarBg) => patch({ zones: { ...theme.zones, sidebarBg } as CvThemeConfig["zones"] })}
+                    onChange={(sidebarBg) =>
+                      patch({
+                        zones: {
+                          ...theme.zones,
+                          sidebarBg,
+                        } as CvThemeConfig["zones"],
+                      })
+                    }
                     alpha
                   />
                   <ColorField
                     label="Nền nội dung chính"
                     value={theme.zones?.mainBg ?? "transparent"}
-                    onChange={(mainBg) => patch({ zones: { ...theme.zones, mainBg } as CvThemeConfig["zones"] })}
+                    onChange={(mainBg) =>
+                      patch({
+                        zones: {
+                          ...theme.zones,
+                          mainBg,
+                        } as CvThemeConfig["zones"],
+                      })
+                    }
                   />
                 </div>
               </div>
@@ -613,7 +790,9 @@ function StudioWorkbench() {
 
             <TabsContent value="type" className="mt-4 space-y-4">
               <div>
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Font chữ</p>
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Font chữ
+                </p>
                 <div className="grid grid-cols-3 gap-1.5">
                   {(
                     [
@@ -634,8 +813,12 @@ function StudioWorkbench() {
                           : "border-border hover:border-primary/40",
                       )}
                     >
-                      <span className="block text-sm font-semibold">{label}</span>
-                      <span className="block text-[11px] text-muted-foreground">{hint}</span>
+                      <span className="block text-sm font-semibold">
+                        {label}
+                      </span>
+                      <span className="block text-[11px] text-muted-foreground">
+                        {hint}
+                      </span>
                     </button>
                   ))}
                 </div>
@@ -643,7 +826,9 @@ function StudioWorkbench() {
               <div>
                 <div className="mb-1 flex items-center justify-between">
                   <Label>Cỡ chữ cơ bản</Label>
-                  <span className="font-mono text-xs text-muted-foreground">{theme.typography.baseFontSizePx}px</span>
+                  <span className="font-mono text-xs text-muted-foreground">
+                    {theme.typography.baseFontSizePx}px
+                  </span>
                 </div>
                 <input
                   type="range"
@@ -651,19 +836,27 @@ function StudioWorkbench() {
                   max={15}
                   step={0.5}
                   value={theme.typography.baseFontSizePx}
-                  onChange={(e) => patchTypography({ baseFontSizePx: Number(e.target.value) })}
+                  onChange={(e) =>
+                    patchTypography({ baseFontSizePx: Number(e.target.value) })
+                  }
                   className="w-full accent-primary"
                   aria-label="Cỡ chữ cơ bản"
                 />
               </div>
               <div>
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Kiểu header</p>
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Kiểu header
+                </p>
                 <div className="flex flex-wrap gap-1.5">
                   {HEADING_VARIANTS.map((h) => (
                     <Button
                       key={h.id}
                       type="button"
-                      variant={theme.typography.headingVariant === h.id ? "default" : "outline"}
+                      variant={
+                        theme.typography.headingVariant === h.id
+                          ? "default"
+                          : "outline"
+                      }
                       size="sm"
                       className="h-7 text-xs"
                       onClick={() => patchTypography({ headingVariant: h.id })}
@@ -675,26 +868,40 @@ function StudioWorkbench() {
                 <label className="mt-2 inline-flex items-center gap-2 text-sm">
                   <Checkbox
                     checked={theme.typography.uppercaseHeadings}
-                    onCheckedChange={(v) => patchTypography({ uppercaseHeadings: v === true })}
+                    onCheckedChange={(v) =>
+                      patchTypography({ uppercaseHeadings: v === true })
+                    }
                   />
                   In hoa tiêu đề mục
                 </label>
               </div>
               <div>
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Mật độ dòng</p>
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Mật độ dòng
+                </p>
                 <div className="flex gap-1.5">
-                  {(["compact", "normal", "relaxed"] as SpacingDensity[]).map((d) => (
-                    <Button
-                      key={d}
-                      type="button"
-                      variant={theme.spacing.density === d ? "default" : "outline"}
-                      size="sm"
-                      className="h-7 flex-1 text-xs capitalize"
-                      onClick={() => patchSpacing({ density: d, ...DENSITY_GAPS[d] })}
-                    >
-                      {d === "compact" ? "Chặt" : d === "normal" ? "Thường" : "Thoáng"}
-                    </Button>
-                  ))}
+                  {(["compact", "normal", "relaxed"] as SpacingDensity[]).map(
+                    (d) => (
+                      <Button
+                        key={d}
+                        type="button"
+                        variant={
+                          theme.spacing.density === d ? "default" : "outline"
+                        }
+                        size="sm"
+                        className="h-7 flex-1 text-xs capitalize"
+                        onClick={() =>
+                          patchSpacing({ density: d, ...DENSITY_GAPS[d] })
+                        }
+                      >
+                        {d === "compact"
+                          ? "Chặt"
+                          : d === "normal"
+                            ? "Thường"
+                            : "Thoáng"}
+                      </Button>
+                    ),
+                  )}
                 </div>
               </div>
               <div>
@@ -714,7 +921,11 @@ function StudioWorkbench() {
                     <Button
                       key={v}
                       type="button"
-                      variant={(theme.typography.dividerStyle ?? "solid") === v ? "default" : "outline"}
+                      variant={
+                        (theme.typography.dividerStyle ?? "solid") === v
+                          ? "default"
+                          : "outline"
+                      }
                       size="sm"
                       className="h-7 text-xs"
                       onClick={() => patchTypography({ dividerStyle: v })}
@@ -723,13 +934,18 @@ function StudioWorkbench() {
                     </Button>
                   ))}
                 </div>
-                {(theme.typography.dividerStyle === "solid" || theme.typography.dividerStyle === "dashed") && (
+                {(theme.typography.dividerStyle === "solid" ||
+                  theme.typography.dividerStyle === "dashed") && (
                   <div className="mt-2 flex gap-1.5">
                     {([1, 2] as const).map((w) => (
                       <Button
                         key={w}
                         type="button"
-                        variant={(theme.typography.dividerWidthPx ?? 2) === w ? "default" : "outline"}
+                        variant={
+                          (theme.typography.dividerWidthPx ?? 2) === w
+                            ? "default"
+                            : "outline"
+                        }
                         size="sm"
                         className="h-7 flex-1 text-xs"
                         onClick={() => patchTypography({ dividerWidthPx: w })}
@@ -755,7 +971,11 @@ function StudioWorkbench() {
                     <Button
                       key={v}
                       type="button"
-                      variant={(theme.typography.enclosure ?? "flat") === v ? "default" : "outline"}
+                      variant={
+                        (theme.typography.enclosure ?? "flat") === v
+                          ? "default"
+                          : "outline"
+                      }
                       size="sm"
                       className="h-7 flex-1 text-xs"
                       onClick={() => patchTypography({ enclosure: v })}
@@ -768,12 +988,18 @@ function StudioWorkbench() {
               <div className="rounded-lg border border-border px-3 py-2.5">
                 <label className="flex items-center justify-between gap-3 text-sm">
                   <span>
-                    <span className="block font-medium">Nhãn chữ dọc mép giấy</span>
-                    <span className="block text-xs text-muted-foreground">Dải vertical editorial như tạp chí</span>
+                    <span className="block font-medium">
+                      Nhãn chữ dọc mép giấy
+                    </span>
+                    <span className="block text-xs text-muted-foreground">
+                      Dải vertical editorial như tạp chí
+                    </span>
                   </span>
                   <Checkbox
                     checked={theme.typography.verticalTagEnabled === true}
-                    onCheckedChange={(v) => patchTypography({ verticalTagEnabled: v === true })}
+                    onCheckedChange={(v) =>
+                      patchTypography({ verticalTagEnabled: v === true })
+                    }
                     aria-label="Bật nhãn chữ dọc"
                   />
                 </label>
@@ -781,7 +1007,9 @@ function StudioWorkbench() {
                   <Input
                     value={theme.typography.verticalTagText ?? ""}
                     maxLength={40}
-                    onChange={(e) => patchTypography({ verticalTagText: e.target.value })}
+                    onChange={(e) =>
+                      patchTypography({ verticalTagText: e.target.value })
+                    }
                     placeholder="Trống = dùng chức danh"
                     className="mt-2 h-8 text-xs"
                   />
@@ -792,29 +1020,60 @@ function StudioWorkbench() {
             <TabsContent value="policy" className="mt-4 space-y-3">
               <ul className="space-y-2 rounded-lg border border-dashed border-input bg-muted/40 px-3 py-2.5 text-xs leading-5">
                 <li className="flex gap-1.5">
-                  <span className={auditName ? "text-teal" : "text-muted-foreground"}>{auditName ? <Check className="size-3.5" /> : "○"}</span>
+                  <span
+                    className={
+                      auditName ? "text-teal" : "text-muted-foreground"
+                    }
+                  >
+                    {auditName ? <Check className="size-3.5" /> : "○"}
+                  </span>
                   <span>Tên theme định danh hợp lệ (≥ 4 ký tự)</span>
                 </li>
                 <li className="flex gap-1.5">
-                  <span className={auditSections ? "text-teal" : "text-muted-foreground"}>{auditSections ? <Check className="size-3.5" /> : "○"}</span>
-                  <span>Section hiển thị tối thiểu ≥ 3 mục (đang {visibleCount})</span>
+                  <span
+                    className={
+                      auditSections ? "text-teal" : "text-muted-foreground"
+                    }
+                  >
+                    {auditSections ? <Check className="size-3.5" /> : "○"}
+                  </span>
+                  <span>
+                    Section hiển thị tối thiểu ≥ 3 mục (đang {visibleCount})
+                  </span>
                 </li>
                 <li className="flex gap-1.5">
-                  <span className={auditContrast ? "text-teal" : "text-muted-foreground"}>{auditContrast ? <Check className="size-3.5" /> : "○"}</span>
-                  <span>Tương phản chữ/nền đạt chuẩn đọc (tỉ lệ {ratio.toFixed(1)}:1)</span>
+                  <span
+                    className={
+                      auditContrast ? "text-teal" : "text-muted-foreground"
+                    }
+                  >
+                    {auditContrast ? <Check className="size-3.5" /> : "○"}
+                  </span>
+                  <span>
+                    Tương phản chữ/nền đạt chuẩn đọc (tỉ lệ {ratio.toFixed(1)}
+                    :1)
+                  </span>
                 </li>
               </ul>
               <div className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2.5">
                 <div className="text-sm">
                   <p className="font-medium">Kích hoạt chính sách phát hành</p>
-                  <p className="text-xs text-muted-foreground">Bật thì ứng viên ở /tao-cv mới thấy theme này</p>
+                  <p className="text-xs text-muted-foreground">
+                    Bật thì ứng viên ở /tao-cv mới thấy theme này
+                  </p>
                 </div>
                 <Switch
                   id="policy-toggle"
                   disabled={!isAuditPassed}
                   checked={theme.policy.policyApproved}
                   onCheckedChange={(v) =>
-                    patch({ policy: { ...theme.policy, policyApproved: v, approvedAt: v ? new Date().toISOString() : undefined } })
+                    patch({
+                      policy: {
+                        ...theme.policy,
+                        policyApproved: v,
+                        approvedAt: v ? new Date().toISOString() : undefined,
+                      },
+                    })
                   }
                   aria-label="Kích hoạt chính sách phát hành"
                 />
@@ -825,14 +1084,23 @@ function StudioWorkbench() {
                   id="policy-notes"
                   value={theme.policy.notes ?? ""}
                   maxLength={220}
-                  onChange={(e) => patch({ policy: { ...theme.policy, notes: e.target.value } })}
+                  onChange={(e) =>
+                    patch({
+                      policy: { ...theme.policy, notes: e.target.value },
+                    })
+                  }
                   rows={2}
                   className="mt-1.5"
                   placeholder="VD: v1.0 — palette emerald cho IT…"
                 />
               </div>
               {!theme.isDefault && (
-                <Button variant="outline" size="sm" className="w-full text-destructive" onClick={handleDelete}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full text-destructive"
+                  onClick={handleDelete}
+                >
                   <Trash2 className="mr-1.5 size-4" />
                   Xóa theme này
                 </Button>
@@ -846,7 +1114,11 @@ function StudioWorkbench() {
           <div className="mb-3 flex items-center justify-between gap-2">
             <h2 className="text-sm font-semibold">Xem trước trực tiếp</h2>
             <div className="flex items-center gap-1.5">
-              <div className="flex items-center rounded-full border border-border bg-card" role="group" aria-label="Zoom preview">
+              <div
+                className="flex items-center rounded-full border border-border bg-card"
+                role="group"
+                aria-label="Zoom preview"
+              >
                 <button
                   type="button"
                   onClick={() => setFitMode(true)}
@@ -864,7 +1136,9 @@ function StudioWorkbench() {
                   100%
                 </button>
               </div>
-              <span className="font-mono text-[11px] text-muted-foreground">{zoomPct}%</span>
+              <span className="font-mono text-[11px] text-muted-foreground">
+                {zoomPct}%
+              </span>
             </div>
           </div>
           <div
@@ -872,13 +1146,23 @@ function StudioWorkbench() {
             style={{ scrollbarGutter: "stable" }}
             className="flex max-h-[calc(100vh-160px)] min-h-[60vh] flex-col items-center gap-8 overflow-y-auto overflow-x-hidden rounded-xl bg-slate-200/70 p-6 dark:bg-zinc-900"
           >
-            <div className="w-full max-w-[210mm]" style={{ zoom: `${zoomPct}%` } as React.CSSProperties}>
+            <div
+              className="w-full max-w-[210mm]"
+              style={{ zoom: `${zoomPct}%` } as React.CSSProperties}
+            >
               <ThemeCanvas theme={theme} data={previewData} />
-              <p className="mt-3 text-center text-[11px] font-medium text-muted-foreground">Live preview — theme “{theme.name || "chưa đặt tên"}”</p>
+              <p className="mt-3 text-center text-[11px] font-medium text-muted-foreground">
+                Live preview — theme “{theme.name || "chưa đặt tên"}”
+              </p>
             </div>
           </div>
           <div className="mt-3">
-            <Button onClick={() => setTheme(newThemeDraft())} variant="ghost" size="sm" className="text-xs">
+            <Button
+              onClick={() => setTheme(newThemeDraft())}
+              variant="ghost"
+              size="sm"
+              className="text-xs"
+            >
               <Plus className="mr-1.5 size-3.5" />
               Theme mới từ mẫu trắng
             </Button>

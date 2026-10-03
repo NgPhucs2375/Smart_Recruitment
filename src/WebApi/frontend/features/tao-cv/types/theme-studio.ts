@@ -1,10 +1,13 @@
 import type { CvSectionId, ResumeLayoutConfig } from "../resume-data";
 
 export type FontFamilyToken = "font-sans" | "font-serif" | "font-mono";
-export type HeadingVariant = "underline" | "left-border" | "pill" | "minimal" | "accent-bg";
+export type HeadingVariant =
+  "underline" | "left-border" | "pill" | "minimal" | "accent-bg";
 export type SpacingDensity = "compact" | "normal" | "relaxed";
-export type LayoutStructure = "single" | "sidebar-left" | "sidebar-right" | "banner-top";
-export type DividerStyle = "solid" | "dashed" | "gradient" | "accent-dot" | "none";
+export type LayoutStructure =
+  "single" | "sidebar-left" | "sidebar-right" | "banner-top";
+export type DividerStyle =
+  "solid" | "dashed" | "gradient" | "accent-dot" | "none";
 export type SectionEnclosure = "flat" | "boxed" | "left-pill";
 
 export interface CvColorPalette {

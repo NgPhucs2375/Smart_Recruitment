@@ -62,6 +62,13 @@ namespace Domain.Entities
 
         public int ThuTu { get; set; } = 0;
 
+        /// <summary>
+        /// JSON cấu hình design đầy đủ của Theme Studio (layout/colors/
+        /// typography/spacing/zones/structure/policy). Null = theme hệ thống
+        /// render bằng TEMPLATE_REGISTRY cứng ở frontend.
+        /// </summary>
+        public string CauHinhJson { get; set; }
+
         /// <summary>Model sinh embedding (phase 2). Null = chưa có vector.</summary>
         public string EmbeddingModel { get; set; }
 

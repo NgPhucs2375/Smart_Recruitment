@@ -18,10 +18,14 @@ export function contrastRatio(fg: string, bg: string): number {
     const alpha = Number.parseInt(m[2], 16) / 255;
     const b = /^#?([0-9a-f]{6})$/i.exec(base.trim());
     if (!b) return `#${m[1]}`;
-    const mix = (f: number, t: number) => Math.round(f * alpha + t * (1 - alpha));
+    const mix = (f: number, t: number) =>
+      Math.round(f * alpha + t * (1 - alpha));
     const hex = [0, 2, 4]
       .map((i) =>
-        mix(Number.parseInt(m[1].slice(i, i + 2), 16), Number.parseInt(b[1].slice(i, i + 2), 16))
+        mix(
+          Number.parseInt(m[1].slice(i, i + 2), 16),
+          Number.parseInt(b[1].slice(i, i + 2), 16),
+        )
           .toString(16)
           .padStart(2, "0"),
       )

@@ -9,6 +9,7 @@ import { resolveTemplate } from "@/features/tao-cv/template-registry";
 import { CvPaginatedPreview } from "./cv-paginated-preview";
 import { ThemeCanvas } from "@/features/tao-cv/components/theme-canvas";
 import { getPublishedThemes } from "@/features/tao-cv/services/theme-storage";
+import { fetchDbThemes } from "@/features/tao-cv/services/theme-db-sync";
 import type { CvThemeConfig } from "@/features/tao-cv/types/theme-studio";
 
 interface CvPreviewProps {
@@ -30,10 +31,22 @@ export function CvPreview({ data, onPageCount }: CvPreviewProps) {
   const template = resolveTemplate(deferredData.templateId);
   const [customTheme, setCustomTheme] = useState<CvThemeConfig | null>(null);
 
-  // localStorage chỉ có ở client: resolve sau mount để tránh hydration mismatch.
+  // localStorage + DB chỉ có ở client: resolve sau mount để tránh hydration mismatch.
+  // DB là nguồn chân lý (cross-machine), local là fallback offline.
   useEffect(() => {
-    const found = getPublishedThemes().find((t) => t.id === deferredData.templateId) ?? null;
-    setCustomTheme(found);
+    let alive = true;
+    const local = getPublishedThemes().find((t) => t.id === deferredData.templateId) ?? null;
+    setCustomTheme(local);
+    fetchDbThemes()
+      .then((db) => {
+        if (!alive) return;
+        const found = db.find((t) => t.id === deferredData.templateId) ?? local;
+        setCustomTheme(found);
+      })
+      .catch(() => undefined);
+    return () => {
+      alive = false;
+    };
   }, [deferredData.templateId]);
 
   const CustomPaper = useMemo(() => {

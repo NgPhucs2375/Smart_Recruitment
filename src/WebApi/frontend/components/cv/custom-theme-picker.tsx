@@ -4,21 +4,44 @@ import { useEffect, useState } from "react";
 import { Check, Palette } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getPublishedThemes } from "@/features/tao-cv/services/theme-storage";
+import { fetchDbThemes } from "@/features/tao-cv/services/theme-db-sync";
 import type { CvThemeConfig } from "@/features/tao-cv/types/theme-studio";
 
-/** Theme Studio đã duyệt policy — live trong tab hiện tại, cập nhật khi Studio lưu. */
+/** Theme Studio đã duyệt: gộp DB (nguồn chân lý) + local (fallback offline). */
 export function usePublishedThemes(): CvThemeConfig[] {
-  const [themes, setThemes] = useState<CvThemeConfig[]>([]);
+  const [themes, setThemes] = useState<CvThemeConfig[]>(() => getPublishedThemes());
   useEffect(() => {
-    setThemes(getPublishedThemes());
-    const onFocus = () => setThemes(getPublishedThemes());
+    let alive = true;
+    const refresh = async () => {
+      const local = getPublishedThemes();
+      try {
+        const db = await fetchDbThemes();
+        if (!alive) return;
+        const merged = [...db];
+        for (const t of local) {
+          if (!merged.some((m) => m.id === t.id)) merged.push(t);
+        }
+        setThemes(merged.length > 0 ? merged : local);
+      } catch {
+        if (alive) setThemes(local);
+      }
+    };
+    void refresh();
+    const onFocus = () => {
+      void refresh();
+    };
     window.addEventListener("focus", onFocus);
-    return () => window.removeEventListener("focus", onFocus);
+    return () => {
+      alive = false;
+      window.removeEventListener("focus", onFocus);
+    };
   }, []);
   return themes;
 }
 
-export function customThemeById(id: string | null | undefined): CvThemeConfig | undefined {
+export function customThemeById(
+  id: string | null | undefined,
+): CvThemeConfig | undefined {
   if (!id || typeof window === "undefined") return undefined;
   return getPublishedThemes().find((t) => t.id === id);
 }
@@ -32,7 +55,12 @@ interface CustomThemeOptionsProps {
 }
 
 /** Mục Theme Studio trong picker: chỉ theme đã gạt Policy mới hiện. */
-export function CustomThemeOptions({ variant, activeId, onPick, query = "" }: CustomThemeOptionsProps) {
+export function CustomThemeOptions({
+  variant,
+  activeId,
+  onPick,
+  query = "",
+}: CustomThemeOptionsProps) {
   const themes = usePublishedThemes();
   const q = query.trim().toLowerCase();
   const visible = q
@@ -62,24 +90,36 @@ export function CustomThemeOptions({ variant, activeId, onPick, query = "" }: Cu
                 onClick={() => onPick(t.id)}
                 className={cn(
                   "template-card flex w-full items-center gap-3 rounded-xl border p-2 text-left",
-                  isActive ? "border-primary bg-primary/5" : "border-transparent hover:border-border hover:bg-muted/60",
+                  isActive
+                    ? "border-primary bg-primary/5"
+                    : "border-transparent hover:border-border hover:bg-muted/60",
                 )}
               >
                 <span
                   className="size-9 shrink-0 rounded-lg border border-border"
-                  style={{ background: t.thumbnailGradient ?? t.colors.primary }}
+                  style={{
+                    background: t.thumbnailGradient ?? t.colors.primary,
+                  }}
                   aria-hidden="true"
                 />
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-semibold text-foreground">{t.name}</span>
+                  <span className="block truncate text-sm font-semibold text-foreground">
+                    {t.name}
+                  </span>
                   <span className="block truncate text-xs text-muted-foreground">
                     {(t.description ?? "").slice(0, 40) || "Theme tùy chỉnh"}
                   </span>
                 </span>
                 {isActive ? (
-                  <Check className="size-4 shrink-0 text-primary" aria-hidden="true" />
+                  <Check
+                    className="size-4 shrink-0 text-primary"
+                    aria-hidden="true"
+                  />
                 ) : (
-                  <Palette className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+                  <Palette
+                    className="size-4 shrink-0 text-muted-foreground"
+                    aria-hidden="true"
+                  />
                 )}
               </button>
             );
@@ -96,18 +136,23 @@ export function CustomThemeOptions({ variant, activeId, onPick, query = "" }: Cu
                 aria-pressed={isActive}
                 className={cn(
                   "template-card group relative flex flex-col items-center gap-2 rounded-2xl border-2 p-3 text-left",
-                  isActive ? "border-primary bg-primary/5 shadow-sm" : "border-border hover:border-primary/50",
+                  isActive
+                    ? "border-primary bg-primary/5 shadow-sm"
+                    : "border-border hover:border-primary/50",
                 )}
               >
                 <div
                   className="h-24 w-full rounded-xl border border-border"
-                  style={{ background: t.thumbnailGradient ?? t.colors.primary }}
+                  style={{
+                    background: t.thumbnailGradient ?? t.colors.primary,
+                  }}
                   aria-hidden="true"
                 />
                 <div className="w-full">
                   <p className="text-sm font-semibold">{t.name}</p>
                   <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                    {(t.description ?? "").slice(0, 60) || "Theme tùy chỉnh từ Studio"}
+                    {(t.description ?? "").slice(0, 60) ||
+                      "Theme tùy chỉnh từ Studio"}
                   </p>
                 </div>
                 {isActive && (

@@ -14,8 +14,16 @@ interface ThemeRuntimeProviderProps {
  * Mọi section bên trong ăn var() nên đổi token là preview đổi theo,
  * không cần viết lại CSS tĩnh. Không ảnh hưởng template cứng.
  */
-export function ThemeRuntimeProvider({ theme, children, className = "" }: ThemeRuntimeProviderProps) {
-  const zones = theme.zones ?? { headerBg: "transparent", sidebarBg: "#f1f5f9", mainBg: "transparent" };
+export function ThemeRuntimeProvider({
+  theme,
+  children,
+  className = "",
+}: ThemeRuntimeProviderProps) {
+  const zones = theme.zones ?? {
+    headerBg: "transparent",
+    sidebarBg: "#f1f5f9",
+    mainBg: "transparent",
+  };
   const style = {
     "--cv-primary": theme.colors.primary,
     "--cv-secondary": theme.colors.secondary,
@@ -43,7 +51,10 @@ export function ThemeRuntimeProvider({ theme, children, className = "" }: ThemeR
   } as CSSProperties;
 
   return (
-    <div className={`cv-theme-canvas w-[210mm] min-h-[297mm] max-w-full transition-all ${className}`} style={style}>
+    <div
+      className={`cv-theme-canvas w-[210mm] min-h-[297mm] max-w-full transition-all ${className}`}
+      style={style}
+    >
       {children}
     </div>
   );

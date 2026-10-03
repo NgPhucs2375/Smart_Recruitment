@@ -28,6 +28,8 @@ public class UpdateCvThemeCommand : IRequest<Response<int>>
     public bool LaMacDinh { get; set; }
     public bool IsActive { get; set; } = true;
     public int ThuTu { get; set; }
+    /// <summary>JSON cấu hình design Theme Studio (capped ở handler).</summary>
+    public string CauHinhJson { get; set; }
 }
 
 public class UpdateCvThemeCommandHandler(
@@ -92,6 +94,11 @@ public class UpdateCvThemeCommandHandler(
         entity.LaMacDinh = request.LaMacDinh;
         entity.IsActive = request.IsActive;
         entity.ThuTu = request.ThuTu;
+        // Null = giữ nguyên config cũ (FE không gửi khi chỉ sửa metadata).
+        if (request.CauHinhJson != null)
+        {
+            entity.CauHinhJson = CapCauHinhJson(request.CauHinhJson);
+        }
 
         await context.SaveChangesAsync(
             cancellationToken);
@@ -99,5 +106,13 @@ public class UpdateCvThemeCommandHandler(
         return new Response<int>(
             data: entity.Id,
             message: "Cập nhật theme CV thành công.");
+    }
+
+    /// <summary>Chặn JSON config quá khổ (tối đa ~100KB).</summary>
+    private static string CapCauHinhJson(string json)
+    {
+        if (string.IsNullOrWhiteSpace(json)) return null;
+        var trimmed = json.Trim();
+        return trimmed.Length > 102400 ? trimmed.Substring(0, 102400) : trimmed;
     }
 }

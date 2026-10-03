@@ -26,6 +26,7 @@ export interface CvThemeVm {
   LaMacDinh: boolean;
   IsActive: boolean;
   ThuTu: number;
+  CauHinhJson?: string | null;
 }
 
 export interface CvThemeInput {
@@ -49,6 +50,7 @@ export interface CvThemeInput {
   LaMacDinh?: boolean;
   IsActive?: boolean;
   ThuTu?: number;
+  CauHinhJson?: string | null;
 }
 
 interface ApiResponse<T> {

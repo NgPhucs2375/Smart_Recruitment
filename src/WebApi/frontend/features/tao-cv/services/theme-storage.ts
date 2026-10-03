@@ -1,4 +1,4 @@
-import { createDefaultLayoutConfig } from "../resume-data";
+import { createDefaultLayoutConfig, normalizeLayoutConfig } from "../resume-data";
 import type {
   CvColorPalette,
   CvSpacingConfig,
@@ -110,15 +110,8 @@ function defaultThemes(): CvThemeConfig[] {
 function isThemeConfig(v: unknown): v is CvThemeConfig {
   if (!v || typeof v !== "object") return false;
   const t = v as Record<string, unknown>;
-  return (
-    typeof t.id === "string" &&
-    typeof t.name === "string" &&
-    !!t.layout &&
-    !!t.colors &&
-    !!t.typography &&
-    !!t.spacing &&
-    !!t.policy
-  );
+  // Chỉ gate id + name; các khối còn lại do normalizeTheme đắp default.
+  return typeof t.id === "string" && t.id.length > 0 && typeof t.name === "string";
 }
 
 function readStored(): CvThemeConfig[] {
@@ -137,7 +130,10 @@ function readStored(): CvThemeConfig[] {
 function persist(themes: CvThemeConfig[]): void {
   if (typeof window === "undefined") return;
   try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(themes.filter((t) => !t.isDefault)));
+    window.localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify(themes.filter((t) => !t.isDefault)),
+    );
   } catch {
     // localStorage đầy hoặc bị chặn: bỏ qua, giữ theme trong memory phiên này.
   }
@@ -153,6 +149,10 @@ export function getAllThemes(): CvThemeConfig[] {
 function normalizeTheme(t: CvThemeConfig): CvThemeConfig {
   return {
     ...t,
+    layout: normalizeLayoutConfig(
+      (t as { layout?: unknown }).layout,
+    ),
+    colors: { ...DEFAULT_COLORS, ...((t as { colors?: object }).colors ?? {}) },
     structure: t.structure ?? "single",
     sidebarWidthPct:
       typeof t.sidebarWidthPct === "number"
@@ -172,7 +172,11 @@ export function getPublishedThemes(): CvThemeConfig[] {
 
 export function saveTheme(theme: CvThemeConfig): void {
   const custom = readStored().filter((t) => t.id !== theme.id);
-  custom.unshift({ ...theme, updatedAt: new Date().toISOString(), isDefault: false });
+  custom.unshift({
+    ...theme,
+    updatedAt: new Date().toISOString(),
+    isDefault: false,
+  });
   persist(custom);
 }
 

@@ -28,6 +28,7 @@ namespace Infrastructure.Persistence.Configurations
             builder.Property(x => x.KhuyenNghiSuDung).HasMaxLength(1000);
             builder.Property(x => x.TranhSuDungKhi).HasMaxLength(1000);
             builder.Property(x => x.GoiYAI).HasColumnType("text");
+            builder.Property(x => x.CauHinhJson).HasColumnType("text");
             builder.Property(x => x.EmbeddingModel).HasMaxLength(100);
             builder.Property(x => x.Embedding).HasColumnType("vector(1536)");
 

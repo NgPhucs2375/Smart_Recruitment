@@ -34,4 +34,6 @@ public class GetAllCvThemesViewModel
     public bool IsActive { get; set; }
     public int ThuTu { get; set; }
     public string Version { get; set; } = "1.0";
+    /// <summary>JSON cấu hình design Theme Studio. Null = theme hệ thống.</summary>
+    public string CauHinhJson { get; set; }
 }

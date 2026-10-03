@@ -23,5 +23,7 @@ namespace Application.DTOs.CvTheme
         public bool LaMacDinh { get; set; } = false;
         public bool IsActive { get; set; } = true;
         public int ThuTu { get; set; } = 0;
+        /// <summary>JSON cấu hình design đầy đủ của Theme Studio. Null = theme hệ thống.</summary>
+        public string CauHinhJson { get; set; }
     }
 }
