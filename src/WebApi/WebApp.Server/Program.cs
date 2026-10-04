@@ -104,6 +104,7 @@ _services.AddSignalR();
 _services.AddWebAppServices();
 _services.AddAdamAgents();
 _services.AddHostedService<WebApp.Server.Jobs.TinTuyenDungHetHanJob>();
+_services.AddHostedService<WebApp.Server.Jobs.TinTuyenDungSangLocJob>();
 _services.AddHostedService<WebApp.Server.Jobs.CvImportSessionCleanupJob>();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 _services.AddEndpointsApiExplorer();

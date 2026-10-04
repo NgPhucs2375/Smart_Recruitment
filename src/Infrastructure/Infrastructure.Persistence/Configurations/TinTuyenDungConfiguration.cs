@@ -20,6 +20,10 @@ namespace Infrastructure.Persistence.Configurations
                    .HasConversion<string>()
                    .HasMaxLength(30);
             builder.Property(x => x.TrangThai).IsRequired().HasConversion<string>().HasMaxLength(50);
+            builder.Property(x => x.TrangThai).IsConcurrencyToken();
+            builder.Property(x => x.LastModified).IsConcurrencyToken();
+            builder.Property(x => x.NguoiDaiDienDaDuyet).HasDefaultValue(false);
+            builder.Property(x => x.KetQuaSangLoc).IsRequired().HasDefaultValue("");
 
             // Quan hệ với DoanhNghiep
             builder.HasOne(x => x.DoanhNghiep)

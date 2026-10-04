@@ -36,11 +36,15 @@ namespace Application.Services.StateMachineTinTuyenDung
         // Trigger liên quan kiểm duyệt/vi phạm — cần báo thêm Người đại diện.
         private static readonly TriggerTinTuyenDung[] TriggerBaoChuDoanhNghiep =
         {
+            TriggerTinTuyenDung.GuiDuyet,
+            TriggerTinTuyenDung.MoLaiTin,
+            TriggerTinTuyenDung.HeThongTuDongDuyet,
             TriggerTinTuyenDung.HeThongDuyetChoNguoiDaiDien,
             TriggerTinTuyenDung.AdminDuyetChoNguoiDaiDien,
             TriggerTinTuyenDung.PhatHienNghiVan,
             TriggerTinTuyenDung.HeThongTuChoi,
             TriggerTinTuyenDung.AdminTuChoi,
+            TriggerTinTuyenDung.AdminDuyet,
             TriggerTinTuyenDung.AdminCuongCheKhoa
         };
 
@@ -109,13 +113,26 @@ namespace Application.Services.StateMachineTinTuyenDung
             }
 
             // 2) Email cho HR khi có kết quả kiểm duyệt / tin bị khóa.
+            if (trigger == TriggerTinTuyenDung.HeThongChuyenAdmin)
+            {
+                var admins = await _context.NguoiDungs.AsNoTracking()
+                    .Where(x => x.VaiTro == VaiTroNguoiDung.QUAN_TRI_VIEN && x.IsActive)
+                    .Select(x => x.Id).ToListAsync(ct);
+                foreach (var adminId in admins.Where(x => x != entity.NguoiDangTinId))
+                    await ThemThongBaoAsync(adminId, LoaiThongBao.ViecLamMoi, "Có tin tuyển dụng chờ Admin duyệt",
+                        noiDung, nameof(TinTuyenDung), entity.Id, ct);
+            }
+
+            // 2) Email cho HR khi có kết quả kiểm duyệt / tin bị khóa.
             // Email là side-effect phụ (SMTP có thể chưa cấu hình ở dev) — lỗi gửi thư
             // không được làm hỏng transition, kết quả kiểm duyệt vẫn phải lưu lại.
             if (CanGuiEmail(trigger) && entity.NguoiDangTinId > 0)
             {
+                _context.EnqueueAfterSave(async token =>
+                {
                 try
                 {
-                    var emailHr = await _emailResolver.GetEmailByNguoiDungIdAsync(entity.NguoiDangTinId, ct);
+                    var emailHr = await _emailResolver.GetEmailByNguoiDungIdAsync(entity.NguoiDangTinId, token);
                     if (!string.IsNullOrWhiteSpace(emailHr))
                     {
                         await _email.SendAsync(new EmailRequest
@@ -130,6 +147,7 @@ namespace Application.Services.StateMachineTinTuyenDung
                 {
                     // Bỏ qua lỗi email (SMTP xuống/chưa cấu hình) — thông báo in-app đã đủ.
                 }
+                });
             }
 
             // 3) Cascade: tin không còn nhận hồ sơ -> đóng các đơn đang dở dang
@@ -137,7 +155,7 @@ namespace Application.Services.StateMachineTinTuyenDung
                 || trigger == TriggerTinTuyenDung.HetHanNop
                 || trigger == TriggerTinTuyenDung.AdminCuongCheKhoa)
             {
-                var dons = await _context.DonUngTuyens
+                var dons = await _context.DonUngTuyens.AsTracking()
                     .Include(d => d.CVUngVien).ThenInclude(cv => cv.HoSoUngVien)
                     .Where(d => d.TinTuyenDungId == entity.Id && DonDangDo.Contains(d.TrangThai))
                     .ToListAsync(ct);
@@ -153,7 +171,7 @@ namespace Application.Services.StateMachineTinTuyenDung
                         var tieuDeCascade = "Tin tuyển dụng bạn đã ứng tuyển đã đóng";
                         var noiDungCascade = $"Tin {tieuDe} đã {LyDoDongTin(trigger)} nên đơn ứng tuyển của bạn được ghi nhận dừng xử lý.";
 
-                        _context.Notifications.Add(new Notification
+                        var notification = new Notification
                         {
                             LoaiThongBao = LoaiThongBao.DonUngTuyen,
                             TieuDe = tieuDeCascade,
@@ -164,25 +182,28 @@ namespace Application.Services.StateMachineTinTuyenDung
                             {
                                 new() { NguoiDungId = ungVienId, IsRead = false }
                             }
-                        });
+                        };
+                        _context.Notifications.Add(notification);
 
-                        await _push.PushToUserAsync(
+                        _context.EnqueueAfterSave(token => _push.PushToUserAsync(
                             ungVienId,
                             new ThongBaoDTO
                             {
+                                Id = notification.Id,
+                                NgayTao = notification.Created,
                                 TieuDe = tieuDeCascade,
                                 NoiDung = noiDungCascade,
                                 LoaiThongBao = LoaiThongBao.DonUngTuyen,
                                 ReferenceType = nameof(DonUngTuyen),
                                 ReferenceId = don.Id
                             },
-                            ct);
+                            token));
                     }
                 }
             }
         }
 
-        private async Task ThemThongBaoAsync(
+        private Task ThemThongBaoAsync(
             int nguoiDungId,
             LoaiThongBao loai,
             string tieuDe,
@@ -191,7 +212,7 @@ namespace Application.Services.StateMachineTinTuyenDung
             int referenceId,
             CancellationToken ct)
         {
-            _context.Notifications.Add(new Notification
+            var notification = new Notification
             {
                 LoaiThongBao = loai,
                 TieuDe = tieuDe,
@@ -202,26 +223,33 @@ namespace Application.Services.StateMachineTinTuyenDung
                 {
                     new() { NguoiDungId = nguoiDungId, IsRead = false } // lúc này mới tạo chưa đã đọc
                 }
-            });
+            };
+            _context.Notifications.Add(notification);
 
-            try
+            _context.EnqueueAfterSave(async token =>
             {
+              try
+              {
                 await _push.PushToUserAsync(
                     nguoiDungId,
                     new ThongBaoDTO
                     {
+                        Id = notification.Id,
+                        NgayTao = notification.Created,
                         TieuDe = tieuDe,
                         NoiDung = noiDung,
                         LoaiThongBao = loai,
                         ReferenceType = referenceType,
                         ReferenceId = referenceId
                     },
-                    ct);
+                    token);
             }
             catch (Exception)
             {
                 // Realtime là side-effect phụ; thông báo trong DB và transition vẫn phải được lưu.
             }
+            });
+            return Task.CompletedTask;
         }
 
         // Chỉ gửi email ở mốc kết quả kiểm duyệt / khóa tin
@@ -245,17 +273,18 @@ namespace Application.Services.StateMachineTinTuyenDung
         private static string TieuDeThongBao(TriggerTinTuyenDung t) => t switch
         {
             TriggerTinTuyenDung.GuiDuyet => "Tin đã gửi kiểm duyệt",
-            TriggerTinTuyenDung.HeThongTuDongDuyet => "Tin đã được duyệt tự động",
+            TriggerTinTuyenDung.HeThongTuDongDuyet => "Tin đạt bộ lọc và đã công khai",
+            TriggerTinTuyenDung.HeThongChuyenAdmin => "Tin chờ Admin duyệt tay",
             TriggerTinTuyenDung.HeThongDuyetChoNguoiDaiDien => "Tin Nhân sự chờ bạn duyệt",
             TriggerTinTuyenDung.PhatHienNghiVan => "Tin cần Admin kiểm tra",
             TriggerTinTuyenDung.HeThongTuChoi => "Tin bị hệ thống từ chối",
             TriggerTinTuyenDung.AdminDuyet => "Tin đã được Admin duyệt",
             TriggerTinTuyenDung.AdminDuyetChoNguoiDaiDien => "Tin đã qua Admin, chờ Người đại diện duyệt",
             TriggerTinTuyenDung.AdminTuChoi => "Tin bị Admin từ chối",
-            TriggerTinTuyenDung.NguoiDaiDienDuyet => "Người đại diện đã duyệt tin",
+            TriggerTinTuyenDung.NguoiDaiDienDuyet => "Người đại diện đã duyệt, chuyển bộ lọc hệ thống",
             TriggerTinTuyenDung.NguoiDaiDienTuChoi => "Người đại diện từ chối tin",
             TriggerTinTuyenDung.TamDungTin => "Tin đã tạm dừng",
-            TriggerTinTuyenDung.MoLaiTin => "Tin đã mở lại",
+            TriggerTinTuyenDung.MoLaiTin => "Tin được gửi duyệt để mở lại",
             TriggerTinTuyenDung.HetHanNop => "Tin đã hết hạn",
             TriggerTinTuyenDung.DongTin => "Tin đã đóng",
             TriggerTinTuyenDung.AdminCuongCheKhoa => "Tin bị khóa do vi phạm",
@@ -264,18 +293,19 @@ namespace Application.Services.StateMachineTinTuyenDung
 
         private static string NoiDungThongBao(TriggerTinTuyenDung t, string tieuDe) => t switch
         {
-            TriggerTinTuyenDung.GuiDuyet => $"Tin {tieuDe} đã gửi vào funnel kiểm duyệt hệ thống.",
-            TriggerTinTuyenDung.HeThongTuDongDuyet => $"Tin {tieuDe} đã pass kiểm duyệt tự động và đang công khai.",
-            TriggerTinTuyenDung.HeThongDuyetChoNguoiDaiDien => $"Tin {tieuDe} đã qua kiểm duyệt hệ thống và đang chờ Người đại diện duyệt.",
+            TriggerTinTuyenDung.GuiDuyet => $"Tin {tieuDe} đã gửi duyệt. Tin Nhân sự cần Người đại diện đồng ý trước khi bộ lọc hệ thống chạy.",
+            TriggerTinTuyenDung.HeThongTuDongDuyet => $"Tin {tieuDe} đạt bộ lọc hệ thống và đã công khai, bắt đầu nhận hồ sơ.",
+            TriggerTinTuyenDung.HeThongChuyenAdmin => $"Bộ lọc phát hiện vi phạm hoặc nghi vấn ở tin {tieuDe}. Chuyển Admin quyết định duyệt tay hoặc từ chối; chưa công khai.",
+            TriggerTinTuyenDung.HeThongDuyetChoNguoiDaiDien => $"Tin {tieuDe} đang chờ Người đại diện duyệt. Bộ lọc chưa chạy.",
             TriggerTinTuyenDung.PhatHienNghiVan => $"Tin {tieuDe} rơi vào vùng nghi vấn, đã chuyển Admin kiểm tra.",
             TriggerTinTuyenDung.HeThongTuChoi => $"Tin {tieuDe} bị hệ thống từ chối (vi phạm luật kiểm duyệt). Vui lòng chỉnh sửa và gửi lại.",
             TriggerTinTuyenDung.AdminDuyet => $"Tin {tieuDe} đã được Admin duyệt và đang công khai.",
             TriggerTinTuyenDung.AdminDuyetChoNguoiDaiDien => $"Tin {tieuDe} đã được Admin duyệt và chuyển Người đại diện kiểm tra.",
             TriggerTinTuyenDung.AdminTuChoi => $"Tin {tieuDe} bị Admin từ chối. Vui lòng chỉnh sửa và gửi duyệt lại.",
-            TriggerTinTuyenDung.NguoiDaiDienDuyet => $"Tin {tieuDe} đã được Người đại diện duyệt và đang công khai.",
+            TriggerTinTuyenDung.NguoiDaiDienDuyet => $"Tin {tieuDe} đã được Người đại diện đồng ý và chuyển sang bộ lọc hệ thống. Bộ lọc OK sẽ công khai; vi phạm sẽ chuyển Admin duyệt tay.",
             TriggerTinTuyenDung.NguoiDaiDienTuChoi => $"Tin {tieuDe} bị Người đại diện từ chối. Vui lòng chỉnh sửa và gửi duyệt lại.",
             TriggerTinTuyenDung.TamDungTin => $"Tin {tieuDe} đã tạm dừng nhận hồ sơ.",
-            TriggerTinTuyenDung.MoLaiTin => $"Tin {tieuDe} đã mở lại và tiếp tục nhận hồ sơ.",
+            TriggerTinTuyenDung.MoLaiTin => $"Tin {tieuDe} được gửi lại theo luồng Người đại diện → bộ lọc để mở lại. Chỉ tin bị bộ lọc gắn cờ mới cần Admin duyệt tay.",
             TriggerTinTuyenDung.HetHanNop => $"Tin {tieuDe} đã hết hạn nhận hồ sơ.",
             TriggerTinTuyenDung.DongTin => $"Tin {tieuDe} đã đóng.",
             TriggerTinTuyenDung.AdminCuongCheKhoa => $"Tin {tieuDe} bị quản trị viên gỡ do vi phạm.",

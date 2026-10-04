@@ -55,6 +55,7 @@ namespace Application.Features.KyNangTinTuyenDung.Commands.DeleteKyNangTinTuyenD
             }
 
             context.KyNangTinTuyenDungs.Remove(entity);
+            await Application.Services.StateMachineTinTuyenDung.JobDraft.PrepareSkillEditAsync(context, entity.TinTuyenDungId, ctx, cancellationToken);
 
             await context.SaveChangesAsync(
                 cancellationToken);

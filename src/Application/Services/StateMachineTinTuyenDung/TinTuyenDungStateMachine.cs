@@ -34,6 +34,7 @@ namespace Application.Services.StateMachineTinTuyenDung
             || trigger == TriggerTinTuyenDung.HeThongDuyetChoNguoiDaiDien
             || trigger == TriggerTinTuyenDung.PhatHienNghiVan
             || trigger == TriggerTinTuyenDung.HeThongTuChoi
+            || trigger == TriggerTinTuyenDung.HeThongChuyenAdmin
             || trigger == TriggerTinTuyenDung.HetHanNop;
 
         public TinTuyenDungStateMachine(
@@ -83,22 +84,34 @@ namespace Application.Services.StateMachineTinTuyenDung
 
             await ValidateAuthorization(trigger);
 
+            if ((trigger is TriggerTinTuyenDung.GuiDuyet or TriggerTinTuyenDung.MoLaiTin) &&
+                _entity.TrangThai != TrangThaiTinTuyenDung.ChoDuyetHeThong)
+                _entity.NguoiDaiDienDaDuyet = false;
+
             _currentNote = string.IsNullOrWhiteSpace(note) ? GetDefaultNote(trigger) : note;
             _currentCt = ct;
 
             await _machine.FireAsync(trigger);
+
+            if (trigger == TriggerTinTuyenDung.NguoiDaiDienDuyet)
+                _entity.NguoiDaiDienDaDuyet = true;
 
             _currentNote = null;
         }
 
         /// <summary>
         /// Fire trigger hệ thống, bỏ kiểm tra quyền (funnel kiểm duyệt, job quét hết hạn).
-        /// Chỉ chấp nhận 4 trigger hệ thống, trigger của người sẽ bị từ chối.
+        /// Chỉ chấp nhận trigger hệ thống, trigger của người sẽ bị từ chối.
         /// </summary>
         public async Task FireSystemAsync(TriggerTinTuyenDung trigger, string note = "", CancellationToken ct = default)
         {
+            if (trigger is TriggerTinTuyenDung.HeThongTuDongDuyet or TriggerTinTuyenDung.HeThongChuyenAdmin or TriggerTinTuyenDung.HeThongDuyetChoNguoiDaiDien)
+                JobDraft.EnsurePublishable(_entity);
             if (!LaTriggerHeThong(trigger))
                 throw new ApiException($"Trigger '{trigger}' phải fire qua FireAsync (có kiểm tra quyền).");
+
+            if (trigger is TriggerTinTuyenDung.HeThongTuDongDuyet or TriggerTinTuyenDung.HeThongChuyenAdmin)
+                EnsureRepresentativeApproval();
 
             if (!_machine.CanFire(trigger))
             {
@@ -124,6 +137,11 @@ namespace Application.Services.StateMachineTinTuyenDung
 
             var ctx = await _current.ResolveAsync();
 
+            if (trigger is TriggerTinTuyenDung.GuiDuyet or TriggerTinTuyenDung.MoLaiTin
+                or TriggerTinTuyenDung.AdminDuyet or TriggerTinTuyenDung.AdminDuyetChoNguoiDaiDien
+                or TriggerTinTuyenDung.NguoiDaiDienDuyet)
+                JobDraft.EnsurePublishable(_entity);
+
             switch (trigger)
             {
                 // Admin kiểm duyệt tay / cưỡng chế khóa
@@ -133,6 +151,9 @@ namespace Application.Services.StateMachineTinTuyenDung
                 case TriggerTinTuyenDung.AdminCuongCheKhoa:
                     if (ctx.VaiTro != VaiTroNguoiDung.QUAN_TRI_VIEN)
                         throw new ApiException("Chỉ Quản trị viên được thực hiện hành động này.");
+                    if (trigger == TriggerTinTuyenDung.AdminDuyet &&
+                        _entity.NguoiDangTin?.VaiTro != VaiTroNguoiDung.NGUOI_DAI_DIEN && !_entity.NguoiDaiDienDaDuyet)
+                        throw new ApiException("Tin Nhân sự phải được Người đại diện duyệt trước khi Admin duyệt.");
                     break;
 
                 case TriggerTinTuyenDung.NguoiDaiDienDuyet:
@@ -141,6 +162,8 @@ namespace Application.Services.StateMachineTinTuyenDung
                         throw new ApiException("Chỉ Người đại diện được duyệt tin do Nhân sự đăng.", 403);
                     if (_entity.DoanhNghiepId != ctx.DoanhNghiepId)
                         throw new ApiException("Bạn không có quyền duyệt tin của doanh nghiệp khác.", 403);
+                    if (_entity.NguoiDangTin?.VaiTro != VaiTroNguoiDung.NHAN_SU)
+                        throw new ApiException("Bước Người đại diện chỉ áp dụng cho tin Nhân sự đăng.");
                     break;
 
                 // HR thao tác tin: NguoiDaiDien theo công ty, NhanSu chỉ tin mình đăng
@@ -155,7 +178,7 @@ namespace Application.Services.StateMachineTinTuyenDung
                     }
                     else if (ctx.VaiTro == VaiTroNguoiDung.NHAN_SU)
                     {
-                        if (_entity.NguoiDangTinId != ctx.Id)
+                        if (_entity.NguoiDangTinId != ctx.Id || _entity.DoanhNghiepId != ctx.DoanhNghiepId)
                             throw new ApiException("Bạn chỉ được xử lý tin do mình đăng.", 403);
                     }
                     else
@@ -186,30 +209,25 @@ namespace Application.Services.StateMachineTinTuyenDung
         {
             // Nhap: soạn thảo, gửi duyệt vào funnel (nộp lại sau khi bị từ chối cũng về funnel)
             _machine.Configure(TrangThaiTinTuyenDung.Nhap)
-                .Permit(TriggerTinTuyenDung.GuiDuyet, TrangThaiTinTuyenDung.ChoDuyetHeThong);
+                .PermitDynamic(TriggerTinTuyenDung.GuiDuyet, InitialReviewState);
 
-            // Funnel hệ thống: pass -> công khai | nghi vấn -> Admin | dính luật cứng -> từ chối
-            // Admin được phép cứu tin kẹt ở ChoDuyetHeThong (fallback khi funnel lỗi/job chưa chạy).
+            // Filtering happens only after representative approval for HR posts.
             _machine.Configure(TrangThaiTinTuyenDung.ChoDuyetHeThong)
                 .OnEntryAsync(OnTransitedAsync)
+                .PermitReentry(TriggerTinTuyenDung.GuiDuyet)
                 .Permit(TriggerTinTuyenDung.HeThongTuDongDuyet, TrangThaiTinTuyenDung.DangTuyen)
                 .Permit(TriggerTinTuyenDung.HeThongDuyetChoNguoiDaiDien, TrangThaiTinTuyenDung.ChoNguoiDaiDienDuyet)
-                .Permit(TriggerTinTuyenDung.PhatHienNghiVan, TrangThaiTinTuyenDung.ChoAdminDuyet)
-                .Permit(TriggerTinTuyenDung.HeThongTuChoi, TrangThaiTinTuyenDung.TuChoi)
-                .Permit(TriggerTinTuyenDung.AdminDuyet, TrangThaiTinTuyenDung.DangTuyen)
-                .Permit(TriggerTinTuyenDung.AdminDuyetChoNguoiDaiDien, TrangThaiTinTuyenDung.ChoNguoiDaiDienDuyet)
-                .Permit(TriggerTinTuyenDung.AdminTuChoi, TrangThaiTinTuyenDung.TuChoi);
+                .Permit(TriggerTinTuyenDung.HeThongChuyenAdmin, TrangThaiTinTuyenDung.ChoAdminDuyet);
 
-            // Admin kiểm duyệt tay các tin vùng xám
+            // Only flagged posts require an Admin's explicit decision; the filter is advisory here.
             _machine.Configure(TrangThaiTinTuyenDung.ChoAdminDuyet)
                 .OnEntryAsync(OnTransitedAsync)
                 .Permit(TriggerTinTuyenDung.AdminDuyet, TrangThaiTinTuyenDung.DangTuyen)
-                .Permit(TriggerTinTuyenDung.AdminDuyetChoNguoiDaiDien, TrangThaiTinTuyenDung.ChoNguoiDaiDienDuyet)
                 .Permit(TriggerTinTuyenDung.AdminTuChoi, TrangThaiTinTuyenDung.TuChoi);
 
             _machine.Configure(TrangThaiTinTuyenDung.ChoNguoiDaiDienDuyet)
                 .OnEntryAsync(OnTransitedAsync)
-                .Permit(TriggerTinTuyenDung.NguoiDaiDienDuyet, TrangThaiTinTuyenDung.DangTuyen)
+                .Permit(TriggerTinTuyenDung.NguoiDaiDienDuyet, TrangThaiTinTuyenDung.ChoDuyetHeThong)
                 .Permit(TriggerTinTuyenDung.NguoiDaiDienTuChoi, TrangThaiTinTuyenDung.TuChoi);
 
             // Đang tuyển: tạm dừng / đóng / hết hạn / bị khóa
@@ -223,8 +241,8 @@ namespace Application.Services.StateMachineTinTuyenDung
             // Tạm dừng: mở lại / đóng luôn / hết hạn khi đang dừng / bị khóa
             _machine.Configure(TrangThaiTinTuyenDung.TamDung)
                 .OnEntryAsync(OnTransitedAsync)
-                .Permit(TriggerTinTuyenDung.GuiDuyet, TrangThaiTinTuyenDung.ChoDuyetHeThong)
-                .Permit(TriggerTinTuyenDung.MoLaiTin, TrangThaiTinTuyenDung.DangTuyen)
+                .PermitDynamic(TriggerTinTuyenDung.GuiDuyet, InitialReviewState)
+                .PermitDynamic(TriggerTinTuyenDung.MoLaiTin, InitialReviewState)
                 .Permit(TriggerTinTuyenDung.DongTin, TrangThaiTinTuyenDung.DaDong)
                 .Permit(TriggerTinTuyenDung.HetHanNop, TrangThaiTinTuyenDung.HetHan)
                 .Permit(TriggerTinTuyenDung.AdminCuongCheKhoa, TrangThaiTinTuyenDung.BiKhoa);
@@ -232,12 +250,25 @@ namespace Application.Services.StateMachineTinTuyenDung
             // Bị từ chối: HR sửa rồi gửi duyệt lại
             _machine.Configure(TrangThaiTinTuyenDung.TuChoi)
                 .OnEntryAsync(OnTransitedAsync)
-                .Permit(TriggerTinTuyenDung.GuiDuyet, TrangThaiTinTuyenDung.ChoDuyetHeThong);
+                .PermitDynamic(TriggerTinTuyenDung.GuiDuyet, InitialReviewState);
 
             // Terminal
             _machine.Configure(TrangThaiTinTuyenDung.HetHan).OnEntryAsync(OnTransitedAsync);
             _machine.Configure(TrangThaiTinTuyenDung.DaDong).OnEntryAsync(OnTransitedAsync);
             _machine.Configure(TrangThaiTinTuyenDung.BiKhoa).OnEntryAsync(OnTransitedAsync);
+        }
+
+        private TrangThaiTinTuyenDung InitialReviewState() => _entity.NguoiDangTin?.VaiTro switch
+        {
+            VaiTroNguoiDung.NHAN_SU => TrangThaiTinTuyenDung.ChoNguoiDaiDienDuyet,
+            VaiTroNguoiDung.NGUOI_DAI_DIEN => TrangThaiTinTuyenDung.ChoDuyetHeThong,
+            _ => throw new ApiException("Không xác định được vai trò người đăng tin.")
+        };
+
+        private void EnsureRepresentativeApproval()
+        {
+            if (_entity.NguoiDangTin?.VaiTro != VaiTroNguoiDung.NGUOI_DAI_DIEN && !_entity.NguoiDaiDienDaDuyet)
+                throw new ApiException("Phải được Người đại diện duyệt trước khi chạy bộ lọc.");
         }
 
         private static string GetDefaultNote(TriggerTinTuyenDung trigger) => trigger.ToString();

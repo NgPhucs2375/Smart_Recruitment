@@ -17,6 +17,8 @@ namespace Infrastructure.Persistence.Contexts
     {
         private readonly IDateTimeService _dateTime;
         private readonly IAuthenticatedUserService _authenticatedUser;
+        private readonly List<Func<CancellationToken, Task>> _afterSave = new();
+        public void EnqueueAfterSave(Func<CancellationToken, Task> action) => _afterSave.Add(action);
 
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options, IDateTimeService dateTime, IAuthenticatedUserService authenticatedUser) : base(options)
         {
@@ -50,7 +52,7 @@ namespace Infrastructure.Persistence.Contexts
         public DbSet<Message> Messages { get; set; }
         public DbSet<MarketingBanner> MarketingBanners { get; set; }
 
-        public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = new CancellationToken())
+        public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = new CancellationToken())
         {
             foreach (var entry in ChangeTracker.Entries<AuditableBaseEntity>())
             {
@@ -83,7 +85,22 @@ namespace Infrastructure.Persistence.Contexts
                     }
                 }
             }
-            return base.SaveChangesAsync(cancellationToken);
+            int result;
+            try { result = await base.SaveChangesAsync(cancellationToken); }
+            catch (DbUpdateConcurrencyException)
+            {
+                _afterSave.Clear();
+                throw new Application.Exceptions.ApiException("Tin đã được thay đổi bởi một thao tác khác. Vui lòng tải lại.", 409);
+            }
+            catch { _afterSave.Clear(); throw; }
+            var actions = _afterSave.ToArray();
+            _afterSave.Clear();
+            foreach (var action in actions)
+            {
+                // Delivery is best-effort; a transport failure must not undo persisted state.
+                try { await action(cancellationToken); } catch (Exception) { }
+            }
+            return result;
         }
 
         private static DateTime NormalizeToUtc(DateTime value) => value.Kind switch

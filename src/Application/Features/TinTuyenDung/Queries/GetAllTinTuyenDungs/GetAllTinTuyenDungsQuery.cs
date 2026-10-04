@@ -25,6 +25,7 @@ namespace Application.Features.TinTuyenDung.Queries.GetAllTinTuyenDungs
         public string EmploymentType { get; set; }
         public string WorkMode { get; set; }
         public int? DoanhNghiepId { get; set; }
+        public TrangThaiTinTuyenDung? TrangThai { get; set; }
     }
 
     public class GetAllTinTuyenDungsQueryHandler(
@@ -42,16 +43,21 @@ namespace Application.Features.TinTuyenDung.Queries.GetAllTinTuyenDungs
 
             if (ctx.VaiTro == VaiTroNguoiDung.NHAN_SU)
             {
-                query = query.Where(t => t.NguoiDangTinId == ctx.Id);
+                query = query.Where(t => t.NguoiDangTinId == ctx.Id && t.DoanhNghiepId == ctx.DoanhNghiepId);
             }
             else if (ctx.VaiTro == VaiTroNguoiDung.NGUOI_DAI_DIEN)
             {
                 query = query.Where(t => t.DoanhNghiepId == ctx.DoanhNghiepId);
             }
-            else // UNG_VIEN: chỉ tin công khai
+            else if (ctx.VaiTro != VaiTroNguoiDung.QUAN_TRI_VIEN)
             {
-                query = query.Where(t => t.TrangThai == TrangThaiTinTuyenDung.DangTuyen);
+                query = query.Where(t =>
+                    t.TrangThai == TrangThaiTinTuyenDung.DangTuyen
+                    && (t.NgayHetHan == null || t.NgayHetHan > DateTime.UtcNow));
             }
+
+            if (request.TrangThai.HasValue)
+                query = query.Where(t => t.TrangThai == request.TrangThai.Value);
 
             if (request.DoanhNghiepId.HasValue)
             {
@@ -132,6 +138,17 @@ namespace Application.Features.TinTuyenDung.Queries.GetAllTinTuyenDungs
                         .ToList(),
                     SoLuongUngVien = t.DonUngTuyens.Count,
                     Created = t.Created,
+                    LastModified = t.LastModified ?? t.Created,
+                    KetQuaSangLoc = ctx.VaiTro == VaiTroNguoiDung.UNG_VIEN ? "" : t.KetQuaSangLoc,
+                    NguoiDaiDienDaDuyet = t.NguoiDaiDienDaDuyet,
+                    VaiTroNguoiDang = t.NguoiDangTin.VaiTro.ToString(),
+                    GhiChuKiemDuyet = ctx.VaiTro == VaiTroNguoiDung.UNG_VIEN ? "" : context.Notifications
+                        .Where(n => n.ReferenceType == "TinTuyenDung" && n.ReferenceId == t.Id)
+                        .OrderByDescending(n => n.Id).Select(n => n.NoiDung).FirstOrDefault() ?? "",
+                    KyNangYeuCaus = t.KyNangTinTuyenDungs.Select(k => new JobSkillViewModel
+                    {
+                        KyNangId = k.KyNangId, TenKyNang = k.KyNang.TenKyNang, MucDoYeuCau = (int)k.MucDoYeuCau
+                    }).ToList(),
                     WorkMode = t.PhuongThucLamViec.ToString(),
                     Level = InferLevel(t.TieuDe, t.KinhNghiemYeuCau),
                     EmploymentType = InferEmploymentType(t.YeuCauCongViec, t.MoTaCongViec)

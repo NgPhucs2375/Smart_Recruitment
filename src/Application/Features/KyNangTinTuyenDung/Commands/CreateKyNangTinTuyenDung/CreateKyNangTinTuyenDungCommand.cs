@@ -92,6 +92,8 @@ public class CreateKyNangTinTuyenDungCommandHandler(
             MucDoYeuCau = request.MucDoYeuCau
         };
 
+        await Application.Services.StateMachineTinTuyenDung.JobDraft.PrepareSkillEditAsync(context, request.TinTuyenDungId, ctx, cancellationToken);
+
         await context.KyNangTinTuyenDungs.AddAsync(
             entity,
             cancellationToken);
