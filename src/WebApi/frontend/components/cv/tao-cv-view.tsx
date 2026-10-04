@@ -199,8 +199,7 @@ export function TaoCvView() {
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  // exportingPdf giữ để tương thích UI hiện tại; xuất PDF giờ dùng window.print() nên không cần loading async.
-  const [exportingPdf] = useState(false);
+  const [exportingPdf, setExportingPdf] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [importSessionId, setImportSessionId] = useState<string | null>(null);
   const [versions, setVersions] = useState<CvVersionVm[]>([]);
@@ -668,10 +667,16 @@ export function TaoCvView() {
   };
 
   const handleExportPdf = async () => {
-    // Xuất PDF: dùng window.print() + CSS @media print (chữ thật, nét, @page A4).
-    // Fallback cách cũ (image PDF) giữ trong manual-cv-pdf.ts cho trường hợp cần.
-    await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
-    window.print();
+    if (exportingPdf) return;
+    setExportingPdf(true);
+    try {
+      const { printManualCv } = await import("@/features/tao-cv/manual/manual-cv-print");
+      await printManualCv(cvData);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Không thể xuất PDF từ nội dung CV hiện tại.");
+    } finally {
+      setExportingPdf(false);
+    }
   };
 
   const fillFromHoSo = () => {

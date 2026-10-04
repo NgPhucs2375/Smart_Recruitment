@@ -282,6 +282,19 @@ function AgentDisclaimer(props: HTMLAttributes<HTMLDivElement>) {
 }
 
 const PreviewPanel = memo(function PreviewPanel({ data, zoom, setZoom, onTemplateChange }: { data: CvFormData; zoom: number; setZoom: Dispatch<SetStateAction<number>>; onTemplateChange: (templateId: string) => void }) {
+  const [exportingPdf, setExportingPdf] = useState(false);
+  const exportPdf = async () => {
+    if (exportingPdf) return;
+    setExportingPdf(true);
+    try {
+      const { printManualCv } = await import("@/features/tao-cv/manual/manual-cv-print");
+      await printManualCv(data);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Không thể xuất PDF từ nội dung CV hiện tại.");
+    } finally {
+      setExportingPdf(false);
+    }
+  };
   const template = TEMPLATE_REGISTRY[data.templateId];
   return (
      <Card className="cv-preview" data-cv-surface="preview">
@@ -294,7 +307,7 @@ const PreviewPanel = memo(function PreviewPanel({ data, zoom, setZoom, onTemplat
            </SelectContent>
          </Select>
          <div className="cv-zoom"><Button variant="ghost" size="icon-sm" type="button" aria-label="Thu nhỏ" disabled={zoom <= 0.8} onClick={() => setZoom((value) => Math.max(0.8, +(value - 0.1).toFixed(2)))}><ZoomOut className="size-4" /></Button><span>{Math.round(zoom * 100)}%</span><Button variant="ghost" size="icon-sm" type="button" aria-label="Phóng to" disabled={zoom >= 1.2} onClick={() => setZoom((value) => Math.min(1.2, +(value + 0.1).toFixed(2)))}><ZoomIn className="size-4" /></Button></div>
-         <Button variant="outline" size="sm" type="button" onClick={() => window.print()}><FileDown className="size-4" /> PDF</Button>
+         <Button variant="outline" size="sm" type="button" disabled={exportingPdf || !hasPreviewContent(data)} onClick={() => void exportPdf()}><FileDown className="size-4" /> {exportingPdf ? "Đang chuẩn bị" : "PDF"}</Button>
       </div>
       <div className="cv-preview__canvas">
         {hasPreviewContent(data) ? <div className="cv-document" style={{ width: `${100 / zoom}%`, transform: `scale(${zoom})` }}><CvPreview data={data} /></div> : <EmptyPreview />}
