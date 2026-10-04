@@ -85,23 +85,29 @@ internal sealed class CandidateTools
         CancellationToken cancellationToken = default)
         => await AnalyzeCvAsync(cvId, cancellationToken);
 
-    [Description("Tìm việc làm công khai theo từ khóa, địa điểm, lương hoặc hình thức làm việc. Chỉ trả tin đang tuyển.")]
+    [Description("Tìm việc làm công khai theo từ khóa, địa điểm, lương hoặc hình thức làm việc. Chỉ trả tin đang tuyển. Kết quả được phân trang; khi người dùng yêu cầu xem thêm, tăng pageNumber và giữ nguyên các bộ lọc.")]
     public Task<PagedResponse<List<GetAllTinTuyenDungsViewModel>>> SearchJobsAsync(
         [Description("Từ khóa chức danh, kỹ năng hoặc doanh nghiệp.")] string? keyword = null,
         [Description("Địa điểm làm việc.")] string? location = null,
         [Description("Mức lương tối thiểu mong muốn.")] decimal? salaryMin = null,
         [Description("Mức lương tối đa mong muốn.")] decimal? salaryMax = null,
         [Description("Số kết quả, từ 1 đến 20.")] int topN = 10,
+        [Description("Số trang, bắt đầu từ 1. Khi người dùng yêu cầu xem thêm, tăng số trang và giữ nguyên các bộ lọc.")] int pageNumber = 1,
         CancellationToken cancellationToken = default)
-        => _sender.Send(new GetAllTinTuyenDungsQuery
+    {
+        var pageSize = Math.Clamp(topN, 1, 20);
+        var page = Math.Clamp(pageNumber, 1, 1000);
+
+        return _sender.Send(new GetAllTinTuyenDungsQuery
         {
-            _start = 0,
-            _end = Math.Clamp(topN, 1, 20),
+            _start = (page - 1) * pageSize,
+            _end = page * pageSize,
             _filter = keyword,
             Location = location,
             SalaryMin = salaryMin,
             SalaryMax = salaryMax
         }, cancellationToken);
+    }
 
     [Description("Đọc chi tiết JD của một tin tuyển dụng công khai theo id.")]
     public Task<Response<GetAllTinTuyenDungsViewModel>> GetJobDetailsAsync(
@@ -109,26 +115,24 @@ internal sealed class CandidateTools
         CancellationToken cancellationToken = default)
         => _sender.Send(new GetTinTuyenDungByIdQuery { Id = tinTuyenDungId }, cancellationToken);
 
-    [Description("Lấy các việc làm phù hợp nhất với CV mặc định hoặc CV được chọn, kèm điểm match, kỹ năng khớp và kỹ năng còn thiếu.")]
+    [Description("Lấy các việc làm phù hợp với CV mặc định hoặc CV được chọn, kèm điểm match. Kết quả được phân trang sau khi xếp hạng; khi người dùng yêu cầu xem thêm, tăng pageNumber và giữ nguyên cvId.")]
     public async Task<Response<List<SuggestedJobViewModel>>> GetJobRecommendationsAsync(
         [Description("ID CV cần so khớp, bỏ trống để dùng CV mặc định.")] int? cvId = null,
+        [Description("Số trang, bắt đầu từ 1. Khi người dùng yêu cầu xem thêm, tăng số trang.")] int pageNumber = 1,
         CancellationToken cancellationToken = default)
     {
-        var response = await _sender.Send(new GetSuggestedJobsForCvQuery { CvUngVienId = cvId, TopN = 10 }, cancellationToken);
+        var response = await _sender.Send(new GetSuggestedJobsForCvQuery
+        {
+            CvUngVienId = cvId,
+            TopN = 10,
+            PageNumber = Math.Clamp(pageNumber, 1, 1000),
+            PageSize = 10,
+            MinimumScore = 0.50f,
+        }, cancellationToken);
         if (response.Succeeded && response.Data is not null)
         {
-            // Keep weak matches out when stronger recommendations exist.
-            var visible = response.Data.Where(job => job.DiemPhuHop >= 0.33f).ToList();
-            if (visible.Count == 0)
-                visible = response.Data.Take(3).ToList();
-
-            _sharedState.Set("jobRecommendations", visible);
+            _sharedState.Set("jobRecommendations", response.Data);
             _sharedState.Set("lastAction", "jobRecommendationsLoaded");
-            return new Response<List<SuggestedJobViewModel>>(
-                visible,
-                visible.Any(job => job.DiemPhuHop >= 0.33f)
-                    ? "Đã lọc các tin có mức phù hợp từ trung bình trở lên."
-                    : "Chưa có tin đạt mức phù hợp trung bình trở lên; đây là các kết quả gần nhất để tham khảo.");
         }
 
         return response;
@@ -140,7 +144,7 @@ internal sealed class CandidateTools
         [Description("ID CV cần so khớp, bỏ trống để dùng CV mặc định.")] int? cvId = null,
         CancellationToken cancellationToken = default)
     {
-        var matches = await GetJobRecommendationsAsync(cvId, cancellationToken);
+        var matches = await GetJobRecommendationsAsync(cvId, cancellationToken: cancellationToken);
         var match = matches.Data?.FirstOrDefault(x => x.TinTuyenDungId == tinTuyenDungId);
         return match == null
             ? new Response<SuggestedJobViewModel>("Chưa có kết quả match cho tin tuyển dụng này.")
