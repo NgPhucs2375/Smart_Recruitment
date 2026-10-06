@@ -1,12 +1,11 @@
+using System.Text.Json;
 using Application.Interfaces;
+using Application.Interfaces.Repositories;
 using Application.Services.StateMachineDonUngTuyen;
 using Application.Wrappers;
-using Domain.Entities;
 using Domain.Enums;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
-using DonUngTuyenEntity = global::Domain.Entities.DonUngTuyen;
-using CVUngVienEntity = global::Domain.Entities.CVUngVien;
 
 namespace Application.Features.DonUngTuyen.Commands.CreateDonUngTuyen;
 
@@ -15,101 +14,52 @@ public class CreateDonUngTuyenCommand : IRequest<Response<int>>
     public int TinTuyenDungId { get; set; }
     public int CVUngVienId { get; set; }
 }
-
-public class CreateDonUngTuyenCommandHandler(
-    IApplicationDbContext context,
-    ICurrentNguoiDungService current,
-    IDonUngTuyenWorkflowService workflow)
+public class CreateDonUngTuyenCommandHandler(IApplicationDbContext context, ICurrentNguoiDungService current,
+    IDonUngTuyenWorkflowService workflow, ICvReadMapper mapper)
     : IRequestHandler<CreateDonUngTuyenCommand, Response<int>>
 {
-    public async Task<Response<int>> Handle(CreateDonUngTuyenCommand request, CancellationToken cancellationToken)
+    public async Task<Response<int>> Handle(CreateDonUngTuyenCommand request, CancellationToken ct)
     {
-        var cv = await context.CVUngViens
-            .Include(x => x.HoSoUngVien)
-            .FirstOrDefaultAsync(x => x.Id == request.CVUngVienId, cancellationToken);
-        if (cv == null) return new Response<int>("CV không tồn tại.");
-
-        var job = await context.TinTuyenDungs
-            .AsNoTracking()
-            .FirstOrDefaultAsync(x => x.Id == request.TinTuyenDungId, cancellationToken);
-        if (job == null) return new Response<int>("Tin tuyển dụng không tồn tại.");
-
-        // HoSo suy ra từ CV (DonUngTuyen không còn HoSoUngVienId trực tiếp).
-        if (cv.HoSoUngVien == null)
-        {
-            return new Response<int>("CV không gắn với hồ sơ ứng viên hợp lệ.");
-        }
-
-        // Chỉ chính chủ CV (UNG_VIEN) mới được nộp đơn.
-        var ctx = await current.ResolveAsync();
-        if (ctx.VaiTro == VaiTroNguoiDung.UNG_VIEN && cv.HoSoUngVien.NguoiDungId != ctx.Id)
-        {
-            return new Response<int>("CV không thuộc về ứng viên.");
-        }
-
-        // Gate CV: nhánh thủ công không có state/vòng đời, chỉ cần chưa bị xóa.
-        var cvError = ValidateCVSanSangNop(cv);
-        if (cvError != null) return new Response<int>(cvError);
-
-        if (job.TrangThai != TrangThaiTinTuyenDung.DangTuyen
-            || (job.NgayHetHan.HasValue && job.NgayHetHan.Value <= DateTime.UtcNow))
-        {
+        var user = await current.ResolveAsync();
+        if (user.VaiTro != VaiTroNguoiDung.UNG_VIEN) return new Response<int>("Chỉ ứng viên được nộp hồ sơ.");
+        var cv = await context.CVUngViens.AsNoTracking().Include(x => x.HoSoUngVien)
+            .Include(x => x.ThongTinLienHe).Include(x => x.HocVans).Include(x => x.KyNangs).Include(x => x.ChungChis)
+            .Include(x => x.KinhNghiems).ThenInclude(x => x.KyNangs)
+            .Include(x => x.DuAns).ThenInclude(x => x.CongNghes)
+            .FirstOrDefaultAsync(x => x.Id == request.CVUngVienId && !x.IsDaXoa && x.HoSoUngVien.NguoiDungId == user.Id, ct);
+        if (cv == null) return new Response<int>("Không tìm thấy CV thuộc về bạn.");
+        var job = await context.TinTuyenDungs.AsNoTracking().FirstOrDefaultAsync(x => x.Id == request.TinTuyenDungId, ct);
+        if (job == null || job.TrangThai != TrangThaiTinTuyenDung.DangTuyen || !Domain.Common.RecruitmentDeadline.IsOpen(job.NgayHetHan))
             return new Response<int>("Tin tuyển dụng không còn nhận hồ sơ.");
-        }
-
-        if (await context.DonUngTuyens.AnyAsync(x => x.TinTuyenDungId == request.TinTuyenDungId && x.CVUngVien.HoSoUngVienId == cv.HoSoUngVienId, cancellationToken))
+        var profileId = cv.HoSoUngVienId;
+        if (await AlreadyAppliedAsync()) return new Response<int>("Bạn đã nộp đơn cho tin này.");
+        var version = await context.CVPhienBans.AsNoTracking().Where(x => x.CVUngVienId == cv.Id)
+            .OrderByDescending(x => x.SoPhienBan).Select(x => (int?)x.Id).FirstOrDefaultAsync(ct);
+        var application = new Domain.Entities.DonUngTuyen
         {
-            return new Response<int>("Ứng viên đã nộp đơn cho tin này.");
-        }
-
-        var latestVersionId = await context.CVPhienBans.AsNoTracking()
-            .Where(x => x.CVUngVienId == cv.Id)
-            .OrderByDescending(x => x.SoPhienBan)
-            .Select(x => (int?)x.Id)
-            .FirstOrDefaultAsync(cancellationToken);
-
-        var entity = new DonUngTuyenEntity
-        {
-            TinTuyenDungId = request.TinTuyenDungId,
-            CVUngVienId = request.CVUngVienId,
-            CVPhienBanId = latestVersionId,
-            // State machine: đơn mới bắt đầu ở KhoiTao, CV đã pass gate SanSang ở trên
-            // nên tiếp nhận hệ thống cho vào hàng đợi ChoXuLy ngay.
-            TrangThai = TrangThaiDonUngTuyen.KhoiTao,
-            NgayUngTuyen = DateTime.UtcNow
+            TinTuyenDungId = job.Id, CVUngVienId = cv.Id, CVPhienBanId = version, HoSoUngVienId = profileId,
+            CvSnapshotJson = JsonSerializer.Serialize(mapper.Map(cv)), NgayUngTuyen = DateTime.UtcNow,
+            TrangThai = TrangThaiDonUngTuyen.KhoiTao, GhiChu = ""
         };
-
-        await context.DonUngTuyens.AddAsync(entity, cancellationToken);
-
-        var machine = new DonUngTuyenStateMachine(workflow, current, entity);
-        await machine.FireSystemAsync(
-            TriggerDonUngTuyen.XuLyHoSoThanhCong,
-            "Hồ sơ hợp lệ, vào hàng đợi xử lý.",
-            cancellationToken,
-            runSideEffects: false);
-
-        await context.SaveChangesAsync(cancellationToken);
-
-        // The application ID must exist before the notification is created.
-        await workflow.HandleSideEffectsAsync(
-            entity,
-            TriggerDonUngTuyen.XuLyHoSoThanhCong,
-            "Hồ sơ hợp lệ, vào hàng đợi xử lý.",
-            cancellationToken);
-
-        await context.SaveChangesAsync(cancellationToken);
-
-        return new Response<int>(data: entity.Id, message: "Nộp đơn ứng tuyển thành công.");
-    }
-
-    /// <summary>
-    /// Gate nộp đơn: CV thủ công (snapshot JSON, không state) chỉ cần chưa bị xóa.
-    /// Trả null khi CV hợp lệ để nộp.
-    /// </summary>
-    private static string ValidateCVSanSangNop(CVUngVienEntity cv)
-    {
-        if (cv.IsDaXoa)
-            return "CV đã bị xóa, vui lòng chọn CV khác.";
-        return null;
+        try
+        {
+            return await context.InTransactionAsync(async () =>
+            {
+                context.DonUngTuyens.Add(application);
+                var machine = new DonUngTuyenStateMachine(workflow, current, application);
+                await machine.FireSystemAsync(TriggerDonUngTuyen.XuLyHoSoThanhCong, "Hồ sơ hợp lệ, chờ nhà tuyển dụng xử lý.", ct, runSideEffects: false);
+                await context.SaveChangesAsync(ct);
+                await workflow.HandleSideEffectsAsync(application, TriggerDonUngTuyen.XuLyHoSoThanhCong, "Hồ sơ hợp lệ, chờ nhà tuyển dụng xử lý.", ct);
+                await context.SaveChangesAsync(ct);
+                return new Response<int>(application.Id, "Đã nộp hồ sơ. Bạn có thể theo dõi kết quả tại Việc đã ứng tuyển.");
+            }, ct);
+        }
+        catch (DbUpdateException)
+        {
+            if (await AlreadyAppliedAsync()) return new Response<int>("Bạn đã nộp đơn cho tin này.");
+            throw;
+        }
+        Task<bool> AlreadyAppliedAsync() => context.DonUngTuyens.AsNoTracking().AnyAsync(d => d.TinTuyenDungId == job.Id &&
+            (d.HoSoUngVienId == profileId || (d.HoSoUngVienId == null && d.CVUngVien.HoSoUngVienId == profileId)), ct);
     }
 }

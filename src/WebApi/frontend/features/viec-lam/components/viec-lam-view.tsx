@@ -118,6 +118,9 @@ function ViecLamContent() {
     salaryMin: numParam(searchParams.get("salaryMin")),
     salaryMax: numParam(searchParams.get("salaryMax")),
     workMode: searchParams.get("workMode") ?? undefined,
+    categoryId: numParam(searchParams.get("categoryId")),
+    skillIds: (searchParams.get("skillIds") ?? "").split(",").map(Number).filter(n => Number.isInteger(n) && n > 0),
+    matchAllSkills: searchParams.get("matchAllSkills") === "1",
   }));
   const [previewJob, setPreviewJob] = useState<Job | null>(null);
 
@@ -153,6 +156,9 @@ function ViecLamContent() {
     if (filters.salaryMin !== undefined) params.set("salaryMin", String(filters.salaryMin));
     if (filters.salaryMax !== undefined) params.set("salaryMax", String(filters.salaryMax));
     if (filters.workMode) params.set("workMode", filters.workMode);
+    if (filters.categoryId) params.set("categoryId", String(filters.categoryId));
+    if (filters.skillIds?.length) params.set("skillIds", filters.skillIds.join(","));
+    if (filters.matchAllSkills) params.set("matchAllSkills", "1");
     if (page > 1) params.set("page", String(page));
     if (showSavedOnly) params.set("saved", "1");
     const query = params.toString();
@@ -165,6 +171,9 @@ function ViecLamContent() {
     filters.salaryMin,
     filters.salaryMax,
     filters.workMode,
+    filters.categoryId,
+    filters.skillIds,
+    filters.matchAllSkills,
     page,
     showSavedOnly,
     router,

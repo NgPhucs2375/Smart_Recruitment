@@ -13,6 +13,11 @@ namespace Application.Features.DonUngTuyen.Queries.GetAllDonUngTuyens
         public TrangThaiDonUngTuyen TrangThai { get; set; }
         public string GhiChu { get; set; }
         public System.DateTime? NgayUngTuyen { get; set; }
+        public System.DateTime? LastModified { get; set; }
+        public string TenCvDaNop { get; set; }
+        public string KetLuan { get; set; }
+        public string PhanHoi { get; set; }
+        public Application.DTOs.CV.CvDetailDto CvDaNop { get; set; }
         // Thông tin tin tuyển dụng (join để FE khỏi N+1)
         public string TieuDe { get; set; }
         public string TenDoanhNghiep { get; set; }

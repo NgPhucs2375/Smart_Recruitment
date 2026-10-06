@@ -13,7 +13,7 @@ import {
 import { CvPreview } from "@/components/cv/cv-preview";
 import { defaultCvData } from "@/features/tao-cv/constants";
 import { manualCvDetailToForm } from "@/features/tao-cv/manual";
-import { cvApi } from "@/lib/api/cv-api";
+import { cvApi, normalizeCvDetail } from "@/lib/api/cv-api";
 import type { CvFormData } from "@/lib/types";
 
 type ApplicationResponse = {
@@ -135,7 +135,18 @@ export default function HrXemCvPage() {
       setLoadError("");
       // Bảo đảm mọi đường dẫn mở CV đều ghi nhận XemDon trên server.
       await markApplicationViewed();
-      const detail = await cvApi.getById(cvId);
+       let submitted: unknown;
+       if (donId > 0) {
+         const token = localStorage.getItem("access_token");
+         const response = await fetch(`/api/dotnet/donungtuyens/show/${donId}`, { headers: { Authorization: `Bearer ${token ?? ""}` }, cache: "no-store" });
+         const body = await response.json();
+         if (!response.ok || !(body.Succeeded ?? body.succeeded)) throw new Error(body.Message ?? body.message ?? "Không đọc được hồ sơ đã nộp.");
+         const application = body.Data ?? body.data;
+         if (Number(application.CVUngVienId ?? application.cvUngVienId) !== cvId || Number(application.TinTuyenDungId ?? application.tinTuyenDungId) !== tinId)
+           throw new Error("CV không khớp với đơn ứng tuyển.");
+         submitted = application.CvDaNop ?? application.cvDaNop;
+       }
+       const detail = submitted ? normalizeCvDetail(submitted) : await cvApi.getById(cvId);
       const fresh = JSON.parse(JSON.stringify(defaultCvData)) as CvFormData;
       const form = manualCvDetailToForm(detail, fresh);
       setData(form);
@@ -147,7 +158,7 @@ export default function HrXemCvPage() {
     } finally {
       setLoading(false);
     }
-  }, [cvId, markApplicationViewed]);
+   }, [cvId, donId, tinId, markApplicationViewed]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect

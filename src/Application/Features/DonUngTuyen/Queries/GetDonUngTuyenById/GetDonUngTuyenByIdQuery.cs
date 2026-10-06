@@ -6,6 +6,8 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Text.Json;
+using Application.DTOs.CV;
 
 namespace Application.Features.DonUngTuyen.Queries.GetDonUngTuyenById
 {
@@ -38,14 +40,14 @@ namespace Application.Features.DonUngTuyen.Queries.GetDonUngTuyenById
 
             var ctx = await current.ResolveAsync();
 
-            var accessible = ctx.VaiTro == VaiTroNguoiDung.UNG_VIEN
+            var accessible = ctx.VaiTro == VaiTroNguoiDung.QUAN_TRI_VIEN || (ctx.VaiTro == VaiTroNguoiDung.UNG_VIEN
                 ? entity.CVUngVien != null &&
                   entity.CVUngVien.HoSoUngVien != null &&
                   entity.CVUngVien.HoSoUngVien.NguoiDungId == ctx.Id
                 : ctx.VaiTro == VaiTroNguoiDung.NGUOI_DAI_DIEN
                     ? entity.TinTuyenDung.DoanhNghiepId == ctx.DoanhNghiepId
                     : ctx.VaiTro == VaiTroNguoiDung.NHAN_SU &&
-                      entity.TinTuyenDung.NguoiDangTinId == ctx.Id;
+                      entity.TinTuyenDung.DoanhNghiepId == ctx.DoanhNghiepId);
 
             if (!accessible)
             {
@@ -63,7 +65,11 @@ namespace Application.Features.DonUngTuyen.Queries.GetDonUngTuyenById
                 CVUngVienId = entity.CVUngVienId,
                 CVPhienBanId = entity.CVPhienBanId,
                 TrangThai = entity.TrangThai,
-                GhiChu = entity.GhiChu
+                GhiChu = entity.GhiChu,
+                NgayUngTuyen = entity.NgayUngTuyen, LastModified = entity.LastModified ?? entity.Created,
+                TieuDe = entity.TinTuyenDung.TieuDe,
+                TenCvDaNop = entity.CVUngVien?.TenFile,
+                CvDaNop = string.IsNullOrEmpty(entity.CvSnapshotJson) ? null : JsonSerializer.Deserialize<CvDetailDto>(entity.CvSnapshotJson)
             };
 
             return new Response<GetAllDonUngTuyens.GetAllDonUngTuyensViewModel>(vm);

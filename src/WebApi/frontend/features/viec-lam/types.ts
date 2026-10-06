@@ -31,6 +31,9 @@ export type JobFilters = {
   salaryMin?: number;
   salaryMax?: number;
   workMode?: string;
+  categoryId?: number;
+  skillIds?: number[];
+  matchAllSkills?: boolean;
 };
 
 export type PagedResponse<T> = {

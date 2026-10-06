@@ -17,8 +17,8 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTr
 import { Slider } from "@/components/ui/slider";
 import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { locations } from "../constants";
+import { jobsApi } from "@/lib/api/jobs-api";
 
-const SKILL_SUGGESTIONS = ["React", "TypeScript", "Python", "Product Manager", "UI/UX", "Data Analyst"];
 
 // Định dạng "tr" cho nhãn khoảng lương tùy chỉnh (slider) trong Select.
 const fmtTriệu = (v?: number) => (v === undefined || v === null ? "" : `${Math.round(v / 1_000_000)}tr`);
@@ -30,9 +30,16 @@ interface JobFiltersBarProps {
 }
 
 export function JobFiltersBar({ filters, onFilterChange, totalJobs }: JobFiltersBarProps) {
-  const [query, setQuery] = React.useState(filters.keyword);
+  const query = filters.keyword;
+  const [options, setOptions] = React.useState<{ categories: { id: number; name: string }[]; skills: { id: number; name: string }[] }>({ categories: [], skills: [] });
+  const [optionError, setOptionError] = React.useState("");
+  React.useEffect(() => {
+    let active = true;
+    void jobsApi.getFilterOptions().then(value => { if (active) setOptions(value); }).catch(error => { if (active) setOptionError(error instanceof Error ? error.message : "Không tải được bộ lọc."); });
+    return () => { active = false; };
+  }, []);
   const [advancedOpen, setAdvancedOpen] = React.useState(false);
-  const suggestions = SKILL_SUGGESTIONS.filter((item) => item.toLowerCase().includes(query.toLowerCase()));
+  const suggestions = options.skills.map(s => s.name).filter(item => item.toLowerCase().includes(query.toLowerCase())).slice(0, 8);
   const updateFilter = (key: keyof JobFilters, value: string | number | undefined) => {
     onFilterChange({ ...filters, [key]: value } as JobFilters);
   };
@@ -69,6 +76,7 @@ export function JobFiltersBar({ filters, onFilterChange, totalJobs }: JobFilters
       salaryMin: undefined,
       salaryMax: undefined,
       workMode: undefined,
+      categoryId: undefined, skillIds: [], matchAllSkills: false,
     });
   };
 
@@ -79,6 +87,7 @@ export function JobFiltersBar({ filters, onFilterChange, totalJobs }: JobFilters
     filters.workMode,
     filters.salaryMin !== undefined,
     filters.salaryMax !== undefined,
+    filters.categoryId, filters.skillIds?.length,
   ].filter(Boolean).length;
 
   return (
@@ -87,8 +96,8 @@ export function JobFiltersBar({ filters, onFilterChange, totalJobs }: JobFilters
       <div className="flex flex-col gap-3 sm:flex-row">
         <div className="relative flex-1">
           <Command className="relative border border-border bg-muted shadow-none">
-            <CommandInput aria-label="Tìm việc, kỹ năng hoặc công ty" placeholder="Tìm việc, kỹ năng hoặc công ty..." value={query} onChange={(event) => { setQuery(event.target.value); updateFilter("keyword", event.target.value); }} />
-            {query && <CommandList className="absolute left-0 right-0 top-full z-20 mt-2 rounded-xl border border-border bg-popover shadow-xl"><CommandEmpty>Nhấn Enter để tìm “{query}”</CommandEmpty>{suggestions.map((item) => <CommandItem key={item} onClick={() => { setQuery(item); updateFilter("keyword", item); }}>{item}<Check className="ml-auto size-4 text-primary opacity-0 group-hover:opacity-100" /></CommandItem>)}</CommandList>}
+            <CommandInput aria-label="Tìm việc, kỹ năng hoặc công ty" placeholder="Tìm việc, kỹ năng hoặc công ty..." value={query} onChange={(event) => updateFilter("keyword", event.target.value)} />
+            {query && <CommandList className="absolute left-0 right-0 top-full z-20 mt-2 rounded-xl border border-border bg-popover shadow-xl"><CommandEmpty>Nhấn Enter để tìm “{query}”</CommandEmpty>{suggestions.map((item) => <CommandItem key={item} onClick={() => updateFilter("keyword", item)}>{item}<Check className="ml-auto size-4 text-primary opacity-0 group-hover:opacity-100" /></CommandItem>)}</CommandList>}
           </Command>
         </div>
         <Button
@@ -103,6 +112,20 @@ export function JobFiltersBar({ filters, onFilterChange, totalJobs }: JobFilters
 
       {/* Pill selects */}
       <div className="mt-4 flex flex-wrap items-center gap-2">
+        <Select value={String(filters.categoryId ?? "all")} onValueChange={value => updateFilter("categoryId", value === "all" ? undefined : Number(value))}>
+          <SelectTrigger aria-label="Ngành nghề" className="h-10 w-52 rounded-full"><SelectValue placeholder="Ngành nghề" /></SelectTrigger>
+          <SelectContent><SelectItem value="all">Tất cả ngành nghề</SelectItem>{options.categories.map(category => <SelectItem key={category.id} value={String(category.id)}>{category.name}</SelectItem>)}</SelectContent>
+        </Select>
+        <Select value="" onValueChange={value => {
+          const id = Number(value);
+          if (id > 0) onFilterChange({ ...filters, skillIds: [...(filters.skillIds ?? []), id] });
+        }}>
+          <SelectTrigger aria-label="Thêm bộ lọc kỹ năng" disabled={(filters.skillIds?.length ?? 0) >= 20} className="h-10 w-52 rounded-full"><SelectValue placeholder="Thêm kỹ năng" /></SelectTrigger>
+          <SelectContent>{options.skills.filter(skill => !filters.skillIds?.includes(skill.id)).map(skill => <SelectItem key={skill.id} value={String(skill.id)}>{skill.name}</SelectItem>)}</SelectContent>
+        </Select>
+        {(filters.skillIds ?? []).map(id => <Button key={id} variant="outline" size="sm" className="rounded-full" aria-label={`Bỏ kỹ năng ${options.skills.find(s => s.id === id)?.name ?? id}`} onClick={() => onFilterChange({ ...filters, skillIds: filters.skillIds?.filter(value => value !== id) })}>{options.skills.find(s => s.id === id)?.name ?? `#${id}`}<X className="size-3" /></Button>)}
+        {!!filters.skillIds?.length && <label className="flex items-center gap-2 text-xs"><input type="checkbox" checked={!!filters.matchAllSkills} onChange={event => onFilterChange({ ...filters, matchAllSkills: event.target.checked })} />Khớp tất cả kỹ năng</label>}
+        {optionError && <p role="alert" className="w-full text-sm text-destructive">{optionError}</p>}
         <span className="mr-1 hidden items-center gap-1.5 text-xs font-medium text-muted-foreground sm:inline-flex">
           <SlidersHorizontal className="h-3.5 w-3.5" /> Lọc theo
         </span>
@@ -150,7 +173,7 @@ export function JobFiltersBar({ filters, onFilterChange, totalJobs }: JobFilters
             <SheetHeader><SheetTitle>Bộ lọc nâng cao</SheetTitle><SheetDescription>Tinh chỉnh kết quả theo thu nhập và kỹ năng.</SheetDescription></SheetHeader>
             <div className="space-y-7 px-4 pb-6">
               <div><div className="mb-3 flex items-center justify-between"><label className="text-sm font-semibold">Khoảng lương mong muốn</label><span className="text-sm font-semibold text-primary">{filters.salaryMin ? `${filters.salaryMin / 1_000_000}tr` : "0"} - {filters.salaryMax ? `${filters.salaryMax / 1_000_000}tr` : "200tr+"}</span></div><Slider min={0} max={200_000_000} step={5_000_000} value={[filters.salaryMin ?? 0, filters.salaryMax ?? 200_000_000]} onValueChange={([salaryMin, salaryMax]) => onFilterChange({ ...filters, salaryMin: salaryMin || undefined, salaryMax: salaryMax === 200_000_000 ? undefined : salaryMax })} /></div>
-              <div><label className="mb-3 block text-sm font-semibold">Kỹ năng</label><div className="flex flex-wrap gap-2">{SKILL_SUGGESTIONS.map((skill) => <Button key={skill} variant="outline" size="sm" className="rounded-full" onClick={() => { setQuery(skill); updateFilter("keyword", skill); }}><Sparkles className="mr-1.5 size-3.5" />{skill}</Button>)}</div></div>
+              <div><label className="mb-3 block text-sm font-semibold">Kỹ năng</label><div className="flex flex-wrap gap-2">{options.skills.slice(0, 20).map(skill => <Button key={skill.id} variant={filters.skillIds?.includes(skill.id) ? "default" : "outline"} size="sm" className="rounded-full" onClick={() => onFilterChange({ ...filters, skillIds: filters.skillIds?.includes(skill.id) ? filters.skillIds.filter(id => id !== skill.id) : [...(filters.skillIds ?? []), skill.id] })}><Sparkles className="mr-1.5 size-3.5" />{skill.name}</Button>)}</div></div>
               <div><label className="mb-3 block text-sm font-semibold">Địa điểm</label><div className="grid grid-cols-2 gap-2">{locations.map((location) => <Button key={location} variant={filters.location === location ? "default" : "outline"} size="sm" className="justify-start rounded-xl" onClick={() => updateFilter("location", filters.location === location ? "" : location)}>{location}</Button>)}</div></div>
               <Button className="w-full rounded-xl" onClick={() => setAdvancedOpen(false)}>Áp dụng bộ lọc</Button>
             </div>

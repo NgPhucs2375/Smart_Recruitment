@@ -33,6 +33,8 @@ namespace Application.Features.DonUngTuyen.Commands.UpdateDonUngTuyen
                 return new Response<int>(
                     "Hành động này chỉ hệ thống được thực hiện.");
             }
+            if (request.Trigger == TriggerDonUngTuyen.TuChoi && string.IsNullOrWhiteSpace(request.GhiChu))
+                return new Response<int>("Vui lòng nhập lý do từ chối hồ sơ.");
 
             var entity = await context.DonUngTuyens
                 // DbContext dùng NoTracking mặc định; transition state machine phải
@@ -80,10 +82,7 @@ namespace Application.Features.DonUngTuyen.Commands.UpdateDonUngTuyen
                 entity.NguoiXuLyId = ctx.Id;
             }
 
-            await context.SaveChangesAsync(
-                cancellationToken);
-
-            // Persist the state before publishing the notification/realtime event.
+            // State and notification rows are committed together; delivery runs after SaveChanges.
             await workflow.HandleSideEffectsAsync(
                 entity,
                 request.Trigger,

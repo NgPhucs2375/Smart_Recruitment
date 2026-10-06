@@ -7,6 +7,9 @@ using Application.Features.TinTuyenDung.Queries.GetTinTuyenDungById;
 using Casbin;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Application.Interfaces;
+using Application.Wrappers;
+using Microsoft.EntityFrameworkCore;
 
 namespace WebApp.Server.Controllers.v1
 {
@@ -38,8 +41,24 @@ namespace WebApp.Server.Controllers.v1
                     EmploymentType = filter.EmploymentType,
                     WorkMode = filter.WorkMode,
                     DoanhNghiepId = filter.DoanhNghiepId,
-                    TrangThai = filter.TrangThai
+                    TrangThai = filter.TrangThai,
+                    DanhMucNgheId = filter.DanhMucNgheId,
+                    KyNangIds = filter.KyNangIds, MatchAllSkills = filter.MatchAllSkills
                 }));
+            });
+        }
+
+        [HttpGet("filter-options")]
+        public async Task<IActionResult> FilterOptions()
+        {
+            return await EnforcePermissionAndExecute("tintuyendungs", "list", async () =>
+            {
+                var context = HttpContext.RequestServices.GetRequiredService<IApplicationDbContext>();
+                var categories = await context.DanhMucNghes.AsNoTracking().OrderBy(x => x.TenNghe)
+                    .Select(x => new { x.Id, Name = x.TenNghe }).ToListAsync(HttpContext.RequestAborted);
+                var skills = await context.KyNangs.AsNoTracking().OrderBy(x => x.TenKyNang)
+                    .Select(x => new { x.Id, Name = x.TenKyNang }).ToListAsync(HttpContext.RequestAborted);
+                return Ok(new Response<object>(new { Categories = categories, Skills = skills }));
             });
         }
 
