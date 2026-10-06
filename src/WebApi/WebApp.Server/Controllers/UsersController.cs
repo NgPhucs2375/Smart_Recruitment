@@ -47,6 +47,7 @@ namespace WebApp.Server.Controllers.Identity
 
         // POST: api/users
         [HttpPost]
+        [Authorize(Roles = "QUAN_TRI_VIEN")]
         public async Task<IActionResult> Create(CreateUserCommand command)
         {
             return await EnforcePermissionAndExecute("users", "create", async () =>
@@ -57,6 +58,7 @@ namespace WebApp.Server.Controllers.Identity
 
         // PUT: api/users/5
         [HttpPut("{id}")]
+        [Authorize(Roles = "QUAN_TRI_VIEN")]
         public async Task<IActionResult> Update(string id, UpdateUserCommand command)
         {
             return await EnforcePermissionAndExecute("users", "edit", async () =>
@@ -72,6 +74,7 @@ namespace WebApp.Server.Controllers.Identity
 
         // PUT: api/users/5/lock
         [HttpPut("{id}/lock")]
+        [Authorize(Roles = "QUAN_TRI_VIEN")]
         public async Task<IActionResult> Lock(string id)
         {
             return await EnforcePermissionAndExecute("users", "edit", async () =>
@@ -82,6 +85,7 @@ namespace WebApp.Server.Controllers.Identity
 
         // PUT: api/users/5/unlock
         [HttpPut("{id}/unlock")]
+        [Authorize(Roles = "QUAN_TRI_VIEN")]
         public async Task<IActionResult> Unlock(string id)
         {
             return await EnforcePermissionAndExecute("users", "edit", async () =>
@@ -92,6 +96,7 @@ namespace WebApp.Server.Controllers.Identity
 
         // DELETE: api/users/delete/5
         [HttpDelete("{id}")]
+        [Authorize(Roles = "QUAN_TRI_VIEN")]
         public async Task<IActionResult> Delete(string id)
         {
             return await EnforcePermissionAndExecute("users", "delete", async () =>

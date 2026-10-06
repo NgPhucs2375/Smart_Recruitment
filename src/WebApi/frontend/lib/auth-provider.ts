@@ -52,6 +52,9 @@ const API_URL = "/api/dotnet/account";
 const TOKEN_KEY = "access_token";
 const REFRESH_KEY = "refresh_token";
 const AUTH_REQUEST_TIMEOUT_MS = 15_000;
+// Google external-login can be slow on the first request while the backend
+// fetches Google's signing certificates and creates the local account.
+const LOGIN_REQUEST_TIMEOUT_MS = 60_000;
 
 // ─── ASP.NET Core Identity API response types ─────────────────────────────────
 
@@ -146,6 +149,29 @@ function normalizeMeResponse(value: unknown): MeResponse | null {
   };
 }
 
+function identityFromJwt(token: string): MeResponse | null {
+  try {
+    const encoded = token.split(".")[1];
+    if (!encoded) return null;
+    const padded = encoded.replace(/-/g, "+").replace(/_/g, "/").padEnd(
+      encoded.length + ((4 - (encoded.length % 4)) % 4),
+      "=",
+    );
+    const claims = JSON.parse(atob(padded)) as Record<string, unknown>;
+    const roleClaim = claims.roles ?? claims["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"];
+    const roles = Array.isArray(roleClaim) ? roleClaim : roleClaim ? [roleClaim] : [];
+    return normalizeMeResponse({
+      id: claims.uid ?? claims.sub,
+      email: claims.email,
+      userName: claims.sub ?? claims.email,
+      roles,
+      permissions: [],
+    });
+  } catch {
+    return null;
+  }
+}
+
 // ─── Token storage helpers ────────────────────────────────────────────────────
 
 function getToken(): string | null {
@@ -166,6 +192,7 @@ function saveTokens(jwToken: string, refreshToken: string): void {
 }
 
 function clearAuth(): void {
+  sessionEpoch += 1;
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(REFRESH_KEY);
   clearIdentity();
@@ -198,7 +225,16 @@ async function fetchAndSaveMe(token: string): Promise<MeResponse | null> {
 
 // ─── Refresh token ────────────────────────────────────────────────────────────
 
+let sessionEpoch = 0;
+let refreshInFlight: Promise<boolean> | null = null;
+
 async function attemptRefresh(): Promise<boolean> {
+  if (!refreshInFlight) refreshInFlight = refreshOnce().finally(() => { refreshInFlight = null; });
+  return refreshInFlight;
+}
+
+async function refreshOnce(): Promise<boolean> {
+  const epoch = sessionEpoch;
   const CurrentrefreshToken = getRefreshToken();
   if (!CurrentrefreshToken) return false;
 
@@ -207,13 +243,14 @@ async function attemptRefresh(): Promise<boolean> {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ Token: CurrentrefreshToken }),
+      signal: AbortSignal.timeout(AUTH_REQUEST_TIMEOUT_MS),
     });
     if (!res.ok) return false;
     const body = await res.json();
     const data = body?.Data ?? body?.data;
     const jwToken = data?.JWToken ?? data?.jwToken;
     const newRefreshToken = data?.RefreshToken ?? data?.refreshToken;
-    if (!jwToken) return false;
+    if (!jwToken || epoch !== sessionEpoch || getRefreshToken() !== CurrentrefreshToken) return false;
     
     saveTokens(jwToken, newRefreshToken);
     await fetchAndSaveMe(jwToken);
@@ -231,7 +268,7 @@ export function getAuthToken(): string | null {
 
   const exp = parseJwtExp(token);
   if (exp !== null && exp <= Date.now()) {
-    clearAuth();
+    // Preserve the refresh token for the asynchronous refresh path.
     return null;
   }
   return token;
@@ -323,7 +360,7 @@ export const authProvider: AuthProvider = {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(requestBody),
-        signal: AbortSignal.timeout(AUTH_REQUEST_TIMEOUT_MS),
+        signal: AbortSignal.timeout(LOGIN_REQUEST_TIMEOUT_MS),
       });
 
       if (!res.ok) {
@@ -354,7 +391,10 @@ export const authProvider: AuthProvider = {
       }
 
       saveTokens(jwToken, refreshToken);
-      const me = await fetchAndSaveMe(jwToken);
+      // GenerateJWToken embeds roles and permissions. Use them immediately to
+      // avoid a second /me round-trip; keep /me as a compatibility fallback.
+      const me = identityFromJwt(jwToken) ?? await fetchAndSaveMe(jwToken);
+      if (me) saveIdentity(buildIdentity(me));
       if (!me) {
         clearAuth();
         return {
@@ -403,7 +443,7 @@ export const authProvider: AuthProvider = {
 
       // Check Status code nghiệp vụ của BE
       const succeeded = 
-        body?.Scucceeded ??
+        body?.Succeeded ??
         body?.succeeded;
 
       // Get Message BE
@@ -428,7 +468,7 @@ export const authProvider: AuthProvider = {
       // Chỉ tới đây khi thật sự thành công 
       return {
         success:true,
-        redirectTo:"/login"
+        redirectTo: String(payload.role ?? payload.Role ?? "").toUpperCase() === "NGUOI_DAI_DIEN" ? "/employer/login" : "/login"
       };
     }
     catch(err){
@@ -454,16 +494,27 @@ export const authProvider: AuthProvider = {
     const home = homePortalFor(roles);
     const portal: PortalKind =
       storedPortal ?? (home === "employer" ? "employer" : "candidate");
+    const refreshToken = getRefreshToken();
     clearAuth();
+    if (refreshToken) {
+      try { await fetch(`${API_URL}/revoke-token`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ Token: refreshToken }), signal: AbortSignal.timeout(AUTH_REQUEST_TIMEOUT_MS) }); }
+      catch { /* The local session is already cleared. */ }
+    }
     return { success: true, redirectTo: portal === "employer" ? "/employer/login" : "/login" };
   },
 
   // Fast local check — no network call
   check: async () => {
-    const token = getToken();
+    let token = await getValidToken();
     if (!token) {
       return { authenticated: false, logout: true, redirectTo: loginRouteForPortal() };
     }
+    let identity = await fetchAndSaveMe(token);
+    if (!identity && await attemptRefresh()) {
+      token = getToken();
+      if (token) identity = await fetchAndSaveMe(token);
+    }
+    if (!identity) { const target = loginRouteForPortal(); clearAuth(); return { authenticated: false, logout: true, redirectTo: target }; }
     return { authenticated: true };
   },
 
@@ -609,6 +660,10 @@ async function accountAction(
 
 export function requestPasswordReset(email: string): Promise<AccountActionResult> {
   return accountAction("forgot-password", { Email: email });
+}
+
+export function resendVerificationEmail(email: string): Promise<AccountActionResult> {
+  return accountAction("resend-verification-email", { Email: email });
 }
 
 export function resetPassword(email: string, token: string, password: string): Promise<AccountActionResult> {

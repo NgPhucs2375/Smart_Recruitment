@@ -29,7 +29,6 @@ import {
   FileText,
   BellRing,
 } from "lucide-react";
-import { GoogleOAuthProvider } from "@react-oauth/google";
 
 function RegisterContent() {
   const [method, setMethod] = useState<"password" | "magic">("password");
@@ -435,9 +434,7 @@ function RegisterContent() {
 export default function RegisterPage() {
   return (
     <Suspense fallback={<div className="min-h-dvh bg-background" />}>
-      <GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? ""}>
-        <RegisterContent />
-      </GoogleOAuthProvider>
+      <RegisterContent />
     </Suspense>
   );
 }

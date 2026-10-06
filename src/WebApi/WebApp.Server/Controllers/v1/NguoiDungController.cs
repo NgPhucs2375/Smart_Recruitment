@@ -16,6 +16,7 @@ using Infrastructure.Identity;
 namespace WebApp.Server.Controllers.v1
 {
     [Authorize]
+    [Authorize(Roles = "QUAN_TRI_VIEN")]
     [Route("api/nguoidungs")]
     public class NguoiDungController : BaseApiController
     {

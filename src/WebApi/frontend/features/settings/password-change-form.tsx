@@ -8,10 +8,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { changePassword } from "@/lib/auth-provider";
+import { changePassword, authProvider } from "@/lib/auth-provider";
+import { useRouter } from "next/navigation";
 import { changePasswordSchema, type ChangePasswordFormData } from "@/lib/schemas";
 
 export function PasswordChangeForm() {
+  const router = useRouter();
   const [result, setResult] = useState<{ type: "success" | "error"; message: string } | null>(null);
   const {
     register,
@@ -28,6 +30,8 @@ export function PasswordChangeForm() {
         reset();
         setResult({ type: "success", message: response.message || "Đổi mật khẩu thành công." });
         toast.success(response.message || "Đổi mật khẩu thành công.");
+        const logout = await authProvider.logout({});
+        router.replace(typeof logout.redirectTo === "string" ? logout.redirectTo : "/login");
       } else {
         setResult({ type: "error", message: response.message || "Không thể đổi mật khẩu." });
       }

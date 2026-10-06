@@ -1,7 +1,10 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import { GoogleOAuthProvider } from "@react-oauth/google";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+
+const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? "";
 
 const GoogleLoginButton = dynamic(
   () => import("@/components/google-login-button").then((module) => module.GoogleLoginButton),
@@ -40,13 +43,15 @@ export function GoogleAuthSection({
           <AlertDescription className="text-xs text-red-700">{error}</AlertDescription>
         </Alert>
       )}
-      <GoogleLoginButton
-        mode={mode}
-        onSuccess={onGoogleLogin}
-        disabled={disabled}
-        text={text}
-        onError={onError}
-      />
+      <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+        <GoogleLoginButton
+          mode={mode}
+          onSuccess={onGoogleLogin}
+          disabled={disabled}
+          text={text}
+          onError={onError}
+        />
+      </GoogleOAuthProvider>
     </div>
   );
 }

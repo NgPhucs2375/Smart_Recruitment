@@ -86,6 +86,7 @@ namespace Infrastructure.Identity
             services.AddIdentity<ApplicationUser, IdentityRole>().AddEntityFrameworkStores<IdentityContext>().AddDefaultTokenProviders();
             #region Services
             services.AddScoped<IAccountService, AccountService>();
+            services.AddScoped<IUserRoleService, UserRoleService>();
             services.AddScoped<IUserEmailResolver, UserEmailResolver>();
             #endregion
             services.Configure<JWTSettings>(configuration.GetSection("JWTSettings"));
@@ -113,6 +114,7 @@ namespace Infrastructure.Identity
                     };
                     o.Events = new JwtBearerEvents
                     {
+                        OnTokenValidated = BearerSessionValidator.ValidateAsync,
                         OnMessageReceived = context =>
                         {
                             var accessToken = context.Request.Query["access_token"];

@@ -14,6 +14,7 @@ namespace WebApp.Server.Controllers.Identity
     [Route("api/roles")]
     [ApiController]
     [Authorize]
+    [Authorize(Roles = "QUAN_TRI_VIEN")]
     public class RolesController : BaseApiController
     {
      
@@ -86,7 +87,7 @@ namespace WebApp.Server.Controllers.Identity
         [HttpPost("assign")]
         public async Task<IActionResult> AssignRoleToUser([FromBody] AssignRoleCommand command)
         {
-            return await EnforcePermissionAndExecute("roles", "assign", async () =>
+            return await EnforcePermissionAndExecute("roles", "edit", async () =>
             {
                 return Ok(await Mediator.Send(command));
             });
@@ -96,7 +97,7 @@ namespace WebApp.Server.Controllers.Identity
         [HttpPost("remove")]
         public async Task<IActionResult> RemoveRoleFromUser([FromBody] RemoveRoleCommand command)
         {
-            return await EnforcePermissionAndExecute("roles", "remove", async () =>
+            return await EnforcePermissionAndExecute("roles", "edit", async () =>
             {
                 return Ok(await Mediator.Send(command));
             });
