@@ -56,7 +56,7 @@ function toInput(row: CvThemeVm) {
  * + AI but never breaks existing CVs (editor renders by registry slug,
  * independent of IsActive; no component is deleted).
  */
-export function CvThemeLibrary({ onEdit }: { onEdit: () => void }) {
+export function CvThemeLibrary({ onEdit }: { onEdit: (row: CvThemeVm) => void }) {
   const [rows, setRows] = useState<CvThemeVm[]>([]);
   const [loading, setLoading] = useState(true);
   const [tick, setTick] = useState(0);
@@ -224,7 +224,7 @@ export function CvThemeLibrary({ onEdit }: { onEdit: () => void }) {
               toggling={toggling === row.Id}
               onPreview={() => setPreviewSlug(row.Slug)}
               onToggle={() => void handleToggle(row)}
-              onEdit={onEdit}
+              onEdit={() => onEdit(row)}
               onUpload={(f) => void handleUpload(row, f)}
             />
           ))}
@@ -282,7 +282,7 @@ function LibraryCard({
   toggling: boolean;
   onPreview: () => void;
   onToggle: () => void;
-  onEdit: () => void;
+  onEdit: (row: CvThemeVm) => void;
   onUpload: (f: File | undefined) => void;
 }) {
   const { Component } = meta ?? {};
@@ -338,7 +338,7 @@ function LibraryCard({
           <Button type="button" variant="outline" size="sm" className="flex-1" onClick={onToggle} disabled={toggling}>
             {row.IsActive ? "Ẩn" : "Bật"}
           </Button>
-          <Button type="button" variant="outline" size="sm" className="flex-1" onClick={onEdit}>
+          <Button type="button" variant="outline" size="sm" className="flex-1" onClick={() => onEdit(row)}>
             <Pencil className="mr-1.5 size-3.5" /> Sửa
           </Button>
           <label className="inline-flex flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-input bg-background px-2 text-xs font-medium transition hover:bg-muted">

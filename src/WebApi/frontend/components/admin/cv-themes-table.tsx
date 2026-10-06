@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -9,8 +10,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { toast } from "sonner";
-import { LayoutTemplate, Pencil, Trash2, Plus, Search, Upload } from "lucide-react";
+import { LayoutTemplate, Pencil, Settings2, Trash2, Plus, Search, Upload } from "lucide-react";
 import { cvThemesApi, type CvThemeVm, type CvThemeInput } from "@/lib/api/cv-themes-api";
 
 const EMPTY: CvThemeInput = {
@@ -34,6 +36,7 @@ const EMPTY: CvThemeInput = {
   LaMacDinh: false,
   IsActive: true,
   ThuTu: 0,
+  CauHinhJson: null,
 };
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
@@ -46,6 +49,8 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 }
 
 export function CvThemesTable() {
+  const router = useRouter();
+  const { confirm } = useConfirmDialog();
   const [rows, setRows] = useState<CvThemeVm[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("");
@@ -75,10 +80,12 @@ export function CvThemesTable() {
     void fetchRows();
   }, [fetchRows]);
 
-  const openCreate = () => {
-    setEditing(null);
-    setForm(EMPTY);
-    setShowForm(true);
+  const openStudioNew = () => {
+    router.push("/tao-theme-cv");
+  };
+
+  const openStudioEdit = (row: CvThemeVm) => {
+    router.push(`/tao-theme-cv?slug=${encodeURIComponent(row.Slug)}`);
   };
 
   const openEdit = (row: CvThemeVm) => {
@@ -104,6 +111,8 @@ export function CvThemesTable() {
       LaMacDinh: row.LaMacDinh,
       IsActive: row.IsActive,
       ThuTu: row.ThuTu,
+      // Giữ design Studio: PUT thiếu CauHinhJson sẽ xóa thiết kế trên DB.
+      CauHinhJson: row.CauHinhJson ?? null,
     });
     setShowForm(true);
   };
@@ -132,7 +141,14 @@ export function CvThemesTable() {
   };
 
   const handleDelete = async (row: CvThemeVm) => {
-    if (!window.confirm(`Xóa theme "${row.Ten}"? Theme đang được CV dùng sẽ bị chặn xóa.`)) return;
+    const ok = await confirm({
+      title: `Xóa theme "${row.Ten}"?`,
+      description: "Dòng này sẽ biến mất khỏi bảng quản trị. Theme đang được CV dùng sẽ bị chặn xóa.",
+      confirmLabel: "Xóa theme",
+      cancelLabel: "Giữ lại",
+      destructive: true,
+    });
+    if (!ok) return;
     try {
       await cvThemesApi.remove(row.Id);
       toast.success("Đã xóa theme");
@@ -163,7 +179,7 @@ export function CvThemesTable() {
           <CardTitle className="flex items-center gap-2">
             <LayoutTemplate className="size-5" /> Theme CV cho AI gợi ý
           </CardTitle>
-          <Button onClick={openCreate}>
+          <Button onClick={openStudioNew}>
             <Plus className="mr-2 size-4" /> Thêm theme
           </Button>
         </CardHeader>
@@ -227,8 +243,11 @@ export function CvThemesTable() {
                       </label>
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button variant="ghost" size="icon-sm" onClick={() => openEdit(row)} aria-label="Sửa">
+                      <Button variant="ghost" size="icon-sm" onClick={() => openStudioEdit(row)} aria-label="Sửa thiết kế trong Studio" title="Sửa thiết kế trong Studio">
                         <Pencil className="size-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon-sm" onClick={() => openEdit(row)} aria-label="Sửa nhanh metadata" title="Sửa nhanh metadata">
+                        <Settings2 className="size-4" />
                       </Button>
                       <Button variant="ghost" size="icon-sm" onClick={() => void handleDelete(row)} aria-label="Xóa">
                         <Trash2 className="size-4 text-destructive" />
@@ -251,8 +270,13 @@ export function CvThemesTable() {
 
       {showForm && (
         <Card>
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>{editing ? `Sửa theme #${editing.Id}` : "Thêm theme mới"}</CardTitle>
+            {editing && (
+              <Button variant="outline" size="sm" onClick={() => openStudioEdit(editing)}>
+                <Pencil className="mr-1.5 size-3.5" /> Thiết kế trong Studio
+              </Button>
+            )}
           </CardHeader>
           <CardContent className="grid gap-4 sm:grid-cols-2">
             <Field label="Slug (khớp id registry)">

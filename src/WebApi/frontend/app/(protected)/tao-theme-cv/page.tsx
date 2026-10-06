@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   DndContext,
   KeyboardSensor,
@@ -20,11 +21,13 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import {
+  ArrowLeft,
   Check,
   Eye,
   EyeOff,
   GripVertical,
   Plus,
+  RotateCcw,
   Save,
   Trash2,
 } from "lucide-react";
@@ -39,15 +42,26 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { ColorField } from "@/features/tao-cv/components/color-field";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { ThemeCanvas } from "@/features/tao-cv/components/theme-canvas";
-import { syncThemeToDb } from "@/features/tao-cv/services/theme-db-sync";
+import {
+  deleteDbThemeBySlug,
+  fetchDbThemeBySlugOrId,
+  syncThemeToDb,
+} from "@/features/tao-cv/services/theme-db-sync";
 import {
   deleteTheme,
-  getAllThemes,
   newThemeDraft,
   saveTheme,
 } from "@/features/tao-cv/services/theme-storage";
@@ -62,6 +76,13 @@ import type {
   FontFamilyToken,
   HeadingVariant,
   SpacingDensity,
+  ThemeCategory,
+  ThemeLevel,
+} from "@/features/tao-cv/types/theme-studio";
+import {
+  THEME_CATEGORIES,
+  THEME_LEVELS,
+  slugifyThemeName,
 } from "@/features/tao-cv/types/theme-studio";
 
 /* ── Presets ─────────────────────────────────────────────── */
@@ -252,9 +273,17 @@ function LayoutRow({
 /* ── Workbench ───────────────────────────────────────────── */
 
 function StudioWorkbench() {
-  const [themes, setThemes] = useState<CvThemeConfig[]>(() => getAllThemes());
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const editKey = searchParams.get("slug") ?? searchParams.get("id") ?? "";
   const [theme, setTheme] = useState<CvThemeConfig>(() => newThemeDraft());
-  const [savedTick, setSavedTick] = useState<string | null>(null);
+  const [loadingTheme, setLoadingTheme] = useState(editKey !== "");
+  const [saving, setSaving] = useState(false);
+  // Slug DB đang sửa (chế độ edit); null = tạo mới.
+  const [loadedDbSlug, setLoadedDbSlug] = useState<string | null>(null);
+  // Slug đã chạm tay -> ngừng auto-gen theo tên.
+  const [slugTouched, setSlugTouched] = useState(false);
+  const initialRef = useRef<CvThemeConfig | null>(null);
   const [fitMode, setFitMode] = useState(true);
   const [fitScale, setFitScale] = useState(1);
   const scrollerRef = useRef<HTMLDivElement>(null);
@@ -268,6 +297,43 @@ function StudioWorkbench() {
     setTheme((t) => ({ ...t, typography: { ...t.typography, ...p } }));
   const patchSpacing = (p: Partial<CvThemeConfig["spacing"]>) =>
     setTheme((t) => ({ ...t, spacing: { ...t.spacing, ...p } }));
+
+  // Chế độ sửa (?slug= / ?id=): nạp config từ DB (source of truth bảng admin).
+  useEffect(() => {
+    if (!editKey) {
+      const draft = newThemeDraft();
+      initialRef.current = draft;
+      setTheme(draft);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      setLoadingTheme(true);
+      try {
+        const found = await fetchDbThemeBySlugOrId(editKey);
+        if (cancelled) return;
+        if (found) {
+          initialRef.current = found;
+          setTheme(found);
+          setLoadedDbSlug(found.slug);
+          setSlugTouched(true);
+        } else {
+          toast.error(`Không tìm thấy theme "${editKey}" — tạo mới thay thế`);
+          const draft = newThemeDraft();
+          initialRef.current = draft;
+          setTheme(draft);
+        }
+      } catch (e) {
+        if (!cancelled)
+          toast.error(e instanceof Error ? e.message : "Không nạp được theme");
+      } finally {
+        if (!cancelled) setLoadingTheme(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [editKey]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -383,38 +449,59 @@ function StudioWorkbench() {
   };
 
   const handleSave = async () => {
-    if (!auditName) return;
-    const next: CvThemeConfig = {
-      ...theme,
-      name: theme.name.trim(),
-      policy: {
-        ...theme.policy,
-        approvedAt: theme.policy.policyApproved
-          ? new Date().toISOString()
-          : theme.policy.approvedAt,
-      },
-    };
-    saveTheme(next);
-    setThemes(getAllThemes());
-    setTheme(next);
-    // Đồng bộ lên DB để hiện ở bảng admin (localStorage chỉ giữ bản local).
-    setSavedTick("Đã lưu theme (đang đồng bộ DB…)…");
-    const synced = await syncThemeToDb(next);
-    if (synced.mode === "created") {
-      setSavedTick(`Đã lưu theme + tạo mới trong DB (#${synced.id})`);
-    } else if (synced.mode === "updated") {
-      setSavedTick(`Đã lưu theme + cập nhật DB (#${synced.id})`);
-    } else {
-      setSavedTick(`Đã lưu local (DB: ${synced.error})`);
+    const slug = (theme.slug.trim() || slugifyThemeName(theme.name)).trim();
+    if (!auditName || !slug || saving) return;
+    setSaving(true);
+    try {
+      const next: CvThemeConfig = {
+        ...theme,
+        slug,
+        name: theme.name.trim(),
+        policy: {
+          ...theme.policy,
+          approvedAt: theme.policy.policyApproved
+            ? new Date().toISOString()
+            : theme.policy.approvedAt,
+        },
+      };
+      // Ghi DB trước (source of truth bảng admin); rớt thì ở lại + toast đỏ.
+      const synced = await syncThemeToDb(next);
+      if (synced.mode === "local-only") {
+        saveTheme(next);
+        setTheme(next);
+        toast.error(`Lưu local, chưa vào bảng quản trị (DB: ${synced.error})`);
+        return;
+      }
+      saveTheme(next);
+      setTheme(next);
+      toast.success("Đã lưu theme vào danh mục quản trị");
+      router.push("/admin/cv/themes");
+    } finally {
+      setSaving(false);
     }
-    window.setTimeout(() => setSavedTick(null), 3500);
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (theme.isDefault) return;
     deleteTheme(theme.id);
-    setThemes(getAllThemes());
-    setTheme(newThemeDraft());
+    const slug = theme.slug.trim() || theme.id;
+    const removed = await deleteDbThemeBySlug(slug);
+    if (!removed) {
+      toast.error("Đã xóa bản local, nhưng chưa xóa được dòng trên DB");
+      return;
+    }
+    toast.success("Đã xóa theme");
+    router.push("/admin/cv/themes");
+  };
+
+  const handleReset = () => {
+    if (initialRef.current) {
+      setTheme({ ...initialRef.current });
+      setSlugTouched(loadedDbSlug !== null);
+    } else {
+      setTheme(newThemeDraft());
+      setSlugTouched(false);
+    }
   };
 
   const previewData: ResumeData = useMemo(
@@ -430,42 +517,32 @@ function StudioWorkbench() {
           <p className="text-xs text-muted-foreground">
             Quản trị / Theme Studio
           </p>
-          <h1 className="text-lg font-semibold tracking-tight">Tạo theme CV</h1>
+          <h1 className="text-lg font-semibold tracking-tight">
+            {loadedDbSlug ? "Sửa theme CV" : "Tạo theme CV"}
+          </h1>
         </div>
         <div className="flex items-center gap-2">
-          <select
-            aria-label="Theme đã lưu"
-            className="h-9 rounded-lg border border-input bg-card px-2 text-sm"
-            value={theme.id}
-            onChange={(e) => {
-              const found = themes.find((t) => t.id === e.target.value);
-              if (found) setTheme({ ...found });
-              else setTheme(newThemeDraft());
-            }}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => router.push("/admin/cv/themes")}
           >
-            <option value="">+ Theme mới</option>
-            {themes.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.name || "(chưa đặt tên)"}
-                {t.policy.policyApproved ? " ✓" : ""}
-              </option>
-            ))}
-          </select>
-          {!theme.isDefault && (
-            <Button variant="outline" size="sm" onClick={handleDelete}>
-              <Trash2 className="mr-1.5 size-4" />
-              Xóa
-            </Button>
-          )}
-          <Button size="sm" onClick={handleSave} disabled={!auditName}>
+            <ArrowLeft className="mr-1.5 size-4" />
+            Quay lại danh sách
+          </Button>
+          <Button variant="outline" size="sm" onClick={handleReset}>
+            <RotateCcw className="mr-1.5 size-4" />
+            Hủy / Làm mới
+          </Button>
+          <Button size="sm" onClick={() => void handleSave()} disabled={!auditName || saving}>
             <Save className="mr-1.5 size-4" />
-            Lưu Theme
+            {saving ? "Đang lưu…" : "Lưu Theme"}
           </Button>
         </div>
       </div>
-      {savedTick && (
-        <p className="mb-3 text-sm font-medium text-teal" role="status">
-          {savedTick}
+      {loadingTheme && (
+        <p className="mb-3 text-sm text-muted-foreground" role="status">
+          Đang nạp theme từ danh mục quản trị…
         </p>
       )}
 
@@ -479,7 +556,14 @@ function StudioWorkbench() {
                 id="theme-name"
                 value={theme.name}
                 maxLength={80}
-                onChange={(e) => patch({ name: e.target.value })}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  patch(
+                    slugTouched
+                      ? { name: v }
+                      : { name: v, slug: slugifyThemeName(v) },
+                  );
+                }}
                 placeholder="VD: Fullstack Dev Theme 2026"
                 className="mt-1.5"
                 aria-describedby="theme-name-hint"
@@ -507,6 +591,96 @@ function StudioWorkbench() {
                 placeholder="Ngắn gọn cách dùng theme này…"
                 rows={2}
                 className="mt-1.5"
+              />
+            </div>
+            {/* Metadata hiển thị trên bảng Quản lý CV/mẫu CV */}
+            <div>
+              <Label htmlFor="theme-slug">Slug / Mã định danh</Label>
+              <Input
+                id="theme-slug"
+                value={theme.slug}
+                maxLength={60}
+                onChange={(e) => {
+                  setSlugTouched(true);
+                  patch({ slug: slugifyThemeName(e.target.value) });
+                }}
+                placeholder="vd: dev-emerald-pro (tự gen theo tên)"
+                className="mt-1.5 font-mono text-xs"
+              />
+              {loadedDbSlug && theme.slug !== loadedDbSlug && (
+                <p className="mt-1 text-[11px] text-amber-700 dark:text-amber-300">
+                  Đổi slug sẽ tạo dòng mới trên bảng quản trị (dòng cũ giữ nguyên).
+                </p>
+              )}
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label htmlFor="theme-category">Danh mục</Label>
+                <Select
+                  value={theme.category}
+                  onValueChange={(v) => patch({ category: v as ThemeCategory })}
+                >
+                  <SelectTrigger id="theme-category" className="mt-1.5">
+                    <SelectValue placeholder="Chọn danh mục" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {THEME_CATEGORIES.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="theme-level">Cấp bậc</Label>
+                <Select
+                  value={theme.level}
+                  onValueChange={(v) => patch({ level: v as ThemeLevel })}
+                >
+                  <SelectTrigger id="theme-level" className="mt-1.5">
+                    <SelectValue placeholder="Chọn cấp bậc" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {THEME_LEVELS.map((l) => (
+                      <SelectItem key={l.id} value={l.id}>
+                        {l.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2">
+              <div className="text-sm">
+                <p className="font-medium">Chuẩn ATS</p>
+                <p className="text-xs text-muted-foreground">
+                  Bật = 1 cột, máy quét CV đọc được
+                </p>
+              </div>
+              <Switch
+                id="theme-ats"
+                checked={theme.atsFriendly}
+                onCheckedChange={(v) => patch({ atsFriendly: v === true })}
+                aria-label="Chuẩn ATS"
+              />
+            </div>
+            <div className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2">
+              <div className="text-sm">
+                <p className="font-medium">Hiển thị</p>
+                <p className="text-xs text-muted-foreground">
+                  Hiện dòng này trên bảng quản trị
+                </p>
+              </div>
+              <Switch
+                id="theme-published"
+                checked={theme.policy.isPublished}
+                onCheckedChange={(v) =>
+                  patch({
+                    policy: { ...theme.policy, isPublished: v === true },
+                  })
+                }
+                aria-label="Hiển thị theme"
               />
             </div>
           </div>
@@ -1099,7 +1273,7 @@ function StudioWorkbench() {
                   variant="outline"
                   size="sm"
                   className="w-full text-destructive"
-                  onClick={handleDelete}
+                  onClick={() => void handleDelete()}
                 >
                   <Trash2 className="mr-1.5 size-4" />
                   Xóa theme này
@@ -1176,7 +1350,15 @@ function StudioWorkbench() {
 export default function ThemeStudioPage() {
   return (
     <AdminGate>
-      <StudioWorkbench />
+      <Suspense
+        fallback={
+          <p className="p-6 text-sm text-muted-foreground" role="status">
+            Đang tải Theme Studio…
+          </p>
+        }
+      >
+        <StudioWorkbench />
+      </Suspense>
     </AdminGate>
   );
 }

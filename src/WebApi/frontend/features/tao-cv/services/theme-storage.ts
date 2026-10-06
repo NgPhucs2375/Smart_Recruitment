@@ -51,7 +51,11 @@ function seedTheme(
   const now = new Date().toISOString();
   return {
     id,
+    slug: id,
     name,
+    category: "all",
+    level: "all",
+    atsFriendly: true,
     description,
     thumbnailGradient,
     createdAt: now,
@@ -64,7 +68,7 @@ function seedTheme(
     typography: { ...DEFAULT_TYPOGRAPHY },
     spacing: { ...DEFAULT_SPACING },
     zones: { ...DEFAULT_ZONES },
-    policy: { policyApproved: true },
+    policy: { policyApproved: true, isPublished: true },
   };
 }
 
@@ -147,8 +151,13 @@ export function getAllThemes(): CvThemeConfig[] {
 
 /** Theme cũ thiếu field mới → đắp default, không vỡ Studio/picker. */
 function normalizeTheme(t: CvThemeConfig): CvThemeConfig {
+  const policyApproved = t.policy?.policyApproved ?? false;
   return {
     ...t,
+    slug: t.slug || t.id,
+    category: t.category ?? "all",
+    level: t.level ?? "all",
+    atsFriendly: t.atsFriendly ?? true,
     layout: normalizeLayoutConfig(
       (t as { layout?: unknown }).layout,
     ),
@@ -161,7 +170,11 @@ function normalizeTheme(t: CvThemeConfig): CvThemeConfig {
     typography: { ...DEFAULT_TYPOGRAPHY, ...(t.typography ?? {}) },
     spacing: { ...DEFAULT_SPACING, ...(t.spacing ?? {}) },
     zones: { ...DEFAULT_ZONES, ...(t.zones ?? {}) },
-    policy: t.policy ?? { policyApproved: false },
+    policy: {
+      ...(t.policy ?? {}),
+      policyApproved,
+      isPublished: t.policy?.isPublished ?? policyApproved,
+    },
   };
 }
 
@@ -188,7 +201,11 @@ export function newThemeDraft(name = ""): CvThemeConfig {
   const now = new Date().toISOString();
   return {
     id: `custom-${Date.now().toString(36)}`,
+    slug: "",
     name,
+    category: "all",
+    level: "all",
+    atsFriendly: true,
     description: "",
     thumbnailGradient: "linear-gradient(135deg,#1e293b,#0ea5e9)",
     createdAt: now,
@@ -201,7 +218,7 @@ export function newThemeDraft(name = ""): CvThemeConfig {
     typography: { ...DEFAULT_TYPOGRAPHY },
     spacing: { ...DEFAULT_SPACING },
     zones: { ...DEFAULT_ZONES },
-    policy: { policyApproved: false },
+    policy: { policyApproved: false, isPublished: true },
   };
 }
 

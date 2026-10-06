@@ -61,8 +61,10 @@ export interface CvZoneBackgrounds {
 }
 
 export interface CvPublishPolicy {
-  /** Switch duyệt phát hành. */
+  /** Switch duyệt phát hành (audit gate: tên + sections + contrast). */
   policyApproved: boolean;
+  /** Switch "Hiển thị" trên bảng admin (map IsActive DB). Độc lập với policyApproved. */
+  isPublished: boolean;
   /** Admin ID / Username. */
   approvedBy?: string;
   /** ISO Date string. */
@@ -71,11 +73,52 @@ export interface CvPublishPolicy {
   notes?: string;
 }
 
+/** Danh mục theme (map DanhMuc DB) — hiển thị ở bảng quản trị. */
+export type ThemeCategory = "ats" | "developer" | "designer" | "business" | "all";
+/** Cấp bậc mục tiêu (map CapBac DB) — hiển thị ở bảng quản trị. */
+export type ThemeLevel = "fresher" | "junior" | "senior" | "all";
+
+export const THEME_CATEGORIES: { id: ThemeCategory; label: string }[] = [
+  { id: "ats", label: "ATS chuẩn" },
+  { id: "developer", label: "Developer" },
+  { id: "designer", label: "Designer" },
+  { id: "business", label: "Business" },
+  { id: "all", label: "Tất cả" },
+];
+
+export const THEME_LEVELS: { id: ThemeLevel; label: string }[] = [
+  { id: "fresher", label: "Fresher" },
+  { id: "junior", label: "Junior" },
+  { id: "senior", label: "Senior" },
+  { id: "all", label: "Mọi cấp bậc" },
+];
+
+/** Slug từ tên theme: bỏ dấu, thường hóa, nối gạch ngang. */
+export function slugifyThemeName(name: string): string {
+  return name
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d")
+    .replace(/Đ/g, "d")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 60);
+}
+
 export interface CvThemeConfig {
-  /** Slug duy nhất (vd 'tech-emerald-2026'). */
+  /** Khóa nội bộ duy nhất (vd 'custom-m3x…'); DB dùng `slug` làm định danh. */
   id: string;
   /** Tên hiển thị (vd 'Emerald Engineer Modern'). */
   name: string;
+  /** Slug / mã định danh (map Slug DB, hiện ở bảng quản trị). Trống = tự gen theo tên. */
+  slug: string;
+  /** Danh mục (map DanhMuc DB). */
+  category: ThemeCategory;
+  /** Cấp bậc mục tiêu (map CapBac DB). */
+  level: ThemeLevel;
+  /** Chuẩn ATS (map ThanThienATS DB). */
+  atsFriendly: boolean;
   description?: string;
   /** Gradient preview nhỏ trên TemplatePicker. */
   thumbnailGradient?: string;

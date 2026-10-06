@@ -56,7 +56,7 @@ export default function AdminCvThemesPage() {
           </Button>
         </div>
         <TabsContent value="library" className="mt-0">
-          <CvThemeLibrary onEdit={() => setTab("metadata")} />
+          <CvThemeLibrary onEdit={(row) => router.push(`/tao-theme-cv?slug=${encodeURIComponent(row.Slug)}`)} />
         </TabsContent>
         <TabsContent value="metadata" className="mt-0">
           <CvThemesTable />
