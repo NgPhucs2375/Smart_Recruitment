@@ -18,7 +18,14 @@ namespace Infrastructure.Identity.Models
         public int vaiTro { get; set; }
         [NotMapped]
         public string RoleId { get; set; }
+        [System.Text.Json.Serialization.JsonIgnore, Newtonsoft.Json.JsonIgnore]
         public List<RefreshToken> RefreshTokens { get; set; }
+        [System.Text.Json.Serialization.JsonIgnore, Newtonsoft.Json.JsonIgnore]
+        public override string PasswordHash { get => base.PasswordHash; set => base.PasswordHash = value; }
+        [System.Text.Json.Serialization.JsonIgnore, Newtonsoft.Json.JsonIgnore]
+        public override string SecurityStamp { get => base.SecurityStamp; set => base.SecurityStamp = value; }
+        [System.Text.Json.Serialization.JsonIgnore, Newtonsoft.Json.JsonIgnore]
+        public override string ConcurrencyStamp { get => base.ConcurrencyStamp; set => base.ConcurrencyStamp = value; }
         public bool OwnsToken(string token)
         {
             return this.RefreshTokens?.Find(x => x.Token == token) != null;

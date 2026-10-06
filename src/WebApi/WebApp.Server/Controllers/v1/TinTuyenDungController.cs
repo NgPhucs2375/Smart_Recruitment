@@ -37,7 +37,8 @@ namespace WebApp.Server.Controllers.v1
                     Level = filter.Level,
                     EmploymentType = filter.EmploymentType,
                     WorkMode = filter.WorkMode,
-                    DoanhNghiepId = filter.DoanhNghiepId
+                    DoanhNghiepId = filter.DoanhNghiepId,
+                    TrangThai = filter.TrangThai
                 }));
             });
         }
@@ -71,11 +72,11 @@ namespace WebApp.Server.Controllers.v1
         }
 
         [HttpDelete("{id}")]
-        public async Task<IActionResult> Delete(int id)
+        public async Task<IActionResult> Delete(int id, [FromQuery] System.DateTime? expectedLastModified)
         {
             return await EnforcePermissionAndExecute("tintuyendungs", "delete", async () =>
             {
-                return Ok(await Mediator.Send(new DeleteTinTuyenDungCommand { Id = id }));
+                return Ok(await Mediator.Send(new DeleteTinTuyenDungCommand { Id = id, ExpectedLastModified = expectedLastModified }));
             });
         }
 

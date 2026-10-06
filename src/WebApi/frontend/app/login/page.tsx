@@ -17,7 +17,6 @@ import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Mail, Lock, ArrowRight, Loader2, UserRound, Eye, EyeOff, Briefcase, Sparkles, Users } from "lucide-react";
 import { sanitizeNext, type PortalKind } from "@/lib/portal-roles";
-import { GoogleOAuthProvider } from "@react-oauth/google";
 
 function LoginContent() {
   const [tab, setTab] = useState<"password" | "magic">("password");
@@ -251,9 +250,7 @@ function LoginContent() {
 export default function LoginPage() {
   return (
     <Suspense fallback={<div className="min-h-dvh bg-background" />}>
-      <GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? ""}>
-        <LoginContent />
-      </GoogleOAuthProvider>
+      <LoginContent />
     </Suspense>
   );
 }

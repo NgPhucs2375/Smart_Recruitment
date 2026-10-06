@@ -14,5 +14,6 @@ namespace Application.Features.TinTuyenDung.Queries.GetAllTinTuyenDungs
         public string EmploymentType { get; set; }
         public string WorkMode { get; set; }
         public int? DoanhNghiepId { get; set; }
+        public Domain.Enums.TrangThaiTinTuyenDung? TrangThai { get; set; }
     }
 }

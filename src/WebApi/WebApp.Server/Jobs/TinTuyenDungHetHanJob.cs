@@ -56,8 +56,8 @@ namespace WebApp.Server.Jobs
             var current = scope.ServiceProvider.GetRequiredService<ICurrentNguoiDungService>();
 
             var now = DateTime.UtcNow;
-            var quaHan = await context.TinTuyenDungs
-                .Where(t => t.NgayHetHan != null && t.NgayHetHan < now
+            var quaHan = await context.TinTuyenDungs.AsTracking()
+                .Where(t => t.NgayHetHan != null && t.NgayHetHan <= now
                     && (t.TrangThai == TrangThaiTinTuyenDung.DangTuyen
                         || t.TrangThai == TrangThaiTinTuyenDung.TamDung))
                 .ToListAsync(ct);
@@ -76,7 +76,11 @@ namespace WebApp.Server.Jobs
             }
 
             if (quaHan.Count > 0)
+            {
                 await context.SaveChangesAsync(ct);
+                await Application.Features.KetQuaPhuHop.Cache.RecommendationCache.InvalidateJobsAsync(
+                    scope.ServiceProvider.GetRequiredService<Microsoft.Extensions.Caching.Distributed.IDistributedCache>(), ct);
+            }
         }
     }
 }

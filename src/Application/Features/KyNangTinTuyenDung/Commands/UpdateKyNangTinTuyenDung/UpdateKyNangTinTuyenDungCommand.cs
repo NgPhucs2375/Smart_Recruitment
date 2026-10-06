@@ -30,8 +30,8 @@ public class UpdateKyNangTinTuyenDungCommandHandler(
         UpdateKyNangTinTuyenDungCommand request,
         CancellationToken cancellationToken)
     {
-        var entity = await context.KyNangTinTuyenDungs
-            .FindAsync([request.Id], cancellationToken);
+        var entity = await context.KyNangTinTuyenDungs.AsTracking()
+            .FirstOrDefaultAsync(x => x.Id == request.Id, cancellationToken);
 
         if (entity == null)
         {
@@ -101,6 +101,8 @@ public class UpdateKyNangTinTuyenDungCommandHandler(
                 "Kỹ năng này đã tồn tại trong tin tuyển dụng.");
         }
 
+        foreach (var tinId in new[] { entity.TinTuyenDungId, request.TinTuyenDungId }.Distinct())
+            await Application.Services.StateMachineTinTuyenDung.JobDraft.PrepareSkillEditAsync(context, tinId, ctx, cancellationToken);
         entity.TinTuyenDungId = request.TinTuyenDungId;
         entity.KyNangId = request.KyNangId;
         entity.MucDoYeuCau = request.MucDoYeuCau;

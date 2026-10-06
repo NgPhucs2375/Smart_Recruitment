@@ -8,6 +8,7 @@ using Infrastructure.Identity.Features.Users.Queries.GetMeByToken;
 using Microsoft.AspNetCore.Hosting;
 using Casbin;
 using Domain.Enums;
+using Application.Wrappers;
 
 namespace WebApp.Server.Controllers
 {
@@ -33,7 +34,7 @@ namespace WebApp.Server.Controllers
         [HttpPost("register")]
         public async Task<IActionResult> RegisterAsync([FromBody] YeuCauDangKy request)
         {
-            var origin = Request.Headers["origin"].ToString();
+            var origin = FrontendOrigin();
             return Ok(await _accountService.RegisterAsync(request, origin));
         }
 
@@ -48,15 +49,24 @@ namespace WebApp.Server.Controllers
         [HttpPost("forgot-password")]
         public async Task<IActionResult> ForgotPassword([FromBody] YeuCauQuenMatKhau model)
         {
-            var origin = Request.Headers["origin"].ToString();
-            if (string.IsNullOrWhiteSpace(origin))
-                origin = $"{Request.Scheme}://{Request.Host}";
+            var origin = FrontendOrigin();
 
             await _accountService.ForgotPassword(model, origin);
-            return Ok();
+            return Ok(new Response<string>(string.Empty, "Nếu tài khoản tồn tại, yêu cầu gửi liên kết đặt lại mật khẩu đã được tiếp nhận."));
         }
 
         // Đặt lại mật khẩu
+        [HttpPost("resend-verification-email")]
+        public async Task<IActionResult> ResendVerificationEmail([FromBody] YeuCauQuenMatKhau model)
+        {
+            await _accountService.ResendVerificationEmailAsync(model.Email, FrontendOrigin());
+            return Ok(new Response<string>(string.Empty, "Nếu email chưa xác minh, yêu cầu gửi lại liên kết đã được tiếp nhận."));
+        }
+
+        [HttpPost("revoke-token")]
+        public async Task<IActionResult> RevokeToken([FromBody] RefreshTokenRequest model) =>
+            Ok(await _accountService.RevokeRefreshTokenAsync(model.Token, GenerateIPAddress()));
+
         [HttpPost("reset-password")]
         public async Task<IActionResult> ResetPassword([FromBody] YeuCauGuiLaiXacMinh model)
         {
@@ -100,11 +110,7 @@ namespace WebApp.Server.Controllers
         [HttpPost("request-magic-link")]
         public async Task<IActionResult> RequestMagicLinkAsync([FromBody] YeuCauMagicLink request)
         {
-            var origin = Request.Headers["origin"].ToString();
-            if (string.IsNullOrWhiteSpace(origin))
-            {
-                origin = $"{Request.Scheme}://{Request.Host}";
-            }
+            var origin = FrontendOrigin();
             return Ok(await _accountService.RequestMagicLinkAsync(request, origin));
         }
 
@@ -121,6 +127,24 @@ namespace WebApp.Server.Controllers
             }
 
             return HttpContext.Connection.RemoteIpAddress?.MapToIPv4().ToString() ?? "127.0.0.1";
+        }
+
+        private string FrontendOrigin()
+        {
+            var configuration = HttpContext.RequestServices.GetRequiredService<IConfiguration>();
+            var allowed = configuration.GetSection("Frontend:AllowedOrigins").Get<string[]>()
+                ?? (configuration["Frontend:AllowedOrigins"] ?? "").Split(new[] { ';', ',' }, StringSplitOptions.RemoveEmptyEntries);
+            var environment = HttpContext.RequestServices.GetRequiredService<IWebHostEnvironment>();
+            if (environment.IsDevelopment()) allowed = allowed.Concat(new[] { "http://localhost:3000", "http://localhost:3001" }).ToArray();
+            var origin = Request.Headers["origin"].ToString();
+            if (string.IsNullOrWhiteSpace(origin)) return allowed.FirstOrDefault()?.TrimEnd('/')
+                ?? throw new ApiException("Chưa cấu hình địa chỉ frontend.");
+            if (!Uri.TryCreate(origin, UriKind.Absolute, out var uri) || uri.Scheme is not ("http" or "https"))
+                throw new ApiException("Địa chỉ frontend không hợp lệ.");
+            var normalized = uri.GetLeftPart(UriPartial.Authority);
+            if (!allowed.Any(x => string.Equals(x.Trim().TrimEnd('/'), normalized, StringComparison.OrdinalIgnoreCase)))
+                throw new ApiException("Địa chỉ frontend không được phép.");
+            return normalized;
         }
     }
 }

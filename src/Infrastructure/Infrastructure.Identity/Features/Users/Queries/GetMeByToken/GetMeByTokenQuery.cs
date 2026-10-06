@@ -7,6 +7,8 @@ using MediatR;
 using Application.Wrappers;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Infrastructure.Identity.Contexts;
+using Microsoft.EntityFrameworkCore;
 
 namespace Infrastructure.Identity.Features.Users.Queries.GetMeByToken
 {
@@ -17,9 +19,8 @@ namespace Infrastructure.Identity.Features.Users.Queries.GetMeByToken
         public class GetMeByTokenQueryHandler : IRequestHandler<GetMeByTokenQuery, Response<GetMeByTokenQueryModel>>
         {
 
-            public GetMeByTokenQueryHandler()
-            {
-            }
+            private readonly IdentityContext _context;
+            public GetMeByTokenQueryHandler(IdentityContext context) { _context = context; }
 
             public async Task<Response<GetMeByTokenQueryModel>> Handle(GetMeByTokenQuery request, CancellationToken cancellationToken)
             {
@@ -40,6 +41,15 @@ namespace Infrastructure.Identity.Features.Users.Queries.GetMeByToken
                     ?? name ?? email;
                 var id = uid ?? FindClaimValue(request.Identity, ClaimTypes.NameIdentifier) ?? "";
 
+                // Resolve live role permissions so withdrawn grants disappear without waiting for JWT expiry.
+                var roleRows = await (from membership in _context.UserRoles
+                                      join role in _context.Roles on membership.RoleId equals role.Id
+                                      where membership.UserId == uid
+                                      select new { role.Id, role.Name }).ToListAsync(cancellationToken);
+                roles = roleRows.Select(x => x.Name).Where(x => x != null).ToArray();
+                var roleIds = roleRows.Select(x => x.Id).ToList();
+                var currentClaims = await _context.RoleClaims.Where(x => roleIds.Contains(x.RoleId))
+                    .Select(x => new { x.ClaimType, x.ClaimValue }).ToListAsync(cancellationToken);
                 // Parse permissions from "roles" JSON claims (injected by AccountService.GenerateJWToken)
                 // + fallback: blob JSON nằm lẫn trong Role claims do inbound mapping.
                 var permissions = new List<PermissionDto>();
@@ -68,6 +78,11 @@ namespace Infrastructure.Identity.Features.Users.Queries.GetMeByToken
                     }
                     catch { /* ignore malformed */ }
                 }
+
+                permissions = currentClaims.Where(x => !string.IsNullOrWhiteSpace(x.ClaimType))
+                    .SelectMany(x => (x.ClaimValue ?? "").Split('#', System.StringSplitOptions.RemoveEmptyEntries)
+                        .Select(action => new PermissionDto { Resource = x.ClaimType, Action = action }))
+                    .GroupBy(x => new { x.Resource, x.Action }).Select(x => x.First()).ToList();
 
                 // Fallback: if no "roles" JSON claim, try RoleClaims via ClaimTypes.Role? keep empty
                 await Task.CompletedTask;

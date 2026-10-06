@@ -22,6 +22,10 @@ public class GetSuggestedJobsForCvQuery : IRequest<Response<List<SuggestedJobVie
 
     /// <summary>Số tin trả về sau khi sắp xếp theo điểm giảm dần.</summary>
     public int TopN { get; set; } = 10;
+
+    public int PageNumber { get; set; } = 1;
+    public int PageSize { get; set; }
+    public float MinimumScore { get; set; }
 }
 
 public class SuggestedJobViewModel
@@ -92,23 +96,31 @@ public class GetSuggestedJobsForCvQueryHandler(
             cache,
             RecommendationCache.JobsVersionKey,
             cancellationToken);
+        var pageSize = Math.Clamp(request.PageSize > 0 ? request.PageSize : request.TopN, 1, 20);
+        var pageNumber = Math.Clamp(request.PageNumber, 1, 1000);
+        var requestedTopN = Math.Min(pageNumber * pageSize, 20_000);
+        var minimumScore = Math.Clamp(request.MinimumScore, 0f, 1f);
         var cacheKey = RecommendationCache.JobRecommendationsKey(
             currentUser.Id,
             cv.Id,
             cvVersion,
             jobsVersion,
-            Math.Max(1, request.TopN));
+            requestedTopN) + $":min:{minimumScore:0.##}";
         var cached = await RecommendationCache.GetAsync<List<SuggestedJobViewModel>>(
             cache,
             cacheKey,
             cancellationToken);
         if (cached != null)
         {
+            var cachedPage = cached
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToList();
             return new Response<List<SuggestedJobViewModel>>(
-                cached,
-                cached.Count == 0
+                cachedPage,
+                cachedPage.Count == 0
                     ? "Chưa có tin tuyển dụng nào phù hợp với CV này (kiểm tra lại kỹ năng đã điền trong CV)."
-                    : $"Tìm thấy {cached.Count} tin tuyển dụng phù hợp.");
+                    : $"Tìm thấy {cachedPage.Count} tin tuyển dụng phù hợp ở trang {pageNumber}.");
         }
 
         var skillIds = cv.KyNangs
@@ -206,45 +218,50 @@ public class GetSuggestedJobsForCvQueryHandler(
         }
 
         var top = results
+            .Where(r => r.Diem >= minimumScore)
             .OrderByDescending(r => r.Diem)
             .ThenByDescending(r => r.Vm.TinTuyenDungId)
-            .Take(Math.Max(1, request.TopN))
+            .Take(requestedTopN)
             .ToList();
 
-        // Persist để trang /viec-lam/phu-hop và lần tra cứu sau dùng lại kết quả.
-        var oldRows = await context.KetQuaPhuHops
-            .Where(k => k.HoSoUngVienId == hoSo.Id && k.CVUngVienId == cv.Id)
-            .ToListAsync(cancellationToken);
-        context.KetQuaPhuHops.RemoveRange(oldRows);
-        foreach (var r in top)
+        // Persist only the first page used by /viec-lam/phu-hop.
+        if (pageNumber == 1)
         {
-            context.KetQuaPhuHops.Add(new Domain.Entities.KetQuaPhuHop
+            var oldRows = await context.KetQuaPhuHops
+                .Where(k => k.HoSoUngVienId == hoSo.Id && k.CVUngVienId == cv.Id)
+                .ToListAsync(cancellationToken);
+            context.KetQuaPhuHops.RemoveRange(oldRows);
+            foreach (var r in top)
             {
-                HoSoUngVienId = hoSo.Id,
-                CVUngVienId = cv.Id,
-                TinTuyenDungId = r.Vm.TinTuyenDungId,
-                DiemPhuHop = r.Diem,
-                KyNangThoa = r.Thoa,
-                KyNangThieu = r.Thieu,
-                PhanLoai = PhanLoaiOf(r.Diem),
-                GhiChu = "Gợi ý content-based: kỹ năng trùng + vị trí/lương/địa điểm.",
-                MatchingVersion = "cbf-v1",
-                ExplanationModel = "skill-overlap-weighted",
-                EvaluateAt = DateTime.UtcNow,
-                Created = DateTime.UtcNow,
-            });
+                context.KetQuaPhuHops.Add(new Domain.Entities.KetQuaPhuHop
+                {
+                    HoSoUngVienId = hoSo.Id,
+                    CVUngVienId = cv.Id,
+                    TinTuyenDungId = r.Vm.TinTuyenDungId,
+                    DiemPhuHop = r.Diem,
+                    KyNangThoa = r.Thoa,
+                    KyNangThieu = r.Thieu,
+                    PhanLoai = PhanLoaiOf(r.Diem),
+                    GhiChu = "Gợi ý content-based: kỹ năng trùng + vị trí/lương/địa điểm.",
+                    MatchingVersion = "cbf-v1",
+                    ExplanationModel = "skill-overlap-weighted",
+                    EvaluateAt = DateTime.UtcNow,
+                    Created = DateTime.UtcNow,
+                });
+            }
+            await context.SaveChangesAsync(cancellationToken);
         }
-        await context.SaveChangesAsync(cancellationToken);
 
-        var responseData = top.Select(r => r.Vm).ToList();
-        await RecommendationCache.SetAsync(cache, cacheKey, responseData, cancellationToken);
+        var allData = top.Select(r => r.Vm).ToList();
+        await RecommendationCache.SetAsync(cache, cacheKey, allData, cancellationToken);
+        var responseData = allData.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToList();
 
         logger.LogInformation("Job recommendation completed in {ElapsedMs} ms. Results={ResultCount}.",
-            timer.ElapsedMilliseconds, top.Count);
+            timer.ElapsedMilliseconds, responseData.Count);
 
-        var message = top.Count == 0
+        var message = responseData.Count == 0
             ? "Chưa có tin tuyển dụng nào phù hợp với CV này (kiểm tra lại kỹ năng đã điền trong CV)."
-            : $"Tìm thấy {top.Count} tin tuyển dụng phù hợp.";
+            : $"Tìm thấy {responseData.Count} tin tuyển dụng phù hợp ở trang {pageNumber}.";
         return new Response<List<SuggestedJobViewModel>>(
             responseData, message);
     }

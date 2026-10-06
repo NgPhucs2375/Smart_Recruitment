@@ -51,7 +51,8 @@ public class CreateDonUngTuyenCommandHandler(
         var cvError = ValidateCVSanSangNop(cv);
         if (cvError != null) return new Response<int>(cvError);
 
-        if (job.TrangThai != TrangThaiTinTuyenDung.DangTuyen)
+        if (job.TrangThai != TrangThaiTinTuyenDung.DangTuyen
+            || (job.NgayHetHan.HasValue && job.NgayHetHan.Value <= DateTime.UtcNow))
         {
             return new Response<int>("Tin tuyển dụng không còn nhận hồ sơ.");
         }

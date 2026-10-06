@@ -21,8 +21,20 @@ namespace Application.Features.TinTuyenDung.Queries.GetAllTinTuyenDungs
         public List<string> KyNangs { get; set; } = new();
         public int SoLuongUngVien { get; set; }
         public System.DateTime Created { get; set; }
+        public System.DateTime? LastModified { get; set; }
+        public List<JobSkillViewModel> KyNangYeuCaus { get; set; } = new();
+        public string GhiChuKiemDuyet { get; set; } = "";
+        public string KetQuaSangLoc { get; set; } = "";
+        public bool NguoiDaiDienDaDuyet { get; set; }
+        public string VaiTroNguoiDang { get; set; } = "";
         public string WorkMode { get; set; }
         public string Level { get; set; }
         public string EmploymentType { get; set; }
+    }
+    public class JobSkillViewModel
+    {
+        public int KyNangId { get; set; }
+        public string TenKyNang { get; set; } = "";
+        public int MucDoYeuCau { get; set; }
     }
 }

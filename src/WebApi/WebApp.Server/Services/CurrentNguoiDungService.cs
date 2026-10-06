@@ -21,6 +21,7 @@ namespace WebApp.Server.Services
             var nd = await _context.NguoiDungs.FirstOrDefaultAsync(n => n.ApplicationUserId == _auth.UserId);
             if (nd == null)
                 throw new ApiException("Không xác định được người dùng.");
+            if (!nd.IsActive) throw new ApiException("Tài khoản đã bị vô hiệu hóa.", 403);
 
             var hs = await _context.HoSoNhaTuyenDungs.FirstOrDefaultAsync(h => h.NguoiDungId == nd.Id);
 

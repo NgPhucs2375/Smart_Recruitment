@@ -744,8 +744,11 @@ html {
 
 body {
   font-family: var(--font-body);
+<<<<<<< HEAD
   background: var(--background);
   color: var(--foreground);
+=======
+>>>>>>> origin/dev-Phuc2
 }
 
 /* Dropdown / menu item highlight on hover */
@@ -1418,6 +1421,8 @@ html {
     scroll-behavior: auto;
   }
   .animate-float,
+  .animate-pulse,
+  .animate-spin,
   .animate-pulse-soft,
   .animate-slide-in,
   .animate-hero-fade-up,
@@ -1736,12 +1741,6 @@ html {
   box-shadow: inset 0 0 0 1px var(--card), 0 12px 30px #29362b0b;
 }
 
-.cv-preview-frame:fullscreen {
-  overflow: auto;
-  padding: 1.5rem;
-  background: var(--background);
-}
-
 .cv-builder-layout {
   display: grid;
   grid-template-columns: minmax(0, 5fr) minmax(420px, 7fr);
@@ -1795,7 +1794,6 @@ html {
 
 .cv-paper {
   overflow: hidden;
-  max-width: 100%;
   background: #fff;
   color: #3f454a;
   box-shadow: 0 8px 25px #26352b16;
@@ -2016,9 +2014,6 @@ html {
 
 .cv-section-item {
   break-inside: avoid;
-  min-width: 0;
-  max-width: 100%;
-  overflow-wrap: anywhere;
 }
 
 /* In CV: chỉ in tài liệu CV (window.print -> Save as PDF), ẩn toàn bộ app shell.

@@ -16,6 +16,7 @@ namespace WebApp.Server.Controllers.Identity;
 [Route("api/roleclaims")]
 [ApiController]
 [Authorize]
+[Authorize(Roles = "QUAN_TRI_VIEN")]
 public class RoleClaimsController : BaseApiController
 {
  

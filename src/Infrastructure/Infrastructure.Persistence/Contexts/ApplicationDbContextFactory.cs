@@ -10,6 +10,7 @@ using Microsoft.EntityFrameworkCore.Design;
 using Microsoft.Extensions.Configuration;
 using Application.Interfaces;
 using Infrastructure.Shared.Services;
+using Pgvector.EntityFrameworkCore;
 
 namespace Infrastructure.Persistence.Contexts
 {
@@ -39,6 +40,7 @@ namespace Infrastructure.Persistence.Contexts
                 .UseNpgsql(conn, b =>
                 {
                     b.MigrationsAssembly(typeof(ApplicationDbContext).Assembly.FullName);
+                    b.UseVector();
                 })
                 .Options;
 

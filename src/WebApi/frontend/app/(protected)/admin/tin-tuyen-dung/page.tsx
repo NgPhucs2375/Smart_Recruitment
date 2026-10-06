@@ -12,6 +12,7 @@ import { Briefcase, Trash2, RotateCcw, Search, CheckCircle2, XCircle, Ban } from
 import { AdminGate } from "@/features/admin/AdminGate";
 import { adminApi, TRIGGER_TIN } from "@/features/admin/api";
 import { useConfirmDialog } from "@/components/ui/confirm-dialog";
+import { JobPreview, type JobPreviewData } from "@/features/tin-tuyen-dung/job-preview";
 
 interface TinRow {
   Id: number;
@@ -23,6 +24,9 @@ interface TinRow {
   NgayHetHan?: string | null;
   NguoiDangTinId: number;
   DoanhNghiepId: number;
+  LastModified?: string;
+  NguoiDaiDienDaDuyet?: boolean;
+  VaiTroNguoiDang?: string;
 }
 
 // Display labels + badge variants for the 9 real TrangThaiTinTuyenDung
@@ -45,26 +49,62 @@ export default function AdminTinTuyenDungPage() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("");
   const [busyId, setBusyId] = useState<number | null>(null);
-  const { confirm } = useConfirmDialog();
+  const [preview, setPreview] = useState<JobPreviewData | null>(null);
+  const [reviewing, setReviewing] = useState<TinRow | null>(null);
+  const [page, setPage] = useState(1);
+  const [statusFilter, setStatusFilter] = useState("ChoAdminDuyet");
+  const { confirm, prompt } = useConfirmDialog();
 
   const fetchRows = useCallback(async (kw?: string) => {
     setLoading(true);
     try {
-      const data = await adminApi.list<TinRow>("/tintuyendungs", kw ? { _filter: kw } : undefined);
-      setRows(Array.isArray(data) ? data : []);
+      const data = await adminApi.list<Record<string, unknown>>("/tintuyendungs", { _filter: kw, _start: (page - 1) * 20, _end: page * 20, TrangThai: statusFilter });
+      setRows(Array.isArray(data) ? data.map(r => ({
+        Id: Number(r.Id ?? r.id), TieuDe: String(r.TieuDe ?? r.tieuDe ?? ""),
+        TrangThai: String(r.TrangThai ?? r.trangThai ?? ""), DoanhNghiepId: Number(r.DoanhNghiepId ?? r.doanhNghiepId),
+        NguoiDangTinId: Number(r.NguoiDangTinId ?? r.nguoiDangTinId),
+        LuongToiThieu: Number(r.LuongToiThieu ?? r.luongToiThieu), LuongToiDa: Number(r.LuongToiDa ?? r.luongToiDa),
+        LastModified: (r.LastModified ?? r.lastModified) as string | undefined,
+        NguoiDaiDienDaDuyet: Boolean(r.NguoiDaiDienDaDuyet ?? r.nguoiDaiDienDaDuyet),
+        VaiTroNguoiDang: String(r.VaiTroNguoiDang ?? r.vaiTroNguoiDang ?? ""),
+      })) : []);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Không tải được danh sách");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [page, statusFilter]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    void fetchRows();
-  }, [fetchRows]);
+    void fetchRows(filter || undefined);
+  }, [fetchRows, filter]);
+
+  const showDetail = async (row: TinRow) => {
+    try {
+      const r = await adminApi.get<Record<string, unknown>>(`/tintuyendungs/show/${row.Id}`);
+      const get = (key: string) => r[key] ?? r[key[0].toUpperCase() + key.slice(1)];
+      setReviewing({ ...row, TrangThai: String(get("trangThai") ?? row.TrangThai),
+        LastModified: get("lastModified") as string | undefined,
+        NguoiDaiDienDaDuyet: Boolean(get("nguoiDaiDienDaDuyet")), VaiTroNguoiDang: String(get("vaiTroNguoiDang") ?? "") });
+      setPreview({ tieuDe: String(get("tieuDe") ?? ""), moTaCongViec: String(get("moTaCongViec") ?? ""),
+        yeuCauCongViec: String(get("yeuCauCongViec") ?? ""), kinhNghiemYeuCau: String(get("kinhNghiemYeuCau") ?? ""),
+        quyenLoi: String(get("quyenLoi") ?? ""), diaDiemLamViec: String(get("diaDiemLamViec") ?? ""),
+        luongToiThieu: Number(get("luongToiThieu") ?? 0), luongToiDa: Number(get("luongToiDa") ?? 0),
+        ghiChuKiemDuyet: String(get("ghiChuKiemDuyet") ?? ""),
+        ketQuaSangLoc: String(get("ketQuaSangLoc") ?? ""), nguoiDaiDienDaDuyet: Boolean(get("nguoiDaiDienDaDuyet")),
+        vaiTroNguoiDang: String(get("vaiTroNguoiDang") ?? ""),
+        kyNangs: ((get("kyNangYeuCaus") ?? []) as Record<string, unknown>[]).map(k => ({ kyNangId: Number(k.KyNangId ?? k.kyNangId), tenKyNang: String(k.TenKyNang ?? k.tenKyNang), mucDoYeuCau: Number(k.MucDoYeuCau ?? k.mucDoYeuCau) })) });
+    } catch (error) { toast.error(error instanceof Error ? error.message : "Không tải được chi tiết tin."); }
+  };
 
   const handleFire = async (row: TinRow, trigger: number, label: string) => {
+    let note = `${label} bởi quản trị viên`;
+    if (trigger === TRIGGER_TIN.AdminTuChoi || trigger === TRIGGER_TIN.AdminCuongCheKhoa) {
+      const reason = await prompt({ title: `Lý do ${label.toLowerCase()}`, description: "Nêu nội dung cần sửa hoặc vi phạm của tin.", confirmLabel: label });
+      if (!reason?.trim()) return;
+      note = reason.trim();
+    }
     const confirmed = await confirm({
       title: `${label} tin?`,
       description: `${label} tin "${row.TieuDe}"?`,
@@ -77,9 +117,14 @@ export default function AdminTinTuyenDungPage() {
       await adminApi.post(`/tintuyendungs/${row.Id}/fire`, {
         id: row.Id,
         trigger,
-        ghiChu: `${label} bởi quản trị viên`,
+        ghiChu: note,
+        expectedLastModified: row.LastModified,
       });
-      toast.success(`Đã ${label.toLowerCase()} tin`);
+      const updated = await adminApi.get<Record<string, unknown>>(`/tintuyendungs/show/${row.Id}`);
+      const actualState = String(updated.TrangThai ?? updated.trangThai ?? "");
+      if (trigger === TRIGGER_TIN.AdminDuyet && actualState !== "DangTuyen")
+        toast.error(`Tin chưa được công khai. ${String(updated.KetQuaSangLoc ?? updated.ketQuaSangLoc ?? "Bộ lọc hoặc trạng thái duyệt không cho phép.")}`);
+      else toast.success(`Đã ${label.toLowerCase()} tin`);
       await fetchRows(filter || undefined);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Thao tác thất bại");
@@ -91,14 +136,14 @@ export default function AdminTinTuyenDungPage() {
   const handleDelete = async (row: TinRow) => {
     const confirmed = await confirm({
       title: "Xóa tin tuyển dụng?",
-      description: `Xóa tin "${row.TieuDe}"? Tin sẽ bị đóng qua state machine và không khôi phục được.`,
+      description: `Xóa bản nháp "${row.TieuDe}"? Tin có đơn ứng tuyển không được xóa.`,
       confirmLabel: "Xóa",
       destructive: true,
     });
     if (!confirmed) return;
     setBusyId(row.Id);
     try {
-      await adminApi.remove(`/tintuyendungs/${row.Id}`);
+      await adminApi.remove(`/tintuyendungs/${row.Id}?expectedLastModified=${encodeURIComponent(row.LastModified ?? "")}`);
       toast.success("Đã xóa tin tuyển dụng");
       await fetchRows(filter || undefined);
     } catch (e) {
@@ -118,7 +163,7 @@ export default function AdminTinTuyenDungPage() {
             </div>
             <div>
               <h1 className="text-xl font-semibold">Quản trị tin tuyển dụng</h1>
-              <p className="text-sm text-muted-foreground">Duyệt tin, hạ tin vi phạm, xóa tin</p>
+              <p className="text-sm text-muted-foreground">Chỉ xử lý tin bị bộ lọc gắn cờ sau bước Người đại diện. Admin tự quyết định duyệt tay hoặc từ chối.</p>
             </div>
           </div>
           <Button variant="outline" onClick={() => void fetchRows(filter || undefined)}>
@@ -145,6 +190,7 @@ export default function AdminTinTuyenDungPage() {
                   onChange={(e) => setFilter(e.target.value)}
                 />
               </div>
+              <select aria-label="Lọc trạng thái tin" className="rounded-md border border-input bg-background px-3 text-sm" value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setPage(1); }}><option value="">Tất cả trạng thái</option>{Object.entries(TIN_TRANG_THAI).map(([key, value]) => <option key={key} value={key}>{value.label}</option>)}</select>
               <Button type="submit" variant="secondary">Tìm</Button>
             </form>
           </CardContent>
@@ -177,7 +223,7 @@ export default function AdminTinTuyenDungPage() {
                       return (
                         <TableRow key={row.Id}>
                           <TableCell>{row.Id}</TableCell>
-                          <TableCell className="max-w-[280px] truncate font-medium">{row.TieuDe}</TableCell>
+                           <TableCell className="max-w-[280px] truncate font-medium"><button type="button" className="text-left text-primary underline-offset-4 hover:underline" onClick={() => void showDetail(row)}>{row.TieuDe}</button></TableCell>
                           <TableCell>
                             <Badge variant={st.variant}>
                               {st.label}
@@ -186,31 +232,12 @@ export default function AdminTinTuyenDungPage() {
                           <TableCell>#{row.DoanhNghiepId}</TableCell>
                           <TableCell className="text-right">
                             <div className="flex justify-end gap-1">
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                title="Duyệt tin"
-                                disabled={busy}
-                                className="text-teal"
-                                onClick={() => void handleFire(row, TRIGGER_TIN.AdminDuyet, "Duyệt")}
-                              >
-                                <CheckCircle2 className="size-4" />
-                              </Button>
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                title="Từ chối tin"
-                                disabled={busy}
-                                className="text-bronze"
-                                onClick={() => void handleFire(row, TRIGGER_TIN.AdminTuChoi, "Từ chối")}
-                              >
-                                <XCircle className="size-4" />
-                              </Button>
+                              <Button variant="outline" size="sm" disabled={busy} onClick={() => void showDetail(row)}>{row.TrangThai === "ChoAdminDuyet" ? "Xem và duyệt" : "Chi tiết"}</Button>
                               <Button
                                 size="icon"
                                 variant="ghost"
                                 title="Cưỡng chế khóa (vi phạm)"
-                                disabled={busy}
+                                disabled={busy || !["DangTuyen", "TamDung"].includes(row.TrangThai)}
                                 className="text-destructive"
                                 onClick={() => void handleFire(row, TRIGGER_TIN.AdminCuongCheKhoa, "Cưỡng chế khóa")}
                               >
@@ -220,7 +247,7 @@ export default function AdminTinTuyenDungPage() {
                                 size="icon"
                                 variant="ghost"
                                 title="Xóa tin"
-                                disabled={busy}
+                                disabled={busy || !["Nhap", "TuChoi"].includes(row.TrangThai)}
                                 className="text-destructive"
                                 onClick={() => void handleDelete(row)}
                               >
@@ -244,6 +271,11 @@ export default function AdminTinTuyenDungPage() {
             )}
           </CardContent>
         </Card>
+        <div className="flex justify-end gap-3"><Button variant="outline" disabled={loading || page <= 1} onClick={() => setPage(p => p - 1)}>Trang trước</Button><span className="self-center text-sm">Trang {page}</span><Button variant="outline" disabled={loading || rows.length < 20} onClick={() => setPage(p => p + 1)}>Trang sau</Button></div>
+        <JobPreview data={preview} onClose={() => { setPreview(null); setReviewing(null); }} actions={reviewing?.TrangThai === "ChoAdminDuyet" ? <>
+          <Button variant="outline" disabled={busyId !== null} onClick={() => { setPreview(null); setReviewing(null); void handleFire(reviewing, TRIGGER_TIN.AdminTuChoi, "Từ chối"); }}><XCircle className="size-4" /> Từ chối</Button>
+          <Button disabled={busyId !== null || (reviewing.VaiTroNguoiDang !== "NGUOI_DAI_DIEN" && !reviewing.NguoiDaiDienDaDuyet)} onClick={() => { setPreview(null); setReviewing(null); void handleFire(reviewing, TRIGGER_TIN.AdminDuyet, "Duyệt và công khai"); }}><CheckCircle2 className="size-4" /> Duyệt và công khai</Button>
+        </> : undefined} />
       </div>
     </AdminGate>
   );
