@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Dialog as DialogPrimitive } from "@base-ui/react/dialog";
 import { Eye, Pencil, Search, Upload, X, Check, TriangleAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { ThemeCanvas } from "@/features/tao-cv/components/theme-canvas";
+import { parseDbTheme } from "@/features/tao-cv/services/theme-db-sync";
 import {
   SAMPLE_RESUME,
   TEMPLATE_CATEGORIES,
@@ -47,6 +49,8 @@ function toInput(row: CvThemeVm) {
     LaMacDinh: row.LaMacDinh,
     IsActive: row.IsActive,
     ThuTu: row.ThuTu,
+    // Giữ design Studio: toggle Ẩn/Hiện không được xóa CauHinhJson.
+    CauHinhJson: row.CauHinhJson ?? null,
   };
 }
 
@@ -88,6 +92,15 @@ export function CvThemeLibrary({ onEdit }: { onEdit: (row: CvThemeVm) => void })
     void fetchRows();
   }, [fetchRows]);
 
+  useEffect(() => {
+    // Quay về từ Studio sau khi Lưu -> refetch để preview cập nhật ngay.
+    const onFocus = () => {
+      void fetchRows();
+    };
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+  }, [fetchRows]);
+
   const cards = useMemo(() => {
     void tick;
     const q = query.trim().toLowerCase();
@@ -118,6 +131,10 @@ export function CvThemeLibrary({ onEdit }: { onEdit: (row: CvThemeVm) => void })
   const previewMeta: ResumeTemplateMeta | null = previewSlug
     ? (TEMPLATE_REGISTRY[resolveTemplateId(previewSlug)] ?? null)
     : null;
+  const previewRow: CvThemeVm | null = previewSlug
+    ? (rows.find((r) => r.Slug === previewSlug) ?? null)
+    : null;
+  const previewStudioTheme = previewRow ? parseDbTheme(previewRow) : null;
 
   const handleToggle = async (row: CvThemeVm) => {
     setToggling(row.Id);
@@ -254,7 +271,11 @@ export function CvThemeLibrary({ onEdit }: { onEdit: (row: CvThemeVm) => void })
               </div>
               <div className="min-h-0 flex-1 overflow-y-auto bg-muted p-5">
                 <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
-                  {previewMeta && <previewMeta.Component data={SAMPLE_RESUME} />}
+                  {previewStudioTheme ? (
+                    <ThemeCanvas theme={previewStudioTheme} data={SAMPLE_RESUME} />
+                  ) : (
+                    previewMeta && <previewMeta.Component data={SAMPLE_RESUME} />
+                  )}
                 </div>
                 <p className="mt-3 text-xs text-muted-foreground">
                   Render thật bằng dữ liệu mẫu — đúng giao diện ứng viên thấy ở gallery và PDF.
@@ -266,6 +287,25 @@ export function CvThemeLibrary({ onEdit }: { onEdit: (row: CvThemeVm) => void })
       </DialogPrimitive.Root>
     </div>
   );
+}
+
+/** Tỉ lệ fit tờ A4 (794px @96dpi) vừa khung card — đo rộng thực tế. */
+function useFitScale() {
+  const ref = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(0.5);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const measure = () => {
+      const w = el.clientWidth;
+      if (w > 0) setScale(Math.min(w / 794, 1));
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  return { ref, scale };
 }
 
 function LibraryCard({
@@ -286,24 +326,33 @@ function LibraryCard({
   onUpload: (f: File | undefined) => void;
 }) {
   const { Component } = meta ?? {};
+  // Theme Studio (có CauHinhJson) render đúng thiết kế đã lưu — phản ánh
+  // màu/layout mới ngay sau khi Lưu ở Studio. Theme seed dùng Component tĩnh.
+  const studioTheme = useMemo(() => parseDbTheme(row), [row.CauHinhJson]);
+  const { ref: frameRef, scale } = useFitScale();
+  const canPreview = studioTheme !== null || !!Component;
   return (
     <article className={cn("flex flex-col overflow-hidden rounded-3xl border bg-card shadow-sm", !row.IsActive && "opacity-75")}>
       <button
         type="button"
         onClick={onPreview}
-        disabled={!Component}
+        disabled={!canPreview}
         aria-label={`Xem trước mẫu ${row.Ten}`}
         className="group relative block h-56 w-full cursor-pointer overflow-hidden bg-muted/40 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:cursor-not-allowed"
       >
-        <div aria-hidden="true" className="origin-top-left" style={{ width: "640px", transform: "scale(0.5)", pointerEvents: "none" }}>
-          {Component ? (
-            <Component data={SAMPLE_RESUME} />
-          ) : (
-            <div className="flex h-64 items-center justify-center gap-2 bg-muted px-6 text-center text-xs text-muted-foreground">
-              <TriangleAlert className="size-4 shrink-0" />
-              Chưa có component render cho slug “{row.Slug}” — không công bố cho ứng viên
-            </div>
-          )}
+        <div ref={frameRef} aria-hidden="true" className="h-full w-full overflow-hidden" style={{ pointerEvents: "none" }}>
+          <div style={{ width: 794, margin: "0 auto", transform: `scale(${scale})`, transformOrigin: "top center" }}>
+            {studioTheme ? (
+              <ThemeCanvas theme={studioTheme} data={SAMPLE_RESUME} />
+            ) : Component ? (
+              <Component data={SAMPLE_RESUME} />
+            ) : (
+              <div className="flex h-64 items-center justify-center gap-2 bg-muted px-6 text-center text-xs text-muted-foreground">
+                <TriangleAlert className="size-4 shrink-0" />
+                Chưa có component render cho slug “{row.Slug}” — không công bố cho ứng viên
+              </div>
+            )}
+          </div>
         </div>
         {Component && (
           <span className="absolute bottom-3 right-3 inline-flex items-center gap-1.5 rounded-full bg-charcoal/80 px-3 py-1.5 text-xs font-medium text-white opacity-0 backdrop-blur transition group-hover:opacity-100 group-focus-visible:opacity-100">
@@ -332,7 +381,7 @@ function LibraryCard({
           <Badge variant="outline" className="rounded-full text-[10px]">{row.CapBac ?? "all"}</Badge>
         </div>
         <div className="mt-auto flex flex-wrap gap-2 pt-2">
-          <Button type="button" variant="outline" size="sm" className="flex-1" onClick={onPreview} disabled={!Component}>
+          <Button type="button" variant="outline" size="sm" className="flex-1" onClick={onPreview} disabled={!canPreview}>
             <Eye className="mr-1.5 size-3.5" /> Xem
           </Button>
           <Button type="button" variant="outline" size="sm" className="flex-1" onClick={onToggle} disabled={toggling}>

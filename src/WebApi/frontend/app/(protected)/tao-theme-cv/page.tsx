@@ -550,11 +550,11 @@ function StudioWorkbench() {
         {/* Dock trái */}
         <div className="min-w-0 rounded-xl border border-border/50 bg-card">
           <Tabs defaultValue="layout" className="p-5">
-            <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="layout">Bố cục</TabsTrigger>
-              <TabsTrigger value="colors">Màu sắc</TabsTrigger>
-              <TabsTrigger value="type">Chữ</TabsTrigger>
-              <TabsTrigger value="publish">Xuất bản & Lưu</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-4 overflow-x-auto">
+              <TabsTrigger value="layout" className="px-2 text-xs">Bố cục</TabsTrigger>
+              <TabsTrigger value="colors" className="px-2 text-xs">Màu sắc</TabsTrigger>
+              <TabsTrigger value="type" className="px-2 text-xs">Chữ</TabsTrigger>
+              <TabsTrigger value="publish" className="px-2 text-xs">Xuất bản</TabsTrigger>
             </TabsList>
 
             <TabsContent value="layout" className="mt-4 space-y-3">
