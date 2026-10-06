@@ -178,9 +178,11 @@ function normalizeTheme(t: CvThemeConfig): CvThemeConfig {
   };
 }
 
-/** Chỉ theme duyệt policy mới lên TemplatePicker của ứng viên. */
+/** Chỉ theme duyệt policy + đang Hiển thị mới lên picker của ứng viên. */
 export function getPublishedThemes(): CvThemeConfig[] {
-  return getAllThemes().filter((t) => t.policy?.policyApproved === true);
+  return getAllThemes().filter(
+    (t) => t.policy?.policyApproved === true && t.policy?.isPublished !== false,
+  );
 }
 
 export function saveTheme(theme: CvThemeConfig): void {

@@ -549,148 +549,12 @@ function StudioWorkbench() {
       <div className="grid gap-6 lg:grid-cols-[460px_minmax(0,1fr)]">
         {/* Dock trái */}
         <div className="min-w-0 rounded-xl border border-border/50 bg-card">
-          <div className="space-y-3 border-b border-border/50 p-5">
-            <div>
-              <Label htmlFor="theme-name">Tên theme *</Label>
-              <Input
-                id="theme-name"
-                value={theme.name}
-                maxLength={80}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  patch(
-                    slugTouched
-                      ? { name: v }
-                      : { name: v, slug: slugifyThemeName(v) },
-                  );
-                }}
-                placeholder="VD: Fullstack Dev Theme 2026"
-                className="mt-1.5"
-                aria-describedby="theme-name-hint"
-              />
-              <p
-                id="theme-name-hint"
-                className={
-                  theme.name.trim().length >= 4
-                    ? "mt-1 text-[11px] text-teal"
-                    : "mt-1 text-[11px] font-medium text-destructive"
-                }
-              >
-                {theme.name.trim().length >= 4
-                  ? "Tên hợp lệ — đủ điều kiện lưu theme."
-                  : `Tên cần tối thiểu 4 ký tự mới lưu được (đang ${theme.name.trim().length}).`}
-              </p>
-            </div>
-            <div>
-              <Label htmlFor="theme-desc">Mô tả</Label>
-              <Textarea
-                id="theme-desc"
-                value={theme.description ?? ""}
-                maxLength={220}
-                onChange={(e) => patch({ description: e.target.value })}
-                placeholder="Ngắn gọn cách dùng theme này…"
-                rows={2}
-                className="mt-1.5"
-              />
-            </div>
-            {/* Metadata hiển thị trên bảng Quản lý CV/mẫu CV */}
-            <div>
-              <Label htmlFor="theme-slug">Slug / Mã định danh</Label>
-              <Input
-                id="theme-slug"
-                value={theme.slug}
-                maxLength={60}
-                onChange={(e) => {
-                  setSlugTouched(true);
-                  patch({ slug: slugifyThemeName(e.target.value) });
-                }}
-                placeholder="vd: dev-emerald-pro (tự gen theo tên)"
-                className="mt-1.5 font-mono text-xs"
-              />
-              {loadedDbSlug && theme.slug !== loadedDbSlug && (
-                <p className="mt-1 text-[11px] text-amber-700 dark:text-amber-300">
-                  Đổi slug sẽ tạo dòng mới trên bảng quản trị (dòng cũ giữ nguyên).
-                </p>
-              )}
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label htmlFor="theme-category">Danh mục</Label>
-                <Select
-                  value={theme.category}
-                  onValueChange={(v) => patch({ category: v as ThemeCategory })}
-                >
-                  <SelectTrigger id="theme-category" className="mt-1.5">
-                    <SelectValue placeholder="Chọn danh mục" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {THEME_CATEGORIES.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>
-                        {c.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="theme-level">Cấp bậc</Label>
-                <Select
-                  value={theme.level}
-                  onValueChange={(v) => patch({ level: v as ThemeLevel })}
-                >
-                  <SelectTrigger id="theme-level" className="mt-1.5">
-                    <SelectValue placeholder="Chọn cấp bậc" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {THEME_LEVELS.map((l) => (
-                      <SelectItem key={l.id} value={l.id}>
-                        {l.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2">
-              <div className="text-sm">
-                <p className="font-medium">Chuẩn ATS</p>
-                <p className="text-xs text-muted-foreground">
-                  Bật = 1 cột, máy quét CV đọc được
-                </p>
-              </div>
-              <Switch
-                id="theme-ats"
-                checked={theme.atsFriendly}
-                onCheckedChange={(v) => patch({ atsFriendly: v === true })}
-                aria-label="Chuẩn ATS"
-              />
-            </div>
-            <div className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2">
-              <div className="text-sm">
-                <p className="font-medium">Hiển thị</p>
-                <p className="text-xs text-muted-foreground">
-                  Hiện dòng này trên bảng quản trị
-                </p>
-              </div>
-              <Switch
-                id="theme-published"
-                checked={theme.policy.isPublished}
-                onCheckedChange={(v) =>
-                  patch({
-                    policy: { ...theme.policy, isPublished: v === true },
-                  })
-                }
-                aria-label="Hiển thị theme"
-              />
-            </div>
-          </div>
-
           <Tabs defaultValue="layout" className="p-5">
             <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="layout">Bố cục</TabsTrigger>
               <TabsTrigger value="colors">Màu sắc</TabsTrigger>
               <TabsTrigger value="type">Chữ</TabsTrigger>
-              <TabsTrigger value="policy">Duyệt</TabsTrigger>
+              <TabsTrigger value="publish">Xuất bản & Lưu</TabsTrigger>
             </TabsList>
 
             <TabsContent value="layout" className="mt-4 space-y-3">
@@ -1191,7 +1055,141 @@ function StudioWorkbench() {
               </div>
             </TabsContent>
 
-            <TabsContent value="policy" className="mt-4 space-y-3">
+            <TabsContent value="publish" className="mt-4 space-y-3">
+              <div>
+                <Label htmlFor="theme-name">Tên theme *</Label>
+                <Input
+                  id="theme-name"
+                  value={theme.name}
+                  maxLength={80}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    patch(
+                      slugTouched
+                        ? { name: v }
+                        : { name: v, slug: slugifyThemeName(v) },
+                    );
+                  }}
+                  placeholder="VD: Fullstack Dev Theme 2026"
+                  className="mt-1.5"
+                  aria-describedby="theme-name-hint"
+                />
+                <p
+                  id="theme-name-hint"
+                  className={
+                    theme.name.trim().length >= 4
+                      ? "mt-1 text-[11px] text-teal"
+                      : "mt-1 text-[11px] font-medium text-destructive"
+                  }
+                >
+                  {theme.name.trim().length >= 4
+                    ? "Tên hợp lệ — đủ điều kiện lưu theme."
+                    : `Tên cần tối thiểu 4 ký tự mới lưu được (đang ${theme.name.trim().length}).`}
+                </p>
+              </div>
+              <div>
+                <Label htmlFor="theme-desc">Mô tả</Label>
+                <Textarea
+                  id="theme-desc"
+                  value={theme.description ?? ""}
+                  maxLength={220}
+                  onChange={(e) => patch({ description: e.target.value })}
+                  placeholder="Ngắn gọn cách dùng theme này…"
+                  rows={2}
+                  className="mt-1.5"
+                />
+              </div>
+              {/* Metadata hiển thị trên bảng Quản lý CV/mẫu CV */}
+              <div>
+                <Label htmlFor="theme-slug">Slug / Mã định danh</Label>
+                <Input
+                  id="theme-slug"
+                  value={theme.slug}
+                  maxLength={60}
+                  onChange={(e) => {
+                    setSlugTouched(true);
+                    patch({ slug: slugifyThemeName(e.target.value) });
+                  }}
+                  placeholder="vd: dev-emerald-pro (tự gen theo tên)"
+                  className="mt-1.5 font-mono text-xs"
+                />
+                {loadedDbSlug && theme.slug !== loadedDbSlug && (
+                  <p className="mt-1 text-[11px] text-amber-700 dark:text-amber-300">
+                    Đổi slug sẽ tạo dòng mới trên bảng quản trị (dòng cũ giữ nguyên).
+                  </p>
+                )}
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label htmlFor="theme-category">Danh mục</Label>
+                  <Select
+                    value={theme.category}
+                    onValueChange={(v) => patch({ category: v as ThemeCategory })}
+                  >
+                    <SelectTrigger id="theme-category" className="mt-1.5">
+                      <SelectValue placeholder="Chọn danh mục" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {THEME_CATEGORIES.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {c.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="theme-level">Cấp bậc</Label>
+                  <Select
+                    value={theme.level}
+                    onValueChange={(v) => patch({ level: v as ThemeLevel })}
+                  >
+                    <SelectTrigger id="theme-level" className="mt-1.5">
+                      <SelectValue placeholder="Chọn cấp bậc" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {THEME_LEVELS.map((l) => (
+                        <SelectItem key={l.id} value={l.id}>
+                          {l.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2">
+                <div className="text-sm">
+                  <p className="font-medium">Chuẩn ATS</p>
+                  <p className="text-xs text-muted-foreground">
+                    Bật = 1 cột, máy quét CV đọc được
+                  </p>
+                </div>
+                <Switch
+                  id="theme-ats"
+                  checked={theme.atsFriendly}
+                  onCheckedChange={(v) => patch({ atsFriendly: v === true })}
+                  aria-label="Chuẩn ATS"
+                />
+              </div>
+              <div className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2">
+                <div className="text-sm">
+                  <p className="font-medium">Hiển thị</p>
+                  <p className="text-xs text-muted-foreground">
+                    Hiện dòng này trên bảng quản trị
+                  </p>
+                </div>
+                <Switch
+                  id="theme-published"
+                  checked={theme.policy.isPublished}
+                  onCheckedChange={(v) =>
+                    patch({
+                      policy: { ...theme.policy, isPublished: v === true },
+                    })
+                  }
+                  aria-label="Hiển thị theme"
+                />
+              </div>
+
               <ul className="space-y-2 rounded-lg border border-dashed border-input bg-muted/40 px-3 py-2.5 text-xs leading-5">
                 <li className="flex gap-1.5">
                   <span
@@ -1268,6 +1266,15 @@ function StudioWorkbench() {
                   placeholder="VD: v1.0 — palette emerald cho IT…"
                 />
               </div>
+              <Button
+                size="lg"
+                className="mt-4 w-full"
+                onClick={() => void handleSave()}
+                disabled={!auditName || saving}
+              >
+                <Save className="mr-1.5 size-4" />
+                {saving ? "Đang lưu…" : "Lưu Theme & Cập nhật Bảng"}
+              </Button>
               {!theme.isDefault && (
                 <Button
                   variant="outline"

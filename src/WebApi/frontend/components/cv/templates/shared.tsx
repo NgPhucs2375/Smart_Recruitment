@@ -173,7 +173,7 @@ export function EmptyPaper({ hint }: { hint: string }) {
  * phép tách qua trang khi in, tránh khoảng trống lớn + trang trắng.
  * cv-section-shell chỉ phục vụ orphan protection cho heading.
  */
-type CvSection = "contact" | "experience" | "education" | "skills" | "projects" | "certificates";
+type CvSection = "contact" | "summary" | "experience" | "education" | "skills" | "projects" | "certificates";
 
 function textFromNode(node: ReactNode): string {
   return Children.toArray(node).map((child) => {
@@ -193,6 +193,7 @@ function inferSection(children: ReactNode): CvSection | undefined {
   if (heading.includes("kỹ năng") || heading.includes("skill") || heading.includes("competenc")) return "skills";
   if (heading.includes("dự án") || heading.includes("project")) return "projects";
   if (heading.includes("chứng chỉ") || heading.includes("certificate")) return "certificates";
+  if (heading.includes("tóm tắt") || heading.includes("mục tiêu") || heading.includes("summary") || heading.includes("objective")) return "summary";
   return undefined;
 }
 

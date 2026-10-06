@@ -776,8 +776,12 @@ export function TaoCvView() {
     try {
       await cvApi.deleteCv(selectedId);
       toast.success("Đã xóa CV");
-      handleNew();
-      if (hoSo) setCvList(await cvApi.listCvs(hoSo.id));
+      // Còn CV khác -> sang CV mặc định / đầu tiên; hết -> form trắng mới.
+      const list = hoSo ? await cvApi.listCvs(hoSo.id) : [];
+      setCvList(list);
+      const next = list.find((c) => c.isDefault) ?? list[0];
+      if (next) await handleSelect(next.id);
+      else handleNew();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Xóa CV thất bại");
     }
@@ -1053,7 +1057,15 @@ export function TaoCvView() {
             <span className="text-sm text-muted-foreground">Tên file:</span>
             <Input
               value={cvData.tenFile}
-              onChange={(e) => setCvData({ ...cvData, tenFile: e.target.value })}
+              onChange={(e) => {
+                const tenFile = e.target.value;
+                setCvData({ ...cvData, tenFile });
+                // Sync live label trên dropdown "CV của tôi" (server refetch khi lưu).
+                if (selectedId)
+                  setCvList((prev) =>
+                    prev.map((c) => (c.id === selectedId ? { ...c, tenFile } : c)),
+                  );
+              }}
               placeholder="CV-Backend-2026"
               className="w-[200px] rounded-full"
             />

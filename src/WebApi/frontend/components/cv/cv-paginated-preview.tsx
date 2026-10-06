@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { ComponentType } from "react";
 import type { ResumeData } from "@/features/tao-cv/resume-data";
+import { slicePages } from "@/features/tao-cv/engine/page-slicer";
 import { focusCvSectionsInDom, getCvFocusEventName, type CvFocusSection } from "@/features/ai-cv/cv-focus";
 
 const A4_RATIO = 297 / 210;
@@ -88,6 +89,17 @@ export function CvPaginatedPreview({ resume, Component, templateKey, onPageCount
     const bottoms = items.map((el, i) => tops[i] + el.getBoundingClientRect().height / unit);
     const heights = items.map((el) => el.getBoundingClientRect().height / unit);
 
+    // Metadata định danh DOM cho engine/AI: data-cv-item="{section}-{index}".
+    // Đóng dấu trên bản đo (bản clone kế thừa) — ghi đè cùng giá trị mỗi lần đo.
+    const sectionCounters = new Map<string, number>();
+    items.forEach((el) => {
+      const section =
+        el.closest("section[data-cv-section]")?.getAttribute("data-cv-section") || "unknown";
+      const n = sectionCounters.get(section) ?? 0;
+      sectionCounters.set(section, n + 1);
+      el.setAttribute("data-cv-item", `${section}-${n}`);
+    });
+
     // BATCH-print-1: nhóm Section -> Items trên bản đo. Mỗi top-level child
     // chứa item là một owner; chrome (heading/banner/divider, không item)
     // nào cũng gắn xuôi vào owner CÓ ITEM KẾ TIẾP — để tiêu đề không bao giờ
@@ -148,16 +160,8 @@ export function CvPaginatedPreview({ resume, Component, templateKey, onPageCount
 
     // BATCH-print-1: item cao hơn cả trang A4 không vừa đâu cả — đánh dấu
     // oversize để CSS cho tách nội bộ (thay vì bị cắt cụt chữ ở mép đáy).
-    const oversize = new Set<number>();
-    items.forEach((_, i) => {
-      if (heights[i] > capacity) oversize.add(i);
-    });
-    oversizeRef.current = oversize;
-
-    // Trang tiếp nối có padding-top bù (CSS .cv-sheet) nên sức chứa thực tế
-    // giảm đúng bằng đó — trừ ra ở đây để item cuối không tràn khỏi sheet
-    // (cả preview aspect-ratio lẫn print đều khớp, giữ WYSIWYG).
-    // Đơn vị tỉ lệ giấy: 5mm / 210mm — bất biến zoom như mọi đại lượng khác.
+    // Y-PARTITION thuần tính toán (engine/page-slicer.ts): gán theo tọa độ Y
+    // của chính item — cột trái/phải không ảnh hưởng (xem doc trong engine).
     const continuationPad = CONTINUATION_TOP_PAD_MM / 210;
 
     // B2-ĐÁY AN TOÀN (density pass): ~7.4mm — chỉ chống làm tròn
@@ -166,34 +170,17 @@ export function CvPaginatedPreview({ resume, Component, templateKey, onPageCount
     // ở Fit 50%, đẩy item xuống trang sau sớm gây khoảng trắng trang 1.
     const BOTTOM_SAFETY_MARGIN = 28 / A4_PX;
 
-    // Y-PARTITION (thay index-slice): mỗi item thuộc về trang K đầu tiên
-    // chứa trọn đáy của nó trong biên dùng được cộng dồn. Biên trang K:
-    // bound[K] -> bound[K] + usable(K), với usable(0)=A4-đệm đáy,
-    // usable(K>0)=A4-đệm đáy-đệm bù đầu trang. Item gán theo tọa độ Y của
-    // chính nó — cột trái/phải không ảnh hưởng. Guard i > pageStart chống
-    // kẹt item khổng lồ (nó ở một mình một trang + cờ oversize).
-    // Toán học tương đương greedy cũ trên luồng 1 cột nên template 1 cột
-    // (minimal-ats) giữ nguyên số trang; khác biệt duy nhất: gán per-item
-    // thay vì lát cắt index — đúng cho layout nhiều cột.
-    const pageCapacity = (k: number): number =>
-      capacity - (k === 0 ? 0 : continuationPad) - BOTTOM_SAFETY_MARGIN;
-    const pageOf: ItemPages = new Array(items.length).fill(0);
-    let bound = 0;
-    let K = 0;
-    let pageStart = 0;
-    // DOM order traverses one column before the next; pack in visual Y order.
-    const visualOrder = items.map((_, i) => i).sort((a, b) => tops[a] - tops[b]);
-    for (let position = 0; position < visualOrder.length; position += 1) {
-      const i = visualOrder[position];
-      while (bottoms[i] - bound > pageCapacity(K) && position > pageStart) {
-        bound += pageCapacity(K);
-        K += 1;
-        pageStart = position;
-      }
-      pageOf[i] = K;
-    }
+    const { pageOf, pageCount, oversize: oversizeList } = slicePages(
+      items.map((_, i) => ({ top: tops[i], bottom: bottoms[i], height: heights[i] })),
+      {
+        capacity,
+        continuationPad,
+        bottomSafety: BOTTOM_SAFETY_MARGIN,
+      },
+    );
+    const oversize = new Set<number>(oversizeList);
+    oversizeRef.current = oversize;
     pageOfRef.current = pageOf;
-    const pageCount = K + 1;
 
     setPages(Array.from({ length: pageCount }, (_, p) => p));
     if (lastCountRef.current !== pageCount) {
