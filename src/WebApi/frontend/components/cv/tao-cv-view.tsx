@@ -30,6 +30,7 @@ import { LayoutManager } from "./dnd/layout-manager-popover";
 import { normalizeLayoutConfig } from "@/features/tao-cv/resume-data";
 import { defaultCvData } from "@/features/tao-cv/constants";
 import { resolveTemplateId, isKnownTemplateId } from "@/features/tao-cv/template-registry";
+import { fetchDbThemeBySlugOrId } from "@/features/tao-cv/services/theme-db-sync";
 import type { CvFormData, CvVersionVm, CvVm, HoSoVm } from "@/lib/types";
 import {
   isoToVnDate,
@@ -432,8 +433,20 @@ export function TaoCvView() {
       const params = new URLSearchParams(queryString);
       const cvParam = params.get("cv");
       const rawTemplate = params.get("template");
-      const tid =
+      let tid =
         rawTemplate && isKnownTemplateId(rawTemplate) ? resolveTemplateId(rawTemplate) : null;
+      if (!tid && rawTemplate) {
+        // Slug theme Studio (entry động gallery): đổi sang theme.id để
+        // CvPreview render đúng ThemeCanvas (registry không biết slug này
+        // nếu bundle này chưa hydrate).
+        try {
+          const studio = await fetchDbThemeBySlugOrId(rawTemplate);
+          if (stale()) return;
+          if (studio) tid = studio.id;
+        } catch {
+          // ignore -> tid giữ null, flow cũ xử lý tiếp
+        }
+      }
       const blankOf = (templateId: string) =>
         ({
           ...(JSON.parse(JSON.stringify(defaultCvData)) as CvFormData),

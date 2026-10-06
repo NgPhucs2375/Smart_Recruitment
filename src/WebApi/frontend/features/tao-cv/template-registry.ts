@@ -41,6 +41,10 @@ import { LegalPrestigeTemplate } from "@/components/cv/templates/legal-prestige"
 import { MotionCreativeTemplate } from "@/components/cv/templates/motion-creative";
 import { ResearchScholarTemplate } from "@/components/cv/templates/research-scholar";
 import { CulinarySignatureTemplate } from "@/components/cv/templates/culinary-signature";
+import { createElement } from "react";
+import { ThemeCanvas } from "@/features/tao-cv/components/theme-canvas";
+import { parseDbTheme } from "@/features/tao-cv/services/theme-db-sync";
+import type { CvThemeConfig } from "@/features/tao-cv/types/theme-studio";
 
 export type TemplateCategory =
   | "ats"
@@ -71,6 +75,12 @@ export type ResumeTemplateMeta = {
   /** Thân thiện ATS từ DB (cột ThanThienATS). Undefined = chưa hydrate. */
   atsFriendly?: boolean;
   source?: "static" | "db";
+  /** Id dòng DB (mới = Id lớn) — dùng sort "mới nhất lên đầu". */
+  sourceId?: number;
+  /** True = entry Studio do hydrate đăng ký động (render ThemeCanvas). */
+  isStudio?: boolean;
+  /** theme.id trong CauHinhJson — nối ?template=slug sang custom theme. */
+  studioThemeId?: string;
 };
 
 /** Metadata tối thiểu từ API cv_themes để phủ lên registry tĩnh. */
@@ -86,18 +96,125 @@ export type DbThemeOverlay = {
   PreviewStorageKey?: string | null;
   Id?: number | null;
   ThanThienATS?: boolean | null;
+  CapBac?: string | null;
+  CauHinhJson?: string | null;
 };
 
 /**
- * Phủ metadata DB lên registry tĩnh. Slug lạ bị bỏ qua để render
- * không bao giờ crash (giữ triết lý resolveTemplateId fallback).
+ * Đăng ký động 1 theme Studio (row DB có CauHinhJson) thành entry gallery.
+ * Render bằng ThemeCanvas đúng thiết kế đã Lưu — gallery thấy
+ * màu/layout mới ngay, không cần code template tĩnh mới.
+ */
+function registerStudioEntry(theme: DbThemeOverlay, slug: string): void {
+  const vm = theme as DbThemeOverlay & {
+    Ten?: string | null;
+    MoTa?: string | null;
+    CauHinhJson?: string | null;
+  };
+  const cfg: CvThemeConfig | null = vm.CauHinhJson
+    ? parseDbTheme({
+        Id: theme.Id ?? 0,
+        Slug: theme.Slug ?? slug,
+        Ten: theme.Ten ?? slug,
+        MoTa: theme.MoTa ?? null,
+        MoTaNgan: null,
+        PreviewStorageKey: theme.PreviewStorageKey ?? null,
+        DanhMuc: theme.DanhMuc ?? null,
+        NganhPhuHop: null,
+        ViTriMucTieu: null,
+        CapBac: theme.CapBac ?? null,
+        Tags: theme.Tags ?? null,
+        PhongCachThietKe: null,
+        SoCot: theme.SoCot ?? 1,
+        ThanThienATS: theme.ThanThienATS ?? false,
+        MauSacChuDao: null,
+        TamLyMauSac: null,
+        KhuyenNghiSuDung: null,
+        TranhSuDungKhi: null,
+        GoiYAI: null,
+        LaMacDinh: false,
+        IsActive: theme.IsActive ?? false,
+        ThuTu: theme.ThuTu ?? 100,
+        CauHinhJson: vm.CauHinhJson ?? null,
+      })
+    : null;
+  if (!cfg) return;
+  const tags = (theme.Tags ?? "")
+    .split(",")
+    .map((t) => t.trim())
+    .filter(Boolean);
+  TEMPLATE_REGISTRY[slug] = {
+    id: slug,
+    name: theme.Ten?.trim() || slug,
+    description: theme.MoTa?.trim() || "Theme tùy chỉnh từ Studio",
+    tags,
+    version: "1.0",
+    Component: function StudioThemePaper({ data }: ResumeTemplateProps) {
+      return createElement(ThemeCanvas, {
+        theme: cfg,
+        data: { ...data, layout: cfg.layout },
+      });
+    },
+    columns: theme.SoCot === 2 ? 2 : 1,
+    categories: mapStudioCategories(theme.DanhMuc, theme.CapBac),
+    atsFriendly: theme.ThanThienATS ?? false,
+    isActive: theme.IsActive ?? false,
+    sortOrder: theme.ThuTu ?? 100,
+    source: "db",
+    sourceId: theme.Id ?? undefined,
+    isStudio: true,
+    studioThemeId: cfg.id,
+  };
+}
+
+/** Map DanhMuc/CapBac (vocab Studio) sang facet gallery (vocab registry). */
+function mapStudioCategories(
+  danhMuc?: string | null,
+  capBac?: string | null,
+): TemplateCategory[] {
+  const out = new Set<TemplateCategory>();
+  const push = (c: string) => {
+    const v = c.trim().toLowerCase();
+    const mapped =
+      v === "designer" ? "creative" : v === "business" ? "corporate" : v;
+    if (
+      mapped === "ats" ||
+      mapped === "developer" ||
+      mapped === "corporate" ||
+      mapped === "creative" ||
+      mapped === "senior" ||
+      mapped === "fresher"
+    )
+      out.add(mapped);
+  };
+  danhMuc?.split(",").forEach(push);
+  capBac?.split(",").forEach(push);
+  return [...out];
+}
+
+/**
+ * Phủ metadata DB lên registry tĩnh; row Studio slug mới được đăng ký
+ * động (render ThemeCanvas) để gallery ứng viên thấy + dùng được ngay.
  * previewImageUrl trỏ endpoint stream public của backend.
  */
 export function hydrateTemplateRegistry(themes: DbThemeOverlay[]): void {
   for (const theme of themes) {
     const slug = (theme.Slug ?? "").trim().toLowerCase();
+    if (!slug) continue;
+    if (typeof theme.Id === "number") {
+      const existing = TEMPLATE_REGISTRY[slug];
+      if (existing) existing.sourceId = theme.Id;
+    }
     const meta = TEMPLATE_REGISTRY[slug];
-    if (!slug || !meta) continue;
+    if (!meta) {
+      registerStudioEntry(theme, slug);
+      continue;
+    }
+    if (meta.isStudio) {
+      // Entry động: refresh theo row DB mới nhất (màu/layout vừa Lưu).
+      registerStudioEntry(theme, slug);
+      continue;
+    }
     if (theme.Ten?.trim()) meta.name = theme.Ten.trim();
     if (theme.MoTa?.trim()) meta.description = theme.MoTa.trim();
     if (theme.Tags?.trim()) {

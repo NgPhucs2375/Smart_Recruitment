@@ -341,7 +341,9 @@ function LibraryCard({
         className="group relative block h-56 w-full cursor-pointer overflow-hidden bg-muted/40 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:cursor-not-allowed"
       >
         <div ref={frameRef} aria-hidden="true" className="h-full w-full overflow-hidden" style={{ pointerEvents: "none" }}>
-          <div style={{ width: 794, margin: "0 auto", transform: `scale(${scale})`, transformOrigin: "top center" }}>
+          {/* Neo góc trái-trên: box layout 794px tràn phải bị crop, bản co
+              lấp đầy khít [0, w] — margin auto + origin center đẩy lệch. */}
+          <div style={{ width: 794, transform: `scale(${scale})`, transformOrigin: "top left" }}>
             {studioTheme ? (
               <ThemeCanvas theme={studioTheme} data={SAMPLE_RESUME} />
             ) : Component ? (

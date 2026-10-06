@@ -119,8 +119,31 @@ export function MauCvGallery() {
     });
     const byName = [...list].sort((a, b) => a.name.localeCompare(b.name, "vi"));
     if (sort === "name") return byName;
-    return [...list].sort((a, b) => (a.sortOrder ?? 9999) - (b.sortOrder ?? 9999) || a.name.localeCompare(b.name, "vi"));
+    // Đề xuất: theme Studio mới nhất (Id DB lớn nhất) lên đầu để thu hút
+    // dùng thử, sau đó tới mẫu tĩnh theo Thứ tự admin đặt.
+    return [...list].sort(
+      (a, b) =>
+        (a.isStudio ? 0 : 1) - (b.isStudio ? 0 : 1) ||
+        (a.isStudio && b.isStudio ? (b.sourceId ?? 0) - (a.sourceId ?? 0) : 0) ||
+        (a.sortOrder ?? 9999) - (b.sortOrder ?? 9999) ||
+        a.name.localeCompare(b.name, "vi"),
+    );
   }, [templates, query, category, ats, layout, sort]);
+
+  // 3 theme Studio mới nhất (Id lớn nhất) gắn nhãn MỚI.
+  const newestStudioIds = useMemo(
+    () =>
+      new Set(
+        templates
+          .filter(
+            (t) => t.isStudio && t.isActive !== false && typeof t.sourceId === "number",
+          )
+          .sort((a, b) => (b.sourceId ?? 0) - (a.sourceId ?? 0))
+          .slice(0, 3)
+          .map((t) => t.id),
+      ),
+    [templates],
+  );
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const safePage = Math.min(page, pageCount);
@@ -250,6 +273,7 @@ export function MauCvGallery() {
               <TemplateCard
                 key={template.id}
                 template={template}
+                isNew={newestStudioIds.has(template.id)}
                 onPreview={() => setPreviewId(template.id)}
               />
             ))}
@@ -301,9 +325,11 @@ export function MauCvGallery() {
 
 const TemplateCard = memo(function TemplateCard({
   template,
+  isNew,
   onPreview,
 }: {
   template: ResumeTemplateMeta;
+  isNew?: boolean;
   onPreview: () => void;
 }) {
   const { Component } = template;
@@ -358,7 +384,14 @@ const TemplateCard = memo(function TemplateCard({
           <h2 className="truncate text-sm font-semibold tracking-tight text-foreground" title={template.name}>
             {template.name}
           </h2>
-          <Check className="size-3.5 shrink-0 text-teal" aria-label="Mẫu khả dụng" />
+          <span className="flex shrink-0 items-center gap-1.5">
+            {isNew && (
+              <Badge className="rounded-full bg-teal/15 text-[10px] font-semibold text-teal hover:bg-teal/15">
+                MỚI
+              </Badge>
+            )}
+            <Check className="size-3.5 shrink-0 text-teal" aria-label="Mẫu khả dụng" />
+          </span>
         </div>
         <div className="flex items-center gap-1.5">
           <Badge variant="secondary" className="rounded-full text-[10px]">
