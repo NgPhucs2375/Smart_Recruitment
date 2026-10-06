@@ -19,9 +19,9 @@ namespace Infrastructure.Persistence.Migrations
 #pragma warning disable 612, 618
             modelBuilder
                 .HasAnnotation("ProductVersion", "10.0.11")
-                .HasAnnotation("Relational:MaxIdentifierLength", 63);
+                .HasAnnotation("Relational:MaxIdentifierLength", 63)
+                .HasAnnotation("Npgsql:PostgresExtension:vector", ",,");
 
-            NpgsqlModelBuilderExtensions.HasPostgresExtension(modelBuilder, "vector");
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
             modelBuilder.Entity("CVChungChi", b =>
@@ -737,7 +737,6 @@ namespace Infrastructure.Persistence.Migrations
                     b.ToTable("Conversations");
                 });
 
-<<<<<<< HEAD
             modelBuilder.Entity("Domain.Entities.DanhGia", b =>
                 {
                     b.Property<int>("Id")
@@ -1379,8 +1378,6 @@ namespace Infrastructure.Persistence.Migrations
 
                     b.ToTable("Messages");
                 });
-=======
->>>>>>> origin/dev-Phuc2
             modelBuilder.Entity("Domain.Entities.CvTheme", b =>
                 {
                     b.Property<int>("Id")
@@ -1406,7 +1403,7 @@ namespace Infrastructure.Persistence.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
 
-                    b.Property<Vector>("Embedding")
+                    b.Property<Pgvector.Vector>("Embedding")
                         .HasColumnType("vector(1536)");
 
                     b.Property<string>("EmbeddingModel")
@@ -1464,11 +1461,11 @@ namespace Infrastructure.Persistence.Migrations
                     b.Property<int>("SoCot")
                         .HasColumnType("integer");
 
-                    b.Property<string>("Tags")
+                    b.Property<string>("TamLyMauSac")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
-                    b.Property<string>("TamLyMauSac")
+                    b.Property<string>("Tags")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
@@ -1517,8 +1514,8 @@ namespace Infrastructure.Persistence.Migrations
                             PhongCachThietKe = "ats",
                             Slug = "minimal-ats",
                             SoCot = 1,
-                            Tags = "ATS,Professional",
                             TamLyMauSac = "Đen than tạo cảm giác tin cậy, tập trung nội dung",
+                            Tags = "ATS,Professional",
                             Ten = "Minimal ATS",
                             ThanThienATS = true,
                             ThuTu = 1,
@@ -1543,8 +1540,8 @@ namespace Infrastructure.Persistence.Migrations
                             PhongCachThietKe = "modern",
                             Slug = "tech-modern",
                             SoCot = 2,
-                            Tags = "IT,Developer",
                             TamLyMauSac = "Xanh navy truyền tải chuyên nghiệp và đáng tin",
+                            Tags = "IT,Developer",
                             Ten = "Tech Modern",
                             ThanThienATS = true,
                             ThuTu = 2,
@@ -1569,8 +1566,8 @@ namespace Infrastructure.Persistence.Migrations
                             PhongCachThietKe = "classic",
                             Slug = "ats-classic",
                             SoCot = 1,
-                            Tags = "ATS,Backend,DevOps",
                             TamLyMauSac = "Tối giản, máy đọc ưu tiên",
+                            Tags = "ATS,Backend,DevOps",
                             Ten = "ATS Classic",
                             ThanThienATS = true,
                             ThuTu = 3,
@@ -1595,8 +1592,8 @@ namespace Infrastructure.Persistence.Migrations
                             PhongCachThietKe = "modern",
                             Slug = "professional-split",
                             SoCot = 2,
-                            Tags = "IT,2 cột,Chuyên nghiệp",
                             TamLyMauSac = "Navy điểm xuyết tạo chiều sâu chuyên nghiệp",
+                            Tags = "IT,2 cột,Chuyên nghiệp",
                             Ten = "Professional Split",
                             ThanThienATS = true,
                             ThuTu = 4,
@@ -1621,8 +1618,8 @@ namespace Infrastructure.Persistence.Migrations
                             PhongCachThietKe = "modern",
                             Slug = "modern-accent",
                             SoCot = 1,
-                            Tags = "Hiện đại,Frontend,Product",
                             TamLyMauSac = "Điểm nhấn màu dẫn mắt vào thành tựu",
+                            Tags = "Hiện đại,Frontend,Product",
                             Ten = "Modern Accent",
                             ThanThienATS = true,
                             ThuTu = 5,
@@ -1647,8 +1644,8 @@ namespace Infrastructure.Persistence.Migrations
                             PhongCachThietKe = "classic",
                             Slug = "executive-tech",
                             SoCot = 1,
-                            Tags = "Senior,Chuyên nghiệp,Lead",
                             TamLyMauSac = "Trang trọng, thể hiện tầm vóc quản lý",
+                            Tags = "Senior,Chuyên nghiệp,Lead",
                             Ten = "Executive Tech",
                             ThanThienATS = true,
                             ThuTu = 6,
@@ -1673,8 +1670,8 @@ namespace Infrastructure.Persistence.Migrations
                             PhongCachThietKe = "ats",
                             Slug = "compact-developer",
                             SoCot = 1,
-                            Tags = "ATS,Fresher,Junior",
                             TamLyMauSac = "Gọn gàng, không phô trương",
+                            Tags = "ATS,Fresher,Junior",
                             Ten = "Compact Developer",
                             ThanThienATS = true,
                             ThuTu = 7,
@@ -1699,8 +1696,8 @@ namespace Infrastructure.Persistence.Migrations
                             PhongCachThietKe = "modern",
                             Slug = "sidebar-pro",
                             SoCot = 2,
-                            Tags = "IT,2 cột,Kỹ năng",
                             TamLyMauSac = "Sidebar điều hướng mắt nhà tuyển dụng",
+                            Tags = "IT,2 cột,Kỹ năng",
                             Ten = "Sidebar Pro",
                             ThanThienATS = true,
                             ThuTu = 8,
@@ -1725,8 +1722,8 @@ namespace Infrastructure.Persistence.Migrations
                             PhongCachThietKe = "classic",
                             Slug = "clean-corporate",
                             SoCot = 1,
-                            Tags = "Corporate,BA,PM",
                             TamLyMauSac = "Chuẩn mực, phù hợp văn hóa doanh nghiệp",
+                            Tags = "Corporate,BA,PM",
                             Ten = "Clean Corporate",
                             ThanThienATS = true,
                             ThuTu = 9,
@@ -1751,8 +1748,8 @@ namespace Infrastructure.Persistence.Migrations
                             PhongCachThietKe = "creative",
                             Slug = "creative-portfolio",
                             SoCot = 1,
-                            Tags = "Creative,Portfolio,Designer",
                             TamLyMauSac = "Đỏ burgundy khơi gợi sáng tạo và đam mê",
+                            Tags = "Creative,Portfolio,Designer",
                             Ten = "Creative Portfolio",
                             ThanThienATS = false,
                             ThuTu = 10,
@@ -1777,8 +1774,8 @@ namespace Infrastructure.Persistence.Migrations
                             PhongCachThietKe = "classic",
                             Slug = "senior-executive",
                             SoCot = 1,
-                            Tags = "Senior,Leadership,Manager",
                             TamLyMauSac = "Khoảng trắng thể hiện sự tự tin",
+                            Tags = "Senior,Leadership,Manager",
                             Ten = "Senior Executive",
                             ThanThienATS = true,
                             ThuTu = 11,
@@ -1803,8 +1800,8 @@ namespace Infrastructure.Persistence.Migrations
                             PhongCachThietKe = "ats",
                             Slug = "academic-cv",
                             SoCot = 1,
-                            Tags = "Academic,Research,Học vấn",
                             TamLyMauSac = "Hàn lâm, nghiêm túc",
+                            Tags = "Academic,Research,Học vấn",
                             Ten = "Academic CV",
                             ThanThienATS = true,
                             ThuTu = 12,
@@ -1829,8 +1826,8 @@ namespace Infrastructure.Persistence.Migrations
                             PhongCachThietKe = "modern",
                             Slug = "data-specialist",
                             SoCot = 1,
-                            Tags = "Data,AI,ML",
                             TamLyMauSac = "Kỹ thuật số, chính xác",
+                            Tags = "Data,AI,ML",
                             Ten = "Data Specialist",
                             ThanThienATS = true,
                             ThuTu = 13,
@@ -1855,8 +1852,8 @@ namespace Infrastructure.Persistence.Migrations
                             PhongCachThietKe = "modern",
                             Slug = "devops-stack",
                             SoCot = 1,
-                            Tags = "DevOps,Infra,Cloud",
                             TamLyMauSac = "Mạch lạc như pipeline CI/CD",
+                            Tags = "DevOps,Infra,Cloud",
                             Ten = "DevOps Stack",
                             ThanThienATS = true,
                             ThuTu = 14,
@@ -1881,8 +1878,8 @@ namespace Infrastructure.Persistence.Migrations
                             PhongCachThietKe = "creative",
                             Slug = "product-builder",
                             SoCot = 1,
-                            Tags = "Product,PM,Freelance",
                             TamLyMauSac = "Xanh sage tươi mới, tinh thần xây dựng",
+                            Tags = "Product,PM,Freelance",
                             Ten = "Product Builder",
                             ThanThienATS = false,
                             ThuTu = 15,
@@ -1907,8 +1904,8 @@ namespace Infrastructure.Persistence.Migrations
                             PhongCachThietKe = "modern",
                             Slug = "startup-modern",
                             SoCot = 1,
-                            Tags = "Startup,Hiện đại,Fresher",
                             TamLyMauSac = "Trẻ trung mà vẫn đáng tin",
+                            Tags = "Startup,Hiện đại,Fresher",
                             Ten = "Startup Modern",
                             ThanThienATS = true,
                             ThuTu = 16,
@@ -1933,8 +1930,8 @@ namespace Infrastructure.Persistence.Migrations
                             PhongCachThietKe = "editorial",
                             Slug = "elegant-serif",
                             SoCot = 1,
-                            Tags = "Serif,Editorial,Premium",
                             TamLyMauSac = "Serif cổ điển, tinh tế",
+                            Tags = "Serif,Editorial,Premium",
                             Ten = "Elegant Serif",
                             ThanThienATS = true,
                             ThuTu = 17,
@@ -1959,8 +1956,8 @@ namespace Infrastructure.Persistence.Migrations
                             PhongCachThietKe = "modern",
                             Slug = "minimal-grid",
                             SoCot = 2,
-                            Tags = "Grid,Hiện đại,Gọn",
                             TamLyMauSac = "Lưới trật tự, dễ quét",
+                            Tags = "Grid,Hiện đại,Gọn",
                             Ten = "Minimal Grid",
                             ThanThienATS = true,
                             ThuTu = 18,
@@ -1985,8 +1982,8 @@ namespace Infrastructure.Persistence.Migrations
                             PhongCachThietKe = "creative",
                             Slug = "sunset-gradient",
                             SoCot = 1,
-                            Tags = "Marketing,Content,Social,Branding,Event",
                             TamLyMauSac = "Cam-hồng-tím truyền năng lượng, lạc quan và khác biệt",
+                            Tags = "Marketing,Content,Social,Branding,Event",
                             Ten = "Sunset Gradient",
                             ThanThienATS = false,
                             ThuTu = 19,
@@ -2011,8 +2008,8 @@ namespace Infrastructure.Persistence.Migrations
                             PhongCachThietKe = "modern",
                             Slug = "ocean-wave",
                             SoCot = 2,
-                            Tags = "Sales,CSKH,Du lịch,Giao tiếp",
                             TamLyMauSac = "Xanh biển tin cậy mà tươi mới",
+                            Tags = "Sales,CSKH,Du lịch,Giao tiếp",
                             Ten = "Ocean Wave",
                             ThanThienATS = true,
                             ThuTu = 20,
@@ -2037,8 +2034,8 @@ namespace Infrastructure.Persistence.Migrations
                             PhongCachThietKe = "modern",
                             Slug = "forest-fresh",
                             SoCot = 1,
-                            Tags = "Môi trường,Giáo dục,NGO,Content",
                             TamLyMauSac = "Xanh lá tăng trưởng, chân thật",
+                            Tags = "Môi trường,Giáo dục,NGO,Content",
                             Ten = "Forest Fresh",
                             ThanThienATS = true,
                             ThuTu = 21,
@@ -2063,8 +2060,8 @@ namespace Infrastructure.Persistence.Migrations
                             PhongCachThietKe = "modern",
                             Slug = "midnight-pro",
                             SoCot = 1,
-                            Tags = "Developer,DevOps,Game,Github",
                             TamLyMauSac = "Nền tối neon thể hiện đẳng cấp kỹ thuật",
+                            Tags = "Developer,DevOps,Game,Github",
                             Ten = "Midnight Pro",
                             ThanThienATS = false,
                             ThuTu = 22,
@@ -2089,8 +2086,8 @@ namespace Infrastructure.Persistence.Migrations
                             PhongCachThietKe = "creative",
                             Slug = "pastel-studio",
                             SoCot = 2,
-                            Tags = "Design,UI,UX,Branding,Portfolio",
                             TamLyMauSac = "Pastel nhẹ nhàng, tinh tế",
+                            Tags = "Design,UI,UX,Branding,Portfolio",
                             Ten = "Pastel Studio",
                             ThanThienATS = true,
                             ThuTu = 23,
@@ -2115,8 +2112,8 @@ namespace Infrastructure.Persistence.Migrations
                             PhongCachThietKe = "modern",
                             Slug = "bento-grid",
                             SoCot = 2,
-                            Tags = "Portfolio,Frontend,Product,Dự án",
                             TamLyMauSac = "Trật tự trong tự do, cảm giác web hiện đại",
+                            Tags = "Portfolio,Frontend,Product,Dự án",
                             Ten = "Bento Grid",
                             ThanThienATS = true,
                             ThuTu = 24,
@@ -2141,8 +2138,8 @@ namespace Infrastructure.Persistence.Migrations
                             PhongCachThietKe = "creative",
                             Slug = "aurora-mesh",
                             SoCot = 1,
-                            Tags = "Startup,AI,Product,Đổi mới",
                             TamLyMauSac = "Gradient mesh đổi mới, công nghệ",
+                            Tags = "Startup,AI,Product,Đổi mới",
                             Ten = "Aurora Mesh",
                             ThanThienATS = false,
                             ThuTu = 25,
@@ -2167,8 +2164,8 @@ namespace Infrastructure.Persistence.Migrations
                             PhongCachThietKe = "creative",
                             Slug = "pop-art-bold",
                             SoCot = 1,
-                            Tags = "Quảng cáo,Event,Sales,Truyền thông",
                             TamLyMauSac = "Vàng-đỏ-cobalt tự tin, bùng nổ",
+                            Tags = "Quảng cáo,Event,Sales,Truyền thông",
                             Ten = "Pop Art Bold",
                             ThanThienATS = false,
                             ThuTu = 26,
@@ -2193,8 +2190,8 @@ namespace Infrastructure.Persistence.Migrations
                             PhongCachThietKe = "classic",
                             Slug = "career-timeline",
                             SoCot = 1,
-                            Tags = "Thăng tiến,Quản lý,Kinh nghiệm",
                             TamLyMauSac = "Navy hành trình, tiến bộ vững chắc",
+                            Tags = "Thăng tiến,Quản lý,Kinh nghiệm",
                             Ten = "Career Timeline",
                             ThanThienATS = true,
                             ThuTu = 27,
@@ -2219,8 +2216,8 @@ namespace Infrastructure.Persistence.Migrations
                             PhongCachThietKe = "modern",
                             Slug = "infographic-pro",
                             SoCot = 2,
-                            Tags = "Kỹ năng,KPI,Data",
                             TamLyMauSac = "Teal dữ liệu, minh bạch",
+                            Tags = "Kỹ năng,KPI,Data",
                             Ten = "Infographic Pro",
                             ThanThienATS = false,
                             ThuTu = 28,
@@ -2245,8 +2242,8 @@ namespace Infrastructure.Persistence.Migrations
                             PhongCachThietKe = "modern",
                             Slug = "statement-header",
                             SoCot = 1,
-                            Tags = "Quản lý,Thương hiệu cá nhân",
                             TamLyMauSac = "Một màu đặc quyết đoán",
+                            Tags = "Quản lý,Thương hiệu cá nhân",
                             Ten = "Statement Header",
                             ThanThienATS = true,
                             ThuTu = 29,
@@ -2271,8 +2268,8 @@ namespace Infrastructure.Persistence.Migrations
                             PhongCachThietKe = "ats",
                             Slug = "zen-minimal",
                             SoCot = 1,
-                            Tags = "Tối giản,Cao cấp",
                             TamLyMauSac = "Đen-xám tĩnh, tự tin kiểu Nhật",
+                            Tags = "Tối giản,Cao cấp",
                             Ten = "Zen Minimal",
                             ThanThienATS = true,
                             ThuTu = 30,
@@ -2297,8 +2294,8 @@ namespace Infrastructure.Persistence.Migrations
                             PhongCachThietKe = "classic",
                             Slug = "snapshot-pro",
                             SoCot = 2,
-                            Tags = "Ảnh,Giao tiếp,Dịch vụ",
                             TamLyMauSac = "Cam đất ấm áp, con người thật",
+                            Tags = "Ảnh,Giao tiếp,Dịch vụ",
                             Ten = "Snapshot Pro",
                             ThanThienATS = true,
                             ThuTu = 31,
@@ -2323,8 +2320,8 @@ namespace Infrastructure.Persistence.Migrations
                             PhongCachThietKe = "classic",
                             Slug = "one-page-exec",
                             SoCot = 2,
-                            Tags = "C-level,Tư vấn,Súc tích",
                             TamLyMauSac = "Navy hiệu suất, dồn lực",
+                            Tags = "C-level,Tư vấn,Súc tích",
                             Ten = "One-Page Exec",
                             ThanThienATS = true,
                             ThuTu = 32,
@@ -2349,8 +2346,8 @@ namespace Infrastructure.Persistence.Migrations
                             PhongCachThietKe = "classic",
                             Slug = "care-plus",
                             SoCot = 1,
-                            Tags = "Y tế,Bác sĩ,Điều dưỡng,Chứng chỉ",
                             TamLyMauSac = "Xanh y tế sạch sẽ, an toàn",
+                            Tags = "Y tế,Bác sĩ,Điều dưỡng,Chứng chỉ",
                             Ten = "Care Plus",
                             ThanThienATS = true,
                             ThuTu = 33,
@@ -2375,8 +2372,8 @@ namespace Infrastructure.Persistence.Migrations
                             PhongCachThietKe = "classic",
                             Slug = "mentor-class",
                             SoCot = 2,
-                            Tags = "Giáo viên,Đào tạo,Học thuật",
                             TamLyMauSac = "Cam ấm tri thức, gần gũi",
+                            Tags = "Giáo viên,Đào tạo,Học thuật",
                             Ten = "Mentor Class",
                             ThanThienATS = true,
                             ThuTu = 34,
@@ -2401,8 +2398,8 @@ namespace Infrastructure.Persistence.Migrations
                             PhongCachThietKe = "classic",
                             Slug = "vault-finance",
                             SoCot = 1,
-                            Tags = "Ngân hàng,Tài chính,CFA",
                             TamLyMauSac = "Navy-gold giàu có, chính xác",
+                            Tags = "Ngân hàng,Tài chính,CFA",
                             Ten = "Vault Finance",
                             ThanThienATS = true,
                             ThuTu = 35,
@@ -2427,8 +2424,8 @@ namespace Infrastructure.Persistence.Migrations
                             PhongCachThietKe = "modern",
                             Slug = "host-warm",
                             SoCot = 1,
-                            Tags = "Phục vụ,Bán lẻ,Thực tập",
                             TamLyMauSac = "Cam đào hiếu khách",
+                            Tags = "Phục vụ,Bán lẻ,Thực tập",
                             Ten = "Host Warm",
                             ThanThienATS = true,
                             ThuTu = 36,
@@ -2453,8 +2450,8 @@ namespace Infrastructure.Persistence.Migrations
                             PhongCachThietKe = "editorial",
                             Slug = "editorial-magazine",
                             SoCot = 2,
-                            Tags = "Editorial,Tạp chí,Content",
                             TamLyMauSac = "Mực đen báo chí, đỏ điểm nhấn quyết đoán",
+                            Tags = "Editorial,Tạp chí,Content",
                             Ten = "Editorial Magazine",
                             ThanThienATS = true,
                             ThuTu = 37,
@@ -2479,8 +2476,8 @@ namespace Infrastructure.Persistence.Migrations
                             PhongCachThietKe = "creative",
                             Slug = "archi-portfolio",
                             SoCot = 2,
-                            Tags = "Kiến trúc,Bản vẽ,Portfolio",
                             TamLyMauSac = "Xám thép chính xác, kỷ luật",
+                            Tags = "Kiến trúc,Bản vẽ,Portfolio",
                             Ten = "Archi Portfolio",
                             ThanThienATS = true,
                             ThuTu = 38,
@@ -2505,8 +2502,8 @@ namespace Infrastructure.Persistence.Migrations
                             PhongCachThietKe = "classic",
                             Slug = "legal-prestige",
                             SoCot = 1,
-                            Tags = "Luật,Pháp chế",
                             TamLyMauSac = "Navy uy quyền, gold trang trọng",
+                            Tags = "Luật,Pháp chế",
                             Ten = "Legal Prestige",
                             ThanThienATS = true,
                             ThuTu = 39,
@@ -2531,8 +2528,8 @@ namespace Infrastructure.Persistence.Migrations
                             PhongCachThietKe = "creative",
                             Slug = "motion-creative",
                             SoCot = 1,
-                            Tags = "Sáng tạo,Multimedia",
                             TamLyMauSac = "Coral-violet trẻ trung, chuyển động",
+                            Tags = "Sáng tạo,Multimedia",
                             Ten = "Motion Creative",
                             ThanThienATS = false,
                             ThuTu = 40,
@@ -2557,8 +2554,8 @@ namespace Infrastructure.Persistence.Migrations
                             PhongCachThietKe = "classic",
                             Slug = "research-scholar",
                             SoCot = 2,
-                            Tags = "Nghiên cứu,Học thuật",
                             TamLyMauSac = "Xanh lá đậm học thuật, nghiêm cẩn",
+                            Tags = "Nghiên cứu,Học thuật",
                             Ten = "Research Scholar",
                             ThanThienATS = true,
                             ThuTu = 41,
@@ -2583,8 +2580,8 @@ namespace Infrastructure.Persistence.Migrations
                             PhongCachThietKe = "creative",
                             Slug = "culinary-signature",
                             SoCot = 1,
-                            Tags = "F&B,Đầu bếp",
                             TamLyMauSac = "Burgundy ấm cúng, tinh tế",
+                            Tags = "F&B,Đầu bếp",
                             Ten = "Culinary Signature",
                             ThanThienATS = true,
                             ThuTu = 42,
@@ -2609,8 +2606,8 @@ namespace Infrastructure.Persistence.Migrations
                             PhongCachThietKe = "editorial",
                             Slug = "fashion-editorial",
                             SoCot = 1,
-                            Tags = "Thời trang,Lookbook",
                             TamLyMauSac = "Đen-trắng tương phản, thời thượng",
+                            Tags = "Thời trang,Lookbook",
                             Ten = "Fashion Editorial",
                             ThanThienATS = false,
                             ThuTu = 43,
@@ -2635,14 +2632,15 @@ namespace Infrastructure.Persistence.Migrations
                             PhongCachThietKe = "modern",
                             Slug = "industrial-blueprint",
                             SoCot = 1,
-                            Tags = "Cơ khí,Bản vẽ,Kỹ thuật",
                             TamLyMauSac = "Xám thép công nghiệp, chính xác",
+                            Tags = "Cơ khí,Bản vẽ,Kỹ thuật",
                             Ten = "Industrial Blueprint",
                             ThanThienATS = true,
                             ThuTu = 44,
                             TranhSuDungKhi = "Sáng tạo, dịch vụ",
                             ViTriMucTieu = "Kỹ sư,Cơ khí"
-                        });
+                        }
+                    );
                 });
 
             modelBuilder.Entity("Domain.Entities.DanhGia", b =>
@@ -3205,86 +3203,6 @@ namespace Infrastructure.Persistence.Migrations
                         .IsUnique();
 
                     b.ToTable("LoiMoiNhanSu", (string)null);
-                });
-
-            modelBuilder.Entity("Domain.Entities.MarketingBanner", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("Created")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("text");
-
-                    b.Property<string>("Description")
-                        .HasColumnType("text");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("boolean");
-
-                    b.Property<DateTime?>("LastModified")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("LastModifiedBy")
-                        .HasColumnType("text");
-
-                    b.Property<string>("LinkUrl")
-                        .HasColumnType("text");
-
-                    b.Property<string>("MediaObjectName")
-                        .HasColumnType("text");
-
-                    b.Property<string>("MediaType")
-                        .HasColumnType("text");
-
-                    b.Property<string>("Title")
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("MarketingBanners");
-                });
-
-            modelBuilder.Entity("Domain.Entities.Message", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Content")
-                        .HasColumnType("text");
-
-                    b.Property<string>("ConversationId")
-                        .HasColumnType("text");
-
-                    b.Property<DateTime>("Created")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("text");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("boolean");
-
-                    b.Property<DateTime?>("LastModified")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("LastModifiedBy")
-                        .HasColumnType("text");
-
-                    b.Property<string>("SenderId")
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Messages");
                 });
 
             modelBuilder.Entity("Domain.Entities.NganhNgheKyNang", b =>
@@ -3830,7 +3748,6 @@ namespace Infrastructure.Persistence.Migrations
                         .HasColumnType("text");
 
                     b.Property<DateTime?>("LastModified")
-                        .IsConcurrencyToken()
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("LastModifiedBy")

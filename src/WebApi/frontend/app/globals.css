@@ -744,11 +744,8 @@ html {
 
 body {
   font-family: var(--font-body);
-<<<<<<< HEAD
   background: var(--background);
   color: var(--foreground);
-=======
->>>>>>> origin/dev-Phuc2
 }
 
 /* Dropdown / menu item highlight on hover */

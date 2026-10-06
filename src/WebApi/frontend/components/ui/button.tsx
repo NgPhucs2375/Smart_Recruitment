@@ -55,8 +55,4 @@ function Button({
   )
 }
 
-<<<<<<< HEAD
 export { Button, buttonVariants }
-=======
-export { Button, buttonVariants }
->>>>>>> origin/dev-Phuc2

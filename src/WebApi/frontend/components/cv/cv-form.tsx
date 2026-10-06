@@ -27,11 +27,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ChipInput } from "./chip-input";
-<<<<<<< HEAD
 import { CharacterCounter, CV_MAX_LENGTH } from "./character-counter";
-=======
-import { CvEditorSection, CvSummaryItem, SectionLink } from "./cv-editor-section";
->>>>>>> origin/dev-Phuc2
 import type {
   CvFormData,
   LienHe,
@@ -56,6 +52,8 @@ import { focusCvSectionsInDom, getCvFocusEventName, type CvFocusSection } from "
 interface CvFormProps {
   data: CvFormData;
   onChange: (data: CvFormData) => void;
+  /** Hook AI backend cho nút "Viết chuẩn Harvard". Không truyền = mockup vô hiệu hóa nhẹ. */
+  onAiRewrite?: (text: string, field: string) => void;
 }
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
@@ -152,7 +150,6 @@ function PrecisionToggle({ mode, onSwitch }: { mode: CvDatePrecision; onSwitch: 
   );
 }
 
-<<<<<<< HEAD
 /** "Thời gian bắt đầu phải không sau thời gian kết thúc." or null. Skipped when empty/unparseable/end disabled. */
 function rangeErrorText(tu: string, den: string, endDisabled?: boolean): string | null {
   if (endDisabled) return null;
@@ -379,34 +376,6 @@ export function CvForm({ data, onChange, onAiRewrite }: CvFormProps) {
     setDateMode((m) => ({ ...m, [id]: next }));
     onChange({ ...data, [key]: converted } as CvFormData);
   };
-=======
-export function CvForm({ data, onChange }: CvFormProps) {
-  const [openSection, setOpenSection] = useState<OpenSection>(null);
-  const [editing, setEditing] = useState<{ section: RepeatSection; id: string } | null>(null);
-  const contact = data.thongTinLienHe;
-
-  const setContact = (field: keyof LienHe, value: string) => onChange({ ...data, thongTinLienHe: { ...contact, [field]: value } });
-  const updateList: UpdateList = (key, id, field, value) => onChange({ ...data, [key]: (data[key] as { id: string }[]).map((item) => item.id === id ? { ...item, [field]: value, ...(field === "isHienTai" && value === true ? { denNgay: "" } : {}) } : item) } as CvFormData);
-  const remove = (key: ListKey, id: string) => {
-    onChange({ ...data, [key]: (data[key] as { id: string }[]).filter((item) => item.id !== id) });
-    setEditing(null);
-  };
-  const duplicate = (key: ListKey, id: string) => {
-    const source = (data[key] as { id: string }[]).find((item) => item.id === id);
-    if (!source) return;
-    onChange({ ...data, [key]: [...(data[key] as { id: string }[]), { ...source, id: newId() }] } as CvFormData);
-  };
-  const addRepeat = (section: RepeatSection) => {
-    const id = newId();
-    if (section === "experience") onChange({ ...data, kinhNghiemLamViec: [...data.kinhNghiemLamViec, { id, congTy: "", chucDanh: "", tuNgay: "", denNgay: "", isHienTai: false, moTa: "", kyNangSuDung: [] }] });
-    if (section === "education") onChange({ ...data, hocVan: [...data.hocVan, { id, truong: "", chuyenNganh: "", tuNgay: "", denNgay: "", moTa: "" }] });
-    if (section === "projects") onChange({ ...data, duAn: [...data.duAn, { id, tenDuAn: "", vaiTro: "", congNghe: [], link: "", moTa: "", tuNgay: "", denNgay: "" }] });
-    if (section === "certificates") onChange({ ...data, chungChi: [...data.chungChi, { id, tenChungChi: "", donViCap: "", ngayCap: "", maXacMinh: "" }] });
-    setEditing({ section, id });
-  };
-
-  const links = [contact.github && "GitHub", contact.linkedIn && "LinkedIn", contact.portfolio && "Portfolio"].filter(Boolean).join(" · ");
->>>>>>> origin/dev-Phuc2
 
   return (
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleFormDragEnd}>
@@ -428,7 +397,6 @@ export function CvForm({ data, onChange }: CvFormProps) {
               <label style={{ display: "block", marginBottom: "0.5rem" }}>Email <span className="cv-required">*</span></label>
               <Input type="email" value={lh.email} onChange={(e) => setLienHe("email", e.target.value)} placeholder="email@example.com" />
             </div>
-<<<<<<< HEAD
             <div>
               <label style={{ display: "block", marginBottom: "0.5rem" }}>Số điện thoại <span className="cv-required">*</span></label>
               <Input value={lh.sdt} onChange={(e) => setLienHe("sdt", e.target.value)} placeholder="090 123 4567" />
@@ -500,14 +468,10 @@ export function CvForm({ data, onChange }: CvFormProps) {
               />
               <CharacterCounter currentLength={lh.gioiThieuBanThan.length} maxLength={CV_MAX_LENGTH.summary} />
             </div>
-=======
-            <Button type="button" variant="ghost" size="sm" onClick={() => setOpenSection(openSection === "personal" ? null : "personal")}>{openSection === "personal" ? "Đóng" : "Sửa"}</Button>
->>>>>>> origin/dev-Phuc2
           </div>
         </div>
       </div>
 
-<<<<<<< HEAD
       {/* 2. Kinh nghiệm làm việc */}
       <SortableSectionCard
         id="experience"
@@ -841,69 +805,6 @@ export function CvForm({ data, onChange }: CvFormProps) {
           })}
         </div>
       </SortableSectionCard>
-=======
-      <CvEditorSection title="Nội dung">
-        {openSection === "summary" ? (
-          <InlineEditor>
-            <Field label="Tiêu đề hiển thị trên CV"><Input value={data.tieuDeHienThi ?? ""} onChange={(e) => onChange({ ...data, tieuDeHienThi: e.target.value })} placeholder="Để trống dùng mặc định của mẫu" /></Field>
-            <Field label="Giới thiệu bản thân"><Textarea rows={6} value={contact.gioiThieuBanThan} onChange={(e) => setContact("gioiThieuBanThan", e.target.value)} /></Field>
-            <EditorActions onDone={() => setOpenSection(null)} />
-          </InlineEditor>
-        ) : (
-          <SectionLink label={contact.gioiThieuBanThan ? "Giới thiệu" : "Thêm giới thiệu"} onClick={() => setOpenSection("summary")} />
-        )}
-      </CvEditorSection>
-
-      <CvEditorSection title="Kinh nghiệm" count={data.kinhNghiemLamViec.length} onAdd={() => addRepeat("experience")}>
-        {data.kinhNghiemLamViec.length === 0 ? <p className="px-2 py-3 text-sm text-muted-foreground">Chưa có kinh nghiệm.</p> : null}
-        {data.kinhNghiemLamViec.map((item) => (
-          <div key={item.id}>
-            <CvSummaryItem title={item.chucDanh} subtitle={item.congTy} meta={rangeLabel(item.tuNgay, item.denNgay, item.isHienTai)} active={editing?.section === "experience" && editing.id === item.id} onEdit={() => setEditing({ section: "experience", id: item.id })} onDuplicate={() => duplicate("kinhNghiemLamViec", item.id)} onDelete={() => remove("kinhNghiemLamViec", item.id)} />
-            {editing?.section === "experience" && editing.id === item.id ? <ExperienceEditor item={item} update={updateList} onDone={() => setEditing(null)} onDelete={() => remove("kinhNghiemLamViec", item.id)} /> : null}
-          </div>
-        ))}
-      </CvEditorSection>
-
-      <CvEditorSection title="Học vấn" count={data.hocVan.length} onAdd={() => addRepeat("education")}>
-        {data.hocVan.length === 0 ? <p className="px-2 py-3 text-sm text-muted-foreground">Chưa có học vấn.</p> : null}
-        {data.hocVan.map((item) => (
-          <div key={item.id}>
-            <CvSummaryItem title={item.truong} subtitle={[item.chuyenNganh, item.bangCap].filter(Boolean).join(" · ")} meta={rangeLabel(item.tuNgay, item.denNgay, item.isHienTai)} active={editing?.section === "education" && editing.id === item.id} onEdit={() => setEditing({ section: "education", id: item.id })} onDuplicate={() => duplicate("hocVan", item.id)} onDelete={() => remove("hocVan", item.id)} />
-            {editing?.section === "education" && editing.id === item.id ? <EducationEditor item={item} update={updateList} onDone={() => setEditing(null)} onDelete={() => remove("hocVan", item.id)} /> : null}
-          </div>
-        ))}
-      </CvEditorSection>
-
-      <CvEditorSection title="Kỹ năng" count={data.kyNang.length}>
-        {openSection === "skills" ? (
-          <SkillsEditor items={data.kyNang} onChange={(kyNang) => onChange({ ...data, kyNang })} onDone={() => setOpenSection(null)} />
-        ) : (
-          <button type="button" className="flex w-full flex-wrap gap-2 rounded-lg px-2 py-3 text-left hover:bg-muted/60" onClick={() => setOpenSection("skills")}>
-            {data.kyNang.length > 0 ? data.kyNang.map((item) => <span key={item.id} className="rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-foreground">{item.tenKyNang || "Kỹ năng"}</span>) : <span className="text-sm text-muted-foreground">Thêm kỹ năng</span>}
-          </button>
-        )}
-      </CvEditorSection>
-
-      <CvEditorSection title="Dự án" count={data.duAn.length} onAdd={() => addRepeat("projects")}>
-        {data.duAn.length === 0 ? <p className="px-2 py-3 text-sm text-muted-foreground">Chưa có dự án.</p> : null}
-        {data.duAn.map((item) => (
-          <div key={item.id}>
-            <CvSummaryItem title={item.tenDuAn} subtitle={item.vaiTro} meta={rangeLabel(item.tuNgay, item.denNgay, item.isHienTai)} active={editing?.section === "projects" && editing.id === item.id} onEdit={() => setEditing({ section: "projects", id: item.id })} onDuplicate={() => duplicate("duAn", item.id)} onDelete={() => remove("duAn", item.id)} />
-            {editing?.section === "projects" && editing.id === item.id ? <ProjectEditor item={item} update={updateList} onDone={() => setEditing(null)} onDelete={() => remove("duAn", item.id)} /> : null}
-          </div>
-        ))}
-      </CvEditorSection>
-
-      <CvEditorSection title="Chứng chỉ" count={data.chungChi.length} onAdd={() => addRepeat("certificates")}>
-        {data.chungChi.length === 0 ? <p className="px-2 py-3 text-sm text-muted-foreground">Chưa có chứng chỉ.</p> : null}
-        {data.chungChi.map((item) => (
-          <div key={item.id}>
-            <CvSummaryItem title={item.tenChungChi} subtitle={item.donViCap} meta={item.ngayCap} active={editing?.section === "certificates" && editing.id === item.id} onEdit={() => setEditing({ section: "certificates", id: item.id })} onDuplicate={() => duplicate("chungChi", item.id)} onDelete={() => remove("chungChi", item.id)} />
-            {editing?.section === "certificates" && editing.id === item.id ? <CertificateEditor item={item} update={updateList} onDone={() => setEditing(null)} onDelete={() => remove("chungChi", item.id)} /> : null}
-          </div>
-        ))}
-      </CvEditorSection>
->>>>>>> origin/dev-Phuc2
     </div>
       </SortableContext>
     </DndContext>

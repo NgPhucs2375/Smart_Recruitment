@@ -2,14 +2,25 @@
 
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { useSearchParams, usePathname } from "next/navigation";
-<<<<<<< HEAD
 import { FileText, Save, Eye, Pencil, Plus, Trash2, Printer, Check, ListChecks, Sparkles, Upload, UserRound, Download, ZoomIn, ZoomOut, MoreHorizontal, Maximize } from "lucide-react";
-=======
-import { Eye, Pencil, ZoomIn, ZoomOut, Maximize2 } from "lucide-react";
->>>>>>> origin/dev-Phuc2
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 import { toast } from "sonner";
 import { CvForm } from "./cv-form";
 import { CvPreview } from "./cv-preview";
@@ -35,6 +46,8 @@ import { useCvAssistant } from "@/hooks/use-cv-assistant";
 
 const DRAFT_KEY = "hireai:manual-cv-draft";
 const AUTOSAVE_DELAY_MS = 1500;
+/** Chiều rộng tờ A4 ở 96dpi — mốc tính auto-fit cho cột preview hẹp. */
+const A4_PAPER_PX = 794;
 
 type SaveStatus = "saving" | "dirty" | "saved";
 
@@ -95,6 +108,7 @@ export function PreviewActionBar({
   disabled,
   fitMode,
   onToggleFit,
+  onFullscreen,
   displayZoom,
 }: {
   status: SaveStatus;
@@ -107,11 +121,13 @@ export function PreviewActionBar({
   saving: boolean;
   exportingPdf: boolean;
   disabled: boolean;
+  /** Chế độ Fit vừa khung (mặc định desktop). Không truyền = ẩn cụm nút. */
   fitMode?: boolean;
   onToggleFit?: () => void;
+  onFullscreen?: () => void;
+  /** Số % hiển thị (sau fit-scale). Mặc định = zoom. +/− luôn tính trên zoom gốc. */
   displayZoom?: number;
 }) {
-<<<<<<< HEAD
   const dot =
     status === "saving" ? "bg-primary" : status === "dirty" ? "bg-bronze" : "bg-teal";
   const shownZoom = displayZoom ?? zoom;
@@ -125,8 +141,6 @@ export function PreviewActionBar({
         : savedAt
           ? `Đã lưu ${formatClock(savedAt)}`
           : "Đã lưu";
-=======
->>>>>>> origin/dev-Phuc2
   return (
     <div className="cv-preview-bar">
       <p className="flex min-w-0 items-center gap-1.5 text-xs font-medium text-muted-foreground" aria-live="polite">
@@ -157,7 +171,6 @@ export function PreviewActionBar({
             <ZoomIn className="size-3.5" />
           </button>
         </div>
-<<<<<<< HEAD
         {(onToggleFit || onFullscreen) && (
           <div className="flex items-center rounded-full border border-border bg-card" role="group" aria-label="Chế độ xem preview">
             {onToggleFit && (
@@ -206,22 +219,6 @@ export function PreviewActionBar({
           <Save className="mr-1 size-3.5" />
           {saving ? "Đang lưu..." : "Lưu nháp"}
         </Button>
-=======
-        {onToggleFit ? (
-          <button type="button" onClick={onToggleFit} disabled={disabled} aria-pressed={fitMode} className="h-8 rounded-md px-2 text-xs font-semibold text-muted-foreground hover:bg-muted">
-            {fitMode ? "100%" : "Fit"}
-          </button>
-        ) : null}
-        <button
-          type="button"
-          aria-label="Mở xem trước toàn màn hình"
-          disabled={disabled}
-          onClick={(event) => void event.currentTarget.closest(".cv-preview-frame")?.requestFullscreen?.()}
-          className="flex size-8 items-center justify-center rounded-md text-muted-foreground transition hover:bg-muted hover:text-foreground disabled:opacity-40"
-        >
-          <Maximize2 className="size-4" />
-        </button>
->>>>>>> origin/dev-Phuc2
       </div>
     </div>
   );
@@ -277,44 +274,6 @@ export function QualityCard({ progress, label, note }: { progress: number; label
   );
 }
 
-function CvPreviewPanel({ data, pageCount, onPageCount, zoom, onZoom, disabled }: {
-  data: CvFormData;
-  pageCount: number;
-  onPageCount: (count: number) => void;
-  zoom: number;
-  onZoom: (zoom: number) => void;
-  disabled: boolean;
-}) {
-  const frameRef = useRef<HTMLDivElement>(null);
-  const [fitMode, setFitMode] = useState(true);
-  const [fitScale, setFitScale] = useState(1);
-  useEffect(() => {
-    const frame = frameRef.current;
-    if (!frame) return;
-    const measure = () => {
-      if (frame.clientWidth === 0) return;
-      const style = getComputedStyle(frame);
-      const width = frame.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
-      const next = Math.min(width / 794, 1);
-      setFitScale((previous) => Math.abs(next - previous) > 0.005 ? next : previous);
-    };
-    measure();
-    const observer = new ResizeObserver(measure);
-    observer.observe(frame);
-    return () => observer.disconnect();
-  }, []);
-  const effectiveZoom = fitMode ? Math.max(10, Math.round(zoom * fitScale)) : zoom;
-  return (
-    <div ref={frameRef} className="cv-preview-frame">
-      <PreviewActionBar pageCount={pageCount} zoom={zoom} displayZoom={effectiveZoom} onZoom={onZoom} disabled={disabled} fitMode={fitMode} onToggleFit={() => setFitMode((current) => !current)} />
-      <div data-manual-cv-pdf style={{ zoom: `${effectiveZoom}%` } as CSSProperties}>
-        <CvPreview data={data} onPageCount={onPageCount} />
-      </div>
-      {pageCount > 2 ? <p className="mt-3 border-t border-border px-3 pt-3 text-center text-xs text-amber-700 dark:text-amber-300">CV dài hơn 2 trang. Cân nhắc rút gọn nội dung.</p> : null}
-    </div>
-  );
-}
-
 export function TaoCvView() {
   const searchParams = useSearchParams();
   const pathname = usePathname();
@@ -332,6 +291,52 @@ export function TaoCvView() {
   const [pageCount, setPageCount] = useState(1);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [zoom, setZoom] = useState(100);
+  /** Auto-fit: co tờ A4 (794px) vừa cột preview, mặc định bật để hết cuộn ngang. */
+  const [fitMode, setFitMode] = useState(true);
+  const [fitScale, setFitScale] = useState(1);
+  const scrollerRef = useRef<HTMLDivElement>(null);
+  const previewColRef = useRef<HTMLDivElement>(null);
+  const frameRef = useRef<HTMLDivElement>(null);
+  const prevScrollWidthRef = useRef(0);
+  useEffect(() => {
+    // Đo trên frame (ngoài cây zoom): width báo về bất biến với zoom,
+    // cắt vòng kín zoom→width→fitScale→zoom của Chromium quirk.
+    const el = frameRef.current;
+    if (!el || loading) return;
+    let timer = 0;
+    const applyScale = (width: number) => {
+      // Ngưỡng 12px: scrollbar hiện/mất (±~15px) hoặc nhiễu sub-pixel
+      // không được kích zoom lại — cắt vòng lặp Layout Thrashing.
+      if (Math.abs(width - prevScrollWidthRef.current) <= 12) return;
+      prevScrollWidthRef.current = width;
+      if (width > 0) {
+        const next = Math.min((width - 48) / A4_PAPER_PX, 1);
+        setFitScale((prev) => (Math.abs(next - prev) > 0.005 ? next : prev));
+      }
+    };
+    applyScale(el.clientWidth);
+    const ro = new ResizeObserver((entries) => {
+      const w = entries[0]?.contentRect.width;
+      if (w == null) return;
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => applyScale(w), 150);
+    });
+    ro.observe(el);
+    return () => {
+      window.clearTimeout(timer);
+      ro.disconnect();
+    };
+  }, [loading, loadError]);
+  const effectiveZoom = fitMode ? Math.max(10, Math.round(zoom * fitScale)) : zoom;
+  const handleFullscreen = () => {
+    const el = previewColRef.current;
+    if (!el) return;
+    if (document.fullscreenElement) {
+      void document.exitFullscreen().catch(() => undefined);
+    } else {
+      void el.requestFullscreen?.().catch(() => undefined);
+    }
+  };
   const [dirty, setDirty] = useState(false);
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
   const [draftAt, setDraftAt] = useState<Date | null>(null);
@@ -912,7 +917,6 @@ export function TaoCvView() {
     return { items, doneCount, label };
   }, [cvData, progress]);
 
-<<<<<<< HEAD
   const saveStatus: SaveStatus = saving ? "saving" : dirty ? "dirty" : "saved";
 
   return (
@@ -1012,44 +1016,6 @@ export function TaoCvView() {
         hoSoUngVienId={hoSo?.id ?? null}
         onImported={handleImported}
         onManualImported={handleManualImported}
-=======
-  const saveLabel = loading
-    ? "Đang tải..."
-    : saving
-      ? "Đang lưu..."
-      : dirty
-        ? draftAt ? `Bản nháp lúc ${formatClock(draftAt)} · Chưa lưu` : "Chưa lưu thay đổi"
-        : lastSavedAt ? `Đã lưu lúc ${formatClock(lastSavedAt)}` : selectedId ? "Đã lưu" : "CV mới";
-
-  const preview = (
-    <CvPreviewPanel data={deferredCvData} pageCount={pageCount} onPageCount={setPageCount} zoom={zoom} onZoom={setZoom} disabled={loading} />
-  );
-
-  return (
-    <div className="cv-builder-print-host mx-auto min-h-dvh w-full max-w-[1440px] px-4 pb-8 sm:px-6">
-      <CvBuilderToolbar
-        title={cvData.tenFile}
-        onTitleChange={(tenFile) => setCvData((current) => ({ ...current, tenFile }))}
-        status={saveLabel}
-        cvList={cvList}
-        selectedId={selectedId}
-        templateId={cvData.templateId}
-        versions={versions}
-        onSelectCv={(id) => void handleSelect(id)}
-        onSelectTemplate={selectTemplate}
-        onSetDefault={(id) => void handleSetDefault(id)}
-        onNew={handleNew}
-        onImport={() => setImportOpen(true)}
-        onFillProfile={fillFromHoSo}
-        onExportJson={handleExportJsonResume}
-        onDownloadVersion={(id) => void handleDownloadStoredFile(id)}
-        onDownloadOriginal={() => void handleDownloadStoredFile(undefined, true)}
-        onDelete={() => void handleDelete()}
-        onExportPdf={() => void handleExportPdf()}
-        onSave={() => void handleSave()}
-        saving={saving}
-        disabled={loading || exportingPdf}
->>>>>>> origin/dev-Phuc2
       />
 
       {/* CV selector */}
@@ -1161,7 +1127,6 @@ export function TaoCvView() {
           </Button>
         </div>
       ) : (
-<<<<<<< HEAD
       <>
       {/* Mobile/tablet: Tabs layout */}
       <div className="md:hidden">
@@ -1221,32 +1186,8 @@ export function TaoCvView() {
               <ChecklistCard items={quality.items} doneCount={quality.doneCount} />
               <div data-scroll-target="templates">
                 <TemplatePicker selectedId={cvData.templateId} onSelect={selectTemplate} cvId={selectedId} />
-=======
-        <>
-          <div className="mt-4 md:hidden"><TemplatePicker selectedId={cvData.templateId} onSelect={selectTemplate} cvId={selectedId} compact /></div>
-
-          <div className="mt-5 xl:hidden">
-            <Tabs defaultValue="form" className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="form" className="gap-2"><Pencil className="size-4" /> Nội dung</TabsTrigger>
-                <TabsTrigger value="preview" className="gap-2"><Eye className="size-4" /> Xem trước</TabsTrigger>
-              </TabsList>
-              <TabsContent value="form" className="mt-4 space-y-3">
-                <CvCompletion progress={progress} items={quality.items} />
-                <CvForm data={cvData} onChange={setCvData} />
-              </TabsContent>
-              <TabsContent value="preview" className="mt-4">{preview}</TabsContent>
-            </Tabs>
-          </div>
-
-          <main className="mt-6 hidden grid-cols-[minmax(0,44fr)_minmax(0,56fr)] gap-6 xl:grid">
-            <section className="min-w-0" aria-label="Nội dung CV">
-              <div className="mb-3 flex items-center justify-between">
-                <h1 className="text-lg font-semibold tracking-tight text-foreground">Nội dung CV</h1>
->>>>>>> origin/dev-Phuc2
               </div>
               <CvForm data={cvData} onChange={setCvData} />
-<<<<<<< HEAD
             </div>
           </div>
 
@@ -1306,15 +1247,6 @@ export function TaoCvView() {
         </div>
       </div>
       </>
-=======
-            </section>
-            <aside className="min-w-0" aria-label="Xem trước CV">
-              <h2 className="mb-3 text-lg font-semibold tracking-tight text-foreground">Xem trước</h2>
-              <div className="sticky top-20">{preview}</div>
-            </aside>
-          </main>
-        </>
->>>>>>> origin/dev-Phuc2
       )}
 
       {/* Render riêng cho bản in để không phụ thuộc tab/breakpoint đang hiển thị. */}
