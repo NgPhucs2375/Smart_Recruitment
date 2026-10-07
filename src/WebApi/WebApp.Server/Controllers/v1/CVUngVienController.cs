@@ -185,6 +185,7 @@ namespace WebApp.Server.Controllers.v1
 
         [HttpPost]
         [Consumes("multipart/form-data")]
+        [ApiExplorerSettings(IgnoreApi = true)]
         public async Task<IActionResult> Form_Data(
             [FromForm] CreateCVUngVienCommand command)
         {

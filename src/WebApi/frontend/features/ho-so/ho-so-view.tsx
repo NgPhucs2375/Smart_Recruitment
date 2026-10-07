@@ -145,7 +145,7 @@ export function HoSoView() {
     // DEV preview (?xem-truoc=1): render view-mode with sample data, no API.
     // Delete with mock-preview.ts once the real backend works.
     try {
-      if (new URLSearchParams(window.location.search).get("xem-truoc") === "1") {
+      if (process.env.NODE_ENV === "development" && new URLSearchParams(window.location.search).get("xem-truoc") === "1") {
         setHoSo(MOCK_HO_SO);
         populateForm(MOCK_HO_SO);
         setCvs(MOCK_CVS);

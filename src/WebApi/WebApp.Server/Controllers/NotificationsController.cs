@@ -67,6 +67,14 @@ namespace WebApp.Server.Controllers
                     InvoiceId = null,
                     ApproverGroup = null,
                     Created = r.Notification.Created,
+                    ReferenceType = r.Notification.ReferenceType,
+                    ReferenceId = r.Notification.ReferenceId,
+                    InviteToken = r.Notification.ReferenceType == "LoiMoiNhanSu"
+                        ? _context.LoiMoiNhanSus.Where(l => l.Id == r.Notification.ReferenceId).Select(l => l.Token).FirstOrDefault()
+                        : null,
+                    TinTuyenDungId = r.Notification.ReferenceType == "DonUngTuyen"
+                        ? _context.DonUngTuyens.Where(d => d.Id == r.Notification.ReferenceId).Select(d => (int?)d.TinTuyenDungId).FirstOrDefault()
+                        : null,
                 })
                 .ToListAsync();
 
@@ -167,7 +175,7 @@ namespace WebApp.Server.Controllers
 
             if (nd == null) return Ok();
 
-            var unread = await _context.NotificationRecipients
+            var unread = await _context.NotificationRecipients.AsTracking()
                 .Where(r => r.NguoiDungId == nd.Id && !r.IsRead)
                 .ToListAsync();
 
@@ -186,7 +194,7 @@ namespace WebApp.Server.Controllers
 
             if (nd == null) return Ok();
 
-            var recipient = await _context.NotificationRecipients
+            var recipient = await _context.NotificationRecipients.AsTracking()
                 .FirstOrDefaultAsync(r => r.NguoiDungId == nd.Id
                     && r.NotificationId == notificationId);
 
@@ -221,5 +229,9 @@ namespace WebApp.Server.Controllers
         public int? InvoiceId { get; set; }
         public string? ApproverGroup { get; set; }
         public DateTime Created { get; set; }
+        public string? ReferenceType { get; set; }
+        public int? ReferenceId { get; set; }
+        public int? TinTuyenDungId { get; set; }
+        public string? InviteToken { get; set; }
     }
 }

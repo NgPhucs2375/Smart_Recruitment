@@ -1,6 +1,7 @@
 "use client";
 
-import { getAuthToken } from "@/lib/auth-provider";
+import { getValidToken, refreshSession } from "@/lib/auth-provider";
+import { unwrapResponse } from "@/lib/api/response-contract";
 import { normalizeJob } from "@/lib/api/jobs-api";
 import type { Job } from "@/features/viec-lam/types";
 
@@ -47,13 +48,16 @@ export function normalizeCompany(raw: unknown): DoanhNghiepVm | null {
 }
 
 async function apiFetch(path: string): Promise<unknown> {
-  const token = getAuthToken();
-  const res = await fetch(path, {
+  let token = await getValidToken();
+  const send = () => fetch(path, {
+    cache: "no-store",
     headers: {
       Accept: "application/json",
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
   });
+  let res = await send();
+  if (res.status === 401 && await refreshSession()) { token = await getValidToken(); res = await send(); }
   const body = (await res.json().catch(() => null)) as Record<string, unknown> | null;
   if (res.status === 403) {
     const err = new Error("forbidden") as Error & { code?: string };
@@ -70,7 +74,7 @@ async function apiFetch(path: string): Promise<unknown> {
     err.status = res.status;
     throw err;
   }
-  return body?.Data ?? body?.data ?? body;
+  return unwrapResponse(body);
 }
 
 function toList(payload: unknown): DoanhNghiepVm[] {

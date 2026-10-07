@@ -143,8 +143,9 @@ namespace WebApp.Server.Controllers.v1
 
         // POST: api/cvthemes/5/preview
         [HttpPost("{id}/preview")]
+        [Consumes("multipart/form-data")]
         [RequestSizeLimit(5 * 1024 * 1024)]
-        public async Task<IActionResult> UploadPreview(int id, [FromForm] IFormFile file)
+        public async Task<IActionResult> UploadPreview(int id, IFormFile file)
         {
             return await EnforcePermissionAndExecute(
                 "cvthemes",

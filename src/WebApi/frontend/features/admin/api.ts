@@ -1,17 +1,9 @@
 "use client";
 
-import { getAuthToken, redirectToLogin } from "@/lib/auth-provider";
+import { getValidToken, refreshSession, redirectToLogin } from "@/lib/auth-provider";
+import { unwrapResponse, listResponse } from "@/lib/api/response-contract";
 import { loadIdentity } from "@/lib/access-control-provider";
 import { hasPermission } from "@/lib/permissions";
-
-/** Backend Response<T> wrapper (PascalCase JSON). */
-interface ApiResponse<T> {
-  Succeeded: boolean;
-  Code: number;
-  Message?: string | null;
-  Errors?: string[] | null;
-  Data?: T | null;
-}
 
 function extractMessage(body: unknown, fallback: string): string {
   if (!body || typeof body !== "object") return fallback;
@@ -23,16 +15,19 @@ function extractMessage(body: unknown, fallback: string): string {
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`/api/dotnet${path}`, {
+  let token = await getValidToken();
+  const send = () => fetch(`/api/dotnet${path}`, {
     cache: "no-store",
     ...init,
     headers: {
       Accept: "application/json",
       "Content-Type": "application/json",
-      Authorization: `Bearer ${getAuthToken() ?? ""}`,
       ...init?.headers,
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
   });
+  let res = await send();
+  if (res.status === 401 && await refreshSession()) { token = await getValidToken(); res = await send(); }
   if (res.status === 401) {
     redirectToLogin();
     throw new Error("Hết phiên đăng nhập, vui lòng đăng nhập lại");
@@ -46,25 +41,20 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     body = null;
   }
   if (!res.ok) throw new Error(extractMessage(body, `Lỗi HTTP ${res.status}`));
-  const wrapped = body as ApiResponse<T>;
-  if (wrapped && typeof wrapped === "object" && "Succeeded" in wrapped) {
-    if (!wrapped.Succeeded) throw new Error(wrapped.Message || "Thao tác thất bại");
-    return (wrapped.Data ?? wrapped) as T;
-  }
-  return body as T;
+  return unwrapResponse<T>(body);
 }
 
 export const adminApi = {
   list<T>(path: string, params?: Record<string, string | number | undefined>): Promise<T[]> {
     const qs = new URLSearchParams();
     qs.set("_start", "0");
-    qs.set("_end", "0");
+    qs.set("_end", "100");
     if (params) {
       for (const [k, v] of Object.entries(params)) {
         if (v !== undefined && v !== "") qs.set(k, String(v));
       }
     }
-    return request<T[]>(`${path}?${qs.toString()}`);
+    return request<unknown>(`${path}?${qs.toString()}`).then(body => listResponse<T>(body).data);
   },
   get<T>(path: string): Promise<T> {
     return request<T>(path);

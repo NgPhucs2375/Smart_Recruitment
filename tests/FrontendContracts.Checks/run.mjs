@@ -1,0 +1,36 @@
+import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
+import { createRequire } from "node:module";
+
+const require = createRequire(new URL("../../src/WebApi/frontend/package.json", import.meta.url));
+const ts = require("typescript");
+async function load(relative) {
+  const source = await readFile(new URL(`../../src/WebApi/frontend/${relative}`, import.meta.url), "utf8");
+  const code = ts.transpileModule(source, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ES2022 } }).outputText;
+  return import(`data:text/javascript;base64,${Buffer.from(code).toString("base64")}`);
+}
+const { unwrapResponse, listResponse } = await load("lib/api/response-contract.ts");
+const { notificationTarget } = await load("features/notifications/notification-target.ts");
+const rows = [{ Id: 1 }, { Id: 2 }];
+assert.deepEqual(listResponse({ Succeeded: true, Data: rows, TotalCount: 31 }), { data: rows, total: 31 });
+assert.deepEqual(listResponse({ succeeded: true, data: rows, totalCount: 31 }), { data: rows, total: 31 });
+assert.deepEqual(listResponse({ Succeeded: true, Data: { _data: rows, _total: 31 } }), { data: rows, total: 31 });
+assert.deepEqual(listResponse({ Items: rows, TotalCount: 31 }), { data: rows, total: 31 });
+assert.deepEqual(listResponse(rows), { data: rows, total: 2 });
+assert.deepEqual(listResponse({ Succeeded: true, Data: [], TotalCount: 0 }), { data: [], total: 0 });
+assert.equal(unwrapResponse({ Succeeded: true, Data: 42 }), 42);
+assert.throws(() => unwrapResponse({ Succeeded: false, Message: "Business failure" }), /Business failure/);
+assert.throws(() => listResponse({ succeeded: false, message: "No permission" }), /No permission/);
+console.log("PASS raw, PascalCase, camelCase and legacy list response contracts");
+console.log("PASS HTTP-success/business-failure responses are rejected");
+assert.equal(notificationTarget({ referenceType: "DonUngTuyen", jobId: 12 }, ["UNG_VIEN"]), "/viec-lam/da-ung-tuyen");
+assert.equal(notificationTarget({ referenceType: "DonUngTuyen", jobId: 12 }, ["NHAN_SU"]), "/tin-tuyen-dung/12/ung-vien");
+assert.equal(notificationTarget({ referenceType: "TinTuyenDung", referenceId: 23 }, ["UNG_VIEN"]), "/viec-lam/23");
+assert.equal(notificationTarget({ referenceType: "TinTuyenDung", referenceId: 23 }, ["QUAN_TRI_VIEN"]), "/admin/tin-tuyen-dung");
+assert.equal(notificationTarget({ referenceType: "RecommendationDigest" }, ["UNG_VIEN"]), "/viec-lam/phu-hop");
+assert.equal(notificationTarget({ referenceType: "RecommendationDigest" }, ["NGUOI_DAI_DIEN"]), "/tin-tuyen-dung");
+assert.equal(notificationTarget({ referenceType: "RecommendationDigest" }, ["NHAN_SU"]), "/tin-tuyen-dung");
+assert.equal(notificationTarget({ referenceType: "LoiMoiNhanSu", inviteToken: "a+b /" }, ["UNG_VIEN"]), "/accept-invite?token=a%2Bb%20%2F");
+assert.equal(notificationTarget({ referenceType: "LoiMoiNhanSu" }, ["UNG_VIEN"]), null);
+assert.equal(notificationTarget({ referenceType: "Unknown" }, ["UNG_VIEN"]), null);
+console.log("PASS notification navigation matches candidate/recruiter/Admin and invitation contracts");

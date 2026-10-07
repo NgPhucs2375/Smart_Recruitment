@@ -7,12 +7,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AdminPageLayout, AdminPageHeader, AdminCard, AdminCardHeader, AdminEmptyState, AdminLoadingState } from "@/components/admin/admin-page-layout";
+import { jobsApi } from "@/lib/api/jobs-api";
+import { getValidToken } from "@/lib/auth-provider";
 
 type KyNang = { id: number; tenKyNang: string; moTa: string };
 type KyNangUngVien = { id: number; hoSoUngVienId: number; kyNangId: number; soNamKinhNghiem: number | null };
 type ApiResponse<T> = { Succeeded?: boolean; succeeded?: boolean; Message?: string; message?: string; Data?: T; data?: T };
 
-const API_KN = "/api/dotnet/kynangs";
 const API_KNUV = "/api/dotnet/kynangungviens";
 
 const ok = (r: ApiResponse<unknown>): boolean => r.Succeeded ?? r.succeeded ?? true;
@@ -44,7 +45,7 @@ export default function KyNangUngVienPage() {
   const [form, setForm] = useState({ kyNangId: 0, soNamKinhNghiem: "" });
 
   const apiFetch = useCallback(async (url: string, opts?: RequestInit) => {
-    const token = localStorage.getItem("access_token");
+    const token = await getValidToken();
     const res = await fetch(url, { ...opts, headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}), ...opts?.headers } });
     const body = await res.json().catch(() => null);
     if (!res.ok) throw new Error(body?.Message ?? body?.message ?? `HTTP ${res.status}`);
@@ -54,16 +55,11 @@ export default function KyNangUngVienPage() {
   const load = useCallback(async () => {
     try {
       setLoading(true); setErr("");
-      const [skillsRes, myRes] = await Promise.all([
-        apiFetch(API_KN),
+      const [catalog, myRes] = await Promise.all([
+        jobsApi.getFilterOptions(),
         apiFetch(API_KNUV),
       ]);
-      if (ok(skillsRes)) {
-        setAllSkills(extractItems(skillsRes).map((v: unknown) => {
-          const r = v as Record<string, unknown>;
-          return { id: Number(r.id ?? r.Id), tenKyNang: `${r.tenKyNang ?? r.TenKyNang ?? ""}`, moTa: `${r.moTa ?? r.MoTa ?? ""}` };
-        }));
-      }
+      setAllSkills(catalog.skills.map(skill => ({ id: skill.id, tenKyNang: skill.name, moTa: "" })));
       if (ok(myRes)) {
         setMySkills(extractItems(myRes).map((v: unknown) => {
           const r = v as Record<string, unknown>;
@@ -71,7 +67,7 @@ export default function KyNangUngVienPage() {
             id: Number(r.id ?? r.Id),
             hoSoUngVienId: Number(r.hoSoUngVienId ?? r.HoSoUngVienId ?? 0),
             kyNangId: Number(r.kyNangId ?? r.KyNangId ?? 0),
-            soNamKinhNghiem: r.soNamKinhNghiem != null ? Number(r.soNamKinhNghiem) : null,
+            soNamKinhNghiem: (r.soNamKinhNghiem ?? r.SoNamKinhNghiem) != null ? Number(r.soNamKinhNghiem ?? r.SoNamKinhNghiem) : null,
           };
         }));
       }

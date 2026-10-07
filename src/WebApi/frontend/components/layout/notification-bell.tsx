@@ -13,6 +13,8 @@ import {
 import { cn } from "@/lib/utils";
 
 import { getValidToken } from "@/lib/auth-provider";
+import { useRouter } from "next/navigation";
+import { notificationTarget } from "@/features/notifications/notification-target";
 
 interface NotificationDto {
   id: number;
@@ -22,6 +24,10 @@ interface NotificationDto {
   invoiceId?: number | null;
   approverGroup?: string | null;
   created: string;
+  referenceType?: string | null;
+  referenceId?: number | null;
+  jobId?: number | null;
+  inviteToken?: string | null;
 }
 
 interface NotificationsVm {
@@ -59,28 +65,35 @@ function normalizeNotification(raw: unknown): NotificationDto {
     invoiceId: (r.invoiceId ?? r.InvoiceId ?? null) as number | null,
     approverGroup: (r.approverGroup ?? r.ApproverGroup ?? null) as string | null,
     created: `${r.created ?? r.Created ?? ""}`,
+    referenceType: (r.referenceType ?? r.ReferenceType ?? null) as string | null,
+    referenceId: (r.referenceId ?? r.ReferenceId ?? null) as number | null,
+    jobId: (r.tinTuyenDungId ?? r.TinTuyenDungId ?? null) as number | null,
+    inviteToken: (r.inviteToken ?? r.InviteToken ?? null) as string | null,
   };
 }
 
 export function NotificationBell() {
   const apiUrl  = useApiUrl();
-  const { data: identity } = useGetIdentity<{ name?: string }>();
+  const { data: identity } = useGetIdentity<{ name?: string; roles?: string[] }>();
   const [open, setOpen] = useState(false);
 
   if (!identity) return null;
 
-  return <NotificationBellInner apiUrl={apiUrl} open={open} setOpen={setOpen} />;
+  return <NotificationBellInner apiUrl={apiUrl} open={open} setOpen={setOpen} roles={identity.roles ?? []} />;
 }
 
 function NotificationBellInner({
   apiUrl,
   open,
   setOpen,
+  roles,
 }: {
   apiUrl: string;
   open: boolean;
   setOpen: (v: boolean) => void;
+  roles: string[];
 }) {
+  const router = useRouter();
   const { query, result } = useCustom<NotificationsVm>({
     url:    `${apiUrl}/Notifications`,
     method: "get",
@@ -208,6 +221,12 @@ function NotificationBellInner({
     );
   };
 
+  const openNotification = (notification: NotificationDto) => {
+    if (!notification.isRead) handleMarkRead(notification.id);
+    const target = notificationTarget(notification, roles);
+    if (target) { setOpen(false); router.push(target); }
+  };
+
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
       {/* DropdownMenuTrigger renders as <button> — do NOT use asChild + Button to avoid button>button */}
@@ -226,14 +245,14 @@ function NotificationBellInner({
       <DropdownMenuContent align="end" className="w-80 p-0" sideOffset={8}>
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b">
-          <span className="text-sm font-semibold">Notifications</span>
+          <span className="text-sm font-semibold">Thông báo</span>
           {unreadCount > 0 && (
             <button
               type="button"
               className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
               onClick={handleMarkAllRead}
             >
-              <CheckCheck className="h-3 w-3" /> Mark all read
+              <CheckCheck className="h-3 w-3" /> Đánh dấu đã đọc
             </button>
           )}
         </div>
@@ -242,7 +261,7 @@ function NotificationBellInner({
         <div className="max-h-80 overflow-y-auto">
           {notifications.length === 0 ? (
             <div className="py-8 text-center text-sm text-muted-foreground">
-              No notifications
+              Chưa có thông báo
             </div>
           ) : (
             notifications.map((n) => {
@@ -251,13 +270,13 @@ function NotificationBellInner({
                 <div
                   key={n.id}
                   role="button"
-                  tabIndex={n.isRead ? -1 : 0}
-                  aria-label={n.isRead ? n.message : `Đánh dấu đã đọc: ${n.message}`}
-                  onClick={() => { if (!n.isRead) handleMarkRead(n.id); }}
+                  tabIndex={0}
+                  aria-label={`Mở thông báo: ${n.message}`}
+                  onClick={() => openNotification(n)}
                   onKeyDown={(event) => {
-                    if (!n.isRead && (event.key === "Enter" || event.key === " ")) {
+                    if (event.key === "Enter" || event.key === " ") {
                       event.preventDefault();
-                      handleMarkRead(n.id);
+                      openNotification(n);
                     }
                   }}
                   className={cn(
