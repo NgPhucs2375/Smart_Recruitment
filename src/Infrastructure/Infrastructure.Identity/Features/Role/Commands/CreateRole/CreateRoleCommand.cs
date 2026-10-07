@@ -22,6 +22,8 @@ namespace Infrastructure.Identity.Features.Role.Commands.CreateRole
 
             public async Task<Response<IdentityRole>> Handle(CreateRoleCommand request, CancellationToken cancellationToken)
             {
+                if (!Enum.TryParse<Domain.Enums.VaiTroNguoiDung>(request.Name, out var systemRole) || !Enum.IsDefined(systemRole) || systemRole.ToString() != request.Name)
+                    throw new Application.Exceptions.ApiException("Chỉ hỗ trợ bốn vai trò hệ thống.", 400);
                 var role = new IdentityRole(request.Name);
                 var result = await _roleManager.CreateAsync(role);
                 if (result.Succeeded)

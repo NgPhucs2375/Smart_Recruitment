@@ -46,7 +46,7 @@ namespace Infrastructure.Identity.Contexts
             builder.Entity<IdentityRoleClaim<string>>(entity =>
             {
                 entity.ToTable("RoleClaims");
-
+                entity.HasIndex(x => new { x.RoleId, x.ClaimType }).IsUnique();
             });
 
             builder.Entity<IdentityUserToken<string>>(entity =>

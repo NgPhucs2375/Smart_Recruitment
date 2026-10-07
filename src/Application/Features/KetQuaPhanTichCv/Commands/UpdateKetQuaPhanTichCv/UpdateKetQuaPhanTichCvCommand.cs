@@ -19,15 +19,15 @@ public class UpdateKetQuaPhanTichCvCommand : IRequest<Response<int>>
 }
 
 public class UpdateKetQuaPhanTichCvCommandHandler(
-    IApplicationDbContext context)
+    IApplicationDbContext context, ICurrentNguoiDungService current)
     : IRequestHandler<UpdateKetQuaPhanTichCvCommand, Response<int>>
 {
     public async Task<Response<int>> Handle(
         UpdateKetQuaPhanTichCvCommand request,
         CancellationToken cancellationToken)
     {
-        var entity = await context.KetQuaPhanTichCvs
-            .FindAsync([request.Id], cancellationToken);
+        var entity = await context.KetQuaPhanTichCvs.AsTracking()
+            .FirstOrDefaultAsync(x => x.Id == request.Id, cancellationToken);
 
         if (entity == null)
         {
@@ -35,6 +35,9 @@ public class UpdateKetQuaPhanTichCvCommandHandler(
                 "Không tìm thấy kết quả phân tích CV.");
         }
 
+        var actor = await current.ResolveAsync();
+        await Application.Security.ResourceAccess.EnsureCvOwnerAsync(context, actor, entity.CVUngVienId, cancellationToken);
+        await Application.Security.ResourceAccess.EnsureCvOwnerAsync(context, actor, request.CVUngVienId, cancellationToken);
         var cvTonTai = await context.CVUngViens
             .AsNoTracking()
             .AnyAsync(

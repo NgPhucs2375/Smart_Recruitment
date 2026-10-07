@@ -9,7 +9,7 @@ using Casbin;
 namespace WebApp.Server.Controllers.Identity
 {
 
-    [Authorize]
+    [Authorize(Roles = "QUAN_TRI_VIEN")]
     [Route("api/users")]
     public class UsersController : BaseApiController
     {

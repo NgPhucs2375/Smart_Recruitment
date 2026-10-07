@@ -97,6 +97,5 @@ export function isAdmin(): boolean {
 }
 
 export function canDo(resource: string, action: string): boolean {
-  if (isAdmin()) return true;
   return hasPermission(loadIdentity()?.permissions, resource, action);
 }

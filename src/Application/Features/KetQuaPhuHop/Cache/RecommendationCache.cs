@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Application.Features.KetQuaPhuHop.Matching;
 using Microsoft.Extensions.Caching.Distributed;
 
 namespace Application.Features.KetQuaPhuHop.Cache;
@@ -10,7 +11,7 @@ public static class RecommendationCache
     public static readonly TimeSpan Ttl = TimeSpan.FromMinutes(5);
 
     public static string JobRecommendationsKey(int userId, int cvId, string cvVersion, string jobsVersion, int topN) =>
-        $"cache:recommendations:jobs:v1:user:{userId}:cv:{cvId}:cv-version:{cvVersion}:jobs-version:{jobsVersion}:top:{topN}";
+        $"cache:recommendations:jobs:{ContentBasedMatcher.Version}:user:{userId}:cv:{cvId}:cv-version:{cvVersion}:jobs-version:{jobsVersion}:top:{topN}";
 
     public static string CandidateRecommendationsKey(
         int companyId,
@@ -18,7 +19,7 @@ public static class RecommendationCache
         string jobVersion,
         string candidateVersion,
         int topN) =>
-        $"cache:recommendations:candidates:v1:company:{companyId}:job:{jobId}:job-version:{jobVersion}:candidate-version:{candidateVersion}:top:{topN}";
+        $"cache:recommendations:candidates:{ContentBasedMatcher.Version}:company:{companyId}:job:{jobId}:job-version:{jobVersion}:candidate-version:{candidateVersion}:top:{topN}";
 
     public static async Task<string> GetVersionAsync(
         IDistributedCache cache,

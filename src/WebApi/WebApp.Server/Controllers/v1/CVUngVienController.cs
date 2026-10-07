@@ -14,6 +14,8 @@ using Application.Features.CVUngVien.Queries.GetCvVersions;
 using Casbin;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Text.Json;
+using Application.Exceptions;
 
 namespace WebApp.Server.Controllers.v1
 {
@@ -167,9 +169,13 @@ namespace WebApp.Server.Controllers.v1
             [FromForm] SaveCvVersionCommand command,
             CancellationToken cancellationToken)
         {
+            SaveCvVersionPayload? payload;
+            try { payload = JsonSerializer.Deserialize<SaveCvVersionPayload>(command.Payload ?? "", new JsonSerializerOptions { PropertyNameCaseInsensitive = true }); }
+            catch (JsonException) { throw new ApiException("Dữ liệu CV không hợp lệ.", 400); }
+            if (payload == null) throw new ApiException("Dữ liệu CV không hợp lệ.", 400);
             return await EnforcePermissionAndExecute(
                 "cvungviens",
-                "create",
+                payload.CVUngVienId.HasValue ? "edit" : "create",
                 async () => Ok(await Mediator.Send(command, cancellationToken)));
         }
 
@@ -189,8 +195,7 @@ namespace WebApp.Server.Controllers.v1
         public async Task<IActionResult> Form_Data(
             [FromForm] CreateCVUngVienCommand command)
         {
-            var result = await Mediator.Send(command);
-            return Ok(result);
+            return await EnforcePermissionAndExecute("cvungviens", "create", async () => Ok(await Mediator.Send(command)));
         }
 
         [HttpGet("{Id:int}/download-url")]

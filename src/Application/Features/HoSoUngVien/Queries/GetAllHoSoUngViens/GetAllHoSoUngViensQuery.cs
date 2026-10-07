@@ -44,7 +44,9 @@ namespace Application.Features.HoSoUngVien.Queries.GetAllHoSoUngViens
                 query = query.Where(x => x.CVUngViens.Any(cv =>
                     context.DonUngTuyens.Any(d =>
                         d.CVUngVienId == cv.Id &&
-                        d.TinTuyenDung.DoanhNghiepId == ctx.DoanhNghiepId)));
+                         (ctx.VaiTro == VaiTroNguoiDung.NHAN_SU
+                             ? d.TinTuyenDung.NguoiDangTinId == ctx.Id
+                             : d.TinTuyenDung.DoanhNghiepId == ctx.DoanhNghiepId))));
             }
             else if (ctx.VaiTro == VaiTroNguoiDung.UNG_VIEN)
             {

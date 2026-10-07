@@ -132,6 +132,8 @@ namespace Infrastructure.Persistence.Contexts
         protected override void OnModelCreating(ModelBuilder builder)
         {
             builder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
+            builder.Entity<Conversation>().HasIndex(c => new { c.DoanhNghiepId, c.ParticipantOneId, c.ParticipantTwoId })
+                .IsUnique().HasFilter("\"Type\" = 0 AND \"ParticipantOneId\" IS NOT NULL AND \"ParticipantTwoId\" IS NOT NULL");
 
             // pgvector (phase 2: CvTheme.Embedding). Tạo extension qua migration.
             builder.HasPostgresExtension("vector");

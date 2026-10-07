@@ -1,169 +1,228 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { HubConnectionBuilder, HttpTransportType, LogLevel, type HubConnection } from "@microsoft/signalr";
 import { Dialog as DialogPrimitive } from "@base-ui/react/dialog";
-import { Archive, Check, MessageCircle, MoreHorizontal, Plus, RefreshCw, Send, Users, X } from "lucide-react";
+import { Building2, Loader2, MessageCircle, Plus, RefreshCw, Search, Send, UserRound, X } from "lucide-react";
 import { AdminCard, AdminPageHeader, AdminPageLayout } from "@/components/admin/admin-page-layout";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Message, MessageAvatar, MessageContent, MessageScroller } from "@/components/ui/message";
-import { Separator } from "@/components/ui/separator";
+import { Message, MessageAvatar, MessageContent } from "@/components/ui/message";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { loadIdentity } from "@/lib/access-control-provider";
 import { getValidToken } from "@/lib/auth-provider";
 
-type Conversation = { Id: number; Title: string; Type: number };
+type Conversation = { Id: number; Title: string; Type: number; OtherUserId: number | null };
+type Contact = { Id: number; Name: string; Role: string };
 type ChatMessage = { Id: number; ConversationId: string; SenderId: string; Content: string; Created: string };
-type ApiResponse<T> = { Data?: T; data?: T };
-
+type ChatContext = { CurrentUserId: number; CompanyId: number; CanCreate: boolean; CanSend: boolean };
+type Kind = "company" | "direct";
 const API = "/api/dotnet/chat";
-const HUB = "/api/hubs/chat";
 
-function dataOf<T>(body: ApiResponse<T>): T | undefined { return body.Data ?? body.data; }
+async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+  const token = await getValidToken();
+  if (!token) throw new Error("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
+  const response = await fetch(`${API}${path}`, {
+    ...options, cache: "no-store", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}`, ...options.headers },
+  });
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(body.Message ?? body.message ?? body.title ?? (response.status === 403 ? "Bạn không có quyền sử dụng chat nội bộ." : "Không thể tải dữ liệu chat. Vui lòng thử lại."));
+  return (body.Data ?? body.data) as T;
+}
+
+function mergeMessages(previous: ChatMessage[], incoming: ChatMessage[]) {
+  return [...new Map([...previous, ...incoming].map(message => [message.Id, message])).values()].sort((a, b) => a.Id - b.Id);
+}
 
 export default function TinNhanPage() {
+  const [context, setContext] = useState<ChatContext | null>(null);
+  const [contacts, setContacts] = useState<Contact[]>([]);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selected, setSelected] = useState<Conversation | null>(null);
+  const [kind, setKind] = useState<Kind>("company");
+  const [search, setSearch] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(true);
   const [loadingMessages, setLoadingMessages] = useState(false);
+  const [loadingOlder, setLoadingOlder] = useState(false);
+  const [hasOlder, setHasOlder] = useState(false);
+  const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
-  const [createOpen, setCreateOpen] = useState(false);
-  const [creating, setCreating] = useState(false);
-  const [newTitle, setNewTitle] = useState("");
   const [connectionState, setConnectionState] = useState<"offline" | "connecting" | "online">("offline");
-  const [currentUserId, setCurrentUserId] = useState("");
+  const [reconnectEpoch, setReconnectEpoch] = useState(0);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [dialogKind, setDialogKind] = useState<Kind>("direct");
+  const [newTitle, setNewTitle] = useState("");
+  const [recipient, setRecipient] = useState<number | null>(null);
+  const [contactSearch, setContactSearch] = useState("");
+  const [creating, setCreating] = useState(false);
+  const [dialogError, setDialogError] = useState("");
   const connection = useRef<HubConnection | null>(null);
+  const selectedId = selected?.Id;
+  const activeId = useRef<number | undefined>(selectedId);
+  const end = useRef<HTMLDivElement | null>(null);
+  const sendLock = useRef(false);
 
-  async function loadConversations() {
-    const token = await getValidToken();
-    if (!token) { setLoading(false); setError("Phiên đăng nhập đã hết hạn."); return; }
-    setCurrentUserId(loadIdentity()?.id ?? "");
+  const refresh = useCallback(async (signal?: AbortSignal) => {
     setLoading(true);
     try {
-      const response = await fetch(`${API}/conversations`, { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" });
-      if (!response.ok) throw new Error("Không thể tải danh sách hội thoại.");
-      const body = (await response.json()) as ApiResponse<Conversation[]>;
-      setConversations(dataOf(body) ?? []);
+      const [current, people, rooms] = await Promise.all([
+        request<ChatContext>("/context", { signal }), request<Contact[]>("/contacts", { signal }), request<Conversation[]>("/conversations", { signal }),
+      ]);
+      if (signal?.aborted) return;
+      setContext(current); setContacts(people); setConversations(rooms);
+      setSelected(previous => previous ? rooms.find(room => room.Id === previous.Id) ?? null : null);
       setError("");
-    } catch (err) { setError(err instanceof Error ? err.message : "Không thể tải dữ liệu."); }
-    finally { setLoading(false); }
-  }
-
-  useEffect(() => {
-    const timer = window.setTimeout(() => void loadConversations(), 0);
-    return () => { window.clearTimeout(timer); void connection.current?.stop(); };
+    } catch (err) {
+      if (!signal?.aborted) {
+        setError(err instanceof Error ? err.message : "Không thể tải chat.");
+        setContext(null); setContacts([]); setConversations([]); setSelected(null); setMessages([]);
+        void connection.current?.stop();
+      }
+    } finally { if (!signal?.aborted) setLoading(false); }
   }, []);
 
   useEffect(() => {
-    if (!selected) return;
-    let active = true;
-    void (async () => {
-      const token = await getValidToken();
-      if (!token) return;
-      setLoadingMessages(true);
-      setConnectionState("connecting");
-      try {
-        const response = await fetch(`${API}/conversations/${selected.Id}/messages`, { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" });
-        if (!response.ok) throw new Error("Không thể tải tin nhắn.");
-        const body = (await response.json()) as ApiResponse<ChatMessage[]>;
-        if (active) setMessages(dataOf(body) ?? []);
+    const controller = new AbortController();
+    const timer = window.setTimeout(() => void refresh(controller.signal), 0);
+    const interval = window.setInterval(() => void refresh(controller.signal), 30_000);
+    const onFocus = () => void refresh(controller.signal);
+    window.addEventListener("focus", onFocus);
+    return () => { controller.abort(); window.clearTimeout(timer); window.clearInterval(interval); window.removeEventListener("focus", onFocus); };
+  }, [refresh]);
 
-        await connection.current?.stop();
-        const hub = new HubConnectionBuilder()
-          .withUrl(HUB, { accessTokenFactory: () => getValidToken().then(value => value ?? ""), transport: HttpTransportType.LongPolling })
-          .withAutomaticReconnect()
-          .configureLogging(LogLevel.Warning)
-          .build();
-        hub.on("MessageReceived", (message: ChatMessage) => {
-          if (String(message.ConversationId) === String(selected.Id)) setMessages(current => current.some(item => item.Id === message.Id) ? current : [...current, message]);
-        });
+  useEffect(() => {
+    activeId.current = selectedId;
+    if (!selectedId) return;
+    const controller = new AbortController();
+    let active = true;
+    const hub = new HubConnectionBuilder()
+      .withUrl("/api/hubs/chat", { accessTokenFactory: () => getValidToken().then(token => token ?? ""), transport: HttpTransportType.LongPolling })
+      .withAutomaticReconnect().configureLogging(LogLevel.Warning).build();
+    connection.current = hub;
+    const start = async () => {
+      setMessages([]); setLoadingMessages(true); setHasOlder(false); setError(""); setConnectionState("connecting");
+      try {
         await hub.start();
-        await hub.invoke("JoinConversation", selected.Id);
-        connection.current = hub;
-        if (active) setConnectionState("online");
-      } catch (err) { if (active) { setConnectionState("offline"); setError(err instanceof Error ? err.message : "Không thể kết nối kênh chat."); } }
-      finally { if (active) setLoadingMessages(false); }
-    })();
-    return () => { active = false; void connection.current?.stop(); };
-  }, [selected]);
+        if (!active) { await hub.stop(); return; }
+        await joinAndSync();
+      } catch (err) {
+        if (active) { setConnectionState("offline"); setError(err instanceof Error ? err.message : "Không thể kết nối chat."); }
+      } finally { if (active) setLoadingMessages(false); }
+    };
+    const joinAndSync = async () => {
+      await hub.invoke("JoinConversation", selectedId);
+      // Subscribe first, then merge history to avoid losing messages during setup.
+      const history = await request<ChatMessage[]>(`/conversations/${selectedId}/messages`, { signal: controller.signal });
+      if (active) { setMessages(previous => mergeMessages(previous, history)); setHasOlder(history.length === 100); setConnectionState("online"); setError(""); }
+    };
+    hub.on("MessageReceived", (message: ChatMessage) => {
+      if (active && message.ConversationId === String(selectedId)) setMessages(previous => mergeMessages(previous, [message]));
+    });
+    hub.on("AccessRevoked", () => {
+      if (!active) return;
+      setMessages([]); setSelected(null); setConnectionState("offline"); setError("Quyền truy cập hội thoại đã thay đổi. Vui lòng làm mới danh sách.");
+      void hub.stop();
+    });
+    hub.onreconnecting(() => { if (active) setConnectionState("connecting"); });
+    hub.onreconnected(() => {
+      if (!active) return;
+      void joinAndSync().catch(err => { if (active) { setConnectionState("offline"); setMessages([]); setError(err instanceof Error ? err.message : "Không thể vào lại hội thoại."); void hub.stop(); } });
+    });
+    hub.onclose(() => { if (active) setConnectionState("offline"); });
+    void start();
+    return () => {
+      active = false; controller.abort();
+      if (connection.current === hub) connection.current = null;
+      void hub.stop();
+    };
+  }, [selectedId, reconnectEpoch]);
+
+  const lastMessageId = messages.at(-1)?.Id;
+  useEffect(() => { end.current?.scrollIntoView({ block: "nearest" }); }, [lastMessageId]);
+
+  function choose(room: Conversation) { setMessages([]); setText(""); setSelected(room); setKind(room.Type === 0 ? "direct" : "company"); }
+  function openDialog(nextKind: Kind) { setDialogKind(nextKind); setRecipient(null); setContactSearch(""); setNewTitle(""); setDialogError(""); setDialogOpen(true); }
 
   async function createConversation() {
-    const title = newTitle.trim();
-    if (!title) return;
-    const token = await getValidToken();
-    if (!token) { setError("Phiên đăng nhập đã hết hạn."); return; }
-    setCreating(true);
+    if (creating) return;
+    setCreating(true); setDialogError("");
     try {
-      const response = await fetch(`${API}/conversations`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ Title: title, Type: 1 }) });
-      const body = (await response.json().catch(() => ({}))) as ApiResponse<Conversation> & { Message?: string; message?: string };
-      if (!response.ok) throw new Error(body.Message ?? body.message ?? "Không thể tạo hội thoại.");
-      const conversation = dataOf(body);
-      if (conversation) { setConversations(current => [conversation, ...current]); setSelected(conversation); }
-      setNewTitle(""); setCreateOpen(false); setError("");
-    } catch (err) { setError(err instanceof Error ? err.message : "Không thể tạo hội thoại."); }
+      const room = await request<Conversation>("/conversations", { method: "POST", body: JSON.stringify(dialogKind === "direct"
+        ? { Type: 0, RecipientId: recipient } : { Type: 1, Title: newTitle.trim() }) });
+      setConversations(previous => [room, ...previous.filter(item => item.Id !== room.Id)]);
+      choose(room); setDialogOpen(false);
+    } catch (err) { setDialogError(err instanceof Error ? err.message : "Không thể tạo hội thoại."); }
     finally { setCreating(false); }
   }
 
   async function sendMessage() {
     const content = text.trim();
-    if (!content || !selected || !connection.current || connectionState !== "online") return;
-    setText("");
-    try { await connection.current.invoke("SendMessage", selected.Id, content); }
-    catch { setError("Không thể gửi tin nhắn."); setText(content); }
+    const id = selectedId;
+    const hub = connection.current;
+    if (!content || !id || !hub || connectionState !== "online" || sendLock.current || !context?.CanSend) return;
+    sendLock.current = true; setSending(true);
+    try {
+      const message = await hub.invoke<ChatMessage>("SendMessage", id, content);
+      if (activeId.current === id) { setMessages(previous => mergeMessages(previous, [message])); setText(previous => previous.trim() === content ? "" : previous); setError(""); }
+    } catch (err) { if (activeId.current === id) setError(err instanceof Error ? err.message : "Không thể gửi tin nhắn. Nội dung vẫn được giữ để thử lại."); }
+    finally { sendLock.current = false; setSending(false); }
   }
 
-  return (
-    <AdminPageLayout>
-      <AdminPageHeader icon={MessageCircle} title="Tin nhắn nội bộ" description="Không gian trao đổi riêng trong doanh nghiệp." actions={<Button onClick={() => setCreateOpen(true)}><Plus className="size-4" /> Tạo hội thoại</Button>} />
-      <AdminCard className="flex min-h-[min(720px,calc(100vh-15rem))] overflow-hidden">
-        <ConversationSidebar conversations={conversations} selected={selected} loading={loading} onSelect={setSelected} onCreate={() => setCreateOpen(true)} />
-        <section className="flex min-w-0 flex-1 flex-col bg-background">
-          <ChatHeader conversations={conversations} selected={selected} connectionState={connectionState} error={error} onSelect={setSelected} onCreate={() => setCreateOpen(true)} onRefresh={() => void loadConversations()} />
-          <Separator />
-          <MessageScroller className="flex flex-1 flex-col gap-3 p-4 sm:p-6">
-            {loadingMessages ? <MessageSkeleton /> : !selected ? <EmptyChat onCreate={() => setCreateOpen(true)} /> : messages.length === 0 ? <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">Chưa có tin nhắn. Hãy bắt đầu cuộc trò chuyện.</div> : messages.map(message => <MessageBubble key={message.Id} message={message} currentUserId={currentUserId} />)}
-          </MessageScroller>
-          <TypingIndicator active={connectionState === "connecting"} />
-          <ChatInput value={text} disabled={!selected || connectionState !== "online"} onChange={setText} onSend={() => void sendMessage()} />
-        </section>
-      </AdminCard>
-      <CreateConversationDialog open={createOpen} title={newTitle} loading={creating} onOpenChange={setCreateOpen} onTitleChange={setNewTitle} onCreate={() => void createConversation()} />
-    </AdminPageLayout>
-  );
-}
+  async function loadOlder() {
+    if (!selectedId || !messages.length || loadingOlder) return;
+    const id = selectedId;
+    setLoadingOlder(true);
+    try {
+      const history = await request<ChatMessage[]>(`/conversations/${id}/messages?beforeId=${messages[0].Id}`);
+      if (activeId.current === id) { setMessages(previous => mergeMessages(previous, history)); setHasOlder(history.length === 100); }
+    } catch (err) { if (activeId.current === id) setError(err instanceof Error ? err.message : "Không thể tải tin cũ."); }
+    finally { setLoadingOlder(false); }
+  }
 
-function ConversationSidebar({ conversations, selected, loading, onSelect, onCreate }: { conversations: Conversation[]; selected: Conversation | null; loading: boolean; onSelect: (value: Conversation) => void; onCreate: () => void }) {
-  return <aside className="hidden w-72 shrink-0 flex-col border-r border-border bg-muted/20 md:flex" aria-label="Danh sách hội thoại">
-    <div className="flex items-center justify-between p-4"><div><p className="text-sm font-semibold">Hội thoại</p><p className="mt-1 text-xs text-muted-foreground">Trao đổi trong nội bộ</p></div><Button variant="ghost" size="icon-sm" onClick={onCreate} aria-label="Tạo hội thoại"><Plus className="size-4" /></Button></div><Separator />
-    <div className="flex-1 overflow-y-auto p-2">{loading ? <ConversationSkeleton /> : conversations.length === 0 ? <div className="flex h-full flex-col items-center justify-center px-5 text-center"><Archive className="size-6 text-muted-foreground/60" /><p className="mt-3 text-sm">Chưa có hội thoại</p><Button variant="link" size="sm" onClick={onCreate}>Tạo hội thoại đầu tiên</Button></div> : conversations.map(item => <button key={item.Id} type="button" onClick={() => onSelect(item)} className={`flex w-full items-center gap-3 rounded-xl p-3 text-left transition hover:bg-muted ${selected?.Id === item.Id ? "bg-background shadow-sm ring-1 ring-border" : ""}`}><Avatar className="size-9"><AvatarFallback className="bg-primary/10 text-primary"><Users className="size-4" /></AvatarFallback></Avatar><span className="min-w-0 flex-1 truncate text-sm font-medium">{item.Title}</span>{item.Type === 1 && <Badge variant="secondary" className="text-[10px]">Nhóm</Badge>}</button>)}</div>
-  </aside>;
-}
+  const visible = conversations.filter(room => room.Type === (kind === "direct" ? 0 : 1) && room.Title.toLocaleLowerCase().includes(search.toLocaleLowerCase()));
+  const people = contacts.filter(person => person.Name.toLocaleLowerCase().includes(contactSearch.toLocaleLowerCase()));
+  const inputDisabled = !selected || connectionState !== "online" || !context?.CanSend;
 
-function ChatHeader({ conversations, selected, connectionState, error, onSelect, onCreate, onRefresh }: { conversations: Conversation[]; selected: Conversation | null; connectionState: "offline" | "connecting" | "online"; error: string; onSelect: (value: Conversation) => void; onCreate: () => void; onRefresh: () => void }) {
-  return <header className="flex min-h-16 items-center justify-between gap-3 px-4 py-3 sm:px-6"><div className="flex min-w-0 items-center gap-3"><Select value={selected ? String(selected.Id) : ""} onValueChange={value => { const item = conversations.find(conversation => conversation.Id === Number(value)); if (item) onSelect(item); }}><SelectTrigger className="h-8 w-36 md:hidden" aria-label="Chọn hội thoại"><SelectValue placeholder="Hội thoại" /></SelectTrigger><SelectContent>{conversations.map(item => <SelectItem key={item.Id} value={String(item.Id)}>{item.Title}</SelectItem>)}</SelectContent></Select><Avatar className="size-9"><AvatarFallback className="bg-primary/10 text-primary"><Users className="size-4" /></AvatarFallback></Avatar><div className="min-w-0"><p className="truncate text-sm font-semibold">{selected?.Title ?? "Chưa chọn hội thoại"}</p><div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground"><span className={`size-1.5 rounded-full ${connectionState === "online" ? "bg-emerald-500" : connectionState === "connecting" ? "bg-amber-500" : "bg-muted-foreground/50"}`} />{error || (connectionState === "online" ? "Đang kết nối" : connectionState === "connecting" ? "Đang kết nối..." : "Ngoại tuyến")}</div></div></div><DropdownMenu><DropdownMenuTrigger render={<Button variant="ghost" size="icon-sm" aria-label="Tùy chọn hội thoại"><MoreHorizontal className="size-4" /></Button>} /><DropdownMenuContent align="end"><DropdownMenuItem onClick={onCreate}><Plus className="size-4" /> Tạo hội thoại</DropdownMenuItem><DropdownMenuSeparator /><DropdownMenuItem onClick={onRefresh}><RefreshCw className="size-4" /> Làm mới danh sách</DropdownMenuItem></DropdownMenuContent></DropdownMenu></header>;
-}
-
-function MessageBubble({ message, currentUserId }: { message: ChatMessage; currentUserId: string }) {
-  const mine = message.SenderId === currentUserId;
-  return <Message className={mine ? "justify-end" : "justify-start"}><MessageAvatar fallback={mine ? "Bạn" : "TV"} className={mine ? "order-2" : ""} /><MessageContent className={mine ? "bg-primary text-primary-foreground" : "bg-muted"}><p className="whitespace-pre-wrap break-words">{message.Content}</p><time className={`mt-1 block text-[11px] ${mine ? "text-primary-foreground/70" : "text-muted-foreground"}`}>{new Date(message.Created).toLocaleString("vi-VN")}</time></MessageContent></Message>;
-}
-
-function ChatInput({ value, disabled, onChange, onSend }: { value: string; disabled: boolean; onChange: (value: string) => void; onSend: () => void }) {
-  return <div className="border-t border-border bg-card p-3 sm:p-4"><div className="flex items-end gap-2 rounded-2xl border border-border bg-background p-2 focus-within:border-primary/50"><Button variant="ghost" size="icon-sm" disabled aria-label="Đính kèm tệp"><Plus className="size-4" /></Button><Textarea value={value} onChange={event => onChange(event.target.value)} onKeyDown={event => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); onSend(); } }} disabled={disabled} placeholder={disabled ? "Chọn hội thoại để nhắn tin..." : "Viết tin nhắn..."} className="min-h-12 resize-none border-0 bg-transparent px-2 py-1 shadow-none focus-visible:ring-0" /><Button onClick={onSend} disabled={disabled || !value.trim()} size="icon" aria-label="Gửi tin nhắn"><Send className="size-4" /></Button></div><p className="mt-2 text-[11px] text-muted-foreground">Enter để gửi · Shift + Enter để xuống dòng</p></div>;
-}
-
-function TypingIndicator({ active }: { active: boolean }) { return <div className="flex h-7 items-center gap-2 px-6 text-xs text-muted-foreground" aria-live="polite">{active && <><span className="flex gap-0.5"><i className="size-1 animate-bounce rounded-full bg-muted-foreground" /><i className="size-1 animate-bounce rounded-full bg-muted-foreground [animation-delay:100ms]" /><i className="size-1 animate-bounce rounded-full bg-muted-foreground [animation-delay:200ms]" /></span> Đang kết nối...</>}</div>; }
-function MessageSkeleton() { return <div className="space-y-4">{["w-52", "ml-auto w-64", "w-40"].map(width => <div key={width} className={`flex gap-3 ${width.startsWith("ml") ? "justify-end" : ""}`}><Skeleton className="size-8 rounded-full" /><Skeleton className={`h-16 ${width} rounded-2xl`} /></div>)}</div>; }
-function ConversationSkeleton() { return <div className="space-y-2 p-1">{[1, 2, 3].map(item => <div key={item} className="flex items-center gap-3 p-3"><Skeleton className="size-9 rounded-full" /><Skeleton className="h-4 flex-1" /></div>)}</div>; }
-function EmptyChat({ onCreate }: { onCreate: () => void }) { return <div className="flex flex-1 flex-col items-center justify-center text-center"><span className="flex size-14 items-center justify-center rounded-2xl bg-primary/10 text-primary"><MessageCircle className="size-7" /></span><h2 className="mt-4 text-base font-semibold">Chưa chọn hội thoại</h2><p className="mt-1 max-w-sm text-sm text-muted-foreground">Tạo một hội thoại nội bộ để bắt đầu trao đổi với đội ngũ.</p><Button className="mt-5" onClick={onCreate}><Plus className="size-4" /> Tạo hội thoại</Button></div>; }
-
-function CreateConversationDialog({ open, title, loading, onOpenChange, onTitleChange, onCreate }: { open: boolean; title: string; loading: boolean; onOpenChange: (open: boolean) => void; onTitleChange: (value: string) => void; onCreate: () => void }) {
-  return <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}><DialogPrimitive.Portal><DialogPrimitive.Backdrop className="fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px]" /><DialogPrimitive.Popup className="fixed left-1/2 top-1/2 z-50 w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-border bg-card p-6 shadow-xl outline-none"><div className="flex items-start justify-between gap-4"><div><DialogPrimitive.Title className="text-lg font-semibold">Tạo hội thoại</DialogPrimitive.Title><DialogPrimitive.Description className="mt-1 text-sm text-muted-foreground">Tạo nhóm trao đổi nội bộ trong doanh nghiệp.</DialogPrimitive.Description></div><DialogPrimitive.Close render={<Button variant="ghost" size="icon-sm" aria-label="Đóng"><X className="size-4" /></Button>} /></div><label className="mt-6 block text-sm font-medium" htmlFor="conversation-title">Tên hội thoại</label><input id="conversation-title" autoFocus value={title} onChange={event => onTitleChange(event.target.value)} onKeyDown={event => { if (event.key === "Enter") onCreate(); }} placeholder="Ví dụ: Nhóm tuyển dụng tháng 10" className="mt-2 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20" /><div className="mt-6 flex justify-end gap-2"><DialogPrimitive.Close render={<Button variant="outline">Hủy</Button>} /><Button onClick={onCreate} disabled={loading || !title.trim()}>{loading ? "Đang tạo..." : <><Check className="size-4" /> Tạo hội thoại</>}</Button></div></DialogPrimitive.Popup></DialogPrimitive.Portal></DialogPrimitive.Root>;
+  return <AdminPageLayout>
+    <AdminPageHeader icon={MessageCircle} title="Tin nhắn nội bộ" description="Phòng chung doanh nghiệp và trao đổi riêng với đồng nghiệp." actions={<Button disabled={!context?.CanCreate} onClick={() => openDialog("direct")}><Plus className="size-4" /> Cuộc trò chuyện mới</Button>} />
+    {error && <div role="alert" className="mb-4 flex items-center justify-between gap-3 rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm"><p className="break-words">{error}</p><Button variant="outline" disabled={loading} onClick={() => void refresh()}>Thử lại</Button></div>}
+    <AdminCard className="grid min-h-[600px] overflow-hidden md:grid-cols-[280px_minmax(0,1fr)]">
+      <aside className="flex flex-col border-b border-border bg-muted/20 md:border-r md:border-b-0" aria-label="Danh sách hội thoại">
+        <div className="flex items-center justify-between p-4"><h2 className="font-semibold">Hội thoại</h2><Button variant="ghost" size="icon" aria-label="Làm mới hội thoại" disabled={loading} onClick={() => void refresh()}><RefreshCw className={`size-4 ${loading ? "animate-spin" : ""}`} /></Button></div>
+        <div className="grid grid-cols-2 gap-1 px-3" aria-label="Loại hội thoại">{(["company", "direct"] as const).map(value => <Button key={value} variant={kind === value ? "secondary" : "ghost"} aria-pressed={kind === value} onClick={() => setKind(value)}>{value === "company" ? <Building2 className="size-4" /> : <UserRound className="size-4" />}{value === "company" ? "Phòng chung" : "Chat riêng"}</Button>)}</div>
+        <label className="m-3 flex items-center gap-2 rounded-lg border border-input bg-background px-3"><Search className="size-4 shrink-0 text-muted-foreground" /><input aria-label="Tìm hội thoại" value={search} onChange={event => setSearch(event.target.value)} placeholder="Tìm hội thoại..." className="h-10 w-full min-w-0 bg-transparent text-sm outline-none" /></label>
+        <div className="max-h-48 flex-1 overflow-y-auto px-2 pb-3 md:max-h-[520px]">
+          {loading ? <div className="space-y-2 p-2">{[1, 2, 3].map(item => <Skeleton key={item} className="h-14 w-full" />)}</div> : visible.length ? visible.map(room => <button key={room.Id} type="button" aria-pressed={selectedId === room.Id} onClick={() => choose(room)} className={`flex min-h-16 w-full items-center gap-3 rounded-xl p-3 text-left transition hover:bg-muted focus-visible:outline-2 focus-visible:outline-primary ${selectedId === room.Id ? "bg-background ring-1 ring-border" : ""}`}>
+            <Avatar className="size-9"><AvatarFallback>{room.Type === 1 ? <Building2 className="size-4" /> : room.Title.slice(0, 2).toUpperCase()}</AvatarFallback></Avatar><span className="min-w-0"><span className="block truncate text-sm font-medium">{room.Title}</span><span className="text-xs text-muted-foreground">{room.Type === 1 ? "Mọi thành viên doanh nghiệp" : "Chỉ hai người tham gia"}</span></span>
+          </button>) : <div className="px-3 py-5 text-center"><p className="text-sm text-muted-foreground">{search ? "Không tìm thấy hội thoại." : kind === "direct" ? "Chọn đồng nghiệp để bắt đầu chat riêng." : "Chưa có phòng chung trong doanh nghiệp."}</p><Button variant="link" disabled={!context?.CanCreate} onClick={() => openDialog(kind)}>{kind === "direct" ? "Chọn người nhận" : "Tạo phòng chung"}</Button></div>}
+        </div>
+      </aside>
+      <section className="flex min-w-0 flex-col bg-background">
+        <header className="flex min-h-20 items-center gap-3 border-b border-border px-4 py-3 sm:px-6"><Avatar><AvatarFallback>{selected?.Type === 0 ? <UserRound className="size-4" /> : <Building2 className="size-4" />}</AvatarFallback></Avatar><div className="min-w-0 flex-1"><h2 className="truncate font-semibold">{selected?.Title ?? "Bắt đầu cuộc trò chuyện"}</h2><p className="mt-1 text-xs text-muted-foreground" role="status">{!selected ? "Chọn phòng chung hoặc nhắn riêng cho đồng nghiệp" : connectionState === "online" ? "Đã kết nối" : connectionState === "connecting" ? "Đang kết nối lại..." : "Ngoại tuyến"}</p></div>{selected && connectionState === "offline" && <Button variant="outline" size="sm" onClick={() => setReconnectEpoch(value => value + 1)}>Kết nối lại</Button>}{selected && <Badge variant="secondary">{selected.Type === 0 ? "Riêng tư" : "Doanh nghiệp"}</Badge>}</header>
+        <div className="flex h-[420px] flex-1 flex-col gap-4 overflow-y-auto p-4 sm:p-6" role="log" aria-label="Tin nhắn" aria-live="polite" aria-busy={loadingMessages}>
+          {loadingMessages ? [1, 2, 3].map(item => <Skeleton key={item} className="h-16 w-2/3" />) : !selected ? <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center"><MessageCircle className="size-10 text-muted-foreground" /><h3 className="font-semibold">Trao đổi đúng người, đúng không gian</h3><p className="max-w-sm text-sm text-muted-foreground">Phòng chung dành cho toàn doanh nghiệp. Chat riêng chỉ hiển thị với bạn và người nhận.</p><Button disabled={!context?.CanCreate} onClick={() => openDialog("direct")}>Nhắn cho đồng nghiệp</Button></div> : <>
+            {hasOlder && <Button variant="ghost" disabled={loadingOlder} onClick={() => void loadOlder()}>{loadingOlder ? "Đang tải..." : "Tải tin nhắn trước đó"}</Button>}
+            {!messages.length && <p className="my-auto text-center text-sm text-muted-foreground">Chưa có tin nhắn. Hãy bắt đầu cuộc trò chuyện.</p>}
+            {messages.map(message => {
+              const mine = message.SenderId === String(context?.CurrentUserId);
+              const name = mine ? "Bạn" : contacts.find(contact => String(contact.Id) === message.SenderId)?.Name ?? "Thành viên";
+              return <Message key={message.Id} className={mine ? "justify-end" : "justify-start"}><MessageAvatar fallback={name.slice(0, 2)} className={mine ? "order-2" : ""} /><MessageContent className={`min-w-0 ${mine ? "bg-primary text-primary-foreground" : "bg-muted"}`}><p className="mb-1 text-xs font-semibold">{name}</p><p className="whitespace-pre-wrap [overflow-wrap:anywhere]">{message.Content}</p><time className={`mt-2 block text-xs ${mine ? "text-primary-foreground/80" : "text-muted-foreground"}`}>{new Date(message.Created).toLocaleString("vi-VN")}</time></MessageContent></Message>;
+            })}
+          </>}
+          <div ref={end} />
+        </div>
+        <div className="border-t border-border bg-card p-4"><label htmlFor="chat-content" className="sr-only">Nội dung tin nhắn</label><div className="flex items-end gap-2"><Textarea id="chat-content" value={text} maxLength={4000} disabled={inputDisabled || sending} onChange={event => setText(event.target.value)} onKeyDown={event => { if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); void sendMessage(); } }} placeholder={!context?.CanSend && context ? "Bạn chỉ có quyền đọc tin nhắn" : "Viết tin nhắn..."} className="min-h-14 resize-none" /><Button size="icon" className="size-11 shrink-0" aria-label="Gửi tin nhắn" disabled={inputDisabled || sending || !text.trim()} onClick={() => void sendMessage()}>{sending ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}</Button></div><p className="mt-2 text-xs text-muted-foreground">Enter để gửi · Shift + Enter để xuống dòng · {text.length}/4.000</p></div>
+      </section>
+    </AdminCard>
+    <DialogPrimitive.Root open={dialogOpen} onOpenChange={open => { if (!creating) setDialogOpen(open); }}><DialogPrimitive.Portal><DialogPrimitive.Backdrop className="fixed inset-0 z-50 bg-black/40" /><DialogPrimitive.Popup className="fixed top-1/2 left-1/2 z-50 max-h-[85dvh] w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl border border-border bg-card p-6 shadow-xl">
+      <div className="flex items-start justify-between gap-3"><div><DialogPrimitive.Title className="text-lg font-semibold">Cuộc trò chuyện mới</DialogPrimitive.Title><DialogPrimitive.Description className="mt-1 text-sm text-muted-foreground">Chọn không gian trao đổi trong doanh nghiệp của bạn.</DialogPrimitive.Description></div><DialogPrimitive.Close render={<Button variant="ghost" size="icon" aria-label="Đóng" disabled={creating}><X className="size-4" /></Button>} /></div>
+      <div className="my-5 grid grid-cols-2 gap-2">{(["direct", "company"] as const).map(value => <Button key={value} disabled={creating} variant={dialogKind === value ? "secondary" : "outline"} aria-pressed={dialogKind === value} onClick={() => { setDialogKind(value); setDialogError(""); }}>{value === "direct" ? <UserRound className="size-4" /> : <Building2 className="size-4" />}{value === "direct" ? "Chat riêng 1–1" : "Phòng chung"}</Button>)}</div>
+      {dialogKind === "direct" ? <><label htmlFor="contact-search" className="text-sm font-medium">Người nhận</label><input id="contact-search" value={contactSearch} onChange={event => setContactSearch(event.target.value)} placeholder="Tìm đồng nghiệp theo tên..." className="mt-2 mb-3 h-11 w-full rounded-lg border border-input bg-background px-3 text-sm" /><div className="max-h-64 space-y-1 overflow-y-auto" aria-label="Đồng nghiệp cùng doanh nghiệp">{people.map(person => <button key={person.Id} type="button" disabled={creating} aria-pressed={recipient === person.Id} onClick={() => setRecipient(person.Id)} className={`flex min-h-16 w-full items-center gap-3 rounded-xl border p-3 text-left focus-visible:outline-2 focus-visible:outline-primary ${recipient === person.Id ? "border-primary bg-primary/5" : "border-transparent hover:bg-muted"}`}><Avatar><AvatarFallback>{person.Name.slice(0, 2).toUpperCase()}</AvatarFallback></Avatar><span className="min-w-0 flex-1"><span className="block truncate text-sm font-medium">{person.Name}</span><span className="text-xs text-muted-foreground">{person.Role === "NGUOI_DAI_DIEN" ? "Người đại diện" : "Nhân sự"}</span></span>{recipient === person.Id && <Badge>Đã chọn</Badge>}</button>)}{!people.length && <p className="py-6 text-center text-sm text-muted-foreground">{contacts.length ? "Không tìm thấy đồng nghiệp phù hợp." : "Chưa có đồng nghiệp đang hoạt động. Người đại diện cần mời nhân sự vào doanh nghiệp trước."}</p>}</div><p className="mt-3 text-xs text-muted-foreground">Hội thoại chỉ hiển thị với hai người. Nếu đã có cuộc trò chuyện, hệ thống mở lại hội thoại đó.</p></> : <><label htmlFor="room-title" className="text-sm font-medium">Tên phòng chung</label><input id="room-title" maxLength={120} value={newTitle} onChange={event => setNewTitle(event.target.value)} placeholder="Ví dụ: Trao đổi tuyển dụng" className="mt-2 h-11 w-full rounded-lg border border-input bg-background px-3 text-sm" /><p className="mt-3 text-sm text-muted-foreground">Mọi nhân sự và người đại diện đang thuộc doanh nghiệp đều có thể truy cập phòng này.</p></>}
+      {dialogError && <p role="alert" className="mt-4 text-sm text-destructive">{dialogError}</p>}
+      <div className="mt-6 flex justify-end gap-2"><DialogPrimitive.Close render={<Button variant="outline" disabled={creating}>Hủy</Button>} /><Button disabled={creating || (dialogKind === "direct" ? !recipient : !newTitle.trim())} onClick={() => void createConversation()}>{creating && <Loader2 className="size-4 animate-spin" />}{dialogKind === "direct" ? "Bắt đầu chat" : "Tạo phòng chung"}</Button></div>
+    </DialogPrimitive.Popup></DialogPrimitive.Portal></DialogPrimitive.Root>
+  </AdminPageLayout>;
 }

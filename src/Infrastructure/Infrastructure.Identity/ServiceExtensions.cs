@@ -87,6 +87,8 @@ namespace Infrastructure.Identity
             #region Services
             services.AddScoped<IAccountService, AccountService>();
             services.AddScoped<IUserRoleService, UserRoleService>();
+            services.AddScoped<PermissionCache>();
+            services.AddScoped<IPermissionService, PermissionService>();
             services.AddScoped<IUserEmailResolver, UserEmailResolver>();
             #endregion
             services.Configure<JWTSettings>(configuration.GetSection("JWTSettings"));

@@ -47,8 +47,8 @@ namespace Application.Features.HoSoUngVien.Commands.UpdateHoSoUngVien
 
             var ctx = await current.ResolveAsync();
 
-            if (ctx.VaiTro == VaiTroNguoiDung.UNG_VIEN &&
-                entity.NguoiDungId != ctx.Id)
+            if (ctx.VaiTro != VaiTroNguoiDung.QUAN_TRI_VIEN &&
+                (ctx.VaiTro != VaiTroNguoiDung.UNG_VIEN || entity.NguoiDungId != ctx.Id))
             {
                 return new Response<int>(
                     "Bạn chỉ được sửa hồ sơ của chính mình.");

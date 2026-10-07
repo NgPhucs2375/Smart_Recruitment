@@ -8,6 +8,9 @@ namespace Domain.Entities
         public string Title { get; set; }
         public string DoanhNghiepId { get; set; }
         public TypeConversation Type { get; set; }
+        // Sorted pair of business-user IDs. Null for company-wide rooms.
+        public int? ParticipantOneId { get; set; }
+        public int? ParticipantTwoId { get; set; }
 
     }
 }

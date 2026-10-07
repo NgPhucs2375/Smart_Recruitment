@@ -44,7 +44,7 @@ namespace Application.Features.HoSoUngVien.Queries.GetHoSoUngVienById
                         "Bạn chỉ được xem hồ sơ của chính mình.", 403);
                 }
             }
-            else // NGUOI_DAI_DIEN / NHAN_SU: chỉ xem ứng viên đã nộp đơn vào tin thuộc quyền
+            else if (ctx.VaiTro != VaiTroNguoiDung.QUAN_TRI_VIEN) // Recruiters: only applications in scope.
             {
                 var accessible = await context.DonUngTuyens.AnyAsync(
                     d => d.CVUngVien.HoSoUngVienId == request.Id &&

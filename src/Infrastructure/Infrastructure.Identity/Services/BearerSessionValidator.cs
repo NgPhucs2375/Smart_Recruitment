@@ -27,12 +27,14 @@ public static class BearerSessionValidator
         if (user == null || user.SecurityStamp != stamp || !user.EmailConfirmed ||
             (user.LockoutEnabled && user.LockoutEnd > DateTimeOffset.UtcNow))
         { context.Fail("Session revoked or account disabled."); return; }
-        if (!await services.GetRequiredService<IApplicationDbContext>().NguoiDungs.AsNoTracking()
-            .AnyAsync(u => u.ApplicationUserId == uid && u.IsActive, ct))
+        var profile = await services.GetRequiredService<IApplicationDbContext>().NguoiDungs.AsNoTracking()
+            .Where(u => u.ApplicationUserId == uid && u.IsActive).Select(u => new { u.VaiTro }).SingleOrDefaultAsync(ct);
+        if (profile == null)
         { context.Fail("Account is inactive."); return; }
         var roles = await db.UserRoles.Where(ur => ur.UserId == uid).Join(db.Roles,
             ur => ur.RoleId, role => role.Id, (_, role) => role.Name).Where(name => name != null).ToListAsync(ct);
-        if (roles.Count == 0) { context.Fail("Account has no roles."); return; }
+        if (roles.Count != 1 || !PermissionPolicy.IsSystemRole(roles[0]) || roles[0] != profile.VaiTro.ToString())
+        { context.Fail("Identity and domain roles are inconsistent."); return; }
         foreach (var claim in identity.Claims.Where(c => c.Type == ClaimTypes.Role || c.Type == "roles" || c.Type == "permission").ToList())
             identity.RemoveClaim(claim);
         foreach (var role in roles) identity.AddClaim(new Claim(ClaimTypes.Role, role));

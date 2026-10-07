@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace WebApp.Server.Controllers.v1
 {
-    [Authorize]
+    [Authorize(Roles = "QUAN_TRI_VIEN")]
     [Route("api/dashboard")]
     public class DashboardController : BaseApiController
     {

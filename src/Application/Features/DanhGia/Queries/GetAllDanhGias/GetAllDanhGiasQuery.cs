@@ -62,7 +62,7 @@ public class GetAllDanhGiasQuery : IRequest<Response<List<GetAllDanhGiasViewMode
                 }
             }
 
-            var query = context.DanhGias.AsNoTracking();
+            var query = Application.Security.ResourceAccess.ScopeReviews(context.DanhGias.AsNoTracking(), ctx);
 
         if (request.DonUngTuyenId.HasValue)
         {

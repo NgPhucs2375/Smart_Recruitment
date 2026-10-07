@@ -33,6 +33,8 @@ namespace Application.Features.HoSoNhaTuyenDung.Queries.GetHoSoNhaTuyenDungById
             }
 
             var ctx = await current.ResolveAsync();
+            if (ctx.VaiTro is not (VaiTroNguoiDung.QUAN_TRI_VIEN or VaiTroNguoiDung.NHAN_SU or VaiTroNguoiDung.NGUOI_DAI_DIEN))
+                throw new Application.Exceptions.ApiException("Bạn không có quyền xem hồ sơ nhà tuyển dụng.", 403);
 
             // Nhân sự / Người đại diện chỉ xem hồ sơ của chính mình
             // hoặc đồng nghiệp cùng doanh nghiệp.

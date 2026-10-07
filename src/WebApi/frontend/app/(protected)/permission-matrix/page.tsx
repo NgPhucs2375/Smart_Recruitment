@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getAuthToken, redirectToLogin, refreshIdentity } from "@/lib/auth-provider";
+import { getAuthToken, getValidToken, redirectToLogin, refreshIdentity } from "@/lib/auth-provider";
+import { unwrapResponse } from "@/lib/api/response-contract";
 import { loadIdentity } from "@/lib/access-control-provider";
 import { hasPermission } from "@/lib/permissions";
 import { toast } from "sonner";
@@ -24,9 +25,10 @@ interface MatrixResponse {
   roles: { id: string; name: string }[];
   resources: string[];
   matrix: Matrix;
+  allowedActions: Matrix;
 }
 
-const ALL_ACTIONS = ["list", "show", "create", "edit", "delete"] as const;
+const ALL_ACTIONS = ["list", "show", "create", "edit", "delete", "download", "send"] as const;
 
 function extractData(body: unknown): MatrixResponse | null {
   if (!body || typeof body !== "object") return null;
@@ -37,8 +39,9 @@ function extractData(body: unknown): MatrixResponse | null {
   const roles = d["roles"] as MatrixResponse["roles"];
   const resources = d["resources"] as string[];
   const matrix = d["matrix"] as Matrix;
-  if (!Array.isArray(roles) || !Array.isArray(resources) || !matrix || typeof matrix !== "object") return null;
-  return { roles, resources, matrix };
+  const allowedActions = d["allowedActions"] as Matrix;
+  if (!Array.isArray(roles) || !Array.isArray(resources) || !matrix || typeof matrix !== "object" || !allowedActions) return null;
+  return { roles, resources, matrix, allowedActions };
 }
 
 function countChanges(original: Matrix, draft: Matrix): number {
@@ -73,7 +76,7 @@ export default function PermissionMatrixPage() {
     const isAdministrator = identity?.roles?.some(
       (role) => role.trim().toUpperCase() === "QUAN_TRI_VIEN",
     );
-    return Boolean(isAdministrator) || hasPermission(identity?.permissions, "roleclaims", "edit");
+    return Boolean(isAdministrator) && hasPermission(identity?.permissions, "roleclaims", "edit");
   }, [identity]);
 
   useEffect(() => {
@@ -88,7 +91,7 @@ export default function PermissionMatrixPage() {
     setLoading(true);
     setError(null);
     try {
-      const token = getAuthToken();
+      const token = await getValidToken();
       if (!token) {
         redirectToLogin();
         return;
@@ -107,6 +110,7 @@ export default function PermissionMatrixPage() {
         throw new Error(msg);
       }
       const body = await res.json();
+      unwrapResponse(body);
       const parsed = extractData(body);
       if (!parsed) throw new Error("Dữ liệu matrix không hợp lệ");
       setData(parsed);
@@ -141,6 +145,7 @@ export default function PermissionMatrixPage() {
   }, [data, draft]);
 
   const toggleAction = (role: string, resource: string, action: string, checked: boolean) => {
+    if (!canEdit || !data?.allowedActions[role]?.[resource]?.includes(action)) return;
     setDraft((prev) => {
       const next: Matrix = { ...prev };
       const roleMap = { ...(next[role] ?? {}) };
@@ -156,11 +161,13 @@ export default function PermissionMatrixPage() {
   };
 
   const toggleAllForRole = (role: string, resource: string, actions: string[], checked: boolean) => {
+    if (!canEdit || saving) return;
     setDraft((prev) => {
       const next: Matrix = { ...prev };
       const roleMap = { ...(next[role] ?? {}) };
       if (checked) {
-        roleMap[resource] = [...actions].sort();
+        roleMap[resource] = actions.filter(action => data?.allowedActions[role]?.[resource]?.includes(action)).sort();
+        if (roleMap[resource].length === 0) delete roleMap[resource];
       } else {
         delete roleMap[resource];
       }
@@ -173,7 +180,7 @@ export default function PermissionMatrixPage() {
     if (!canEdit) { toast.error("Bạn không có quyền chỉnh sửa ma trận"); return; }
     setSaving(true);
     try {
-      const token = getAuthToken();
+      const token = await getValidToken();
       if (!token) {
         redirectToLogin();
         return;
@@ -193,8 +200,10 @@ export default function PermissionMatrixPage() {
         try { const j = JSON.parse(text); msg = j?.Message ?? j?.message ?? msg; } catch { if (text) msg = text; }
         throw new Error(msg);
       }
+      unwrapResponse(await res.json());
       await refreshIdentity();
-      toast.success("Đã lưu ma trận quyền (policy.csv cache đã đồng bộ)");
+      setIdentity(loadIdentity());
+      toast.success("Đã lưu ma trận quyền vào database");
       await fetchMatrix();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : String(e));
@@ -233,10 +242,9 @@ export default function PermissionMatrixPage() {
   const getActionsForResource = (resource: string): string[] => {
     const set = new Set<string>();
     for (const role of data.roles) {
-      const acts = draft[role.name]?.[resource] ?? data.matrix[role.name]?.[resource] ?? [];
+      const acts = data.allowedActions[role.name]?.[resource] ?? [];
       for (const a of acts) set.add(a);
     }
-    if (set.size === 0) return [...ALL_ACTIONS];
     return ALL_ACTIONS.filter((a) => set.has(a));
   };
 
@@ -356,12 +364,12 @@ export default function PermissionMatrixPage() {
                   return (
                     <div key={role.id + resource} className="px-4 py-3 border-l border-border/50">
                       <div className="grid grid-cols-3 gap-x-4 gap-y-2">
-                        {ALL_ACTIONS.map((act) => {
+                        {getActionsForResource(resource).map((act) => {
                           const checked = checkedSet.has(act);
                           const id = `${role.name}-${resource}-${act}`;
                           return (
                             <Label key={id} htmlFor={id} className="grid grid-cols-[16px_auto] items-center gap-2 text-[11px] font-normal cursor-pointer">
-                              <Checkbox id={id} checked={checked} disabled={!canEdit} onCheckedChange={(v) => toggleAction(role.name, resource, act, Boolean(v))} />
+                              <Checkbox id={id} checked={checked} disabled={!canEdit || saving || !data.allowedActions[role.name]?.[resource]?.includes(act)} aria-label={`${role.name}: ${resource}:${act}`} onCheckedChange={(v) => toggleAction(role.name, resource, act, Boolean(v))} />
                               <span className="truncate">{act}</span>
                             </Label>
                           );

@@ -25,6 +25,10 @@ namespace Infrastructure.Identity.Features.Role.Commands.UpdateRole
             {
                 var role = await _roleManager.FindByIdAsync(request.Id);
                 if (role == null) throw new Exception($"Role Not Found.");
+                if (Enum.TryParse<Domain.Enums.VaiTroNguoiDung>(role.Name, out var systemRole) && Enum.IsDefined(systemRole) && request.Name != role.Name)
+                    throw new Application.Exceptions.ApiException("Không được đổi tên vai trò hệ thống; hãy sửa ma trận quyền.", 400);
+                if (!Enum.TryParse<Domain.Enums.VaiTroNguoiDung>(request.Name, out var targetRole) || !Enum.IsDefined(targetRole) || targetRole.ToString() != request.Name)
+                    throw new Application.Exceptions.ApiException("Chỉ hỗ trợ bốn vai trò hệ thống.", 400);
                 role.Name = request.Name;
                 var result = await _roleManager.UpdateAsync(role);
                 if (result.Succeeded)

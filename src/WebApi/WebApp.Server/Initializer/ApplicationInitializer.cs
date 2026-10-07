@@ -53,48 +53,7 @@ namespace WebApp.Server.Initializer
                     logger.LogInformation("Đã seed banner marketing demo cho môi trường Development.");
                 }
 
-                // Regenerate wwwroot/policy.csv cache từ DB (DB là truth, file là cache RAM) — chỉ 4 role chuẩn VaiTroNguoiDung.cs
-                try
-                {
-                    var csvPath = Path.Combine(env.WebRootPath, "policy.csv");
-                    var allLines = new List<string>();
-                    var allowed = new HashSet<string>(new[] {
-                        Domain.Enums.VaiTroNguoiDung.QUAN_TRI_VIEN.ToString(),
-                        Domain.Enums.VaiTroNguoiDung.NGUOI_DAI_DIEN.ToString(),
-                        Domain.Enums.VaiTroNguoiDung.NHAN_SU.ToString(),
-                        Domain.Enums.VaiTroNguoiDung.UNG_VIEN.ToString()
-                    });
-                    var roles = await roleManager.Roles.Where(r => allowed.Contains(r.Name)).ToListAsync();
-                    foreach (var role in roles)
-                    {
-                        var claims = await roleManager.GetClaimsAsync(role);
-                        foreach (var claim in claims)
-                        {
-                            var actions = claim.Value.Split('#', StringSplitOptions.RemoveEmptyEntries);
-                            foreach (var act in actions)
-                                allLines.Add($"p, {role.Name}, {claim.Type}, {act}");
-                        }
-                    }
-                    if (allLines.Count > 0)
-                    {
-                        allLines = allLines.Distinct().OrderBy(s => s).ToList();
-                        var tmp = csvPath + ".tmp";
-                        await File.WriteAllLinesAsync(tmp, allLines);
-                        File.Move(tmp, csvPath, true);
-                        // Reload Enforcer in-memory nếu đã tạo singleton
-                        try
-                        {
-                            var enforcer = _serviceProvider.GetService<Enforcer>();
-                            if (enforcer != null) await enforcer.LoadPolicyAsync();
-                        }
-                        catch { /* best-effort */ }
-                        logger.LogInformation("Đã đồng bộ policy.csv cache từ DB: {Count} dòng", allLines.Count);
-                    }
-                }
-                catch (Exception syncEx)
-                {
-                    logger.LogWarning(syncEx, "Không đồng bộ được policy.csv cache");
-                }
+                await _serviceProvider.GetRequiredService<Infrastructure.Identity.Services.PermissionCache>().RefreshAsync();
 
                 logger.LogInformation("Đã hoàn thành bơm dữ liệu mặc định!");
                 logger.LogInformation("Ứng dụng đang khởi chạy ...");

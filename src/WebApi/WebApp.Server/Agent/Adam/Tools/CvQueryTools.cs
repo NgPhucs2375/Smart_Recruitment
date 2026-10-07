@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using Application.DTOs.CV;
+using Application.Interfaces;
 using Application.Features.CVUngVien.Queries.GetAllCVUngViens;
 using Application.Features.CVUngVien.Queries.GetCVUngVienById;
 using Application.Features.CvTheme.Queries.SuggestCvThemes;
@@ -19,15 +20,17 @@ internal sealed class CvQueryTools
     private readonly ISender _sender;
     private readonly ILogger<CvQueryTools> _logger;
     private readonly SharedStateStore _sharedState;
+    private readonly IPermissionService _permissions;
 
     public CvQueryTools(
         ISender sender,
         ILogger<CvQueryTools> logger,
-        SharedStateStore sharedState)
+        SharedStateStore sharedState, IPermissionService permissions)
     {
         _sender = sender;
         _logger = logger;
         _sharedState = sharedState;
+        _permissions = permissions;
     }
 
     [Description(
@@ -37,6 +40,7 @@ internal sealed class CvQueryTools
         CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("Adam tool get_my_profile đã bắt đầu.");
+        await _permissions.RequireAsync("hosoungviens", "show", cancellationToken);
         try
         {
             var response = await _sender.Send(new GetMyHoSoUngVienQuery(), cancellationToken);
@@ -74,11 +78,12 @@ internal sealed class CvQueryTools
     [Description(
         "Lấy chi tiết đầy đủ của một CV thuộc ứng viên đang đăng nhập hiện tại. " +
         "Dùng khi người dùng yêu cầu xem, phân tích hoặc chỉnh một CV đã tồn tại.")]
-    public Task<Response<CvDetailDto>> GetCvDetailAsync(
+    public async Task<Response<CvDetailDto>> GetCvDetailAsync(
         [Description("ID của CV cần lấy chi tiết")] int cvId,
         CancellationToken cancellationToken = default)
     {
-        return _sender.Send(
+        await _permissions.RequireAsync("cvungviens", "show", cancellationToken);
+        return await _sender.Send(
             new GetCVUngVienByIdQuery { Id = cvId },
             cancellationToken);
     }
@@ -90,6 +95,7 @@ internal sealed class CvQueryTools
     public async Task<Response<List<GetAllCVUngViensViewModel>>> GetMyCvsAsync(
         CancellationToken cancellationToken = default)
     {
+        await _permissions.RequireAsync("cvungviens", "list", cancellationToken);
         var response = await _sender.Send(
             new GetAllCVUngViensQuery { _start = 0, _end = 20 },
             cancellationToken);
@@ -111,6 +117,7 @@ internal sealed class CvQueryTools
         [Description("ID CV cụ thể cần so khớp; bỏ trống để dùng CV mặc định")] int? cvId,
         CancellationToken cancellationToken = default)
     {
+        await _permissions.RequireAsync("ketquaphuhops", "list", cancellationToken);
         var response = await _sender.Send(
             new GetSuggestedJobsForCvQuery { CvUngVienId = cvId, TopN = 10 },
             cancellationToken);
@@ -129,12 +136,13 @@ internal sealed class CvQueryTools
         "Trả về top mẫu kèm điểm phù hợp và lý do chọn (ngành, cấp bậc, ATS). " +
         "Dùng khi người dùng hỏi 'mẫu CV nào hợp với tôi', 'nên dùng theme nào'. " +
         "Áp dụng mẫu bằng frontend tool setCvTemplate, chỉ khi người dùng đồng ý.")]
-    public Task<Response<List<SuggestedCvThemeViewModel>>> SuggestCvThemeAsync(
+    public async Task<Response<List<SuggestedCvThemeViewModel>>> SuggestCvThemeAsync(
         [Description("ID CV cụ thể cần gợi ý mẫu; bỏ trống để dùng CV mặc định")] int? cvId,
         [Description("Vị trí ứng tuyển muốn nhắm tới (vd: Backend Developer); bỏ trống để lấy từ hồ sơ")] string viTri,
         CancellationToken cancellationToken = default)
     {
-        return _sender.Send(
+        await _permissions.RequireAsync("cvthemes", "list", cancellationToken);
+        return await _sender.Send(
             new GetSuggestedCvThemesQuery { CvUngVienId = cvId, ViTri = viTri, TopN = 3 },
             cancellationToken);
     }

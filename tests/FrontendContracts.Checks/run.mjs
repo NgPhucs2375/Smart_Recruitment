@@ -11,6 +11,11 @@ async function load(relative) {
 }
 const { unwrapResponse, listResponse } = await load("lib/api/response-contract.ts");
 const { notificationTarget } = await load("features/notifications/notification-target.ts");
+const { hasPermission } = await load("lib/permissions.ts");
+assert.equal(hasPermission([{ resource: "cvungviens", action: "show" }], " CVUngViens ", " SHOW "), true);
+assert.equal(hasPermission([], "cvungviens", "show"), false);
+assert.equal(hasPermission([null, {}, { resource: 12, action: "show" }], "cvungviens", "show"), false);
+console.log("PASS canonical frontend permission checks fail closed on malformed/absent grants");
 const rows = [{ Id: 1 }, { Id: 2 }];
 assert.deepEqual(listResponse({ Succeeded: true, Data: rows, TotalCount: 31 }), { data: rows, total: 31 });
 assert.deepEqual(listResponse({ succeeded: true, data: rows, totalCount: 31 }), { data: rows, total: 31 });

@@ -85,41 +85,10 @@ function normalizeMeResponse(value: unknown): MeResponse | null {
     return null;
   }
 
-  // Roles có thể lẫn blob JSON quyền (do JWT inbound mapping đẩy claim
-  // "roles" vào nhóm Role) — bóc tách: giữ tên role, trích permissions nhúng.
-  const cleanRoles: string[] = [];
-  const embeddedPermissions: { resource: string; action: string }[] = [];
-  for (const role of roles) {
-    if (typeof role !== "string") continue;
-    const trimmed = role.trim();
-    if (!trimmed.startsWith("{")) {
-      cleanRoles.push(role);
-      continue;
-    }
-    try {
-      const parsed = JSON.parse(trimmed) as {
-        role?: unknown;
-        permissions?: unknown;
-      };
-      if (typeof parsed.role === "string" && parsed.role) cleanRoles.push(parsed.role);
-      if (Array.isArray(parsed.permissions)) {
-        for (const p of parsed.permissions) {
-          if (!p || typeof p !== "object") continue;
-          const rec = p as Record<string, unknown>;
-          const resource = rec.resource ?? rec.Resource;
-          const acts = rec.action ?? rec.Action;
-          const list = Array.isArray(acts) ? acts : [acts];
-          for (const a of list) {
-            if (typeof resource === "string" && typeof a === "string") {
-              embeddedPermissions.push({ resource, action: a });
-            }
-          }
-        }
-      }
-    } catch {
-      // Bỏ qua blob lỗi — không chặn đăng nhập
-    }
-  }
+  // /me is authoritative: never merge withdrawn permissions from legacy JWT blobs.
+  const cleanRoles = roles.filter((role): role is string => typeof role === "string" &&
+    ["QUAN_TRI_VIEN", "NGUOI_DAI_DIEN", "NHAN_SU", "UNG_VIEN"].includes(role));
+  if (cleanRoles.length !== 1) return null;
 
   const seen = new Set<string>();
   const mergedPermissions = [
@@ -132,7 +101,6 @@ function normalizeMeResponse(value: unknown): MeResponse | null {
         ? [{ resource, action }]
         : [];
     }),
-    ...embeddedPermissions,
   ].filter((p) => {
     const key = `${p.resource}::${p.action}`;
     if (seen.has(key)) return false;

@@ -1,6 +1,7 @@
 using Application.Interfaces;
 using Application.Features.CVUngVien.Cache;
 using Application.Features.KetQuaPhuHop.Cache;
+using Application.Features.KetQuaPhuHop.Matching;
 using Application.Wrappers;
 using Domain.Entities;
 using Domain.Enums;
@@ -12,7 +13,7 @@ using System.Diagnostics;
 
 namespace Application.Features.KetQuaPhuHop.Queries.SuggestJobsForCv;
 
-// Content-based matching v1 ("cbf-v1"): chấm điểm tin đang tuyển theo mức trùng
+// Content-based matching: chấm điểm tin đang tuyển theo mức trùng
 // kỹ năng (trọng số theo MucDoYC) + bonus vị trí/lương/địa điểm, rồi persist vào
 // bảng KetQuaPhuHop để trang /viec-lam/phu-hop và agent dùng chung kết quả.
 public class GetSuggestedJobsForCvQuery : IRequest<Response<List<SuggestedJobViewModel>>>
@@ -50,16 +51,6 @@ public class GetSuggestedJobsForCvQueryHandler(
     IDistributedCache cache)
     : IRequestHandler<GetSuggestedJobsForCvQuery, Response<List<SuggestedJobViewModel>>>
 {
-    private static readonly Dictionary<MucDoYC, float> MucDoWeights = new()
-    {
-        [MucDoYC.BatBuc] = 3f,
-        [MucDoYC.UuTien] = 2f,
-        [MucDoYC.KhongBatBuoc] = 1f,
-    };
-
-    private static string Norm(string? value) =>
-        (value ?? string.Empty).Trim().ToLowerInvariant();
-
     public async Task<Response<List<SuggestedJobViewModel>>> Handle(
         GetSuggestedJobsForCvQuery request,
         CancellationToken cancellationToken)
@@ -123,20 +114,13 @@ public class GetSuggestedJobsForCvQueryHandler(
                     : $"Tìm thấy {cachedPage.Count} tin tuyển dụng phù hợp ở trang {pageNumber}.");
         }
 
-        var skillIds = cv.KyNangs
-            .Where(k => k.KyNangId.HasValue)
-            .Select(k => k.KyNangId!.Value)
-            .ToHashSet();
-        var skillNames = cv.KyNangs
-            .Select(k => Norm(k.TenKyNang))
-            .Where(n => n.Length > 0)
-            .ToHashSet();
-
-        var viTri = Norm(cv.ThongTinLienHe?.ViTriUngTuyen) is { Length: > 0 } v
-            ? v
-            : Norm(hoSo.ViTriUngTuyen);
-        var mucLuong = hoSo.MucLuongMongMuon;
-        var diaChi = Norm(hoSo.DiaChi);
+        var candidate = new CandidateMatchInput(
+            cv.KyNangs.Select(k => new MatchSkill(k.KyNangId, k.TenKyNang)).ToList(),
+            !string.IsNullOrWhiteSpace(cv.ThongTinLienHe?.ViTriUngTuyen)
+                ? cv.ThongTinLienHe.ViTriUngTuyen : hoSo.ViTriUngTuyen,
+            cv.ThongTinLienHe?.MucLuongMongMuon ?? (decimal)hoSo.MucLuongMongMuon,
+            !string.IsNullOrWhiteSpace(cv.ThongTinLienHe?.DiaChi)
+                ? cv.ThongTinLienHe.DiaChi : hoSo.DiaChi);
 
         var now = DateTime.UtcNow;
         var postings = await context.TinTuyenDungs.AsNoTracking()
@@ -169,52 +153,16 @@ public class GetSuggestedJobsForCvQueryHandler(
         var results = new List<(SuggestedJobViewModel Vm, float Diem, string Thoa, string Thieu)>();
         foreach (var t in postings)
         {
-            var postingSkills = t.Skills
-                .Where(k => !string.IsNullOrWhiteSpace(k.TenKyNang))
-                .ToList();
-
-            var matchedNames = new List<string>();
-            var missingNames = new List<string>();
-            float totalWeight = 0f, matchedWeight = 0f;
-            foreach (var k in postingSkills)
-            {
-                var weight = MucDoWeights.GetValueOrDefault(k.MucDoYeuCau, 1f);
-                totalWeight += weight;
-                var name = Norm(k.TenKyNang);
-                var hit = k.KyNangId.HasValue && skillIds.Contains(k.KyNangId.Value)
-                    || skillNames.Contains(name);
-                if (hit)
-                {
-                    matchedWeight += weight;
-                    matchedNames.Add(k.TenKyNang!.Trim());
-                }
-                else
-                {
-                    missingNames.Add(k.TenKyNang!.Trim());
-                }
-            }
-
-            var diem = totalWeight > 0f ? matchedWeight / totalWeight : 0f;
-
-            var tieuDe = Norm(t.TieuDe);
-            if (viTri.Length >= 3 && (tieuDe.Contains(viTri) || viTri.Contains(tieuDe)))
-                diem += 0.10f;
-            if (mucLuong > 0 && t.LuongToiDa >= (decimal)mucLuong &&
-                (t.LuongToiThieu <= (decimal)mucLuong || t.LuongToiThieu == 0))
-                diem += 0.05f;
-            if (diaChi.Length > 0 && t.DiaDiemLamViec != null)
-            {
-                var diaDiem = Norm(t.DiaDiemLamViec);
-                if (diaDiem.Length > 0 && (diaDiem.Contains(diaChi) || diaChi.Contains(diaDiem)))
-                    diem += 0.05f;
-            }
-
-            diem = Math.Min(diem, 1f);
-            if (diem <= 0f)
+            var match = ContentBasedMatcher.Evaluate(candidate, new JobMatchInput(
+                t.Skills.Select(k => new MatchRequirement(k.KyNangId, k.TenKyNang, k.MucDoYeuCau)).ToList(),
+                t.TieuDe, t.LuongToiThieu, t.LuongToiDa, t.DiaDiemLamViec));
+            if (match.Score <= 0f)
                 continue;
-
-            results.Add((ToVm(t, diem), diem,
-                string.Join(", ", matchedNames), string.Join(", ", missingNames)));
+            var vm = ToVm(t, match.Score);
+            vm.KyNangThoa = match.MatchedSkills.ToList();
+            vm.KyNangThieu = match.MissingSkills.ToList();
+            results.Add((vm, match.Score,
+                string.Join(", ", match.MatchedSkills), string.Join(", ", match.MissingSkills)));
         }
 
         var top = results
@@ -242,9 +190,9 @@ public class GetSuggestedJobsForCvQueryHandler(
                     KyNangThoa = r.Thoa,
                     KyNangThieu = r.Thieu,
                     PhanLoai = PhanLoaiOf(r.Diem),
-                    GhiChu = "Gợi ý content-based: kỹ năng trùng + vị trí/lương/địa điểm.",
-                    MatchingVersion = "cbf-v1",
-                    ExplanationModel = "skill-overlap-weighted",
+                    GhiChu = "Gợi ý content-based: kỹ năng chuẩn hóa + vị trí/lương/địa điểm.",
+                    MatchingVersion = ContentBasedMatcher.Version,
+                    ExplanationModel = "skill-overlap-weighted-normalized",
                     EvaluateAt = DateTime.UtcNow,
                     Created = DateTime.UtcNow,
                 });

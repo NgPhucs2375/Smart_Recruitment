@@ -11,7 +11,7 @@ public class DeleteKetQuaPhanTichCvByIdCommand : IRequest<Response<int>>
 }
 
 public class DeleteKetQuaPhanTichCvByIdCommandHandler(
-    IApplicationDbContext context)
+    IApplicationDbContext context, ICurrentNguoiDungService current)
     : IRequestHandler<DeleteKetQuaPhanTichCvByIdCommand, Response<int>>
 {
     public async Task<Response<int>> Handle(
@@ -27,6 +27,7 @@ public class DeleteKetQuaPhanTichCvByIdCommandHandler(
                 "Không tìm thấy kết quả phân tích CV.");
         }
 
+        await Application.Security.ResourceAccess.EnsureCvOwnerAsync(context, await current.ResolveAsync(), entity.CVUngVienId, cancellationToken);
         context.KetQuaPhanTichCvs.Remove(entity);
 
         await context.SaveChangesAsync(
