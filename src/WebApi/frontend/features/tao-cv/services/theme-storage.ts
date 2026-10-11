@@ -1,4 +1,5 @@
 import { createDefaultLayoutConfig, normalizeLayoutConfig } from "../resume-data";
+import { sanitizeCssColor } from "../validation";
 import type {
   CvColorPalette,
   CvSpacingConfig,
@@ -152,6 +153,10 @@ export function getAllThemes(): CvThemeConfig[] {
 /** Theme cũ thiếu field mới → đắp default, không vỡ Studio/picker. */
 function normalizeTheme(t: CvThemeConfig): CvThemeConfig {
   const policyApproved = t.policy?.policyApproved ?? false;
+  const rawColors = (t as unknown as { colors?: Record<string, unknown> }).colors ?? {};
+  const rawZones = (t as unknown as { zones?: Record<string, unknown> }).zones ?? {};
+  const clean = (v: unknown, fallback: string) =>
+    sanitizeCssColor(typeof v === "string" ? v : "", fallback);
   return {
     ...t,
     slug: t.slug || t.id,
@@ -161,7 +166,15 @@ function normalizeTheme(t: CvThemeConfig): CvThemeConfig {
     layout: normalizeLayoutConfig(
       (t as { layout?: unknown }).layout,
     ),
-    colors: { ...DEFAULT_COLORS, ...((t as { colors?: object }).colors ?? {}) },
+    colors: {
+      ...DEFAULT_COLORS,
+      ...Object.fromEntries(
+        Object.entries(rawColors).map(([k, v]) => [
+          k,
+          clean(v, DEFAULT_COLORS[k as keyof typeof DEFAULT_COLORS] ?? "#1e293b"),
+        ]),
+      ),
+    },
     structure: t.structure ?? "single",
     sidebarWidthPct:
       typeof t.sidebarWidthPct === "number"
@@ -169,7 +182,15 @@ function normalizeTheme(t: CvThemeConfig): CvThemeConfig {
         : 32,
     typography: { ...DEFAULT_TYPOGRAPHY, ...(t.typography ?? {}) },
     spacing: { ...DEFAULT_SPACING, ...(t.spacing ?? {}) },
-    zones: { ...DEFAULT_ZONES, ...(t.zones ?? {}) },
+    zones: {
+      ...DEFAULT_ZONES,
+      ...Object.fromEntries(
+        Object.entries(rawZones).map(([k, v]) => [
+          k,
+          clean(v, DEFAULT_ZONES[k as keyof typeof DEFAULT_ZONES] ?? "transparent"),
+        ]),
+      ),
+    },
     policy: {
       ...(t.policy ?? {}),
       policyApproved,

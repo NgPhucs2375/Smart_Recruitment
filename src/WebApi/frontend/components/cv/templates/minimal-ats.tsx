@@ -4,6 +4,7 @@
 import type { ResumeTemplateProps } from "./shared";
 import { BannerSlot, DateText, EmptyPaper, SectionShell, SplitBlocks } from "./shared";
 import type { CvSectionId } from "@/features/tao-cv/resume-data";
+import { safeHref } from "@/features/tao-cv/resume-data";
 
 /**
  * Minimal ATS — single column, black/charcoal on white, no graphics,
@@ -137,7 +138,7 @@ export function MinimalAtsTemplate({ data }: ResumeTemplateProps) {
                   <div className="flex items-baseline justify-between gap-3">
                     <h3 className="font-bold text-neutral-950">{p.name || "Dự án"}</h3>
                     {p.link && (
-                      <a href={p.link.startsWith("http") ? p.link : `https://${p.link}`} className="text-[12px] text-neutral-500 underline decoration-neutral-300 underline-offset-2">
+                      <a href={safeHref(p.link)} className="text-[12px] text-neutral-500 underline decoration-neutral-300 underline-offset-2">
                         {p.link}
                       </a>
                     )}

@@ -1,5 +1,9 @@
 import type { CvFormData } from "@/lib/types";
 import { normalizeCvPartialDate, renderCvDateRange } from "./cv-data";
+import { safeHref } from "./validation";
+
+/** Re-export để template dùng chung allowlist href (chống javascript:…). */
+export { safeHref };
 
 /**
  * View-only resume model for visual templates.
@@ -181,12 +185,9 @@ const toRange = (
 };
 
 const asLink = (value: string): string | undefined => {
-  const v = value.trim();
-  if (!v) return undefined;
-  if (/^(https?:\/\/|mailto:|tel:)/i.test(v)) return v;
-  if (v.includes("@") && !v.includes(" ")) return `mailto:${v}`;
-  if (/^[+\d][\d\s().-]*$/.test(v)) return `tel:${v.replace(/[\s().-]/g, "")}`;
-  return `https://${v}`;
+  // Ủy quyền allowlist cho validation.safeHref: chặn javascript:/data:…,
+  // giữ mailto:/tel:, còn lại prefix https://. Không link được -> undefined.
+  return safeHref(value);
 };
 
 /**

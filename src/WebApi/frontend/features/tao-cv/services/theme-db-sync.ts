@@ -2,6 +2,7 @@
 
 import { cvThemesApi, type CvThemeInput, type CvThemeVm } from "@/lib/api/cv-themes-api";
 import { normalizeLayoutConfig } from "../resume-data";
+import { sanitizeCssColor } from "../validation";
 import type { CvThemeConfig } from "../types/theme-studio";
 
 /** Map theme Studio -> payload DB (metadata + toàn bộ design trong CauHinhJson). */
@@ -72,6 +73,11 @@ export function parseDbTheme(vm: CvThemeVm): CvThemeConfig | null {
     const cfg = parsed as Partial<CvThemeConfig>;
     if (typeof cfg.id !== "string" || typeof cfg.name !== "string") return null;
     const policyApproved = cfg.policy?.policyApproved ?? false;
+    // Màu rác (gõ tay sai, DB cũ) -> fallback an toàn, không vỡ render.
+    const rawColors = (cfg.colors ?? {}) as Record<string, unknown>;
+    const rawZones = (cfg.zones ?? {}) as Record<string, unknown>;
+    const clean = (v: unknown, fallback: string) =>
+      sanitizeCssColor(typeof v === "string" ? v : "", fallback);
     return {
       ...(cfg as CvThemeConfig),
       id: cfg.id || vm.Slug,
@@ -80,6 +86,18 @@ export function parseDbTheme(vm: CvThemeVm): CvThemeConfig | null {
       category: (vm.DanhMuc as CvThemeConfig["category"]) || cfg.category || "all",
       level: (vm.CapBac as CvThemeConfig["level"]) || cfg.level || "all",
       atsFriendly: vm.ThanThienATS,
+      colors: {
+        primary: clean(rawColors.primary, "#1e293b"),
+        secondary: clean(rawColors.secondary, "#475569"),
+        textPrimary: clean(rawColors.textPrimary, "#0f172a"),
+        textMuted: clean(rawColors.textMuted, "#64748b"),
+        paperBackground: clean(rawColors.paperBackground, "#ffffff"),
+      },
+      zones: {
+        headerBg: clean(rawZones.headerBg, "transparent"),
+        sidebarBg: clean(rawZones.sidebarBg, "#f1f5f9"),
+        mainBg: clean(rawZones.mainBg, "transparent"),
+      },
       layout: normalizeLayoutConfig(
         (cfg as { layout?: unknown }).layout,
       ),

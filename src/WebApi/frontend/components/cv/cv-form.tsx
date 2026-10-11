@@ -39,6 +39,16 @@ import type {
   CvDatePrecision,
 } from "@/lib/types";
 import { newId, maskDateVn, isValidVnDate } from "@/features/tao-cv/cv-data";
+import {
+  MSG_DOB_FUTURE,
+  MSG_EMAIL,
+  MSG_PHONE,
+  MSG_URL,
+  isFutureVnDate,
+  isValidEmail,
+  isValidHttpUrl,
+  isValidVnPhone,
+} from "@/features/tao-cv/validation";
 import { formatVndInput } from "@/lib/format-vnd";
 import {
   compareCvPartialDates,
@@ -70,7 +80,9 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 }
 
 function DateField({ label, value, onChange, disabled }: { label: string; value: string; onChange: (v: string) => void; disabled?: boolean }) {
-  const invalid = !isValidVnDate(value);
+  const badFormat = !isValidVnDate(value);
+  const future = !badFormat && value.trim() !== "" && isFutureVnDate(value);
+  const invalid = badFormat || future;
   return (
     <div>
       <label style={{ display: "block", marginBottom: "0.5rem" }}>{label}</label>
@@ -82,9 +94,16 @@ function DateField({ label, value, onChange, disabled }: { label: string; value:
         onChange={(e) => onChange(maskDateVn(e.target.value))}
         className={invalid ? "border-destructive" : ""}
       />
-      {invalid && <p className="text-xs text-destructive mt-1">Ngày không hợp lệ (dd/mm/yyyy)</p>}
+      {badFormat && <p className="text-xs text-destructive mt-1">Ngày không hợp lệ (dd/mm/yyyy)</p>}
+      {future && <p className="text-xs text-destructive mt-1">{MSG_DOB_FUTURE}</p>}
     </div>
   );
+}
+
+/** Dòng báo lỗi đỏ dưới input (đồng bộ message với save-gate). */
+function FieldError({ message }: { message: string | null }) {
+  if (!message) return null;
+  return <p className="text-xs text-destructive mt-1">{message}</p>;
 }
 
 /** Month/year-or-year-only input. Precision comes from the item-level toggle. */
@@ -216,6 +235,10 @@ function QuickActionBar({
 
 export function CvForm({ data, onChange, onAiRewrite }: CvFormProps) {
   const lh = data.thongTinLienHe;
+  // Inline errors nhóm contact + URL (trống = chưa gõ, không báo).
+  const emailErr = lh.email.trim() && !isValidEmail(lh.email) ? MSG_EMAIL : null;
+  const phoneErr = lh.sdt.trim() && !isValidVnPhone(lh.sdt) ? MSG_PHONE : null;
+  const urlErr = (v: string) => (v.trim() && !isValidHttpUrl(v) ? MSG_URL : null);
   // UI-only: id of the repeat item added most recently, so only it plays
   // the enter animation (no mount cascade on pre-filled data).
   const [freshId, setFreshId] = useState<string | null>(null);
@@ -395,11 +418,13 @@ export function CvForm({ data, onChange, onAiRewrite }: CvFormProps) {
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", marginBottom: "1rem" }}>
             <div>
               <label style={{ display: "block", marginBottom: "0.5rem" }}>Email <span className="cv-required">*</span></label>
-              <Input type="email" value={lh.email} onChange={(e) => setLienHe("email", e.target.value)} placeholder="email@example.com" />
+              <Input type="email" value={lh.email} onChange={(e) => setLienHe("email", e.target.value)} placeholder="email@example.com" className={emailErr ? "border-destructive" : ""} />
+              <FieldError message={emailErr} />
             </div>
             <div>
               <label style={{ display: "block", marginBottom: "0.5rem" }}>Số điện thoại <span className="cv-required">*</span></label>
-              <Input value={lh.sdt} onChange={(e) => setLienHe("sdt", e.target.value)} placeholder="090 123 4567" />
+              <Input value={lh.sdt} onChange={(e) => setLienHe("sdt", e.target.value)} placeholder="090 123 4567" className={phoneErr ? "border-destructive" : ""} />
+              <FieldError message={phoneErr} />
             </div>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", marginBottom: "1rem" }}>
@@ -416,17 +441,20 @@ export function CvForm({ data, onChange, onAiRewrite }: CvFormProps) {
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", marginBottom: "1rem" }}>
             <div>
               <label style={{ display: "block", marginBottom: "0.5rem" }}>GitHub</label>
-              <Input value={lh.github} onChange={(e) => setLienHe("github", e.target.value)} placeholder="https://github.com/..." />
+              <Input value={lh.github} onChange={(e) => setLienHe("github", e.target.value)} placeholder="https://github.com/..." className={urlErr(lh.github) ? "border-destructive" : ""} />
+              <FieldError message={urlErr(lh.github)} />
             </div>
             <div>
               <label style={{ display: "block", marginBottom: "0.5rem" }}>LinkedIn</label>
-              <Input value={lh.linkedIn} onChange={(e) => setLienHe("linkedIn", e.target.value)} placeholder="https://linkedin.com/in/..." />
+              <Input value={lh.linkedIn} onChange={(e) => setLienHe("linkedIn", e.target.value)} placeholder="https://linkedin.com/in/..." className={urlErr(lh.linkedIn) ? "border-destructive" : ""} />
+              <FieldError message={urlErr(lh.linkedIn)} />
             </div>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", marginBottom: "1rem" }}>
             <div>
               <label style={{ display: "block", marginBottom: "0.5rem" }}>Portfolio</label>
-              <Input value={lh.portfolio} onChange={(e) => setLienHe("portfolio", e.target.value)} placeholder="https://..." />
+              <Input value={lh.portfolio} onChange={(e) => setLienHe("portfolio", e.target.value)} placeholder="https://..." className={urlErr(lh.portfolio) ? "border-destructive" : ""} />
+              <FieldError message={urlErr(lh.portfolio)} />
             </div>
             <div>
               <label style={{ display: "block", marginBottom: "0.5rem" }}>Vị trí ứng tuyển</label>
@@ -597,8 +625,8 @@ export function CvForm({ data, onChange, onAiRewrite }: CvFormProps) {
             return (
             <div key={h.id} data-cv-item-id={h.id} className={`cv-repeat-item${freshId === h.id ? " cv-repeat-enter" : ""}`} onAnimationEnd={() => setFreshId((f) => (f === h.id ? null : f))} style={{ marginBottom: "0.75rem" }}>
               <div style={{ display: "flex", gap: "1rem", marginBottom: "0.75rem" }}>
-                <Input placeholder="Trường *" value={h.truong} onChange={(e) => updateList("hocVan", h.id, "truong", e.target.value)} style={{ flex: 1 }} />
-                <Input placeholder="Chuyên ngành" value={h.chuyenNganh} onChange={(e) => updateList("hocVan", h.id, "chuyenNganh", e.target.value)} style={{ flex: 1 }} />
+                <Input placeholder="Trường *" maxLength={120} value={h.truong} onChange={(e) => updateList("hocVan", h.id, "truong", e.target.value)} style={{ flex: 1 }} />
+                <Input placeholder="Chuyên ngành" maxLength={120} value={h.chuyenNganh} onChange={(e) => updateList("hocVan", h.id, "chuyenNganh", e.target.value)} style={{ flex: 1 }} />
                 <Button variant="ghost" size="icon" className="shrink-0 text-muted-foreground hover:text-destructive" onClick={() => removeFrom("hocVan", h.id)}>
                   <Trash2 className="h-4 w-4" />
                 </Button>
@@ -615,7 +643,7 @@ export function CvForm({ data, onChange, onAiRewrite }: CvFormProps) {
                 </label>
               </div>
               {err && <p className="text-xs text-destructive mt-1" style={{ marginBottom: "0.75rem" }}>{err}</p>}
-              <Textarea placeholder="Mô tả thêm..." value={h.moTa} onChange={(e) => updateList("hocVan", h.id, "moTa", e.target.value)} rows={2} />
+              <Textarea placeholder="Mô tả thêm..." maxLength={CV_MAX_LENGTH.bullet} value={h.moTa} onChange={(e) => updateList("hocVan", h.id, "moTa", e.target.value)} rows={2} />
             </div>
             );
           })}
@@ -727,7 +755,8 @@ export function CvForm({ data, onChange, onAiRewrite }: CvFormProps) {
                 placeholder="Công nghệ — gõ rồi Enter"
                 maxLength={CV_MAX_LENGTH.skillTag}
               />
-              <Input placeholder="Link dự án" value={d.link} onChange={(e) => updateList("duAn", d.id, "link", e.target.value)} style={{ marginBottom: "0.75rem" }} />
+              <Input placeholder="Link dự án" value={d.link} onChange={(e) => updateList("duAn", d.id, "link", e.target.value)} style={{ marginBottom: urlErr(d.link) ? "0.25rem" : "0.75rem" }} className={urlErr(d.link) ? "border-destructive" : ""} />
+              <FieldError message={urlErr(d.link)} />
               <div className="relative" style={{ marginBottom: "0.25rem" }}>
                 <Textarea
                   placeholder="Mô tả dự án..."
@@ -786,8 +815,8 @@ export function CvForm({ data, onChange, onAiRewrite }: CvFormProps) {
             return (
             <div key={c.id} data-cv-item-id={c.id} className={`cv-repeat-item${freshId === c.id ? " cv-repeat-enter" : ""}`} onAnimationEnd={() => setFreshId((f) => (f === c.id ? null : f))} style={{ marginBottom: "0.75rem" }}>
               <div style={{ display: "flex", gap: "1rem", marginBottom: "0.75rem" }}>
-                <Input placeholder="Tên chứng chỉ *" value={c.tenChungChi} onChange={(e) => updateList("chungChi", c.id, "tenChungChi", e.target.value)} style={{ flex: 1 }} />
-                <Input placeholder="Đơn vị cấp" value={c.donViCap} onChange={(e) => updateList("chungChi", c.id, "donViCap", e.target.value)} style={{ flex: 1 }} />
+                <Input placeholder="Tên chứng chỉ *" maxLength={120} value={c.tenChungChi} onChange={(e) => updateList("chungChi", c.id, "tenChungChi", e.target.value)} style={{ flex: 1 }} />
+                <Input placeholder="Đơn vị cấp" maxLength={120} value={c.donViCap} onChange={(e) => updateList("chungChi", c.id, "donViCap", e.target.value)} style={{ flex: 1 }} />
                 <Button variant="ghost" size="icon" className="shrink-0 text-muted-foreground hover:text-destructive" onClick={() => removeFrom("chungChi", c.id)}>
                   <Trash2 className="h-4 w-4" />
                 </Button>
@@ -797,7 +826,7 @@ export function CvForm({ data, onChange, onAiRewrite }: CvFormProps) {
                 <PartialDateField label="Ngày cấp" precision={mode} value={c.ngayCap} onChange={(v) => updateList("chungChi", c.id, "ngayCap", v)} />
                 <div>
                   <label style={{ display: "block", marginBottom: "0.5rem" }}>Mã xác minh</label>
-                  <Input placeholder="Mã xác minh" value={c.maXacMinh} onChange={(e) => updateList("chungChi", c.id, "maXacMinh", e.target.value)} />
+                  <Input placeholder="Mã xác minh" maxLength={80} value={c.maXacMinh} onChange={(e) => updateList("chungChi", c.id, "maXacMinh", e.target.value)} />
                 </div>
               </div>
             </div>

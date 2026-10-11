@@ -4,6 +4,7 @@
 import { Mail, Phone, MapPin, Globe, Award } from "lucide-react";
 import { GithubIcon as Github, LinkedinIcon as Linkedin } from "@/components/icons/brand-icons";
 import type { ResumeContact } from "@/features/tao-cv/resume-data";
+import { safeHref } from "@/features/tao-cv/resume-data";
 import type { ResumeTemplateProps } from "./shared";
 import { DateText, EmptyPaper, SectionShell, SplitBlocks, resolveBannerTitle3 } from "./shared";
 
@@ -202,7 +203,7 @@ export function TechModernTemplate({ data }: ResumeTemplateProps) {
                       <h3 className="font-bold" style={{ color: INK }}>{p.name || "Dự án"}</h3>
                       {p.link && (
                         <a
-                          href={p.link.startsWith("http") ? p.link : `https://${p.link}`}
+                          href={safeHref(p.link)}
                           className="text-[11.5px] underline decoration-neutral-300 underline-offset-2"
                           style={{ color: SUBTLE }}
                         >

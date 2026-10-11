@@ -153,8 +153,11 @@ export function ColorField({
         <Label className="text-xs">{label}</Label>
         <Input
           value={value}
-          maxLength={9}
-          onChange={(e) => onChange(e.target.value)}
+          maxLength={28}
+          onChange={(e) =>
+            // Chặn ký tự lạ ngay khi gõ (chỉ hex/rgba/transparent lọt qua).
+            onChange(e.target.value.replace(/[^0-9a-fA-F#(),.%/\srgba]/g, ""))
+          }
           className="mt-1 h-8 font-mono text-xs"
         />
       </div>
