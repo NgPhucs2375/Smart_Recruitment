@@ -8,9 +8,6 @@ import type { ResumeTemplateProps } from "@/components/cv/templates/shared";
 import { MinimalAtsTemplate } from "@/components/cv/templates/minimal-ats";
 import { TechModernTemplate } from "@/components/cv/templates/tech-modern";
 import { AtsClassicTemplate } from "@/components/cv/templates/ats-classic";
-import { ProfessionalSplitTemplate } from "@/components/cv/templates/professional-split";
-import { ModernAccentTemplate } from "@/components/cv/templates/modern-accent";
-import { ExecutiveTechTemplate } from "@/components/cv/templates/executive-tech";
 import { CompactDeveloperTemplate } from "@/components/cv/templates/compact-developer";
 import { SidebarProTemplate } from "@/components/cv/templates/sidebar-pro";
 import { CleanCorporateTemplate } from "@/components/cv/templates/clean-corporate";
@@ -22,7 +19,6 @@ import { DevopsStackTemplate } from "@/components/cv/templates/devops-stack";
 import { ProductBuilderTemplate } from "@/components/cv/templates/product-builder";
 import { StartupModernTemplate } from "@/components/cv/templates/startup-modern";
 import { ElegantSerifTemplate } from "@/components/cv/templates/elegant-serif";
-import { MinimalGridTemplate } from "@/components/cv/templates/minimal-grid";
 import { OceanWaveTemplate } from "@/components/cv/templates/ocean-wave";
 import { ForestFreshTemplate } from "@/components/cv/templates/forest-fresh";
 import { PastelStudioTemplate } from "@/components/cv/templates/pastel-studio";
@@ -34,11 +30,9 @@ import { SnapshotProTemplate } from "@/components/cv/templates/snapshot-pro";
 import { CarePlusTemplate } from "@/components/cv/templates/care-plus";
 import { MentorClassTemplate } from "@/components/cv/templates/mentor-class";
 import { VaultFinanceTemplate } from "@/components/cv/templates/vault-finance";
-import { HostWarmTemplate } from "@/components/cv/templates/host-warm";
 import { EditorialMagazineTemplate } from "@/components/cv/templates/editorial-magazine";
 import { ArchiPortfolioTemplate } from "@/components/cv/templates/archi-portfolio";
 import { LegalPrestigeTemplate } from "@/components/cv/templates/legal-prestige";
-import { MotionCreativeTemplate } from "@/components/cv/templates/motion-creative";
 import { ResearchScholarTemplate } from "@/components/cv/templates/research-scholar";
 import { CulinarySignatureTemplate } from "@/components/cv/templates/culinary-signature";
 import { createElement } from "react";
@@ -291,36 +285,6 @@ export const TEMPLATE_REGISTRY: Record<string, ResumeTemplateMeta> = {
     columns: 1,
     categories: ["ats", "developer", "one-column"],
   },
-  "professional-split": {
-    id: "professional-split",
-    name: "Professional Split",
-    description: "Hai cột thanh lịch, sidebar hẹp cho IT / BA / PM",
-    tags: ["IT", "2 cột", "Chuyên nghiệp"],
-    version: "1.0",
-    Component: ProfessionalSplitTemplate,
-    columns: 2,
-    categories: ["developer", "corporate", "two-column"],
-  },
-  "modern-accent": {
-    id: "modern-accent",
-    name: "Modern Accent",
-    description: "Hiện đại, điểm nhấn mạnh cho Product / Frontend",
-    tags: ["Hiện đại", "Frontend", "Product"],
-    version: "1.0",
-    Component: ModernAccentTemplate,
-    columns: 1,
-    categories: ["creative", "developer", "one-column"],
-  },
-  "executive-tech": {
-    id: "executive-tech",
-    name: "Executive Tech",
-    description: "Bố cục doanh nghiệp trang trọng cho senior / lead",
-    tags: ["Senior", "Chuyên nghiệp", "Lead"],
-    version: "1.0",
-    Component: ExecutiveTechTemplate,
-    columns: 1,
-    categories: ["senior", "corporate", "one-column"],
-  },
   "compact-developer": {
     id: "compact-developer",
     name: "Compact Developer",
@@ -430,16 +394,6 @@ export const TEMPLATE_REGISTRY: Record<string, ResumeTemplateMeta> = {
     Component: ElegantSerifTemplate,
     columns: 1,
     categories: ["corporate", "creative", "senior", "one-column"],
-  },
-  "minimal-grid": {
-    id: "minimal-grid",
-    name: "Minimal Grid",
-    description: "Mô-đun lưới gọn gàng, cấu trúc thị giác rõ",
-    tags: ["Grid", "Hiện đại", "Gọn"],
-    version: "1.0",
-    Component: MinimalGridTemplate,
-    columns: 2,
-    categories: ["developer", "creative", "two-column"],
   },
   "ocean-wave": {
     id: "ocean-wave",
@@ -552,16 +506,6 @@ export const TEMPLATE_REGISTRY: Record<string, ResumeTemplateMeta> = {
     columns: 1,
     categories: ["senior", "one-column"],
   },
-  "host-warm": {
-    id: "host-warm",
-    name: "Host Warm",
-    description: "Bo tròn thân thiện cho dịch vụ và thực tập",
-    tags: ["Phục vụ", "Bán lẻ", "Thực tập"],
-    version: "1.0",
-    Component: HostWarmTemplate,
-    columns: 1,
-    categories: ["fresher", "one-column"],
-  },
   "editorial-magazine": {
     id: "editorial-magazine",
     name: "Editorial Magazine",
@@ -591,16 +535,6 @@ export const TEMPLATE_REGISTRY: Record<string, ResumeTemplateMeta> = {
     Component: LegalPrestigeTemplate,
     columns: 1,
     categories: ["corporate", "one-column"],
-  },
-  "motion-creative": {
-    id: "motion-creative",
-    name: "Motion Creative",
-    description: "Band nghiêng, khối chuyển động",
-    tags: ["Sáng tạo", "Multimedia"],
-    version: "1.0",
-    Component: MotionCreativeTemplate,
-    columns: 1,
-    categories: ["creative", "one-column"],
   },
   "research-scholar": {
     id: "research-scholar",

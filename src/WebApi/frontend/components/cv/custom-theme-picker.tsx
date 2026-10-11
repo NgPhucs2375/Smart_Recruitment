@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Check, Palette } from "lucide-react";
+import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getPublishedThemes } from "@/features/tao-cv/services/theme-storage";
 import { fetchDbThemes } from "@/features/tao-cv/services/theme-db-sync";
@@ -89,25 +89,30 @@ export function CustomThemeOptions({
                 aria-selected={isActive}
                 onClick={() => onPick(t.id)}
                 className={cn(
-                  "template-card flex w-full items-center gap-3 rounded-xl border p-2 text-left",
+                  "template-card flex w-full items-center gap-3 rounded-xl border p-2.5 text-left",
                   isActive
                     ? "border-primary bg-primary/5"
                     : "border-transparent hover:border-border hover:bg-muted/60",
                 )}
               >
                 <span
-                  className="size-9 shrink-0 rounded-lg border border-border"
+                  className="size-11 shrink-0 rounded-lg border border-border"
                   style={{
                     background: t.thumbnailGradient ?? t.colors.primary,
                   }}
                   aria-hidden="true"
                 />
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-semibold text-foreground">
-                    {t.name}
+                  <span className="flex items-center gap-1.5">
+                    <span className="truncate text-sm font-semibold text-foreground">
+                      {t.name}
+                    </span>
+                    <span className="shrink-0 rounded-full bg-teal/15 px-1.5 py-px text-[10px] font-semibold text-teal">
+                      Studio
+                    </span>
                   </span>
                   <span className="block truncate text-xs text-muted-foreground">
-                    {(t.description ?? "").slice(0, 40) || "Theme tùy chỉnh"}
+                    {(t.description ?? "").slice(0, 48) || "Theme tùy chỉnh"}
                   </span>
                 </span>
                 {isActive ? (
@@ -116,10 +121,7 @@ export function CustomThemeOptions({
                     aria-hidden="true"
                   />
                 ) : (
-                  <Palette
-                    className="size-4 shrink-0 text-muted-foreground"
-                    aria-hidden="true"
-                  />
+                  <span className="size-4 shrink-0" aria-hidden="true" />
                 )}
               </button>
             );

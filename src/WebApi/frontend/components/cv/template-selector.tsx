@@ -39,9 +39,6 @@ const TEMPLATE_BADGES: Record<string, string> = {
   "minimal-ats": "ATS",
   "tech-modern": "Phổ biến",
   "ats-classic": "ATS",
-  "professional-split": "2 cột",
-  "modern-accent": "Hiện đại",
-  "executive-tech": "Chuyên nghiệp",
   "compact-developer": "Fresher",
   "sidebar-pro": "2 cột",
   "clean-corporate": "Corporate",
@@ -53,7 +50,6 @@ const TEMPLATE_BADGES: Record<string, string> = {
   "product-builder": "Product",
   "startup-modern": "Startup",
   "elegant-serif": "Serif",
-  "minimal-grid": "Grid",
   "ocean-wave": "2 cột",
   "forest-fresh": "Tươi mới",
   "pastel-studio": "Pastel",
@@ -65,11 +61,9 @@ const TEMPLATE_BADGES: Record<string, string> = {
   "care-plus": "Y tế",
   "mentor-class": "Giáo dục",
   "vault-finance": "Tài chính",
-  "host-warm": "Thân thiện",
   "editorial-magazine": "Editorial",
   "archi-portfolio": "Kiến trúc",
   "legal-prestige": "Luật",
-  "motion-creative": "Motion",
   "research-scholar": "Scholar",
   "culinary-signature": "F&B",
 };
@@ -229,6 +223,9 @@ export function TemplatePicker({ selectedId, onSelect, cvId, compact = false }: 
           ) : (
             visible.map((template) => {const { Component } = template;
               const isActive = activeId === template.id;
+              const firstCat = TEMPLATE_CATEGORIES.find(
+                (c) => c.id !== "all" && (template.categories ?? []).includes(c.id),
+              );
               return (
                 <button
                   key={template.id}
@@ -237,17 +234,17 @@ export function TemplatePicker({ selectedId, onSelect, cvId, compact = false }: 
                   aria-selected={isActive}
                   onClick={() => pick(template.id)}
                   className={cn(
-                    "template-card flex w-full items-center gap-3 rounded-xl border p-2 text-left",
+                    "template-card flex w-full items-center gap-3 rounded-xl border p-2.5 text-left",
                     isActive ? "border-primary bg-primary/5" : "border-transparent hover:border-border hover:bg-muted/60",
                   )}
                 >
                   <span
-                    className="h-16 w-14 shrink-0 overflow-hidden rounded-lg border border-border bg-white"
+                    className="h-20 w-[70px] shrink-0 overflow-hidden rounded-lg border border-border bg-white"
                     aria-hidden="true"
                   >
                     <span
                       className="block origin-top-left text-left"
-                      style={{ width: "280px", transform: "scale(0.2)", pointerEvents: "none" }}
+                      style={{ width: "350px", transform: "scale(0.2)", pointerEvents: "none" }}
                     >
                       <Component data={SAMPLE_RESUME} />
                     </span>
@@ -256,8 +253,17 @@ export function TemplatePicker({ selectedId, onSelect, cvId, compact = false }: 
                     <span className="block truncate text-sm font-semibold text-foreground">
                       {template.name}
                     </span>
-                    <span className="block truncate text-xs text-muted-foreground">
-                      {template.tags.slice(0, 3).join(" · ")}
+                    <span className="mt-1 flex items-center gap-1">
+                      {firstCat && (
+                        <span className="rounded-full bg-muted px-1.5 py-px text-[10px] font-medium text-muted-foreground">
+                          {firstCat.label}
+                        </span>
+                      )}
+                      {template.atsFriendly === true && (
+                        <span className="rounded-full bg-teal/15 px-1.5 py-px text-[10px] font-semibold text-teal">
+                          ATS
+                        </span>
+                      )}
                     </span>
                   </span>
                   {isActive ? (
