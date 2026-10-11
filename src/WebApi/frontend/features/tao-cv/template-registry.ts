@@ -35,6 +35,10 @@ import { CulinarySignatureTemplate } from "@/components/cv/templates/culinary-si
 import { MonoPortfolioTemplate } from "@/components/cv/templates/mono-portfolio";
 import { KemMinimalTemplate } from "@/components/cv/templates/kem-minimal";
 import { BeigeEditorialTemplate } from "@/components/cv/templates/beige-editorial";
+import { CanvaCorporateNavyTemplate } from "@/components/cv/templates/canva-corporate-navy";
+import { CanvaMinimalMonochromeTemplate } from "@/components/cv/templates/canva-minimal-monochrome";
+import { CanvaCleanSlateTemplate } from "@/components/cv/templates/canva-clean-slate";
+import { CanvaBlueGoldDesignerTemplate } from "@/components/cv/templates/canva-blue-gold-designer";
 import { NhanSuRoyalTemplate } from "@/components/cv/templates/nhan-su-royal";
 import { DenMoodyTemplate } from "@/components/cv/templates/den-moody";
 import { DoHoaLimeTemplate } from "@/components/cv/templates/do-hoa-lime";
@@ -560,6 +564,46 @@ export const TEMPLATE_REGISTRY: Record<string, ResumeTemplateMeta> = {
     Component: BeigeEditorialTemplate,
     columns: 1,
     categories: ["corporate", "one-column"],
+  },
+  "canva-corporate-navy": {
+    id: "canva-corporate-navy",
+    name: "Navy Công Sở",
+    description: "2 cột thanh lịch, sidebar khói tràn viền, avatar tròn",
+    tags: ["Navy", "Công sở", "2 cột"],
+    version: "1.0",
+    Component: CanvaCorporateNavyTemplate,
+    columns: 2,
+    categories: ["corporate", "two-column"],
+  },
+  "canva-minimal-monochrome": {
+    id: "canva-minimal-monochrome",
+    name: "Đơn Sắc ATS",
+    description: "Đen trắng tinh tế 1 cột, line mảnh, chuẩn máy quét",
+    tags: ["ATS", "Đen trắng", "Tối giản"],
+    version: "1.0",
+    Component: CanvaMinimalMonochromeTemplate,
+    columns: 1,
+    categories: ["ats", "one-column"],
+  },
+  "canva-clean-slate": {
+    id: "canva-clean-slate",
+    name: "Slate Sạch",
+    description: "Sidebar phải slate nhẹ, tag phẳng thoáng đãng",
+    tags: ["Slate", "Nhẹ nhàng", "Hiện đại"],
+    version: "1.0",
+    Component: CanvaCleanSlateTemplate,
+    columns: 2,
+    categories: ["developer", "two-column"],
+  },
+  "canva-blue-gold-designer": {
+    id: "canva-blue-gold-designer",
+    name: "Xanh Vàng Executive",
+    description: "Navy sang trọng nhấn line vàng gold mảnh",
+    tags: ["Navy", "Vàng gold", "Sang trọng"],
+    version: "1.0",
+    Component: CanvaBlueGoldDesignerTemplate,
+    columns: 2,
+    categories: ["corporate", "creative", "two-column"],
   },
   "nhan-su-royal": {
     id: "nhan-su-royal",
