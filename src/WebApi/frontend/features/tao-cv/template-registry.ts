@@ -41,6 +41,9 @@ import { BeigeEditorialTemplate } from "@/components/cv/templates/beige-editoria
 import { NhiepAnhTemplate } from "@/components/cv/templates/nhiep-anh";
 import { MintGridTemplate } from "@/components/cv/templates/mint-grid";
 import { NhanSuRoyalTemplate } from "@/components/cv/templates/nhan-su-royal";
+import { DenMoodyTemplate } from "@/components/cv/templates/den-moody";
+import { DoHoaLimeTemplate } from "@/components/cv/templates/do-hoa-lime";
+import { ScrapbookVuiTemplate } from "@/components/cv/templates/scrapbook-vui";
 import { createElement } from "react";
 import { ThemeCanvas } from "@/features/tao-cv/components/theme-canvas";
 import { parseDbTheme } from "@/features/tao-cv/services/theme-db-sync";
@@ -623,6 +626,36 @@ export const TEMPLATE_REGISTRY: Record<string, ResumeTemplateMeta> = {
     Component: NhanSuRoyalTemplate,
     columns: 1,
     categories: ["corporate", "one-column"],
+  },
+  "den-moody": {
+    id: "den-moody",
+    name: "Đen Moody",
+    description: "Cột đen ảnh duotone tương phản cột sáng",
+    tags: ["Đen", "Cá tính", "Tương phản"],
+    version: "1.0",
+    Component: DenMoodyTemplate,
+    columns: 1,
+    categories: ["creative", "one-column"],
+  },
+  "do-hoa-lime": {
+    id: "do-hoa-lime",
+    name: "Đồ Họa Lime",
+    description: "Sidebar xanh dương, quote lime nổi bật",
+    tags: ["Thiết kế", "Xanh", "Nổi bật"],
+    version: "1.0",
+    Component: DoHoaLimeTemplate,
+    columns: 1,
+    categories: ["creative", "one-column"],
+  },
+  "scrapbook-vui": {
+    id: "scrapbook-vui",
+    name: "Scrapbook Vui",
+    description: "Sổ tay collage: băng keo, kẹp giấy, checklist",
+    tags: ["Vui nhộn", "Sáng tạo", "Trẻ trung"],
+    version: "1.0",
+    Component: ScrapbookVuiTemplate,
+    columns: 1,
+    categories: ["creative", "fresher", "one-column"],
   },
 };
 
