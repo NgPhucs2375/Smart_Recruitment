@@ -38,6 +38,9 @@ import { CulinarySignatureTemplate } from "@/components/cv/templates/culinary-si
 import { MonoPortfolioTemplate } from "@/components/cv/templates/mono-portfolio";
 import { KemMinimalTemplate } from "@/components/cv/templates/kem-minimal";
 import { BeigeEditorialTemplate } from "@/components/cv/templates/beige-editorial";
+import { NhiepAnhTemplate } from "@/components/cv/templates/nhiep-anh";
+import { MintGridTemplate } from "@/components/cv/templates/mint-grid";
+import { NhanSuRoyalTemplate } from "@/components/cv/templates/nhan-su-royal";
 import { createElement } from "react";
 import { ThemeCanvas } from "@/features/tao-cv/components/theme-canvas";
 import { parseDbTheme } from "@/features/tao-cv/services/theme-db-sync";
@@ -588,6 +591,36 @@ export const TEMPLATE_REGISTRY: Record<string, ResumeTemplateMeta> = {
     tags: ["Báo chí", "Thanh lịch", "Khung viền"],
     version: "1.0",
     Component: BeigeEditorialTemplate,
+    columns: 1,
+    categories: ["corporate", "one-column"],
+  },
+  "nhiep-anh": {
+    id: "nhiep-anh",
+    name: "Nhiếp Ảnh Cam",
+    description: "Portfolio nhiếp ảnh: header đen, sóng cam, chữ script vàng",
+    tags: ["Nhiếp ảnh", "Sáng tạo", "Portfolio"],
+    version: "1.0",
+    Component: NhiepAnhTemplate,
+    columns: 1,
+    categories: ["creative", "one-column"],
+  },
+  "mint-grid": {
+    id: "mint-grid",
+    name: "Lưới Mint",
+    description: "Nền giấy kẻ ô cam trên nền mint, monogram tròn",
+    tags: ["Tươi mới", "Thiết kế", "Sáng tạo"],
+    version: "1.0",
+    Component: MintGridTemplate,
+    columns: 1,
+    categories: ["creative", "one-column"],
+  },
+  "nhan-su-royal": {
+    id: "nhan-su-royal",
+    name: "Nhân Sự Royal",
+    description: "Xanh hoàng gia cho HR, photo blob, sóng footer",
+    tags: ["Nhân sự", "Xanh", "Chuyên nghiệp"],
+    version: "1.0",
+    Component: NhanSuRoyalTemplate,
     columns: 1,
     categories: ["corporate", "one-column"],
   },
