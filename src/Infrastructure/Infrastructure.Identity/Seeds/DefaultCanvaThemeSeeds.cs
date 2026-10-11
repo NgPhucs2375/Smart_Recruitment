@@ -231,6 +231,24 @@ namespace Infrastructure.Identity.Seeds
                 row.CauHinhJson = null;
                 row.IsActive = true;
             }
+            // Ẩn mẫu trùng đã xóa code (DevOps Stack, Sidebar Pro, Elegant
+            // Serif, Senior Executive, Product Builder): rows giữ nguyên cho
+            // CV cũ, gallery không hiện mẫu mồ côi render fallback.
+            var retiredSlugs = new[]
+            {
+                "devops-stack",
+                "sidebar-pro",
+                "elegant-serif",
+                "senior-executive",
+                "product-builder",
+            };
+            var retiredRows = appContext.CvThemes
+                .Where(x => retiredSlugs.Contains(x.Slug) && x.IsActive)
+                .ToList();
+            foreach (var row in retiredRows)
+            {
+                row.IsActive = false;
+            }
             await appContext.SaveChangesAsync();
         }
     }

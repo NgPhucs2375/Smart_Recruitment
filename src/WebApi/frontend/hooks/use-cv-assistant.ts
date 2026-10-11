@@ -67,7 +67,7 @@ const removeItemSchema = z.object({
 });
 
 const templateSchema = z.object({
-  templateId: z.string().describe("ID mẫu trong TEMPLATE_REGISTRY (vd: tech-modern, minimal-ats, devops-stack, data-specialist...). Chỉ dùng slug có sẵn."),
+  templateId: z.string().describe("ID mẫu trong TEMPLATE_REGISTRY (vd: tech-modern, minimal-ats, data-specialist...). Chỉ dùng slug có sẵn."),
 });
 
 const loadCvSchema = z.object({

@@ -9,16 +9,11 @@ import { MinimalAtsTemplate } from "@/components/cv/templates/minimal-ats";
 import { TechModernTemplate } from "@/components/cv/templates/tech-modern";
 import { AtsClassicTemplate } from "@/components/cv/templates/ats-classic";
 import { CompactDeveloperTemplate } from "@/components/cv/templates/compact-developer";
-import { SidebarProTemplate } from "@/components/cv/templates/sidebar-pro";
 import { CleanCorporateTemplate } from "@/components/cv/templates/clean-corporate";
 import { CreativePortfolioTemplate } from "@/components/cv/templates/creative-portfolio";
-import { SeniorExecutiveTemplate } from "@/components/cv/templates/senior-executive";
 import { AcademicCvTemplate } from "@/components/cv/templates/academic-cv";
 import { DataSpecialistTemplate } from "@/components/cv/templates/data-specialist";
-import { DevopsStackTemplate } from "@/components/cv/templates/devops-stack";
-import { ProductBuilderTemplate } from "@/components/cv/templates/product-builder";
 import { StartupModernTemplate } from "@/components/cv/templates/startup-modern";
-import { ElegantSerifTemplate } from "@/components/cv/templates/elegant-serif";
 import { OceanWaveTemplate } from "@/components/cv/templates/ocean-wave";
 import { ForestFreshTemplate } from "@/components/cv/templates/forest-fresh";
 import { BentoGridTemplate } from "@/components/cv/templates/bento-grid";
@@ -305,16 +300,6 @@ export const TEMPLATE_REGISTRY: Record<string, ResumeTemplateMeta> = {
     columns: 1,
     categories: ["ats", "developer", "fresher", "one-column"],
   },
-  "sidebar-pro": {
-    id: "sidebar-pro",
-    name: "Sidebar Pro",
-    description: "Sidebar phải, kỹ năng đặt lên đầu cho IT",
-    tags: ["IT", "2 cột", "Kỹ năng"],
-    version: "1.0",
-    Component: SidebarProTemplate,
-    columns: 2,
-    categories: ["developer", "two-column"],
-  },
   "clean-corporate": {
     id: "clean-corporate",
     name: "Clean Corporate",
@@ -334,16 +319,6 @@ export const TEMPLATE_REGISTRY: Record<string, ResumeTemplateMeta> = {
     Component: CreativePortfolioTemplate,
     columns: 1,
     categories: ["creative", "developer", "one-column"],
-  },
-  "senior-executive": {
-    id: "senior-executive",
-    name: "Senior Executive",
-    description: "Thoáng đãng, tôn vinh kinh nghiệm lãnh đạo",
-    tags: ["Senior", "Leadership", "Manager"],
-    version: "1.0",
-    Component: SeniorExecutiveTemplate,
-    columns: 1,
-    categories: ["senior", "corporate", "one-column"],
   },
   "academic-cv": {
     id: "academic-cv",
@@ -365,26 +340,6 @@ export const TEMPLATE_REGISTRY: Record<string, ResumeTemplateMeta> = {
     columns: 1,
     categories: ["developer", "one-column"],
   },
-  "devops-stack": {
-    id: "devops-stack",
-    name: "DevOps Stack",
-    description: "Timeline ngày tháng, nhóm công cụ hạ tầng rõ ràng",
-    tags: ["DevOps", "Infra", "Cloud"],
-    version: "1.0",
-    Component: DevopsStackTemplate,
-    columns: 1,
-    categories: ["developer", "one-column"],
-  },
-  "product-builder": {
-    id: "product-builder",
-    name: "Product Builder",
-    description: "Dự án lên trước, nhấn mạnh kết quả sản phẩm",
-    tags: ["Product", "PM", "Freelance"],
-    version: "1.0",
-    Component: ProductBuilderTemplate,
-    columns: 1,
-    categories: ["creative", "fresher", "one-column"],
-  },
   "startup-modern": {
     id: "startup-modern",
     name: "Startup Modern",
@@ -394,16 +349,6 @@ export const TEMPLATE_REGISTRY: Record<string, ResumeTemplateMeta> = {
     Component: StartupModernTemplate,
     columns: 1,
     categories: ["creative", "fresher", "one-column"],
-  },
-  "elegant-serif": {
-    id: "elegant-serif",
-    name: "Elegant Serif",
-    description: "Tiêu đề serif trang nhã, thân thiện ATS",
-    tags: ["Serif", "Editorial", "Premium"],
-    version: "1.0",
-    Component: ElegantSerifTemplate,
-    columns: 1,
-    categories: ["corporate", "creative", "senior", "one-column"],
   },
   "ocean-wave": {
     id: "ocean-wave",
