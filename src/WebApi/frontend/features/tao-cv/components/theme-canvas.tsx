@@ -563,21 +563,29 @@ export function ThemeCanvas({ theme, data }: ThemeCanvasProps) {
     </header>
   );
 
+  // Full-bleed: hộp màu KHÔNG padding/border-radius — padding chỉ nằm ở
+  // div nội dung bên trong, màu ăn sát mép giấy (trái/phải/đáy, banner cả đỉnh).
   const banner =
     structure === "banner-top" && zones.headerBg !== "transparent" ? (
       <div
         style={{
           background: zones.headerBg,
           color: headDark ? "#fff" : undefined,
-          margin: "calc(var(--cv-page-padding) * -1)",
+          marginBottom: "var(--cv-section-gap)",
+        }}
+      >
+        <div style={{ padding: "var(--cv-page-padding)" }}>{header}</div>
+      </div>
+    ) : (
+      <div
+        style={{
           marginBottom: "var(--cv-section-gap)",
           padding: "var(--cv-page-padding)",
+          paddingBottom: 0,
         }}
       >
         {header}
       </div>
-    ) : (
-      <div style={{ marginBottom: "var(--cv-section-gap)" }}>{header}</div>
     );
 
   const body =
@@ -588,6 +596,8 @@ export function ThemeCanvas({ theme, data }: ThemeCanvasProps) {
           flexDirection: "column",
           gap: "var(--cv-section-gap)",
           background: zones.mainBg !== "transparent" ? zones.mainBg : undefined,
+          padding: "var(--cv-page-padding)",
+          paddingTop: 0,
         }}
       >
         {flow(mainIds.concat(railIds), false)}
@@ -601,15 +611,21 @@ export function ThemeCanvas({ theme, data }: ThemeCanvasProps) {
                 width: "var(--cv-sidebar-width)",
                 flexShrink: 0,
                 background: zones.sidebarBg,
-                borderRadius: "0.75rem",
-                padding: "var(--cv-page-padding)",
                 display: "flex",
                 flexDirection: "column",
-                gap: "var(--cv-section-gap)",
               }}
             >
-              {contactsInSidebar && contactsRail(sideDark)}
-              {flow(railIds, sideDark)}
+              <div
+                style={{
+                  padding: "var(--cv-page-padding)",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "var(--cv-section-gap)",
+                }}
+              >
+                {contactsInSidebar && contactsRail(sideDark)}
+                {flow(railIds, sideDark)}
+              </div>
             </div>
             <div
               className="min-w-0 flex-1"
@@ -618,10 +634,19 @@ export function ThemeCanvas({ theme, data }: ThemeCanvasProps) {
                   zones.mainBg !== "transparent" ? zones.mainBg : undefined,
                 display: "flex",
                 flexDirection: "column",
-                gap: "var(--cv-section-gap)",
               }}
             >
-              {flow(mainIds, false)}
+              <div
+                style={{
+                  padding: "var(--cv-page-padding)",
+                  paddingTop: 0,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "var(--cv-section-gap)",
+                }}
+              >
+                {flow(mainIds, false)}
+              </div>
             </div>
           </>
         ) : (
@@ -633,25 +658,40 @@ export function ThemeCanvas({ theme, data }: ThemeCanvasProps) {
                   zones.mainBg !== "transparent" ? zones.mainBg : undefined,
                 display: "flex",
                 flexDirection: "column",
-                gap: "var(--cv-section-gap)",
               }}
             >
-              {flow(mainIds, false)}
+              <div
+                style={{
+                  padding: "var(--cv-page-padding)",
+                  paddingTop: 0,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "var(--cv-section-gap)",
+                }}
+              >
+                {flow(mainIds, false)}
+              </div>
             </div>
             <div
               style={{
                 width: "var(--cv-sidebar-width)",
                 flexShrink: 0,
                 background: zones.sidebarBg,
-                borderRadius: "0.75rem",
-                padding: "var(--cv-page-padding)",
                 display: "flex",
                 flexDirection: "column",
-                gap: "var(--cv-section-gap)",
               }}
             >
-              {contactsInSidebar && contactsRail(sideDark)}
-              {flow(railIds, sideDark)}
+              <div
+                style={{
+                  padding: "var(--cv-page-padding)",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "var(--cv-section-gap)",
+                }}
+              >
+                {contactsInSidebar && contactsRail(sideDark)}
+                {flow(railIds, sideDark)}
+              </div>
             </div>
           </>
         )}

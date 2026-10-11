@@ -47,7 +47,9 @@ export function ThemeRuntimeProvider({
     "--cv-divider-style": theme.typography.dividerStyle ?? "solid",
     backgroundColor: "var(--cv-paper-bg)",
     color: "var(--cv-text)",
-    padding: "var(--cv-page-padding)",
+    // Full-bleed: root KHÔNG padding — màu sidebar/banner ăn sát mép giấy.
+    // Padding chỉ nằm trong div nội dung từng vùng (xem theme-canvas).
+    padding: 0,
   } as CSSProperties;
 
   return (
