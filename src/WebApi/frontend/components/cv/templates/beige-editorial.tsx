@@ -87,11 +87,11 @@ export function BeigeEditorialTemplate({ data }: ResumeTemplateProps) {
           {data.contacts.slice(0, 6).map((c, i) => (
             <span
               key={`${c.label}-${i}`}
-              className="cv-section-item rounded-full border px-2.5 py-1 text-[11px] font-medium"
+              className="cv-section-item min-w-0 max-w-full break-all rounded-full border px-2.5 py-1 text-[11px] font-medium [overflow-wrap:anywhere]"
               style={{ backgroundColor: CARD, borderColor: BAR_BG, color: INK }}
             >
               {c.href ? (
-                <a href={c.href} className="underline underline-offset-2">
+                <a href={c.href} className="break-all underline underline-offset-2">
                   {c.value}
                 </a>
               ) : (

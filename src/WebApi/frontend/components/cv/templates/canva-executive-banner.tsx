@@ -97,12 +97,12 @@ export function CanvaExecutiveBannerTemplate({ data }: ResumeTemplateProps) {
               </p>
             )}
             {data.contacts.length > 0 && (
-              <p className="mt-2 text-[11.5px] text-white/80">
+              <p className="mt-2 text-[11.5px] leading-snug text-white/80 break-words [overflow-wrap:anywhere]">
                 {data.contacts.slice(0, 4).map((c, i) => (
                   <span key={`${c.label}-${i}`}>
                     {i > 0 && <span style={{ margin: "0 0.6em" }}>·</span>}
                     {c.href ? (
-                      <a href={c.href} className="underline underline-offset-2">
+                      <a href={c.href} className="break-all underline underline-offset-2">
                         {c.value}
                       </a>
                     ) : (

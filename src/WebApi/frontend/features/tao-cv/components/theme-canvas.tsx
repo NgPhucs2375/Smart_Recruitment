@@ -504,7 +504,7 @@ export function ThemeCanvas({ theme, data }: ThemeCanvasProps) {
       }
     >
       {avatar}
-      <div className="min-w-0">
+      <div className="min-w-0" style={showAvatar ? { flex: 1 } : undefined}>
       {data.customTitle && (
         <p
           style={{
@@ -543,13 +543,15 @@ export function ThemeCanvas({ theme, data }: ThemeCanvasProps) {
             color: headDark ? "rgba(255,255,255,0.85)" : "var(--cv-muted)",
             fontSize: "0.92em",
             marginTop: "0.25em",
+            overflowWrap: "anywhere",
+            wordBreak: "break-all",
           }}
         >
           {data.contacts.map((c, i) => (
             <span key={`${c.label}-${i}`}>
               {i > 0 && <span style={{ margin: "0 0.375em" }}>·</span>}
               {c.href ? (
-                <a href={c.href} style={{ textDecoration: "underline" }}>
+                <a href={c.href} style={{ textDecoration: "underline", overflowWrap: "anywhere" }}>
                   {c.value}
                 </a>
               ) : (

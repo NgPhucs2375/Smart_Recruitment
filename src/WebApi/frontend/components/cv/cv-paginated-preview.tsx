@@ -241,18 +241,13 @@ export function CvPaginatedPreview({ resume, Component, templateKey, onPageCount
       sheet.className = "cv-sheet";
       sheet.dataset.page = String(page + 1);
       sheet.appendChild(measuredPaper.cloneNode(true));
-      if (pages.length > 1) {
-        const footer = document.createElement("p");
-        footer.className = "cv-sheet-footer";
-        footer.setAttribute("aria-hidden", "true");
-        footer.textContent = `Trang ${page + 1}/${pages.length}`;
-        sheet.appendChild(footer);
-      }
+      // Footer gắn SAU khi xét alive (dưới đây) — sheet rỗng không đẻ thẻ trắng.
       host.appendChild(sheet);
     });
     const groups = groupsRef.current;
     const oversize = oversizeRef.current;
     const pageOf = pageOfRef.current;
+    const totalPages = pages.length;
     // Trang đầu tiên mỗi group xuất hiện (để đánh dấu tiếp nối các trang sau).
     const groupFirstPage = new Map<SectionGroup, number>();
     for (const g of groups) {
@@ -393,19 +388,35 @@ export function CvPaginatedPreview({ resume, Component, templateKey, onPageCount
           }
         });
 
-      // BATCH-blank: sheet không còn node hiển thị nào (mọi item/group đều
-      // bị ẩn, header cũng ẩn) thì ẩn cả sheet — không để khung A4 rỗng,
-      // print cũng không đẻ trang trắng từ break-after của nó. Kiểm tra bằng
-      // rects thực (display:none không có rect; leaf text cũng có rect).
+      // BATCH-blank: sheet sống ⟺ header sống, hoặc có ≥1 item thuộc
+      // trang này, hoặc (trang 0) nhóm rỗng trang trí còn hiện. Không xét
+      // wrapper trang trí (sidebar/grid nền) — chúng có rect nhưng không
+      // nội dung, từng gây thẻ A4 trắng thừa cuối preview.
       const nodeAlive = (el: HTMLElement | null): boolean =>
         el !== null && el.style.display !== "none" && el.getClientRects().length > 0;
+      const groupContributes = sheetGroups.some((g) => {
+        const [gs, ge] = g.items;
+        if (gs === ge) {
+          return (
+            page === 0 &&
+            (nodeAlive(g.owner) || g.chrome.some((c) => nodeAlive(c)))
+          );
+        }
+        for (let i = gs; i < ge; i += 1) {
+          if (pageOf[i] === page) return true;
+        }
+        return false;
+      });
       const sheetAlive =
-        pageOf.length === 0 ||
-        nodeAlive(header) ||
-        sheetGroups.some(
-          (g) => nodeAlive(g.owner) || g.chrome.some((c) => nodeAlive(c)),
-        );
+        pageOf.length === 0 || nodeAlive(header) || groupContributes;
       (sheet as HTMLElement).style.display = sheetAlive ? "" : "none";
+      if (sheetAlive && totalPages > 1) {
+        const footer = document.createElement("p");
+        footer.className = "cv-sheet-footer";
+        footer.setAttribute("aria-hidden", "true");
+        footer.textContent = `Trang ${page + 1}/${totalPages}`;
+        sheet.appendChild(footer);
+      }
       // Lưới an toàn: trang chứa item cao hơn cả khổ A4 không vừa đâu cả —
       // cho sheet dãn chiều cao (screen) để không cụt chữ; print tự tách
       // qua break-inside: auto đã có. Không bao giờ mất nội dung.
