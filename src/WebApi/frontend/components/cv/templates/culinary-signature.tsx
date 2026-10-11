@@ -130,8 +130,8 @@ export function CulinarySignatureTemplate({ data }: ResumeTemplateProps) {
           <SectionShell>
             <MenuHeading>Dự án tiêu biểu</MenuHeading>
             <div
-              className="cv-section-item rounded-md border-2 px-5 py-4"
-              style={{ borderColor: WINE, backgroundColor: WINE_SOFT }}
+              className="cv-section-item border-l-2 pl-4"
+              style={{ borderColor: WINE }}
             >
               <div className="flex items-baseline gap-2">
                 <span style={{ color: GOLD }} aria-hidden="true">

@@ -71,8 +71,8 @@ export function CreativePortfolioTemplate({ data }: { data: ResumeData }) {
               {data.projects.map((p) => (
                 <div
                   key={p.id}
-                  className="cv-section-item min-w-0 rounded-xl p-3"
-                  style={{ backgroundColor: "var(--hire-ivory)" }}
+                  className="cv-section-item min-w-0 border-l-2 pl-3"
+                  style={{ borderColor: ACCENT }}
                 >
                   <p className="font-bold leading-snug" style={{ color: INK }}>{p.name || "Dự án"}</p>
                   {p.role && <p className="text-[11.5px] font-semibold" style={{ color: ACCENT }}>{p.role}</p>}

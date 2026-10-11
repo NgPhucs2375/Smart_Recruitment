@@ -4,7 +4,7 @@ import { Mail, Phone, MapPin, Globe, Award, Briefcase } from "lucide-react";
 import type { ResumeTemplateProps } from "./shared";
 import { BannerSlot, DateText, EmptyPaper, SectionShell, SplitBlocks } from "./shared";
 
-const MED = "#0284c7";
+const MED = "#1e3a8a";
 const MED_STRIP = "#e0f2fe";
 const INK = "#1f2937";
 const SUBTLE = "#5b6470";
@@ -49,7 +49,7 @@ export function CarePlusTemplate({ data }: ResumeTemplateProps) {
         <BannerSlot data={data} className="mb-1 px-7 pt-5 text-[11px] font-bold uppercase tracking-[0.16em]" style={{ color: MED }} />
         <div className="flex items-center gap-4 px-7 pb-4 pt-6">
           <div
-            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-[32px] font-bold leading-none"
+            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-none text-[32px] font-bold leading-none"
             style={{ backgroundColor: MED, color: "#ffffff" }}
           >
             +
@@ -82,7 +82,7 @@ export function CarePlusTemplate({ data }: ResumeTemplateProps) {
       {data.certificates.length > 0 && (
         <div className="px-7 pt-4">
           <SectionShell>
-            <div className="rounded-lg px-4 py-3" style={{ backgroundColor: MED }}>
+            <div className="rounded-none px-4 py-3" style={{ backgroundColor: MED }}>
               <h2 className="mb-1.5 flex items-center gap-2 text-[12px] font-bold uppercase tracking-[0.14em]" style={{ color: "#ffffff" }}>
                 <Award className="size-4 shrink-0" style={{ color: "#ffffff" }} strokeWidth={2} />
                 Chứng chỉ
@@ -169,7 +169,7 @@ export function CarePlusTemplate({ data }: ResumeTemplateProps) {
               {data.skills.map((s) => (
                 <span
                   key={s.id}
-                  className="cv-section-item rounded-full px-2.5 py-1 text-[12px] font-semibold"
+                  className="cv-section-item rounded-none px-2.5 py-1 text-[12px] font-semibold"
                   style={{ backgroundColor: MED_STRIP, color: MED }}
                 >
                   {s.name}
