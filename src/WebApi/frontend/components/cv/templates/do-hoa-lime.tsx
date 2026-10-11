@@ -8,7 +8,6 @@ import { DateText, EmptyPaper, SectionShell, SplitBlocks } from "./shared";
 
 const BLUE = "#1d4ed8";
 const BLUE_DEEP = "#1e3a8a";
-const LIME = "#d9f99d";
 const LIME_DEEP = "#65a30d";
 const GREEN = "#15803d";
 const INK = "#1e293b";
@@ -29,7 +28,7 @@ function ContactIcon({ label }: { label: string }) {
 
 function RailTitle({ children }: { children: React.ReactNode }) {
   return (
-    <h2 className="mb-2 rounded-full bg-white/15 px-3 py-1 text-center text-[11px] font-bold uppercase tracking-[0.16em] text-white">
+    <h2 className="mb-2 border-b border-white/25 pb-1.5 text-left text-[11px] font-bold uppercase tracking-[0.16em] text-white">
       {children}
     </h2>
   );
@@ -37,10 +36,7 @@ function RailTitle({ children }: { children: React.ReactNode }) {
 
 function MainTitle({ children }: { children: React.ReactNode }) {
   return (
-    <h2
-      className="mb-2.5 inline-block rounded-md px-3 py-1 text-[12px] font-bold uppercase tracking-[0.14em] text-white"
-      style={{ backgroundColor: GREEN }}
-    >
+    <h2 className="mb-2.5 text-left text-[13px] font-bold uppercase tracking-[0.14em]" style={{ color: GREEN }}>
       {children}
     </h2>
   );
@@ -67,8 +63,8 @@ export function DoHoaLimeTemplate({ data }: ResumeTemplateProps) {
     <div className="cv-paper cv-paper-a4 bg-white text-[12.5px] leading-relaxed" style={{ color: INK }}>
       <div className="grid grid-cols-[32%_68%]">
         {/* Sidebar xanh */}
-        <aside className="min-w-0 px-4 py-6 text-white" style={{ backgroundColor: BLUE }}>
-          <div className="flex flex-col items-center text-center">
+        <aside className="min-w-0 px-4 py-6 text-left text-white" style={{ backgroundColor: BLUE }}>
+          <div className="flex flex-col items-start text-left">
             {avatar ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
@@ -156,7 +152,7 @@ export function DoHoaLimeTemplate({ data }: ResumeTemplateProps) {
         <div className="min-w-0 px-6 py-6">
           {data.summary && (
             <SectionShell section="summary">
-              <div className="rounded-xl p-3.5 text-[12px] font-medium leading-relaxed" style={{ backgroundColor: LIME, color: BLUE_DEEP }}>
+              <div className="border-l-[3px] pl-3.5 text-[12px] font-medium leading-relaxed" style={{ borderColor: LIME_DEEP }}>
                 <SplitBlocks text={data.summary} className="whitespace-pre-line break-words [overflow-wrap:anywhere]" />
               </div>
             </SectionShell>

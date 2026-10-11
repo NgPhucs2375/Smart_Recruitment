@@ -12,14 +12,14 @@ const BAR_BG = "#e7e0d3";
 
 function Caption({ children }: { children: React.ReactNode }) {
   return (
-    <h2 className="text-center text-[11px] font-bold uppercase tracking-[0.28em]" style={{ color: INK }}>
+    <h2 className="text-left text-[11px] font-bold uppercase tracking-[0.28em]" style={{ color: INK }}>
       {children}
     </h2>
   );
 }
 
 function Rule() {
-  return <div className="mx-auto mt-1.5 h-px w-16" style={{ backgroundColor: MUTED }} aria-hidden="true" />;
+  return <div className="mt-1.5 h-px w-16" style={{ backgroundColor: MUTED }} aria-hidden="true" />;
 }
 
 function LevelBar() {
@@ -48,13 +48,13 @@ export function KemMinimalTemplate({ data }: ResumeTemplateProps) {
   const avatar = data.avatarUrl?.trim() || undefined;
 
   return (
-    <div className="cv-paper cv-paper-a4 px-10 py-8 text-center text-[12.5px] leading-relaxed" style={{ backgroundColor: PAPER, color: INK }}>
+    <div className="cv-paper cv-paper-a4 px-10 py-8 text-left text-[12.5px] leading-relaxed" style={{ backgroundColor: PAPER, color: INK }}>
       <header>
         <p className="text-[10px] font-semibold uppercase tracking-[0.24em]" style={{ color: MUTED }}>
           {resolveBannerTitle3(data, data.title, "Curriculum Vitae")}
         </p>
-        <div className="mt-3 flex items-center justify-center gap-4">
-          <div className="min-w-0 flex-1 text-right">
+        <div className="mt-3 flex items-center gap-4">
+          <div className="min-w-0 flex-1">
             <h1 className="text-[26px] font-bold leading-tight tracking-tight">
               {data.name || "Họ và tên"}
             </h1>
@@ -82,10 +82,9 @@ export function KemMinimalTemplate({ data }: ResumeTemplateProps) {
               </span>
             </div>
           )}
-          <div className="min-w-0 flex-1" aria-hidden="true" />
         </div>
         {data.contacts.length > 0 && (
-          <p className="mx-auto mt-3 max-w-[85%] text-[11.5px] leading-relaxed" style={{ color: MUTED }}>
+          <p className="mt-3 text-[11.5px] leading-relaxed" style={{ color: MUTED }}>
             {data.contacts.slice(0, 4).map((c, i) => (
               <span key={`${c.label}-${i}`}>
                 {i > 0 && <span style={{ margin: "0 0.5em" }}>·</span>}
@@ -107,7 +106,7 @@ export function KemMinimalTemplate({ data }: ResumeTemplateProps) {
           <div className="mt-5">
             <Caption>Tóm tắt</Caption>
             <Rule />
-            <SplitBlocks text={data.summary} className="mx-auto mt-2 max-w-[90%] whitespace-pre-line break-words [overflow-wrap:anywhere]" />
+            <SplitBlocks text={data.summary} className="mt-2 whitespace-pre-line break-words [overflow-wrap:anywhere]" />
           </div>
         </SectionShell>
       )}
@@ -159,7 +158,7 @@ export function KemMinimalTemplate({ data }: ResumeTemplateProps) {
           )}
           {data.projects.length > 0 && (
             <SectionShell section="projects">
-              <div className="mt-4 text-center">
+              <div className="mt-4">
                 <Caption>Dự án</Caption>
                 <Rule />
               </div>
@@ -183,7 +182,7 @@ export function KemMinimalTemplate({ data }: ResumeTemplateProps) {
           <div className="mt-5">
             <Caption>Kỹ năng</Caption>
             <Rule />
-            <div className="mx-auto mt-2 grid max-w-[90%] grid-cols-2 gap-x-6 gap-y-2 text-left">
+            <div className="mt-2 grid grid-cols-2 gap-x-6 gap-y-2 text-left">
               {data.skills.map((s) => (
                 <div key={s.id} className="cv-section-item">
                   <p className="text-[12px] font-semibold">• {s.name}</p>
@@ -200,7 +199,7 @@ export function KemMinimalTemplate({ data }: ResumeTemplateProps) {
           <div className="mt-4">
             <Caption>Chứng chỉ</Caption>
             <Rule />
-            <ul className="mx-auto mt-2 max-w-[90%] space-y-1 text-left text-[12px]">
+            <ul className="mt-2 space-y-1 text-left text-[12px]">
               {data.certificates.map((c) => (
                 <li key={c.id} className="cv-section-item">
                   <span className="font-semibold">{c.name || "Chứng chỉ"}</span>

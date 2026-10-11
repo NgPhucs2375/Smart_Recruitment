@@ -36,17 +36,6 @@ function SectionHead({ children }: { children: React.ReactNode }) {
   );
 }
 
-function WaveFooter() {
-  return (
-    <svg viewBox="0 0 210 8" preserveAspectRatio="none" className="block h-[10px] w-full" aria-hidden="true">
-      <path
-        d="M0,8 Q10.5,0 21,8 T42,8 T63,8 T84,8 T105,8 T126,8 T147,8 T168,8 T189,8 T210,8 L210,8 L0,8 Z"
-        fill={BLUE}
-      />
-    </svg>
-  );
-}
-
 function initials(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
   if (parts.length === 0) return "?";
@@ -101,16 +90,16 @@ export function NhanSuRoyalTemplate({ data }: ResumeTemplateProps) {
           <img
             src={avatar}
             alt={data.name || "Ảnh đại diện"}
-            className="h-32 w-28 shrink-0 object-cover"
-            style={{ borderRadius: "38% 62% 55% 45% / 45% 42% 58% 55%" }}
+            className="size-28 shrink-0 rounded-full border-2 object-cover"
+            style={{ borderColor: BLUE_SOFT }}
           />
         ) : (
           <div
-            className="flex h-32 w-28 shrink-0 items-center justify-center"
-            style={{ backgroundColor: BLUE_SOFT, borderRadius: "38% 62% 55% 45% / 45% 42% 58% 55%" }}
+            className="flex size-28 shrink-0 items-center justify-center rounded-full"
+            style={{ backgroundColor: BLUE_SOFT }}
             aria-hidden="true"
           >
-            <span className="text-[30px] font-bold" style={{ color: BLUE }}>
+            <span className="text-[28px] font-bold" style={{ color: BLUE }}>
               {initials(data.name)}
             </span>
           </div>
@@ -233,9 +222,8 @@ export function NhanSuRoyalTemplate({ data }: ResumeTemplateProps) {
         </div>
       </div>
 
-      <WaveFooter />
-      <div className="px-7 pb-5 pt-1 text-center" style={{ backgroundColor: BLUE }}>
-        <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-white/80">
+      <div className="border-t px-7 py-4 text-center" style={{ borderColor: BLUE_SOFT }}>
+        <p className="font-mono text-[10px] uppercase tracking-[0.25em]" style={{ color: MUTED }}>
           {data.name || "Curriculum Vitae"}
         </p>
       </div>
