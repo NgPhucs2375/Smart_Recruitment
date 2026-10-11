@@ -3,12 +3,12 @@
 import type { ResumeTemplateProps } from "./shared";
 import { BannerSlot, DateText, EmptyPaper, SectionShell, SplitBlocks } from "./shared";
 
-const INK = "#111111";
+const INK = "#27272a";
 const MUTED = "#9ca3af";
 
 function ZenTitle({ children }: { children: React.ReactNode }) {
   return (
-    <h2 className="mb-4 text-center text-[10px] font-medium uppercase" style={{ color: MUTED, letterSpacing: "0.3em" }}>
+    <h2 className="mb-4 text-left text-[10px] font-medium uppercase" style={{ color: MUTED, letterSpacing: "0.3em" }}>
       {children}
     </h2>
   );
@@ -29,7 +29,7 @@ export function ZenMinimalTemplate({ data }: ResumeTemplateProps) {
 
   return (
     <div className="cv-paper cv-paper-a4 bg-white px-12 py-12 text-[13px] leading-loose" style={{ color: INK }}>
-      <header className="pb-2 text-center">
+      <header className="pb-2 text-left">
         <BannerSlot data={data} className="mb-3 text-[12px] font-normal uppercase" style={{ color: MUTED, letterSpacing: "0.3em" }} />
         <h1 className="text-[28px] font-normal leading-tight" style={{ color: INK, letterSpacing: "0.02em" }}>
           {data.name || "Họ và tên"}
@@ -56,7 +56,7 @@ export function ZenMinimalTemplate({ data }: ResumeTemplateProps) {
         {data.summary && (
           <SectionShell>
             <ZenTitle>Tóm tắt</ZenTitle>
-            <SplitBlocks text={data.summary} className="mx-auto max-w-[58ch] whitespace-pre-line break-words [overflow-wrap:anywhere] text-center text-[13px] italic" style={{ color: INK }} />
+            <SplitBlocks text={data.summary} className="mt-1 max-w-[68ch] whitespace-pre-line break-words [overflow-wrap:anywhere] text-left text-[13px] italic" style={{ color: INK }} />
           </SectionShell>
         )}
 
@@ -65,14 +65,14 @@ export function ZenMinimalTemplate({ data }: ResumeTemplateProps) {
             <ZenTitle>Kinh nghiệm</ZenTitle>
             <div className="space-y-8">
               {data.experience.map((job) => (
-                <div key={job.id} className="cv-section-item text-center">
+                <div key={job.id} className="cv-section-item text-left">
                   <h3 className="font-medium" style={{ color: INK }}>{job.role || "Chức danh"}</h3>
                   <p className="mt-1 text-[12px]" style={{ color: MUTED }}>{job.company}</p>
                   <p className="mt-1 text-[12px]" style={{ color: MUTED }}>
                     <DateText range={job.range} />
                   </p>
                   {job.description && (
-                      <SplitBlocks text={job.description} className="mx-auto mt-3 max-w-[58ch] whitespace-pre-line break-words [overflow-wrap:anywhere] text-[13px]" style={{ color: INK }} />
+                      <SplitBlocks text={job.description} className="mt-3 max-w-[68ch] whitespace-pre-line break-words [overflow-wrap:anywhere] text-left text-[13px]" style={{ color: INK }} />
                   )}
                 </div>
               ))}
@@ -83,7 +83,7 @@ export function ZenMinimalTemplate({ data }: ResumeTemplateProps) {
         {data.skills.length > 0 && (
           <SectionShell>
             <ZenTitle>Kỹ năng</ZenTitle>
-            <p className="text-center text-[13px] leading-loose" style={{ color: INK }}>
+            <p className="text-left text-[13px] leading-loose" style={{ color: INK }}>
               {data.skills.map((s, i) => (
                 <span key={s.id} className="cv-section-item">
                   {i > 0 && <span className="mx-3" style={{ color: MUTED }}>·</span>}
@@ -99,7 +99,7 @@ export function ZenMinimalTemplate({ data }: ResumeTemplateProps) {
             <ZenTitle>Dự án</ZenTitle>
             <div className="space-y-8">
               {data.projects.map((p) => (
-                <div key={p.id} className="cv-section-item text-center">
+                <div key={p.id} className="cv-section-item text-left">
                   <h3 className="font-medium" style={{ color: INK }}>{p.name || "Dự án"}</h3>
                   {p.role && <p className="mt-1 text-[12px]" style={{ color: MUTED }}>{p.role}</p>}
                   {p.range && (p.range.start || p.range.end) && (
@@ -108,7 +108,7 @@ export function ZenMinimalTemplate({ data }: ResumeTemplateProps) {
                     </p>
                   )}
                   {p.description && (
-                      <SplitBlocks text={p.description} className="mx-auto mt-3 max-w-[58ch] whitespace-pre-line break-words [overflow-wrap:anywhere] text-[13px]" style={{ color: INK }} />
+                      <SplitBlocks text={p.description} className="mt-3 max-w-[68ch] whitespace-pre-line break-words [overflow-wrap:anywhere] text-left text-[13px]" style={{ color: INK }} />
                   )}
                 </div>
               ))}
@@ -121,14 +121,14 @@ export function ZenMinimalTemplate({ data }: ResumeTemplateProps) {
             <ZenTitle>Học vấn</ZenTitle>
             <div className="space-y-8">
               {data.education.map((edu) => (
-                <div key={edu.id} className="cv-section-item text-center">
+                <div key={edu.id} className="cv-section-item text-left">
                   <h3 className="font-medium" style={{ color: INK }}>{edu.school || "Trường"}</h3>
                   {edu.degree && <p className="mt-1 text-[12px]" style={{ color: MUTED }}>{edu.degree}</p>}
                   <p className="mt-1 text-[12px]" style={{ color: MUTED }}>
                     <DateText range={edu.range} />
                   </p>
                   {edu.description && (
-                      <SplitBlocks text={edu.description} className="mx-auto mt-3 max-w-[58ch] whitespace-pre-line break-words [overflow-wrap:anywhere] text-[13px]" style={{ color: INK }} />
+                      <SplitBlocks text={edu.description} className="mt-3 max-w-[68ch] whitespace-pre-line break-words [overflow-wrap:anywhere] text-left text-[13px]" style={{ color: INK }} />
                   )}
                 </div>
               ))}

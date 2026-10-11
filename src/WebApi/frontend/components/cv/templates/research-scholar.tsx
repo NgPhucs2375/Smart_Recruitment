@@ -116,7 +116,7 @@ export function ResearchScholarTemplate({ data }: ResumeTemplateProps) {
             <SectionShell>
               <MainLabel>Tóm tắt học thuật</MainLabel>
               <div
-                className="cv-section-item rounded-md border-l-4 bg-white px-4 py-3"
+                className="cv-section-item border-l-4 bg-white px-4 py-3"
                 style={{ borderColor: DEEP, borderTop: "1px solid #e5e0d2", borderRight: "1px solid #e5e0d2", borderBottom: "1px solid #e5e0d2" }}
               >
                 <SplitBlocks text={data.summary} className="whitespace-pre-line break-words [overflow-wrap:anywhere] text-[12.5px]" style={{ color: INK }} />
@@ -158,7 +158,7 @@ export function ResearchScholarTemplate({ data }: ResumeTemplateProps) {
                 {data.projects.map((p, idx) => (
                   <div
                     key={p.id}
-                    className="cv-section-item rounded-sm px-3 py-2"
+                    className="cv-section-item rounded-none px-3 py-2"
                     style={{ backgroundColor: "#fff", border: "1px solid #e5e0d2" }}
                   >
                     <p className="text-[12.5px] leading-relaxed" style={{ color: INK }}>
@@ -221,7 +221,7 @@ export function ResearchScholarTemplate({ data }: ResumeTemplateProps) {
                 {metrics.map((m) => (
                   <div
                     key={m.label}
-                    className="cv-section-item rounded-md px-3 py-2.5 text-center"
+                    className="cv-section-item border-b px-0 py-2 text-left"
                     style={{ backgroundColor: "rgba(255,255,255,0.1)" }}
                   >
                     <p className="text-[24px] font-bold leading-none text-white">{m.value}</p>
@@ -238,7 +238,7 @@ export function ResearchScholarTemplate({ data }: ResumeTemplateProps) {
                   {data.skills.map((s) => (
                     <span
                       key={s.id}
-                      className="cv-section-item rounded-full bg-white px-2.5 py-1 text-[11.5px] font-semibold"
+                      className="cv-section-item border border-neutral-200 bg-white px-2.5 py-1 text-[11.5px] font-semibold"
                       style={{ color: DEEP }}
                     >
                       {s.name}

@@ -16,7 +16,7 @@ const SUBTLE = "var(--hire-subtle)";
 function Title({ children }: { children: React.ReactNode }) {
   return (
     <h2
-      className="mb-2 w-fit rounded-full px-3 py-1 text-[10.5px] font-bold uppercase tracking-[0.18em]"
+      className="mb-2 w-fit rounded-none px-3 py-1 text-[10.5px] font-bold uppercase tracking-[0.18em]"
       style={{ backgroundColor: "var(--hire-navy-soft)", color: NAVY }}
     >
       {children}
@@ -49,7 +49,7 @@ export function StartupModernTemplate({ data }: { data: ResumeData }) {
             {data.contacts.map((c, i) => (
               <span
                 key={`${c.label}-${i}`}
-                className="rounded-full px-2.5 py-0.5 text-[11px] font-medium"
+                className="rounded-none px-2.5 py-0.5 text-[11px] font-medium"
                 style={{ backgroundColor: "var(--hire-ivory)", color: SUBTLE }}
               >
                 {c.href ? (
@@ -75,10 +75,10 @@ export function StartupModernTemplate({ data }: { data: ResumeData }) {
             <Title>Kinh nghiệm</Title>
             <div className="space-y-3">
               {data.experience.map((job) => (
-                <div key={job.id} className="cv-section-item rounded-xl p-3" style={{ border: "1px solid var(--hire-line)" }}>
+                <div key={job.id} className="cv-section-item rounded-none p-3" style={{ border: "1px solid var(--hire-line)" }}>
                   <div className="flex items-baseline justify-between gap-3">
                     <h3 className="font-bold" style={{ color: INK }}>{job.role || "Chức danh"}</h3>
-                    <DateText range={job.range} className="rounded-full px-2 py-0.5 text-[10.5px] font-semibold" />
+                    <DateText range={job.range} className="rounded-none px-2 py-0.5 text-[10.5px] font-semibold" />
                   </div>
                   <p className="text-[12px] font-semibold" style={{ color: NAVY }}>{job.company}</p>
                   {job.description && (
@@ -95,7 +95,7 @@ export function StartupModernTemplate({ data }: { data: ResumeData }) {
             <Title>Stack</Title>
             <div className="grid grid-cols-2 gap-1.5">
               {data.skills.map((s) => (
-                <p key={s.id} className="cv-section-item min-w-0 rounded-lg px-2.5 py-1.5 text-[11.5px] font-semibold" style={{ backgroundColor: "var(--hire-navy-soft)", color: NAVY }}>
+                <p key={s.id} className="cv-section-item min-w-0 rounded-none px-2.5 py-1.5 text-[11.5px] font-semibold" style={{ backgroundColor: "var(--hire-navy-soft)", color: NAVY }}>
                   {s.name}
                 </p>
               ))}

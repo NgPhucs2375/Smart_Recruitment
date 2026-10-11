@@ -5,7 +5,7 @@ import type { ResumeContact } from "@/features/tao-cv/resume-data";
 import type { ResumeTemplateProps } from "./shared";
 import { BannerSlot, DateText, EmptyPaper, SectionShell, SplitBlocks } from "./shared";
 
-const CLAY = "#c2410c";
+const CLAY = "#1e3a8a";
 const CLAY_SOFT = "#faf7f2";
 const INK = "#1f2937";
 const SUBTLE = "#6b7280";
