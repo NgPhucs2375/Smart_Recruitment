@@ -116,6 +116,16 @@ export function TemplatePicker({ selectedId, onSelect, cvId, compact = false }: 
     onSelect(id);
   };
 
+  // Theme Studio gộp chung 1 list với mẫu thường (không khu riêng).
+  const customQuery = query.trim().toLowerCase();
+  const customVisibleCount = customQuery
+    ? published.filter(
+        (t) =>
+          t.name.toLowerCase().includes(customQuery) ||
+          (t.description ?? "").toLowerCase().includes(customQuery),
+      ).length
+    : published.length;
+
   // Scroll the active row into view once when the popover opens —
   // never on selection, so scroll position stays stable while picking.
   const scrollActiveIntoView = () => {
@@ -216,12 +226,13 @@ export function TemplatePicker({ selectedId, onSelect, cvId, compact = false }: 
             ))}
           </div>
           <div ref={listRef} className="cv-thin-scroll mt-2 min-h-0 flex-1 overflow-y-auto" role="listbox" aria-label="Danh sách mẫu CV">
-                    {visible.length === 0 ? (
+            {visible.length === 0 && customVisibleCount === 0 ? (
             <p className="rounded-xl border border-dashed border-border px-3 py-5 text-center text-xs text-muted-foreground">
               Không tìm thấy mẫu phù hợp.
             </p>
           ) : (
-            visible.map((template) => {const { Component } = template;
+            <>
+            {visible.map((template) => {const { Component } = template;
               const isActive = activeId === template.id;
               const firstCat = TEMPLATE_CATEGORIES.find(
                 (c) => c.id !== "all" && (template.categories ?? []).includes(c.id),
@@ -273,10 +284,11 @@ export function TemplatePicker({ selectedId, onSelect, cvId, compact = false }: 
                   )}
                 </button>
               );
-            })
+            })}
+            <CustomThemeOptions variant="row" activeId={activeId} onPick={pick} query={query} bare />
+            </>
           )}
           </div>
-          <CustomThemeOptions variant="row" activeId={activeId} onPick={pick} />
           <Link
             href={cvId != null ? `/mau-cv?cv=${cvId}` : "/mau-cv"}
             className="mt-2 flex w-full shrink-0 items-center justify-center gap-1.5 rounded-xl border border-border px-3 py-2 text-xs font-semibold text-foreground transition hover:border-primary/50 hover:text-primary"

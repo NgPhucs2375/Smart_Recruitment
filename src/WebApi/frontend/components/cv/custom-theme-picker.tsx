@@ -52,6 +52,8 @@ interface CustomThemeOptionsProps {
   onPick: (id: string) => void;
   /** Chuỗi tìm kiếm để lọc theo tên (picker grid). */
   query?: string;
+  /** Chế độ trần: chỉ render rows, không header/wrapper (để gộp chung list). */
+  bare?: boolean;
 }
 
 /** Mục Theme Studio trong picker: chỉ theme đã gạt Policy mới hiện. */
@@ -60,6 +62,7 @@ export function CustomThemeOptions({
   activeId,
   onPick,
   query = "",
+  bare = false,
 }: CustomThemeOptionsProps) {
   const themes = usePublishedThemes();
   const q = query.trim().toLowerCase();
@@ -72,6 +75,59 @@ export function CustomThemeOptions({
     : themes;
   if (visible.length === 0) return null;
 
+  if (bare) {
+    // Gộp chung list chính: trả rows trần, không header/wrapper.
+    return <>{visible.map((t) => rowButton(t))}</>;
+  }
+
+  function rowButton(t: (typeof visible)[number]) {
+    const isActive = activeId === t.id;
+    return (
+      <button
+        key={t.id}
+        type="button"
+        role="option"
+        aria-selected={isActive}
+        onClick={() => onPick(t.id)}
+        className={cn(
+          "template-card flex w-full items-center gap-3 rounded-xl border p-2.5 text-left",
+          isActive
+            ? "border-primary bg-primary/5"
+            : "border-transparent hover:border-border hover:bg-muted/60",
+        )}
+      >
+        <span
+          className="size-11 shrink-0 rounded-lg border border-border"
+          style={{
+            background: t.thumbnailGradient ?? t.colors.primary,
+          }}
+          aria-hidden="true"
+        />
+        <span className="min-w-0 flex-1">
+          <span className="flex items-center gap-1.5">
+            <span className="truncate text-sm font-semibold text-foreground">
+              {t.name}
+            </span>
+            <span className="shrink-0 rounded-full bg-teal/15 px-1.5 py-px text-[10px] font-semibold text-teal">
+              Studio
+            </span>
+          </span>
+          <span className="block truncate text-xs text-muted-foreground">
+            {(t.description ?? "").slice(0, 48) || "Theme tùy chỉnh"}
+          </span>
+        </span>
+        {isActive ? (
+          <Check
+            className="size-4 shrink-0 text-primary"
+            aria-hidden="true"
+          />
+        ) : (
+          <span className="size-4 shrink-0" aria-hidden="true" />
+        )}
+      </button>
+    );
+  }
+
   return (
     <div className={variant === "row" ? "mt-1" : "mt-4"}>
       <p className="px-1 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
@@ -79,53 +135,7 @@ export function CustomThemeOptions({
       </p>
       {variant === "row" ? (
         <div className="space-y-0.5">
-          {visible.map((t) => {
-            const isActive = activeId === t.id;
-            return (
-              <button
-                key={t.id}
-                type="button"
-                role="option"
-                aria-selected={isActive}
-                onClick={() => onPick(t.id)}
-                className={cn(
-                  "template-card flex w-full items-center gap-3 rounded-xl border p-2.5 text-left",
-                  isActive
-                    ? "border-primary bg-primary/5"
-                    : "border-transparent hover:border-border hover:bg-muted/60",
-                )}
-              >
-                <span
-                  className="size-11 shrink-0 rounded-lg border border-border"
-                  style={{
-                    background: t.thumbnailGradient ?? t.colors.primary,
-                  }}
-                  aria-hidden="true"
-                />
-                <span className="min-w-0 flex-1">
-                  <span className="flex items-center gap-1.5">
-                    <span className="truncate text-sm font-semibold text-foreground">
-                      {t.name}
-                    </span>
-                    <span className="shrink-0 rounded-full bg-teal/15 px-1.5 py-px text-[10px] font-semibold text-teal">
-                      Studio
-                    </span>
-                  </span>
-                  <span className="block truncate text-xs text-muted-foreground">
-                    {(t.description ?? "").slice(0, 48) || "Theme tùy chỉnh"}
-                  </span>
-                </span>
-                {isActive ? (
-                  <Check
-                    className="size-4 shrink-0 text-primary"
-                    aria-hidden="true"
-                  />
-                ) : (
-                  <span className="size-4 shrink-0" aria-hidden="true" />
-                )}
-              </button>
-            );
-          })}
+          {visible.map((t) => rowButton(t))}
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-3 min-[480px]:grid-cols-2">
