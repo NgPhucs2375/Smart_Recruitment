@@ -4,8 +4,8 @@ import { Mail, Phone, MapPin, Globe, Award, Briefcase } from "lucide-react";
 import type { ResumeTemplateProps } from "./shared";
 import { DateText, EmptyPaper, SectionShell, SplitBlocks, resolveBannerTitle3 } from "./shared";
 
-const WARM = "#ea580c";
-const CREAM = "#fff7ed";
+const WARM = "#1e3a8a";
+const CREAM = "#f8fafc";
 const INK = "#1f2937";
 const SUBTLE = "#6b7280";
 

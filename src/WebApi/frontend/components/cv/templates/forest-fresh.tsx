@@ -4,7 +4,7 @@ import { Mail, Phone, MapPin, Globe, Award, Briefcase } from "lucide-react";
 import type { ResumeTemplateProps } from "./shared";
 import { BannerSlot, DateText, EmptyPaper, SectionShell, SplitBlocks } from "./shared";
 
-const LEAF = "#16a34a";
+const LEAF = "#14532d";
 const LEAF_DARK = "#15803d";
 const INK = "#1c2420";
 const SUBTLE = "#5b6470";
@@ -126,8 +126,8 @@ export function ForestFreshTemplate({ data }: ResumeTemplateProps) {
               {data.skills.map((s) => (
                 <span
                   key={s.id}
-                  className="cv-section-item rounded-full px-3 py-1 text-[12px] font-semibold"
-                  style={{ color: LEAF_DARK, backgroundColor: "#f0fdf4", border: "1px solid #bbf7d0" }}
+                  className="cv-section-item border-b border-dashed pb-1 text-[12px] font-semibold"
+                  style={{ color: LEAF_DARK, borderColor: "#bbf7d0" }}
                 >
                   {s.name}
                 </span>

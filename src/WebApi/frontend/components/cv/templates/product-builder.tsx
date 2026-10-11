@@ -16,8 +16,8 @@ const SUBTLE = "var(--hire-subtle)";
 function Title({ children }: { children: React.ReactNode }) {
   return (
     <h2
-      className="mb-2 inline-block rounded-full px-3 py-1 text-[10.5px] font-bold uppercase tracking-[0.16em] text-white"
-      style={{ backgroundColor: NAVY }}
+      className="mb-2 border-b pb-1.5 text-[10.5px] font-bold uppercase tracking-[0.16em]"
+      style={{ color: NAVY, borderColor: "var(--hire-line)" }}
     >
       {children}
     </h2>

@@ -4,7 +4,7 @@ import { Mail, Phone, MapPin, Globe, Award, Briefcase } from "lucide-react";
 import type { ResumeTemplateProps } from "./shared";
 import { BannerSlot, DateText, EmptyPaper, SectionShell, SplitBlocks } from "./shared";
 
-const SEA = "#0284c7";
+const SEA = "#1e3a8a";
 const SEA_DARK = "#075985";
 const INK = "#1f2937";
 const SUBTLE = "#5b6470";
@@ -33,8 +33,8 @@ function SideTitle({ children }: { children: React.ReactNode }) {
 function MainTitle({ children }: { children: React.ReactNode }) {
   return (
     <h2
-      className="mb-2.5 border-b-4 border-double pb-1.5 text-[12px] font-bold uppercase tracking-[0.14em]"
-      style={{ color: SEA_DARK, borderColor: SEA, borderBottomLeftRadius: 6, borderBottomRightRadius: 6 }}
+      className="mb-2.5 border-b-2 pb-1.5 text-[12px] font-bold uppercase tracking-[0.14em]"
+      style={{ color: SEA_DARK, borderColor: SEA }}
     >
       {children}
     </h2>
@@ -76,7 +76,7 @@ export function OceanWaveTemplate({ data }: ResumeTemplateProps) {
                   {data.skills.map((s) => (
                     <span
                       key={s.id}
-                      className="rounded-full border border-white/70 bg-white/10 px-2.5 py-0.5 text-[12px] font-semibold text-white"
+                      className="text-[12px] font-semibold text-white/90"
                     >
                       {s.name}
                     </span>
