@@ -433,6 +433,34 @@ export function ThemeCanvas({ theme, data }: ThemeCanvasProps) {
     );
   };
 
+  const contactsInSidebar =
+    (theme.layout?.contactsPlacement ?? data.layout.contactsPlacement) === "sidebar" &&
+    structure !== "single" &&
+    data.contacts.length > 0;
+
+  /** Khối liên hệ dọc cho sidebar (mỗi dòng 1 contact, tự đảo màu nền tối). */
+  const contactsRail = (light: boolean) => (
+    <div style={{ display: "flex", flexDirection: "column", gap: "0.35em", fontSize: "0.85em" }}>
+      {data.contacts.map((c, i) => (
+        <span
+          key={`${c.label}-${i}`}
+          style={{
+            color: light ? "rgba(255,255,255,0.9)" : "var(--cv-muted)",
+            overflowWrap: "anywhere",
+          }}
+        >
+          {c.href ? (
+            <a href={c.href} style={{ textDecoration: "underline" }}>
+              {c.value}
+            </a>
+          ) : (
+            <span>{c.value}</span>
+          )}
+        </span>
+      ))}
+    </div>
+  );
+
   const header = (
     <header>
       {data.customTitle && (
@@ -467,7 +495,7 @@ export function ThemeCanvas({ theme, data }: ThemeCanvasProps) {
           {data.title}
         </p>
       )}
-      {data.contacts.length > 0 && (
+      {data.contacts.length > 0 && !contactsInSidebar && (
         <p
           style={{
             color: headDark ? "rgba(255,255,255,0.85)" : "var(--cv-muted)",
@@ -537,6 +565,7 @@ export function ThemeCanvas({ theme, data }: ThemeCanvasProps) {
                 gap: "var(--cv-section-gap)",
               }}
             >
+              {contactsInSidebar && contactsRail(sideDark)}
               {flow(railIds, sideDark)}
             </div>
             <div
@@ -578,6 +607,7 @@ export function ThemeCanvas({ theme, data }: ThemeCanvasProps) {
                 gap: "var(--cv-section-gap)",
               }}
             >
+              {contactsInSidebar && contactsRail(sideDark)}
               {flow(railIds, sideDark)}
             </div>
           </>

@@ -611,6 +611,31 @@ function StudioWorkbench() {
                   />
                 </div>
               )}
+              {(theme.structure === "sidebar-left" ||
+                theme.structure === "sidebar-right" ||
+                theme.structure === "banner-top") && (
+                <div className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2">
+                  <div className="text-sm">
+                    <p className="font-medium">Liên hệ ở sidebar</p>
+                    <p className="text-xs text-muted-foreground">
+                      Tắt = liên hệ nằm trên header
+                    </p>
+                  </div>
+                  <Switch
+                    id="theme-contacts-rail"
+                    checked={(theme.layout?.contactsPlacement ?? "header") === "sidebar"}
+                    onCheckedChange={(v) =>
+                      patch({
+                        layout: {
+                          ...theme.layout,
+                          contactsPlacement: v ? "sidebar" : "header",
+                        },
+                      })
+                    }
+                    aria-label="Liên hệ ở sidebar"
+                  />
+                </div>
+              )}
               <DndContext
                 sensors={sensors}
                 collisionDetection={closestCenter}

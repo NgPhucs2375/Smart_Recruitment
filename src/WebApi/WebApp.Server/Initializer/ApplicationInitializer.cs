@@ -45,6 +45,7 @@ namespace WebApp.Server.Initializer
                 await Infrastructure.Identity.Seeds.DefaultBasicUser.SeedAsync(userManager, roleManager, appContext);
                 await Infrastructure.Identity.Seeds.DefaultDemoData.SeedAsync(userManager, appContext);
                 await Infrastructure.Identity.Seeds.DefaultBulkTestAccounts.SeedAsync(userManager, appContext);
+                await Infrastructure.Identity.Seeds.DefaultCanvaThemeSeeds.SeedAsync(appContext);
 
                 if (env.IsDevelopment())
                 {

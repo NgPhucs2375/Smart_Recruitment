@@ -60,6 +60,28 @@ export interface CvZoneBackgrounds {
   mainBg: string;
 }
 
+/** Cấu hình ảnh đại diện trong ThemeCanvas (Task avatar). */
+export interface CvAvatarConfig {
+  /** Cho phép hiển thị avatar trong theme này hay không. */
+  visible: boolean;
+  /** circle = rounded-full | rounded = rounded-2xl | square = rounded-none. */
+  shape: "circle" | "rounded" | "square";
+  /** 80 | 100 | 120 (default 96). */
+  sizePx: number;
+  /** Có viền bao quanh hay không. */
+  hasBorder: boolean;
+  /** Màu viền theo token theme. */
+  borderColor?: "primary" | "secondary" | "white" | "muted";
+}
+
+export const DEFAULT_AVATAR_CONFIG: CvAvatarConfig = {
+  visible: true,
+  shape: "circle",
+  sizePx: 96,
+  hasBorder: false,
+  borderColor: "primary",
+};
+
 export interface CvPublishPolicy {
   /** Switch duyệt phát hành (audit gate: tên + sections + contrast). */
   policyApproved: boolean;
@@ -74,7 +96,7 @@ export interface CvPublishPolicy {
 }
 
 /** Danh mục theme (map DanhMuc DB) — hiển thị ở bảng quản trị. */
-export type ThemeCategory = "ats" | "developer" | "designer" | "business" | "all";
+export type ThemeCategory = "ats" | "developer" | "designer" | "business" | "creative" | "all";
 /** Cấp bậc mục tiêu (map CapBac DB) — hiển thị ở bảng quản trị. */
 export type ThemeLevel = "fresher" | "junior" | "senior" | "all";
 
@@ -83,6 +105,7 @@ export const THEME_CATEGORIES: { id: ThemeCategory; label: string }[] = [
   { id: "developer", label: "Developer" },
   { id: "designer", label: "Designer" },
   { id: "business", label: "Business" },
+  { id: "creative", label: "Sáng tạo" },
   { id: "all", label: "Tất cả" },
 ];
 
@@ -137,6 +160,8 @@ export interface CvThemeConfig {
   spacing: CvSpacingConfig;
   zones: CvZoneBackgrounds;
   policy: CvPublishPolicy;
+  /** Cấu hình avatar (optional để tương thích theme cũ). */
+  avatarConfig?: CvAvatarConfig;
 }
 
 export type { CvSectionId, ResumeLayoutConfig };

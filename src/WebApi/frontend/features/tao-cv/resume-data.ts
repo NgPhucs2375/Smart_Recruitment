@@ -32,6 +32,8 @@ export interface ResumeLayoutConfig {
   sections: Record<CvSectionId, SectionConfig>;
   /** Section nào vào sidebar khi theme dùng layout 2 cột (config từng theme). */
   sidebarSections?: CvSectionId[];
+  /** Khối liên hệ nằm ở header hay đầu sidebar (theme 2 cột). Mặc định header. */
+  contactsPlacement?: "header" | "sidebar";
 }
 
 /** Mặc định sidebar: liên hệ không có id riêng nên chỉ gồm skills + certificates. */
@@ -60,7 +62,7 @@ export function createDefaultLayoutConfig(): ResumeLayoutConfig {
   for (const id of DEFAULT_SECTION_ORDER) {
     sections[id] = { id, title: SECTION_TITLES[id], isVisible: true };
   }
-  return { sectionOrder: [...DEFAULT_SECTION_ORDER], sections, sidebarSections: [...DEFAULT_SIDEBAR_SECTIONS] };
+  return { sectionOrder: [...DEFAULT_SECTION_ORDER], sections, sidebarSections: [...DEFAULT_SIDEBAR_SECTIONS], contactsPlacement: "header" };
 }
 
 /** Chuẩn hóa config từ JSON/draft cũ: thiếu → default, id lạ → bỏ. */
@@ -90,7 +92,9 @@ export function normalizeLayoutConfig(raw: unknown): ResumeLayoutConfig {
     }
   }
   const sidebar = validSidebar(r.sidebarSections) ? [...r.sidebarSections] : [...DEFAULT_SIDEBAR_SECTIONS];
-  return { sectionOrder: merged, sections, sidebarSections: sidebar };
+  const rawPlacement = (r as { contactsPlacement?: unknown }).contactsPlacement;
+  const contactsPlacement = rawPlacement === "sidebar" ? "sidebar" : "header";
+  return { sectionOrder: merged, sections, sidebarSections: sidebar, contactsPlacement };
 }
 
 const validSidebar = (v: unknown): v is CvSectionId[] =>

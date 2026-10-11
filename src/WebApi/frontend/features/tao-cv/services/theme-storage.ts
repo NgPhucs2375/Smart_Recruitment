@@ -1,5 +1,6 @@
 import { createDefaultLayoutConfig, normalizeLayoutConfig } from "../resume-data";
 import { sanitizeCssColor } from "../validation";
+import { DEFAULT_AVATAR_CONFIG } from "../types/theme-studio";
 import type {
   CvColorPalette,
   CvSpacingConfig,
@@ -70,6 +71,7 @@ function seedTheme(
     spacing: { ...DEFAULT_SPACING },
     zones: { ...DEFAULT_ZONES },
     policy: { policyApproved: true, isPublished: true },
+    avatarConfig: { ...DEFAULT_AVATAR_CONFIG },
   };
 }
 
@@ -196,6 +198,7 @@ function normalizeTheme(t: CvThemeConfig): CvThemeConfig {
       policyApproved,
       isPublished: t.policy?.isPublished ?? policyApproved,
     },
+    avatarConfig: { ...DEFAULT_AVATAR_CONFIG, ...(t.avatarConfig ?? {}) },
   };
 }
 
@@ -242,6 +245,7 @@ export function newThemeDraft(name = ""): CvThemeConfig {
     spacing: { ...DEFAULT_SPACING },
     zones: { ...DEFAULT_ZONES },
     policy: { policyApproved: false, isPublished: true },
+    avatarConfig: { ...DEFAULT_AVATAR_CONFIG },
   };
 }
 
