@@ -21,10 +21,7 @@ import { StartupModernTemplate } from "@/components/cv/templates/startup-modern"
 import { ElegantSerifTemplate } from "@/components/cv/templates/elegant-serif";
 import { OceanWaveTemplate } from "@/components/cv/templates/ocean-wave";
 import { ForestFreshTemplate } from "@/components/cv/templates/forest-fresh";
-import { PastelStudioTemplate } from "@/components/cv/templates/pastel-studio";
 import { BentoGridTemplate } from "@/components/cv/templates/bento-grid";
-import { AuroraMeshTemplate } from "@/components/cv/templates/aurora-mesh";
-import { PopArtBoldTemplate } from "@/components/cv/templates/pop-art-bold";
 import { ZenMinimalTemplate } from "@/components/cv/templates/zen-minimal";
 import { SnapshotProTemplate } from "@/components/cv/templates/snapshot-pro";
 import { CarePlusTemplate } from "@/components/cv/templates/care-plus";
@@ -38,12 +35,9 @@ import { CulinarySignatureTemplate } from "@/components/cv/templates/culinary-si
 import { MonoPortfolioTemplate } from "@/components/cv/templates/mono-portfolio";
 import { KemMinimalTemplate } from "@/components/cv/templates/kem-minimal";
 import { BeigeEditorialTemplate } from "@/components/cv/templates/beige-editorial";
-import { NhiepAnhTemplate } from "@/components/cv/templates/nhiep-anh";
-import { MintGridTemplate } from "@/components/cv/templates/mint-grid";
 import { NhanSuRoyalTemplate } from "@/components/cv/templates/nhan-su-royal";
 import { DenMoodyTemplate } from "@/components/cv/templates/den-moody";
 import { DoHoaLimeTemplate } from "@/components/cv/templates/do-hoa-lime";
-import { ScrapbookVuiTemplate } from "@/components/cv/templates/scrapbook-vui";
 import { createElement } from "react";
 import { ThemeCanvas } from "@/features/tao-cv/components/theme-canvas";
 import { parseDbTheme } from "@/features/tao-cv/services/theme-db-sync";
@@ -424,16 +418,6 @@ export const TEMPLATE_REGISTRY: Record<string, ResumeTemplateMeta> = {
     columns: 1,
     categories: ["creative", "one-column"],
   },
-  "pastel-studio": {
-    id: "pastel-studio",
-    name: "Pastel Studio",
-    description: "Thẻ pastel bo tròn, avatar lớn cho ngành thẩm mỹ",
-    tags: ["Design", "UI", "UX", "Branding", "Portfolio"],
-    version: "1.0",
-    Component: PastelStudioTemplate,
-    columns: 2,
-    categories: ["creative", "two-column"],
-  },
   "bento-grid": {
     id: "bento-grid",
     name: "Bento Grid",
@@ -443,26 +427,6 @@ export const TEMPLATE_REGISTRY: Record<string, ResumeTemplateMeta> = {
     Component: BentoGridTemplate,
     columns: 2,
     categories: ["creative", "two-column"],
-  },
-  "aurora-mesh": {
-    id: "aurora-mesh",
-    name: "Aurora Mesh",
-    description: "Nền gradient loang futuristic cho startup và AI",
-    tags: ["Startup", "AI", "Product", "Đổi mới"],
-    version: "1.0",
-    Component: AuroraMeshTemplate,
-    columns: 1,
-    categories: ["creative", "one-column"],
-  },
-  "pop-art-bold": {
-    id: "pop-art-bold",
-    name: "Pop Art Bold",
-    description: "Khối màu pop-art, số liệu phóng to kiểu poster",
-    tags: ["Quảng cáo", "Event", "Sales", "Truyền thông"],
-    version: "1.0",
-    Component: PopArtBoldTemplate,
-    columns: 1,
-    categories: ["creative", "one-column"],
   },
   "zen-minimal": {
     id: "zen-minimal",
@@ -597,26 +561,6 @@ export const TEMPLATE_REGISTRY: Record<string, ResumeTemplateMeta> = {
     columns: 1,
     categories: ["corporate", "one-column"],
   },
-  "nhiep-anh": {
-    id: "nhiep-anh",
-    name: "Nhiếp Ảnh Cam",
-    description: "Portfolio nhiếp ảnh: header đen, sóng cam, chữ script vàng",
-    tags: ["Nhiếp ảnh", "Sáng tạo", "Portfolio"],
-    version: "1.0",
-    Component: NhiepAnhTemplate,
-    columns: 1,
-    categories: ["creative", "one-column"],
-  },
-  "mint-grid": {
-    id: "mint-grid",
-    name: "Lưới Mint",
-    description: "Nền giấy kẻ ô cam trên nền mint, monogram tròn",
-    tags: ["Tươi mới", "Thiết kế", "Sáng tạo"],
-    version: "1.0",
-    Component: MintGridTemplate,
-    columns: 1,
-    categories: ["creative", "one-column"],
-  },
   "nhan-su-royal": {
     id: "nhan-su-royal",
     name: "Nhân Sự Royal",
@@ -646,16 +590,6 @@ export const TEMPLATE_REGISTRY: Record<string, ResumeTemplateMeta> = {
     Component: DoHoaLimeTemplate,
     columns: 1,
     categories: ["creative", "one-column"],
-  },
-  "scrapbook-vui": {
-    id: "scrapbook-vui",
-    name: "Scrapbook Vui",
-    description: "Sổ tay collage: băng keo, kẹp giấy, checklist",
-    tags: ["Vui nhộn", "Sáng tạo", "Trẻ trung"],
-    version: "1.0",
-    Component: ScrapbookVuiTemplate,
-    columns: 1,
-    categories: ["creative", "fresher", "one-column"],
   },
 };
 

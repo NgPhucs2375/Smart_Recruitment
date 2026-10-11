@@ -245,9 +245,6 @@ html {
   /* Serif CV (Merriweather subset vietnamese, nạp qua next/font) + Georgia
      fallback khi offline. class font-serif toàn app ăn token này. */
   --font-serif: var(--font-serif), Georgia, "Times New Roman", serif;
-  /* Script CV (Dancing Script subset vietnamese, nạp qua next/font).
-     class font-script dùng cho tên viết tay nghệ thuật. */
-  --font-script: var(--font-script), "Segoe Script", cursive;
   --color-chart-5: var(--chart-5);
   --color-chart-4: var(--chart-4);
   --color-chart-3: var(--chart-3);
