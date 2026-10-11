@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Suspense } from "react";
-import { Be_Vietnam_Pro, JetBrains_Mono, Merriweather } from "next/font/google";
+import { Be_Vietnam_Pro, Dancing_Script, JetBrains_Mono, Merriweather } from "next/font/google";
 import { Providers } from "@/components/providers";
 import "./globals.css";
 
@@ -27,6 +27,15 @@ const serif = Merriweather({
   weight: ["400", "700", "900"],
   subsets: ["latin", "vietnamese"],
   variable: "--font-serif",
+  display: "swap",
+});
+
+// Dancing Script: chữ viết tay cho tên CV nghệ thuật (mẫu nhiếp ảnh).
+// Có subset vietnamese nên dấu tiếng Việt không vỡ.
+const script = Dancing_Script({
+  weight: ["600", "700"],
+  subsets: ["latin", "vietnamese"],
+  variable: "--font-script",
   display: "swap",
 });
 
@@ -72,7 +81,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="vi" suppressHydrationWarning className={`${sans.variable} ${mono.variable} ${serif.variable}`}>
+    <html lang="vi" suppressHydrationWarning className={`${sans.variable} ${mono.variable} ${serif.variable} ${script.variable}`}>
       <body className="antialiased">
         <a
           href="#main-content"

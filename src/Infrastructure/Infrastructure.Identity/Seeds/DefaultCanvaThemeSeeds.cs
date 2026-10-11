@@ -174,6 +174,25 @@ namespace Infrastructure.Identity.Seeds
             {
                 await appContext.CvThemes.AddAsync(theme);
             }
+            // Ẩn 7 seeds Studio cũ (bản vẽ tay mới thay thế, tránh gallery trùng):
+            // rows giữ nguyên cho CV cũ, chỉ tắt hiển thị.
+            var legacySlugs = new[]
+            {
+                "canva-corporate-navy",
+                "canva-minimal-monochrome",
+                "canva-clean-slate",
+                "canva-blue-gold-designer",
+                "canva-executive-banner",
+                "canva-darkroom-creative",
+                "canva-editorial-classic",
+            };
+            var legacyRows = appContext.CvThemes
+                .Where(x => legacySlugs.Contains(x.Slug) && x.IsActive)
+                .ToList();
+            foreach (var row in legacyRows)
+            {
+                row.IsActive = false;
+            }
             await appContext.SaveChangesAsync();
         }
     }

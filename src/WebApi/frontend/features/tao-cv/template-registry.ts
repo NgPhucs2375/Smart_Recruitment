@@ -35,6 +35,9 @@ import { ArchiPortfolioTemplate } from "@/components/cv/templates/archi-portfoli
 import { LegalPrestigeTemplate } from "@/components/cv/templates/legal-prestige";
 import { ResearchScholarTemplate } from "@/components/cv/templates/research-scholar";
 import { CulinarySignatureTemplate } from "@/components/cv/templates/culinary-signature";
+import { MonoPortfolioTemplate } from "@/components/cv/templates/mono-portfolio";
+import { KemMinimalTemplate } from "@/components/cv/templates/kem-minimal";
+import { BeigeEditorialTemplate } from "@/components/cv/templates/beige-editorial";
 import { createElement } from "react";
 import { ThemeCanvas } from "@/features/tao-cv/components/theme-canvas";
 import { parseDbTheme } from "@/features/tao-cv/services/theme-db-sync";
@@ -557,6 +560,36 @@ export const TEMPLATE_REGISTRY: Record<string, ResumeTemplateMeta> = {
     Component: CulinarySignatureTemplate,
     columns: 1,
     categories: ["creative", "one-column"],
+  },
+  "mono-portfolio": {
+    id: "mono-portfolio",
+    name: "Portfolio Đơn Sắc",
+    description: "Đen trắng tối giản kiểu portfolio cá nhân",
+    tags: ["Đen trắng", "Portfolio", "Tối giản"],
+    version: "1.0",
+    Component: MonoPortfolioTemplate,
+    columns: 1,
+    categories: ["creative", "one-column"],
+  },
+  "kem-minimal": {
+    id: "kem-minimal",
+    name: "Tối Giản Kem",
+    description: "Nền kem thanh lịch, căn giữa tối giản",
+    tags: ["Tối giản", "Thanh lịch", "Nhẹ nhàng"],
+    version: "1.0",
+    Component: KemMinimalTemplate,
+    columns: 1,
+    categories: ["corporate", "one-column"],
+  },
+  "beige-editorial": {
+    id: "beige-editorial",
+    name: "Editorial Be",
+    description: "Phong cách báo chí, khung viền rõ ràng",
+    tags: ["Báo chí", "Thanh lịch", "Khung viền"],
+    version: "1.0",
+    Component: BeigeEditorialTemplate,
+    columns: 1,
+    categories: ["corporate", "one-column"],
   },
 };
 
