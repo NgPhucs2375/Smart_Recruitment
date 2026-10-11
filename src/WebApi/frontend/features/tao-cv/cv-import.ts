@@ -132,6 +132,10 @@ export function normalizeResumeData(raw: unknown): Partial<CvFormData> | null {
       str(info, ["gioiThieuBanThan"]) ||
       str(personal, ["summary"]) ||
       str(raw, ["summary", "gioiThieuBanThan"]),
+    anhDaiDienUrl:
+      str(info, ["anhDaiDienUrl"]) ||
+      str(personal, ["avatarUrl", "photo", "image"]) ||
+      str(raw, ["avatarUrl", "photo", "image"]),
   };
 
   const expSrc: unknown[] = Array.isArray(raw.kinhNghiemLamViec)

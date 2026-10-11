@@ -9,6 +9,7 @@ import type {
   DividerStyle,
   HeadingVariant,
 } from "../types/theme-studio";
+import { DEFAULT_AVATAR_CONFIG } from "../types/theme-studio";
 import { isDarkBackground } from "../theme-contrast";
 import { ThemeRuntimeProvider } from "./theme-runtime-provider";
 
@@ -461,8 +462,49 @@ export function ThemeCanvas({ theme, data }: ThemeCanvasProps) {
     </div>
   );
 
+  const avatarCfg = { ...DEFAULT_AVATAR_CONFIG, ...(theme.avatarConfig ?? {}) };
+  const showAvatar = avatarCfg.visible && !!data.avatarUrl?.trim();
+  const avatarBorderColor =
+    avatarCfg.borderColor === "white"
+      ? "#fff"
+      : avatarCfg.borderColor === "secondary"
+        ? "var(--cv-secondary)"
+        : avatarCfg.borderColor === "muted"
+          ? "var(--cv-muted)"
+          : "var(--cv-primary)";
+  const avatar = showAvatar ? (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={data.avatarUrl}
+      alt={`Ảnh đại diện ${data.name || ""}`.trim() || "Ảnh đại diện"}
+      style={{
+        width: avatarCfg.sizePx,
+        height: avatarCfg.sizePx,
+        objectFit: "cover",
+        flexShrink: 0,
+        borderRadius:
+          avatarCfg.shape === "circle"
+            ? "50%"
+            : avatarCfg.shape === "rounded"
+              ? "1rem"
+              : "0.25rem",
+        border: avatarCfg.hasBorder
+          ? `3px solid ${avatarBorderColor}`
+          : undefined,
+      }}
+    />
+  ) : null;
+
   const header = (
-    <header>
+    <header
+      style={
+        showAvatar
+          ? { display: "flex", gap: "1em", alignItems: "center" }
+          : undefined
+      }
+    >
+      {avatar}
+      <div className="min-w-0">
       {data.customTitle && (
         <p
           style={{
@@ -517,6 +559,7 @@ export function ThemeCanvas({ theme, data }: ThemeCanvasProps) {
           ))}
         </p>
       )}
+      </div>
     </header>
   );
 

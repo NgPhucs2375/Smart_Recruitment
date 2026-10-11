@@ -2,11 +2,30 @@ import { flushSync } from "react-dom";
 import { createRoot, type Root } from "react-dom/client";
 import { CvDocument } from "@/components/cv/cv-document";
 import type { CvFormData } from "@/lib/types";
+import { getPublishedThemes } from "@/features/tao-cv/services/theme-storage";
+import { fetchDbThemes } from "@/features/tao-cv/services/theme-db-sync";
 import { manualCvPdfFileName } from "./manual-cv-pdf";
 
 /** Print a snapshot of the working copy, independently of saved files and UI tabs. */
 export async function printManualCv(data: CvFormData): Promise<void> {
   const snapshot = structuredClone(data);
+  // Theme Studio custom (kèm avatar): local trước, DB sau (timeout ngắn).
+  // Rớt mạng/chậm -> null, CvDocument fallback registry như cũ.
+  let customTheme =
+    getPublishedThemes().find((t) => t.id === snapshot.templateId) ?? null;
+  if (!customTheme) {
+    try {
+      const db = await Promise.race([
+        fetchDbThemes(),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error("theme timeout")), 3000),
+        ),
+      ]);
+      customTheme = db.find((t) => t.id === snapshot.templateId) ?? null;
+    } catch {
+      customTheme = null;
+    }
+  }
   const frame = document.createElement("iframe");
   frame.title = "Xuất CV thành PDF";
   frame.setAttribute("aria-hidden", "true");
@@ -69,7 +88,7 @@ export async function printManualCv(data: CvFormData): Promise<void> {
 
     let renderError: unknown;
     root = createRoot(host, { onUncaughtError: (error) => { renderError = error; } });
-    flushSync(() => root!.render(<CvDocument data={snapshot} />));
+    flushSync(() => root!.render(<CvDocument data={snapshot} customTheme={customTheme} />));
 
     let readyTimer: ReturnType<typeof setTimeout> | undefined;
     try {

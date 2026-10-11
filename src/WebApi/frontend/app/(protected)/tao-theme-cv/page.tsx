@@ -80,6 +80,7 @@ import type {
   ThemeLevel,
 } from "@/features/tao-cv/types/theme-studio";
 import {
+  DEFAULT_AVATAR_CONFIG,
   THEME_CATEGORIES,
   THEME_LEVELS,
   slugifyThemeName,
@@ -136,6 +137,7 @@ function dummyResume(): ResumeData {
   return {
     name: "Nguyễn Văn An",
     title: "Fullstack Developer",
+    avatarUrl: "/avatar-placeholder.svg",
     summary: "Lập trình viên 3 năm kinh nghiệm React, Node.js và PostgreSQL.",
     contacts: [
       { label: "Email", value: "an.nguyen@email.com" },
@@ -636,6 +638,149 @@ function StudioWorkbench() {
                   />
                 </div>
               )}
+              <div className="space-y-2 rounded-lg border border-border p-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="text-sm">
+                    <p className="font-medium">Ảnh đại diện</p>
+                    <p className="text-xs text-muted-foreground">
+                      Hiện avatar ứng viên trên theme này
+                    </p>
+                  </div>
+                  <Switch
+                    id="theme-avatar-visible"
+                    checked={theme.avatarConfig?.visible ?? true}
+                    onCheckedChange={(v) =>
+                      patch({
+                        avatarConfig: {
+                          ...DEFAULT_AVATAR_CONFIG,
+                          ...(theme.avatarConfig ?? {}),
+                          visible: v === true,
+                        },
+                      })
+                    }
+                    aria-label="Hiện ảnh đại diện"
+                  />
+                </div>
+                {(theme.avatarConfig?.visible ?? true) && (
+                  <>
+                    <div>
+                      <p className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                        Kiểu dáng
+                      </p>
+                      <div className="grid grid-cols-3 gap-1.5">
+                        {(
+                          [
+                            ["circle", "Tròn"],
+                            ["rounded", "Bo góc"],
+                            ["square", "Vuông"],
+                          ] as const
+                        ).map(([v, label]) => (
+                          <button
+                            key={v}
+                            type="button"
+                            onClick={() =>
+                              patch({
+                                avatarConfig: {
+                                  ...DEFAULT_AVATAR_CONFIG,
+                                  ...(theme.avatarConfig ?? {}),
+                                  shape: v,
+                                },
+                              })
+                            }
+                            aria-pressed={(theme.avatarConfig?.shape ?? "circle") === v}
+                            className={cn(
+                              "rounded-lg border px-2 py-1.5 text-xs font-medium transition",
+                              (theme.avatarConfig?.shape ?? "circle") === v
+                                ? "border-primary bg-primary/5 text-foreground"
+                                : "border-border text-muted-foreground hover:border-primary/40 hover:text-foreground",
+                            )}
+                          >
+                            {label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="mb-1 flex items-center justify-between">
+                        <Label className="text-xs">Kích thước</Label>
+                        <span className="font-mono text-[11px] text-muted-foreground">
+                          {theme.avatarConfig?.sizePx ?? 96}px
+                        </span>
+                      </div>
+                      <input
+                        type="range"
+                        min={80}
+                        max={120}
+                        step={4}
+                        value={theme.avatarConfig?.sizePx ?? 96}
+                        onChange={(e) =>
+                          patch({
+                            avatarConfig: {
+                              ...DEFAULT_AVATAR_CONFIG,
+                              ...(theme.avatarConfig ?? {}),
+                              sizePx: Number(e.target.value),
+                            },
+                          })
+                        }
+                        className="w-full accent-primary"
+                        aria-label="Kích thước avatar"
+                      />
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <Label className="text-xs">Viền bao quanh</Label>
+                      <Switch
+                        id="theme-avatar-border"
+                        checked={theme.avatarConfig?.hasBorder ?? false}
+                        onCheckedChange={(v) =>
+                          patch({
+                            avatarConfig: {
+                              ...DEFAULT_AVATAR_CONFIG,
+                              ...(theme.avatarConfig ?? {}),
+                              hasBorder: v === true,
+                            },
+                          })
+                        }
+                        aria-label="Viền avatar"
+                      />
+                    </div>
+                    {theme.avatarConfig?.hasBorder && (
+                      <div className="grid grid-cols-4 gap-1.5">
+                        {(
+                          [
+                            ["primary", "Chính"],
+                            ["secondary", "Phụ"],
+                            ["white", "Trắng"],
+                            ["muted", "Mờ"],
+                          ] as const
+                        ).map(([v, label]) => (
+                          <button
+                            key={v}
+                            type="button"
+                            onClick={() =>
+                              patch({
+                                avatarConfig: {
+                                  ...DEFAULT_AVATAR_CONFIG,
+                                  ...(theme.avatarConfig ?? {}),
+                                  borderColor: v,
+                                },
+                              })
+                            }
+                            aria-pressed={(theme.avatarConfig?.borderColor ?? "primary") === v}
+                            className={cn(
+                              "rounded-lg border px-2 py-1.5 text-xs font-medium transition",
+                              (theme.avatarConfig?.borderColor ?? "primary") === v
+                                ? "border-primary bg-primary/5 text-foreground"
+                                : "border-border text-muted-foreground hover:border-primary/40 hover:text-foreground",
+                            )}
+                          >
+                            {label}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
               <DndContext
                 sensors={sensors}
                 collisionDetection={closestCenter}

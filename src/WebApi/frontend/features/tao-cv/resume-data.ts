@@ -155,6 +155,8 @@ export type ResumeCertificate = {
 export type ResumeData = {
   name: string;
   title?: string;
+  /** URL ảnh đại diện (proxy HoSo hoặc placeholder local). Trống = không render. */
+  avatarUrl?: string;
   /** B4-title: override banner trang trí (VD "Thực đơn nghề nghiệp").
       Trống = template dùng literal mặc định của nó. Additive, không vỡ cũ. */
   customTitle?: string;
@@ -202,6 +204,7 @@ export function toResumeData(data: CvFormData): ResumeData {
   const lh = data.thongTinLienHe;
   const layout = normalizeLayoutConfig(data.layoutConfig);
   const visible = (id: CvSectionId): boolean => layout.sections[id]?.isVisible !== false;
+  const avatarUrl = lh.anhDaiDienUrl?.trim() || undefined;
 
   const contacts: ResumeContact[] = [];
   if (lh.email) contacts.push({ label: "Email", value: lh.email, href: asLink(lh.email) });
@@ -289,6 +292,7 @@ export function toResumeData(data: CvFormData): ResumeData {
     name: lh.hoTen,
     title: lh.viTriUngTuyen || undefined,
     customTitle: data.tieuDeHienThi?.trim() || undefined,
+    avatarUrl,
     summary: visible("summary") ? lh.gioiThieuBanThan || undefined : undefined,
     contacts,
     experience,

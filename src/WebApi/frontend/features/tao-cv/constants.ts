@@ -42,6 +42,7 @@ export const defaultCvData: CvFormData = {
     viTriUngTuyen: "",
     mucLuongMongMuon: "",
     gioiThieuBanThan: "",
+    anhDaiDienUrl: "",
   },
   hocVan: [],
   kinhNghiemLamViec: [],

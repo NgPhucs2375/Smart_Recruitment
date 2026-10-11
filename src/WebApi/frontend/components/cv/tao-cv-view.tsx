@@ -1171,7 +1171,7 @@ export function TaoCvView() {
             <div data-scroll-target="templates">
               <TemplatePicker selectedId={cvData.templateId} onSelect={selectTemplate} cvId={selectedId} />
             </div>
-            <CvForm data={cvData} onChange={setCvData} />
+            <CvForm data={cvData} onChange={setCvData} hoSoId={hoSo?.id ?? null} />
           </TabsContent>
           <TabsContent value="preview" className="mt-4">
             <div className="sticky top-20 rounded-[1.35rem] border border-border bg-muted p-3">
@@ -1212,7 +1212,7 @@ export function TaoCvView() {
               <div data-scroll-target="templates">
                 <TemplatePicker selectedId={cvData.templateId} onSelect={selectTemplate} cvId={selectedId} />
               </div>
-              <CvForm data={cvData} onChange={setCvData} />
+              <CvForm data={cvData} onChange={setCvData} hoSoId={hoSo?.id ?? null} />
             </div>
           </div>
 

@@ -58,12 +58,16 @@ import {
   parseCvPartialDate,
 } from "@/features/tao-cv/cv-data";
 import { focusCvSectionsInDom, getCvFocusEventName, type CvFocusSection } from "@/features/ai-cv/cv-focus";
+import { toast } from "sonner";
+import { avatarProxyUrl, hoSoApi } from "@/lib/api/cv-api";
 
 interface CvFormProps {
   data: CvFormData;
   onChange: (data: CvFormData) => void;
   /** Hook AI backend cho nút "Viết chuẩn Harvard". Không truyền = mockup vô hiệu hóa nhẹ. */
   onAiRewrite?: (text: string, field: string) => void;
+  /** Id hồ sơ để upload avatar (dùng chung ảnh hồ sơ). Null = chưa có hồ sơ. */
+  hoSoId?: number | null;
 }
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
@@ -233,7 +237,7 @@ function QuickActionBar({
   );
 }
 
-export function CvForm({ data, onChange, onAiRewrite }: CvFormProps) {
+export function CvForm({ data, onChange, onAiRewrite, hoSoId }: CvFormProps) {
   const lh = data.thongTinLienHe;
   // Inline errors nhóm contact + URL (trống = chưa gõ, không báo).
   const emailErr = lh.email.trim() && !isValidEmail(lh.email) ? MSG_EMAIL : null;
@@ -263,6 +267,36 @@ export function CvForm({ data, onChange, onAiRewrite }: CvFormProps) {
   }, []);
   const setLienHe = (field: keyof LienHe, value: string) =>
     onChange({ ...data, thongTinLienHe: { ...lh, [field]: value } });
+
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+
+  /** Upload avatar dùng chung ảnh hồ sơ (JPG/PNG/WEBP/GIF ≤ 5MB). */
+  const handleAvatarFile = async (file: File | undefined | null) => {
+    if (!file) return;
+    if (!["image/jpeg", "image/png", "image/webp", "image/gif"].includes(file.type)) {
+      toast.error("Chỉ hỗ trợ ảnh JPG, PNG, WEBP hoặc GIF.");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Ảnh quá lớn, vui lòng chọn ảnh dưới 5MB.");
+      return;
+    }
+    if (hoSoId == null) {
+      toast.error("Cần có hồ sơ ứng viên trước khi tải ảnh đại diện.");
+      return;
+    }
+    setUploadingAvatar(true);
+    try {
+      const key = await hoSoApi.uploadAvatar(hoSoId, file);
+      setLienHe("anhDaiDienUrl", avatarProxyUrl(hoSoId, key));
+      toast.success("Đã tải ảnh đại diện (dùng chung với hồ sơ).");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Tải ảnh thất bại.");
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
 
   type ListKey = "hocVan" | "kinhNghiemLamViec" | "duAn" | "kyNang" | "chungChi";
 
@@ -411,6 +445,53 @@ export function CvForm({ data, onChange, onAiRewrite }: CvFormProps) {
       <div id="cv-section-contact" data-cv-section="contact" className="cv-form-card">
         <SectionTitle>Thông tin liên hệ</SectionTitle>
         <div data-slot="card-content" style={{ padding: "1rem" }}>
+          <div style={{ display: "flex", gap: "1rem", alignItems: "center", marginBottom: "1rem" }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={lh.anhDaiDienUrl?.trim() || "/avatar-placeholder.svg"}
+              alt="Ảnh đại diện"
+              className="size-20 shrink-0 rounded-full border border-border object-cover"
+            />
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium">Ảnh đại diện</p>
+              <p className="text-xs text-muted-foreground">
+                JPG/PNG/WEBP/GIF ≤ 5MB. Ảnh dùng chung với hồ sơ ứng viên.
+              </p>
+              <div className="mt-1.5 flex flex-wrap gap-2">
+                <input
+                  ref={avatarInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/gif"
+                  className="hidden"
+                  onChange={(e) => {
+                    void handleAvatarFile(e.target.files?.[0]);
+                    e.target.value = "";
+                  }}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={uploadingAvatar}
+                  onClick={() => avatarInputRef.current?.click()}
+                  title={hoSoId == null ? "Cần có hồ sơ ứng viên trước" : undefined}
+                >
+                  {uploadingAvatar ? "Đang tải…" : "Tải ảnh lên"}
+                </Button>
+                {lh.anhDaiDienUrl?.trim() && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="text-muted-foreground hover:text-destructive"
+                    onClick={() => setLienHe("anhDaiDienUrl", "")}
+                  >
+                    Gỡ ảnh khỏi CV
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
           <div style={{ marginBottom: "1rem" }}>
             <label style={{ display: "block", marginBottom: "0.5rem" }}>Họ và tên <span className="cv-required">*</span></label>
             <Input value={lh.hoTen} onChange={(e) => setLienHe("hoTen", e.target.value)} placeholder="Nguyễn Văn An" />
