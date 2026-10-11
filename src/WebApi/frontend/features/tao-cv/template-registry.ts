@@ -39,6 +39,9 @@ import { CanvaCorporateNavyTemplate } from "@/components/cv/templates/canva-corp
 import { CanvaMinimalMonochromeTemplate } from "@/components/cv/templates/canva-minimal-monochrome";
 import { CanvaCleanSlateTemplate } from "@/components/cv/templates/canva-clean-slate";
 import { CanvaBlueGoldDesignerTemplate } from "@/components/cv/templates/canva-blue-gold-designer";
+import { CanvaExecutiveBannerTemplate } from "@/components/cv/templates/canva-executive-banner";
+import { CanvaDarkroomCreativeTemplate } from "@/components/cv/templates/canva-darkroom-creative";
+import { CanvaEditorialClassicTemplate } from "@/components/cv/templates/canva-editorial-classic";
 import { NhanSuRoyalTemplate } from "@/components/cv/templates/nhan-su-royal";
 import { DenMoodyTemplate } from "@/components/cv/templates/den-moody";
 import { DoHoaLimeTemplate } from "@/components/cv/templates/do-hoa-lime";
@@ -604,6 +607,36 @@ export const TEMPLATE_REGISTRY: Record<string, ResumeTemplateMeta> = {
     Component: CanvaBlueGoldDesignerTemplate,
     columns: 2,
     categories: ["corporate", "creative", "two-column"],
+  },
+  "canva-executive-banner": {
+    id: "canva-executive-banner",
+    name: "Banner Xanh",
+    description: "Banner ngang xanh sẫm tràn viền, 2 cột thoáng",
+    tags: ["Banner", "Xanh", "Senior"],
+    version: "1.0",
+    Component: CanvaExecutiveBannerTemplate,
+    columns: 2,
+    categories: ["corporate", "senior", "two-column"],
+  },
+  "canva-darkroom-creative": {
+    id: "canva-darkroom-creative",
+    name: "Than Chì Sáng Tạo",
+    description: "Sidebar than chì chữ trắng, dải chữ dọc tinh tế",
+    tags: ["Tối", "Sáng tạo", "Tương phản"],
+    version: "1.0",
+    Component: CanvaDarkroomCreativeTemplate,
+    columns: 2,
+    categories: ["creative", "two-column"],
+  },
+  "canva-editorial-classic": {
+    id: "canva-editorial-classic",
+    name: "Editorial Cổ Điển",
+    description: "Serif sang trọng, phân cách bằng khoảng trắng",
+    tags: ["Serif", "Báo chí", "Thanh lịch"],
+    version: "1.0",
+    Component: CanvaEditorialClassicTemplate,
+    columns: 1,
+    categories: ["ats", "senior", "one-column"],
   },
   "nhan-su-royal": {
     id: "nhan-su-royal",

@@ -174,24 +174,62 @@ namespace Infrastructure.Identity.Seeds
             {
                 await appContext.CvThemes.AddAsync(theme);
             }
-            // Ẩn 7 seeds Studio cũ (bản vẽ tay mới thay thế, tránh gallery trùng):
-            // rows giữ nguyên cho CV cũ, chỉ tắt hiển thị.
-            var legacySlugs = new[]
+            // Rows quản trị cho 6 mẫu vẽ tay (render tĩnh, CauHinhJson null):
+            // bảng admin xem/ẩn/xóa được; gallery lấy component tĩnh.
+            var bespoke = new (string Slug, string Ten, string MoTa, string DanhMuc, string CapBac, int SoCot, bool Ats, string Mau, int ThuTu)[]
             {
-                "canva-corporate-navy",
-                "canva-minimal-monochrome",
-                "canva-clean-slate",
-                "canva-blue-gold-designer",
-                "canva-executive-banner",
-                "canva-darkroom-creative",
-                "canva-editorial-classic",
+                ("mono-portfolio", "Portfolio Đơn Sắc", "Đen trắng tối giản kiểu portfolio cá nhân", "creative", "all", 1, false, "#111111", 52),
+                ("kem-minimal", "Tối Giản Kem", "Nền kem thanh lịch, căn giữa tối giản", "corporate", "all", 1, false, "#78716c", 53),
+                ("beige-editorial", "Editorial Be", "Phong cách báo chí, khung viền rõ ràng", "corporate", "all", 1, false, "#292524", 54),
+                ("nhan-su-royal", "Nhân Sự Royal", "Xanh hoàng gia cho HR, photo blob, sóng footer", "corporate", "all", 1, false, "#1d4ed8", 55),
+                ("den-moody", "Đen Moody", "Cột đen ảnh duotone tương phản cột sáng", "creative", "all", 1, false, "#1c1917", 56),
+                ("do-hoa-lime", "Đồ Họa Lime", "Sidebar xanh dương, quote lime nổi bật", "creative", "all", 1, false, "#1d4ed8", 57),
             };
-            var legacyRows = appContext.CvThemes
-                .Where(x => legacySlugs.Contains(x.Slug) && x.IsActive)
-                .ToList();
-            foreach (var row in legacyRows)
+            foreach (var b in bespoke)
             {
-                row.IsActive = false;
+                if (appContext.CvThemes.Any(x => x.Slug == b.Slug)) continue;
+                await appContext.CvThemes.AddAsync(new CvTheme
+                {
+                    Slug = b.Slug,
+                    Ten = b.Ten,
+                    MoTa = b.MoTa,
+                    DanhMuc = b.DanhMuc,
+                    CapBac = b.CapBac,
+                    Tags = "Studio,Vẽ tay",
+                    PhongCachThietKe = "static",
+                    SoCot = b.SoCot,
+                    ThanThienATS = b.Ats,
+                    MauSacChuDao = b.Mau,
+                    IsActive = true,
+                    ThuTu = b.ThuTu,
+                    CauHinhJson = null,
+                    Created = new DateTime(2026, 10, 11, 0, 0, 0, DateTimeKind.Utc),
+                    CreatedBy = "system",
+                });
+            }
+            // 7 mẫu vẽ tay thay thế bản Studio cũ: dùng đúng slug cũ (link
+            // không gãy, rows giữ nguyên cho CV cũ), render bằng component
+            // tĩnh -> bật hiển thị, null CauHinhJson Studio, tên Việt.
+            var canvaNames = new System.Collections.Generic.Dictionary<string, (string Ten, string MoTa)>
+            {
+                ["canva-corporate-navy"] = ("Navy Công Sở", "2 cột thanh lịch, sidebar khói tràn viền, avatar tròn"),
+                ["canva-minimal-monochrome"] = ("Đơn Sắc ATS", "Đen trắng tinh tế 1 cột, line mảnh, chuẩn máy quét"),
+                ["canva-clean-slate"] = ("Slate Sạch", "Sidebar phải slate nhẹ, tag phẳng thoáng đãng"),
+                ["canva-blue-gold-designer"] = ("Xanh Vàng Executive", "Navy sang trọng nhấn line vàng gold mảnh"),
+                ["canva-executive-banner"] = ("Banner Xanh", "Banner ngang xanh sẫm tràn viền, 2 cột thoáng"),
+                ["canva-darkroom-creative"] = ("Than Chì Sáng Tạo", "Sidebar than chì chữ trắng, dải chữ dọc tinh tế"),
+                ["canva-editorial-classic"] = ("Editorial Cổ Điển", "Serif sang trọng, phân cách bằng khoảng trắng"),
+            };
+            var canvaRows = appContext.CvThemes
+                .Where(x => canvaNames.Keys.Contains(x.Slug))
+                .ToList();
+            foreach (var row in canvaRows)
+            {
+                var meta = canvaNames[row.Slug];
+                row.Ten = meta.Ten;
+                row.MoTa = meta.MoTa;
+                row.CauHinhJson = null;
+                row.IsActive = true;
             }
             await appContext.SaveChangesAsync();
         }
