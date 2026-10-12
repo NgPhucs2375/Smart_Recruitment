@@ -2,7 +2,9 @@
 
 import { useApiUrl, useCustom, useCustomMutation, useGetIdentity } from "@refinedev/core";
 import { useState, useEffect, useRef } from "react";
-import { Bell, CheckCheck, AlertTriangle, Zap, Info, TrendingUp, ClipboardList, CheckCircle2, XCircle } from "lucide-react";
+import { Bell, CheckCheck, ArrowRight } from "lucide-react";
+import Link from "next/link";
+import { toast } from "sonner";
 import * as signalR from "@microsoft/signalr";
 import {
   DropdownMenu,
@@ -15,62 +17,14 @@ import { cn } from "@/lib/utils";
 import { getValidToken } from "@/lib/auth-provider";
 import { useRouter } from "next/navigation";
 import { notificationTarget } from "@/features/notifications/notification-target";
-
-interface NotificationDto {
-  id: number;
-  message: string;
-  type: number; // 0=Info 1=SlaWarning 2=Escalation 3=AutoApproved 4=AssignedForReview 5=Approved 6=Rejected
-  isRead: boolean;
-  invoiceId?: number | null;
-  approverGroup?: string | null;
-  created: string;
-  referenceType?: string | null;
-  referenceId?: number | null;
-  jobId?: number | null;
-  inviteToken?: string | null;
-}
-
-interface NotificationsVm {
-  notifications: NotificationDto[];
-  unreadCount: number;
-}
-
-const TYPE_META: Record<number, { icon: React.ReactNode; color: string }> = {
-  0: { icon: <Info className="h-3.5 w-3.5" />,            color: "text-blue-500"   },
-  1: { icon: <AlertTriangle className="h-3.5 w-3.5" />,   color: "text-yellow-500" },
-  2: { icon: <Zap className="h-3.5 w-3.5" />,             color: "text-red-500"    },
-  3: { icon: <TrendingUp className="h-3.5 w-3.5" />,      color: "text-green-500"  },
-  4: { icon: <ClipboardList className="h-3.5 w-3.5" />,   color: "text-purple-500" }, // AssignedForReview
-  5: { icon: <CheckCircle2 className="h-3.5 w-3.5" />,    color: "text-emerald-500"}, // Approved
-  6: { icon: <XCircle className="h-3.5 w-3.5" />,         color: "text-rose-500"   }, // Rejected
-};
-
-function fmt(iso: string) {
-  const d = new Date(iso);
-  const diff = Date.now() - d.getTime();
-  if (diff < 60_000)   return "Vừa xong";
-  if (diff < 3600_000) return `${Math.floor(diff / 60_000)} phút trước`;
-  return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-}
-
-// BE trả JSON PascalCase ({ Notifications, UnreadCount }, item { Id, Message, ... }) —
-// bóc tách cả hai dạng casing, nếu không bell luôn rỗng dù BE có dữ liệu.
-function normalizeNotification(raw: unknown): NotificationDto {
-  const r = (raw ?? {}) as Record<string, unknown>;
-  return {
-    id: Number(r.id ?? r.Id ?? 0),
-    message: `${r.message ?? r.Message ?? ""}`,
-    type: Number(r.type ?? r.Type ?? 0),
-    isRead: Boolean(r.isRead ?? r.IsRead ?? false),
-    invoiceId: (r.invoiceId ?? r.InvoiceId ?? null) as number | null,
-    approverGroup: (r.approverGroup ?? r.ApproverGroup ?? null) as string | null,
-    created: `${r.created ?? r.Created ?? ""}`,
-    referenceType: (r.referenceType ?? r.ReferenceType ?? null) as string | null,
-    referenceId: (r.referenceId ?? r.ReferenceId ?? null) as number | null,
-    jobId: (r.tinTuyenDungId ?? r.TinTuyenDungId ?? null) as number | null,
-    inviteToken: (r.inviteToken ?? r.InviteToken ?? null) as string | null,
-  };
-}
+import {
+  formatNotificationTime,
+  normalizeNotification,
+  notificationToastText,
+  typeMeta,
+  type NotificationDto,
+  type NotificationsVm,
+} from "@/features/notifications/notifications";
 
 export function NotificationBell() {
   const apiUrl  = useApiUrl();
@@ -94,10 +48,12 @@ function NotificationBellInner({
   roles: string[];
 }) {
   const router = useRouter();
+  const routerRef = useRef(router);
+  useEffect(() => { routerRef.current = router; }, [router]);
   const { query, result } = useCustom<NotificationsVm>({
     url:    `${apiUrl}/Notifications`,
     method: "get",
-    config: { query: { unreadOnly: false } },
+    config: { query: { unreadOnly: false, pageSize: 20 } },
     errorNotification: false,
   });
 
@@ -177,11 +133,20 @@ function NotificationBellInner({
         return;
       }
       connection = buildConnection();
-      connection.on("ReceiveNotification", () => {
+      connection.on("ReceiveNotification", (payload: unknown) => {
         if (typeof window !== "undefined") {
           window.dispatchEvent(new CustomEvent("recruitment:notification"));
         }
         void refetchRef.current?.();
+        if (!active) return;
+        const { title, description } = notificationToastText(payload);
+        toast.info(title, {
+          description: description || undefined,
+          action: {
+            label: "Xem",
+            onClick: () => routerRef.current.push("/thong-bao"),
+          },
+        });
       });
       connection.onclose(() => {
         // A stale long-polling connection id returns 404 after a backend restart.
@@ -265,7 +230,7 @@ function NotificationBellInner({
             </div>
           ) : (
             notifications.map((n) => {
-              const meta = TYPE_META[n.type] ?? TYPE_META[0];
+              const meta = typeMeta(n.type);
               return (
                 <div
                   key={n.id}
@@ -291,7 +256,7 @@ function NotificationBellInner({
                       {n.message}
                     </p>
                     <div className="flex items-center gap-2 mt-1">
-                      <span className="text-xs text-muted-foreground">{fmt(n.created)}</span>
+                      <span className="text-xs text-muted-foreground">{formatNotificationTime(n.created)}</span>
                       {n.approverGroup && (
                         <span className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium bg-purple-100 text-purple-700">
                           {n.approverGroup}
@@ -311,9 +276,13 @@ function NotificationBellInner({
         {notifications.length > 0 && (
           <>
             <DropdownMenuSeparator />
-            <div className="px-4 py-2 text-xs text-center text-muted-foreground">
-              Showing last 50 notifications
-            </div>
+            <Link
+              href="/thong-bao"
+              onClick={() => setOpen(false)}
+              className="flex items-center justify-center gap-1.5 px-4 py-2.5 text-xs font-medium text-primary hover:underline"
+            >
+              Xem tất cả thông báo <ArrowRight className="h-3 w-3" />
+            </Link>
           </>
         )}
       </DropdownMenuContent>

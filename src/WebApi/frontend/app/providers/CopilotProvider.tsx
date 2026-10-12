@@ -13,6 +13,8 @@ import "@copilotkit/react-core/v2/styles.css";
 import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { getAuthToken, getValidToken } from "@/lib/auth-provider";
+import dynamic from "next/dynamic";
+import { parseThemeResult } from "@/features/ai-cv/theme-recommendations";
 import { useGlobalCvAssistant } from "@/hooks/use-global-cv-assistant";
 import { useStoredIdentity } from "@/hooks/use-stored-identity";
 import { adamMessageView } from "@/components/ai/adam-markdown";
@@ -23,11 +25,13 @@ import {
 } from "@/features/ai-cv/cv-focus";
 
 const CHAT_SUGGESTIONS = [
+  { title: "Chọn mẫu CV", message: "Gợi ý mẫu CV phù hợp với ngành và cấp độ công việc mục tiêu của tôi; cho xem trước và giải thích lựa chọn." },
   { title: "Tạo CV từ đầu", message: "Hãy giúp tôi tạo một CV mới. Hỏi tôi các thông tin còn thiếu theo từng bước." },
   { title: "Cải thiện nội dung", message: "Hãy xem nội dung CV hiện tại và đề xuất cách viết chuyên nghiệp hơn mà không bịa thông tin." },
   { title: "Tối ưu theo JD", message: "Tôi muốn tối ưu CV theo một công việc mục tiêu. Hãy yêu cầu tôi cung cấp JD rồi điều chỉnh CV phù hợp." },
   { title: "Kiểm tra ATS", message: "Hãy kiểm tra CV hiện tại và đề xuất các cải thiện giúp CV thân thiện với ATS." },
 ];
+const CvThemeRecommendations = dynamic(() => import("@/components/ai/cv-theme-recommendations"), { ssr: false });
 
 const CV_TOOL_SECTIONS: Record<string, CvFocusSection> = {
   updateCvContact: "contact",
@@ -142,6 +146,8 @@ function ToolActivityMount() {
         upsertCvSectionItem: "Đang cập nhật nội dung CV",
         updateCvMeta: "Đang cập nhật thông tin CV",
         setCvTemplate: "Đang đổi mẫu CV",
+        suggest_cv_theme: "Đang chọn mẫu CV theo mục tiêu",
+        suggestCvThemeForDraft: "Đang chọn mẫu cho CV nháp",
         analyze_cv: "Đang phân tích CV",
         review_default_cv: "Đang phân tích CV",
         get_job_recommendations: "Đang tìm việc phù hợp với CV",
@@ -153,6 +159,10 @@ function ToolActivityMount() {
       };
       const label = labels[name] ?? "Adam đang xử lý yêu cầu";
       const complete = status === "complete";
+      if (complete && (name === "suggest_cv_theme" || name === "suggestCvThemeForDraft")) {
+        const themes = parseThemeResult(result);
+        return <CvThemeRecommendations items={themes.items} message={themes.message} />;
+      }
       const jobs = complete ? parseJobRecommendations(result) : [];
       const section = cvToolSection(name, parameters);
       const sectionLabel = section ? getCvFocusSectionLabel(section) : undefined;

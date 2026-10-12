@@ -6,6 +6,7 @@ using Application.Features.CvTheme.Commands.UploadCvThemePreview;
 using Application.Features.CvTheme.Queries.GetActiveCvThemes;
 using Application.Features.CvTheme.Queries.GetAllCvThemes;
 using Application.Features.CvTheme.Queries.GetCvThemeById;
+using Application.Features.CvTheme.Queries.SuggestCvThemes;
 using Application.Interfaces;
 using AutoMapper;
 using Casbin;
@@ -60,6 +61,10 @@ namespace WebApp.Server.Controllers.v1
         }
 
         // GET: api/cvthemes/active — public cho gallery + AI gợi ý.
+        [HttpPost("suggest")]
+        public async Task<IActionResult> Suggest([FromBody] GetSuggestedCvThemesQuery query, CancellationToken cancellationToken)
+            => await EnforcePermissionAndExecute("cvthemes", "list", async () => Ok(await Mediator.Send(query, cancellationToken)));
+
         [AllowAnonymous]
         [HttpGet("active")]
         public async Task<IActionResult> GetActive()

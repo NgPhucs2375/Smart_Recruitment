@@ -9,9 +9,11 @@ import {
   isCvContactField,
   isCvSectionKey,
   savePendingCvPatch,
+  loadPendingCvPatch,
   type PendingSectionPatch,
 } from "@/features/ai-cv/cv-assistant-state";
 import { getNavigableRoute, type NavigablePage } from "@/components/navigation/navigation-routes";
+import { ensureActiveTemplate } from "@/features/ai-cv/theme-recommendations";
 import {
   CV_FOCUS_SECTIONS,
   getCvFocusSectionLabel,
@@ -232,8 +234,13 @@ export function useGlobalCvAssistant({ enabled = true }: { enabled?: boolean } =
           cleanContact.hoTen = cleanTenFile;
         }
         const cleanTemplate = typeof templateId === "string" ? templateId.trim() : "";
+        if (cleanTemplate) await ensureActiveTemplate(cleanTemplate);
 
+        const previous = cleanTemplate && !cleanTenFile && Object.keys(cleanContact).length === 0 && cleanSections.length === 0 ? loadPendingCvPatch() : null;
         savePendingCvPatch({
+          ...(previous?.contact ? { contact: previous.contact } : {}),
+          ...(previous?.sections ? { sections: previous.sections } : {}),
+          ...(previous?.tenFile ? { tenFile: previous.tenFile } : {}),
           ...(Object.keys(cleanContact).length > 0 ? { contact: cleanContact } : {}),
           ...(cleanSections.length > 0 ? { sections: cleanSections } : {}),
           ...(cleanTemplate ? { templateId: cleanTemplate } : {}),

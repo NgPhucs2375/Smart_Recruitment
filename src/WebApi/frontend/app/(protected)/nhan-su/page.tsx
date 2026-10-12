@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { FormEvent, useCallback, useEffect, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { Users, UserPlus, Trash2, Mail, Briefcase, X, Copy, Link2, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,10 @@ import { AdminPageLayout, AdminPageHeader, AdminCard, AdminCardHeader, AdminEmpt
 import { Badge } from "@/components/ui/badge";
 import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { getPendingLoiMoi, cancelLoiMoi, type LoiMoiPending } from "@/lib/api/nhan-su-api";
+import { getValidToken } from "@/lib/auth-provider";
+import { unwrapResponse } from "@/lib/api/response-contract";
+import { matchesSearch, matchesStatus, peoplePage, PEOPLE_ROLES, roleNumber } from "@/features/people/people-list";
+import { PeopleListControls, PeopleListPagination } from "@/features/people/people-list-controls";
 
 type NhanSu = {
   nguoiDungId: number;
@@ -16,6 +20,9 @@ type NhanSu = {
   hoTen: string;
   chucVu: string;
   vaiTro: string;
+  email: string;
+  sdt: string;
+  isActive: boolean;
 };
 
 type ApiResponse<T> = { Succeeded?: boolean; succeeded?: boolean; Message?: string; message?: string; Data?: T; data?: T };
@@ -25,6 +32,10 @@ const API_INVITE = "/api/dotnet/nhansus/invite";
 
 export default function NhanSuPage() {
   const [items, setItems] = useState<NhanSu[]>([]);
+  const [search, setSearch] = useState("");
+  const [roleFilter, setRoleFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [page, setPage] = useState(1);
   const [pending, setPending] = useState<LoiMoiPending[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingPending, setLoadingPending] = useState(true);
@@ -37,13 +48,14 @@ export default function NhanSuPage() {
   const { confirm } = useConfirmDialog();
 
   const apiFetch = useCallback(async (url: string, opts?: RequestInit) => {
-    const token = localStorage.getItem("access_token");
+    const token = await getValidToken();
     const res = await fetch(url, {
       ...opts,
       headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}), ...opts?.headers },
     });
     const body = await res.json().catch(() => null);
     if (!res.ok) throw new Error(body?.Message ?? body?.message ?? `HTTP ${res.status}`);
+    unwrapResponse(body);
     return body;
   }, []);
 
@@ -68,6 +80,8 @@ export default function NhanSuPage() {
           hoTen: `${r.hoTen ?? r.HoTen ?? ""}`,
           chucVu: `${r.chucVu ?? r.ChucVu ?? ""}`,
           vaiTro: `${r.vaiTro ?? r.VaiTro ?? ""}`,
+          email: String(r.email ?? r.Email ?? ""), sdt: String(r.sdt ?? r.SDT ?? ""),
+          isActive: Boolean(r.isActive ?? r.IsActive ?? true),
         };
       }));
     } catch (e) {
@@ -168,12 +182,19 @@ export default function NhanSuPage() {
     }
   }
 
+  const filtered = useMemo(() => items.filter(item =>
+    (roleFilter === "all" || String(roleNumber(item.vaiTro)) === roleFilter) && matchesStatus(item.isActive, false, statusFilter) &&
+    matchesSearch([item.hoTen, item.email, item.sdt, item.chucVu], search)), [items, search, roleFilter, statusFilter]);
+  const paged = peoplePage(filtered, page);
+  const filteredPending = useMemo(() => pending.filter(inv => matchesSearch([inv.email, inv.hoTen, inv.chucVu], search)), [pending, search]);
+  const resetFilters = () => { setSearch(""); setRoleFilter("all"); setStatusFilter("all"); setPage(1); };
   return (
     <AdminPageLayout>
       <AdminPageHeader icon={Users} title="Quản lý nhân sự" description="Mời và quản lý nhân sự thuộc doanh nghiệp của bạn." actions={<Button onClick={() => { setErr(""); setSuccessMsg(""); setShowInvite(true); }}><UserPlus className="size-4" /> Mời nhân sự</Button>} />
 
       {successMsg && <div role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{successMsg}</div>}
       {err && <div role="alert" className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">{err}</div>}
+      <AdminCard><div className="p-5"><PeopleListControls id="company-people" search={search} role={roleFilter} status={statusFilter} roles={PEOPLE_ROLES.filter(r => ["2", "3"].includes(r.value))} placeholder="Họ tên, email, số điện thoại hoặc chức vụ..." onReset={resetFilters} onChange={(key, value) => { setPage(1); if (key === "search") setSearch(value); else if (key === "role") setRoleFilter(value); else setStatusFilter(value); }} /><p className="mt-3 text-xs text-muted-foreground">Tìm tên không dấu. Từ khóa cũng lọc lời mời đang chờ; vai trò/trạng thái áp dụng cho thành viên.</p></div></AdminCard>
 
       {showInvite && (
         <form onSubmit={handleInvite} className="rounded-2xl border border-border bg-card p-6 shadow-sm">
@@ -220,12 +241,12 @@ export default function NhanSuPage() {
       )}
 
       <AdminCard>
-        <AdminCardHeader title="Lời mời đang chờ" description={loadingPending ? "Đang tải..." : `${pending.length} lời mời`} />
-        {loadingPending ? <AdminLoadingState /> : pending.length === 0 ? (
-          <div className="p-5 text-sm text-muted-foreground">Không có lời mời nào đang chờ xác nhận.</div>
+        <AdminCardHeader title="Lời mời đang chờ" description={loadingPending ? "Đang tải..." : `${filteredPending.length} / ${pending.length} lời mời`} />
+        {loadingPending ? <AdminLoadingState /> : filteredPending.length === 0 ? (
+          <div className="p-5 text-sm text-muted-foreground">{pending.length ? "Không có lời mời khớp từ khóa. Hãy thử tên hoặc email khác." : "Không có lời mời nào đang chờ xác nhận."}</div>
         ) : (
           <div className="divide-y divide-border">
-            {pending.map((inv) => (
+            {filteredPending.map((inv) => (
               <div key={inv.id} className="flex items-center justify-between gap-4 p-5">
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
@@ -248,12 +269,12 @@ export default function NhanSuPage() {
       </AdminCard>
 
       <AdminCard>
-        <AdminCardHeader title="Danh sách nhân sự" description={`${items.length} thành viên`} />
-        {loading ? <AdminLoadingState /> : items.length === 0 ? (
-          <AdminEmptyState icon={Users} title="Chưa có nhân sự" description="Mời nhân sự để cùng quản lý tin tuyển dụng và ứng viên." action={<Button onClick={() => setShowInvite(true)} size="sm"><UserPlus className="size-4" /> Mời nhân sự</Button>} />
+        <AdminCardHeader title="Danh sách nhân sự" description={`${filtered.length} / ${items.length} thành viên`} />
+        {loading ? <AdminLoadingState /> : filtered.length === 0 ? (
+          <AdminEmptyState icon={Users} title={items.length ? "Không có nhân sự khớp bộ lọc" : "Chưa có nhân sự"} description={items.length ? "Thử tên không dấu, thay đổi vai trò/trạng thái hoặc xóa bộ lọc." : "Mời nhân sự để cùng quản lý tin tuyển dụng và ứng viên."} action={items.length ? <Button onClick={resetFilters} size="sm" variant="outline">Xóa bộ lọc</Button> : <Button onClick={() => setShowInvite(true)} size="sm"><UserPlus className="size-4" /> Mời nhân sự</Button>} />
         ) : (
           <div className="divide-y divide-border">
-            {items.map(item => (
+            {paged.items.map(item => (
               <div key={`${item.nguoiDungId}-${item.hoSoId}`} className="flex items-center justify-between gap-4 p-5">
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
@@ -263,14 +284,17 @@ export default function NhanSuPage() {
                     </Badge>
                   </div>
                   <p className="mt-1 text-sm text-muted-foreground">{item.chucVu || "Chưa có chức vụ"}</p>
+                  <p className="mt-1 text-sm text-muted-foreground">{[item.email, item.sdt].filter(Boolean).join(" • ")}</p>
+                  {!item.isActive && <Badge variant="outline" className="mt-2">Ngưng hoạt động</Badge>}
                 </div>
                 <div className="flex shrink-0 gap-2">
-                  <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => void handleDelete(item)}><Trash2 className="size-4" /></Button>
+                  {roleNumber(item.vaiTro) === 3 && <Button variant="ghost" size="sm" aria-label={`Gỡ Nhân sự ${item.hoTen}`} className="text-destructive hover:text-destructive" onClick={() => void handleDelete(item)}><Trash2 className="size-4" /></Button>}
                 </div>
               </div>
             ))}
           </div>
         )}
+        {!loading && <PeopleListPagination page={paged.page} totalPages={paged.totalPages} count={filtered.length} total={items.length} onPage={setPage} />}
       </AdminCard>
     </AdminPageLayout>
   );

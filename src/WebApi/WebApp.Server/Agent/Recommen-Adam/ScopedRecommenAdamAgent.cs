@@ -172,6 +172,7 @@ internal sealed class ScopedRecommenAdamAgent : AIAgent
             .ToLowerInvariant();
 
         return text is not null
+            && !new[] { "mẫu", "mau cv", "template", "theme", "bố cục", "bo cuc" }.Any(text.Contains)
             && (text.Contains("gợi ý") || text.Contains("goi y"))
             && (text.Contains("việc") || text.Contains("viec"))
             && (text.Contains("phù hợp") || text.Contains("phu hop"));

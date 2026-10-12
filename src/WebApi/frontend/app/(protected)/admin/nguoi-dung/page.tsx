@@ -11,16 +11,21 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { Users, Pencil, Trash2, Lock, LockOpen, Plus, RotateCcw, Search } from "lucide-react";
+import { Users, Pencil, Trash2, Lock, LockOpen, Plus, RotateCcw } from "lucide-react";
 import { AdminGate } from "@/features/admin/AdminGate";
 import { adminApi, VAI_TRO } from "@/features/admin/api";
 import { useConfirmDialog } from "@/components/ui/confirm-dialog";
-import { getAuthToken } from "@/lib/auth-provider";
+import { getValidToken } from "@/lib/auth-provider";
+import { unwrapResponse } from "@/lib/api/response-contract";
+import { matchesSearch, matchesStatus, peoplePage, PEOPLE_ROLES, roleNumber } from "@/features/people/people-list";
+import { PeopleListControls, PeopleListPagination } from "@/features/people/people-list-controls";
 
 interface NguoiDungRow {
   Id: number;
   Email?: string | null;
   UserName?: string | null;
+  HoTen?: string | null;
+  PhoneNumber?: string | null;
   ApplicationUserId: string;
   VaiTro: number;
   IsActive: boolean;
@@ -33,28 +38,36 @@ export default function AdminNguoiDungPage() {
   const [rows, setRows] = useState<NguoiDungRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("");
+  const [roleFilter, setRoleFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [page, setPage] = useState(1);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<NguoiDungRow | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
   const { confirm } = useConfirmDialog();
 
-  const fetchRows = useCallback(async (kw?: string) => {
+  const fetchRows = useCallback(async () => {
     setLoading(true);
     try {
-      const params = new URLSearchParams();
-      if (kw) params.set("search", kw);
-      const qs = params.toString();
-      const res = await fetch(`/api/dotnet/nguoidungs/admin-list${qs ? `?${qs}` : ""}`, {
+      const token = await getValidToken();
+      const res = await fetch("/api/dotnet/nguoidungs/admin-list", {
+        cache: "no-store",
         headers: {
           Accept: "application/json",
-          Authorization: `Bearer ${getAuthToken() ?? ""}`,
+          Authorization: `Bearer ${token ?? ""}`,
         },
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const body = await res.json();
-      const data = (body?.Data ?? body?.data ?? body) as NguoiDungRow[];
-      setRows(Array.isArray(data) ? data : []);
+      const data = unwrapResponse<unknown[]>(body);
+      setRows(Array.isArray(data) ? data.map(item => {
+        const r = item as Record<string, unknown>;
+        return { Id: Number(r.Id ?? r.id), ApplicationUserId: String(r.ApplicationUserId ?? r.applicationUserId ?? ""),
+          Email: (r.Email ?? r.email) as string | null, UserName: (r.UserName ?? r.userName) as string | null,
+          HoTen: (r.HoTen ?? r.hoTen) as string | null, PhoneNumber: (r.PhoneNumber ?? r.phoneNumber) as string | null,
+          VaiTro: roleNumber(r.VaiTro ?? r.vaiTro), IsActive: Boolean(r.IsActive ?? r.isActive), IsLocked: Boolean(r.IsLocked ?? r.isLocked) };
+      }) : []);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Không tải được danh sách");
     } finally {
@@ -63,7 +76,8 @@ export default function AdminNguoiDungPage() {
   }, []);
 
   useEffect(() => {
-    void fetchRows();
+    const timer = setTimeout(() => void fetchRows(), 0);
+    return () => clearTimeout(timer);
   }, [fetchRows]);
 
   const openCreate = () => {
@@ -106,7 +120,7 @@ export default function AdminNguoiDungPage() {
         toast.success("Đã tạo người dùng");
       }
       setShowForm(false);
-      await fetchRows(filter || undefined);
+      await fetchRows();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Lưu thất bại");
     } finally {
@@ -125,7 +139,7 @@ export default function AdminNguoiDungPage() {
     try {
       await adminApi.remove(`/nguoidungs/${row.Id}`);
       toast.success("Đã xóa người dùng");
-      await fetchRows(filter || undefined);
+      await fetchRows();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Xóa thất bại");
     }
@@ -146,13 +160,17 @@ export default function AdminNguoiDungPage() {
     try {
       await adminApi.put(`/users/${row.ApplicationUserId}/${lock ? "lock" : "unlock"}`);
       toast.success(lock ? "Đã khóa tài khoản" : "Đã mở khóa tài khoản");
-      await fetchRows(filter || undefined);
+      await fetchRows();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Thao tác thất bại");
     }
   };
 
-  const filtered = useMemo(() => rows, [rows]);
+  const filtered = useMemo(() => rows.filter(row =>
+    (roleFilter === "all" || String(row.VaiTro) === roleFilter) && matchesStatus(row.IsActive, row.IsLocked, statusFilter) &&
+    matchesSearch([row.HoTen, row.Email, row.UserName, row.PhoneNumber, row.ApplicationUserId, row.Id], filter)), [rows, filter, roleFilter, statusFilter]);
+  const paged = peoplePage(filtered, page);
+  const resetFilters = () => { setFilter(""); setRoleFilter("all"); setStatusFilter("all"); setPage(1); };
 
   return (
     <AdminGate>
@@ -168,7 +186,7 @@ export default function AdminNguoiDungPage() {
             </div>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => void fetchRows(filter || undefined)}>
+            <Button variant="outline" disabled={loading} onClick={() => void fetchRows()}>
               <RotateCcw className="mr-2 size-4" /> Tải lại
             </Button>
             <Button onClick={openCreate}>
@@ -179,25 +197,8 @@ export default function AdminNguoiDungPage() {
 
         <Card>
           <CardContent className="pt-6">
-            <form
-              className="flex gap-2"
-              onSubmit={(e) => {
-                e.preventDefault();
-                void fetchRows(filter || undefined);
-              }}
-            >
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  className="pl-9"
-                  aria-label="Tìm người dùng"
-                  placeholder="Tìm theo email hoặc tên đăng nhập..."
-                  value={filter}
-                  onChange={(e) => setFilter(e.target.value)}
-                />
-              </div>
-              <Button type="submit" variant="secondary">Tìm</Button>
-            </form>
+            <PeopleListControls id="admin-people" search={filter} role={roleFilter} status={statusFilter} includeLocked placeholder="Tên, email, tài khoản, số điện thoại hoặc mã..." onReset={resetFilters} onChange={(key, value) => { setPage(1); if (key === "search") setFilter(value); else if (key === "role") setRoleFilter(value); else setStatusFilter(value); }} />
+            <p className="mt-3 text-xs text-muted-foreground">Lọc ngay khi nhập. Có thể tìm tên không dấu, ví dụ “nguyen van”.</p>
           </CardContent>
         </Card>
 
@@ -261,7 +262,8 @@ export default function AdminNguoiDungPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-16">Id</TableHead>
-                    <TableHead>Email</TableHead>
+                     <TableHead>Email</TableHead>
+                     <TableHead>Họ tên</TableHead>
                     <TableHead>Tên đăng nhập</TableHead>
                     <TableHead>Vai trò</TableHead>
                     <TableHead>Trạng thái</TableHead>
@@ -269,15 +271,16 @@ export default function AdminNguoiDungPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filtered.map((row) => (
+                  {paged.items.map((row) => (
                     <TableRow key={row.Id}>
                       <TableCell>{row.Id}</TableCell>
-                      <TableCell className="font-medium">{row.Email ?? "—"}</TableCell>
+                       <TableCell className="font-medium">{row.Email ?? "—"}</TableCell>
+                       <TableCell>{row.HoTen || "—"}</TableCell>
                       <TableCell className="max-w-[180px] truncate text-muted-foreground">
                         {row.UserName ?? "—"}
                       </TableCell>
                       <TableCell>
-                        <Badge variant="secondary">{VAI_TRO[row.VaiTro] ?? row.VaiTro}</Badge>
+                        <Badge variant="secondary">{PEOPLE_ROLES.find(r => Number(r.value) === row.VaiTro)?.label ?? row.VaiTro}</Badge>
                       </TableCell>
                       <TableCell>
                         <div className="flex gap-1">
@@ -310,8 +313,9 @@ export default function AdminNguoiDungPage() {
                   ))}
                   {filtered.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center text-muted-foreground">
-                        Không có dữ liệu
+                      <TableCell colSpan={7} className="text-center text-muted-foreground">
+                        {rows.length ? "Không có người dùng khớp bộ lọc. Thử tên không dấu hoặc xóa bộ lọc." : "Chưa có người dùng."}
+                        {rows.length > 0 && <Button type="button" variant="link" onClick={resetFilters}>Xóa bộ lọc</Button>}
                       </TableCell>
                     </TableRow>
                   )}
@@ -319,6 +323,7 @@ export default function AdminNguoiDungPage() {
               </Table>
             )}
           </CardContent>
+          {!loading && <PeopleListPagination page={paged.page} totalPages={paged.totalPages} count={filtered.length} total={rows.length} onPage={setPage} />}
         </Card>
       </div>
     </AdminGate>

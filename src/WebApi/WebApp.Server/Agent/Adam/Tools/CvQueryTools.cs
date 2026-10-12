@@ -132,19 +132,32 @@ internal sealed class CvQueryTools
     }
 
     [Description(
-        "Gợi ý mẫu CV phù hợp với hồ sơ của ứng viên (ưu tiên CV mặc định). " +
-        "Trả về top mẫu kèm điểm phù hợp và lý do chọn (ngành, cấp bậc, ATS). " +
-        "Dùng khi người dùng hỏi 'mẫu CV nào hợp với tôi', 'nên dùng theme nào'. " +
-        "Áp dụng mẫu bằng frontend tool setCvTemplate, chỉ khi người dùng đồng ý.")]
+        "Gợi ý tối đa 3 mẫu CV đang bật và render được theo ngành/vị trí/cấp độ công việc/phong cách/ATS. " +
+        "Dùng ngoài editor; trong editor dùng suggestCvThemeForDraft để lấy nội dung chưa lưu. " +
+        "Ngoài editor bỏ trống cvId để dùng CV đã lưu của user — kết quả lúc đó dựa trên CV đã lưu, nêu rõ điều này. " +
+        "Chuyển tiêu chí người dùng nói rõ thành tham số; tham số trống thì backend tự suy từ vị trí/kỹ năng CV " +
+        "(được phép suy từ dữ liệu CV có sẵn, ghi rõ là suy đoán khi trình bày); không đoán cấp độ từ số mục kinh nghiệm. " +
+        "Luôn gọi tool trước khi hỏi bổ sung thông tin; kết quả kèm cảnh báo thiếu dữ liệu thì trình bày ngay với caveat, " +
+        "không bắt user cung cấp trước. Kết quả có lý do, cảnh báo; không tự lưu hoặc đổi nội dung CV.")]
     public async Task<Response<List<SuggestedCvThemeViewModel>>> SuggestCvThemeAsync(
-        [Description("ID CV cụ thể cần gợi ý mẫu; bỏ trống để dùng CV mặc định")] int? cvId,
-        [Description("Vị trí ứng tuyển muốn nhắm tới (vd: Backend Developer); bỏ trống để lấy từ hồ sơ")] string viTri,
+        [Description("CV thuộc chính người dùng; bỏ trống để dùng CV mặc định của họ")] int? cvId = null,
+        [Description("Vị trí công việc mục tiêu, ví dụ Backend Developer")] string? viTri = null,
+        [Description("Ngành công việc mục tiêu, ví dụ IT, Data, Marketing, tài chính, giáo dục")] string? nganh = null,
+        [Description("Cấp độ công việc mục tiêu: intern/fresher/junior/mid/senior/lead/manager; không phải sửa cấp độ thực của người dùng")] string? capBac = null,
+        [Description("Phong cách mong muốn: tối giản, chuyên nghiệp, hiện đại, sáng tạo hoặc editorial")] string? phongCach = null,
+        [Description("Bố cục bắt buộc: 1 hoặc 2 cột; null nếu không yêu cầu")] int? soCot = null,
+        [Description("Ưu tiên metadata thân thiện ATS")] bool uuTienATS = true,
+        [Description("Chỉ lấy mẫu có nhãn ATS khi user nói bắt buộc/chỉ ATS")] bool batBuocATS = false,
+        [Description("Tối đa 3 phần cần nhấn mạnh: projects/experience/skills/education")] string[]? nhanManh = null,
         CancellationToken cancellationToken = default)
     {
         await _permissions.RequireAsync("cvthemes", "list", cancellationToken);
-        return await _sender.Send(
-            new GetSuggestedCvThemesQuery { CvUngVienId = cvId, ViTri = viTri, TopN = 3 },
+        var result = await _sender.Send(
+            new GetSuggestedCvThemesQuery { CvUngVienId = cvId, ViTri = viTri, Nganh = nganh, CapBac = capBac,
+                PhongCach = phongCach, SoCot = soCot, UuTienATS = uuTienATS, BatBuocATS = batBuocATS, NhanManh = nhanManh, TopN = 3 },
             cancellationToken);
+        _sharedState.Set("cvThemeRecommendations", result.Data ?? []);
+        return result;
     }
 }
 

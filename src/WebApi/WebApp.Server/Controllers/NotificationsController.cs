@@ -38,13 +38,27 @@ namespace WebApp.Server.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> Get([FromQuery] bool unreadOnly = false)
+        public async Task<IActionResult> Get(
+            [FromQuery] bool unreadOnly = false,
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 50,
+            [FromQuery] int? type = null)
         {
+            pageNumber = Math.Max(1, pageNumber);
+            pageSize = Math.Clamp(pageSize, 1, 100);
+
             var nd = await _context.NguoiDungs
                 .FirstOrDefaultAsync(n => n.ApplicationUserId == _auth.UserId);
 
             if (nd == null)
-                return Ok(new NotificationsVm { Notifications = new List<NotificationDto>(), UnreadCount = 0 });
+                return Ok(new NotificationsVm
+                {
+                    Notifications = new List<NotificationDto>(),
+                    UnreadCount = 0,
+                    TotalCount = 0,
+                    PageNumber = pageNumber,
+                    PageSize = pageSize,
+                });
 
             await EnsureRecommendationDigestAsync(nd.Id);
 
@@ -55,14 +69,31 @@ namespace WebApp.Server.Controllers
             if (unreadOnly)
                 query = query.Where(r => !r.IsRead);
 
+            // Lọc theo loại hiển thị ở FE: 0 = Chung/Việc làm mới, 1 = Lịch phỏng vấn, 3 = Đơn ứng tuyển.
+            // So sánh trực tiếp enum để EF dịch được sang SQL (không gọi method C# trong query).
+            if (type is 0 or 1 or 3)
+            {
+                query = type switch
+                {
+                    1 => query.Where(r => r.Notification.LoaiThongBao == LoaiThongBao.LichPhongVan),
+                    3 => query.Where(r => r.Notification.LoaiThongBao == LoaiThongBao.DonUngTuyen),
+                    _ => query.Where(r => r.Notification.LoaiThongBao != LoaiThongBao.LichPhongVan
+                        && r.Notification.LoaiThongBao != LoaiThongBao.DonUngTuyen),
+                };
+            }
+
+            var totalCount = await query.CountAsync();
+
             var items = await query
                 .OrderByDescending(r => r.Notification.Created)
-                .Take(50)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
                 .Select(r => new NotificationDto
                 {
                     Id = r.NotificationId,
                     Message = r.Notification.TieuDe + (string.IsNullOrEmpty(r.Notification.NoiDung) ? "" : " - " + r.Notification.NoiDung),
-                    Type = MapLoaiThongBao(r.Notification.LoaiThongBao),
+                    Type = r.Notification.LoaiThongBao == LoaiThongBao.LichPhongVan ? 1
+                        : r.Notification.LoaiThongBao == LoaiThongBao.DonUngTuyen ? 3 : 0,
                     IsRead = r.IsRead,
                     InvoiceId = null,
                     ApproverGroup = null,
@@ -86,6 +117,9 @@ namespace WebApp.Server.Controllers
             {
                 Notifications = items,
                 UnreadCount = unreadCount,
+                TotalCount = totalCount,
+                PageNumber = pageNumber,
+                PageSize = pageSize,
             });
         }
 
@@ -205,19 +239,34 @@ namespace WebApp.Server.Controllers
             return Ok();
         }
 
-        private static int MapLoaiThongBao(LoaiThongBao loai) => loai switch
+        [HttpDelete("{notificationId:int}")]
+        public async Task<IActionResult> Delete(int notificationId)
         {
-            LoaiThongBao.ViecLamMoi => 0,
-            LoaiThongBao.LichPhongVan => 1,
-            LoaiThongBao.DonUngTuyen => 3,
-            _ => 0,
-        };
+            var nd = await _context.NguoiDungs
+                .FirstOrDefaultAsync(n => n.ApplicationUserId == _auth.UserId);
+
+            if (nd == null) return Ok();
+
+            var recipient = await _context.NotificationRecipients
+                .FirstOrDefaultAsync(r => r.NguoiDungId == nd.Id
+                    && r.NotificationId == notificationId);
+
+            if (recipient == null) return NotFound();
+
+            // Chỉ xóa dòng người nhận của chính user — thông báo gốc giữ lại cho người khác.
+            _context.NotificationRecipients.Remove(recipient);
+            await _context.SaveChangesAsync(CancellationToken.None);
+            return Ok();
+        }
     }
 
     public class NotificationsVm
     {
         public List<NotificationDto> Notifications { get; set; } = new();
         public int UnreadCount { get; set; }
+        public int TotalCount { get; set; }
+        public int PageNumber { get; set; } = 1;
+        public int PageSize { get; set; } = 50;
     }
 
     public class NotificationDto

@@ -279,7 +279,7 @@ export function applyTemplatePatch(
   templateId: string,
 ): { next: CvFormData; applied: boolean; report: string } {
   const raw = templateId.trim();
-  if (!TEMPLATE_REGISTRY[raw]) {
+  if (!TEMPLATE_REGISTRY[raw] || TEMPLATE_REGISTRY[raw].isActive === false) {
     return {
       next: data,
       applied: false,

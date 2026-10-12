@@ -29,6 +29,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Domain\Domain.csproj" />
+    <EmbeddedResource Include="../WebApi/frontend/features/tao-cv/template-manifest.json" LogicalName="Application.CvTemplateManifest.json" />
   </ItemGroup>
 
 </Project>

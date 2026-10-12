@@ -11,6 +11,8 @@ using Casbin;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Threading.Tasks;
+using Infrastructure.Identity.Contexts;
+using Microsoft.EntityFrameworkCore;
 
 namespace WebApp.Server.Controllers.v1
 {
@@ -34,7 +36,20 @@ namespace WebApp.Server.Controllers.v1
         {
             return await EnforcePermissionAndExecute("nhansus", "list", async () =>
             {
-                return Ok(await Mediator.Send(new GetAllNhanSusQuery()));
+                var result = await Mediator.Send(new GetAllNhanSusQuery());
+                if (!result.Succeeded || result.Data == null) return Ok(result);
+                var rows = result.Data.ToList();
+                var ids = rows.Select(r => r.NguoiDungId).ToArray();
+                var db = HttpContext.RequestServices.GetRequiredService<IApplicationDbContext>();
+                var profiles = await db.NguoiDungs.AsNoTracking().Where(n => ids.Contains(n.Id))
+                    .Select(n => new { n.Id, n.ApplicationUserId }).ToListAsync(HttpContext.RequestAborted);
+                var accountIds = profiles.Select(n => n.ApplicationUserId).ToArray();
+                var identity = HttpContext.RequestServices.GetRequiredService<IdentityContext>();
+                var emails = await identity.Users.AsNoTracking().Where(u => accountIds.Contains(u.Id))
+                    .ToDictionaryAsync(u => u.Id, u => u.Email, HttpContext.RequestAborted);
+                var byProfile = profiles.ToDictionary(n => n.Id, n => emails.GetValueOrDefault(n.ApplicationUserId));
+                foreach (var row in rows) row.Email = byProfile.GetValueOrDefault(row.NguoiDungId);
+                return Ok(result);
             });
         }
 

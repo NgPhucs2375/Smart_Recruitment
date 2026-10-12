@@ -1,5 +1,6 @@
 import {
   BarChart3,
+  Bell,
   BriefcaseBusiness,
   Building2,
   FileCheck,
@@ -31,6 +32,7 @@ export const recruiterNavigation: NavigationItem[] = [
   { title: "Nhân sự", href: "/nhan-su", icon: Users, permission: { resource: "nhansus", action: "list" }, roles: ["NGUOI_DAI_DIEN"] },
   { title: "Tin nhắn", href: "/tin-nhan", icon: MessageCircle, permission: { resource: "chat", action: "list" }, roles: ["NGUOI_DAI_DIEN", "NHAN_SU"] },
   { title: "Báo cáo", href: "/reports", icon: BarChart3 },
+  { title: "Thông báo", href: "/thong-bao", icon: Bell },
   { title: "Hồ sơ doanh nghiệp", href: "/doanh-nghiep/ho-so", icon: Building2 },
   { title: "Hồ sơ của tôi", href: "/ho-so-nha-tuyen-dung", icon: UserRound, permission: { resource: "hosonhatuyendungs", action: "show" } },
   { title: "Cài đặt", href: "/settings", icon: Settings },
@@ -46,6 +48,7 @@ export const adminNavigation: NavigationItem[] = [
   { title: "Banner marketing", href: "/admin/banner", icon: ImagePlus },
   { title: "Quản lý CV/mẫu CV", href: "/admin/cv", icon: FileCheck, permission: { resource: "cvthemes", action: "list" } },
   { title: "Báo cáo và thống kê", href: "/reports", icon: BarChart3 },
+  { title: "Thông báo", href: "/thong-bao", icon: Bell },
   { title: "Phân quyền", href: "/permission-matrix", icon: ShieldCheck, permission: { resource: "roleclaims", action: "list" } },
   { title: "Cài đặt hệ thống", href: "/settings", icon: Settings },
 ];
