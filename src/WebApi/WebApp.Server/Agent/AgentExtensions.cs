@@ -22,6 +22,12 @@ public static class AgentExtensions
         services.AddHttpContextAccessor();
         services.AddScoped<SharedStateStore>();
 
+        // P1: cache kết quả tool theo user (agent:tool:{userId}:{tool}:{hash})
+        // + hạn mức chat 15 câu/ngày (Redis INCR) cho endpoint /api/copilotkit.
+        services.AddScoped<Cache.AgentToolCache>();
+        services.AddScoped<RateLimit.AgentChatDailyLimiter>();
+        services.AddScoped<Middlewares.AgentChatRateLimitMiddleware>();
+
         services.AddKeyedSingleton<IChatClient>(
             AdamInstructions.ChatClientKey,
             (serviceProvider, _) =>

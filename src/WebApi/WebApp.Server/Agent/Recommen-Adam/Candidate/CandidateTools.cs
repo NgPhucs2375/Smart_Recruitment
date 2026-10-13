@@ -11,6 +11,7 @@ using Application.Features.TinTuyenDung.Queries.GetAllTinTuyenDungs;
 using Application.Features.TinTuyenDung.Queries.GetTinTuyenDungById;
 using Application.Wrappers;
 using MediatR;
+using WebApp.Server.Agent.Cache;
 using WebApp.Server.Agent.SharedState;
 
 namespace WebApp.Server.Agent.RecommenAdam.Candidate;
@@ -20,16 +21,25 @@ internal sealed class CandidateTools
 	private readonly ISender _sender;
 	private readonly SharedStateStore _sharedState;
 	private readonly IPermissionService _permissions;
+	private readonly AgentToolCache _toolCache;
 
-	public CandidateTools(ISender sender, SharedStateStore sharedState, IPermissionService permissions)
+	public CandidateTools(ISender sender, SharedStateStore sharedState, IPermissionService permissions, AgentToolCache toolCache)
 	{
 		_sender = sender;
 		_sharedState = sharedState;
 		_permissions = permissions;
+		_toolCache = toolCache;
     }
 
     [Description("Chỉ kiểm tra các trường thông tin cá nhân trong HoSoUngVien của ứng viên hiện tại. Không đọc, không phân tích và không kiểm tra CVUngVien. Dùng khi ứng viên hỏi: hồ sơ của tôi còn thiếu gì.")]
-    public async Task<Response<CandidateProfileCompleteness>> CheckProfileCompletenessAsync(CancellationToken cancellationToken = default)
+    public Task<Response<CandidateProfileCompleteness>> CheckProfileCompletenessAsync(CancellationToken cancellationToken = default)
+        => _toolCache.GetOrCreateAsync(
+            "check_profile_completeness", null,
+            () => CheckProfileCompletenessCoreAsync(cancellationToken),
+            cancellationToken);
+
+    private async Task<Response<CandidateProfileCompleteness>> CheckProfileCompletenessCoreAsync(
+        CancellationToken cancellationToken)
     {
         await _permissions.RequireAsync("hosoungviens", "show", cancellationToken);
         var profile = await _sender.Send(new GetMyHoSoUngVienQuery(), cancellationToken);
@@ -52,9 +62,17 @@ internal sealed class CandidateTools
     }
 
     [Description("Phân tích CV của ứng viên, chỉ ra điểm mạnh, phần còn thiếu và gợi ý cải thiện dựa trên nội dung CV thực tế. Nếu không có cvId, dùng CV mặc định.")]
-    public async Task<Response<CandidateCvAnalysis>> AnalyzeCvAsync(
+    public Task<Response<CandidateCvAnalysis>> AnalyzeCvAsync(
         [Description("ID CV cần phân tích, bỏ trống để dùng CV mặc định.")] int? cvId = null,
         CancellationToken cancellationToken = default)
+        => _toolCache.GetOrCreateAsync(
+            "analyze_cv", new { cvId },
+            () => AnalyzeCvCoreAsync(cvId, cancellationToken),
+            cancellationToken);
+
+    private async Task<Response<CandidateCvAnalysis>> AnalyzeCvCoreAsync(
+        int? cvId,
+        CancellationToken cancellationToken)
     {
         var cv = await GetCvAsync(cvId, cancellationToken);
         if (!cv.Succeeded || cv.Data == null) return new Response<CandidateCvAnalysis>(cv.Message ?? "Không lấy được CV.");
@@ -69,8 +87,15 @@ internal sealed class CandidateTools
         "Xem CV mặc định hiện tại và đánh giá các điểm cần cải thiện trong cùng một lần gọi. " +
         "Dùng trực tiếp khi người dùng vừa muốn xem CV mặc định vừa hỏi cần cải thiện gì; " +
         "không gọi list_my_cvs, get_cv_detail hoặc analyze_cv thêm cho cùng yêu cầu.")]
-    public async Task<Response<CandidateCvReview>> ReviewDefaultCvAsync(
+    public Task<Response<CandidateCvReview>> ReviewDefaultCvAsync(
         CancellationToken cancellationToken = default)
+        => _toolCache.GetOrCreateAsync(
+            "review_default_cv", null,
+            () => ReviewDefaultCvCoreAsync(cancellationToken),
+            cancellationToken);
+
+    private async Task<Response<CandidateCvReview>> ReviewDefaultCvCoreAsync(
+        CancellationToken cancellationToken)
     {
         var cv = await GetCvAsync(null, cancellationToken);
         if (!cv.Succeeded || cv.Data == null)
@@ -90,7 +115,7 @@ internal sealed class CandidateTools
         => await AnalyzeCvAsync(cvId, cancellationToken);
 
     [Description("Tìm việc làm công khai theo từ khóa, địa điểm, lương hoặc hình thức làm việc. Chỉ trả tin đang tuyển. Kết quả được phân trang; khi người dùng yêu cầu xem thêm, tăng pageNumber và giữ nguyên các bộ lọc.")]
-    public async Task<PagedResponse<List<GetAllTinTuyenDungsViewModel>>> SearchJobsAsync(
+    public Task<PagedResponse<List<GetAllTinTuyenDungsViewModel>>> SearchJobsAsync(
         [Description("Từ khóa chức danh, kỹ năng hoặc doanh nghiệp.")] string? keyword = null,
         [Description("Địa điểm làm việc.")] string? location = null,
         [Description("Mức lương tối thiểu mong muốn.")] decimal? salaryMin = null,
@@ -98,6 +123,15 @@ internal sealed class CandidateTools
         [Description("Số kết quả, từ 1 đến 20.")] int topN = 10,
         [Description("Số trang, bắt đầu từ 1. Khi người dùng yêu cầu xem thêm, tăng số trang và giữ nguyên các bộ lọc.")] int pageNumber = 1,
         CancellationToken cancellationToken = default)
+        => _toolCache.GetOrCreateAsync(
+            "search_jobs", new { keyword, location, salaryMin, salaryMax, topN, pageNumber },
+            () => SearchJobsCoreAsync(keyword, location, salaryMin, salaryMax, topN, pageNumber, cancellationToken),
+            cancellationToken);
+
+    private async Task<PagedResponse<List<GetAllTinTuyenDungsViewModel>>> SearchJobsCoreAsync(
+        string? keyword, string? location, decimal? salaryMin, decimal? salaryMax,
+        int topN, int pageNumber,
+        CancellationToken cancellationToken)
     {
         var pageSize = Math.Clamp(topN, 1, 20);
         await _permissions.RequireAsync("tintuyendungs", "list", cancellationToken);
@@ -115,19 +149,35 @@ internal sealed class CandidateTools
     }
 
     [Description("Đọc chi tiết JD của một tin tuyển dụng công khai theo id.")]
-    public async Task<Response<GetAllTinTuyenDungsViewModel>> GetJobDetailsAsync(
+    public Task<Response<GetAllTinTuyenDungsViewModel>> GetJobDetailsAsync(
         [Description("ID tin tuyển dụng cần xem.")] int tinTuyenDungId,
         CancellationToken cancellationToken = default)
+        => _toolCache.GetOrCreateAsync(
+            "get_job_details", new { tinTuyenDungId },
+            () => GetJobDetailsCoreAsync(tinTuyenDungId, cancellationToken),
+            cancellationToken);
+
+    private async Task<Response<GetAllTinTuyenDungsViewModel>> GetJobDetailsCoreAsync(
+        int tinTuyenDungId,
+        CancellationToken cancellationToken)
     {
         await _permissions.RequireAsync("tintuyendungs", "show", cancellationToken);
         return await _sender.Send(new GetTinTuyenDungByIdQuery { Id = tinTuyenDungId }, cancellationToken);
     }
 
     [Description("Lấy các việc làm phù hợp với CV mặc định hoặc CV được chọn, kèm điểm match. Kết quả được phân trang sau khi xếp hạng; khi người dùng yêu cầu xem thêm, tăng pageNumber và giữ nguyên cvId.")]
-    public async Task<Response<List<SuggestedJobViewModel>>> GetJobRecommendationsAsync(
+    public Task<Response<List<SuggestedJobViewModel>>> GetJobRecommendationsAsync(
         [Description("ID CV cần so khớp, bỏ trống để dùng CV mặc định.")] int? cvId = null,
         [Description("Số trang, bắt đầu từ 1. Khi người dùng yêu cầu xem thêm, tăng số trang.")] int pageNumber = 1,
         CancellationToken cancellationToken = default)
+        => _toolCache.GetOrCreateAsync(
+            "get_job_recommendations", new { cvId, pageNumber },
+            () => GetJobRecommendationsCoreAsync(cvId, pageNumber, cancellationToken),
+            cancellationToken);
+
+    private async Task<Response<List<SuggestedJobViewModel>>> GetJobRecommendationsCoreAsync(
+        int? cvId, int pageNumber,
+        CancellationToken cancellationToken)
     {
         await _permissions.RequireAsync("ketquaphuhops", "list", cancellationToken);
         var response = await _sender.Send(new GetSuggestedJobsForCvQuery
@@ -178,18 +228,34 @@ internal sealed class CandidateTools
     }
 
     [Description("Xem các đơn ứng tuyển của ứng viên hiện tại.")]
-    public async Task<PagedResponse<List<GetAllDonUngTuyensViewModel>>> GetMyApplicationsAsync(
+    public Task<PagedResponse<List<GetAllDonUngTuyensViewModel>>> GetMyApplicationsAsync(
         [Description("Số lượng đơn muốn lấy, từ 1 đến 50.")] int topN = 20,
         CancellationToken cancellationToken = default)
+        => _toolCache.GetOrCreateAsync(
+            "get_my_applications", new { topN },
+            () => GetMyApplicationsCoreAsync(topN, cancellationToken),
+            cancellationToken);
+
+    private async Task<PagedResponse<List<GetAllDonUngTuyensViewModel>>> GetMyApplicationsCoreAsync(
+        int topN,
+        CancellationToken cancellationToken)
     {
         await _permissions.RequireAsync("donungtuyens", "list", cancellationToken);
         return await _sender.Send(new GetAllDonUngTuyensQuery { _start = 0, _end = Math.Clamp(topN, 1, 50) }, cancellationToken);
     }
 
     [Description("Theo dõi trạng thái và chi tiết của một đơn ứng tuyển thuộc ứng viên hiện tại.")]
-    public async Task<Response<GetAllDonUngTuyensViewModel>> GetApplicationStatusAsync(
+    public Task<Response<GetAllDonUngTuyensViewModel>> GetApplicationStatusAsync(
         [Description("ID đơn ứng tuyển cần xem.")] int donUngTuyenId,
         CancellationToken cancellationToken = default)
+        => _toolCache.GetOrCreateAsync(
+            "get_application_status", new { donUngTuyenId },
+            () => GetApplicationStatusCoreAsync(donUngTuyenId, cancellationToken),
+            cancellationToken);
+
+    private async Task<Response<GetAllDonUngTuyensViewModel>> GetApplicationStatusCoreAsync(
+        int donUngTuyenId,
+        CancellationToken cancellationToken)
     {
         await _permissions.RequireAsync("donungtuyens", "show", cancellationToken);
         return await _sender.Send(new GetDonUngTuyenByIdQuery { Id = donUngTuyenId }, cancellationToken);
