@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
@@ -39,6 +39,19 @@ function consumeOauthBlob(): void {
   }
 }
 
+/**
+ * false trên server + đúng lần render hydration (getServerSnapshot) → HTML khớp
+ * server; true ngay sau hydration → derive từ sessionStorage được an toàn.
+ * Cùng pattern với useIdentityResolved (hooks/use-stored-identity.ts).
+ */
+function useHydrated(): boolean {
+  return useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
+}
+
 function GithubCallbackContent() {
   const searchParams = useSearchParams();
   const code = searchParams.get("code");
@@ -48,36 +61,40 @@ function GithubCallbackContent() {
 
   // Đọc 1 lần khi mount — giá trị ổn định qua các lần re-render (StrictMode an toàn).
   const [oauthBlob] = useState<GithubOauthBlob | null>(() => peekOauthBlob());
+  // Chỉ dùng blob SAU hydration — trước đó server & client phải render giống nhau.
+  const hydrated = useHydrated();
+  const blob = hydrated ? oauthBlob : null;
   const portal: PortalKind | undefined =
-    oauthBlob?.portal === "candidate" || oauthBlob?.portal === "employer"
-      ? oauthBlob.portal
-      : undefined;
-  const next = sanitizeNext(oauthBlob?.next ?? null);
+    blob?.portal === "candidate" || blob?.portal === "employer" ? blob.portal : undefined;
+  const next = sanitizeNext(blob?.next ?? null);
 
   const { loginWithGitHub, isPending, error } = useAuthLogin(portal, next);
 
-  // Derive lỗi từ URL + blob lúc render (thuần khiết — không setState trong effect).
-  const preError: string | null = ghError
+  // Derive lỗi từ URL (server/client giống nhau — không gate) + blob (chỉ sau hydration).
+  const urlError: string | null = ghError
     ? ghError === "access_denied"
       ? "Bạn đã hủy đăng nhập bằng GitHub."
       : ghErrorDescription || `GitHub trả về lỗi: ${ghError}`
     : !code
       ? "Thiếu mã ủy quyền từ GitHub. Vui lòng thử lại."
-      : !oauthBlob?.state || oauthBlob.state !== state
-        ? "Phiên đăng nhập GitHub không hợp lệ (state không khớp). Vui lòng thử lại."
-        : null;
+      : null;
+  const stateError: string | null =
+    hydrated && (!blob?.state || blob.state !== state)
+      ? "Phiên đăng nhập GitHub không hợp lệ (state không khớp). Vui lòng thử lại."
+      : null;
+  const preError = urlError ?? stateError;
 
   const attemptedRef = useRef(false);
 
   useEffect(() => {
-    // Refine/StrictMode có thể chạy effect 2 lần — chỉ xử lý lần đầu.
-    if (attemptedRef.current || preError || !code) return;
+    // Chờ hydration xong (blob-derived preError đã chốt) + guard StrictMode.
+    if (!hydrated || attemptedRef.current || preError || !code) return;
     attemptedRef.current = true;
 
     consumeOauthBlob();
     // Trao code cho backend đổi token → Refine tự redirect theo roles.
     void loginWithGitHub(code);
-  }, [preError, code, loginWithGitHub]);
+  }, [hydrated, preError, code, loginWithGitHub]);
 
   const displayError = preError ?? error;
 

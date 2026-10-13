@@ -19,10 +19,25 @@ const nextConfig: NextConfig = {
     NEXT_PUBLIC_COPILOTKIT_THREADS_ENABLED: process.env.NEXT_PUBLIC_COPILOTKIT_THREADS_ENABLED,
   },
   experimental: {
-    // Chỉ nạp icon/component thực sự dùng (lucide-react có mặt ở 143 file) —
-    // cắt thời gian compile dashboard 52s, giải phóng RAM chống restart.
-    optimizePackageImports: ["lucide-react", "@radix-ui/react-icons"],
+    // Chỉ nạp module thực sự dùng từ các barrel lớn (lucide-react đã nằm trong
+    // default list của Next 16 — giữ lại cho rõ nghĩa). Cắt thời gian compile
+    // dashboard 52s trước đây, nay cộng thêm Turbopack.
+    optimizePackageImports: [
+      "lucide-react",
+      "@radix-ui/react-icons",
+      "@refinedev/core",
+      "@refinedev/nextjs-router",
+      "@copilotkit/react-core",
+      "@copilotkit/react-ui",
+      "@copilotkit/react-textarea",
+      "@dnd-kit/core",
+      "@dnd-kit/sortable",
+      "sonner",
+      "react-hook-form",
+    ],
   },
+  // Chỉ chạy khi dùng script fallback --webpack (dev:webpack / build:webpack).
+  // Turbopack không dùng config này; nó tự lo watcher, không cần poll chống OOM.
   webpack: (config, { dev }) => {
     if (dev) {
       // Chặn watcher quét đệ quy vào cache: Next.js ghi cache vào `.next`
