@@ -83,19 +83,98 @@
 
 ![Đăng ký ứng viên](images/register.png)
 
-## Phụ lục: các màn hình còn lại (tuyến ứng viên)
+## 11. Việc đã ứng tuyển (`/viec-lam/da-ung-tuyen`)
 
-| Route | Mục đích |
-|---|---|
-| `/viec-lam/da-ung-tuyen` | Theo dõi đơn đã gửi, lọc trạng thái, rút đơn |
-| `/viec-lam/da-luu` | Xem tin đã bookmark, mở chi tiết |
-| `/viec-lam/theo-vi-tri` | Duyệt việc theo nhóm vị trí IT (sắp ra mắt) |
-| `/doanh-nghiep` | Khám phá doanh nghiệp và cơ hội |
-| `/doanh-nghiep/[id]` | Hồ sơ công ty, việc đang tuyển, theo dõi |
-| `/doanh-nghiep/top` | Bảng xếp hạng doanh nghiệp (sắp ra mắt) |
-| `/doanh-nghiep/dang-theo-doi` | Danh sách công ty đang theo dõi |
-| `/CV/import` | Mở trình soạn kèm hộp nhập CV sẵn |
-| `/cv-phan-tich/[cvId]` | Tóm tắt AI: kỹ năng, kinh nghiệm, học vấn |
-| `/ky-nang` | Danh mục kỹ năng hệ thống (admin) |
-| `/ky-nang-ung-vien` | Thêm/sửa/xóa kỹ năng, nhập số năm |
-| `/kinh-nghiem` | Quản lý quá trình công tác và mô tả |
+- **Mục đích:** Theo dõi trạng thái các đơn ứng tuyển đã gửi.
+- **Bố cục:** Tiêu đề (icon Send); dropdown lọc trạng thái (10 trạng thái 0–9); thẻ danh sách đơn (mỗi dòng: nhãn trạng thái, link tiêu đề tin, tên doanh nghiệp, ngày nộp, lương + địa điểm, ghi chú, dòng "Kết quả từ NTD"); phân trang.
+- **Thao tác chính:** Lọc trạng thái (reset về trang 1); "Xem tin" → `/viec-lam/{id}`; "Rút đơn" (chỉ khi trạng thái cho phép, có xác nhận); Trước/Sau chuyển trang.
+
+![Việc đã ứng tuyển](images/viec-lam-da-ung-tuyen.png)
+
+## 12. Việc đã lưu (`/viec-lam/da-luu`)
+
+- **Mục đích:** Xem lại các tin đã bookmark để ứng tuyển sau.
+- **Bố cục:** Tiêu đề (icon Bookmark + đếm số tin); lưới thẻ tin đã lưu; skeleton khi tải; empty-state nét đứt khi trống.
+- **Thao tác chính:** "Tìm việc làm"/"Khám phá việc làm" → `/viec-lam`; "Thử lại" khi lỗi; bấm bookmark trên thẻ để bỏ lưu.
+
+![Việc đã lưu](images/viec-lam-da-luu.png)
+
+## 13. Việc làm theo vị trí (`/viec-lam/theo-vi-tri`)
+
+- **Mục đích:** Trang sắp ra mắt duyệt việc theo nhóm vị trí IT.
+- **Bố cục:** Khối ComingSoon "Việc làm theo vị trí đang phát triển".
+- **Thao tác chính:** "Về tìm việc làm" → `/viec-lam`.
+
+![Việc làm theo vị trí](images/viec-lam-theo-vi-tri.png)
+
+## 14. Khám phá doanh nghiệp (`/doanh-nghiep`)
+
+- **Mục đích:** Tìm và duyệt danh bạ doanh nghiệp đang tuyển.
+- **Bố cục:** Hero "Danh bạ tuyển dụng" (ô tìm kiếm + lọc lĩnh vực/địa chỉ); khối "Doanh nghiệp nổi bật" (3 thẻ + skeleton); khối "Tất cả doanh nghiệp" (danh sách + phân trang 8/trang).
+- **Thao tác chính:** Tìm kiếm (gõ trễ), lọc, "Theo dõi"/"Bỏ theo dõi", chuyển trang, "Thử lại" khi lỗi.
+
+![Khám phá doanh nghiệp](images/doanh-nghiep.png)
+
+## 15. Chi tiết doanh nghiệp (`/doanh-nghiep/[id]`)
+
+- **Mục đích:** Xem hồ sơ một doanh nghiệp và các tin đang tuyển.
+- **Bố cục:** Link về danh sách; đầu trang công ty (nút Theo dõi); cột chính (Giới thiệu + Việc gợi ý + Việc đang tuyển kèm điểm phù hợp); cột phụ thông tin công ty; skeleton/lỗi + "Thử lại".
+- **Thao tác chính:** "Về danh sách doanh nghiệp"; "Theo dõi"; bấm tin để xem chi tiết.
+
+![Chi tiết doanh nghiệp](images/doanh-nghiep-id.png)
+
+## 16. Top doanh nghiệp (`/doanh-nghiep/top`)
+
+- **Mục đích:** Trang sắp ra mắt bảng xếp hạng doanh nghiệp nổi bật.
+- **Bố cục:** Khối ComingSoon "Top doanh nghiệp đang phát triển".
+- **Thao tác chính:** "Về tìm công ty" → `/doanh-nghiep`.
+
+![Top doanh nghiệp](images/doanh-nghiep-top.png)
+
+## 17. Công ty đang theo dõi (`/doanh-nghiep/dang-theo-doi`)
+
+- **Mục đích:** Xem các công ty ứng viên đã nhấn theo dõi.
+- **Bố cục:** Tiêu đề (icon chuông + đếm số công ty); lưới thẻ công ty đã lọc; empty-state "Chưa theo dõi công ty nào"; loading/lỗi tải danh bạ.
+- **Thao tác chính:** "Theo dõi"/"Bỏ theo dõi" trên từng thẻ; "Khám phá công ty" → `/doanh-nghiep`; "Thử lại" khi lỗi.
+
+![Công ty đang theo dõi](images/doanh-nghiep-dang-theo-doi.png)
+
+## 18. Import CV (`/CV/import`)
+
+- **Mục đích:** Mở trình soạn CV kèm hộp thoại nhập CV có sẵn (file/JSON).
+- **Bố cục:** Giống hệt `/tao-cv` (render chung `TaoCvView`: topbar, dải CV, checklist, form, preview) + hộp `CvImportDialog` mở sẵn.
+- **Thao tác chính:** Như `/tao-cv`; thêm nhập CV từ file trong hộp thoại.
+
+![Import CV](images/cv-import.png)
+
+## 19. Phân tích CV (`/cv-phan-tich/[cvId]`)
+
+- **Mục đích:** Xem kết quả AI trích xuất/tóm tắt một CV.
+- **Bố cục:** Link về hồ sơ; hero "Phân tích CV bằng AI — CV #id"; 4 mục (Tóm tắt, Kỹ năng trích xuất, Kinh nghiệm trích xuất, Học vấn trích xuất); cảnh báo khi phân tích chưa xong; thẻ gợi ý đối chiếu; trạng thái tải/trống.
+- **Thao tác chính:** "Về hồ sơ của tôi" → `/ho-so`; chưa có kết quả thì "Mở CV để lưu" → `/tao-cv?cv=<id>`; link "Việc phù hợp" → `/viec-lam/phu-hop`.
+
+![Phân tích CV](images/cv-phan-tich.png)
+
+## 20. Quản lý kỹ năng (`/ky-nang`)
+
+- **Mục đích:** CRUD danh mục kỹ năng dùng chung của hệ thống.
+- **Bố cục:** Tiêu đề (icon Tags) + nút "Thêm kỹ năng"; form thêm/sửa (Tên kỹ năng + Mô tả, Hủy/Lưu); thẻ bảng (ID/Tên/Mô tả/Thao tác) + ô tìm kiếm; trạng thái tải/trống.
+- **Thao tác chính:** "Thêm kỹ năng" (POST), "Sửa" (PUT), "Xóa" (hộp xác nhận, DELETE); tìm kiếm theo tên/mô tả.
+
+![Quản lý kỹ năng](images/ky-nang.png)
+
+## 21. Kỹ năng của tôi (`/ky-nang-ung-vien`)
+
+- **Mục đích:** Gắn kỹ năng từ từ điển vào hồ sơ kèm số năm kinh nghiệm.
+- **Bố cục:** Tiêu đề (icon Zap) + nút "Thêm kỹ năng"; form (dropdown kỹ năng — khóa khi sửa — + ô số năm); danh sách từng dòng (tên, "X năm kinh nghiệm"/"Chưa có số năm", mô tả) + ô tìm kiếm.
+- **Thao tác chính:** "Thêm kỹ năng" (chặn trùng); "Sửa" số năm; xóa (xác nhận trình duyệt).
+
+![Kỹ năng của tôi](images/ky-nang-ung-vien.png)
+
+## 22. Kinh nghiệm làm việc (`/kinh-nghiem`)
+
+- **Mục đích:** Quản lý lịch sử kinh nghiệm trong hồ sơ ứng viên.
+- **Bố cục:** Tiêu đề (icon Briefcase) + nút "Thêm kinh nghiệm"; form (tên công ty/địa chỉ/từ ngày/đến ngày, checkbox "Đang làm tại đây" khóa ngày kết thúc, mô tả); danh sách (tên công ty, địa chỉ, "MM/YYYY — Hiện tại", mô tả cắt 2 dòng).
+- **Thao tác chính:** "Thêm kinh nghiệm" (POST); "Sửa" đổ dữ liệu vào form (PUT); "Xóa" (DELETE, xác nhận).
+
+![Kinh nghiệm làm việc](images/kinh-nghiem.png)
