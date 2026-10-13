@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { Building2, MapPin, Users, BellPlus, BellOff } from "lucide-react";
+import { ArrowUpRight, BellPlus, BellOff, MapPin, Users } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { companyInitials, type DoanhNghiepVm } from "./doanh-nghiep-api";
@@ -15,14 +16,14 @@ interface CompanyCardProps {
 /** Candidate company card — real data only, beige/ivory/navy tokens. */
 export function CompanyCard({ company, followed, onToggleFollow }: CompanyCardProps) {
   return (
-    <article className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-4 shadow-sm transition hover:shadow-md">
+    <article className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-4 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-md">
       <div className="flex items-start gap-3">
-        <span
-          aria-hidden="true"
-          className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-muted font-mono text-sm font-bold text-primary"
-        >
-          {companyInitials(company.tenDoanhNghiep || "?")}
-        </span>
+        <Avatar className="size-12 shrink-0 rounded-xl border border-border">
+          <AvatarImage src={company.logoUrl || undefined} alt="" />
+          <AvatarFallback className="rounded-xl bg-primary/10 font-semibold text-primary">
+            {companyInitials(company.tenDoanhNghiep || "?")}
+          </AvatarFallback>
+        </Avatar>
         <div className="min-w-0 flex-1">
           <h3 className="truncate text-base font-semibold tracking-tight text-foreground">
             <Link href={`/doanh-nghiep/${company.id}`} className="hover:underline">
@@ -68,8 +69,8 @@ export function CompanyCard({ company, followed, onToggleFollow }: CompanyCardPr
         </Button>
         <Link href={`/doanh-nghiep/${company.id}`} className="flex-1">
           <Button type="button" variant="outline" size="sm" className="h-9 w-full rounded-xl">
-            <Building2 className="mr-1.5 size-3.5" />
             Xem doanh nghiệp
+            <ArrowUpRight className="ml-1.5 size-3.5" />
           </Button>
         </Link>
       </div>
