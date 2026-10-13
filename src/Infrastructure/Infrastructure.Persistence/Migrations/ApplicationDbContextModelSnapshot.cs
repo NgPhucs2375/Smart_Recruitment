@@ -19,9 +19,9 @@ namespace Infrastructure.Persistence.Migrations
 #pragma warning disable 612, 618
             modelBuilder
                 .HasAnnotation("ProductVersion", "10.0.11")
-                .HasAnnotation("Relational:MaxIdentifierLength", 63)
-                .HasAnnotation("Npgsql:PostgresExtension:vector", ",,");
+                .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
+            NpgsqlModelBuilderExtensions.HasPostgresExtension(modelBuilder, "vector");
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
             modelBuilder.Entity("CVChungChi", b =>
@@ -747,647 +747,6 @@ namespace Infrastructure.Persistence.Migrations
                     b.ToTable("Conversations");
                 });
 
-            modelBuilder.Entity("Domain.Entities.DanhGia", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("Created")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("text");
-
-                    b.Property<int>("DonUngTuyenId")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("KetLuan")
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)");
-
-                    b.Property<DateTime?>("LastModified")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("LastModifiedBy")
-                        .HasColumnType("text");
-
-                    b.Property<DateTime?>("NgayPhanHoi")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("NoiDungPhanHoi")
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("DonUngTuyenId");
-
-                    b.ToTable("DanhGia", (string)null);
-                });
-
-            modelBuilder.Entity("Domain.Entities.DanhMucNghe", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("Created")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("text");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("boolean");
-
-                    b.Property<DateTime?>("LastModified")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("LastModifiedBy")
-                        .HasColumnType("text");
-
-                    b.Property<string>("MoTa")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<string>("TenNghe")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("TenNghe")
-                        .IsUnique();
-
-                    b.ToTable("DanhMucNghe", (string)null);
-                });
-
-            modelBuilder.Entity("Domain.Entities.DoanhNghiep", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("Created")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("text");
-
-                    b.Property<string>("DiaChi")
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)");
-
-                    b.Property<DateTime?>("LastModified")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("LastModifiedBy")
-                        .HasColumnType("text");
-
-                    b.Property<string>("LinhVucHoatDong")
-                        .HasColumnType("text");
-
-                    b.Property<string>("LogoUrl")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<string>("MaSoThue")
-                        .HasColumnType("text");
-
-                    b.Property<string>("MoTa")
-                        .HasColumnType("text");
-
-                    b.Property<int?>("NguoiDaiDienId")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("QuyMoNhanSu")
-                        .HasColumnType("text");
-
-                    b.Property<string>("TenDoanhNghiep")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)");
-
-                    b.Property<string>("Website")
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("MaSoThue")
-                        .IsUnique();
-
-                    b.HasIndex("NguoiDaiDienId")
-                        .IsUnique();
-
-                    b.ToTable("DoanhNghiep", (string)null);
-                });
-
-            modelBuilder.Entity("Domain.Entities.DonUngTuyen", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<int?>("CVPhienBanId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("CVUngVienId")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime>("Created")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("text");
-
-                    b.Property<string>("GhiChu")
-                        .HasColumnType("text");
-
-                    b.Property<DateTime?>("LastModified")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("LastModifiedBy")
-                        .HasColumnType("text");
-
-                    b.Property<DateTime?>("NgayUngTuyen")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("NguoiXuLyId")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("TinTuyenDungId")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("TrangThai")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CVPhienBanId");
-
-                    b.HasIndex("CVUngVienId");
-
-                    b.HasIndex("TinTuyenDungId");
-
-                    b.ToTable("DonUngTuyen", (string)null);
-                });
-
-            modelBuilder.Entity("Domain.Entities.HoSoNhaTuyenDung", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("ChucVu")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<DateTime>("Created")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("text");
-
-                    b.Property<int>("DoanhNghiepId")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("HoTen")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)");
-
-                    b.Property<DateTime?>("LastModified")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("LastModifiedBy")
-                        .HasColumnType("text");
-
-                    b.Property<int>("NguoiDungId")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("SDT")
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("DoanhNghiepId");
-
-                    b.HasIndex("NguoiDungId")
-                        .IsUnique();
-
-                    b.ToTable("HoSoNhaTuyenDung", (string)null);
-                });
-
-            modelBuilder.Entity("Domain.Entities.HoSoUngVien", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("AnhDaiDienUrl")
-                        .HasColumnType("text");
-
-                    b.Property<DateTime>("Created")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("text");
-
-                    b.Property<string>("DiaChi")
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)");
-
-                    b.Property<string>("GioiThieu")
-                        .HasColumnType("text");
-
-                    b.Property<string>("GioiTinh")
-                        .HasMaxLength(10)
-                        .HasColumnType("character varying(10)");
-
-                    b.Property<string>("HoTen")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)");
-
-                    b.Property<bool>("IsTimViec")
-                        .HasColumnType("boolean");
-
-                    b.Property<DateTime?>("LastModified")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("LastModifiedBy")
-                        .HasColumnType("text");
-
-                    b.Property<double>("MucLuongMongMuon")
-                        .HasColumnType("double precision");
-
-                    b.Property<DateTime?>("NgaySinh")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("NguoiDungId")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("SDT")
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
-
-                    b.Property<string>("ViTriUngTuyen")
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("NguoiDungId")
-                        .IsUnique();
-
-                    b.ToTable("HoSoUngVien", (string)null);
-                });
-
-            modelBuilder.Entity("Domain.Entities.KetQuaPhanTichCv", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("CVUngVienId")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime>("Created")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("text");
-
-                    b.Property<string>("HocVanTrichXuat")
-                        .HasColumnType("text");
-
-                    b.Property<string>("KinhNghiemTrichXuat")
-                        .HasColumnType("text");
-
-                    b.Property<string>("KyNangTrichXuat")
-                        .HasColumnType("text");
-
-                    b.Property<DateTime?>("LastModified")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("LastModifiedBy")
-                        .HasColumnType("text");
-
-                    b.Property<string>("NoiDungTrichXuat")
-                        .HasColumnType("text");
-
-                    b.Property<int>("PhanTich")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CVUngVienId");
-
-                    b.ToTable("KetQuaPhanTichCv", (string)null);
-                });
-
-            modelBuilder.Entity("Domain.Entities.KetQuaPhuHop", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<int?>("CVUngVienId")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime>("Created")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("text");
-
-                    b.Property<float>("DiemPhuHop")
-                        .HasColumnType("real");
-
-                    b.Property<DateTime>("EvaluateAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("ExplanationModel")
-                        .HasColumnType("text");
-
-                    b.Property<string>("GhiChu")
-                        .HasColumnType("text");
-
-                    b.Property<int>("HoSoUngVienId")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("KyNangThieu")
-                        .HasColumnType("text");
-
-                    b.Property<string>("KyNangThoa")
-                        .HasColumnType("text");
-
-                    b.Property<DateTime?>("LastModified")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("LastModifiedBy")
-                        .HasColumnType("text");
-
-                    b.Property<string>("MatchingVersion")
-                        .HasColumnType("text");
-
-                    b.Property<string>("PhanLoai")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<int>("TinTuyenDungId")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CVUngVienId");
-
-                    b.HasIndex("HoSoUngVienId");
-
-                    b.HasIndex("TinTuyenDungId");
-
-                    b.ToTable("KetQuaPhuHop", (string)null);
-                });
-
-            modelBuilder.Entity("Domain.Entities.KyNang", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("Created")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("text");
-
-                    b.Property<DateTime?>("LastModified")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("LastModifiedBy")
-                        .HasColumnType("text");
-
-                    b.Property<string>("MoTa")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<string>("TenKyNang")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("TenKyNang")
-                        .IsUnique();
-
-                    b.ToTable("KyNang", (string)null);
-                });
-
-            modelBuilder.Entity("Domain.Entities.KyNangTinTuyenDung", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("Created")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("text");
-
-                    b.Property<int>("KyNangId")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime?>("LastModified")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("LastModifiedBy")
-                        .HasColumnType("text");
-
-                    b.Property<int>("MucDoYeuCau")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("TinTuyenDungId")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("KyNangId");
-
-                    b.HasIndex("TinTuyenDungId");
-
-                    b.ToTable("KyNangTinTuyenDung", (string)null);
-                });
-
-            modelBuilder.Entity("Domain.Entities.LoiMoiNhanSu", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("ChucVu")
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)");
-
-                    b.Property<DateTime>("Created")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("text");
-
-                    b.Property<int>("DoanhNghiepId")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Email")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)");
-
-                    b.Property<string>("HoTen")
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)");
-
-                    b.Property<DateTime?>("LastModified")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("LastModifiedBy")
-                        .HasColumnType("text");
-
-                    b.Property<string>("LoiMoi")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<DateTime>("NgayHetHan")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("NguoiDaiDienId")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Token")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("DoanhNghiepId");
-
-                    b.HasIndex("NguoiDaiDienId");
-
-                    b.HasIndex("Token")
-                        .IsUnique();
-
-                    b.ToTable("LoiMoiNhanSu", (string)null);
-                });
-
-            modelBuilder.Entity("Domain.Entities.MarketingBanner", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("Created")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("text");
-
-                    b.Property<string>("Description")
-                        .HasColumnType("text");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("boolean");
-
-                    b.Property<DateTime?>("LastModified")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("LastModifiedBy")
-                        .HasColumnType("text");
-
-                    b.Property<string>("LinkUrl")
-                        .HasColumnType("text");
-
-                    b.Property<string>("MediaObjectName")
-                        .HasColumnType("text");
-
-                    b.Property<string>("MediaType")
-                        .HasColumnType("text");
-
-                    b.Property<string>("Title")
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("MarketingBanners");
-                });
-
-            modelBuilder.Entity("Domain.Entities.Message", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Content")
-                        .HasColumnType("text");
-
-                    b.Property<string>("ConversationId")
-                        .HasColumnType("text");
-
-                    b.Property<DateTime>("Created")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("text");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("boolean");
-
-                    b.Property<DateTime?>("LastModified")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("LastModifiedBy")
-                        .HasColumnType("text");
-
-                    b.Property<string>("SenderId")
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Messages");
-                });
             modelBuilder.Entity("Domain.Entities.CvTheme", b =>
                 {
                     b.Property<int>("Id")
@@ -1396,12 +755,12 @@ namespace Infrastructure.Persistence.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("CauHinhJson")
-                        .HasColumnType("text");
-
                     b.Property<string>("CapBac")
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
+
+                    b.Property<string>("CauHinhJson")
+                        .HasColumnType("text");
 
                     b.Property<DateTime>("Created")
                         .HasColumnType("timestamp with time zone");
@@ -1413,7 +772,7 @@ namespace Infrastructure.Persistence.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
 
-                    b.Property<Pgvector.Vector>("Embedding")
+                    b.Property<Vector>("Embedding")
                         .HasColumnType("vector(1536)");
 
                     b.Property<string>("EmbeddingModel")
@@ -1471,11 +830,11 @@ namespace Infrastructure.Persistence.Migrations
                     b.Property<int>("SoCot")
                         .HasColumnType("integer");
 
-                    b.Property<string>("TamLyMauSac")
+                    b.Property<string>("Tags")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
-                    b.Property<string>("Tags")
+                    b.Property<string>("TamLyMauSac")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
@@ -1524,8 +883,8 @@ namespace Infrastructure.Persistence.Migrations
                             PhongCachThietKe = "ats",
                             Slug = "minimal-ats",
                             SoCot = 1,
-                            TamLyMauSac = "Đen than tạo cảm giác tin cậy, tập trung nội dung",
                             Tags = "ATS,Professional",
+                            TamLyMauSac = "Đen than tạo cảm giác tin cậy, tập trung nội dung",
                             Ten = "Minimal ATS",
                             ThanThienATS = true,
                             ThuTu = 1,
@@ -1550,8 +909,8 @@ namespace Infrastructure.Persistence.Migrations
                             PhongCachThietKe = "modern",
                             Slug = "tech-modern",
                             SoCot = 2,
-                            TamLyMauSac = "Xanh navy truyền tải chuyên nghiệp và đáng tin",
                             Tags = "IT,Developer",
+                            TamLyMauSac = "Xanh navy truyền tải chuyên nghiệp và đáng tin",
                             Ten = "Tech Modern",
                             ThanThienATS = true,
                             ThuTu = 2,
@@ -1576,8 +935,8 @@ namespace Infrastructure.Persistence.Migrations
                             PhongCachThietKe = "classic",
                             Slug = "ats-classic",
                             SoCot = 1,
-                            TamLyMauSac = "Tối giản, máy đọc ưu tiên",
                             Tags = "ATS,Backend,DevOps",
+                            TamLyMauSac = "Tối giản, máy đọc ưu tiên",
                             Ten = "ATS Classic",
                             ThanThienATS = true,
                             ThuTu = 3,
@@ -1602,8 +961,8 @@ namespace Infrastructure.Persistence.Migrations
                             PhongCachThietKe = "modern",
                             Slug = "professional-split",
                             SoCot = 2,
-                            TamLyMauSac = "Navy điểm xuyết tạo chiều sâu chuyên nghiệp",
                             Tags = "IT,2 cột,Chuyên nghiệp",
+                            TamLyMauSac = "Navy điểm xuyết tạo chiều sâu chuyên nghiệp",
                             Ten = "Professional Split",
                             ThanThienATS = true,
                             ThuTu = 4,
@@ -1628,8 +987,8 @@ namespace Infrastructure.Persistence.Migrations
                             PhongCachThietKe = "modern",
                             Slug = "modern-accent",
                             SoCot = 1,
-                            TamLyMauSac = "Điểm nhấn màu dẫn mắt vào thành tựu",
                             Tags = "Hiện đại,Frontend,Product",
+                            TamLyMauSac = "Điểm nhấn màu dẫn mắt vào thành tựu",
                             Ten = "Modern Accent",
                             ThanThienATS = true,
                             ThuTu = 5,
@@ -1654,8 +1013,8 @@ namespace Infrastructure.Persistence.Migrations
                             PhongCachThietKe = "classic",
                             Slug = "executive-tech",
                             SoCot = 1,
-                            TamLyMauSac = "Trang trọng, thể hiện tầm vóc quản lý",
                             Tags = "Senior,Chuyên nghiệp,Lead",
+                            TamLyMauSac = "Trang trọng, thể hiện tầm vóc quản lý",
                             Ten = "Executive Tech",
                             ThanThienATS = true,
                             ThuTu = 6,
@@ -1680,8 +1039,8 @@ namespace Infrastructure.Persistence.Migrations
                             PhongCachThietKe = "ats",
                             Slug = "compact-developer",
                             SoCot = 1,
-                            TamLyMauSac = "Gọn gàng, không phô trương",
                             Tags = "ATS,Fresher,Junior",
+                            TamLyMauSac = "Gọn gàng, không phô trương",
                             Ten = "Compact Developer",
                             ThanThienATS = true,
                             ThuTu = 7,
@@ -1706,8 +1065,8 @@ namespace Infrastructure.Persistence.Migrations
                             PhongCachThietKe = "modern",
                             Slug = "sidebar-pro",
                             SoCot = 2,
-                            TamLyMauSac = "Sidebar điều hướng mắt nhà tuyển dụng",
                             Tags = "IT,2 cột,Kỹ năng",
+                            TamLyMauSac = "Sidebar điều hướng mắt nhà tuyển dụng",
                             Ten = "Sidebar Pro",
                             ThanThienATS = true,
                             ThuTu = 8,
@@ -1732,8 +1091,8 @@ namespace Infrastructure.Persistence.Migrations
                             PhongCachThietKe = "classic",
                             Slug = "clean-corporate",
                             SoCot = 1,
-                            TamLyMauSac = "Chuẩn mực, phù hợp văn hóa doanh nghiệp",
                             Tags = "Corporate,BA,PM",
+                            TamLyMauSac = "Chuẩn mực, phù hợp văn hóa doanh nghiệp",
                             Ten = "Clean Corporate",
                             ThanThienATS = true,
                             ThuTu = 9,
@@ -1758,8 +1117,8 @@ namespace Infrastructure.Persistence.Migrations
                             PhongCachThietKe = "creative",
                             Slug = "creative-portfolio",
                             SoCot = 1,
-                            TamLyMauSac = "Đỏ burgundy khơi gợi sáng tạo và đam mê",
                             Tags = "Creative,Portfolio,Designer",
+                            TamLyMauSac = "Đỏ burgundy khơi gợi sáng tạo và đam mê",
                             Ten = "Creative Portfolio",
                             ThanThienATS = false,
                             ThuTu = 10,
@@ -1784,8 +1143,8 @@ namespace Infrastructure.Persistence.Migrations
                             PhongCachThietKe = "classic",
                             Slug = "senior-executive",
                             SoCot = 1,
-                            TamLyMauSac = "Khoảng trắng thể hiện sự tự tin",
                             Tags = "Senior,Leadership,Manager",
+                            TamLyMauSac = "Khoảng trắng thể hiện sự tự tin",
                             Ten = "Senior Executive",
                             ThanThienATS = true,
                             ThuTu = 11,
@@ -1810,8 +1169,8 @@ namespace Infrastructure.Persistence.Migrations
                             PhongCachThietKe = "ats",
                             Slug = "academic-cv",
                             SoCot = 1,
-                            TamLyMauSac = "Hàn lâm, nghiêm túc",
                             Tags = "Academic,Research,Học vấn",
+                            TamLyMauSac = "Hàn lâm, nghiêm túc",
                             Ten = "Academic CV",
                             ThanThienATS = true,
                             ThuTu = 12,
@@ -1836,8 +1195,8 @@ namespace Infrastructure.Persistence.Migrations
                             PhongCachThietKe = "modern",
                             Slug = "data-specialist",
                             SoCot = 1,
-                            TamLyMauSac = "Kỹ thuật số, chính xác",
                             Tags = "Data,AI,ML",
+                            TamLyMauSac = "Kỹ thuật số, chính xác",
                             Ten = "Data Specialist",
                             ThanThienATS = true,
                             ThuTu = 13,
@@ -1862,8 +1221,8 @@ namespace Infrastructure.Persistence.Migrations
                             PhongCachThietKe = "modern",
                             Slug = "devops-stack",
                             SoCot = 1,
-                            TamLyMauSac = "Mạch lạc như pipeline CI/CD",
                             Tags = "DevOps,Infra,Cloud",
+                            TamLyMauSac = "Mạch lạc như pipeline CI/CD",
                             Ten = "DevOps Stack",
                             ThanThienATS = true,
                             ThuTu = 14,
@@ -1888,8 +1247,8 @@ namespace Infrastructure.Persistence.Migrations
                             PhongCachThietKe = "creative",
                             Slug = "product-builder",
                             SoCot = 1,
-                            TamLyMauSac = "Xanh sage tươi mới, tinh thần xây dựng",
                             Tags = "Product,PM,Freelance",
+                            TamLyMauSac = "Xanh sage tươi mới, tinh thần xây dựng",
                             Ten = "Product Builder",
                             ThanThienATS = false,
                             ThuTu = 15,
@@ -1914,8 +1273,8 @@ namespace Infrastructure.Persistence.Migrations
                             PhongCachThietKe = "modern",
                             Slug = "startup-modern",
                             SoCot = 1,
-                            TamLyMauSac = "Trẻ trung mà vẫn đáng tin",
                             Tags = "Startup,Hiện đại,Fresher",
+                            TamLyMauSac = "Trẻ trung mà vẫn đáng tin",
                             Ten = "Startup Modern",
                             ThanThienATS = true,
                             ThuTu = 16,
@@ -1940,8 +1299,8 @@ namespace Infrastructure.Persistence.Migrations
                             PhongCachThietKe = "editorial",
                             Slug = "elegant-serif",
                             SoCot = 1,
-                            TamLyMauSac = "Serif cổ điển, tinh tế",
                             Tags = "Serif,Editorial,Premium",
+                            TamLyMauSac = "Serif cổ điển, tinh tế",
                             Ten = "Elegant Serif",
                             ThanThienATS = true,
                             ThuTu = 17,
@@ -1966,8 +1325,8 @@ namespace Infrastructure.Persistence.Migrations
                             PhongCachThietKe = "modern",
                             Slug = "minimal-grid",
                             SoCot = 2,
-                            TamLyMauSac = "Lưới trật tự, dễ quét",
                             Tags = "Grid,Hiện đại,Gọn",
+                            TamLyMauSac = "Lưới trật tự, dễ quét",
                             Ten = "Minimal Grid",
                             ThanThienATS = true,
                             ThuTu = 18,
@@ -1992,8 +1351,8 @@ namespace Infrastructure.Persistence.Migrations
                             PhongCachThietKe = "creative",
                             Slug = "sunset-gradient",
                             SoCot = 1,
-                            TamLyMauSac = "Cam-hồng-tím truyền năng lượng, lạc quan và khác biệt",
                             Tags = "Marketing,Content,Social,Branding,Event",
+                            TamLyMauSac = "Cam-hồng-tím truyền năng lượng, lạc quan và khác biệt",
                             Ten = "Sunset Gradient",
                             ThanThienATS = false,
                             ThuTu = 19,
@@ -2018,8 +1377,8 @@ namespace Infrastructure.Persistence.Migrations
                             PhongCachThietKe = "modern",
                             Slug = "ocean-wave",
                             SoCot = 2,
-                            TamLyMauSac = "Xanh biển tin cậy mà tươi mới",
                             Tags = "Sales,CSKH,Du lịch,Giao tiếp",
+                            TamLyMauSac = "Xanh biển tin cậy mà tươi mới",
                             Ten = "Ocean Wave",
                             ThanThienATS = true,
                             ThuTu = 20,
@@ -2044,8 +1403,8 @@ namespace Infrastructure.Persistence.Migrations
                             PhongCachThietKe = "modern",
                             Slug = "forest-fresh",
                             SoCot = 1,
-                            TamLyMauSac = "Xanh lá tăng trưởng, chân thật",
                             Tags = "Môi trường,Giáo dục,NGO,Content",
+                            TamLyMauSac = "Xanh lá tăng trưởng, chân thật",
                             Ten = "Forest Fresh",
                             ThanThienATS = true,
                             ThuTu = 21,
@@ -2070,8 +1429,8 @@ namespace Infrastructure.Persistence.Migrations
                             PhongCachThietKe = "modern",
                             Slug = "midnight-pro",
                             SoCot = 1,
-                            TamLyMauSac = "Nền tối neon thể hiện đẳng cấp kỹ thuật",
                             Tags = "Developer,DevOps,Game,Github",
+                            TamLyMauSac = "Nền tối neon thể hiện đẳng cấp kỹ thuật",
                             Ten = "Midnight Pro",
                             ThanThienATS = false,
                             ThuTu = 22,
@@ -2096,8 +1455,8 @@ namespace Infrastructure.Persistence.Migrations
                             PhongCachThietKe = "creative",
                             Slug = "pastel-studio",
                             SoCot = 2,
-                            TamLyMauSac = "Pastel nhẹ nhàng, tinh tế",
                             Tags = "Design,UI,UX,Branding,Portfolio",
+                            TamLyMauSac = "Pastel nhẹ nhàng, tinh tế",
                             Ten = "Pastel Studio",
                             ThanThienATS = true,
                             ThuTu = 23,
@@ -2122,8 +1481,8 @@ namespace Infrastructure.Persistence.Migrations
                             PhongCachThietKe = "modern",
                             Slug = "bento-grid",
                             SoCot = 2,
-                            TamLyMauSac = "Trật tự trong tự do, cảm giác web hiện đại",
                             Tags = "Portfolio,Frontend,Product,Dự án",
+                            TamLyMauSac = "Trật tự trong tự do, cảm giác web hiện đại",
                             Ten = "Bento Grid",
                             ThanThienATS = true,
                             ThuTu = 24,
@@ -2148,8 +1507,8 @@ namespace Infrastructure.Persistence.Migrations
                             PhongCachThietKe = "creative",
                             Slug = "aurora-mesh",
                             SoCot = 1,
-                            TamLyMauSac = "Gradient mesh đổi mới, công nghệ",
                             Tags = "Startup,AI,Product,Đổi mới",
+                            TamLyMauSac = "Gradient mesh đổi mới, công nghệ",
                             Ten = "Aurora Mesh",
                             ThanThienATS = false,
                             ThuTu = 25,
@@ -2174,8 +1533,8 @@ namespace Infrastructure.Persistence.Migrations
                             PhongCachThietKe = "creative",
                             Slug = "pop-art-bold",
                             SoCot = 1,
-                            TamLyMauSac = "Vàng-đỏ-cobalt tự tin, bùng nổ",
                             Tags = "Quảng cáo,Event,Sales,Truyền thông",
+                            TamLyMauSac = "Vàng-đỏ-cobalt tự tin, bùng nổ",
                             Ten = "Pop Art Bold",
                             ThanThienATS = false,
                             ThuTu = 26,
@@ -2200,8 +1559,8 @@ namespace Infrastructure.Persistence.Migrations
                             PhongCachThietKe = "classic",
                             Slug = "career-timeline",
                             SoCot = 1,
-                            TamLyMauSac = "Navy hành trình, tiến bộ vững chắc",
                             Tags = "Thăng tiến,Quản lý,Kinh nghiệm",
+                            TamLyMauSac = "Navy hành trình, tiến bộ vững chắc",
                             Ten = "Career Timeline",
                             ThanThienATS = true,
                             ThuTu = 27,
@@ -2226,8 +1585,8 @@ namespace Infrastructure.Persistence.Migrations
                             PhongCachThietKe = "modern",
                             Slug = "infographic-pro",
                             SoCot = 2,
-                            TamLyMauSac = "Teal dữ liệu, minh bạch",
                             Tags = "Kỹ năng,KPI,Data",
+                            TamLyMauSac = "Teal dữ liệu, minh bạch",
                             Ten = "Infographic Pro",
                             ThanThienATS = false,
                             ThuTu = 28,
@@ -2252,8 +1611,8 @@ namespace Infrastructure.Persistence.Migrations
                             PhongCachThietKe = "modern",
                             Slug = "statement-header",
                             SoCot = 1,
-                            TamLyMauSac = "Một màu đặc quyết đoán",
                             Tags = "Quản lý,Thương hiệu cá nhân",
+                            TamLyMauSac = "Một màu đặc quyết đoán",
                             Ten = "Statement Header",
                             ThanThienATS = true,
                             ThuTu = 29,
@@ -2278,8 +1637,8 @@ namespace Infrastructure.Persistence.Migrations
                             PhongCachThietKe = "ats",
                             Slug = "zen-minimal",
                             SoCot = 1,
-                            TamLyMauSac = "Đen-xám tĩnh, tự tin kiểu Nhật",
                             Tags = "Tối giản,Cao cấp",
+                            TamLyMauSac = "Đen-xám tĩnh, tự tin kiểu Nhật",
                             Ten = "Zen Minimal",
                             ThanThienATS = true,
                             ThuTu = 30,
@@ -2304,8 +1663,8 @@ namespace Infrastructure.Persistence.Migrations
                             PhongCachThietKe = "classic",
                             Slug = "snapshot-pro",
                             SoCot = 2,
-                            TamLyMauSac = "Cam đất ấm áp, con người thật",
                             Tags = "Ảnh,Giao tiếp,Dịch vụ",
+                            TamLyMauSac = "Cam đất ấm áp, con người thật",
                             Ten = "Snapshot Pro",
                             ThanThienATS = true,
                             ThuTu = 31,
@@ -2330,8 +1689,8 @@ namespace Infrastructure.Persistence.Migrations
                             PhongCachThietKe = "classic",
                             Slug = "one-page-exec",
                             SoCot = 2,
-                            TamLyMauSac = "Navy hiệu suất, dồn lực",
                             Tags = "C-level,Tư vấn,Súc tích",
+                            TamLyMauSac = "Navy hiệu suất, dồn lực",
                             Ten = "One-Page Exec",
                             ThanThienATS = true,
                             ThuTu = 32,
@@ -2356,8 +1715,8 @@ namespace Infrastructure.Persistence.Migrations
                             PhongCachThietKe = "classic",
                             Slug = "care-plus",
                             SoCot = 1,
-                            TamLyMauSac = "Xanh y tế sạch sẽ, an toàn",
                             Tags = "Y tế,Bác sĩ,Điều dưỡng,Chứng chỉ",
+                            TamLyMauSac = "Xanh y tế sạch sẽ, an toàn",
                             Ten = "Care Plus",
                             ThanThienATS = true,
                             ThuTu = 33,
@@ -2382,8 +1741,8 @@ namespace Infrastructure.Persistence.Migrations
                             PhongCachThietKe = "classic",
                             Slug = "mentor-class",
                             SoCot = 2,
-                            TamLyMauSac = "Cam ấm tri thức, gần gũi",
                             Tags = "Giáo viên,Đào tạo,Học thuật",
+                            TamLyMauSac = "Cam ấm tri thức, gần gũi",
                             Ten = "Mentor Class",
                             ThanThienATS = true,
                             ThuTu = 34,
@@ -2408,8 +1767,8 @@ namespace Infrastructure.Persistence.Migrations
                             PhongCachThietKe = "classic",
                             Slug = "vault-finance",
                             SoCot = 1,
-                            TamLyMauSac = "Navy-gold giàu có, chính xác",
                             Tags = "Ngân hàng,Tài chính,CFA",
+                            TamLyMauSac = "Navy-gold giàu có, chính xác",
                             Ten = "Vault Finance",
                             ThanThienATS = true,
                             ThuTu = 35,
@@ -2434,8 +1793,8 @@ namespace Infrastructure.Persistence.Migrations
                             PhongCachThietKe = "modern",
                             Slug = "host-warm",
                             SoCot = 1,
-                            TamLyMauSac = "Cam đào hiếu khách",
                             Tags = "Phục vụ,Bán lẻ,Thực tập",
+                            TamLyMauSac = "Cam đào hiếu khách",
                             Ten = "Host Warm",
                             ThanThienATS = true,
                             ThuTu = 36,
@@ -2460,8 +1819,8 @@ namespace Infrastructure.Persistence.Migrations
                             PhongCachThietKe = "editorial",
                             Slug = "editorial-magazine",
                             SoCot = 2,
-                            TamLyMauSac = "Mực đen báo chí, đỏ điểm nhấn quyết đoán",
                             Tags = "Editorial,Tạp chí,Content",
+                            TamLyMauSac = "Mực đen báo chí, đỏ điểm nhấn quyết đoán",
                             Ten = "Editorial Magazine",
                             ThanThienATS = true,
                             ThuTu = 37,
@@ -2486,8 +1845,8 @@ namespace Infrastructure.Persistence.Migrations
                             PhongCachThietKe = "creative",
                             Slug = "archi-portfolio",
                             SoCot = 2,
-                            TamLyMauSac = "Xám thép chính xác, kỷ luật",
                             Tags = "Kiến trúc,Bản vẽ,Portfolio",
+                            TamLyMauSac = "Xám thép chính xác, kỷ luật",
                             Ten = "Archi Portfolio",
                             ThanThienATS = true,
                             ThuTu = 38,
@@ -2512,8 +1871,8 @@ namespace Infrastructure.Persistence.Migrations
                             PhongCachThietKe = "classic",
                             Slug = "legal-prestige",
                             SoCot = 1,
-                            TamLyMauSac = "Navy uy quyền, gold trang trọng",
                             Tags = "Luật,Pháp chế",
+                            TamLyMauSac = "Navy uy quyền, gold trang trọng",
                             Ten = "Legal Prestige",
                             ThanThienATS = true,
                             ThuTu = 39,
@@ -2538,8 +1897,8 @@ namespace Infrastructure.Persistence.Migrations
                             PhongCachThietKe = "creative",
                             Slug = "motion-creative",
                             SoCot = 1,
-                            TamLyMauSac = "Coral-violet trẻ trung, chuyển động",
                             Tags = "Sáng tạo,Multimedia",
+                            TamLyMauSac = "Coral-violet trẻ trung, chuyển động",
                             Ten = "Motion Creative",
                             ThanThienATS = false,
                             ThuTu = 40,
@@ -2564,8 +1923,8 @@ namespace Infrastructure.Persistence.Migrations
                             PhongCachThietKe = "classic",
                             Slug = "research-scholar",
                             SoCot = 2,
-                            TamLyMauSac = "Xanh lá đậm học thuật, nghiêm cẩn",
                             Tags = "Nghiên cứu,Học thuật",
+                            TamLyMauSac = "Xanh lá đậm học thuật, nghiêm cẩn",
                             Ten = "Research Scholar",
                             ThanThienATS = true,
                             ThuTu = 41,
@@ -2590,8 +1949,8 @@ namespace Infrastructure.Persistence.Migrations
                             PhongCachThietKe = "creative",
                             Slug = "culinary-signature",
                             SoCot = 1,
-                            TamLyMauSac = "Burgundy ấm cúng, tinh tế",
                             Tags = "F&B,Đầu bếp",
+                            TamLyMauSac = "Burgundy ấm cúng, tinh tế",
                             Ten = "Culinary Signature",
                             ThanThienATS = true,
                             ThuTu = 42,
@@ -2616,8 +1975,8 @@ namespace Infrastructure.Persistence.Migrations
                             PhongCachThietKe = "editorial",
                             Slug = "fashion-editorial",
                             SoCot = 1,
-                            TamLyMauSac = "Đen-trắng tương phản, thời thượng",
                             Tags = "Thời trang,Lookbook",
+                            TamLyMauSac = "Đen-trắng tương phản, thời thượng",
                             Ten = "Fashion Editorial",
                             ThanThienATS = false,
                             ThuTu = 43,
@@ -2642,15 +2001,14 @@ namespace Infrastructure.Persistence.Migrations
                             PhongCachThietKe = "modern",
                             Slug = "industrial-blueprint",
                             SoCot = 1,
-                            TamLyMauSac = "Xám thép công nghiệp, chính xác",
                             Tags = "Cơ khí,Bản vẽ,Kỹ thuật",
+                            TamLyMauSac = "Xám thép công nghiệp, chính xác",
                             Ten = "Industrial Blueprint",
                             ThanThienATS = true,
                             ThuTu = 44,
                             TranhSuDungKhi = "Sáng tạo, dịch vụ",
                             ViTriMucTieu = "Kỹ sư,Cơ khí"
-                        }
-                    );
+                        });
                 });
 
             modelBuilder.Entity("Domain.Entities.DanhGia", b =>
@@ -3225,6 +2583,86 @@ namespace Infrastructure.Persistence.Migrations
                     b.ToTable("LoiMoiNhanSu", (string)null);
                 });
 
+            modelBuilder.Entity("Domain.Entities.MarketingBanner", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("Created")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("LastModified")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("LastModifiedBy")
+                        .HasColumnType("text");
+
+                    b.Property<string>("LinkUrl")
+                        .HasColumnType("text");
+
+                    b.Property<string>("MediaObjectName")
+                        .HasColumnType("text");
+
+                    b.Property<string>("MediaType")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Title")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("MarketingBanners");
+                });
+
+            modelBuilder.Entity("Domain.Entities.Message", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Content")
+                        .HasColumnType("text");
+
+                    b.Property<string>("ConversationId")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("Created")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("LastModified")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("LastModifiedBy")
+                        .HasColumnType("text");
+
+                    b.Property<string>("SenderId")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Messages");
+                });
+
             modelBuilder.Entity("Domain.Entities.NganhNgheKyNang", b =>
                 {
                     b.Property<int>("Id")
@@ -3768,6 +3206,7 @@ namespace Infrastructure.Persistence.Migrations
                         .HasColumnType("text");
 
                     b.Property<DateTime?>("LastModified")
+                        .IsConcurrencyToken()
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("LastModifiedBy")
