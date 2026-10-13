@@ -190,6 +190,9 @@ app.MapHub<WebApp.Server.Hubs.ChatHub>("/api/hubs/chat", options => options.Clos
 // nếu không continuation run sau tool result sẽ 500 "Unknown chat role".
 app.UseMiddleware<WebApp.Server.Middlewares.AguiReasoningRoleMiddleware>();
 
+// Hạn mức 15 chat/ngày cho agent Adam — chạy trước endpoint agent, sau auth middleware.
+app.UseMiddleware<WebApp.Server.Middlewares.AgentChatRateLimitMiddleware>();
+
 // BE-first: một agent duy nhất ở BE (LLM + tool backend scoped, chỉ đọc).
 // FE giữ frontend tool v2 (useFrontendTool/useAgentContext) và trỏ runtimeUrl về endpoint này.
 // Ghi CV duy nhất qua nút "Lưu CV" ở /CV; chat từ trang khác dùng navigateToCvEditor + pending-patch.
