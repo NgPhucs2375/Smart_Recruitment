@@ -5,8 +5,23 @@ export function Avatar({ className, ...props }: React.ComponentProps<"span">) {
   return <span className={cn("relative flex size-10 shrink-0 overflow-hidden rounded-full", className)} {...props} />;
 }
 
-export function AvatarImage({ className, alt = "", ...props }: React.ComponentProps<"img">) {
-  return <img alt={alt} className={cn("aspect-square size-full object-cover", className)} {...props} />;
+export function AvatarImage({ className, alt = "", src, onError, ...props }: React.ComponentProps<"img">) {
+  const [failed, setFailed] = React.useState(false);
+  // Không src (logo trống) hoặc load lỗi (404) -> không render <img> để
+  // AvatarFallback initials bên dưới hiện ra, thay vì ô trắng che lấp.
+  if (!src || failed) return null;
+  return (
+    <img
+      alt={alt}
+      src={src}
+      onError={(e) => {
+        setFailed(true);
+        onError?.(e);
+      }}
+      className={cn("absolute inset-0 aspect-square size-full object-cover", className)}
+      {...props}
+    />
+  );
 }
 
 export function AvatarFallback({ className, ...props }: React.ComponentProps<"span">) {

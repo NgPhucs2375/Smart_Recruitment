@@ -20,6 +20,17 @@ function distinct(values: string[]) {
   return [...new Set(values.map((value) => value.trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, "vi"));
 }
 
+/** Chuẩn hóa lĩnh vực (gộp khoảng trắng thừa) để label + lọc khớp nhau. */
+function sectorOf(value: string): string {
+  return value.trim().replace(/\s+/g, " ");
+}
+
+/** Rút tỉnh/thành (mảnh cuối sau dấu phẩy) từ địa chỉ tự do. */
+function cityOf(diaChi: string): string {
+  const parts = diaChi.split(",").map((s) => s.trim()).filter(Boolean);
+  return parts.length > 0 ? parts[parts.length - 1] : "";
+}
+
 export function DoanhNghiepView() {
   const [companies, setCompanies] = useState<DoanhNghiepVm[]>([]);
   const [jobCounts, setJobCounts] = useState<Record<number, number>>({});
@@ -53,13 +64,13 @@ export function DoanhNghiepView() {
     return () => { active = false; };
   }, [reloadTick]);
 
-  const fields = useMemo(() => distinct(companies.map((company) => company.linhVucHoatDong)), [companies]);
-  const locations = useMemo(() => distinct(companies.map((company) => company.diaChi)), [companies]);
+  const fields = useMemo(() => distinct(companies.map((company) => sectorOf(company.linhVucHoatDong))).map((value) => ({ value, label: value })), [companies]);
+  const locations = useMemo(() => distinct(companies.map((company) => cityOf(company.diaChi))).map((value) => ({ value, label: value })), [companies]);
   const visible = useMemo(() => {
     const normalized = deferredKeyword.trim().toLowerCase();
     return companies.filter((company) => {
-      if (field !== "all" && company.linhVucHoatDong !== field) return false;
-      if (location !== "all" && company.diaChi !== location) return false;
+      if (field !== "all" && sectorOf(company.linhVucHoatDong) !== field) return false;
+      if (location !== "all" && cityOf(company.diaChi) !== location) return false;
       return !normalized || `${company.tenDoanhNghiep} ${company.linhVucHoatDong} ${company.diaChi} ${company.moTa}`.toLowerCase().includes(normalized);
     }).sort((a, b) => (jobCounts[b.id] ?? 0) - (jobCounts[a.id] ?? 0) || a.tenDoanhNghiep.localeCompare(b.tenDoanhNghiep, "vi"));
   }, [companies, deferredKeyword, field, jobCounts, location]);
