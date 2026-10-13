@@ -7,11 +7,13 @@ import { normalizeAuthError } from "./login-handler";
 
 /**
  * Shared login engine for every login UI.
- * Wraps Refine `useLogin` (→ `authProvider.login` → POST /account/authenticate
- * or /external-login → tokens → GET /account/me → role-based redirect).
+ * Wraps Refine `useLogin` (→ `authProvider.login` → POST /account/authenticate,
+ * /external-login (Google) hoặc /github-login (GitHub code) → tokens → GET
+ * /account/me → role-based redirect).
  *
  * UI pages only: render design, collect credentials, call
- * `loginWithPassword` / `loginWithGoogle`. Loading + error state included.
+ * `loginWithPassword` / `loginWithGoogle` / `loginWithGitHub`.
+ * Loading + error state included.
  */
 export function useAuthLogin(portal?: PortalKind, next?: string | null) {
   const [error, setError] = useState<string | null>(null);
@@ -42,17 +44,23 @@ export function useAuthLogin(portal?: PortalKind, next?: string | null) {
     }
   }
 
-  function loginWithPassword(email: string, password: string) {
-    return submit({ email, password });
+  function loginWithPassword(email: string, password: string, remember = true) {
+    return submit({ email, password, remember });
   }
 
   function loginWithGoogle(credential: string) {
     return submit({ providerName: "google", credential });
   }
 
+  /** Gọi từ trang /auth/github/callback với `code` GitHub trả về (?code=...&state=...). */
+  function loginWithGitHub(code: string) {
+    return submit({ providerName: "github", code });
+  }
+
   return {
     loginWithPassword,
     loginWithGoogle,
+    loginWithGitHub,
     isPending,
     error,
     setError,

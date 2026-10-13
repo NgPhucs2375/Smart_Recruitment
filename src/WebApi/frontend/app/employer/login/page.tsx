@@ -1,4 +1,5 @@
 "use client";
+import { ResendVerification } from "@/components/auth/resend-verification";
 
 import { Suspense, useState } from "react";
 import Link from "next/link";
@@ -31,9 +32,10 @@ export default function EmployerLoginPage() {
 
 function EmployerLoginContent() {
   const [showPassword, setShowPassword] = useState(false);
+  const [githubError, setGithubError] = useState<string | null>(null);
   const searchParams = useSearchParams();
   const next = sanitizeNext(searchParams.get("next"));
-  const { register, handleSubmit, errors, isPending, submitError } = usePasswordLogin("employer", next);
+  const { register, handleSubmit, errors, isPending, submitError, email } = usePasswordLogin("employer", next);
   const { handleGoogleLogin, isPending: isGooglePending, error: googleError } = useGoogleAuth("employer", next);
 
   return (
@@ -118,6 +120,7 @@ function EmployerLoginContent() {
             <AlertDescription className="text-xs text-red-700">{submitError}</AlertDescription>
           </Alert>
         )}
+        <ResendVerification email={email ?? ""} error={submitError} />
 
         <div className="space-y-1.5">
           <Label htmlFor="employer-email" className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
@@ -192,7 +195,14 @@ function EmployerLoginContent() {
           text="Đăng nhập nhanh bằng Google"
         />
         {googleError && <p className="text-xs text-red-500">{googleError}</p>}
-        <GithubLoginButton text="Đăng nhập bằng GitHub" />
+        <GithubLoginButton
+          text="Đăng nhập bằng GitHub"
+          portal="employer"
+          next={next}
+          disabled={isPending || isGooglePending}
+          onError={setGithubError}
+        />
+        {githubError && <p className="text-xs text-red-500">{githubError}</p>}
       </form>
 
       <div className="mt-6 border-t border-border/60 pt-4 text-center">

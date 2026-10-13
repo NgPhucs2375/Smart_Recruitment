@@ -49,7 +49,7 @@ namespace Infrastructure.Identity.Features.Users.Queries.GetMeByToken
                 roles = roleRows.Select(x => x.Name).Where(x => x != null).ToArray();
                 var roleIds = roleRows.Select(x => x.Id).ToList();
                 var currentClaims = await _context.RoleClaims.Where(x => roleIds.Contains(x.RoleId))
-                    .Select(x => new { x.ClaimType, x.ClaimValue }).ToListAsync(cancellationToken);
+                    .Select(x => new { x.RoleId, x.ClaimType, x.ClaimValue }).ToListAsync(cancellationToken);
                 // Parse permissions from "roles" JSON claims (injected by AccountService.GenerateJWToken)
                 // + fallback: blob JSON nằm lẫn trong Role claims do inbound mapping.
                 var permissions = new List<PermissionDto>();
@@ -81,6 +81,7 @@ namespace Infrastructure.Identity.Features.Users.Queries.GetMeByToken
 
                 permissions = currentClaims.Where(x => !string.IsNullOrWhiteSpace(x.ClaimType))
                     .SelectMany(x => (x.ClaimValue ?? "").Split('#', System.StringSplitOptions.RemoveEmptyEntries)
+                        .Where(action => Infrastructure.Identity.Services.PermissionPolicy.IsEffective(roleRows.First(r => r.Id == x.RoleId).Name ?? "", x.ClaimType, action))
                         .Select(action => new PermissionDto { Resource = x.ClaimType, Action = action }))
                     .GroupBy(x => new { x.Resource, x.Action }).Select(x => x.First()).ToList();
 

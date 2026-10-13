@@ -33,6 +33,7 @@ import {
 function RegisterContent() {
   const [method, setMethod] = useState<"password" | "magic">("password");
   const [showPassword, setShowPassword] = useState(false);
+  const [githubError, setGithubError] = useState<string | null>(null);
   const searchParams = useSearchParams();
   const inviteToken = searchParams.get("inviteToken");
   const invitedEmail = searchParams.get("email") ?? "";
@@ -313,9 +314,12 @@ function RegisterContent() {
           {!isInvitation && (
             <SocialAuthSection
               mode="register"
+              portal="candidate"
               onGoogleLogin={handleGoogleLogin}
               onGoogleError={setGoogleError}
               googleError={googleError}
+              onGithubError={setGithubError}
+              githubError={githubError}
               disabled={isPwdPending || isGooglePending}
             />
           )}

@@ -16,6 +16,7 @@ using System;
 using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
+using System.Net.Http;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
@@ -40,7 +41,9 @@ namespace Infrastructure.Identity.Services
         private readonly IApplicationDbContext _appContext;
         private readonly IAuthenticatedUserService _authenticatedUserService;
         private readonly IOptions<GoogleSettings> _googleSettings;
+        private readonly IOptions<GitHubSettings> _gitHubSettings;
         private readonly ILogger<AccountService> _logger;
+        private readonly IHttpClientFactory _httpClientFactory;
         public AccountService(
             IdentityContext context,
             IApplicationDbContext appContext,
@@ -52,7 +55,9 @@ namespace Infrastructure.Identity.Services
             IEmailService emailService,
             IAuthenticatedUserService authenticatedUserService,
             IOptions<GoogleSettings> googleSettings,
-            ILogger<AccountService> logger)
+            IOptions<GitHubSettings> gitHubSettings,
+            ILogger<AccountService> logger,
+            IHttpClientFactory httpClientFactory)
         {
             _context = context;
             _appContext = appContext;
@@ -64,7 +69,9 @@ namespace Infrastructure.Identity.Services
             this._emailService = emailService;
             _authenticatedUserService = authenticatedUserService;
             _googleSettings = googleSettings;
+            _gitHubSettings = gitHubSettings;
             _logger = logger;
+            _httpClientFactory = httpClientFactory;
         }
 
         internal sealed record RolePermission
@@ -946,13 +953,91 @@ namespace Infrastructure.Identity.Services
                 _logger.LogInformation("Google user provisioning completed in {ElapsedMs} ms", timer.ElapsedMilliseconds);
             }
 
-            // 3. Sinh Access Token và Refresh Token[cite: 3]
+            // 3. Sinh Access Token và Refresh Token — helper dùng chung với GitHub login
+            return await IssueAuthResponseAsync(user, ipAddress, request.Provider, timer, existingUser).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Đăng nhập / Đăng ký bằng GitHub (Authorization Code Flow).
+        /// Frontend điều hướng người dùng tới GitHub rồi trả code về trang callback;
+        /// backend giữ client_secret để đổi code → access_token, lấy email đã xác minh,
+        /// find-or-create tài khoản (email trùng → đăng nhập thẳng, tự liên kết GitHub;
+        /// email mới → tạo UNG_VIEN như luồng Google) và cấp JWT + Refresh Token.
+        /// </summary>
+        public async Task<Response<AuthenticationResponse>> GitHubLoginAsync(GitHubLoginRequest request, string ipAddress)
+        {
+            var timer = System.Diagnostics.Stopwatch.StartNew();
+            if (string.IsNullOrWhiteSpace(request?.Code))
+                throw new ApiException("Mã ủy quyền GitHub không được để trống.");
+
+            var settings = _gitHubSettings.Value;
+            if (string.IsNullOrWhiteSpace(settings?.ClientId) || string.IsNullOrWhiteSpace(settings?.ClientSecret))
+            {
+                _logger.LogError("GitHubSettings:ClientId/ClientSecret chưa được cấu hình trên server.");
+                throw new ApiException("Cấu hình GitHub OAuth trên server bị thiếu.");
+            }
+
+            // 1. Đổi code lấy access_token (client_secret chỉ nằm ở server).
+            var accessToken = await ExchangeGitHubCodeAsync(settings, request.Code, request.RedirectUri).ConfigureAwait(false);
+            _logger.LogInformation("GitHub code exchanged in {ElapsedMs} ms", timer.ElapsedMilliseconds);
+
+            // 2. Lấy hồ sơ + email đã xác minh từ GitHub.
+            var profile = await FetchGitHubProfileAsync(accessToken).ConfigureAwait(false);
+
+            // 3. Tìm theo email: đã tồn tại → đăng nhập thẳng (khớp trải nghiệm Google).
+            var user = await _userManager.FindByEmailAsync(profile.Email).ConfigureAwait(false);
+            var existingUser = user != null;
+            _logger.LogInformation("GitHub user lookup completed in {ElapsedMs} ms; existing={Existing}", timer.ElapsedMilliseconds, existingUser);
+
+            if (user == null)
+            {
+                var (firstName, lastName) = SplitFullName(profile.FullName ?? profile.Login);
+                user = new ApplicationUser
+                {
+                    Email = profile.Email,
+                    UserName = profile.Email,
+                    FirstName = firstName,
+                    LastName = lastName,
+                    EmailConfirmed = true // email đã được GitHub xác minh
+                };
+
+                var result = await _userManager.CreateAsync(user).ConfigureAwait(false);
+                if (!result.Succeeded)
+                {
+                    var errors = string.Join(", ", result.Errors.Select(e => e.Description));
+                    throw new ApiException($"Tạo tài khoản không thành công: {errors}");
+                }
+
+                // Tái sử dụng luồng tạo NguoiDung + vai trò UNG_VIEN (giống Google).
+                await RegisterCandidateAsync(user).ConfigureAwait(false);
+                _logger.LogInformation("GitHub user provisioning completed in {ElapsedMs} ms", timer.ElapsedMilliseconds);
+            }
+
+            // 3b. Liên kết GitHub vào Identity (bảng UserLogins) — best effort, không chặn đăng nhập.
+            await TryLinkGitHubLoginAsync(user, profile.Id).ConfigureAwait(false);
+
+            // 4. Cấp Access Token + Refresh Token (helper dùng chung với Google).
+            return await IssueAuthResponseAsync(user, ipAddress, "GitHub", timer, existingUser).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Cấp Access Token (JWT) + Refresh Token và đóng gói AuthenticationResponse.
+        /// Dùng chung cho mọi luồng external login (Google, GitHub).
+        /// </summary>
+        private async Task<Response<AuthenticationResponse>> IssueAuthResponseAsync(
+            ApplicationUser user,
+            string ipAddress,
+            string providerLabel,
+            System.Diagnostics.Stopwatch timer,
+            bool existingUser)
+        {
             await EnsureAccountEnabledAsync(user, requireVerified: false);
             if (!user.EmailConfirmed)
             {
                 user.EmailConfirmed = true;
                 EnsureIdentityResult(await _userManager.UpdateAsync(user));
             }
+
             JwtSecurityToken jwtSecurityToken = await GenerateJWToken(user).ConfigureAwait(false);
             var refreshToken = GenerateRefreshToken(ipAddress);
 
@@ -976,8 +1061,193 @@ namespace Infrastructure.Identity.Services
                 RefreshToken = refreshToken.Token
             };
 
-            _logger.LogInformation("Google external login completed in {ElapsedMs} ms; existing={Existing}", timer.ElapsedMilliseconds, existingUser);
-            return new Response<AuthenticationResponse>(response, $"Đã xác thực {user.UserName} thông qua {request.Provider}.");
+            _logger.LogInformation("{Provider} external login completed in {ElapsedMs} ms; existing={Existing}", providerLabel, timer.ElapsedMilliseconds, existingUser);
+            return new Response<AuthenticationResponse>(response, $"Đã xác thực {user.UserName} thông qua {providerLabel}.");
+        }
+
+        private const string GitHubLoginProvider = "github";
+
+        private sealed record GitHubProfile(string Id, string Email, string FullName, string Login);
+
+        private static (string FirstName, string LastName) SplitFullName(string fullName)
+        {
+            var hoTen = (fullName ?? string.Empty).Trim();
+            int firstSpaceIndex = hoTen.IndexOf(' ');
+            var firstName = firstSpaceIndex > 0 ? hoTen[..firstSpaceIndex] : hoTen;
+            var lastName = firstSpaceIndex > 0 ? hoTen[(firstSpaceIndex + 1)..].Trim() : string.Empty;
+            return (firstName, lastName);
+        }
+
+        /// <summary>
+        /// Đổi authorization code lấy access_token tại GitHub (server-side, giữ bí mật client_secret).
+        /// </summary>
+        private async Task<string> ExchangeGitHubCodeAsync(GitHubSettings settings, string code, string redirectUri)
+        {
+            var client = _httpClientFactory.CreateClient("github");
+            var form = new Dictionary<string, string>
+            {
+                ["client_id"] = settings.ClientId,
+                ["client_secret"] = settings.ClientSecret,
+                ["code"] = code
+            };
+            // redirect_uri (nếu gửi) phải khớp exact với lúc authorize.
+            if (!string.IsNullOrWhiteSpace(redirectUri))
+                form["redirect_uri"] = redirectUri;
+
+            string body;
+            try
+            {
+                using var content = new FormUrlEncodedContent(form);
+                using var response = await client.PostAsync("https://github.com/login/oauth/access_token", content).ConfigureAwait(false);
+                body = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Không kết nối được GitHub token endpoint.");
+                throw new ApiException("Không kết nối được GitHub. Vui lòng thử lại.");
+            }
+
+            string accessToken = null;
+            string error = null;
+            try
+            {
+                // Nhờ Accept: application/json (đã set ở client "github") nên GitHub trả JSON.
+                using var doc = System.Text.Json.JsonDocument.Parse(body);
+                if (doc.RootElement.TryGetProperty("access_token", out var tokenEl)) accessToken = tokenEl.GetString();
+                if (doc.RootElement.TryGetProperty("error_description", out var descEl)) error = descEl.GetString();
+                else if (doc.RootElement.TryGetProperty("error", out var errEl)) error = errEl.GetString();
+            }
+            catch (System.Text.Json.JsonException)
+            {
+                // Fallback: query-string dạng access_token=...&token_type=bearer
+                var parsed = QueryHelpers.ParseQuery(body);
+                if (parsed.TryGetValue("access_token", out var tokenVal)) accessToken = tokenVal.ToString();
+                else if (parsed.TryGetValue("error_description", out var descVal)) error = descVal.ToString();
+                else if (parsed.TryGetValue("error", out var errVal)) error = errVal.ToString();
+            }
+
+            if (string.IsNullOrWhiteSpace(accessToken))
+            {
+                _logger.LogWarning("GitHub code exchange failed: {Error}", error ?? body);
+                throw new ApiException(string.IsNullOrWhiteSpace(error)
+                    ? "Đổi mã ủy quyền GitHub không thành công."
+                    : $"Đổi mã ủy quyền GitHub không thành công: {error}");
+            }
+
+            return accessToken;
+        }
+
+        /// <summary>
+        /// Lấy id + tên + email từ GitHub: ưu tiên email verified từ /user/emails
+        /// (scope user:email), fallback email công khai trên hồ sơ.
+        /// </summary>
+        private async Task<GitHubProfile> FetchGitHubProfileAsync(string accessToken)
+        {
+            var client = _httpClientFactory.CreateClient("github");
+
+            string body;
+            using (var req = new HttpRequestMessage(HttpMethod.Get, "https://api.github.com/user"))
+            {
+                req.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+                try
+                {
+                    using var res = await client.SendAsync(req).ConfigureAwait(false);
+                    body = await res.Content.ReadAsStringAsync().ConfigureAwait(false);
+                    if (!res.IsSuccessStatusCode)
+                    {
+                        _logger.LogWarning("GitHub /user failed: {Status} {Body}", (int)res.StatusCode, body);
+                        throw new ApiException("Không lấy được thông tin từ GitHub.");
+                    }
+                }
+                catch (ApiException)
+                {
+                    throw;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Không kết nối được GitHub API.");
+                    throw new ApiException("Không kết nối được GitHub. Vui lòng thử lại.");
+                }
+            }
+
+            string id = null, login = null, name = null, profileEmail = null;
+            try
+            {
+                using var doc = System.Text.Json.JsonDocument.Parse(body);
+                var root = doc.RootElement;
+                if (root.TryGetProperty("id", out var idEl))
+                    id = idEl.ValueKind == System.Text.Json.JsonValueKind.Number ? idEl.GetInt64().ToString() : idEl.GetString();
+                if (root.TryGetProperty("login", out var loginEl)) login = loginEl.GetString();
+                if (root.TryGetProperty("name", out var nameEl)) name = nameEl.GetString();
+                if (root.TryGetProperty("email", out var emailEl)) profileEmail = emailEl.GetString();
+            }
+            catch (System.Text.Json.JsonException ex)
+            {
+                _logger.LogWarning(ex, "Không phân tích được hồ sơ GitHub.");
+            }
+
+            if (string.IsNullOrWhiteSpace(id))
+                throw new ApiException("Phản hồi từ GitHub không hợp lệ.");
+
+            var email = await FetchVerifiedGitHubEmailAsync(client, accessToken).ConfigureAwait(false) ?? profileEmail;
+            if (string.IsNullOrWhiteSpace(email))
+                throw new ApiException("Tài khoản GitHub chưa có email xác minh. Vui lòng thêm và xác minh email trên GitHub.");
+
+            return new GitHubProfile(id, email.Trim().ToLowerInvariant(), name, login);
+        }
+
+        /// <summary>Chọn email verified (ưu tiên primary) từ GET /user/emails; lỗi → null (fallback về email hồ sơ).</summary>
+        private async Task<string> FetchVerifiedGitHubEmailAsync(HttpClient client, string accessToken)
+        {
+            try
+            {
+                using var req = new HttpRequestMessage(HttpMethod.Get, "https://api.github.com/user/emails");
+                req.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+                using var res = await client.SendAsync(req).ConfigureAwait(false);
+                if (!res.IsSuccessStatusCode) return null;
+
+                var body = await res.Content.ReadAsStringAsync().ConfigureAwait(false);
+                using var doc = System.Text.Json.JsonDocument.Parse(body);
+                string fallback = null;
+                foreach (var item in doc.RootElement.EnumerateArray())
+                {
+                    if (!(item.TryGetProperty("verified", out var v) && v.GetBoolean())) continue;
+                    if (!item.TryGetProperty("email", out var e)) continue;
+                    var mail = e.GetString();
+                    if (string.IsNullOrWhiteSpace(mail)) continue;
+                    if (item.TryGetProperty("primary", out var p) && p.GetBoolean())
+                        return mail.Trim().ToLowerInvariant();
+                    fallback ??= mail.Trim().ToLowerInvariant();
+                }
+                return fallback;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Không lấy được danh sách email từ GitHub — sẽ fallback email hồ sơ.");
+                return null;
+            }
+        }
+
+        /// <summary>Ghi liên kết GitHub → tài khoản Identity (UserLogins). Lỗi → log, không chặn đăng nhập.</summary>
+        private async Task TryLinkGitHubLoginAsync(ApplicationUser user, string gitHubUserId)
+        {
+            try
+            {
+                var logins = await _userManager.GetLoginsAsync(user).ConfigureAwait(false);
+                if (logins.Any(l => l.LoginProvider == GitHubLoginProvider && l.ProviderKey == gitHubUserId))
+                    return;
+
+                var result = await _userManager.AddLoginAsync(
+                    user, new UserLoginInfo(GitHubLoginProvider, gitHubUserId, "GitHub")).ConfigureAwait(false);
+                if (!result.Succeeded)
+                    _logger.LogWarning("Không liên kết được GitHub cho {UserId}: {Errors}",
+                        user.Id, string.Join("; ", result.Errors.Select(e => e.Description)));
+            }
+            catch (Exception ex)
+            {
+                // Provider key đã gắn với user khác hoặc lỗi DB — vẫn cho đăng nhập.
+                _logger.LogWarning(ex, "Bỏ qua liên kết GitHub cho {UserId}", user.Id);
+            }
         }
 
         // Helper: Khởi tạo URL xác thực Magic Link

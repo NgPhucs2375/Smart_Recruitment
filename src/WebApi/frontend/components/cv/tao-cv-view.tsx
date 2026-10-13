@@ -131,7 +131,6 @@ export function PreviewActionBar({
 }) {
   const dot =
     status === "saving" ? "bg-primary" : status === "dirty" ? "bg-bronze" : "bg-teal";
-  const shownZoom = displayZoom ?? zoom;
   const label =
     status === "saving"
       ? "Đang lưu..."
@@ -275,6 +274,27 @@ export function QualityCard({ progress, label, note }: { progress: number; label
   );
 }
 
+function CvBuilderSkeleton() {
+  return (
+    <div className="grid gap-8 xl:grid-cols-[46fr_54fr]" aria-label="Đang tải trình tạo CV" aria-busy="true">
+      <div className="space-y-4">
+        {[0, 1, 2].map((i) => (
+          <div key={i} className="animate-pulse rounded-3xl border border-border bg-card p-5">
+            <div className="h-4 w-1/3 rounded bg-muted" />
+            <div className="mt-3 space-y-2">
+              <div className="h-9 rounded-xl bg-muted" />
+              <div className="h-9 rounded-xl bg-muted" />
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="animate-pulse rounded-3xl border border-border bg-card p-6">
+        <div className="mx-auto aspect-210/297 w-full max-w-md rounded-lg bg-muted" />
+      </div>
+    </div>
+  );
+}
+
 export function TaoCvView() {
   const searchParams = useSearchParams();
   const pathname = usePathname();
@@ -368,27 +388,6 @@ export function TaoCvView() {
     selectCv: (id) => handleSelect(id),
   });
 
- function CvBuilderSkeleton() {
-  return (
-    <div className="grid gap-8 xl:grid-cols-[46fr_54fr]" aria-label="Đang tải trình tạo CV" aria-busy="true">
-      <div className="space-y-4">
-        {[0, 1, 2].map((i) => (
-          <div key={i} className="animate-pulse rounded-3xl border border-border bg-card p-5">
-            <div className="h-4 w-1/3 rounded bg-muted" />
-            <div className="mt-3 space-y-2">
-              <div className="h-9 rounded-xl bg-muted" />
-              <div className="h-9 rounded-xl bg-muted" />
-            </div>
-          </div>
-        ))}
-      </div>
-      <div className="animate-pulse rounded-3xl border border-border bg-card p-6">
-        <div className="mx-auto aspect-[210/297] w-full max-w-md rounded-lg bg-muted" />
-      </div>
-    </div>
-  );
-}
-
   // Pick a template without touching form content, and sync the choice
   // into ?template= so refresh/share keeps the selection (?cv= preserved).
   // Uses history.replaceState (not router.replace) so the URL updates
@@ -414,6 +413,49 @@ export function TaoCvView() {
     },
     [pathname, queryString],
   );
+
+  // Offer khôi phục nháp local (đọc localStorage — external system).
+  // Gọi từ loadAll (async, sau khi tải xong) thay vì setState đồng bộ trong
+  // effect để tránh cascading render (react-hooks/set-state-in-effect).
+  // Chỉ offer 1 lần (draftOfferedRef) và đúng CV đang mở (khớp ownerId).
+  const maybeOfferDraft = useCallback((ownerId: number | null, current: CvFormData) => {
+    if (draftOfferedRef.current) return;
+    draftOfferedRef.current = true;
+    let parsed: Partial<DraftPayload> | null = null;
+    try {
+      const raw = localStorage.getItem(DRAFT_KEY);
+      if (raw) parsed = JSON.parse(raw) as Partial<DraftPayload>;
+    } catch {
+      parsed = null;
+    }
+    const drop = () => {
+      try {
+        localStorage.removeItem(DRAFT_KEY);
+      } catch {
+        // ignore
+      }
+    };
+    if (!parsed || !isDraftCvData(parsed.cvData)) {
+      if (parsed) drop();
+      return;
+    }
+    if (!("selectedId" in (parsed as object))) {
+      drop();
+      return;
+    }
+    const draftOwner = (parsed.selectedId ?? null) as number | null;
+    if (draftOwner !== ownerId) return;
+    if (JSON.stringify(parsed.cvData) === JSON.stringify(current)) return;
+    setPendingDraft({
+      savedAt: typeof parsed.savedAt === "string" ? parsed.savedAt : new Date().toISOString(),
+      cvData: parsed.cvData,
+      selectedId: draftOwner,
+    });
+    if (typeof parsed.savedAt === "string" && parsed.savedAt) {
+      const t = new Date(parsed.savedAt);
+      if (!Number.isNaN(t.getTime())) setDraftAt(t);
+    }
+  }, []);
 
   const loadAll = useCallback(async () => {
     const seq = loadSeqRef.current;
@@ -452,6 +494,10 @@ export function TaoCvView() {
           ...(JSON.parse(JSON.stringify(defaultCvData)) as CvFormData),
           templateId,
         }) as CvFormData;
+      // Giá trị selectedId/cvData sau khi load xong — dùng để offer khôi phục
+      // nháp ở cuối hàm (setState trong async continuation, không phải effect).
+      let offerOwner: number | null = null;
+      let offerData: CvFormData = cvDataRef.current;
 
       if (cvParam) {
         // Mở CV đã lưu; nếu kèm ?template= thì đổi mẫu trên cùng nội dung đó.
@@ -475,6 +521,8 @@ export function TaoCvView() {
           setCvData(next);
           syncCvParam(current.id);
           setVersions(vers);
+          offerOwner = current.id;
+          offerData = next;
           if (tid) toast.success("Đã đổi mẫu CV — nội dung được giữ nguyên.");
         }
       } else if (tid) {
@@ -499,8 +547,8 @@ export function TaoCvView() {
           const ownerTarget =
             rescuedOwner != null ? list.find((c) => c.id === rescuedOwner) : undefined;
           if (ownerTarget) {
-            // Draft thuộc CV đã lưu: tải CV đó rồi áp mẫu mới; effect khôi
-            // phục nháp sẽ offer lại sửa đổi chưa lưu (khớp selectedId).
+            // Draft thuộc CV đã lưu: tải CV đó rồi áp mẫu mới; maybeOfferDraft
+            // ở cuối loadAll sẽ offer lại sửa đổi chưa lưu (khớp selectedId).
             const [detail, vers] = await Promise.all([
               cvApi.getById(ownerTarget.id),
               cvApi.getVersions(ownerTarget.id),
@@ -513,6 +561,8 @@ export function TaoCvView() {
             setCvData(next);
             syncCvParam(ownerTarget.id);
             setVersions(vers);
+            offerOwner = ownerTarget.id;
+            offerData = next;
             toast.success("Đã đổi mẫu CV — nội dung được giữ nguyên.");
           } else {
             // Draft của bản mới chưa lưu (hoặc không có draft): dựng form từ
@@ -532,6 +582,8 @@ export function TaoCvView() {
             setCvData(next);
             syncCvParam(null);
             setVersions([]);
+            offerOwner = null;
+            offerData = next;
           }
         } else {
           // Navigation nội bộ khi form đã có dữ liệu: chỉ đổi templateId.
@@ -539,16 +591,21 @@ export function TaoCvView() {
           if (!isBlankWorkingCopy(cvDataRef.current)) {
             toast.success("Đã đổi mẫu CV — nội dung đã nhập được giữ nguyên.");
           }
+          offerData = { ...cvDataRef.current, templateId: tid };
         }
       } else {
         // Mở /tao-cv không có ?cv= là tạo CV mới. Không tự chọn CV mặc định
         // hoặc CV đầu tiên; người dùng phải bấm chọn rõ ràng trong danh sách.
         setSelectedId(null);
         setVersions([]);
-        setCvData(blankOf(tid ?? (defaultCvData as CvFormData).templateId));
+        const blank = blankOf(tid ?? (defaultCvData as CvFormData).templateId);
+        setCvData(blank);
         lastSavedRef.current = null;
+        offerOwner = null;
+        offerData = blank;
       }
       if (stale()) return;
+      maybeOfferDraft(offerOwner, offerData);
       if (params.get("import") === "1") setImportOpen(true);
     } catch (e) {
       if (stale()) return;
@@ -558,7 +615,7 @@ export function TaoCvView() {
     } finally {
       if (!stale()) setLoading(false);
     }
-  }, [queryString, syncCvParam]);
+  }, [queryString, syncCvParam, maybeOfferDraft]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => void loadAll(), 0);
@@ -606,44 +663,8 @@ export function TaoCvView() {
   // Chỉ offer khi draft thuộc đúng CV đang mở (so khớp selectedId) và đúng
   // shape; draft lạ/của CV khác thì bỏ qua (draft cũ thiếu selectedId bị xóa
   // một lần cho sạch) để nội dung CV cũ không bao giờ đè lên form hiện tại.
-  useEffect(() => {
-    if (loading || loadError || draftOfferedRef.current) return;
-    draftOfferedRef.current = true;
-    let parsed: Partial<DraftPayload> | null = null;
-    try {
-      const raw = localStorage.getItem(DRAFT_KEY);
-      if (raw) parsed = JSON.parse(raw) as Partial<DraftPayload>;
-    } catch {
-      parsed = null;
-    }
-    const drop = () => {
-      try {
-        localStorage.removeItem(DRAFT_KEY);
-      } catch {
-        // ignore
-      }
-    };
-    if (!parsed || !isDraftCvData(parsed.cvData)) {
-      if (parsed) drop();
-      return;
-    }
-    if (!("selectedId" in (parsed as object))) {
-      drop();
-      return;
-    }
-    const draftOwner = (parsed.selectedId ?? null) as number | null;
-    if (draftOwner !== selectedId) return;
-    if (JSON.stringify(parsed.cvData) === JSON.stringify(cvData)) return;
-    setPendingDraft({
-      savedAt: typeof parsed.savedAt === "string" ? parsed.savedAt : new Date().toISOString(),
-      cvData: parsed.cvData,
-      selectedId: draftOwner,
-    });
-    if (typeof parsed.savedAt === "string" && parsed.savedAt) {
-      const t = new Date(parsed.savedAt);
-      if (!Number.isNaN(t.getTime())) setDraftAt(t);
-    }
-  }, [loading, loadError, cvData, selectedId]);
+  // Logic nằm trong maybeOfferDraft — gọi từ loadAll để không setState
+  // đồng bộ trong effect (react-hooks/set-state-in-effect).
 
   const applyDraft = () => {
     if (!pendingDraft) return;
@@ -937,7 +958,7 @@ export function TaoCvView() {
   const saveStatus: SaveStatus = saving ? "saving" : dirty ? "dirty" : "saved";
 
   return (
-    <div className="cv-builder-print-host mx-auto w-full max-w-[1440px] space-y-5 px-4 py-6 sm:px-6 sm:py-8">
+    <div className="cv-builder-print-host mx-auto w-full max-w-360 space-y-5 px-4 py-6 sm:px-6 sm:py-8">
       {/* Top navigation bar: phẳng, 1 dòng — thay hero card cũ */}
       <div className="flex h-14 items-center justify-between gap-3 border-b border-border/40 px-1 sm:px-2">
         <div className="flex min-w-0 items-center gap-3">
@@ -1080,7 +1101,7 @@ export function TaoCvView() {
                   );
               }}
               placeholder="CV-Backend-2026"
-              className="w-[200px] rounded-full"
+              className="w-50 rounded-full"
             />
           </div>
         </div>

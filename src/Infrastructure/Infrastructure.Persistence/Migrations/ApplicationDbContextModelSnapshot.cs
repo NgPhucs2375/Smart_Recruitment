@@ -726,6 +726,12 @@ namespace Infrastructure.Persistence.Migrations
                     b.Property<string>("LastModifiedBy")
                         .HasColumnType("text");
 
+                    b.Property<int?>("ParticipantOneId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("ParticipantTwoId")
+                        .HasColumnType("integer");
+
                     b.Property<string>("Title")
                         .HasColumnType("text");
 
@@ -733,6 +739,10 @@ namespace Infrastructure.Persistence.Migrations
                         .HasColumnType("integer");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("DoanhNghiepId", "ParticipantOneId", "ParticipantTwoId")
+                        .IsUnique()
+                        .HasFilter("\"Type\" = 0 AND \"ParticipantOneId\" IS NOT NULL AND \"ParticipantTwoId\" IS NOT NULL");
 
                     b.ToTable("Conversations");
                 });
@@ -2806,10 +2816,17 @@ namespace Infrastructure.Persistence.Migrations
                     b.Property<string>("CreatedBy")
                         .HasColumnType("text");
 
+                    b.Property<string>("CvSnapshotJson")
+                        .HasColumnType("text");
+
                     b.Property<string>("GhiChu")
                         .HasColumnType("text");
 
+                    b.Property<int?>("HoSoUngVienId")
+                        .HasColumnType("integer");
+
                     b.Property<DateTime?>("LastModified")
+                        .IsConcurrencyToken()
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("LastModifiedBy")
@@ -2825,6 +2842,7 @@ namespace Infrastructure.Persistence.Migrations
                         .HasColumnType("integer");
 
                     b.Property<string>("TrangThai")
+                        .IsConcurrencyToken()
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
@@ -2835,7 +2853,9 @@ namespace Infrastructure.Persistence.Migrations
 
                     b.HasIndex("CVUngVienId");
 
-                    b.HasIndex("TinTuyenDungId");
+                    b.HasIndex("TinTuyenDungId", "HoSoUngVienId")
+                        .IsUnique()
+                        .HasFilter("\"HoSoUngVienId\" IS NOT NULL");
 
                     b.ToTable("DonUngTuyen", (string)null);
                 });

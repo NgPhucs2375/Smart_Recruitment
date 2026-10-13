@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using System.Linq;
 using System.IO;
 using System.Security.Claims;
+using Infrastructure.Identity.Services;
 
 namespace Infrastructure.Identity.Seeds
 {
@@ -21,9 +22,16 @@ namespace Infrastructure.Identity.Seeds
                 VaiTroNguoiDung.NHAN_SU,
                 VaiTroNguoiDung.UNG_VIEN
             };
-            foreach (var r in roles) 
+            var created = new HashSet<string>();
+            foreach (var r in roles)
                 if (!await rm.RoleExistsAsync(r.ToString())) 
-                    await rm.CreateAsync(new IdentityRole(r.ToString()));
+                {
+                    var result = await rm.CreateAsync(new IdentityRole(r.ToString()));
+                    if (!result.Succeeded) throw new InvalidOperationException(string.Join("; ", result.Errors.Select(e => e.Description)));
+                    created.Add(r.ToString());
+                }
+            // Bootstrap only new roles. Revoked/empty database grants must survive restarts.
+            if (created.Count == 0) return;
 
             // Đọc policy.csv làm nguồn truth ban đầu → group (role, resource) → actions "#"
             // Nếu policy.csv không tồn tại (publish) thì thử fallback wwwroot
@@ -42,30 +50,22 @@ namespace Infrastructure.Identity.Seeds
                 
             foreach (var kv in groups)
             {
+                if (!created.Contains(kv.Key.role)) continue;
                 var role = await rm.FindByNameAsync(kv.Key.role);
                 if (role == null) continue; // policy.csv còn role lạ (VD: NHA_TUYEN_DUNG cũ) — bỏ qua, tránh ArgumentNullException ở GetClaimsAsync
                 var existing = (await rm.GetClaimsAsync(role)).FirstOrDefault(c => c.Type == kv.Key.resource);
-                var wanted = string.Join("#", kv.Value);
-                if (existing == null) await rm.AddClaimAsync(role, new Claim(kv.Key.resource, wanted));
+                var actions = kv.Value.Where(a => PermissionPolicy.IsEffective(role.Name, kv.Key.resource, a)).ToList();
+                if (kv.Key.resource == "cvungviens" && actions.Contains("show")) actions.Add("download");
+                if (actions.Count == 0) continue;
+                var wanted = string.Join("#", actions.Distinct());
+                if (existing == null)
+                {
+                    var result = await rm.AddClaimAsync(role, new Claim(kv.Key.resource, wanted));
+                    if (!result.Succeeded) throw new InvalidOperationException(string.Join("; ", result.Errors.Select(e => e.Description)));
+                }
                 else if (existing.Value != wanted) { await rm.RemoveClaimAsync(role, existing); await rm.AddClaimAsync(role, new Claim(kv.Key.resource, wanted)); }
             }
 
-            // Prune: xóa claim của resource không còn trong policy.csv
-            // (VD: resource đổi tên như tinvuyendungs -> tintuyendungs),
-            // để JWT và policy.csv tái tạo không còn rác cũ.
-            var wantedResources = new HashSet<string>(groups.Keys.Select(k => k.resource));
-            foreach (var r in roles)
-            {
-                var role = await rm.FindByNameAsync(r.ToString());
-                if (role == null) continue;
-                var stale = (await rm.GetClaimsAsync(role))
-                    .Where(c => !wantedResources.Contains(c.Type))
-                    .ToList();
-                foreach (var claim in stale)
-                {
-                    await rm.RemoveClaimAsync(role, claim);
-                }
-            }
         }
     }
 }

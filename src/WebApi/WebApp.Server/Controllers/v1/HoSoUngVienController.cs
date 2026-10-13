@@ -97,8 +97,9 @@ namespace WebApp.Server.Controllers.v1
         }
 
         [HttpPost("{id}/avatar")]
+        [Consumes("multipart/form-data")]
         [RequestSizeLimit(5 * 1024 * 1024)]
-        public async Task<IActionResult> UploadAvatar(int id, [FromForm] IFormFile file)
+        public async Task<IActionResult> UploadAvatar(int id, IFormFile file)
         {
             return await EnforcePermissionAndExecute("hosoungviens", "edit", async () =>
                 Ok(await Mediator.Send(new UpdateHoSoUngVienAvatarCommand

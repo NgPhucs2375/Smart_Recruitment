@@ -34,5 +34,6 @@ namespace Application.Interfaces
         DbSet<MarketingBanner> MarketingBanners { get; set; }
         Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
         void EnqueueAfterSave(System.Func<CancellationToken, Task> action);
+        Task<T> InTransactionAsync<T>(System.Func<Task<T>> action, CancellationToken ct = default);
     }
 }

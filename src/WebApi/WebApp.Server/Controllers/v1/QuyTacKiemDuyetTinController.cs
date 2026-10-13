@@ -76,7 +76,7 @@ namespace WebApp.Server.Controllers.v1
                 var validation = Validate(request);
                 if (validation != null) return Ok(new Response<int>(validation));
 
-                var entity = await _context.QuyTacKiemDuyetTins.FindAsync(id);
+                var entity = await _context.QuyTacKiemDuyetTins.AsTracking().FirstOrDefaultAsync(x => x.Id == id);
                 if (entity == null) return Ok(new Response<int>("Không tìm thấy rule kiểm duyệt."));
 
                 var keyword = request.TuKhoa.Trim();

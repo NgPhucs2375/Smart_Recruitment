@@ -26,6 +26,7 @@ import { EditorialMagazineTemplate } from "@/components/cv/templates/editorial-m
 import { ArchiPortfolioTemplate } from "@/components/cv/templates/archi-portfolio";
 import { LegalPrestigeTemplate } from "@/components/cv/templates/legal-prestige";
 import { ResearchScholarTemplate } from "@/components/cv/templates/research-scholar";
+import TEMPLATE_MANIFEST from "./template-manifest.json";
 import { CulinarySignatureTemplate } from "@/components/cv/templates/culinary-signature";
 import { MonoPortfolioTemplate } from "@/components/cv/templates/mono-portfolio";
 import { KemMinimalTemplate } from "@/components/cv/templates/kem-minimal";
@@ -228,7 +229,8 @@ export function hydrateTemplateRegistry(themes: DbThemeOverlay[]): void {
           (TEMPLATE_CATEGORIES as { id: string }[]).some((k) => k.id === c));
       if (cats.length > 0) meta.categories = cats;
     }
-    if (theme.SoCot === 1 || theme.SoCot === 2) meta.columns = theme.SoCot;
+    const renderer = TEMPLATE_MANIFEST[slug as keyof typeof TEMPLATE_MANIFEST];
+    if (renderer) { meta.columns = renderer.columns as 1 | 2; meta.version = renderer.version; }
     if (typeof theme.IsActive === "boolean") meta.isActive = theme.IsActive;
     if (typeof theme.ThuTu === "number") meta.sortOrder = theme.ThuTu;
     if (typeof theme.ThanThienATS === "boolean") meta.atsFriendly = theme.ThanThienATS;

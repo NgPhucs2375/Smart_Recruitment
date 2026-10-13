@@ -301,7 +301,8 @@ export function CvThemesTable() {
               <Input value={form.ViTriMucTieu ?? ""} onChange={(e) => set("ViTriMucTieu", e.target.value)} placeholder="Backend,BA" />
             </Field>
             <Field label="Cấp bậc">
-              <Input value={form.CapBac ?? ""} onChange={(e) => set("CapBac", e.target.value)} placeholder="fresher/all/senior" />
+              <Input value={form.CapBac ?? ""} onChange={(e) => set("CapBac", e.target.value)} placeholder="all hoặc junior,mid,senior..." />
+              <p className="text-xs text-muted-foreground">intern, fresher, junior, mid, senior, lead, manager; nhiều cấp độ cách nhau bằng dấu phẩy. Metadata phải phản ánh mẫu thực tế.</p>
             </Field>
             <Field label="Tags (CSV)">
               <Input value={form.Tags ?? ""} onChange={(e) => set("Tags", e.target.value)} placeholder="IT,Developer" />

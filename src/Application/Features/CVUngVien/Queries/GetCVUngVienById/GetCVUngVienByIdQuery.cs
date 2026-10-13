@@ -32,6 +32,26 @@ public class GetCVUngVienByIdQueryHandler(
     {
         var currentUser =
             await currentNguoiDungService.ResolveAsync();
+        // Authorize against live relationships BEFORE returning cached content.
+        var ownsCv = await context.CVUngViens.AsNoTracking().AnyAsync(x => x.Id == request.Id && !x.IsDaXoa &&
+            (currentUser.VaiTro == VaiTroNguoiDung.QUAN_TRI_VIEN || x.HoSoUngVien.NguoiDungId == currentUser.Id), cancellationToken);
+        if (!ownsCv)
+        {
+            if (currentUser.VaiTro is not (VaiTroNguoiDung.NHAN_SU or VaiTroNguoiDung.NGUOI_DAI_DIEN))
+                return new Response<CvDetailDto>("Không tìm thấy CV.");
+            var submitted = await context.DonUngTuyens.AsNoTracking().Where(d => d.CVUngVienId == request.Id &&
+                (currentUser.VaiTro == VaiTroNguoiDung.NHAN_SU ? d.TinTuyenDung.NguoiDangTinId == currentUser.Id
+                    : d.TinTuyenDung.DoanhNghiepId == currentUser.DoanhNghiepId))
+                .OrderByDescending(d => d.NgayUngTuyen ?? d.Created).ThenByDescending(d => d.Id)
+                .Select(d => d.CvSnapshotJson).FirstOrDefaultAsync(cancellationToken);
+            if (string.IsNullOrWhiteSpace(submitted)) return new Response<CvDetailDto>("Không tìm thấy bản CV đã nộp trong phạm vi của bạn.");
+            try
+            {
+                var snapshot = JsonSerializer.Deserialize<CvDetailDto>(submitted);
+                return snapshot == null ? new Response<CvDetailDto>("Không tìm thấy bản CV đã nộp.") : new Response<CvDetailDto>(snapshot);
+            }
+            catch (JsonException) { return new Response<CvDetailDto>("Bản CV đã nộp không hợp lệ."); }
+        }
         var detailVersion = await cache.GetStringAsync(
             CVUngVienListCache.DetailVersionKey(request.Id),
             cancellationToken) ?? "1";
@@ -68,53 +88,9 @@ public class GetCVUngVienByIdQueryHandler(
                 x =>
                     x.Id == request.Id &&
                     !x.IsDaXoa &&
-                    x.HoSoUngVien.NguoiDungId ==
-                        currentUser.Id,
+                    (currentUser.VaiTro == VaiTroNguoiDung.QUAN_TRI_VIEN || x.HoSoUngVien.NguoiDungId == currentUser.Id),
                 cancellationToken);
 
-        // Nhân sự / Người đại diện: được xem CV của ứng viên ĐÃ NỘP ĐƠN
-        // vào tin thuộc phạm vi mình phụ trách (tin mình đăng / cùng DN).
-        // Không có đơn nào → từ chối (chống dò CV theo id).
-        if (entity == null &&
-            (currentUser.VaiTro == VaiTroNguoiDung.NHAN_SU ||
-             currentUser.VaiTro == VaiTroNguoiDung.NGUOI_DAI_DIEN))
-        {
-            var trongPhamVi = await context.DonUngTuyens
-                .AsNoTracking()
-                .AnyAsync(
-                    d =>
-                        d.CVUngVienId == request.Id &&
-                        (currentUser.VaiTro == VaiTroNguoiDung.NHAN_SU
-                            ? d.TinTuyenDung.NguoiDangTinId == currentUser.Id
-                            : d.TinTuyenDung.DoanhNghiepId == currentUser.DoanhNghiepId),
-                    cancellationToken);
-
-            if (trongPhamVi)
-            {
-                entity = await context.CVUngViens
-                    .AsNoTracking()
-
-                    .Include(x => x.ThongTinLienHe)
-
-                    .Include(x => x.HocVans)
-
-                    .Include(x => x.KinhNghiems)
-                        .ThenInclude(x => x.KyNangs)
-
-                    .Include(x => x.DuAns)
-                        .ThenInclude(x => x.CongNghes)
-
-                    .Include(x => x.KyNangs)
-
-                    .Include(x => x.ChungChis)
-
-                    .FirstOrDefaultAsync(
-                        x =>
-                            x.Id == request.Id &&
-                            !x.IsDaXoa,
-                        cancellationToken);
-            }
-        }
 
         if (entity == null)
         {

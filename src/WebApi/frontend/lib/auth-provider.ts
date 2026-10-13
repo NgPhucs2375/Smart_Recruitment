@@ -2,6 +2,7 @@ import type { AuthProvider } from "@refinedev/core";
 import { saveIdentity, loadIdentity, clearIdentity, buildIdentity } from "./access-control-provider";
 import { homePortalFor, type PortalKind } from "./portal-roles";
 import { resolvePostLoginTarget } from "@/components/auth/login-handler";
+import { GITHUB_CALLBACK_PATH } from "@/components/auth/github-login-button";
 
 const LOGIN_PORTAL_KEY = "hireai.login.portal";
 
@@ -85,41 +86,10 @@ function normalizeMeResponse(value: unknown): MeResponse | null {
     return null;
   }
 
-  // Roles có thể lẫn blob JSON quyền (do JWT inbound mapping đẩy claim
-  // "roles" vào nhóm Role) — bóc tách: giữ tên role, trích permissions nhúng.
-  const cleanRoles: string[] = [];
-  const embeddedPermissions: { resource: string; action: string }[] = [];
-  for (const role of roles) {
-    if (typeof role !== "string") continue;
-    const trimmed = role.trim();
-    if (!trimmed.startsWith("{")) {
-      cleanRoles.push(role);
-      continue;
-    }
-    try {
-      const parsed = JSON.parse(trimmed) as {
-        role?: unknown;
-        permissions?: unknown;
-      };
-      if (typeof parsed.role === "string" && parsed.role) cleanRoles.push(parsed.role);
-      if (Array.isArray(parsed.permissions)) {
-        for (const p of parsed.permissions) {
-          if (!p || typeof p !== "object") continue;
-          const rec = p as Record<string, unknown>;
-          const resource = rec.resource ?? rec.Resource;
-          const acts = rec.action ?? rec.Action;
-          const list = Array.isArray(acts) ? acts : [acts];
-          for (const a of list) {
-            if (typeof resource === "string" && typeof a === "string") {
-              embeddedPermissions.push({ resource, action: a });
-            }
-          }
-        }
-      }
-    } catch {
-      // Bỏ qua blob lỗi — không chặn đăng nhập
-    }
-  }
+  // /me is authoritative: never merge withdrawn permissions from legacy JWT blobs.
+  const cleanRoles = roles.filter((role): role is string => typeof role === "string" &&
+    ["QUAN_TRI_VIEN", "NGUOI_DAI_DIEN", "NHAN_SU", "UNG_VIEN"].includes(role));
+  if (cleanRoles.length !== 1) return null;
 
   const seen = new Set<string>();
   const mergedPermissions = [
@@ -132,7 +102,6 @@ function normalizeMeResponse(value: unknown): MeResponse | null {
         ? [{ resource, action }]
         : [];
     }),
-    ...embeddedPermissions,
   ].filter((p) => {
     const key = `${p.resource}::${p.action}`;
     if (seen.has(key)) return false;
@@ -173,28 +142,53 @@ function identityFromJwt(token: string): MeResponse | null {
 }
 
 // ─── Token storage helpers ────────────────────────────────────────────────────
+// Remember-me semantics: tick → localStorage (survives browser restart,
+// refresh token keeps working for 7 days). No tick → sessionStorage (session
+// dies when the tab/browser closes). Readers check both stores so a session
+// from either mode is found; clearAuth wipes both.
+
+function readStored(keys: readonly string[]): string | null {
+  for (const key of keys) {
+    try {
+      const session = sessionStorage.getItem(key);
+      if (session) return session;
+      const local = localStorage.getItem(key);
+      if (local) return local;
+    } catch {
+      // storage blocked — keep trying the next store
+    }
+  }
+  return null;
+}
 
 function getToken(): string | null {
   if (typeof window === "undefined") return null;
-  return localStorage.getItem(TOKEN_KEY);
+  return readStored([TOKEN_KEY]);
 }
 
 function getRefreshToken(): string | null {
   if (typeof window === "undefined") return null;
-  return localStorage.getItem(REFRESH_KEY);
+  return readStored([REFRESH_KEY]);
 }
 
-function saveTokens(jwToken: string, refreshToken: string): void {
-  localStorage.setItem(TOKEN_KEY, jwToken);
+function saveTokens(jwToken: string, refreshToken: string, remember = true): void {
+  const store = remember ? localStorage : sessionStorage;
+  store.setItem(TOKEN_KEY, jwToken);
   if (refreshToken) {
-    localStorage.setItem(REFRESH_KEY, refreshToken);
+    store.setItem(REFRESH_KEY, refreshToken);
   }
 }
 
 function clearAuth(): void {
   sessionEpoch += 1;
-  localStorage.removeItem(TOKEN_KEY);
-  localStorage.removeItem(REFRESH_KEY);
+  for (const key of [TOKEN_KEY, REFRESH_KEY]) {
+    try {
+      localStorage.removeItem(key);
+      sessionStorage.removeItem(key);
+    } catch {
+      // ignore storage errors
+    }
+  }
   clearIdentity();
 }
 
@@ -339,22 +333,50 @@ export const authProvider: AuthProvider = {
     clearAuth();
     try {
       const portal = (payload.portal ?? payload.expectedPortal) as PortalKind | undefined;
-      // Nhận diện luồng đăng nhập (Google hay Local) — hỗ trợ cả payload từ useGoogleAuth
-      const isExternal = payload.providerName === "google" || payload.provider === "Google" || !!payload.credential || !!payload.idToken;
-      
-      const endpoint = isExternal ? `${API_URL}/external-login` : `${API_URL}/authenticate`;
-      
+      // Remember-me: tick → localStorage (persistent), no tick → sessionStorage.
+      // External (Google) and magic logins have no checkbox — default to persistent.
+      const remember = payload.remember !== false;
+      // Nhận diện luồng đăng nhập: GitHub (authorization code), Google (ID token) hay Local.
+      const isGitHub = payload.providerName === "github" || payload.provider === "GitHub";
+      const isGoogle = !isGitHub && (
+        payload.providerName === "google" ||
+        payload.provider === "Google" ||
+        !!payload.credential ||
+        !!payload.idToken
+      );
+
+      const endpoint = isGitHub
+        ? `${API_URL}/github-login`
+        : isGoogle
+          ? `${API_URL}/external-login`
+          : `${API_URL}/authenticate`;
+      const failureMessage = isGitHub
+        ? "Đăng nhập GitHub thất bại"
+        : isGoogle
+          ? "Đăng nhập Google thất bại"
+          : "Email hoặc mật khẩu không đúng";
+
       const rawToken: string | undefined = payload.idToken || payload.credential || payload.IdToken;
-      if (isExternal && (!rawToken || typeof rawToken !== "string" || rawToken.split(".").length !== 3)) {
+      // Chỉ Google cần JWT 3 phần; GitHub `code` không phải JWT — backend tự đổi code → token.
+      if (isGoogle && (!rawToken || typeof rawToken !== "string" || rawToken.split(".").length !== 3)) {
         console.warn("[auth] Google credential không hợp lệ, length=", rawToken?.length, "snippet=", rawToken?.slice(0,40));
         return { success: false, error: { name: "Đăng nhập thất bại", message: "Token Google không hợp lệ (không phải JWT). Vui lòng thử lại." } };
       }
 
-      const requestBody = isExternal 
-        ? { Provider: "Google", IdToken: rawToken }
-        : { Email: payload.email, Password: payload.password };
+      const requestBody = isGitHub
+        ? {
+            Code: payload.code,
+            // redirect_uri phải khớp exact với lúc authorize trên GitHub.
+            RedirectUri: typeof window !== "undefined"
+              ? `${window.location.origin}${GITHUB_CALLBACK_PATH}`
+              : undefined,
+          }
+        : isGoogle
+          ? { Provider: "Google", IdToken: rawToken }
+          : { Email: payload.email, Password: payload.password };
 
-      if (isExternal) console.log("[auth] external-login sending IdToken length", rawToken?.length);
+      if (isGoogle) console.log("[auth] external-login sending IdToken length", rawToken?.length);
+      if (isGitHub) console.log("[auth] github-login sending code length", String(payload.code ?? "").length);
 
       const res = await fetch(endpoint, {
         method: "POST",
@@ -364,7 +386,7 @@ export const authProvider: AuthProvider = {
       });
 
       if (!res.ok) {
-        let message = isExternal ? "Đăng nhập Google thất bại" : "Email hoặc mật khẩu không đúng";
+        let message = failureMessage;
         try {
           const body = await res.json();
           // Backend trả Response{Message, Errors} hoặc ProblemDetails
@@ -390,7 +412,7 @@ export const authProvider: AuthProvider = {
         };
       }
 
-      saveTokens(jwToken, refreshToken);
+      saveTokens(jwToken, refreshToken, remember);
       // GenerateJWToken embeds roles and permissions. Use them immediately to
       // avoid a second /me round-trip; keep /me as a compatibility fallback.
       const me = identityFromJwt(jwToken) ?? await fetchAndSaveMe(jwToken);

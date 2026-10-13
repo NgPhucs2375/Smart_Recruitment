@@ -37,6 +37,10 @@ namespace WebApp.Server.Middlewares
                         response.StatusCode = (int)HttpStatusCode.BadRequest;
                         responseModel.Errors = e.Errors;
                         break;
+                    case FluentValidation.ValidationException e:
+                        response.StatusCode = (int)HttpStatusCode.BadRequest;
+                        responseModel.Errors = e.Errors.Select(f => f.ErrorMessage).Distinct().ToList();
+                        break;
                     case KeyNotFoundException e:
                         // not found error
                         response.StatusCode = (int)HttpStatusCode.NotFound;

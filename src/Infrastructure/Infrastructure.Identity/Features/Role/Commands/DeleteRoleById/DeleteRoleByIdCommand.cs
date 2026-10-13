@@ -21,7 +21,10 @@ namespace Infrastructure.Identity.Features.Role.Commands.DeleteRoleById
             {
                 var role = await _roleManager.FindByIdAsync(command.Id);
                 if (role == null) throw new Exception($"Role Not Found.");
-                await _roleManager.DeleteAsync(role);
+                if (Enum.TryParse<Domain.Enums.VaiTroNguoiDung>(role.Name, out var systemRole) && Enum.IsDefined(systemRole))
+                    throw new Application.Exceptions.ApiException("Không được xóa vai trò hệ thống; hãy thu hồi quyền trong ma trận.", 400);
+                var result = await _roleManager.DeleteAsync(role);
+                if (!result.Succeeded) throw new Application.Exceptions.ApiException(string.Join("; ", System.Linq.Enumerable.Select(result.Errors, e => e.Description)));
                 return new Response<IdentityRole>(role);
             }
         }

@@ -107,6 +107,13 @@ namespace WebApp.Server.Controllers
             return Ok(await _accountService.ExternalLoginAsync(request,GenerateIPAddress()));
         }
 
+        // Đăng nhập/Đăng ký bằng GitHub — backend đổi authorization code lấy token (giữ client_secret server-side)
+        [HttpPost("github-login")]
+        public async Task<IActionResult> GitHubLoginAsync([FromBody] GitHubLoginRequest request)
+        {
+            return Ok(await _accountService.GitHubLoginAsync(request, GenerateIPAddress()));
+        }
+
         [HttpPost("request-magic-link")]
         public async Task<IActionResult> RequestMagicLinkAsync([FromBody] YeuCauMagicLink request)
         {

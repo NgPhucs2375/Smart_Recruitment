@@ -17,10 +17,12 @@ import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Mail, Lock, ArrowRight, Loader2, UserRound, Eye, EyeOff, Briefcase, Sparkles, Users } from "lucide-react";
 import { sanitizeNext, type PortalKind } from "@/lib/portal-roles";
+import { ResendVerification } from "@/components/auth/resend-verification";
 
 function LoginContent() {
   const [tab, setTab] = useState<"password" | "magic">("password");
   const [showPassword, setShowPassword] = useState(false);
+  const [githubError, setGithubError] = useState<string | null>(null);
   const searchParams = useSearchParams();
   const next = sanitizeNext(searchParams.get("next"));
   const portal: PortalKind | undefined = next?.startsWith("/accept-invite")
@@ -35,6 +37,7 @@ function LoginContent() {
     isPending,
     submitError,
     remember,
+    email,
   } = usePasswordLogin(portal, next);
 
   const {
@@ -131,6 +134,7 @@ function LoginContent() {
               <AlertDescription className="text-xs text-red-700">{submitError}</AlertDescription>
             </Alert>
           )}
+          <ResendVerification email={email ?? ""} error={submitError} />
 
           <div className="space-y-1.5">
             <Label htmlFor="email" className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
@@ -212,9 +216,13 @@ function LoginContent() {
 
           <SocialAuthSection
             mode="login"
+            portal={portal}
+            next={next}
             onGoogleLogin={handleGoogleLogin}
             onGoogleError={setGoogleError}
             googleError={googleError}
+            onGithubError={setGithubError}
+            githubError={githubError}
             disabled={isPending || isGooglePending}
           />
         </form>

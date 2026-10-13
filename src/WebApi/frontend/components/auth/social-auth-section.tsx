@@ -1,20 +1,31 @@
 import { ShieldCheck } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { GoogleAuthSection } from "./google-auth-section";
 import { GithubLoginButton } from "./github-login-button";
+import type { PortalKind } from "@/lib/portal-roles";
 
 interface SocialAuthSectionProps {
   mode: "login" | "register";
+  /** Portal của trang gọi (candidate/employer) — truyền tiếp xuống GitHub button. */
+  portal?: PortalKind;
+  next?: string | null;
   onGoogleLogin: (credential: string) => void;
   onGoogleError: (message: string) => void;
   googleError?: string | null;
+  onGithubError?: (message: string) => void;
+  githubError?: string | null;
   disabled?: boolean;
 }
 
 export function SocialAuthSection({
   mode,
+  portal,
+  next,
   onGoogleLogin,
   onGoogleError,
   googleError,
+  onGithubError,
+  githubError,
   disabled = false,
 }: SocialAuthSectionProps) {
   const isRegister = mode === "register";
@@ -38,13 +49,24 @@ export function SocialAuthSection({
           error={googleError}
           onError={onGoogleError}
         />
-        <GithubLoginButton text={isRegister ? "Đăng ký bằng GitHub" : "Đăng nhập bằng GitHub"} />
+        <GithubLoginButton
+          text={isRegister ? "Đăng ký bằng GitHub" : "Đăng nhập bằng GitHub"}
+          portal={portal}
+          next={next}
+          disabled={disabled}
+          onError={onGithubError}
+        />
+        {githubError && (
+          <Alert variant="destructive" className="border-red-200 bg-red-50 py-2">
+            <AlertDescription className="text-xs text-red-700">{githubError}</AlertDescription>
+          </Alert>
+        )}
       </div>
 
       <p className="mt-3 flex items-start justify-center gap-1.5 text-center text-[10px] leading-4 text-muted-foreground">
         <ShieldCheck className="mt-0.5 size-3 shrink-0 text-teal" />
         {isRegister
-          ? "Google sẽ tạo tài khoản ứng viên nếu email chưa tồn tại. GitHub đang chờ tích hợp OAuth phía máy chủ."
+          ? "Google và GitHub sẽ tạo tài khoản ứng viên nếu email chưa tồn tại."
           : "HIREAI chỉ dùng thông tin xác thực để đăng nhập an toàn vào tài khoản của bạn."}
       </p>
     </section>

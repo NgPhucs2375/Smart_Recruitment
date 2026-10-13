@@ -216,7 +216,7 @@ function normalizeCvContent(raw: unknown): CvDetailVm["noiDung"] {
   };
 }
 
-function normalizeCvDetail(raw: unknown): CvDetailVm {
+export function normalizeCvDetail(raw: unknown): CvDetailVm {
   const summary = normalizeCv(raw);
   const r = record(raw);
   return {

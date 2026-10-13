@@ -241,7 +241,7 @@ namespace Infrastructure.Identity.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("RoleId");
+                    b.HasIndex("RoleId", "ClaimType").IsUnique();
 
                     b.ToTable("RoleClaims", "Identity");
                 });
