@@ -141,28 +141,53 @@ function identityFromJwt(token: string): MeResponse | null {
 }
 
 // ─── Token storage helpers ────────────────────────────────────────────────────
+// Remember-me semantics: tick → localStorage (survives browser restart,
+// refresh token keeps working for 7 days). No tick → sessionStorage (session
+// dies when the tab/browser closes). Readers check both stores so a session
+// from either mode is found; clearAuth wipes both.
+
+function readStored(keys: readonly string[]): string | null {
+  for (const key of keys) {
+    try {
+      const session = sessionStorage.getItem(key);
+      if (session) return session;
+      const local = localStorage.getItem(key);
+      if (local) return local;
+    } catch {
+      // storage blocked — keep trying the next store
+    }
+  }
+  return null;
+}
 
 function getToken(): string | null {
   if (typeof window === "undefined") return null;
-  return localStorage.getItem(TOKEN_KEY);
+  return readStored([TOKEN_KEY]);
 }
 
 function getRefreshToken(): string | null {
   if (typeof window === "undefined") return null;
-  return localStorage.getItem(REFRESH_KEY);
+  return readStored([REFRESH_KEY]);
 }
 
-function saveTokens(jwToken: string, refreshToken: string): void {
-  localStorage.setItem(TOKEN_KEY, jwToken);
+function saveTokens(jwToken: string, refreshToken: string, remember = true): void {
+  const store = remember ? localStorage : sessionStorage;
+  store.setItem(TOKEN_KEY, jwToken);
   if (refreshToken) {
-    localStorage.setItem(REFRESH_KEY, refreshToken);
+    store.setItem(REFRESH_KEY, refreshToken);
   }
 }
 
 function clearAuth(): void {
   sessionEpoch += 1;
-  localStorage.removeItem(TOKEN_KEY);
-  localStorage.removeItem(REFRESH_KEY);
+  for (const key of [TOKEN_KEY, REFRESH_KEY]) {
+    try {
+      localStorage.removeItem(key);
+      sessionStorage.removeItem(key);
+    } catch {
+      // ignore storage errors
+    }
+  }
   clearIdentity();
 }
 
@@ -307,6 +332,9 @@ export const authProvider: AuthProvider = {
     clearAuth();
     try {
       const portal = (payload.portal ?? payload.expectedPortal) as PortalKind | undefined;
+      // Remember-me: tick → localStorage (persistent), no tick → sessionStorage.
+      // External (Google) and magic logins have no checkbox — default to persistent.
+      const remember = payload.remember !== false;
       // Nhận diện luồng đăng nhập (Google hay Local) — hỗ trợ cả payload từ useGoogleAuth
       const isExternal = payload.providerName === "google" || payload.provider === "Google" || !!payload.credential || !!payload.idToken;
       
@@ -358,7 +386,7 @@ export const authProvider: AuthProvider = {
         };
       }
 
-      saveTokens(jwToken, refreshToken);
+      saveTokens(jwToken, refreshToken, remember);
       // GenerateJWToken embeds roles and permissions. Use them immediately to
       // avoid a second /me round-trip; keep /me as a compatibility fallback.
       const me = identityFromJwt(jwToken) ?? await fetchAndSaveMe(jwToken);

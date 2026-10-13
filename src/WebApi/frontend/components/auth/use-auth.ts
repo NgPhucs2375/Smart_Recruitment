@@ -42,8 +42,8 @@ export function useAuthLogin(portal?: PortalKind, next?: string | null) {
     }
   }
 
-  function loginWithPassword(email: string, password: string) {
-    return submit({ email, password });
+  function loginWithPassword(email: string, password: string, remember = true) {
+    return submit({ email, password, remember });
   }
 
   function loginWithGoogle(credential: string) {

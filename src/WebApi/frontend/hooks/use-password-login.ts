@@ -48,7 +48,7 @@ export function usePasswordLogin(portal?: PortalKind, next?: string | null) {
     } else {
       localStorage.removeItem(SAVED_EMAIL_KEY);
     }
-    await auth.loginWithPassword(data.email, data.password);
+    await auth.loginWithPassword(data.email, data.password, data.remember);
   }
 
   return {
