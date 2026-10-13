@@ -12,6 +12,10 @@ namespace Infrastructure.Persistence.Configurations
             builder.HasKey(x => x.Id);
 
             builder.Property(x => x.TrangThai).IsRequired().HasConversion<string>().HasMaxLength(50);
+            builder.Property(x => x.TrangThai).IsConcurrencyToken();
+            builder.Property(x => x.LastModified).IsConcurrencyToken();
+            builder.HasIndex(x => new { x.TinTuyenDungId, x.HoSoUngVienId }).IsUnique()
+                .HasFilter("\"HoSoUngVienId\" IS NOT NULL");
 
             builder.HasOne(x => x.TinTuyenDung)
                    .WithMany(x => x.DonUngTuyens)

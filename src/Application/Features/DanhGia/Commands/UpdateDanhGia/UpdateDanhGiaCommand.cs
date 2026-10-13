@@ -19,15 +19,15 @@ public class UpdateDanhGiaCommand : IRequest<Response<int>>
 }
 
 public class UpdateDanhGiaCommandHandler(
-    IApplicationDbContext context)
+    IApplicationDbContext context, ICurrentNguoiDungService current)
     : IRequestHandler<UpdateDanhGiaCommand, Response<int>>
 {
     public async Task<Response<int>> Handle(
         UpdateDanhGiaCommand request,
         CancellationToken cancellationToken)
     {
-        var entity = await context.DanhGias
-            .FindAsync([request.Id], cancellationToken);
+        var entity = await context.DanhGias.AsTracking()
+            .FirstOrDefaultAsync(x => x.Id == request.Id, cancellationToken);
 
         if (entity == null)
         {
@@ -35,6 +35,9 @@ public class UpdateDanhGiaCommandHandler(
                 "Không tìm thấy đánh giá.");
         }
 
+        var actor = await current.ResolveAsync();
+        await Application.Security.ResourceAccess.EnsureApplicationReviewerAsync(context, actor, entity.DonUngTuyenId, cancellationToken);
+        await Application.Security.ResourceAccess.EnsureApplicationReviewerAsync(context, actor, request.DonUngTuyenId, cancellationToken);
         var donTonTai = await context.DonUngTuyens
             .AsNoTracking()
             .AnyAsync(

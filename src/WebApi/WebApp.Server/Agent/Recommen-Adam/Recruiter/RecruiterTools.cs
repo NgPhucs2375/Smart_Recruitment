@@ -18,19 +18,21 @@ internal sealed class RecruiterTools
     private readonly ICurrentNguoiDungService _current;
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly SharedStateStore _sharedState;
+    private readonly IPermissionService _permissions;
 
     public RecruiterTools(
         ISender sender,
         IApplicationDbContext context,
         ICurrentNguoiDungService current,
         IHttpContextAccessor httpContextAccessor,
-        SharedStateStore sharedState)
+        SharedStateStore sharedState, IPermissionService permissions)
     {
         _sender = sender;
         _context = context;
         _current = current;
         _httpContextAccessor = httpContextAccessor;
         _sharedState = sharedState;
+        _permissions = permissions;
     }
 
     [Description("Lấy top công việc đang tuyển phù hợp nhất với CV mặc định của ứng viên hiện tại. Kết quả gồm điểm phù hợp, kỹ năng khớp, kỹ năng thiếu, doanh nghiệp, địa điểm và lương. Luôn gọi tool này khi user hỏi việc phù hợp hoặc việc nên ứng tuyển.")]
@@ -38,6 +40,7 @@ internal sealed class RecruiterTools
         [Description("Số lượng công việc muốn lấy, từ 3 đến 10. Mặc định 10.")] int topN = 10,
         CancellationToken cancellationToken = default)
     {
+        await _permissions.RequireAsync("ketquaphuhops", "list", cancellationToken);
         var response = await _sender.Send(new GetSuggestedJobsForCvQuery
         {
             TopN = Math.Clamp(topN, 3, 10),
@@ -64,6 +67,7 @@ internal sealed class RecruiterTools
     private async Task<Response<List<SuggestedCandidateViewModel>>> GetCandidateRecommendationsForManagedJobAsync(
         int tinTuyenDungId, int topN, CancellationToken cancellationToken)
     {
+        await _permissions.RequireAsync("ketquaphuhops", "list", cancellationToken);
         var job = await GetRecruitmentJobDetailAsync(tinTuyenDungId, cancellationToken);
         if (!job.Succeeded) return new Response<List<SuggestedCandidateViewModel>>(job.Message);
         return await _sender.Send(new GetSuggestedCandidatesForJobQuery
@@ -77,6 +81,7 @@ internal sealed class RecruiterTools
     public async Task<Application.Wrappers.Response<List<RecruitmentJobOption>>> GetMyRecruitmentJobsAsync(
         CancellationToken cancellationToken = default)
     {
+        await _permissions.RequireAsync("tintuyendungs", "list", cancellationToken);
         var current = await _current.ResolveAsync();
         if (current.VaiTro is not (VaiTroNguoiDung.NHAN_SU or VaiTroNguoiDung.NGUOI_DAI_DIEN))
             return new Application.Wrappers.Response<List<RecruitmentJobOption>>("Chức năng này chỉ dành cho nhân sự hoặc người đại diện.");
@@ -110,6 +115,7 @@ internal sealed class RecruiterTools
     public async Task<Application.Wrappers.Response<CurrentRecruitmentContext>> GetCurrentRecruitmentContextAsync(
         CancellationToken cancellationToken = default)
     {
+        await _permissions.RequireAsync("tintuyendungs", "list", cancellationToken);
         var current = await _current.ResolveAsync();
         if (current.VaiTro is not (VaiTroNguoiDung.NHAN_SU or VaiTroNguoiDung.NGUOI_DAI_DIEN))
             return new Application.Wrappers.Response<CurrentRecruitmentContext>("Chức năng này chỉ dành cho nhân sự hoặc người đại diện.");
@@ -152,6 +158,7 @@ internal sealed class RecruiterTools
         [Description("Id của một tin tuyển dụng cần xem chi tiết.")] int tinTuyenDungId,
         CancellationToken cancellationToken = default)
     {
+        await _permissions.RequireAsync("tintuyendungs", "show", cancellationToken);
         var current = await _current.ResolveAsync();
         if (current.VaiTro is not (VaiTroNguoiDung.NHAN_SU or VaiTroNguoiDung.NGUOI_DAI_DIEN))
             return new Application.Wrappers.Response<RecruitmentJobDetail>("Chức năng này chỉ dành cho nhân sự hoặc người đại diện.");
@@ -256,28 +263,27 @@ internal sealed class RecruiterTools
         [Description("ID CV ứng viên cần đọc.")] int cvUngVienId,
         CancellationToken cancellationToken = default)
     {
+        await _permissions.RequireAsync("cvungviens", "show", cancellationToken);
+        var accessible = await ManagedApplicationsAsync();
         var company = await GetCompanyIdAsync(cancellationToken);
         if (!company.Succeeded) return new Response<CandidateCvSummary>(company.Message);
-        var cv = await _context.CVUngViens.AsNoTracking()
-            .Include(x => x.HoSoUngVien)
-            .Include(x => x.KyNangs)
-            .Include(x => x.KinhNghiems)
-            .Include(x => x.HocVans)
-            .Include(x => x.DuAns)
-            .FirstOrDefaultAsync(x => x.Id == cvUngVienId && !x.IsDaXoa &&
-                _context.DonUngTuyens.Any(d => d.CVUngVienId == x.Id && d.TinTuyenDung.DoanhNghiepId == company.Data), cancellationToken);
-        if (cv == null) return new Response<CandidateCvSummary>("Không tìm thấy CV trong phạm vi đơn ứng tuyển của doanh nghiệp.");
+        var profileId = await accessible.Where(d => d.CVUngVienId == cvUngVienId)
+            .Select(d => d.CVUngVien.HoSoUngVienId).FirstOrDefaultAsync(cancellationToken);
+        if (profileId == 0) return new Response<CandidateCvSummary>("Không tìm thấy CV trong phạm vi đơn ứng tuyển của doanh nghiệp.");
+        var submitted = await _sender.Send(new Application.Features.CVUngVien.Queries.GetCVUngVienById.GetCVUngVienByIdQuery { Id = cvUngVienId }, cancellationToken);
+        if (!submitted.Succeeded || submitted.Data?.NoiDung == null) return new Response<CandidateCvSummary>(submitted.Message ?? "Không tìm thấy bản CV đã nộp.");
+        var cv = submitted.Data;
 
         return new Response<CandidateCvSummary>(new CandidateCvSummary
         {
             CvUngVienId = cv.Id,
-            HoSoUngVienId = cv.HoSoUngVienId,
-            HoTen = cv.HoSoUngVien?.HoTen ?? string.Empty,
-            ViTriUngTuyen = cv.HoSoUngVien?.ViTriUngTuyen ?? string.Empty,
-            KyNang = cv.KyNangs.Select(x => x.TenKyNang).Where(x => !string.IsNullOrWhiteSpace(x)).ToList(),
-            SoKinhNghiem = cv.KinhNghiems.Count,
-            SoHocVan = cv.HocVans.Count,
-            SoDuAn = cv.DuAns.Count
+            HoSoUngVienId = profileId,
+            HoTen = cv.NoiDung.ThongTinLienHe?.HoTen ?? string.Empty,
+            ViTriUngTuyen = cv.NoiDung.ThongTinLienHe?.ViTriUngTuyen ?? string.Empty,
+            KyNang = cv.NoiDung.KyNang.Select(x => x.TenKyNang).Where(x => !string.IsNullOrWhiteSpace(x)).ToList(),
+            SoKinhNghiem = cv.NoiDung.KinhNghiemLamViec.Count,
+            SoHocVan = cv.NoiDung.HocVan.Count,
+            SoDuAn = cv.NoiDung.DuAn.Count
         });
     }
 
@@ -286,9 +292,10 @@ internal sealed class RecruiterTools
         [Description("ID hồ sơ ứng viên cần tóm tắt.")] int hoSoUngVienId,
         CancellationToken cancellationToken = default)
     {
+        await _permissions.RequireAsync("cvungviens", "show", cancellationToken);
         var company = await GetCompanyIdAsync(cancellationToken);
         if (!company.Succeeded) return new Response<CandidateCvSummary>(company.Message);
-        var cvId = await _context.DonUngTuyens.AsNoTracking()
+        var cvId = await (await ManagedApplicationsAsync())
             .Where(x => x.TinTuyenDung.DoanhNghiepId == company.Data && x.CVUngVien.HoSoUngVienId == hoSoUngVienId)
             .OrderByDescending(x => x.NgayUngTuyen)
             .Select(x => x.CVUngVienId).FirstOrDefaultAsync(cancellationToken);
@@ -303,9 +310,10 @@ internal sealed class RecruiterTools
         [Description("Số đơn trả về, từ 1 đến 50.")] int topN = 20,
         CancellationToken cancellationToken = default)
     {
+        await _permissions.RequireAsync("donungtuyens", "list", cancellationToken);
         var company = await GetCompanyIdAsync(cancellationToken);
         if (!company.Succeeded) return new Response<List<RecruitmentApplication>>(company.Message);
-        var query = _context.DonUngTuyens.AsNoTracking()
+        var query = (await ManagedApplicationsAsync())
             .Where(x => x.TinTuyenDung.DoanhNghiepId == company.Data);
         if (tinTuyenDungId.HasValue) query = query.Where(x => x.TinTuyenDungId == tinTuyenDungId.Value);
         var items = await query.OrderByDescending(x => x.NgayUngTuyen ?? x.Created)
@@ -329,9 +337,10 @@ internal sealed class RecruiterTools
         [Description("ID đơn ứng tuyển cần xem.")] int donUngTuyenId,
         CancellationToken cancellationToken = default)
     {
+        await _permissions.RequireAsync("donungtuyens", "show", cancellationToken);
         var company = await GetCompanyIdAsync(cancellationToken);
         if (!company.Succeeded) return new Response<RecruitmentApplication>(company.Message);
-        var item = await _context.DonUngTuyens.AsNoTracking()
+        var item = await (await ManagedApplicationsAsync())
             .Where(x => x.Id == donUngTuyenId && x.TinTuyenDung.DoanhNghiepId == company.Data)
             .Select(x => new RecruitmentApplication
             {
@@ -355,9 +364,10 @@ internal sealed class RecruiterTools
         [Description("Có thể lọc theo ID tin tuyển dụng.")] int? tinTuyenDungId = null,
         CancellationToken cancellationToken = default)
     {
+        await _permissions.RequireAsync("donungtuyens", "list", cancellationToken);
         var company = await GetCompanyIdAsync(cancellationToken);
         if (!company.Succeeded) return new Response<List<ApplicationPipelineStage>>(company.Message);
-        var query = _context.DonUngTuyens.AsNoTracking().Where(x => x.TinTuyenDung.DoanhNghiepId == company.Data);
+        var query = (await ManagedApplicationsAsync()).Where(x => x.TinTuyenDung.DoanhNghiepId == company.Data);
         if (tinTuyenDungId.HasValue) query = query.Where(x => x.TinTuyenDungId == tinTuyenDungId.Value);
         var stages = await query.GroupBy(x => x.TrangThai)
             .Select(x => new ApplicationPipelineStage { TrangThai = x.Key.ToString(), SoLuong = x.Count() })
@@ -370,10 +380,11 @@ internal sealed class RecruiterTools
         [Description("Số ngày chưa xử lý tối thiểu, từ 1 đến 90. Mặc định 7.")] int days = 7,
         CancellationToken cancellationToken = default)
     {
+        await _permissions.RequireAsync("donungtuyens", "list", cancellationToken);
         var company = await GetCompanyIdAsync(cancellationToken);
         if (!company.Succeeded) return new Response<List<RecruitmentApplication>>(company.Message);
         var cutoff = DateTime.UtcNow.AddDays(-Math.Clamp(days, 1, 90));
-        var items = await _context.DonUngTuyens.AsNoTracking()
+        var items = await (await ManagedApplicationsAsync())
             .Where(x => x.TinTuyenDung.DoanhNghiepId == company.Data &&
                 x.TrangThai == TrangThaiDonUngTuyen.ChoXuLy && (x.NgayUngTuyen ?? x.Created) <= cutoff)
             .OrderBy(x => x.NgayUngTuyen ?? x.Created).Take(50)
@@ -389,6 +400,8 @@ internal sealed class RecruiterTools
     [Description("Lấy tổng quan tuyển dụng của doanh nghiệp. Chỉ người đại diện được dùng.")]
     public async Task<Response<RecruitmentOverview>> GetRecruitmentOverviewAsync(CancellationToken cancellationToken = default)
     {
+        await _permissions.RequireAsync("tintuyendungs", "list", cancellationToken);
+        await _permissions.RequireAsync("donungtuyens", "list", cancellationToken);
         var company = await GetRepresentativeCompanyIdAsync(cancellationToken);
         if (!company.Succeeded) return new Response<RecruitmentOverview>(company.Message);
         var jobs = _context.TinTuyenDungs.AsNoTracking().Where(x => x.DoanhNghiepId == company.Data);
@@ -405,6 +418,8 @@ internal sealed class RecruiterTools
     [Description("Lấy thống kê tuyển dụng toàn doanh nghiệp. Chỉ người đại diện được dùng.")]
     public async Task<Response<CompanyRecruitmentStats>> GetCompanyRecruitmentStatsAsync(CancellationToken cancellationToken = default)
     {
+        await _permissions.RequireAsync("tintuyendungs", "list", cancellationToken);
+        await _permissions.RequireAsync("donungtuyens", "list", cancellationToken);
         var company = await GetRepresentativeCompanyIdAsync(cancellationToken);
         if (!company.Succeeded) return new Response<CompanyRecruitmentStats>(company.Message);
         var since = DateTime.UtcNow.AddDays(-30);
@@ -422,10 +437,12 @@ internal sealed class RecruiterTools
     [Description("Lấy danh sách nhân sự và người đại diện thuộc doanh nghiệp hiện tại. Chỉ người đại diện được dùng.")]
     public async Task<Response<List<CompanyMember>>> GetCompanyMembersAsync(CancellationToken cancellationToken = default)
     {
+        await _permissions.RequireAsync("nhansus", "list", cancellationToken);
         var company = await GetRepresentativeCompanyIdAsync(cancellationToken);
         if (!company.Succeeded) return new Response<List<CompanyMember>>(company.Message);
         var members = await _context.HoSoNhaTuyenDungs.AsNoTracking()
-            .Where(x => x.DoanhNghiepId == company.Data)
+            .Where(x => x.DoanhNghiepId == company.Data && x.NguoiDung.IsActive &&
+                (x.NguoiDung.VaiTro == VaiTroNguoiDung.NHAN_SU || x.NguoiDung.VaiTro == VaiTroNguoiDung.NGUOI_DAI_DIEN))
             .Select(x => new CompanyMember
             {
                 NguoiDungId = x.NguoiDungId,
@@ -441,6 +458,9 @@ internal sealed class RecruiterTools
         [Description("ID người dùng nhân sự cần xem hoạt động.")] int nguoiDungId,
         CancellationToken cancellationToken = default)
     {
+        await _permissions.RequireAsync("nhansus", "list", cancellationToken);
+        await _permissions.RequireAsync("tintuyendungs", "list", cancellationToken);
+        await _permissions.RequireAsync("donungtuyens", "list", cancellationToken);
         var company = await GetRepresentativeCompanyIdAsync(cancellationToken);
         if (!company.Succeeded) return new Response<RecruiterActivity>(company.Message);
         var member = await _context.HoSoNhaTuyenDungs.AsNoTracking()
@@ -460,6 +480,13 @@ internal sealed class RecruiterTools
             DonDanhGiaPhuHop = await handled.CountAsync(x => x.TrangThai == TrangThaiDonUngTuyen.PhuHop, cancellationToken),
             DonTuChoi = await handled.CountAsync(x => x.TrangThai == TrangThaiDonUngTuyen.TuChoi, cancellationToken)
         });
+    }
+
+    private async Task<IQueryable<Domain.Entities.DonUngTuyen>> ManagedApplicationsAsync()
+    {
+        var actor = await _current.ResolveAsync();
+        return _context.DonUngTuyens.AsNoTracking().Where(d => d.TinTuyenDung.DoanhNghiepId == actor.DoanhNghiepId &&
+            (actor.VaiTro == VaiTroNguoiDung.NGUOI_DAI_DIEN || actor.VaiTro == VaiTroNguoiDung.NHAN_SU && d.TinTuyenDung.NguoiDangTinId == actor.Id));
     }
 
     private async Task<Response<int>> GetCompanyIdAsync(CancellationToken cancellationToken)

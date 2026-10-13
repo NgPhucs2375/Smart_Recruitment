@@ -21,7 +21,7 @@ namespace Application.Features.HoSoNhaTuyenDung.Queries.GetAllHoSoNhaTuyenDungs
 
     public class GetAllHoSoNhaTuyenDungsQueryHandler(
         IApplicationDbContext context,
-        IMapper mapper)
+        IMapper mapper, ICurrentNguoiDungService current)
         : IRequestHandler<GetAllHoSoNhaTuyenDungsQuery, Response<List<GetAllHoSoNhaTuyenDungsViewModel>>>
     {
         public async Task<Response<List<GetAllHoSoNhaTuyenDungsViewModel>>> Handle(
@@ -29,6 +29,10 @@ namespace Application.Features.HoSoNhaTuyenDung.Queries.GetAllHoSoNhaTuyenDungs
             CancellationToken cancellationToken)
         {
             var query = context.HoSoNhaTuyenDungs.AsNoTracking();
+            var actor = await current.ResolveAsync();
+            if (actor.VaiTro != Domain.Enums.VaiTroNguoiDung.QUAN_TRI_VIEN)
+                query = query.Where(x => (actor.VaiTro == Domain.Enums.VaiTroNguoiDung.NHAN_SU || actor.VaiTro == Domain.Enums.VaiTroNguoiDung.NGUOI_DAI_DIEN) &&
+                    (x.NguoiDungId == actor.Id || x.DoanhNghiepId == actor.DoanhNghiepId));
 
             var filter = request._filter?.Trim();
 

@@ -18,7 +18,7 @@ public class CreateKetQuaPhanTichCvCommand : IRequest<Response<int>>
 }
 
 public class CreateKetQuaPhanTichCvCommandHandler(
-    IApplicationDbContext context)
+    IApplicationDbContext context, ICurrentNguoiDungService current)
     : IRequestHandler<CreateKetQuaPhanTichCvCommand, Response<int>>
 {
     public async Task<Response<int>> Handle(
@@ -37,6 +37,7 @@ public class CreateKetQuaPhanTichCvCommandHandler(
             return new Response<int>(
                 "Không tìm thấy CV.");
         }
+        await Application.Security.ResourceAccess.EnsureCvOwnerAsync(context, await current.ResolveAsync(), request.CVUngVienId, cancellationToken);
 
         var daPhanTich = await context.KetQuaPhanTichCvs
             .AsNoTracking()

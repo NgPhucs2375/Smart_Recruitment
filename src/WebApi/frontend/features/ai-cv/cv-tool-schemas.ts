@@ -15,7 +15,9 @@ export const cvContactPatchSchema = z.object({
   ngaySinh: optionalText.describe("Ngày sinh, ưu tiên YYYY-MM-DD"),
   viTriUngTuyen: optionalText.describe("Vị trí ứng tuyển"),
   mucLuongMongMuon: optionalText.describe("Mức lương mong muốn"),
-  gioiThieuBanThan: optionalText.describe("Tóm tắt hoặc giới thiệu nghề nghiệp"),
+  gioiThieuBanThan: optionalText.describe(
+    "Tóm tắt nghề nghiệp 450-600 ký tự (4-6 dòng). Dài hơn phải tự viết lại ngắn gọn, giữ ý chính và số liệu, không dán nguyên văn prompt.",
+  ),
   anhDaiDienUrl: optionalText.describe("URL ảnh đại diện"),
 }).strict().describe("Thông tin liên hệ. Chỉ dùng đúng các field được khai báo, không truyền reason hoặc văn bản tổng hợp.");
 
@@ -26,7 +28,7 @@ const educationCreateSchema = z.object({
   tuNgay: optionalText.describe("Ngày bắt đầu, MM/YYYY hoặc YYYY"),
   denNgay: optionalText.describe("Ngày kết thúc, MM/YYYY hoặc YYYY"),
   isHienTai: z.boolean().optional().describe("Đang theo học"),
-  moTa: optionalText.describe("GPA hoặc mô tả học vấn"),
+  moTa: optionalText.describe("GPA hoặc mô tả học vấn dưới 200 ký tự"),
 }).strict();
 
 const experienceCreateFields = {
@@ -37,7 +39,9 @@ const experienceCreateFields = {
   tuNgay: optionalText.describe("Ngày bắt đầu, MM/YYYY hoặc YYYY"),
   denNgay: optionalText.describe("Ngày kết thúc, MM/YYYY hoặc YYYY"),
   isHienTai: z.boolean().optional().describe("Hiện vẫn đang làm"),
-  moTa: optionalText.describe("Các trách nhiệm hoặc thành tích, ngăn cách bằng xuống dòng"),
+  moTa: optionalText.describe(
+    "Mô tả 350-500 ký tự mỗi mục, ngăn cách bằng xuống dòng. Dài hơn phải tự tóm gọn, giữ thành tích và số liệu.",
+  ),
   kyNangSuDung: optionalTextList.describe("Danh sách kỹ năng hoặc công nghệ sử dụng"),
 };
 
@@ -51,14 +55,16 @@ const projectCreateSchema = z.object({
   vaiTro: optionalText.describe("Vai trò trong dự án"),
   congNghe: optionalTextList.describe("Danh sách công nghệ"),
   link: optionalText.describe("URL dự án hoặc repository"),
-  moTa: optionalText.describe("Mô tả và các công việc đã thực hiện, ngăn cách bằng xuống dòng"),
+  moTa: optionalText.describe(
+    "Mô tả 250-400 ký tự mỗi mục, ngăn cách bằng xuống dòng. Dài hơn phải tự tóm gọn, giữ vai trò và kết quả chính.",
+  ),
   tuNgay: optionalText.describe("Ngày bắt đầu, MM/YYYY hoặc YYYY"),
   denNgay: optionalText.describe("Ngày kết thúc, MM/YYYY hoặc YYYY"),
   isHienTai: z.boolean().optional().describe("Dự án đang tiếp tục"),
 }).strict();
 
 const skillCreateSchema = z.object({
-  tenKyNang: z.string().min(1).describe("Tên kỹ năng hoặc tên nhóm kỹ năng"),
+  tenKyNang: z.string().min(1).describe("Tên kỹ năng ngắn gọn dưới 30 ký tự"),
   mucDoThanhThao: optionalText.describe("Mức độ hoặc danh sách kỹ năng trong nhóm"),
   soNamKinhNghiem: optionalText.describe("Số năm kinh nghiệm nếu user cung cấp"),
 }).strict();

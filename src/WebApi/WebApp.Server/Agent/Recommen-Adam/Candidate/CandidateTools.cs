@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using Application.DTOs.CV;
+using Application.Interfaces;
 using Application.Features.CVUngVien.Queries.GetAllCVUngViens;
 using Application.Features.CVUngVien.Queries.GetCVUngVienById;
 using Application.Features.DonUngTuyen.Queries.GetAllDonUngTuyens;
@@ -18,16 +19,19 @@ internal sealed class CandidateTools
 {
 	private readonly ISender _sender;
 	private readonly SharedStateStore _sharedState;
+	private readonly IPermissionService _permissions;
 
-	public CandidateTools(ISender sender, SharedStateStore sharedState)
+	public CandidateTools(ISender sender, SharedStateStore sharedState, IPermissionService permissions)
 	{
 		_sender = sender;
 		_sharedState = sharedState;
+		_permissions = permissions;
     }
 
     [Description("Chỉ kiểm tra các trường thông tin cá nhân trong HoSoUngVien của ứng viên hiện tại. Không đọc, không phân tích và không kiểm tra CVUngVien. Dùng khi ứng viên hỏi: hồ sơ của tôi còn thiếu gì.")]
     public async Task<Response<CandidateProfileCompleteness>> CheckProfileCompletenessAsync(CancellationToken cancellationToken = default)
     {
+        await _permissions.RequireAsync("hosoungviens", "show", cancellationToken);
         var profile = await _sender.Send(new GetMyHoSoUngVienQuery(), cancellationToken);
         if (!profile.Succeeded || profile.Data == null)
             return new Response<CandidateProfileCompleteness>(profile.Message ?? "Không lấy được hồ sơ ứng viên.");
@@ -86,7 +90,7 @@ internal sealed class CandidateTools
         => await AnalyzeCvAsync(cvId, cancellationToken);
 
     [Description("Tìm việc làm công khai theo từ khóa, địa điểm, lương hoặc hình thức làm việc. Chỉ trả tin đang tuyển. Kết quả được phân trang; khi người dùng yêu cầu xem thêm, tăng pageNumber và giữ nguyên các bộ lọc.")]
-    public Task<PagedResponse<List<GetAllTinTuyenDungsViewModel>>> SearchJobsAsync(
+    public async Task<PagedResponse<List<GetAllTinTuyenDungsViewModel>>> SearchJobsAsync(
         [Description("Từ khóa chức danh, kỹ năng hoặc doanh nghiệp.")] string? keyword = null,
         [Description("Địa điểm làm việc.")] string? location = null,
         [Description("Mức lương tối thiểu mong muốn.")] decimal? salaryMin = null,
@@ -96,9 +100,10 @@ internal sealed class CandidateTools
         CancellationToken cancellationToken = default)
     {
         var pageSize = Math.Clamp(topN, 1, 20);
+        await _permissions.RequireAsync("tintuyendungs", "list", cancellationToken);
         var page = Math.Clamp(pageNumber, 1, 1000);
 
-        return _sender.Send(new GetAllTinTuyenDungsQuery
+        return await _sender.Send(new GetAllTinTuyenDungsQuery
         {
             _start = (page - 1) * pageSize,
             _end = page * pageSize,
@@ -110,10 +115,13 @@ internal sealed class CandidateTools
     }
 
     [Description("Đọc chi tiết JD của một tin tuyển dụng công khai theo id.")]
-    public Task<Response<GetAllTinTuyenDungsViewModel>> GetJobDetailsAsync(
+    public async Task<Response<GetAllTinTuyenDungsViewModel>> GetJobDetailsAsync(
         [Description("ID tin tuyển dụng cần xem.")] int tinTuyenDungId,
         CancellationToken cancellationToken = default)
-        => _sender.Send(new GetTinTuyenDungByIdQuery { Id = tinTuyenDungId }, cancellationToken);
+    {
+        await _permissions.RequireAsync("tintuyendungs", "show", cancellationToken);
+        return await _sender.Send(new GetTinTuyenDungByIdQuery { Id = tinTuyenDungId }, cancellationToken);
+    }
 
     [Description("Lấy các việc làm phù hợp với CV mặc định hoặc CV được chọn, kèm điểm match. Kết quả được phân trang sau khi xếp hạng; khi người dùng yêu cầu xem thêm, tăng pageNumber và giữ nguyên cvId.")]
     public async Task<Response<List<SuggestedJobViewModel>>> GetJobRecommendationsAsync(
@@ -121,6 +129,7 @@ internal sealed class CandidateTools
         [Description("Số trang, bắt đầu từ 1. Khi người dùng yêu cầu xem thêm, tăng số trang.")] int pageNumber = 1,
         CancellationToken cancellationToken = default)
     {
+        await _permissions.RequireAsync("ketquaphuhops", "list", cancellationToken);
         var response = await _sender.Send(new GetSuggestedJobsForCvQuery
         {
             CvUngVienId = cvId,
@@ -169,20 +178,28 @@ internal sealed class CandidateTools
     }
 
     [Description("Xem các đơn ứng tuyển của ứng viên hiện tại.")]
-    public Task<PagedResponse<List<GetAllDonUngTuyensViewModel>>> GetMyApplicationsAsync(
+    public async Task<PagedResponse<List<GetAllDonUngTuyensViewModel>>> GetMyApplicationsAsync(
         [Description("Số lượng đơn muốn lấy, từ 1 đến 50.")] int topN = 20,
         CancellationToken cancellationToken = default)
-        => _sender.Send(new GetAllDonUngTuyensQuery { _start = 0, _end = Math.Clamp(topN, 1, 50) }, cancellationToken);
+    {
+        await _permissions.RequireAsync("donungtuyens", "list", cancellationToken);
+        return await _sender.Send(new GetAllDonUngTuyensQuery { _start = 0, _end = Math.Clamp(topN, 1, 50) }, cancellationToken);
+    }
 
     [Description("Theo dõi trạng thái và chi tiết của một đơn ứng tuyển thuộc ứng viên hiện tại.")]
-    public Task<Response<GetAllDonUngTuyensViewModel>> GetApplicationStatusAsync(
+    public async Task<Response<GetAllDonUngTuyensViewModel>> GetApplicationStatusAsync(
         [Description("ID đơn ứng tuyển cần xem.")] int donUngTuyenId,
         CancellationToken cancellationToken = default)
-        => _sender.Send(new GetDonUngTuyenByIdQuery { Id = donUngTuyenId }, cancellationToken);
+    {
+        await _permissions.RequireAsync("donungtuyens", "show", cancellationToken);
+        return await _sender.Send(new GetDonUngTuyenByIdQuery { Id = donUngTuyenId }, cancellationToken);
+    }
 
     private async Task<Response<CvDetailDto>> GetCvAsync(int? cvId, CancellationToken cancellationToken)
     {
+        await _permissions.RequireAsync("cvungviens", "show", cancellationToken);
         if (cvId.HasValue) return await _sender.Send(new GetCVUngVienByIdQuery { Id = cvId.Value }, cancellationToken);
+        await _permissions.RequireAsync("cvungviens", "list", cancellationToken);
         var cvs = await _sender.Send(new GetAllCVUngViensQuery { _start = 0, _end = 20 }, cancellationToken);
         var defaultCv = cvs.Data?.FirstOrDefault(x => x.IsDefault);
         return defaultCv == null

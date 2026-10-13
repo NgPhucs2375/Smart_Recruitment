@@ -60,9 +60,9 @@ namespace Application.Features.CVUngVien.Queries.GetCVDownloadUrl
                 await _context.DonUngTuyens.AsNoTracking().AnyAsync(
                     x => x.CVUngVienId == cv.Id &&
                          x.CVPhienBanId == request.VersionId.Value &&
-                         _context.HoSoNhaTuyenDungs.Any(h =>
-                             h.NguoiDungId == currentUser.Id &&
-                             h.DoanhNghiepId == x.TinTuyenDung.DoanhNghiepId),
+                          (currentUser.VaiTro == VaiTroNguoiDung.NHAN_SU
+                              ? x.TinTuyenDung.NguoiDangTinId == currentUser.Id
+                              : x.TinTuyenDung.DoanhNghiepId == currentUser.DoanhNghiepId),
                     cancellationToken);
             if (!canViewSubmittedVersion)
                 return new Response<GetCVDownloadUrlViewModel>("Bạn không có quyền tải file CV này.");

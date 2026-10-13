@@ -54,6 +54,9 @@ export function CvPaginatedPreview({ resume, Component, templateKey, onPageCount
   const lastCountRef = useRef<number>(1);
   const groupsRef = useRef<SectionGroup[]>([]);
   const oversizeRef = useRef<Set<number>>(new Set());
+  // Trang có khối chrome ghim (items rỗng → chỉ hiện trang đầu) tràn khỏi sức
+  // chứa: sheet phải dãn chiều cao thay vì để .cv-paper overflow:hidden cắt cụt.
+  const pinnedOverflowRef = useRef<Set<number>>(new Set());
   const pageOfRef = useRef<ItemPages>([]);
   const [pages, setPages] = useState<number[] | null>(null);
 
@@ -162,6 +165,10 @@ export function CvPaginatedPreview({ resume, Component, templateKey, onPageCount
     // oversize để CSS cho tách nội bộ (thay vì bị cắt cụt chữ ở mép đáy).
     // Y-PARTITION thuần tính toán (engine/page-slicer.ts): gán theo tọa độ Y
     // của chính item — cột trái/phải không ảnh hưởng (xem doc trong engine).
+    // Trang tiếp nối có padding-top bù (CSS .cv-sheet) nên sức chứa thực tế
+    // giảm đúng bằng đó — trừ ra ở đây để item cuối không tràn khỏi sheet
+    // (cả preview aspect-ratio lẫn print đều khớp, giữ WYSIWYG).
+    // Đơn vị tỉ lệ giấy: 5mm / 210mm — bất biến zoom như mọi đại lượng khác.
     const continuationPad = CONTINUATION_TOP_PAD_MM / 210;
 
     // B2-ĐÁY AN TOÀN (density pass): ~7.4mm — chỉ chống làm tròn
@@ -180,6 +187,27 @@ export function CvPaginatedPreview({ resume, Component, templateKey, onPageCount
     );
     const oversize = new Set<number>(oversizeList);
     oversizeRef.current = oversize;
+
+    // PINNED-OVERFLOW: khối chrome dài (items rỗng → chỉ hiện trang đầu, vd.
+    // "giới thiệu bản thân" rất dài do prompt dài mà template không gắn
+    // .cv-section-item) nếu tràn khỏi sức chứa trang 1 thì sheet 1 phải dãn
+    // chiều cao (cờ data-oversize-page sẵn có) thay vì bị .cv-paper
+    // overflow:hidden cắt cụt div trên màn hình. Chỉ dãn thêm, không cắt —
+    // trường hợp xấu nhất là trang 1 cao hơn khổ A4 một chút.
+    const pinnedOverflow = new Set<number>();
+    const firstPageUsable = capacity - BOTTOM_SAFETY_MARGIN;
+    for (const g of groups) {
+      const [gs, ge] = g.items;
+      if (ge - gs !== 0) continue;
+      const nodes = [...(g.owner ? [g.owner] : []), ...g.chrome];
+      let bottom = 0;
+      for (const n of nodes) {
+        const r = n.getBoundingClientRect();
+        bottom = Math.max(bottom, (r.bottom - paperRect.top) / unit);
+      }
+      if (bottom > firstPageUsable) pinnedOverflow.add(0);
+    }
+    pinnedOverflowRef.current = pinnedOverflow;
     pageOfRef.current = pageOf;
 
     setPages(Array.from({ length: pageCount }, (_, p) => p));
@@ -420,7 +448,11 @@ export function CvPaginatedPreview({ resume, Component, templateKey, onPageCount
       // Lưới an toàn: trang chứa item cao hơn cả khổ A4 không vừa đâu cả —
       // cho sheet dãn chiều cao (screen) để không cụt chữ; print tự tách
       // qua break-inside: auto đã có. Không bao giờ mất nội dung.
-      const hasOversize = Array.from(oversize).some((i) => pageOf[i] === page);
+      // Cộng thêm trang có khối chrome ghim tràn (pinnedOverflow): cùng
+      // cơ chế dãn sheet, chống .cv-paper overflow:hidden cắt div.
+      const hasOversize =
+        Array.from(oversize).some((i) => pageOf[i] === page) ||
+        pinnedOverflowRef.current.has(page);
       if (hasOversize) {
         (sheet as HTMLElement).setAttribute("data-oversize-page", "true");
       } else {

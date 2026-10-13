@@ -9,7 +9,8 @@ import type {
   CrudSort,
 } from "@refinedev/core";
 // v2: bearer token auth via Authorization header (replaced cookie-based fetcher)
-import { getAuthToken, redirectToLogin } from "./auth-provider";
+import { getValidToken, refreshSession, redirectToLogin } from "./auth-provider";
+import { unwrapResponse, listResponse } from "./api/response-contract";
 
 // ─── Response types from .NET Clean Architecture backend ─────────────────────
 
@@ -89,16 +90,17 @@ async function processErrorResponse(res: Response): Promise<never> {
 // ─── HTTP client ──────────────────────────────────────────────────────────────
 
 // Bearer token fetcher — token stored in localStorage by auth-provider.
-const fetcher = (url: string, options?: RequestInit): Promise<Response> =>
-  fetch(url, {
+const fetcher = async (url: string, options?: RequestInit): Promise<Response> => {
+  let token = await getValidToken();
+  const send = () => fetch(url, {
     ...options,
-    headers: {
-      "Content-Type": "application/json",
-      Accept: "application/json",
-      Authorization: `Bearer ${getAuthToken() ?? ""}`,
-      ...options?.headers,
-    },
+    headers: { "Content-Type": "application/json", Accept: "application/json", ...options?.headers,
+      ...(token ? { Authorization: `Bearer ${token}` } : {}) },
   });
+  let response = await send();
+  if (response.status === 401 && await refreshSession()) { token = await getValidToken(); response = await send(); }
+  return response;
+};
 
 // ─── Filter serialization ─────────────────────────────────────────────────────
 // Maps Refine CrudFilter operators to the server's `_filter=field:OP_value` convention.
@@ -417,13 +419,7 @@ export function createDataProvider(apiUrl: string): DataProvider {
       if (!res.ok) return processErrorResponse(res);
       const body = await res.json();
 
-      // Supports both raw array and wrapped { _data, _total } response
-      if (Array.isArray(body)) {
-        return { data: body as never[], total: body.length };
-      }
-      const data = body?._data ?? body?.Data?._data ?? [];
-      const total = body?._total ?? body?.Data?._total ?? data.length;
-      return { data, total };
+      return listResponse<never>(body);
     },
 
     // ── getOne ───────────────────────────────────────────────────────────────
@@ -437,7 +433,7 @@ export function createDataProvider(apiUrl: string): DataProvider {
       const res = await fetcher(url);
       if (!res.ok) return processErrorResponse(res);
       const body = await res.json();
-      const data = body?.Data ?? body;
+      const data = unwrapResponse(body);
       return { data: data as never };
     },
 
@@ -452,13 +448,14 @@ export function createDataProvider(apiUrl: string): DataProvider {
 
       // Some endpoints return 201 Created with just the new ID (int)
       const body = await safeParseJson(res);
+      const payload = unwrapResponse(body);
       if (body === null || body === undefined) {
         return { data: { ...(variables as object) } as never };
       }
       const data =
-        typeof body === "number"
-          ? { id: body, ...(variables as object) }
-          : (body as object);
+        typeof payload === "number" || typeof payload === "string"
+          ? { ...(variables as object), id: payload }
+          : payload;
       return { data: data as never };
     },
 
@@ -472,10 +469,11 @@ export function createDataProvider(apiUrl: string): DataProvider {
       if (!res.ok) return processErrorResponse(res);
 
       const body = await safeParseJson(res);
+      const payload = unwrapResponse(body);
       const data =
         body === null || body === undefined
           ? { id, ...(variables as object) }
-          : (body as object);
+          : typeof payload === "number" || typeof payload === "string" ? { ...(variables as object), id: payload } : payload;
       return { data: data as never };
     },
 
@@ -486,6 +484,7 @@ export function createDataProvider(apiUrl: string): DataProvider {
         method: "DELETE",
       });
       if (!res.ok) return processErrorResponse(res);
+      unwrapResponse(await safeParseJson(res));
       return { data: { id } as never };
     },
 
@@ -499,7 +498,7 @@ export function createDataProvider(apiUrl: string): DataProvider {
           .filter(([, v]) => v != null && v !== "")
           .map(([k, v]) => [k, String(v)] as [string, string]);
         if (entries.length > 0) {
-          fullUrl = `${url}?${new URLSearchParams(entries).toString()}`;
+          fullUrl = `${url}${url.includes("?") ? "&" : "?"}${new URLSearchParams(entries).toString()}`;
         }
       }
       const res = await fetcher(fullUrl, {
@@ -509,6 +508,7 @@ export function createDataProvider(apiUrl: string): DataProvider {
       });
       if (!res.ok) return processErrorResponse(res);
       const body = await safeParseJson(res);
+      unwrapResponse(body); // Validate business status while preserving raw custom view-model contracts.
       return { data: (body ?? {}) as never };
     },
   };

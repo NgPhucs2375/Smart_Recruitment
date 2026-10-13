@@ -30,11 +30,13 @@ public class NotificationService : INotificationService
     public async Task SendToCompanyAsync(int companyId, ThongBaoDTO notification)
     {
         var userIds = await _context.HoSoNhaTuyenDungs
-            .Where(x => x.DoanhNghiepId == companyId)
+            .Where(x => x.DoanhNghiepId == companyId && x.NguoiDung.IsActive && x.NguoiDung.VaiTro == VaiTroNguoiDung.NHAN_SU &&
+                !_context.HoSoNhaTuyenDungs.Any(other => other.NguoiDungId == x.NguoiDungId && other.DoanhNghiepId != companyId))
             .Select(x => x.NguoiDungId)
             .Union(
                 _context.DoanhNghieps
-                    .Where(x => x.Id == companyId && x.NguoiDaiDienId.HasValue)
+                    .Where(x => x.Id == companyId && x.NguoiDaiDienId.HasValue &&
+                        _context.NguoiDungs.Any(u => u.Id == x.NguoiDaiDienId && u.IsActive && u.VaiTro == VaiTroNguoiDung.NGUOI_DAI_DIEN))
                     .Select(x => x.NguoiDaiDienId!.Value))
             .Distinct()
             .ToListAsync();
@@ -97,6 +99,7 @@ public class NotificationService : INotificationService
             ReferenceId = entity.ReferenceId
         };
 
-        await _hub.Clients.Group(groupName).ReceiveNotification(payload);
+        // Role/company groups can outlive role changes. Deliver only to the current recipient set.
+        await _hub.Clients.Groups(recipients.Select(id => $"user:{id}").ToArray()).ReceiveNotification(payload);
     }
 }

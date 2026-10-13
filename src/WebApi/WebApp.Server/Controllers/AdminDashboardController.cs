@@ -20,13 +20,14 @@ public sealed class AdminDashboardController(
     IdentityContext identityDb,
     IDistributedCache cache,
     IConnectionMultiplexer redis,
-    HealthCheckService healthChecks) : ControllerBase
+    HealthCheckService healthChecks, Application.Interfaces.IPermissionService permissions) : ControllerBase
 {
     private static readonly int[] AllowedPeriods = [7, 30, 90, 365];
 
     [HttpGet]
     public async Task<IActionResult> Get([FromQuery] int days = 30, CancellationToken cancellationToken = default)
     {
+        await permissions.RequireAsync("dashboard", "show", cancellationToken);
         if (!AllowedPeriods.Contains(days)) days = 30;
 
         var cacheKey = $"cache:admin-dashboard:v1:days:{days}";

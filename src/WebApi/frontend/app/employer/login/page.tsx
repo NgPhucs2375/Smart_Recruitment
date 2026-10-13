@@ -1,4 +1,5 @@
 "use client";
+import { ResendVerification } from "@/components/auth/resend-verification";
 
 import { Suspense, useState } from "react";
 import Link from "next/link";
@@ -33,7 +34,7 @@ function EmployerLoginContent() {
   const [showPassword, setShowPassword] = useState(false);
   const searchParams = useSearchParams();
   const next = sanitizeNext(searchParams.get("next"));
-  const { register, handleSubmit, errors, isPending, submitError } = usePasswordLogin("employer", next);
+  const { register, handleSubmit, errors, isPending, submitError, email } = usePasswordLogin("employer", next);
   const { handleGoogleLogin, isPending: isGooglePending, error: googleError } = useGoogleAuth("employer", next);
 
   return (
@@ -118,6 +119,7 @@ function EmployerLoginContent() {
             <AlertDescription className="text-xs text-red-700">{submitError}</AlertDescription>
           </Alert>
         )}
+        <ResendVerification email={email ?? ""} error={submitError} />
 
         <div className="space-y-1.5">
           <Label htmlFor="employer-email" className="text-xs font-medium uppercase tracking-wider text-muted-foreground">

@@ -184,7 +184,7 @@ app.MapHealthEndpoints();
 app.MapControllers();
 
 app.MapHub<WebApp.Server.Hubs.NotificationsHub>("/api/hubs/notifications").RequireCors("AllowFrontend");
-app.MapHub<WebApp.Server.Hubs.ChatHub>("/api/hubs/chat").RequireCors("AllowFrontend");
+app.MapHub<WebApp.Server.Hubs.ChatHub>("/api/hubs/chat", options => options.CloseOnAuthenticationExpiration = true).RequireCors("AllowFrontend");
 
 // Map role=reasoning trong AG-UI history về assistant trước khi MAF parse,
 // nếu không continuation run sau tool result sẽ 500 "Unknown chat role".

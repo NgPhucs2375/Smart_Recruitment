@@ -11,7 +11,7 @@ public class DeleteDanhGiaByIdCommand : IRequest<Response<int>>
 }
 
 public class DeleteDanhGiaByIdCommandHandler(
-    IApplicationDbContext context)
+    IApplicationDbContext context, ICurrentNguoiDungService current)
     : IRequestHandler<DeleteDanhGiaByIdCommand, Response<int>>
 {
     public async Task<Response<int>> Handle(
@@ -27,6 +27,7 @@ public class DeleteDanhGiaByIdCommandHandler(
                 "Không tìm thấy đánh giá.");
         }
 
+        await Application.Security.ResourceAccess.EnsureApplicationReviewerAsync(context, await current.ResolveAsync(), entity.DonUngTuyenId, cancellationToken);
         context.DanhGias.Remove(entity);
 
         await context.SaveChangesAsync(

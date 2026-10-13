@@ -21,7 +21,6 @@ export function AppSidebarV2() {
   const workspaceItems = getWorkspaceNavigation(identity?.roles);
   const visibleItems = workspaceItems.filter((item) =>
     !item.permission ||
-    isAdministrator ||
     (identity && hasPermission(identity.permissions, item.permission.resource, item.permission.action)),
   );
 

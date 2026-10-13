@@ -40,6 +40,7 @@ export function usePasswordLogin(portal?: PortalKind, next?: string | null) {
   }, [reset]);
 
   const remember = useWatch({ control, name: "remember" });
+  const email = useWatch({ control, name: "email" });
 
   async function onSubmit(data: LoginFormData) {
     if (data.remember) {
@@ -58,5 +59,6 @@ export function usePasswordLogin(portal?: PortalKind, next?: string | null) {
     isPending: auth.isPending,
     submitError: auth.error,
     remember,
+    email,
   };
 }

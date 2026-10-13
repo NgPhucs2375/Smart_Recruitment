@@ -104,13 +104,17 @@ namespace Application.Features.DonUngTuyen.Queries.GetAllDonUngTuyens
                 query.Select(d => new GetAllDonUngTuyensViewModel
                 {
                     Id = d.Id,
-                    HoSoUngVienId = d.CVUngVien.HoSoUngVienId,
+                    HoSoUngVienId = d.HoSoUngVienId ?? d.CVUngVien.HoSoUngVienId,
                     TinTuyenDungId = d.TinTuyenDungId,
                     CVUngVienId = d.CVUngVienId,
                     CVPhienBanId = d.CVPhienBanId,
                     TrangThai = d.TrangThai,
                     GhiChu = d.GhiChu,
                     NgayUngTuyen = d.NgayUngTuyen,
+                    LastModified = d.LastModified ?? d.Created,
+                    TenCvDaNop = d.CVUngVien.TenFile,
+                    KetLuan = d.DanhGias.OrderByDescending(x => x.Id).Select(x => x.KetLuan).FirstOrDefault() ?? "",
+                    PhanHoi = d.DanhGias.OrderByDescending(x => x.Id).Select(x => x.NoiDungPhanHoi).FirstOrDefault() ?? "",
                     TieuDe = d.TinTuyenDung.TieuDe,
                     TenDoanhNghiep = d.TinTuyenDung.DoanhNghiep.TenDoanhNghiep,
                     DiaDiemLamViec = d.TinTuyenDung.DiaDiemLamViec,

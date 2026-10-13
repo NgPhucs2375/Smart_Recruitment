@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Send, Undo2, MapPin, Wallet, ChevronLeft, ChevronRight } from "lucide-react";
 import { AdminPageLayout, AdminPageHeader, AdminCard, AdminCardHeader, AdminEmptyState, AdminLoadingState } from "@/components/admin/admin-page-layout";
@@ -58,7 +58,6 @@ const TRANG_THAI: Record<number, { label: string; variant: "default" | "secondar
 };
 
 const API = "/api/dotnet/donungtuyens";
-const DG_API = "/api/dotnet/danhgias";
 const WITHDRAWN_STATUS = 4;
 const STATUS_BY_NAME: Record<string, number> = {
   khoitao: 0,
@@ -85,7 +84,6 @@ function parseTrangThai(value: unknown): number {
 
 export default function DaUngTuyenPage() {
   const [items, setItems] = useState<DonUngTuyen[]>([]);
-  const withdrawnIdsRef = useRef<Set<number>>(new Set());
   const [ketLuans, setKetLuans] = useState<Record<number, string>>({});
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
@@ -129,10 +127,9 @@ export default function DaUngTuyenPage() {
           luongToiThieu: r.luongToiThieu ?? r.LuongToiThieu !== undefined ? Number(r.luongToiThieu ?? r.LuongToiThieu) : undefined,
           luongToiDa: r.luongToiDa ?? r.LuongToiDa !== undefined ? Number(r.luongToiDa ?? r.LuongToiDa) : undefined,
         };
-      }).filter((item) => item.trangThai !== WITHDRAWN_STATUS && !withdrawnIdsRef.current.has(item.id));
+      });
       const serverTotal = Number(res.TotalCount ?? res.totalCount ?? rawItems.length);
-      // The API total includes withdrawn applications, while this page hides them.
-      setTotalCount(Math.max(0, serverTotal - (rawItems.length - parsed.length)));
+      setTotalCount(serverTotal);
       setTotalPages(Number(res.TotalPages ?? res.totalPages ?? 1) || 1);
 
       // Enrich job info cho đơn thiếu (BE cũ / cache): gọi jobsApi theo tinId, gom nhóm để tránh N+1 trùng.
@@ -165,27 +162,10 @@ export default function DaUngTuyenPage() {
       }
       setItems(parsed);
 
-      // Kết quả đánh giá cuối vòng của NTD (nếu có) cho từng đơn.
-      const dgMap: Record<number, string> = {};
-      await Promise.all(
-        parsed.map(async (p) => {
-          if (!p.id) return;
-          try {
-            const gRes: ApiResponse<unknown> = await apiFetch(`${DG_API}?DonUngTuyenId=${p.id}&_start=0&_end=1`);
-            if (!ok(gRes)) return;
-            const gd = extractData(gRes);
-            const gArr = Array.isArray(gd) ? gd : [];
-            if (gArr.length > 0) {
-              const g = gArr[0] as Record<string, unknown>;
-              const kl = `${g.ketLuan ?? g.KetLuan ?? ""}`.trim();
-              if (kl) dgMap[p.id] = kl;
-            }
-          } catch {
-            // bỏ qua từng đơn lỗi
-          }
-        }),
-      );
-      setKetLuans(dgMap);
+      setKetLuans(Object.fromEntries(rawItems.map(value => {
+        const r = value as Record<string, unknown>;
+        return [Number(r.id ?? r.Id), String(r.ketLuan ?? r.KetLuan ?? r.phanHoi ?? r.PhanHoi ?? "")];
+      })));
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Lỗi tải dữ liệu");
     } finally {
@@ -215,10 +195,7 @@ export default function DaUngTuyenPage() {
         body: JSON.stringify({ id: item.id, trigger: 8, ghiChu: "Ứng viên rút đơn" }),
       });
       if (!ok(res)) throw new Error(msg(res) || "Không thể rút đơn");
-      withdrawnIdsRef.current.add(item.id);
-      // Remove immediately; withdrawn applications do not belong on this page.
-      setItems((current) => current.filter((entry) => entry.id !== item.id));
-      setTotalCount((count) => Math.max(0, count - 1));
+      setItems(current => current.map(entry => entry.id === item.id ? { ...entry, trangThai: WITHDRAWN_STATUS } : entry));
       await load();
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Không thể rút đơn");
@@ -227,7 +204,7 @@ export default function DaUngTuyenPage() {
     }
   }
 
-  const canRutDon = (s: number) => s === 0 || s === 2 || s === 3;
+  const canRutDon = (s: number) => s === 0 || s === 2 || s === 3 || s === 5;
 
   const statusOptions = useMemo(
     () => Object.entries(TRANG_THAI).map(([v, s]) => ({ value: v, label: s.label })),

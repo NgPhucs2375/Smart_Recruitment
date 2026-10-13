@@ -21,18 +21,40 @@ public class UserRoleService(UserManager<ApplicationUser> users, RoleManager<Ide
         var name = role.ToString();
         if (!await roles.RoleExistsAsync(name)) throw new ApiException("Vai trò chưa được cấu hình.");
         var current = await users.GetRolesAsync(user);
-        var obsolete = current.Where(x => Enum.TryParse<VaiTroNguoiDung>(x, out _) && x != name).ToArray();
-        if (obsolete.Length > 0) Ensure(await users.RemoveFromRolesAsync(user, obsolete));
-        if (!current.Contains(name)) Ensure(await users.AddToRoleAsync(user, name));
+        var obsolete = current.Where(x => x != name).ToArray();
         var profile = await app.NguoiDungs.AsTracking().SingleOrDefaultAsync(x => x.ApplicationUserId == applicationUserId, ct);
-        if (profile == null)
+        var existed = profile != null;
+        var previousRole = profile?.VaiTro;
+        var previousActive = profile?.IsActive;
+        try
         {
-            profile = new NguoiDung { ApplicationUserId = applicationUserId, IsActive = true };
-            app.NguoiDungs.Add(profile);
+            if (obsolete.Length > 0) Ensure(await users.RemoveFromRolesAsync(user, obsolete));
+            if (!current.Contains(name)) Ensure(await users.AddToRoleAsync(user, name));
+            if (profile == null)
+            {
+                profile = new NguoiDung { ApplicationUserId = applicationUserId, IsActive = true };
+                app.NguoiDungs.Add(profile);
+            }
+            profile.VaiTro = role;
+            if (active.HasValue) profile.IsActive = active.Value;
+            await app.SaveChangesAsync(ct);
         }
-        profile.VaiTro = role;
-        if (active.HasValue) profile.IsActive = active.Value;
-        await app.SaveChangesAsync(ct);
+        catch
+        {
+            // Separate Identity/domain contexts: compensate a failed domain save.
+            // BearerSessionValidator rejects inconsistent roles during the transition.
+            var assigned = await users.GetRolesAsync(user);
+            var added = assigned.Except(current).ToArray();
+            var removed = current.Except(assigned).ToArray();
+            if (added.Length > 0) Ensure(await users.RemoveFromRolesAsync(user, added));
+            if (removed.Length > 0) Ensure(await users.AddToRolesAsync(user, removed));
+            if (profile != null)
+            {
+                if (!existed) app.NguoiDungs.Remove(profile);
+                else { profile.VaiTro = previousRole!.Value; profile.IsActive = previousActive!.Value; }
+            }
+            throw;
+        }
     }
     private static void Ensure(IdentityResult result)
     { if (!result.Succeeded) throw new ApiException(string.Join("; ", result.Errors.Select(x => x.Description))); }

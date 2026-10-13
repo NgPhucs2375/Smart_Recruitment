@@ -18,6 +18,8 @@ public static class WebAppServiceExtensions
         services.AddScoped<INotificationPushService, NotificationPushService>();
         services.AddScoped<IAuthenticatedUserService, AuthenticatedUserService>();
         services.AddScoped<ICurrentNguoiDungService, CurrentNguoiDungService>();
+        services.AddScoped<ChatAccessService>();
+        services.AddSingleton<ChatConnectionRegistry>();
         return services;
     }
 }

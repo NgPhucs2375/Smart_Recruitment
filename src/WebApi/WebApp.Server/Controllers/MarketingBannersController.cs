@@ -49,12 +49,13 @@ public sealed class MarketingBannersController(
 
     [Authorize(Roles = "QUAN_TRI_VIEN")]
     [HttpPost]
+    [Consumes("multipart/form-data")]
     [RequestSizeLimit(MaxMediaBytes)]
     public async Task<IActionResult> Create(
         [FromForm] string? title,
         [FromForm] string? description,
         [FromForm] string? linkUrl,
-        [FromForm] IFormFile? media,
+        IFormFile? media,
         CancellationToken cancellationToken)
     {
         if (media == null || media.Length == 0)
@@ -69,7 +70,7 @@ public sealed class MarketingBannersController(
         await using var stream = media.OpenReadStream();
         await storage.UploadAsync(stream, objectName, media.ContentType, media.Length, cancellationToken);
 
-        var activeBanners = await db.MarketingBanners
+        var activeBanners = await db.MarketingBanners.AsTracking()
             .Where(item => item.IsActive)
             .ToListAsync(cancellationToken);
         foreach (var item in activeBanners) item.IsActive = false;
@@ -93,16 +94,16 @@ public sealed class MarketingBannersController(
     [HttpPut("{id:int}/active")]
     public async Task<IActionResult> SetActive(int id, CancellationToken cancellationToken)
     {
-        var banner = await db.MarketingBanners.FirstOrDefaultAsync(item => item.Id == id, cancellationToken);
+        var banner = await db.MarketingBanners.AsTracking().FirstOrDefaultAsync(item => item.Id == id, cancellationToken);
         if (banner == null) return NotFound();
 
-        var activeBanners = await db.MarketingBanners
+        var activeBanners = await db.MarketingBanners.AsTracking()
             .Where(item => item.IsActive)
             .ToListAsync(cancellationToken);
         foreach (var item in activeBanners) item.IsActive = false;
         banner.IsActive = true;
         await db.SaveChangesAsync(cancellationToken);
-        return Ok(new Response<string>("Đã chọn banner hiển thị."));
+        return Ok(new Response<string>(string.Empty, "Đã chọn banner hiển thị."));
     }
 
     [Authorize(Roles = "QUAN_TRI_VIEN")]
@@ -115,7 +116,7 @@ public sealed class MarketingBannersController(
         db.MarketingBanners.Remove(banner);
         await db.SaveChangesAsync(cancellationToken);
         await storage.DeleteAsync(banner.MediaObjectName, cancellationToken);
-        return Ok(new Response<string>("Đã xóa banner."));
+        return Ok(new Response<string>(string.Empty, "Đã xóa banner."));
     }
 
     private async Task<MarketingBannerView> ToViewAsync(
