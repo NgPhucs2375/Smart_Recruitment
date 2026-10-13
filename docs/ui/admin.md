@@ -59,16 +59,70 @@
 
 ![Báo cáo và thống kê](images/reports.png)
 
-## Phụ lục: các màn hình còn lại (tuyến quản trị)
+## 8. Quản trị danh mục (`/admin/danh-muc`)
 
-| Route | Mục đích |
-|---|---|
-| `/admin/danh-muc` | CRUD ngành nghề, kỹ năng theo tab |
-| `/admin/cv` | Chuyển hướng sang `/admin/cv/themes` |
-| `/admin/cv/ung-vien` | Tra cứu CV ứng viên theo ID |
-| `/admin/cv-themes` | Chuyển hướng tương thích cũ |
-| `/admin/banner` | CRUD banner marketing, upload media, bật/tắt |
-| `/admin/quy-tac-kiem-duyet` | CRUD quy tắc từ khóa kiểm duyệt tin |
-| `/permission-matrix` | Ma trận phân quyền vai trò–tài nguyên |
-| `/user-roles` | Liệt kê người dùng, vai trò, tìm kiếm |
-| `/invoices` | Khung hóa đơn mẫu, chưa có dữ liệu |
+- **Mục đích:** Quản lý danh mục dùng chung toàn hệ thống (Ngành nghề, Kỹ năng).
+- **Bố cục:** Tiêu đề (icon Tags); thẻ chứa tabs Ngành nghề/Kỹ năng, mỗi tab: form tìm kiếm + thẻ form (Tên/Mô tả) + bảng (Id/Tên/Mô tả/Thao tác) + skeleton khi tải.
+- **Thao tác chính:** Tìm, Tải lại, Thêm, Lưu/Hủy, Sửa/Xóa từng dòng; không điều hướng.
+
+![Quản trị danh mục](images/admin-danh-muc.png)
+
+## 9. Quản trị CV (`/admin/cv`)
+
+- **Mục đích:** Route trung gian tự chuyển hướng sang `/admin/cv/themes`.
+- **Bố cục:** Không có giao diện (redirect).
+- **Thao tác chính:** Không có (tự chuyển trang).
+
+## 10. Tra cứu CV ứng viên (`/admin/cv/ung-vien`)
+
+- **Mục đích:** Tra cứu thông tin một CV theo ID (chưa có endpoint liệt kê toàn hệ thống cho admin).
+- **Bố cục:** Thẻ "Tra cứu CV ứng viên" (mô tả giới hạn, ô nhập ID CV); lưới chi tiết (ID/Tên file/Mẫu/Ứng viên/Vị trí/Ngày tải); skeleton khi tải.
+- **Thao tác chính:** Nhập ID + "Tra cứu" (Enter cũng chạy); không xóa, không điều hướng.
+
+![Tra cứu CV ứng viên](images/admin-cv-ung-vien.png)
+
+## 11. Chủ đề CV cũ (`/admin/cv-themes`)
+
+- **Mục đích:** Route tương thích cũ, tự chuyển hướng sang `/admin/cv/themes`.
+- **Bố cục:** Không có giao diện (redirect).
+- **Thao tác chính:** Không có (tự chuyển trang).
+
+## 12. Banner marketing (`/admin/banner`)
+
+- **Mục đích:** Tạo và quản lý banner ảnh/video hiển thị cho ứng viên.
+- **Bố cục:** Tiêu đề; thẻ "Tạo banner mới" (Tiêu đề/Liên kết, Mô tả, chọn file media); thẻ "Banner đã tải" (ảnh/video + nhãn "Đang hiển thị").
+- **Thao tác chính:** "Tải và bật banner" (POST FormData); "Bật" (PUT) và "Xóa" (DELETE) từng banner.
+
+![Banner marketing](images/admin-banner.png)
+
+## 13. Rule kiểm duyệt tự động (`/admin/quy-tac-kiem-duyet`)
+
+- **Mục đích:** Quản lý từ khóa cấm và tín hiệu rủi ro để chấm điểm tin tuyển dụng.
+- **Bố cục:** Tiêu đề; thẻ form (Từ khóa, Loại rule 1/2, Điểm trừ, Mô tả, checkbox Kích hoạt, nút đóng); thẻ danh sách (ô tìm kiếm, từng dòng: từ khóa + nhãn loại/trạng thái).
+- **Thao tác chính:** "Thêm rule", "Lưu rule"/"Hủy", "Sửa"/"Xóa" (hộp xác nhận).
+
+![Rule kiểm duyệt tự động](images/admin-quy-tac-kiem-duyet.png)
+
+## 14. Phân quyền (`/permission-matrix`)
+
+- **Mục đích:** Xem/sửa ma trận quyền Role × Resource (đồng bộ DB và cache `policy.csv`).
+- **Bố cục:** Tiêu đề + nhãn "quyền đã thay đổi"; banner chú thích; lưới toolbar (ô tìm resource, chọn/bỏ tất cả theo vai trò) + thân cuộn các checkbox list/show/create/edit/delete; nút "Hủy" (reset) và "Lưu ma trận".
+- **Thao tác chính:** Tìm resource, bật/tắt từng ô, "Hủy", "Lưu ma trận" (PUT); mất phiên thì về login.
+
+![Phân quyền](images/permission-matrix.png)
+
+## 15. Quản lý người dùng (`/user-roles`)
+
+- **Mục đích:** Xem danh sách tài khoản và số liệu tổng quan theo vai trò/trạng thái.
+- **Bố cục:** Tiêu đề; 3 thẻ thống kê (Tổng người dùng/Đang hoạt động/Quản trị viên); thẻ danh sách (ô tìm kiếm, từng dòng: #id + nhãn vai trò + nhãn Hoạt động/Vô hiệu).
+- **Thao tác chính:** Lọc qua ô tìm kiếm; không thêm/sửa/xóa, không điều hướng.
+
+![Quản lý người dùng](images/user-roles.png)
+
+## 16. Hóa đơn (`/invoices`)
+
+- **Mục đích:** Quản lý hóa đơn và thanh toán (placeholder số liệu mẫu).
+- **Bố cục:** Tiêu đề; 3 thẻ thống kê mẫu (Tổng/Đã thanh toán/Chờ thanh toán, giá trị "—"); thẻ danh sách chứa trạng thái trống "Chức năng đang được phát triển".
+- **Thao tác chính:** Không có (trang tĩnh).
+
+![Hóa đơn](images/invoices.png)

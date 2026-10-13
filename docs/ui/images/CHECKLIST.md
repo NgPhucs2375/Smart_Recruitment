@@ -31,5 +31,48 @@ Chụp đúng tên file để khớp placeholder trong 4 file doc. Độ phân g
 | 24 | `reports.png` | `/reports` | `superadmin@gmail.com` |
 | 25 | `tin-nhan.png` | `/tin-nhan` | `employer@gmail.com` |
 | 26 | `settings.png` | `/settings` | `basicuser@gmail.com` |
+| 27 | `viec-lam-da-ung-tuyen.png` | `/viec-lam/da-ung-tuyen` | `basicuser@gmail.com` |
+| 28 | `viec-lam-da-luu.png` | `/viec-lam/da-luu` | `basicuser@gmail.com` |
+| 29 | `viec-lam-theo-vi-tri.png` | `/viec-lam/theo-vi-tri` (placeholder) | `basicuser@gmail.com` |
+| 30 | `doanh-nghiep.png` | `/doanh-nghiep` | `basicuser@gmail.com` |
+| 31 | `doanh-nghiep-id.png` | `/doanh-nghiep/[id]` | `basicuser@gmail.com` |
+| 32 | `doanh-nghiep-top.png` | `/doanh-nghiep/top` (placeholder) | `basicuser@gmail.com` |
+| 33 | `doanh-nghiep-dang-theo-doi.png` | `/doanh-nghiep/dang-theo-doi` | `basicuser@gmail.com` |
+| 34 | `cv-import.png` | `/CV/import` (hộp nhập CV) | `basicuser@gmail.com` |
+| 35 | `cv-phan-tich.png` | `/cv-phan-tich/[cvId]` | `basicuser@gmail.com` |
+| 36 | `ky-nang.png` | `/ky-nang` | `superadmin@gmail.com` |
+| 37 | `ky-nang-ung-vien.png` | `/ky-nang-ung-vien` | `basicuser@gmail.com` |
+| 38 | `kinh-nghiem.png` | `/kinh-nghiem` | `basicuser@gmail.com` |
+| 39 | `employer-register.png` | `/employer/register` (bước 1) | — |
+| 40 | `ho-so-nha-tuyen-dung.png` | `/ho-so-nha-tuyen-dung` | `employer@gmail.com` |
+| 41 | `duyet-tin-nhan-su.png` | `/duyet-tin-nhan-su` | `employer@gmail.com` |
+| 42 | `ky-nang-tin-tuyen-dung.png` | `/ky-nang-tin-tuyen-dung` | `employer@gmail.com` |
+| 43 | `admin-danh-muc.png` | `/admin/danh-muc` | `superadmin@gmail.com` |
+| 44 | `admin-cv-ung-vien.png` | `/admin/cv/ung-vien` (nhập 1 ID mẫu) | `superadmin@gmail.com` |
+| 45 | `admin-banner.png` | `/admin/banner` | `superadmin@gmail.com` |
+| 46 | `admin-quy-tac-kiem-duyet.png` | `/admin/quy-tac-kiem-duyet` | `superadmin@gmail.com` |
+| 47 | `permission-matrix.png` | `/permission-matrix` | `superadmin@gmail.com` |
+| 48 | `user-roles.png` | `/user-roles` | `superadmin@gmail.com` |
+| 49 | `invoices.png` | `/invoices` (placeholder) | `superadmin@gmail.com` |
+| 50 | `forgot-password.png` | `/forgot-password` | — |
+| 51 | `reset-password.png` | `/reset-password` | — |
+| 52 | `confirm-email.png` | `/confirm-email` | — |
+| 53 | `magic-login.png` | `/magic-login` | — |
+| 54 | `accept-invite.png` | `/accept-invite` | — |
+| 55 | `nha-tuyen-dung.png` | `/nha-tuyen-dung` (full landing) | — |
+| 56 | `ho-tro.png` | `/ho-tro` (placeholder) | — |
+| 57 | `lien-he.png` | `/lien-he` | — |
+| 58 | `cau-hoi-thuong-gap.png` | `/cau-hoi-thuong-gap` (placeholder) | — |
+| 59 | `huong-dan.png` | `/huong-dan` (placeholder) | — |
+| 60 | `huong-dan-nha-tuyen-dung.png` | `/huong-dan-nha-tuyen-dung` (placeholder) | — |
+| 61 | `quy-che.png` | `/quy-che` | — |
+| 62 | `dieu-khoan.png` | `/dieu-khoan` | — |
+| 63 | `bao-mat.png` | `/bao-mat` | — |
+| 64 | `regulatory-requests.png` | `/regulatory-requests` (placeholder) | `superadmin@gmail.com` |
+| 65 | `unauthorized.png` | `/unauthorized` | `basicuser@gmail.com` |
+| 66 | `example.png` | `/example` (placeholder) | — |
+
+Không cần chụp: `/admin/cv` và `/admin/cv-themes` (redirect, không có giao diện).
+
 
 Xong thì xóa file checklist này (hoặc giữ làm bằng chứng traceability).

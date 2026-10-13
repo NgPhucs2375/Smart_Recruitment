@@ -51,11 +51,34 @@
 
 ![Quản lý nhân sự](images/nhan-su.png)
 
-## Phụ lục: các màn hình còn lại (tuyến nhà tuyển dụng)
+## 7. Đăng ký nhà tuyển dụng (`/employer/register`)
 
-| Route | Mục đích |
-|---|---|
-| `/employer/register` | Đăng ký tài khoản doanh nghiệp nhiều bước |
-| `/ho-so-nha-tuyen-dung` | Quản lý hồ sơ cá nhân nhà tuyển dụng |
-| `/duyet-tin-nhan-su` | Người đại diện duyệt tin nhân sự đăng |
-| `/ky-nang-tin-tuyen-dung` | Gán mức yêu cầu kỹ năng cho tin |
+- **Mục đích:** Tạo tài khoản doanh nghiệp qua 3 bước, rồi chuyển sang đăng nhập cổng employer.
+- **Bố cục:** 2 cột (panel trái: headline + 3 bước Liên hệ/Công ty/Tuyển dụng); phải: badge, thanh bước, form theo bước (B1: họ tên/SĐT/email/mật khẩu/xác nhận; B2: tên/địa chỉ công ty, chức vụ, lĩnh vực, quy mô, website, mã số thuế; B3: nhu cầu onboarding), cảnh báo lỗi.
+- **Thao tác chính:** "Tiếp tục" (validate từng bước) / "Quay lại" / "Hoàn tất đăng ký" (vai Người đại diện) → `/employer/login`; links "Đăng nhập" và "Đăng ký ứng viên".
+
+![Đăng ký nhà tuyển dụng](images/employer-register.png)
+
+## 8. Hồ sơ nhà tuyển dụng (`/ho-so-nha-tuyen-dung`)
+
+- **Mục đích:** Xem, tạo mới và cập nhật hồ sơ cá nhân của nhà tuyển dụng trong doanh nghiệp.
+- **Bố cục:** Tiêu đề + nút "Chỉnh sửa"; banner thành công/lỗi; trạng thái tải; form tạo hồ sơ (Họ tên/Chức vụ/SĐT + tên doanh nghiệp); form sửa (doanh nghiệp chỉ đọc); thẻ xem (avatar 2 ký tự, họ tên, chức vụ, SĐT, tên công ty); empty-state khi chưa có doanh nghiệp.
+- **Thao tác chính:** "Chỉnh sửa" bật form, "Lưu thay đổi"/"Hủy", "Tạo hồ sơ"; link "Đến hồ sơ doanh nghiệp" → `/doanh-nghiep/ho-so`.
+
+![Hồ sơ nhà tuyển dụng](images/ho-so-nha-tuyen-dung.png)
+
+## 9. Duyệt tin của nhân sự (`/duyet-tin-nhan-su`)
+
+- **Mục đích:** Người đại diện duyệt/từ chối tin do Nhân sự đăng đã qua kiểm duyệt hệ thống.
+- **Bố cục:** Tiêu đề (icon ClipboardCheck) + nút "Tải lại"; thẻ "Hàng chờ phê duyệt" + đếm; danh sách từng tin (tiêu đề + nhãn "Đã qua hệ thống", mô tả 2 dòng, nhân sự, địa điểm, lương); trạng thái tải/trống.
+- **Thao tác chính:** "Duyệt và đăng" / "Từ chối" (hộp xác nhận + toast).
+
+![Duyệt tin của nhân sự](images/duyet-tin-nhan-su.png)
+
+## 10. Kỹ năng tin tuyển dụng (`/ky-nang-tin-tuyen-dung`)
+
+- **Mục đích:** Gán và quản lý mức độ yêu cầu từng kỹ năng cho một tin đã chọn.
+- **Bố cục:** Tiêu đề; thẻ chứa dropdown chọn tin; form thêm/sửa (dropdown kỹ năng + dropdown mức độ); thẻ danh sách (ô tìm + nút Thêm; từng dòng: tên + nhãn Không bắt buộc/Ưu tiên/Bắt buộc + Sửa/Xóa); nút Hủy/đóng reset form.
+- **Thao tác chính:** "Thêm" (POST), "Sửa"/"Lưu thay đổi" (PUT), xóa (hộp xác nhận, DELETE).
+
+![Kỹ năng tin tuyển dụng](images/ky-nang-tin-tuyen-dung.png)
