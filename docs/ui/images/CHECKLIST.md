@@ -28,7 +28,7 @@ Chụp đúng tên file để khớp placeholder trong 4 file doc. Độ phân g
 | 21 | `admin-tin-tuyen-dung.png` | `/admin/tin-tuyen-dung` | `superadmin@gmail.com` |
 | 22 | `admin-cv-themes.png` | `/admin/cv/themes` (tab thư viện) | `superadmin@gmail.com` |
 | 23 | `tao-theme-cv.png` | `/tao-theme-cv` (dock + preview) | `superadmin@gmail.com` |
-| 24 | `reports.png` | `/reports` | `superadmin@gmail.com` |
+| 24 | `reports.png` | `/reports` (chụp lại sau nâng cấp donut/export) | `superadmin@gmail.com` |
 | 25 | `tin-nhan.png` | `/tin-nhan` | `employer@gmail.com` |
 | 26 | `settings.png` | `/settings` | `basicuser@gmail.com` |
 | 27 | `viec-lam-da-ung-tuyen.png` | `/viec-lam/da-ung-tuyen` | `basicuser@gmail.com` |

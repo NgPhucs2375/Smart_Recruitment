@@ -53,9 +53,9 @@
 
 ## 7. Báo cáo và thống kê (`/reports`)
 
-- **Mục đích:** Khung báo cáo hiệu suất tuyển dụng (hiện là placeholder chờ API).
-- **Bố cục:** Tiêu đề + mô tả; 3 thẻ số liệu (Tin/Ứng viên/Lượt ứng tuyển — đều "—"); 2 thẻ (Xu hướng tuyển dụng, Phân tích hiệu suất) chứa trạng thái trống "Dữ liệu chưa khả dụng".
-- **Thao tác chính:** Không có (trang tĩnh chờ API).
+- **Mục đích:** Dashboard số liệu thật (KPI, trạng thái hồ sơ, tỷ lệ phù hợp), giới hạn theo doanh nghiệp và quyền tài khoản.
+- **Bố cục:** Tiêu đề + nút "Tải lại"/"Xuất CSV"; 3 thẻ KPI (Tin trong phạm vi/Đơn trong phạm vi/Phù hợp, icon tròn + số lớn + dòng ngữ cảnh); thẻ "Trạng thái hồ sơ" (5 dòng: nhãn màu + số + thanh tiến trình); thẻ "Tỷ lệ đánh giá phù hợp" (donut SVG + số liệu + ghi chú khi chưa có đánh giá); trạng thái tải/lỗi/không quyền.
+- **Thao tác chính:** "Tải lại" (spin khi tải, tự reload khi có notification); "Xuất CSV" (tải aggregates đang hiển thị + toast).
 
 ![Báo cáo và thống kê](images/reports.png)
 
