@@ -22,6 +22,7 @@ import { ResendVerification } from "@/components/auth/resend-verification";
 function LoginContent() {
   const [tab, setTab] = useState<"password" | "magic">("password");
   const [showPassword, setShowPassword] = useState(false);
+  const [githubError, setGithubError] = useState<string | null>(null);
   const searchParams = useSearchParams();
   const next = sanitizeNext(searchParams.get("next"));
   const portal: PortalKind | undefined = next?.startsWith("/accept-invite")
@@ -215,9 +216,13 @@ function LoginContent() {
 
           <SocialAuthSection
             mode="login"
+            portal={portal}
+            next={next}
             onGoogleLogin={handleGoogleLogin}
             onGoogleError={setGoogleError}
             googleError={googleError}
+            onGithubError={setGithubError}
+            githubError={githubError}
             disabled={isPending || isGooglePending}
           />
         </form>

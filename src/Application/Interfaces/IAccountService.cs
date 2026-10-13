@@ -25,5 +25,6 @@ namespace Application.Interfaces
         Task<Response<AuthenticationResponse>> ExternalLoginAsync(ExternalAuthRequest request, string ipAddress);
         Task<Response<string>> RequestMagicLinkAsync(YeuCauMagicLink request, string origin);
         Task<Response<AuthenticationResponse>> MagicLoginAsync(DoiMagicLink request, string ipAddress);
+        Task<Response<AuthenticationResponse>> GitHubLoginAsync(GitHubLoginRequest request, string ipAddress);
     }
 }

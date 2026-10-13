@@ -32,6 +32,7 @@ export default function EmployerLoginPage() {
 
 function EmployerLoginContent() {
   const [showPassword, setShowPassword] = useState(false);
+  const [githubError, setGithubError] = useState<string | null>(null);
   const searchParams = useSearchParams();
   const next = sanitizeNext(searchParams.get("next"));
   const { register, handleSubmit, errors, isPending, submitError, email } = usePasswordLogin("employer", next);
@@ -194,7 +195,14 @@ function EmployerLoginContent() {
           text="Đăng nhập nhanh bằng Google"
         />
         {googleError && <p className="text-xs text-red-500">{googleError}</p>}
-        <GithubLoginButton text="Đăng nhập bằng GitHub" />
+        <GithubLoginButton
+          text="Đăng nhập bằng GitHub"
+          portal="employer"
+          next={next}
+          disabled={isPending || isGooglePending}
+          onError={setGithubError}
+        />
+        {githubError && <p className="text-xs text-red-500">{githubError}</p>}
       </form>
 
       <div className="mt-6 border-t border-border/60 pt-4 text-center">

@@ -2,6 +2,7 @@ import type { AuthProvider } from "@refinedev/core";
 import { saveIdentity, loadIdentity, clearIdentity, buildIdentity } from "./access-control-provider";
 import { homePortalFor, type PortalKind } from "./portal-roles";
 import { resolvePostLoginTarget } from "@/components/auth/login-handler";
+import { GITHUB_CALLBACK_PATH } from "@/components/auth/github-login-button";
 
 const LOGIN_PORTAL_KEY = "hireai.login.portal";
 
@@ -335,22 +336,47 @@ export const authProvider: AuthProvider = {
       // Remember-me: tick → localStorage (persistent), no tick → sessionStorage.
       // External (Google) and magic logins have no checkbox — default to persistent.
       const remember = payload.remember !== false;
-      // Nhận diện luồng đăng nhập (Google hay Local) — hỗ trợ cả payload từ useGoogleAuth
-      const isExternal = payload.providerName === "google" || payload.provider === "Google" || !!payload.credential || !!payload.idToken;
-      
-      const endpoint = isExternal ? `${API_URL}/external-login` : `${API_URL}/authenticate`;
-      
+      // Nhận diện luồng đăng nhập: GitHub (authorization code), Google (ID token) hay Local.
+      const isGitHub = payload.providerName === "github" || payload.provider === "GitHub";
+      const isGoogle = !isGitHub && (
+        payload.providerName === "google" ||
+        payload.provider === "Google" ||
+        !!payload.credential ||
+        !!payload.idToken
+      );
+
+      const endpoint = isGitHub
+        ? `${API_URL}/github-login`
+        : isGoogle
+          ? `${API_URL}/external-login`
+          : `${API_URL}/authenticate`;
+      const failureMessage = isGitHub
+        ? "Đăng nhập GitHub thất bại"
+        : isGoogle
+          ? "Đăng nhập Google thất bại"
+          : "Email hoặc mật khẩu không đúng";
+
       const rawToken: string | undefined = payload.idToken || payload.credential || payload.IdToken;
-      if (isExternal && (!rawToken || typeof rawToken !== "string" || rawToken.split(".").length !== 3)) {
+      // Chỉ Google cần JWT 3 phần; GitHub `code` không phải JWT — backend tự đổi code → token.
+      if (isGoogle && (!rawToken || typeof rawToken !== "string" || rawToken.split(".").length !== 3)) {
         console.warn("[auth] Google credential không hợp lệ, length=", rawToken?.length, "snippet=", rawToken?.slice(0,40));
         return { success: false, error: { name: "Đăng nhập thất bại", message: "Token Google không hợp lệ (không phải JWT). Vui lòng thử lại." } };
       }
 
-      const requestBody = isExternal 
-        ? { Provider: "Google", IdToken: rawToken }
-        : { Email: payload.email, Password: payload.password };
+      const requestBody = isGitHub
+        ? {
+            Code: payload.code,
+            // redirect_uri phải khớp exact với lúc authorize trên GitHub.
+            RedirectUri: typeof window !== "undefined"
+              ? `${window.location.origin}${GITHUB_CALLBACK_PATH}`
+              : undefined,
+          }
+        : isGoogle
+          ? { Provider: "Google", IdToken: rawToken }
+          : { Email: payload.email, Password: payload.password };
 
-      if (isExternal) console.log("[auth] external-login sending IdToken length", rawToken?.length);
+      if (isGoogle) console.log("[auth] external-login sending IdToken length", rawToken?.length);
+      if (isGitHub) console.log("[auth] github-login sending code length", String(payload.code ?? "").length);
 
       const res = await fetch(endpoint, {
         method: "POST",
@@ -360,7 +386,7 @@ export const authProvider: AuthProvider = {
       });
 
       if (!res.ok) {
-        let message = isExternal ? "Đăng nhập Google thất bại" : "Email hoặc mật khẩu không đúng";
+        let message = failureMessage;
         try {
           const body = await res.json();
           // Backend trả Response{Message, Errors} hoặc ProblemDetails
