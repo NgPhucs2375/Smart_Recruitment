@@ -1,0 +1,84 @@
+# HireAI CI/CD — GCP VM (Docker Compose + Nginx).
+# CI chạy mọi push/PR. CD (SSH deploy) chỉ khi push vào nhánh main.
+
+name: CI/CD — GCP VM
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ---------- Stage 1a: Frontend typecheck + lint (Node 22) ----------
+  frontend-ci:
+    name: Frontend CI (tsc + eslint)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: src/WebApi/frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: src/WebApi/frontend/package-lock.json
+
+      - run: npm ci
+      - run: npx tsc --noEmit
+      - run: npx eslint . --max-warnings=0
+
+  # ---------- Stage 1b: Backend build (.NET 10) ----------
+  backend-ci:
+    name: Backend CI (dotnet build)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - run: dotnet build RecruitmentSmart.sln -c Release --nologo -v minimal
+        working-directory: .
+
+  # ---------- Stage 2: SSH deploy to GCP VM (chỉ nhánh main) ----------
+  deploy-prod:
+    name: Deploy to GCP VM
+    needs: [frontend-ci, backend-ci]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: appleboy/ssh-action@v1.2.2
+        with:
+          host: ${{ secrets.GCP_VM_HOST }}
+          username: ${{ secrets.GCP_VM_USER }}
+          key: ${{ secrets.GCP_SSH_PRIVATE_KEY }}
+          script_stop: true
+          script: |
+            set -e
+            APP_DIR=/home/${{ secrets.GCP_VM_USER }}/hireai
+            if [ ! -d "$APP_DIR/.git" ]; then
+              # Dùng GITHUB_TOKEN nên clone được cả repo private.
+              git clone "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" "$APP_DIR"
+            fi
+            cd "$APP_DIR"
+            git fetch origin main
+            git reset --hard origin/main
+            if [ ! -f .env.prod ]; then
+              echo "THIEU .env.prod tren VM (xem deploy/README.md muc 3). Abort."
+              exit 1
+            fi
+            docker compose --env-file .env.prod -f docker-compose.prod.yml pull || true
+            docker compose --env-file .env.prod -f docker-compose.prod.yml up -d --build --remove-orphans
+            sleep 15
+            docker compose --env-file .env.prod -f docker-compose.prod.yml ps
+            curl -fsS http://localhost/health/live || curl -fsS http://localhost:3000/ -o /dev/null
+            docker system prune -f
+            echo "DEPLOY OK: $(git rev-parse --short HEAD)"
