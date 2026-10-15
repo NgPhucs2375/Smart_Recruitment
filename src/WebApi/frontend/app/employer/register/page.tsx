@@ -23,7 +23,7 @@ import {
   Mail, Lock, User, Phone, Building2, MapPin, Briefcase,
   ArrowRight, ArrowLeft, Loader2, Check, Eye, EyeOff,
 } from "lucide-react";
-import { registerSchema } from "@/lib/schemas";
+import { registerSchema, optionalUrlField, taxCodeField } from "@/lib/schemas";
 import {
   IT_SPECIALTIES,
   COMPANY_SIZES,
@@ -42,8 +42,8 @@ import { cn } from "@/lib/utils";
 const employerRegisterSchema = registerSchema.extend({
   linhVucHoatDong: z.string().optional(),
   quyMoNhanSu: z.string().optional(),
-  website: z.string().optional(),
-  maSoThue: z.string().optional(),
+  website: optionalUrlField(),
+  maSoThue: taxCodeField(),
 });
 
 type EmployerFormData = z.infer<typeof employerRegisterSchema>;
@@ -51,7 +51,7 @@ type EmployerFormData = z.infer<typeof employerRegisterSchema>;
 const STEPS = ["Liên hệ", "Công ty", "Tuyển dụng"] as const;
 
 const STEP1_FIELDS = ["hoTen", "soDienThoai", "email", "password", "confirmPassword"] as const;
-const STEP2_FIELDS = ["tenDoanhNghiep", "diaChiDoanhNghiep", "chucVu"] as const;
+const STEP2_FIELDS = ["tenDoanhNghiep", "diaChiDoanhNghiep", "chucVu", "website", "maSoThue"] as const;
 
 export default function EmployerRegisterPage() {
   const router = useRouter();
@@ -360,11 +360,13 @@ export default function EmployerRegisterPage() {
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-1">
                 <Label htmlFor="emp-website" className="text-xs font-medium text-gray-700">Website (không bắt buộc)</Label>
-                <Input id="emp-website" {...register("website")} disabled={isPending} placeholder="https://company.com" className="h-10 rounded-xl border-input bg-white text-sm" />
+                <Input id="emp-website" {...register("website")} aria-invalid={!!errors.website} aria-describedby="emp-website-error" disabled={isPending} placeholder="https://company.com" className="h-10 rounded-xl border-input bg-white text-sm" />
+                {errors.website && <p id="emp-website-error" role="alert" className="text-xs text-red-500">{errors.website.message}</p>}
               </div>
               <div className="space-y-1">
                 <Label htmlFor="emp-ma-so-thue" className="text-xs font-medium text-gray-700">Mã số thuế (không bắt buộc)</Label>
-                <Input id="emp-ma-so-thue" {...register("maSoThue")} disabled={isPending} placeholder="0312345678" className="h-10 rounded-xl border-input bg-white text-sm" />
+                <Input id="emp-ma-so-thue" {...register("maSoThue")} aria-invalid={!!errors.maSoThue} aria-describedby="emp-ma-so-thue-error" disabled={isPending} placeholder="0312345678" className="h-10 rounded-xl border-input bg-white text-sm" />
+                {errors.maSoThue && <p id="emp-ma-so-thue-error" role="alert" className="text-xs text-red-500">{errors.maSoThue.message}</p>}
               </div>
             </div>
           </>

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AdminPageLayout, AdminPageHeader, AdminCard, AdminCardHeader, AdminLoadingState } from "@/components/admin/admin-page-layout";
+import { MSG_URL, isValidHttpUrl } from "@/features/tao-cv/validation";
 
 type DoanhNghiep = {
   id: number;
@@ -106,6 +107,18 @@ export default function HoSoDoanhNghiepPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!canEdit) return;
+    if (form.website.trim() && !isValidHttpUrl(form.website)) {
+      setErr(`Website: ${MSG_URL}`);
+      return;
+    }
+    if (form.logoUrl.trim() && !isValidHttpUrl(form.logoUrl)) {
+      setErr(`Logo URL: ${MSG_URL}`);
+      return;
+    }
+    if (form.maSoThue.trim() && !/^\d{10}(\d{3})?$/.test(form.maSoThue.trim())) {
+      setErr("Mã số thuế gồm 10 hoặc 13 chữ số.");
+      return;
+    }
     try {
       setSaving(true); setErr(""); setSuccessMsg("");
       if (company) {
@@ -139,36 +152,36 @@ export default function HoSoDoanhNghiepPage() {
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <Label>Tên doanh nghiệp *</Label>
-               <Input disabled={!canEdit} value={form.tenDoanhNghiep} onChange={e => setForm(f => ({ ...f, tenDoanhNghiep: e.target.value }))} required />
+               <Input disabled={!canEdit} maxLength={255} value={form.tenDoanhNghiep} onChange={e => setForm(f => ({ ...f, tenDoanhNghiep: e.target.value }))} required />
             </div>
             <div className="space-y-2">
               <Label>Website</Label>
-               <Input disabled={!canEdit} value={form.website} onChange={e => setForm(f => ({ ...f, website: e.target.value }))} placeholder="https://..." />
+               <Input disabled={!canEdit} type="url" maxLength={255} value={form.website} onChange={e => setForm(f => ({ ...f, website: e.target.value }))} placeholder="https://..." />
             </div>
             <div className="space-y-2">
               <Label>Mã số thuế</Label>
-               <Input disabled={!canEdit} value={form.maSoThue} onChange={e => setForm(f => ({ ...f, maSoThue: e.target.value }))} />
+               <Input disabled={!canEdit} maxLength={20} value={form.maSoThue} onChange={e => setForm(f => ({ ...f, maSoThue: e.target.value }))} />
             </div>
             <div className="space-y-2">
               <Label>Lĩnh vực hoạt động</Label>
-               <Input disabled={!canEdit} value={form.linhVucHoatDong} onChange={e => setForm(f => ({ ...f, linhVucHoatDong: e.target.value }))} placeholder="VD: Công nghệ thông tin" />
+               <Input disabled={!canEdit} maxLength={120} value={form.linhVucHoatDong} onChange={e => setForm(f => ({ ...f, linhVucHoatDong: e.target.value }))} placeholder="VD: Công nghệ thông tin" />
             </div>
             <div className="space-y-2">
               <Label>Quy mô nhân sự</Label>
-               <Input disabled={!canEdit} value={form.quyMoNhanSu} onChange={e => setForm(f => ({ ...f, quyMoNhanSu: e.target.value }))} placeholder="VD: 50-100 nhân viên" />
+               <Input disabled={!canEdit} maxLength={60} value={form.quyMoNhanSu} onChange={e => setForm(f => ({ ...f, quyMoNhanSu: e.target.value }))} placeholder="VD: 50-100 nhân viên" />
             </div>
             <div className="space-y-2">
               <Label>Logo URL</Label>
-               <Input disabled={!canEdit} value={form.logoUrl} onChange={e => setForm(f => ({ ...f, logoUrl: e.target.value }))} placeholder="https://..." />
+               <Input disabled={!canEdit} type="url" maxLength={255} value={form.logoUrl} onChange={e => setForm(f => ({ ...f, logoUrl: e.target.value }))} placeholder="https://..." />
             </div>
           </div>
           <div className="space-y-2">
             <Label>Địa chỉ</Label>
-             <Input disabled={!canEdit} value={form.diaChi} onChange={e => setForm(f => ({ ...f, diaChi: e.target.value }))} />
+             <Input disabled={!canEdit} maxLength={220} value={form.diaChi} onChange={e => setForm(f => ({ ...f, diaChi: e.target.value }))} />
           </div>
           <div className="space-y-2">
             <Label>Mô tả doanh nghiệp</Label>
-             <textarea disabled={!canEdit} value={form.moTa} onChange={e => setForm(f => ({ ...f, moTa: e.target.value }))} rows={4} className="flex w-full rounded-lg border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60" placeholder="Giới thiệu về doanh nghiệp..." />
+             <textarea disabled={!canEdit} maxLength={2000} value={form.moTa} onChange={e => setForm(f => ({ ...f, moTa: e.target.value }))} rows={4} className="flex w-full rounded-lg border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60" placeholder="Giới thiệu về doanh nghiệp..." />
           </div>
            {canEdit && (
              <div className="flex justify-end">

@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AdminPageLayout, AdminPageHeader, AdminCard, AdminCardHeader, AdminEmptyState, AdminLoadingState } from "@/components/admin/admin-page-layout";
 import { Badge } from "@/components/ui/badge";
+import { inviteSchema } from "@/lib/schemas";
 import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { getPendingLoiMoi, cancelLoiMoi, type LoiMoiPending } from "@/lib/api/nhan-su-api";
 import { getValidToken } from "@/lib/auth-provider";
@@ -108,7 +109,11 @@ export default function NhanSuPage() {
 
   async function handleInvite(e: FormEvent) {
     e.preventDefault();
-    if (!form.email.trim()) { setErr("Email không được để trống"); return; }
+    const parsed = inviteSchema.safeParse({ email: form.email, hoTen: form.hoTen, chucVu: form.chucVu });
+    if (!parsed.success) {
+      setErr(parsed.error.issues[0]?.message ?? "Thông tin lời mời chưa hợp lệ");
+      return;
+    }
     try {
       setSaving(true); setErr(""); setSuccessMsg(""); setInviteLink("");
       const res: ApiResponse<unknown> = await apiFetch(API_INVITE, {
@@ -210,18 +215,18 @@ export default function NhanSuPage() {
               <Label htmlFor="ns-email">Email *</Label>
               <div className="relative">
                 <Mail className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                <Input id="ns-email" type="email" required autoComplete="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} placeholder="nhansu@company.com" className="pl-10" />
+                <Input id="ns-email" type="email" required autoComplete="email" maxLength={100} value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} placeholder="nhansu@company.com" className="pl-10" />
               </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="ns-ho-ten">Họ tên</Label>
-              <Input id="ns-ho-ten" autoComplete="name" value={form.hoTen} onChange={e => setForm(f => ({ ...f, hoTen: e.target.value }))} placeholder="Nguyễn Văn A" />
+                <Input id="ns-ho-ten" autoComplete="name" maxLength={100} value={form.hoTen} onChange={e => setForm(f => ({ ...f, hoTen: e.target.value }))} placeholder="Nguyễn Văn A" />
             </div>
             <div className="space-y-2 md:col-span-2">
               <Label htmlFor="ns-chuc-vu">Chức vụ</Label>
               <div className="relative">
                 <Briefcase className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                <Input id="ns-chuc-vu" autoComplete="organization-title" value={form.chucVu} onChange={e => setForm(f => ({ ...f, chucVu: e.target.value }))} placeholder="Nhân viên tuyển dụng" className="pl-10" />
+                <Input id="ns-chuc-vu" autoComplete="organization-title" maxLength={100} value={form.chucVu} onChange={e => setForm(f => ({ ...f, chucVu: e.target.value }))} placeholder="Nhân viên tuyển dụng" className="pl-10" />
               </div>
             </div>
           </div>

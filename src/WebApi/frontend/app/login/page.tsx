@@ -144,7 +144,7 @@ function LoginContent() {
               <Mail className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
               <Input
                 id="email"
-                type="email"
+                type="email" maxLength={100}
                 autoComplete="username"
                 placeholder="name@company.com"
                 {...register("email")}

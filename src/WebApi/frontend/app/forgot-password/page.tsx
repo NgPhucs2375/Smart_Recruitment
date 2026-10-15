@@ -45,7 +45,7 @@ export default function ForgotPasswordPage() {
               <Label htmlFor="email">Email</Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                <Input id="email" type="email" autoComplete="email" className="pl-9" placeholder="you@example.com" {...register("email")} />
+                <Input id="email" type="email" maxLength={100} autoComplete="email" className="pl-9" placeholder="you@example.com" {...register("email")} />
               </div>
               {errors.email && <p className="text-xs text-red-500">{errors.email.message}</p>}
             </div>

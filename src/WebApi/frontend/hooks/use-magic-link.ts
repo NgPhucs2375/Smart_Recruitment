@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { requestMagicLink } from "@/lib/auth-provider";
 import type { PortalKind } from "@/lib/portal-roles";
+import { MSG_EMAIL, isValidEmail } from "@/features/tao-cv/validation";
 
 export function useMagicLink(
   purpose: "Login" | "Register",
@@ -15,7 +16,11 @@ export function useMagicLink(
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!email) return;
+    if (!email.trim()) return;
+    if (!isValidEmail(email)) {
+      setError(MSG_EMAIL);
+      return;
+    }
 
     setLoading(true);
     setError(null);
