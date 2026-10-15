@@ -87,8 +87,8 @@ export function RecommendationPreview({ count = 5 }: { count?: number }) {
           <h2 className="mt-2 text-xl font-semibold tracking-tight">Việc làm phù hợp với cv của bạn</h2>
           {/* <p className="mt-1 text-sm text-muted-foreground">Dựa trên CV mặc định và kỹ năng của bạn.</p> */}
         </div>
-        <Link href="/viec-lam/phu-hop" className="flex items-center gap-1 text-sm font-medium text-primary hover:underline">
-          Xem thêm việc phù hợp <ArrowUpRight className="size-4" />
+        <Link href="/viec-lam/phu-hop" className="group flex items-center gap-1 text-sm font-medium text-primary transition-colors hover:text-primary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+          Xem thêm việc phù hợp <ArrowUpRight className="size-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
         </Link>
       </div>
       {loading ? (

@@ -80,6 +80,30 @@ export function JobFiltersBar({ filters, onFilterChange, totalJobs }: JobFilters
     });
   };
 
+  // Nhãn trigger tường minh (không bao giờ lọt raw value như "all"):
+  // null/"" / "all" -> placeholder, còn lại tra tên hiển thị.
+  const levelLabel = (v: string | null) =>
+    !v || v === "all" ? "Cấp bậc" : v;
+  const employmentTypeLabel = (v: string | null) =>
+    !v || v === "all" ? "Hình thức" : v;
+  const workModeLabel = (v: string | null) =>
+    !v || v === "all" ? "Cách thức" : v;
+  const categoryLabel = (v: string | null) =>
+    !v || v === "all"
+      ? "Ngành nghề"
+      : (options.categories.find((c) => String(c.id) === v)?.name ?? v);
+  const salaryLabel = (v: string | null) => {
+    if (!v || v === "all") return "Mức lương";
+    const preset = salaryRanges.find(
+      (range: SalaryRange) => `${range.min}-${range.max ?? ""}` === v,
+    );
+    if (preset) return preset.label;
+    const [minStr, maxStr] = v.split("-");
+    const min = minStr === "" ? undefined : Number(minStr);
+    const max = !maxStr ? undefined : Number(maxStr);
+    return `Tùy chỉnh${min !== undefined && Number.isFinite(min) ? ` ${fmtTriệu(min)}` : " 0tr"} – ${max !== undefined && Number.isFinite(max) && max > 0 ? `${fmtTriệu(max)}` : "200tr+"}`;
+  };
+
   const activeCount = [
     filters.location,
     filters.level,
@@ -113,7 +137,7 @@ export function JobFiltersBar({ filters, onFilterChange, totalJobs }: JobFilters
       {/* Pill selects */}
       <div className="mt-4 flex flex-wrap items-center gap-2">
         <Select value={String(filters.categoryId ?? "all")} onValueChange={value => updateFilter("categoryId", value === "all" ? undefined : Number(value))}>
-          <SelectTrigger aria-label="Ngành nghề" className="h-10 w-52 rounded-full"><SelectValue placeholder="Ngành nghề" /></SelectTrigger>
+          <SelectTrigger aria-label="Ngành nghề" className="h-10 w-52 rounded-full"><SelectValue placeholder="Ngành nghề">{categoryLabel}</SelectValue></SelectTrigger>
           <SelectContent><SelectItem value="all">Tất cả ngành nghề</SelectItem>{options.categories.map(category => <SelectItem key={category.id} value={String(category.id)}>{category.name}</SelectItem>)}</SelectContent>
         </Select>
         <Select value="" onValueChange={value => {
@@ -134,33 +158,36 @@ export function JobFiltersBar({ filters, onFilterChange, totalJobs }: JobFilters
           onValueChange={(v) => updateFilter("location", v)}
         />
 
-        <Select value={filters.level} onValueChange={(v) => updateFilter("level", v ?? "")}>
+        <Select value={filters.level} onValueChange={(v) => updateFilter("level", !v || v === "all" ? "" : v)}>
           <SelectTrigger className="h-10 w-auto min-w-[130px] rounded-full border-border bg-muted px-4 text-[13px] shadow-none">
-            <SelectValue placeholder="Cấp bậc" />
+            <SelectValue placeholder="Cấp bậc">{levelLabel}</SelectValue>
           </SelectTrigger>
           <SelectContent>
+            <SelectItem value="all">Tất cả cấp bậc</SelectItem>
             {jobLevels.map((level) => (
               <SelectItem key={level} value={level}>{level}</SelectItem>
             ))}
           </SelectContent>
         </Select>
 
-        <Select value={filters.employmentType} onValueChange={(v) => updateFilter("employmentType", v ?? "")}>
+        <Select value={filters.employmentType} onValueChange={(v) => updateFilter("employmentType", !v || v === "all" ? "" : v)}>
           <SelectTrigger className="h-10 w-auto min-w-[140px] rounded-full border-border bg-muted px-4 text-[13px] shadow-none">
-            <SelectValue placeholder="Hình thức" />
+            <SelectValue placeholder="Hình thức">{employmentTypeLabel}</SelectValue>
           </SelectTrigger>
           <SelectContent>
+            <SelectItem value="all">Tất cả hình thức</SelectItem>
             {employmentTypes.map((type) => (
               <SelectItem key={type} value={type}>{type}</SelectItem>
             ))}
           </SelectContent>
         </Select>
 
-        <Select value={filters.workMode} onValueChange={(v) => updateFilter("workMode", v ?? "")}>
+        <Select value={filters.workMode} onValueChange={(v) => updateFilter("workMode", !v || v === "all" ? "" : v)}>
           <SelectTrigger className="h-10 w-auto min-w-[130px] rounded-full border-border bg-muted px-4 text-[13px] shadow-none">
-            <SelectValue placeholder="Cách thức" />
+            <SelectValue placeholder="Cách thức">{workModeLabel}</SelectValue>
           </SelectTrigger>
           <SelectContent>
+            <SelectItem value="all">Tất cả cách thức</SelectItem>
             {workModes.map((mode) => (
               <SelectItem key={mode} value={mode}>{mode}</SelectItem>
             ))}
@@ -182,7 +209,7 @@ export function JobFiltersBar({ filters, onFilterChange, totalJobs }: JobFilters
 
         <Select value={salaryValue} onValueChange={handleSalaryChange}>
           <SelectTrigger className="h-10 w-auto min-w-[150px] rounded-full border-border bg-muted px-4 text-[13px] shadow-none">
-            <SelectValue placeholder="Mức lương" />
+            <SelectValue placeholder="Mức lương">{salaryLabel}</SelectValue>
           </SelectTrigger>
           <SelectContent>
             <SelectItem key="all" value="all">Tất cả</SelectItem>

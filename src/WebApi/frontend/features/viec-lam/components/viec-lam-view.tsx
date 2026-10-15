@@ -110,18 +110,22 @@ function ViecLamContent() {
     const parsed = Number(searchParams.get("page"));
     return Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : 1;
   });
-  const [filters, setFilters] = useState<JobFilters>(() => ({
-    keyword: searchParams.get("keyword") ?? "",
-    location: searchParams.get("location") ?? "",
-    level: searchParams.get("level") ?? "",
-    employmentType: searchParams.get("employmentType") ?? "",
-    salaryMin: numParam(searchParams.get("salaryMin")),
-    salaryMax: numParam(searchParams.get("salaryMax")),
-    workMode: searchParams.get("workMode") ?? undefined,
-    categoryId: numParam(searchParams.get("categoryId")),
-    skillIds: (searchParams.get("skillIds") ?? "").split(",").map(Number).filter(n => Number.isInteger(n) && n > 0),
-    matchAllSkills: searchParams.get("matchAllSkills") === "1",
-  }));
+  const [filters, setFilters] = useState<JobFilters>(() => {
+    // Chuẩn hóa "?level=all" (link cũ) về "" để trigger không lọt raw value.
+    const strParam = (v: string | null) => (!v || v === "all" ? "" : v);
+    return {
+      keyword: searchParams.get("keyword") ?? "",
+      location: strParam(searchParams.get("location")),
+      level: strParam(searchParams.get("level")),
+      employmentType: strParam(searchParams.get("employmentType")),
+      salaryMin: numParam(searchParams.get("salaryMin")),
+      salaryMax: numParam(searchParams.get("salaryMax")),
+      workMode: strParam(searchParams.get("workMode")) || undefined,
+      categoryId: numParam(searchParams.get("categoryId")),
+      skillIds: (searchParams.get("skillIds") ?? "").split(",").map(Number).filter(n => Number.isInteger(n) && n > 0),
+      matchAllSkills: searchParams.get("matchAllSkills") === "1",
+    };
+  });
   const [previewJob, setPreviewJob] = useState<Job | null>(null);
 
   const debouncedKeyword = useDebouncedValue(filters.keyword, 400);
@@ -235,7 +239,7 @@ function ViecLamContent() {
           <button
             type="button"
             onClick={() => setShowSavedOnly(false)}
-            className="text-xs font-semibold text-primary underline underline-offset-4 hover:text-primary"
+            className="text-xs font-semibold text-primary underline underline-offset-4 transition-colors hover:text-primary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
             Xem tất cả
           </button>
