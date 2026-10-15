@@ -55,7 +55,7 @@ export function GithubLoginButton({
         JSON.stringify({ state, portal, next }),
       );
     } catch {
-      onError?.("Không lưu được phiên đăng nhập (trình duyệt chặn sessionStorage).");
+      onError?.("Không lưu được phiên đăng nhập. Vui lòng kiểm tra cài đặt trình duyệt rồi thử lại.");
       return;
     }
 

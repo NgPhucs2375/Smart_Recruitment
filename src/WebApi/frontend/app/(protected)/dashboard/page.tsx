@@ -8,7 +8,7 @@ import { AdminPageLayout, AdminPageHeader, AdminCard, AdminCardHeader, AdminLoad
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { Calendar } from "@/components/ui/calendar";
@@ -253,6 +253,21 @@ function CandidateDashboard() {
   }, [apiFetch, notificationRefresh, retryTick]);
 
   const profileCompletion = getProfileCompletion(profile);
+  const heroInitials = (profile?.hoTen || profileName || "")
+    .trim()
+    .split(/\s+/)
+    .map((part) => part[0])
+    .filter(Boolean)
+    .slice(-2)
+    .join("")
+    .toUpperCase();
+  const statusLabel = !profile ? "Chưa có hồ sơ" : profile.isTimViec === false ? "Tạm dừng" : "Đang tìm việc";
+  const statusTone = !profile
+    ? "bg-muted text-muted-foreground"
+    : profile.isTimViec === false
+      ? "bg-sandsoft text-foreground"
+      : "bg-soft-sage text-foreground";
+  const statusDot = !profile ? "bg-border" : profile.isTimViec === false ? "bg-sand" : "bg-sage";
 
   useEffect(() => {
     const refreshFromNotification = () => setNotificationRefresh((value) => value + 1);
@@ -269,23 +284,76 @@ function CandidateDashboard() {
           <BreadcrumbItem><BreadcrumbPage>Tổng quan</BreadcrumbPage></BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
-      <Card className="overflow-hidden border-border/80 bg-card shadow-sm">
-        <CardContent className="flex flex-col justify-between gap-6 p-6 sm:p-8 md:flex-row md:items-center">
-          <div>
-            <Badge variant="secondary" className="text-[10px] uppercase tracking-[0.2em]">Cổng ứng viên</Badge>
-            <h1 className="mt-3 text-3xl font-medium tracking-tight sm:text-4xl">Xin chào, {profileName}!</h1>
-            <p className="mt-2 max-w-xl text-sm leading-6 text-muted-foreground">Quản lý hành trình ứng tuyển và khám phá những cơ hội phù hợp với bạn.</p>
+      <section className="rounded-2xl border border-border/80 bg-card p-5 shadow-sm sm:p-6">
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-4">
+              <Avatar className="size-14 shrink-0 rounded-2xl sm:size-16">
+                {profile?.anhDaiDienUrl && (
+                  <Image src={profile.anhDaiDienUrl} alt={profile.hoTen || "Ảnh hồ sơ"} width={64} height={64} className="size-full object-cover" />
+                )}
+                <AvatarFallback className="rounded-2xl bg-primary/10 text-base font-semibold text-primary">
+                  {heroInitials || <UserPlus className="size-5" />}
+                </AvatarFallback>
+              </Avatar>
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Xin chào, {profileName}!</h1>
+                  {!loading && !loadError && (
+                    <span className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${statusTone}`}>
+                      <span className={`size-1.5 rounded-full ${statusDot}`} aria-hidden="true" />
+                      {statusLabel}
+                    </span>
+                  )}
+                </div>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {profile?.viTriUngTuyen || "Hồ sơ ứng viên"} · Quản lý hành trình ứng tuyển của bạn.
+                </p>
+              </div>
+            </div>
+            <div className="mt-5 flex flex-wrap gap-2">
+              <Link href="/viec-lam" className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-colors duration-150 hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
+                <Briefcase className="size-4" /> Khám phá việc làm
+              </Link>
+              <Link href="/CV" className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-border bg-background px-4 py-2.5 text-sm font-medium text-foreground transition-colors duration-150 hover:border-primary/40 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
+                <FileText className="size-4" /> Tạo CV mới
+              </Link>
+            </div>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <Link href="/viec-lam" className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition hover:bg-primary-hover">
-              <Briefcase className="size-4" /> Khám phá việc làm
-            </Link>
-            <Link href="/CV" className="inline-flex items-center gap-2 rounded-xl border border-border bg-background px-4 py-2.5 text-sm font-medium text-foreground transition hover:border-primary/40 hover:text-primary">
-              <FileText className="size-4" /> Tạo CV mới
-            </Link>
+
+          <div className="w-full shrink-0 rounded-2xl border border-primary/15 bg-primary/[0.05] p-4 sm:p-5 lg:w-[340px]">
+            {loading || loadError ? (
+              <>
+                <div className="flex items-center justify-between gap-3">
+                  <Skeleton className="h-3 w-28" />
+                  <Skeleton className="h-6 w-12" />
+                </div>
+                <Skeleton className="mt-4 h-2 w-full" />
+                <Skeleton className="mt-4 h-3 w-44" />
+                <Skeleton className="mt-4 h-11 w-full" />
+              </>
+            ) : (
+              <>
+                <div className="flex items-baseline justify-between gap-3">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-primary">Hồ sơ hoàn thiện</p>
+                  <p className="text-2xl font-semibold tabular-nums text-primary">{profileCompletion.percent}%</p>
+                </div>
+                <Progress value={profileCompletion.percent} className="mt-3 h-2" aria-label={`Hồ sơ hoàn thiện ${profileCompletion.percent}%`} />
+                <p className="mt-2 text-xs leading-5 text-muted-foreground">
+                  {profile
+                    ? profileCompletion.missing > 0
+                      ? `Thiếu ${profileCompletion.missing} mục thông tin — hoàn thiện để nhà tuyển dụng dễ tìm thấy bạn.`
+                      : "Hồ sơ đã đầy đủ — sẵn sàng nhận cơ hội mới."
+                    : "Chưa có hồ sơ ứng viên — tạo ngay để bắt đầu ứng tuyển."}
+                </p>
+                <Link href="/ho-so" className="mt-4 flex min-h-11 items-center justify-between rounded-xl border border-primary/25 bg-card px-3.5 text-sm font-medium text-primary transition-colors duration-150 hover:border-primary/50 hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
+                  {profile ? "Hoàn thiện hồ sơ" : "Tạo hồ sơ ứng viên"} <ArrowRight className="size-4" />
+                </Link>
+              </>
+            )}
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </section>
 
       {loadError ? (
         <AdminErrorState
@@ -294,16 +362,16 @@ function CandidateDashboard() {
         />
       ) : (
         <>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div>
+          <h2 className="text-base font-semibold tracking-tight">Thống kê của bạn</h2>
+          <div className="mt-3 grid grid-cols-2 gap-3 lg:grid-cols-4">
           {loading
             ? Array.from({ length: 4 }, (_, index) => (
-                <Card key={index} className="h-full border-border/80 shadow-sm">
-                  <CardContent className="p-5">
-                    <Skeleton className="h-3 w-24" />
-                    <Skeleton className="mt-4 h-9 w-16" />
-                    <Skeleton className="mt-2 h-3 w-28" />
-                  </CardContent>
-                </Card>
+                <div key={index} className="rounded-2xl border border-border/80 bg-card p-5 shadow-sm">
+                  <Skeleton className="h-3 w-24" />
+                  <Skeleton className="mt-4 h-9 w-16" />
+                  <Skeleton className="mt-2 h-3 w-28" />
+                </div>
               ))
             : [
           { label: "CV của bạn", value: cvCount ?? "—", note: "Quản lý CV", icon: FileText, href: "/CV" },
@@ -311,29 +379,32 @@ function CandidateDashboard() {
           { label: "Việc phù hợp với bạn", value: matchCount, note: "Gợi ý AI phù hợp", icon: TrendingUp, href: "/viec-lam/phu-hop" },
           { label: "Việc bạn đã lưu", value: savedCount, note: "Cơ hội bạn quan tâm", icon: Bookmark, href: "/viec-lam/da-luu" },
         ].map((item) => (
-          <Link key={item.label} href={item.href} className="group">
-            <Card className="h-full border-border/80 shadow-sm transition hover:border-primary/40">
-              <CardContent className="p-5">
-                <div className="flex items-center justify-between text-muted-foreground">
-                  <span className="text-[11px] font-semibold uppercase tracking-[0.14em]">{item.label}</span>
-                  <item.icon className="size-4 transition group-hover:text-primary" />
-                </div>
-                <div className="mt-4 text-3xl font-semibold tracking-tight tabular-nums">{item.value}</div>
-                <p className="mt-1 text-xs text-muted-foreground">{item.note}</p>
-              </CardContent>
-            </Card>
+          <Link
+            key={item.label}
+            href={item.href}
+            className="group rounded-2xl border border-border/80 bg-card p-5 shadow-sm transition-colors duration-150 hover:border-primary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          >
+            <div className="flex items-start justify-between gap-2">
+              <span className="text-xs font-medium text-muted-foreground">{item.label}</span>
+              <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary transition-colors duration-150 group-hover:bg-primary group-hover:text-primary-foreground">
+                <item.icon className="size-4" />
+              </span>
+            </div>
+            <p className="mt-3 text-3xl font-semibold tracking-tight tabular-nums">{item.value}</p>
+            <p className="mt-1 text-xs text-muted-foreground">{item.note}</p>
           </Link>
         ))}
+          </div>
         </div>
 
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1.35fr)_minmax(300px,.65fr)]">
         <div className="space-y-6">
           <RecommendationPreview count={3} />
 
-          <Card className="border-border/80 shadow-sm">
+          <Card className="rounded-2xl border border-border/80 shadow-sm ring-0">
             <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0 border-b border-border/70 p-5 sm:p-6">
               <div>
-                <CardTitle className="text-lg tracking-tight">Đơn ứng tuyển gần đây</CardTitle>
+                <h2 className="text-lg font-semibold tracking-tight">Đơn ứng tuyển gần đây</h2>
                 <CardDescription className="mt-1">Theo dõi những cơ hội bạn đã gửi hồ sơ.</CardDescription>
               </div>
               <Link href="/viec-lam/da-ung-tuyen" className="shrink-0 text-xs font-medium text-primary hover:underline">Xem tất cả</Link>
@@ -353,10 +424,13 @@ function CandidateDashboard() {
                   ))}
                 </div>
               ) : recentApplied.length === 0 ? (
-                <div className="px-5 py-8 text-center sm:px-6">
-                  <span className="mx-auto flex size-11 items-center justify-center rounded-xl bg-muted"><Send className="size-5 text-muted-foreground" /></span>
+                <div className="px-5 py-10 text-center sm:px-6">
+                  <span className="mx-auto flex size-11 items-center justify-center rounded-xl bg-primary/10 text-primary"><Send className="size-5" /></span>
                   <p className="mt-3 text-sm font-medium text-foreground">Chưa có đơn ứng tuyển nào.</p>
-                  <Link href="/viec-lam" className="mt-2 inline-flex text-sm font-medium text-primary underline underline-offset-4">Tìm việc ngay</Link>
+                  <p className="mt-1 text-xs text-muted-foreground">Gửi hồ sơ cho cơ hội đầu tiên — chỉ mất vài phút.</p>
+                  <Link href="/viec-lam" className="mt-4 inline-flex min-h-11 items-center rounded-xl bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors duration-150 hover:bg-primary-hover">
+                    Tìm việc ngay
+                  </Link>
                 </div>
               ) : (
                 <div className="divide-y divide-border/70">
@@ -384,49 +458,12 @@ function CandidateDashboard() {
         </div>
 
         <div className="space-y-6">
-          <Card id="notifications" className="border-border/80 shadow-sm">
+          <Card className="rounded-2xl border border-border/80 shadow-sm ring-0">
             <CardHeader className="p-5 pb-3 sm:p-6 sm:pb-3">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <CardTitle className="text-lg tracking-tight">Hồ sơ của bạn</CardTitle>
-                  {/* <CardDescription className="mt-1">Tăng độ nổi bật với nhà tuyển dụng.</CardDescription> */}
-                </div>
-                <Link href="/ho-so" className="text-xs font-medium text-primary hover:underline">Chỉnh sửa</Link>
-              </div>
-            </CardHeader>
-            <CardContent className="p-5 pt-3 sm:p-6 sm:pt-3">
-              <div className="flex items-center gap-3">
-                <Avatar className="size-14 rounded-2xl">
-                  {profile?.anhDaiDienUrl && <Image src={profile.anhDaiDienUrl} alt={profile.hoTen || "Ảnh hồ sơ"} width={56} height={56} className="size-full object-cover" />}
-                  <AvatarFallback className="rounded-2xl bg-primary/10 text-primary">{profile?.hoTen?.split(" ").map((part) => part[0]).slice(-2).join("").toUpperCase() || <UserPlus className="size-5" />}</AvatarFallback>
-                </Avatar>
-                <div className="min-w-0">
-                  <h3 className="truncate font-semibold">{profile?.hoTen || profileName}</h3>
-                  <p className="mt-1 truncate text-xs text-muted-foreground">{profile?.viTriUngTuyen || "Chưa cập nhật vị trí ứng tuyển"}</p>
-                </div>
-              </div>
-              <div className="mt-5 flex items-center justify-between text-xs">
-                <span className="font-medium">Hồ sơ hoàn thiện</span>
-                <span className="font-semibold text-primary">{profileCompletion.percent}%</span>
-              </div>
-              <Progress value={profileCompletion.percent} className="mt-2 h-2" />
-              <div className="mt-4 flex items-center justify-between rounded-xl bg-muted/50 px-3 py-2.5 text-xs">
-                <span className="text-muted-foreground">{profileCompletion.missing > 0 ? `Thiếu ${profileCompletion.missing} mục thông tin` : "Hồ sơ đã đầy đủ"}</span>
-                <Badge variant={profile?.isTimViec === false ? "secondary" : "default"} className="text-[10px]">{profile?.isTimViec === false ? "Tạm dừng" : "Đang tìm việc"}</Badge>
-              </div>
-              <Link href="/ho-so" className="mt-4 flex items-center justify-between rounded-xl border border-dashed border-border px-3 py-2.5 text-xs font-medium text-primary transition hover:border-primary/50 hover:bg-primary/5">
-                Hoàn thiện hồ sơ <ArrowRight className="size-3.5" />
-              </Link>
-            </CardContent>
-          </Card>
-
-          <Card className="border-border/80 shadow-sm">
-            <CardHeader className="flex flex-row items-start justify-between gap-3 space-y-0 p-5 pb-3 sm:p-6 sm:pb-3">
               <div>
-                <CardTitle className="flex items-center gap-2 text-lg tracking-tight"><Bell className="size-4 text-primary" /> Thông báo</CardTitle>
+                <h2 className="flex items-center gap-2 text-lg font-semibold tracking-tight"><Bell className="size-4 text-primary" /> Thông báo</h2>
                 <CardDescription className="mt-1">Cập nhật mới nhất dành cho bạn.</CardDescription>
               </div>
-              <Link href="#notifications" className="text-xs font-medium text-primary hover:underline">Xem tất cả</Link>
             </CardHeader>
             <CardContent className="p-5 pt-2 sm:p-6 sm:pt-2">
               {notifications.length === 0 ? (
@@ -441,23 +478,6 @@ function CandidateDashboard() {
                   ))}
                 </div>
               )}
-            </CardContent>
-          </Card>
-
-          <Card className="border-border/80 shadow-sm">
-            <CardHeader className="p-5 pb-2 sm:p-6 sm:pb-2">
-              <CardTitle className="text-base tracking-tight">Hành động nhanh</CardTitle>
-            </CardHeader>
-            <CardContent className="grid gap-2 p-5 pt-2 sm:p-6 sm:pt-2">
-              <Link href="/ho-so" className="flex items-center justify-between rounded-xl border border-border bg-background px-3 py-2.5 text-sm transition hover:border-primary/40 hover:text-primary">
-                <span className="flex items-center gap-2"><UserPlus className="size-4" /> Cập nhật hồ sơ</span><ChevronRight className="size-4 text-muted-foreground" />
-              </Link>
-              <Link href="/CV" className="flex items-center justify-between rounded-xl border border-border bg-background px-3 py-2.5 text-sm transition hover:border-primary/40 hover:text-primary">
-                <span className="flex items-center gap-2"><FileText className="size-4" /> Quản lý CV</span><ChevronRight className="size-4 text-muted-foreground" />
-              </Link>
-              <Link href="/viec-lam/da-ung-tuyen" className="flex items-center justify-between rounded-xl border border-border bg-background px-3 py-2.5 text-sm transition hover:border-primary/40 hover:text-primary">
-                <span className="flex items-center gap-2"><Send className="size-4" /> Xem đơn đã nộp</span><ChevronRight className="size-4 text-muted-foreground" />
-              </Link>
             </CardContent>
           </Card>
         </div>

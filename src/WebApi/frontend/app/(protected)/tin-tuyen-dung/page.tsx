@@ -3,14 +3,14 @@
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useGetIdentity } from "@refinedev/core";
-import { Briefcase, Plus, Pencil, Trash2, X, Send, Pause, Play, Lock, Users, CheckCircle2, Eye, Copy } from "lucide-react";
+import { ClipboardList, Plus, Pencil, Trash2, X, Send, Pause, Play, Lock, Users, CheckCircle2, Eye, Copy, Search } from "lucide-react";
 import { JobPreview, deadlineDate, SKILL_LEVELS, type JobSkill, type JobPreviewData } from "@/features/tin-tuyen-dung/job-preview";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { useConfirmDialog } from "@/components/ui/confirm-dialog";
-import { AdminPageLayout, AdminPageHeader, AdminCard, AdminCardHeader, AdminEmptyState, AdminLoadingState } from "@/components/admin/admin-page-layout";
+import { AdminPageLayout, AdminCard, AdminEmptyState, AdminLoadingState } from "@/components/admin/admin-page-layout";
 import { Badge } from "@/components/ui/badge";
 
 type TinTuyenDung = {
@@ -386,7 +386,28 @@ export default function TinTuyenDungPage() {
 
   return (
     <AdminPageLayout>
-      <AdminPageHeader icon={Briefcase} title="Quản lý tin tuyển dụng" description="Người đại diện → Bộ lọc hệ thống: OK thì công khai, vi phạm thì Admin duyệt tay." actions={<>{isNguoiDaiDien && <Button variant="outline" onClick={() => { setStatusFilter("ChoNguoiDaiDienDuyet"); setPage(1); }}>Chờ tôi duyệt</Button>}<Button onClick={openCreate}><Plus className="size-4" /> Tạo tin mới</Button></>} />
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <h1 className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Quản lý tin tuyển dụng</h1>
+        {isNguoiDaiDien && (
+          <Button variant="outline" size="sm" className="rounded-full" onClick={() => { setStatusFilter("ChoNguoiDaiDienDuyet"); setPage(1); }}>
+            Chờ tôi duyệt
+          </Button>
+        )}
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-sm text-muted-foreground">Trạng thái:</span>
+        <Select value={statusFilter} onValueChange={value => { setStatusFilter(value ?? "all"); setPage(1); }}>
+          <SelectTrigger aria-label="Lọc trạng thái" className="h-9 w-auto rounded-full px-4 text-sm"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tất cả ({items.length})</SelectItem>
+            {Object.entries(TRANG_THAI).filter(([key]) => !/^\d+$/.test(key)).map(([key, state]) => <SelectItem key={key} value={key}>{state.label}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <div className="relative ml-auto w-full sm:w-64">
+          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input aria-label="Tìm tin tuyển dụng" value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} placeholder="Tìm tin..." className="h-9 rounded-xl pl-9" />
+        </div>
+      </div>
 
       {successMsg && <div role="status" className="rounded-xl border border-border bg-card px-4 py-3 text-sm text-foreground shadow-sm">{successMsg}</div>}
       {err && <div role="alert" className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">{err}</div>}
@@ -504,9 +525,19 @@ export default function TinTuyenDungPage() {
       )}
 
       <AdminCard>
-        <AdminCardHeader title="Danh sách tin tuyển dụng" description={`Trang ${page}/${Math.max(totalPages, 1)}`} action={<div className="flex flex-wrap gap-2"><Input aria-label="Tìm tin tuyển dụng" value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} placeholder="Tìm tin..." /><Select value={statusFilter} onValueChange={value => { setStatusFilter(value ?? "all"); setPage(1); }}><SelectTrigger aria-label="Lọc trạng thái" className="w-52"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">Tất cả trạng thái</SelectItem>{Object.entries(TRANG_THAI).filter(([key]) => !/^\d+$/.test(key)).map(([key, state]) => <SelectItem key={key} value={key}>{state.label}</SelectItem>)}</SelectContent></Select></div>} />
+        {!loading && !err && filtered.length > 0 && (
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border p-5">
+            <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Danh sách tin đăng ({filtered.length})</h2>
+            <Button size="sm" className="rounded-full" onClick={openCreate}><Plus className="size-3.5" /> Tạo tin mới</Button>
+          </div>
+        )}
         {loading ? <AdminLoadingState /> : filtered.length === 0 ? (
-          <AdminEmptyState icon={Briefcase} title={search ? "Không tìm thấy" : "Chưa có tin tuyển dụng"} description="Bắt đầu tạo tin tuyển dụng để tìm ứng viên phù hợp." action={!search ? <Button onClick={openCreate} size="sm"><Plus className="size-4" /> Tạo tin mới</Button> : undefined} />
+          <AdminEmptyState
+            icon={ClipboardList}
+            title={search || statusFilter !== "all" ? "Không tìm thấy tin tuyển dụng" : "Chưa có tin tuyển dụng"}
+            description={search || statusFilter !== "all" ? "Thử thay đổi từ khóa hoặc bộ lọc trạng thái." : "Bắt đầu đăng tin tuyển dụng đầu tiên để thu hút và tiếp cận ứng viên."}
+            action={!search && statusFilter === "all" ? <Button size="sm" className="rounded-full" onClick={openCreate}><Plus className="size-4" /> Tạo tin tuyển dụng</Button> : undefined}
+          />
         ) : (
           <div className="divide-y divide-border">
             {filtered.map(item => {
@@ -564,7 +595,7 @@ export default function TinTuyenDungPage() {
           </div>
         )}
       </AdminCard>
-      <div className="flex items-center justify-end gap-3"><Button variant="outline" disabled={loading || page <= 1} onClick={() => setPage(p => p - 1)}>Trang trước</Button><span className="text-sm">Trang {page}</span><Button variant="outline" disabled={loading || page >= totalPages} onClick={() => setPage(p => p + 1)}>Trang sau</Button></div>
+      <div className="flex items-center justify-end gap-3"><Button variant="outline" disabled={loading || page <= 1} onClick={() => setPage(p => p - 1)}>Trang trước</Button><span className="text-sm text-muted-foreground">Trang {page} / {Math.max(totalPages, 1)}</span><Button variant="outline" disabled={loading || page >= totalPages} onClick={() => setPage(p => p + 1)}>Trang sau</Button></div>
       <JobPreview data={preview} onClose={() => { setPreview(null); setReviewing(null); }} actions={reviewing && isNguoiDaiDien ? <>
         <Button variant="outline" onClick={() => { setPreview(null); setReviewing(null); void handleFire(reviewing, TRIGGER.NguoiDaiDienTuChoi, "Từ chối"); }}>Từ chối</Button>
         <Button onClick={() => { setPreview(null); setReviewing(null); void handleFire(reviewing, TRIGGER.NguoiDaiDienDuyet, "Đồng ý và chạy bộ lọc", "Sau khi bạn đồng ý, hệ thống mới lọc: OK thì công khai, vi phạm hoặc nghi vấn thì chuyển Admin duyệt tay."); }}><CheckCircle2 className="size-4" /> Đồng ý và chạy bộ lọc</Button>

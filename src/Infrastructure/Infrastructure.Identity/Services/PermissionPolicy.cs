@@ -8,7 +8,7 @@ namespace Infrastructure.Identity.Services;
 
 public static class PermissionPolicy
 {
-    public static readonly string[] Resources = ["chat", "cvthemes", "cvungviens", "danhgias", "danhmucnghes", "dashboard",
+    public static readonly string[] Resources = ["baocao", "chat", "cvthemes", "cvungviens", "danhgias", "danhmucnghes", "dashboard",
         "doanhnghieps", "donungtuyens", "hosonhatuyendungs", "hosoungviens", "ketquaphantichcvs",
         "ketquaphuhops", "kynangs", "kynangtintuyendungs", "kynangungviens", "loimoinhansus",
         "nguoidungs", "nhansus", "quytackiemduyettins", "roleclaims", "roles", "tintuyendungs", "users"];

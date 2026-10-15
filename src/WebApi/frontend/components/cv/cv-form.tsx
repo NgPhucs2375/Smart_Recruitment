@@ -228,7 +228,7 @@ function QuickActionBar({
         size="sm"
         className="h-7 text-xs"
         data-hook="harvard-rewrite"
-        title="Chuẩn bị kết nối API AI backend"
+        title="Dùng AI viết lại theo chuẩn Harvard"
         onClick={() => onAiRewrite?.(value, field)}
       >
         Viết chuẩn Harvard

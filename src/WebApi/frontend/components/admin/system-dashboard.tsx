@@ -158,7 +158,7 @@ export function SystemAdminDashboard() {
     <AdminPageLayout>
       <AdminPageHeader
         icon={LayoutDashboard}
-        title="Admin Dashboard"
+        title="Bảng điều khiển"
         description="Tổng quan hệ thống Smart Recruitment — số liệu thực."
       />
 

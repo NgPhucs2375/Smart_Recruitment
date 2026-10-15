@@ -80,33 +80,33 @@ export function RecommendationPreview({ count = 5 }: { count?: number }) {
   }, [count]);
 
   return (
-    <section className="rounded-3xl border border-primary/20 bg-primary/[0.04] p-5 sm:p-6">
+    <section className="rounded-2xl border border-primary/20 bg-primary/[0.04] p-5 sm:p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-primary"><Sparkles className="size-3.5" /> Adam gợi ý cho bạn</p>
-          <h2 className="mt-2 text-xl font-semibold tracking-tight">Việc làm phù hợp với cv của bạn</h2>
+          <h2 className="mt-2 text-xl font-semibold tracking-tight">Việc làm phù hợp với CV của bạn</h2>
           {/* <p className="mt-1 text-sm text-muted-foreground">Dựa trên CV mặc định và kỹ năng của bạn.</p> */}
         </div>
-        <Link href="/viec-lam/phu-hop" className="flex items-center gap-1 text-sm font-medium text-primary hover:underline">
+        <Link href="/viec-lam/phu-hop" className="flex min-h-11 items-center gap-1 text-sm font-medium text-primary underline-offset-4 hover:underline">
           Xem thêm việc phù hợp <ArrowUpRight className="size-4" />
         </Link>
       </div>
       {loading ? (
         <div className="mt-5 grid gap-3 md:grid-cols-2">
-          {Array.from({ length: Math.min(count, 5) }).map((_, index) => <div key={index} className="h-24 animate-pulse rounded-2xl border border-border bg-card/70" />)}
+          {Array.from({ length: Math.min(count, 5) }).map((_, index) => <div key={index} className="h-24 animate-pulse rounded-xl border border-border bg-card/70" />)}
         </div>
       ) : error ? (
-        <p className="mt-5 rounded-2xl border border-destructive/20 bg-card px-4 py-4 text-sm text-muted-foreground">{error}</p>
+        <p className="mt-5 rounded-xl border border-destructive/20 bg-card px-4 py-4 text-sm text-muted-foreground">{error}</p>
       ) : items.length === 0 ? (
-        <div className="mt-5 rounded-2xl border border-border bg-card px-4 py-5">
+        <div className="mt-5 rounded-xl border border-border bg-card px-4 py-5">
           <p className="text-sm font-medium">Adam chưa tìm thấy việc phù hợp cho bạn.</p>
           <p className="mt-1 text-sm text-muted-foreground">Hoàn thiện hoặc chọn CV mặc định để Adam phân tích và đề xuất những cơ hội phù hợp hơn.</p>
-          <Link href="/CV" className="mt-3 inline-flex text-sm font-medium text-primary underline underline-offset-4">Hoàn thiện CV</Link>
+          <Link href="/CV" className="mt-3 inline-flex min-h-11 items-center text-sm font-medium text-primary underline underline-offset-4">Hoàn thiện CV</Link>
         </div>
       ) : (
         <div className="mt-5 grid gap-3 md:grid-cols-2">
           {items.slice(0, count).map((item) => (
-          <Link key={item.tinTuyenDungId} href={`/viec-lam/${item.tinTuyenDungId}`} className="rounded-2xl border border-border bg-card p-4 transition hover:border-primary/40">
+          <Link key={item.tinTuyenDungId} href={`/viec-lam/${item.tinTuyenDungId}`} className="rounded-xl border border-border bg-card p-4 transition-colors duration-150 hover:border-primary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <h3 className="truncate font-medium">{item.tieuDe}</h3>

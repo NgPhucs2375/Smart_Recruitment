@@ -3,9 +3,12 @@
 import { useState, useEffect, useRef, Suspense, useCallback, useMemo } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { Bookmark, Briefcase, ArrowRight, RefreshCw } from "lucide-react";
+import { Bookmark, Briefcase, ArrowRight, RefreshCw, Search, Sparkles } from "lucide-react";
 import { JobCard, JobCardSkeleton } from "./job-card";
 import { JobFiltersBar } from "./job-filters";
+import { ExploreCompanies } from "./explore-companies";
+import { SavedJobsPanel } from "./saved-jobs-panel";
+import { AppliedJobsPanel } from "./applied-jobs";
 import type { Job, JobFilters } from "../types";
 import { useBookmarks } from "@/hooks/use-bookmarks";
 import { RecommendationPreview } from "@/features/recommendations/recommendation-preview";
@@ -104,8 +107,13 @@ function useJobs(filters: JobFilters, page: number) {
 function ViecLamContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const { bookmarkedIds, count: savedCount } = useBookmarks();
-  const [showSavedOnly, setShowSavedOnly] = useState(() => searchParams.get("saved") === "1");
+  const { count: savedCount } = useBookmarks();
+  // Tab chế độ xem: all | adam (gợi ý AI) | saved (đã lưu) | applied (đã nộp).
+  const [tab, setTab] = useState<"all" | "adam" | "saved" | "applied">(() => {
+    const fromTab = searchParams.get("tab");
+    if (fromTab === "adam" || fromTab === "applied") return fromTab;
+    return searchParams.get("saved") === "1" ? "saved" : "all";
+  });
   const [page, setPage] = useState(() => {
     const parsed = Number(searchParams.get("page"));
     return Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : 1;
@@ -140,6 +148,23 @@ function ViecLamContent() {
     setPage(1);
   }, []);
 
+  // Đặt lại bộ lọc: về tab "Tất cả" + xóa mọi điều kiện lọc.
+  const handleReset = useCallback(() => {
+    setTab("all");
+    handleFilterChange({
+      keyword: "",
+      location: "",
+      level: "",
+      employmentType: "",
+      salaryMin: undefined,
+      salaryMax: undefined,
+      workMode: undefined,
+      categoryId: undefined,
+      skillIds: [],
+      matchAllSkills: false,
+    });
+  }, [handleFilterChange]);
+
   // Ghi filter/page ngược vào URL (debounced theo keyword) để back/refresh
   // giữ nguyên bộ lọc — tránh reset khi bấm vào chi tiết rồi quay lại.
   const urlSynced = useRef(false);
@@ -160,7 +185,8 @@ function ViecLamContent() {
     if (filters.skillIds?.length) params.set("skillIds", filters.skillIds.join(","));
     if (filters.matchAllSkills) params.set("matchAllSkills", "1");
     if (page > 1) params.set("page", String(page));
-    if (showSavedOnly) params.set("saved", "1");
+    if (tab === "saved") params.set("saved", "1");
+    if (tab === "adam" || tab === "applied") params.set("tab", tab);
     const query = params.toString();
     router.replace(query ? `/viec-lam?${query}` : "/viec-lam", { scroll: false });
   }, [
@@ -175,7 +201,7 @@ function ViecLamContent() {
     filters.skillIds,
     filters.matchAllSkills,
     page,
-    showSavedOnly,
+    tab,
     router,
   ]);
 
@@ -187,62 +213,66 @@ function ViecLamContent() {
     });
   }, []);
 
-  const visibleJobs = useMemo(
-    () => (showSavedOnly ? jobs.filter((job) => bookmarkedIds.has(job.id)) : jobs),
-    [jobs, showSavedOnly, bookmarkedIds]
-  );
+  // Style chung cho 4 tab trên thanh underline (gạch chân 2px đè lên border của hàng).
+  const tabClass = (active: boolean) =>
+    cn(
+      "inline-flex min-h-11 shrink-0 items-center gap-1.5 border-b-2 -mb-px text-sm transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+      active
+        ? "border-primary font-semibold text-foreground"
+        : "border-transparent text-muted-foreground hover:text-foreground"
+    );
 
   return (
     <div className="mx-auto w-full max-w-4xl space-y-6 sm:space-y-8">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-3.5">
-          <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-muted">
-            <Briefcase className="size-5 text-primary" />
-          </div>
-          <div className="min-w-0">
-            <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-[28px]">Tìm Việc Làm</h1>
-            <p className="mt-0.5 text-sm text-muted-foreground">
-              Khám phá cơ hội nghề nghiệp phù hợp với bạn
-              {savedCount > 0 && !showSavedOnly && ` • Đã lưu ${savedCount} việc`}
-            </p>
-          </div>
+      <div className="flex min-w-0 items-center gap-3.5">
+        <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-muted">
+          <Briefcase className="size-5 text-primary" />
         </div>
-        <Button
-          variant={showSavedOnly ? "default" : "outline"}
-          size="sm"
-          onClick={() => setShowSavedOnly((v) => !v)}
-          className="gap-1.5 shrink-0 rounded-full"
-        >
-          <Bookmark className={cn("h-4 w-4", showSavedOnly && "fill-current")} />
-          {showSavedOnly ? `Đã lưu (${savedCount})` : `Việc đã lưu${savedCount ? ` (${savedCount})` : ""}`}
-        </Button>
+        <div className="min-w-0">
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-[28px]">Tìm Việc Làm</h1>
+          <p className="mt-0.5 text-sm text-muted-foreground">
+            Khám phá cơ hội nghề nghiệp phù hợp với bạn{savedCount > 0 && ` • Đã lưu ${savedCount} việc`}
+          </p>
+        </div>
       </div>
 
-      <RecommendationPreview count={3} />
+      <div role="tablist" aria-label="Chế độ xem việc làm" className="flex items-stretch gap-5 overflow-x-auto border-b border-border sm:gap-7">
+        <button type="button" role="tab" aria-selected={tab === "all"} onClick={() => setTab("all")} className={tabClass(tab === "all")}>
+          Tất cả
+        </button>
+        <button type="button" role="tab" aria-selected={tab === "adam"} onClick={() => setTab("adam")} className={tabClass(tab === "adam")}>
+          <Sparkles className="size-3.5" aria-hidden /> Adam gợi ý
+        </button>
+        <button type="button" role="tab" aria-selected={tab === "saved"} onClick={() => setTab("saved")} className={tabClass(tab === "saved")}>
+          Đã lưu{savedCount > 0 && ` (${savedCount})`}
+        </button>
+        <button type="button" role="tab" aria-selected={tab === "applied"} onClick={() => setTab("applied")} className={tabClass(tab === "applied")}>
+          Đã nộp
+        </button>
+      </div>
 
+      {tab === "adam" ? (
+        <RecommendationPreview count={10} />
+      ) : tab === "saved" ? (
+        <SavedJobsPanel onExplore={() => setTab("all")} />
+      ) : tab === "applied" ? (
+        <AppliedJobsPanel onExplore={() => setTab("all")} />
+      ) : (
+        <>
       <JobFiltersBar
         filters={filters}
         onFilterChange={handleFilterChange}
-        totalJobs={showSavedOnly ? visibleJobs.length : totalCount}
       />
+      <RecommendationPreview count={3} />
       <p className="text-xs text-muted-foreground">Bấm vào một tin để xem chi tiết và chọn CV ứng tuyển.</p>
 
-      {showSavedOnly && (
-        <div className="flex items-center justify-between rounded-2xl border border-sand/50 bg-sandsoft px-4 py-3 text-sm">
-          <span className="flex items-center gap-2 font-medium text-foreground">
-            <Bookmark className="h-4 w-4 fill-sand text-sand" /> Chỉ hiển thị việc đã lưu ({visibleJobs.length})
-          </span>
-          <button
-            type="button"
-            onClick={() => setShowSavedOnly(false)}
-            className="text-xs font-semibold text-primary underline underline-offset-4 hover:text-primary"
-          >
-            Xem tất cả
-          </button>
-        </div>
-      )}
-
       <div id="viec-lam-results" className="grid gap-5 sm:gap-6">
+        <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+          Kết quả tìm kiếm{" "}
+          <span className="tabular-nums normal-case tracking-normal text-foreground">
+            ({loading ? "…" : totalCount} việc làm)
+          </span>
+        </h2>
         {loading && jobs.length === 0 ? (
           <>
             <JobCardSkeleton />
@@ -253,37 +283,27 @@ function ViecLamContent() {
             <JobCardSkeleton />
           </>
         ) : error ? (
-          <div className="flex flex-col items-center justify-center rounded-[2rem] border border-destructive/30 bg-card px-6 py-16 text-center">
+          <div className="flex flex-col items-center justify-center rounded-2xl border border-destructive/30 bg-card px-6 py-16 text-center">
             <p className="text-sm font-semibold text-foreground">Không tải được danh sách việc làm</p>
             <p className="mt-2 text-sm text-muted-foreground">{error}</p>
             <Button variant="outline" size="sm" className="mt-5 rounded-full" onClick={() => void reload()}>
               <RefreshCw className="mr-2 size-4" /> Thử lại
             </Button>
           </div>
-        ) : visibleJobs.length > 0 ? (
-           visibleJobs.map((job) => <JobCard key={job.id} job={job} onPreview={setPreviewJob} />)
-        ) : showSavedOnly ? (
-          <div className="flex flex-col items-center justify-center rounded-[2rem] border border-border bg-card px-6 py-20 text-center">
-            <div className="flex size-16 items-center justify-center rounded-full bg-sandsoft">
-              <Bookmark className="size-7 text-bronze" />
-            </div>
-            <h3 className="mt-5 text-lg font-semibold text-foreground">Chưa có việc làm đã lưu</h3>
-            <p className="mt-2 text-sm leading-6 text-muted-foreground max-w-md">
-              Bấm biểu tượng bookmark trên thẻ việc làm để lưu và xem lại sau mà không cần mở chi tiết.
-            </p>
-            <Button variant="outline" size="sm" className="mt-6 rounded-full" onClick={() => setShowSavedOnly(false)}>
-              Xem tất cả việc làm
-            </Button>
-          </div>
+        ) : jobs.length > 0 ? (
+           jobs.map((job) => <JobCard key={job.id} job={job} onPreview={setPreviewJob} />)
         ) : (
-          <div className="flex flex-col items-center justify-center rounded-[2rem] border border-border bg-card px-6 py-20 text-center">
-            <div className="flex size-16 items-center justify-center rounded-full bg-muted">
-              <Briefcase className="size-7 text-primary" />
+          <div className="flex flex-col items-center justify-center rounded-2xl border border-border bg-card px-6 py-16 text-center">
+            <div className="flex size-14 items-center justify-center rounded-2xl bg-primary/10">
+              <Search className="size-6 text-primary" />
             </div>
-            <h3 className="mt-5 text-lg font-semibold text-foreground">Không tìm thấy việc làm</h3>
-            <p className="mt-2 text-sm leading-6 text-muted-foreground max-w-md">
-              Thử thay đổi từ khóa hoặc bộ lọc để tìm kiếm nhiều cơ hội hơn
+            <h3 className="mt-4 text-base font-semibold text-foreground sm:text-lg">Không tìm thấy kết quả</h3>
+            <p className="mt-2 max-w-md text-sm leading-6 text-muted-foreground">
+              Thử thay đổi từ khóa hoặc xóa bớt bộ lọc để mở rộng phạm vi tìm kiếm.
             </p>
+            <Button variant="outline" size="sm" className="mt-5 rounded-full" onClick={handleReset}>
+              <RefreshCw className="mr-2 size-4" /> Đặt lại bộ lọc
+            </Button>
           </div>
         )}
         {loadingMore && (
@@ -294,7 +314,7 @@ function ViecLamContent() {
         )}
       </div>
 
-      {!showSavedOnly && !loading && !error && jobs.length > 0 && (
+      {!loading && !error && jobs.length > 0 && (
         <div className="flex flex-col items-center gap-2">
           <p className="text-xs text-muted-foreground">
             Trang {page}/{totalPages} • Tổng {totalCount} tin
@@ -302,6 +322,10 @@ function ViecLamContent() {
           <Pagination page={page} totalPages={totalPages} onPageChange={handlePageChange} />
         </div>
       )}
+        </>
+      )}
+
+      {tab !== "saved" && tab !== "applied" && <ExploreCompanies />}
 
       <Sheet open={Boolean(previewJob)} onOpenChange={(open) => !open && setPreviewJob(null)}>
         <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-xl">
@@ -309,7 +333,7 @@ function ViecLamContent() {
         </SheetContent>
       </Sheet>
 
-      {visibleJobs.length > 0 && (
+      {tab === "all" && jobs.length > 0 && (
         <p className="rounded-2xl border border-border bg-card px-4 py-3 text-center text-xs leading-5 text-muted-foreground">
           Mẹo: bấm <Bookmark className="mb-0.5 inline h-3 w-3" /> trên bất kỳ thẻ nào để lưu nhanh — không cần mở chi tiết.
         </p>
@@ -402,7 +426,7 @@ function DaLuuContent() {
           </div>
           <h3 className="mt-5 text-lg font-semibold text-foreground">Chưa có việc làm nào được lưu</h3>
           <p className="mt-2 max-w-md text-sm leading-6 text-muted-foreground">
-            Khi duyệt việc làm ở trang chủ hay danh sách việc làm, bấm biểu tượng <Bookmark className="mb-0.5 inline h-3.5 w-3.5" /> để lưu tin nhanh. Việc đã lưu sẽ xuất hiện tại đây và được giữ trên trình duyệt này.
+            Khi duyệt việc làm ở trang chủ hay danh sách việc làm, bấm biểu tượng <Bookmark className="mb-0.5 inline h-3.5 w-3.5" /> để lưu tin nhanh. Việc đã lưu sẽ xuất hiện tại đây để bạn xem lại bất cứ lúc nào.
           </p>
           <div className="mt-6 flex flex-col gap-3 sm:flex-row">
             <Link href="/viec-lam" className={cn(buttonVariants({ variant: "default" }), "rounded-full")}>

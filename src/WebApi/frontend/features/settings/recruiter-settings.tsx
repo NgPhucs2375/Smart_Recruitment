@@ -46,14 +46,23 @@ function ThemeSegmented() {
 }
 
 /** Workspace settings for recruiter/HR. No system-level fields. */
-export function RecruiterSettings({ identity }: { identity: StoredIdentity | null }) {
+export function RecruiterSettings({
+  identity,
+  embedded = false,
+}: {
+  identity: StoredIdentity | null;
+  /** Ẩn tiêu đề trang khi nhúng vào tab "Cài đặt" của /tai-khoan. */
+  embedded?: boolean;
+}) {
   const { mutate: logout, isPending } = useLogout();
   return (
     <div className="mx-auto w-full max-w-3xl space-y-5 px-4 py-6 sm:px-6 sm:py-8">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground">Cài đặt</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Quản lý tài khoản và không gian tuyển dụng.</p>
-      </div>
+      {!embedded && (
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground">Cài đặt</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Quản lý tài khoản và không gian tuyển dụng.</p>
+        </div>
+      )}
 
       <Tabs defaultValue="account">
         <TabsList>
@@ -74,7 +83,7 @@ export function RecruiterSettings({ identity }: { identity: StoredIdentity | nul
               title="Hồ sơ doanh nghiệp"
               description="Quản lý thông tin công ty của bạn"
               action={
-                <Link href="/doanh-nghiep/ho-so">
+                <Link href="/tai-khoan?tab=cong-ty">
                   <Button type="button" variant="outline" size="sm" className="h-9 rounded-xl">
                     <Building2 className="mr-1.5 size-3.5" />
                     Mở hồ sơ

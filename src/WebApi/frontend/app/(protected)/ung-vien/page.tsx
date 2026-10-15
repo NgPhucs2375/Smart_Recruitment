@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { CheckCheck, Eye, FileText, Search, UserX, Users } from "lucide-react";
+import { CheckCheck, Eye, Inbox, Search, UserX } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
@@ -11,9 +11,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import {
   AdminPageLayout,
-  AdminPageHeader,
   AdminCard,
-  AdminCardHeader,
   AdminEmptyState,
   AdminLoadingState,
 } from "@/components/admin/admin-page-layout";
@@ -270,44 +268,41 @@ export default function UngVienPage() {
 
   return (
     <AdminPageLayout>
-      <AdminPageHeader
-        icon={Users}
-        title="Hộp thư ứng viên"
-        description="Mở hồ sơ, đánh giá và xử lý các đơn ứng tuyển theo đúng trạng thái."
-      />
+      <h1 className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Hộp thư ứng viên</h1>
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-sm text-muted-foreground">Lọc theo:</span>
+        <Select value={statusFilter} onValueChange={(value) => { if (value !== null) setStatusFilter(value); }}>
+          <SelectTrigger aria-label="Lọc trạng thái" className="h-9 w-auto rounded-full px-4 text-sm"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tất cả trạng thái ({items.length})</SelectItem>
+            <SelectItem value="2">Chờ xử lý</SelectItem>
+            <SelectItem value="3">Đã xem</SelectItem>
+            <SelectItem value="6">Từ chối</SelectItem>
+            <SelectItem value="5">Phù hợp</SelectItem>
+          </SelectContent>
+        </Select>
+        <div className="relative ml-auto w-full sm:w-64">
+          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input aria-label="Tìm ứng viên hoặc tin" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Tìm ứng viên hoặc tin..." className="h-9 rounded-xl pl-9" />
+        </div>
+      </div>
 
       {err && <Alert variant="destructive"><AlertDescription>{err}</AlertDescription></Alert>}
       {successMsg && <Alert><AlertDescription>{successMsg}</AlertDescription></Alert>}
 
       <AdminCard>
-        <AdminCardHeader
-          title="Đơn ứng tuyển"
-          description={reachedCap ? "Hiển thị 100 đơn đầu tiên — dùng bộ lọc để thu hẹp danh sách" : `${filtered.length} đơn trong phạm vi bạn được phân quyền`}
-          action={
-            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
-              <Select value={statusFilter} onValueChange={(value) => { if (value !== null) setStatusFilter(value); }}>
-                <SelectTrigger className="h-9 w-44 rounded-lg px-3 text-sm"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Tất cả trạng thái</SelectItem>
-                  <SelectItem value="2">Chờ xử lý</SelectItem>
-                  <SelectItem value="3">Đã xem</SelectItem>
-                  <SelectItem value="6">Từ chối</SelectItem>
-                  <SelectItem value="5">Phù hợp</SelectItem>
-                </SelectContent>
-              </Select>
-              <div className="relative w-full sm:w-64">
-                <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                <Input aria-label="Tìm ứng viên hoặc tin" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Tìm ứng viên hoặc tin..." className="pl-9" />
-              </div>
-            </div>
-          }
-        />
+        {!loading && !err && filtered.length > 0 && (
+          <div className="border-b border-border p-5">
+            <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Danh sách đơn ứng tuyển ({filtered.length})</h2>
+            {reachedCap && <p className="mt-1 text-xs text-muted-foreground">Hiển thị 100 đơn đầu tiên — dùng bộ lọc để thu hẹp danh sách.</p>}
+          </div>
+        )}
 
         {loading ? <AdminLoadingState /> : filtered.length === 0 ? (
           <AdminEmptyState
-            icon={FileText}
-            title={search || statusFilter !== "all" ? "Không tìm thấy đơn phù hợp" : "Chưa có đơn ứng tuyển"}
-            description={search || statusFilter !== "all" ? "Thử thay đổi bộ lọc hoặc từ khóa." : "Các đơn ứng tuyển mới sẽ xuất hiện ở đây để bạn xử lý."}
+            icon={Inbox}
+            title={search || statusFilter !== "all" ? "Không tìm thấy đơn phù hợp" : "Chưa có hồ sơ ứng tuyển"}
+            description={search || statusFilter !== "all" ? "Thử thay đổi bộ lọc hoặc từ khóa." : "Hồ sơ của ứng viên nộp vào các vị trí bạn phụ trách sẽ hiển thị tại đây."}
           />
         ) : (
           <div className="divide-y divide-border">

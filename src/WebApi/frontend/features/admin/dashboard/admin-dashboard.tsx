@@ -117,14 +117,14 @@ export function AdminDashboard() {
 
       <section className="grid gap-4 lg:grid-cols-3">
         <AdminCard>
-          <AdminCardHeader title="Xử lý CV" description="Kết quả parse và phiên import" action={<FileSearch className="size-5 text-primary" />} />
+          <AdminCardHeader title="Xử lý CV" description="Kết quả đọc CV và các lượt tải lên" action={<FileSearch className="size-5 text-primary" />} />
           <div className="p-5"><ProcessingPanel data={data.CvProcessing} /></div>
         </AdminCard>
         <AdminCard>
-          <AdminCardHeader title="Recommendation snapshot" description="Kết quả phù hợp mới nhất đang được lưu" action={<Bot className="size-5 text-primary" />} />
+          <AdminCardHeader title="Tổng quan gợi ý" description="Kết quả phù hợp mới nhất" action={<Bot className="size-5 text-primary" />} />
           <div className="grid grid-cols-3 gap-3 p-5 text-center">
             <div className="rounded-xl bg-muted/60 p-3"><strong className="block text-xl tabular-nums">{data.Recommendation.Total.toLocaleString("vi-VN")}</strong><span className="text-xs text-muted-foreground">Kết quả</span></div>
-            <div className="rounded-xl bg-muted/60 p-3"><strong className="block text-xl tabular-nums">{data.Recommendation.AverageMatchPercent == null ? "N/A" : `${data.Recommendation.AverageMatchPercent}%`}</strong><span className="text-xs text-muted-foreground">Điểm TB</span></div>
+            <div className="rounded-xl bg-muted/60 p-3"><strong className="block text-xl tabular-nums">{data.Recommendation.AverageMatchPercent == null ? "—" : `${data.Recommendation.AverageMatchPercent}%`}</strong><span className="text-xs text-muted-foreground">Điểm TB</span></div>
             <div className="rounded-xl bg-muted/60 p-3"><strong className="block text-xl tabular-nums">{data.Recommendation.HighMatchCount.toLocaleString("vi-VN")}</strong><span className="text-xs text-muted-foreground">Khớp cao</span></div>
           </div>
         </AdminCard>
@@ -140,17 +140,17 @@ export function AdminDashboard() {
       </section>
 
       <AdminCard>
-        <AdminCardHeader title="System health" description="Chỉ gắn trạng thái cho dependency có probe thật" />
+        <AdminCardHeader title="Tình trạng hệ thống" description="Trạng thái các dịch vụ đang kết nối" />
         <div className="p-5"><SystemHealth items={data.Health} /></div>
       </AdminCard>
 
       <section className="grid gap-4 lg:grid-cols-2">
         <AdminCard>
-          <AdminCardHeader title="Hoạt động gần đây" description="Các bản ghi mới nhất, không phải audit log bất biến" />
+          <AdminCardHeader title="Hoạt động gần đây" description="Các bản ghi mới nhất" />
           <div className="p-5"><ActivityFeed items={data.RecentActivity} /></div>
         </AdminCard>
         <AdminCard>
-          <AdminCardHeader title="Giới hạn dữ liệu" description="Các chỉ số chưa thể tính chính xác từ schema hiện tại" />
+          <AdminCardHeader title="Giới hạn dữ liệu" description="Các chỉ số chưa thể tính chính xác" />
           <div className="space-y-3 p-5">{data.DataLimitations.map((item) => <div key={item} className="flex gap-3 rounded-xl bg-muted/50 p-3 text-sm text-muted-foreground"><AlertCircle className="mt-0.5 size-4 shrink-0 text-amber-500" /><p>{item}</p></div>)}</div>
         </AdminCard>
       </section>

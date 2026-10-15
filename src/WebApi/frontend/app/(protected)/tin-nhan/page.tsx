@@ -3,12 +3,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { HubConnectionBuilder, HttpTransportType, LogLevel, type HubConnection } from "@microsoft/signalr";
 import { Dialog as DialogPrimitive } from "@base-ui/react/dialog";
-import { Building2, Loader2, MessageCircle, Plus, RefreshCw, Search, Send, UserRound, X } from "lucide-react";
-import { AdminCard, AdminPageHeader, AdminPageLayout } from "@/components/admin/admin-page-layout";
+import { ArrowLeft, Building2, Loader2, MessageCircle, Plus, RefreshCw, Search, Send, UserRound, X } from "lucide-react";
+import { AdminCard, AdminEmptyState, AdminPageLayout } from "@/components/admin/admin-page-layout";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Message, MessageAvatar, MessageContent } from "@/components/ui/message";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { getValidToken } from "@/lib/auth-provider";
@@ -144,6 +143,16 @@ export default function TinNhanPage() {
   useEffect(() => { end.current?.scrollIntoView({ block: "nearest" }); }, [lastMessageId]);
 
   function choose(room: Conversation) { setMessages([]); setText(""); setSelected(room); setKind(room.Type === 0 ? "direct" : "company"); }
+  function goBack() { setMessages([]); setText(""); setSelected(null); }
+  function dayLabel(value: string) {
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return "";
+    return d.toDateString() === new Date().toDateString() ? "Hôm nay" : d.toLocaleDateString("vi-VN");
+  }
+  function timeLabel(value: string) {
+    const d = new Date(value);
+    return Number.isNaN(d.getTime()) ? "" : d.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
+  }
   function openDialog(nextKind: Kind) { setDialogKind(nextKind); setRecipient(null); setContactSearch(""); setNewTitle(""); setDialogError(""); setDialogOpen(true); }
 
   async function createConversation() {
@@ -187,36 +196,116 @@ export default function TinNhanPage() {
   const inputDisabled = !selected || connectionState !== "online" || !context?.CanSend;
 
   return <AdminPageLayout>
-    <AdminPageHeader icon={MessageCircle} title="Tin nhắn nội bộ" description="Phòng chung doanh nghiệp và trao đổi riêng với đồng nghiệp." actions={<Button disabled={!context?.CanCreate} onClick={() => openDialog("direct")}><Plus className="size-4" /> Cuộc trò chuyện mới</Button>} />
     {error && <div role="alert" className="mb-4 flex items-center justify-between gap-3 rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm"><p className="break-words">{error}</p><Button variant="outline" disabled={loading} onClick={() => void refresh()}>Thử lại</Button></div>}
-    <AdminCard className="grid min-h-[600px] overflow-hidden md:grid-cols-[280px_minmax(0,1fr)]">
-      <aside className="flex flex-col border-b border-border bg-muted/20 md:border-r md:border-b-0" aria-label="Danh sách hội thoại">
-        <div className="flex items-center justify-between p-4"><h2 className="font-semibold">Hội thoại</h2><Button variant="ghost" size="icon" aria-label="Làm mới hội thoại" disabled={loading} onClick={() => void refresh()}><RefreshCw className={`size-4 ${loading ? "animate-spin" : ""}`} /></Button></div>
-        <div className="grid grid-cols-2 gap-1 px-3" aria-label="Loại hội thoại">{(["company", "direct"] as const).map(value => <Button key={value} variant={kind === value ? "secondary" : "ghost"} aria-pressed={kind === value} onClick={() => setKind(value)}>{value === "company" ? <Building2 className="size-4" /> : <UserRound className="size-4" />}{value === "company" ? "Phòng chung" : "Chat riêng"}</Button>)}</div>
-        <label className="m-3 flex items-center gap-2 rounded-lg border border-input bg-background px-3"><Search className="size-4 shrink-0 text-muted-foreground" /><input aria-label="Tìm hội thoại" value={search} onChange={event => setSearch(event.target.value)} placeholder="Tìm hội thoại..." className="h-10 w-full min-w-0 bg-transparent text-sm outline-none" /></label>
-        <div className="max-h-48 flex-1 overflow-y-auto px-2 pb-3 md:max-h-[520px]">
-          {loading ? <div className="space-y-2 p-2">{[1, 2, 3].map(item => <Skeleton key={item} className="h-14 w-full" />)}</div> : visible.length ? visible.map(room => <button key={room.Id} type="button" aria-pressed={selectedId === room.Id} onClick={() => choose(room)} className={`flex min-h-16 w-full items-center gap-3 rounded-xl p-3 text-left transition hover:bg-muted focus-visible:outline-2 focus-visible:outline-primary ${selectedId === room.Id ? "bg-background ring-1 ring-border" : ""}`}>
-            <Avatar className="size-9"><AvatarFallback>{room.Type === 1 ? <Building2 className="size-4" /> : room.Title.slice(0, 2).toUpperCase()}</AvatarFallback></Avatar><span className="min-w-0"><span className="block truncate text-sm font-medium">{room.Title}</span><span className="text-xs text-muted-foreground">{room.Type === 1 ? "Mọi thành viên doanh nghiệp" : "Chỉ hai người tham gia"}</span></span>
-          </button>) : <div className="px-3 py-5 text-center"><p className="text-sm text-muted-foreground">{search ? "Không tìm thấy hội thoại." : kind === "direct" ? "Chọn đồng nghiệp để bắt đầu chat riêng." : "Chưa có phòng chung trong doanh nghiệp."}</p><Button variant="link" disabled={!context?.CanCreate} onClick={() => openDialog(kind)}>{kind === "direct" ? "Chọn người nhận" : "Tạo phòng chung"}</Button></div>}
+
+    {!selected ? (
+      /* MÀN HÌNH 2A — Danh sách hội thoại (tách hẳn khỏi khung chat) */
+      <section aria-label="Danh sách hội thoại">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h1 className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Tin nhắn nội bộ</h1>
+            <p className="mt-1 text-sm text-muted-foreground">Không gian trao đổi riêng của đội ngũ HR.</p>
+          </div>
+          <Button size="sm" className="shrink-0 rounded-full" disabled={!context?.CanCreate} onClick={() => openDialog("direct")}><Plus className="size-3.5" /> Tạo mới</Button>
         </div>
-      </aside>
-      <section className="flex min-w-0 flex-col bg-background">
-        <header className="flex min-h-20 items-center gap-3 border-b border-border px-4 py-3 sm:px-6"><Avatar><AvatarFallback>{selected?.Type === 0 ? <UserRound className="size-4" /> : <Building2 className="size-4" />}</AvatarFallback></Avatar><div className="min-w-0 flex-1"><h2 className="truncate font-semibold">{selected?.Title ?? "Bắt đầu cuộc trò chuyện"}</h2><p className="mt-1 text-xs text-muted-foreground" role="status">{!selected ? "Chọn phòng chung hoặc nhắn riêng cho đồng nghiệp" : connectionState === "online" ? "Đã kết nối" : connectionState === "connecting" ? "Đang kết nối lại..." : "Ngoại tuyến"}</p></div>{selected && connectionState === "offline" && <Button variant="outline" size="sm" onClick={() => setReconnectEpoch(value => value + 1)}>Kết nối lại</Button>}{selected && <Badge variant="secondary">{selected.Type === 0 ? "Riêng tư" : "Doanh nghiệp"}</Badge>}</header>
-        <div className="flex h-[420px] flex-1 flex-col gap-4 overflow-y-auto p-4 sm:p-6" role="log" aria-label="Tin nhắn" aria-live="polite" aria-busy={loadingMessages}>
-          {loadingMessages ? [1, 2, 3].map(item => <Skeleton key={item} className="h-16 w-2/3" />) : !selected ? <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center"><MessageCircle className="size-10 text-muted-foreground" /><h3 className="font-semibold">Trao đổi đúng người, đúng không gian</h3><p className="max-w-sm text-sm text-muted-foreground">Phòng chung dành cho toàn doanh nghiệp. Chat riêng chỉ hiển thị với bạn và người nhận.</p><Button disabled={!context?.CanCreate} onClick={() => openDialog("direct")}>Nhắn cho đồng nghiệp</Button></div> : <>
-            {hasOlder && <Button variant="ghost" disabled={loadingOlder} onClick={() => void loadOlder()}>{loadingOlder ? "Đang tải..." : "Tải tin nhắn trước đó"}</Button>}
+        <AdminCard className="mt-4">
+          <div className="flex flex-wrap items-center gap-2 border-b border-border p-4">
+            <div className="grid grid-cols-2 gap-1" aria-label="Loại hội thoại">
+              {(["company", "direct"] as const).map(value => (
+                <Button key={value} size="sm" variant={kind === value ? "secondary" : "ghost"} className="rounded-full" aria-pressed={kind === value} onClick={() => setKind(value)}>
+                  {value === "company" ? <Building2 className="size-3.5" /> : <UserRound className="size-3.5" />}{value === "company" ? "Phòng chung" : "Chat riêng"}
+                </Button>
+              ))}
+            </div>
+            <div className="relative ml-auto w-full sm:w-64">
+              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+              <input aria-label="Tìm hội thoại" value={search} onChange={event => setSearch(event.target.value)} placeholder="Tìm hội thoại..." className="h-9 w-full rounded-xl border border-input bg-background pl-9 pr-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring" />
+            </div>
+            <Button variant="ghost" size="icon" aria-label="Làm mới hội thoại" className="shrink-0" disabled={loading} onClick={() => void refresh()}><RefreshCw className={`size-4 ${loading ? "animate-spin" : ""}`} /></Button>
+          </div>
+          {loading ? <div className="space-y-2 p-4">{[1, 2, 3].map(item => <Skeleton key={item} className="h-16 w-full rounded-xl" />)}</div> : visible.length ? (
+            <ul className="divide-y divide-border/50">
+              {visible.map(room => (
+                <li key={room.Id}>
+                  <button type="button" aria-pressed={selectedId === room.Id} onClick={() => choose(room)} className={`flex min-h-16 w-full items-center gap-3 p-4 text-left transition hover:bg-muted/60 focus-visible:outline-2 focus-visible:outline-primary ${selectedId === room.Id ? "bg-workspace-primary-soft" : ""}`}>
+                    <Avatar className="size-10"><AvatarFallback>{room.Type === 1 ? <Building2 className="size-4" /> : room.Title.slice(0, 2).toUpperCase()}</AvatarFallback></Avatar>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-medium">{room.Title}</span>
+                      <span className="text-xs text-muted-foreground">{room.Type === 1 ? "Mọi thành viên doanh nghiệp" : "Chỉ hai người tham gia"}</span>
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <AdminEmptyState
+              icon={MessageCircle}
+              title={search ? "Không tìm thấy hội thoại" : "Chưa có cuộc trò chuyện"}
+              description={search ? "Thử đổi từ khóa tìm kiếm." : "Tạo nhóm trao đổi hoặc nhắn tin trực tiếp với các thành viên tuyển dụng trong doanh nghiệp của bạn."}
+              action={!search ? <Button size="sm" className="rounded-full" disabled={!context?.CanCreate} onClick={() => openDialog(kind)}><Plus className="size-4" /> Bắt đầu hội thoại mới</Button> : undefined}
+            />
+          )}
+        </AdminCard>
+      </section>
+    ) : (
+      /* MÀN HÌNH 2B — Chi tiết hội thoại (khung chat độc lập toàn chiều rộng) */
+      <section aria-label="Khung chat" className="flex h-[calc(100dvh-var(--shell-header-h)-7rem)] min-h-[440px] flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+        <h1 className="sr-only">Tin nhắn nội bộ</h1>
+        <header className="flex min-h-16 items-center gap-2 border-b border-border px-2 py-3 sm:gap-3 sm:px-4">
+          <Button variant="ghost" size="icon" aria-label="Quay lại danh sách hội thoại" onClick={goBack}><ArrowLeft className="size-4" /></Button>
+          <Avatar className="size-9 shrink-0"><AvatarFallback>{selected.Type === 0 ? <UserRound className="size-4" /> : <Building2 className="size-4" />}</AvatarFallback></Avatar>
+          <div className="min-w-0 flex-1">
+            <h2 className="truncate text-sm font-semibold sm:text-base">{selected.Title}</h2>
+            <span role="status" className="mt-0.5 inline-flex items-center gap-1.5 rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+              <span className={`size-1.5 rounded-full ${connectionState === "online" ? "bg-teal" : connectionState === "connecting" ? "bg-muted-foreground/60 animate-pulse" : "bg-muted-foreground/50"}`} aria-hidden />
+              {connectionState === "online" ? "Trực tuyến" : connectionState === "connecting" ? "Đang kết nối..." : "Ngoại tuyến"}
+            </span>
+          </div>
+          {connectionState === "offline" && <Button variant="outline" size="sm" className="shrink-0 rounded-full" onClick={() => setReconnectEpoch(value => value + 1)}>Kết nối lại</Button>}
+        </header>
+        <div className="flex flex-1 flex-col gap-3 overflow-y-auto p-4 sm:p-6" role="log" aria-label="Tin nhắn" aria-live="polite" aria-busy={loadingMessages}>
+          {loadingMessages ? [1, 2, 3].map(item => <Skeleton key={item} className="h-16 w-2/3 rounded-2xl" />) : <>
+            {hasOlder && <div className="flex justify-center"><Button variant="outline" size="sm" className="rounded-full" disabled={loadingOlder} onClick={() => void loadOlder()}>{loadingOlder ? "Đang tải..." : "Tải tin nhắn trước đó"}</Button></div>}
             {!messages.length && <p className="my-auto text-center text-sm text-muted-foreground">Chưa có tin nhắn. Hãy bắt đầu cuộc trò chuyện.</p>}
-            {messages.map(message => {
-              const mine = message.SenderId === String(context?.CurrentUserId);
-              const name = mine ? "Bạn" : contacts.find(contact => String(contact.Id) === message.SenderId)?.Name ?? "Thành viên";
-              return <Message key={message.Id} className={mine ? "justify-end" : "justify-start"}><MessageAvatar fallback={name.slice(0, 2)} className={mine ? "order-2" : ""} /><MessageContent className={`min-w-0 ${mine ? "bg-primary text-primary-foreground" : "bg-muted"}`}><p className="mb-1 text-xs font-semibold">{name}</p><p className="whitespace-pre-wrap [overflow-wrap:anywhere]">{message.Content}</p><time className={`mt-2 block text-xs ${mine ? "text-primary-foreground/80" : "text-muted-foreground"}`}>{new Date(message.Created).toLocaleString("vi-VN")}</time></MessageContent></Message>;
-            })}
+            {(() => {
+              let lastDay = "";
+              return messages.map(message => {
+                const mine = message.SenderId === String(context?.CurrentUserId);
+                const name = mine ? "Bạn" : contacts.find(contact => String(contact.Id) === message.SenderId)?.Name ?? "Thành viên";
+                const day = dayLabel(message.Created);
+                const showDay = day !== lastDay && day !== "";
+                lastDay = day;
+                return (
+                  <div key={message.Id}>
+                    {showDay && (
+                      <div className="my-2 flex items-center gap-3" aria-hidden>
+                        <div className="h-px flex-1 bg-border" />
+                        <span className="text-xs text-muted-foreground">{day}</span>
+                        <div className="h-px flex-1 bg-border" />
+                      </div>
+                    )}
+                    <div className={`flex gap-2 ${mine ? "flex-row-reverse" : ""}`}>
+                      {!mine && <Avatar className="mt-6 size-8 shrink-0"><AvatarFallback className="text-[10px]">{name.slice(0, 2)}</AvatarFallback></Avatar>}
+                      <div className={`flex max-w-[85%] flex-col gap-1 ${mine ? "items-end" : "items-start"}`}>
+                        <div className="flex items-center gap-2 px-1">
+                          <span className="text-xs font-semibold text-foreground">{name}</span>
+                          <time className="text-[11px] text-muted-foreground">{timeLabel(message.Created)}</time>
+                        </div>
+                        <div className={`rounded-2xl px-3.5 py-2.5 text-sm ${mine ? "rounded-br-md bg-primary text-primary-foreground" : "rounded-bl-md bg-muted"}`}>
+                          <p className="whitespace-pre-wrap [overflow-wrap:anywhere]">{message.Content}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              });
+            })()}
           </>}
           <div ref={end} />
         </div>
-        <div className="border-t border-border bg-card p-4"><label htmlFor="chat-content" className="sr-only">Nội dung tin nhắn</label><div className="flex items-end gap-2"><Textarea id="chat-content" value={text} maxLength={4000} disabled={inputDisabled || sending} onChange={event => setText(event.target.value)} onKeyDown={event => { if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); void sendMessage(); } }} placeholder={!context?.CanSend && context ? "Bạn chỉ có quyền đọc tin nhắn" : "Viết tin nhắn..."} className="min-h-14 resize-none" /><Button size="icon" className="size-11 shrink-0" aria-label="Gửi tin nhắn" disabled={inputDisabled || sending || !text.trim()} onClick={() => void sendMessage()}>{sending ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}</Button></div><p className="mt-2 text-xs text-muted-foreground">Enter để gửi · Shift + Enter để xuống dòng · {text.length}/4.000</p></div>
+        <div className="border-t border-border bg-card p-3 sm:p-4"><label htmlFor="chat-content" className="sr-only">Nội dung tin nhắn</label><div className="flex items-end gap-2"><Textarea id="chat-content" value={text} maxLength={4000} disabled={inputDisabled || sending} onChange={event => setText(event.target.value)} onKeyDown={event => { if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); void sendMessage(); } }} placeholder={!context?.CanSend && context ? "Bạn chỉ có quyền đọc tin nhắn" : "Nhập tin nhắn trao đổi..."} className="min-h-11 flex-1 resize-none rounded-xl" /><Button size="icon" className="size-11 shrink-0 rounded-xl" aria-label="Gửi tin nhắn" disabled={inputDisabled || sending || !text.trim()} onClick={() => void sendMessage()}>{sending ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}</Button></div><p className="mt-2 text-xs text-muted-foreground">Enter để gửi · Shift + Enter để xuống dòng · {text.length}/4.000</p></div>
       </section>
-    </AdminCard>
+    )}
     <DialogPrimitive.Root open={dialogOpen} onOpenChange={open => { if (!creating) setDialogOpen(open); }}><DialogPrimitive.Portal><DialogPrimitive.Backdrop className="fixed inset-0 z-50 bg-black/40" /><DialogPrimitive.Popup className="fixed top-1/2 left-1/2 z-50 max-h-[85dvh] w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl border border-border bg-card p-6 shadow-xl">
       <div className="flex items-start justify-between gap-3"><div><DialogPrimitive.Title className="text-lg font-semibold">Cuộc trò chuyện mới</DialogPrimitive.Title><DialogPrimitive.Description className="mt-1 text-sm text-muted-foreground">Chọn không gian trao đổi trong doanh nghiệp của bạn.</DialogPrimitive.Description></div><DialogPrimitive.Close render={<Button variant="ghost" size="icon" aria-label="Đóng" disabled={creating}><X className="size-4" /></Button>} /></div>
       <div className="my-5 grid grid-cols-2 gap-2">{(["direct", "company"] as const).map(value => <Button key={value} disabled={creating} variant={dialogKind === value ? "secondary" : "outline"} aria-pressed={dialogKind === value} onClick={() => { setDialogKind(value); setDialogError(""); }}>{value === "direct" ? <UserRound className="size-4" /> : <Building2 className="size-4" />}{value === "direct" ? "Chat riêng 1–1" : "Phòng chung"}</Button>)}</div>

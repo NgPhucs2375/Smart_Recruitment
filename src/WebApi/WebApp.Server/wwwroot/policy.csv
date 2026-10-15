@@ -1,3 +1,4 @@
+p, NGUOI_DAI_DIEN, baocao, show
 p, NGUOI_DAI_DIEN, chat, create
 p, NGUOI_DAI_DIEN, chat, list
 p, NGUOI_DAI_DIEN, chat, send
@@ -43,6 +44,7 @@ p, NGUOI_DAI_DIEN, tintuyendungs, delete
 p, NGUOI_DAI_DIEN, tintuyendungs, edit
 p, NGUOI_DAI_DIEN, tintuyendungs, list
 p, NGUOI_DAI_DIEN, tintuyendungs, show
+p, NHAN_SU, baocao, show
 p, NHAN_SU, chat, create
 p, NHAN_SU, chat, list
 p, NHAN_SU, chat, send
@@ -79,6 +81,7 @@ p, NHAN_SU, tintuyendungs, delete
 p, NHAN_SU, tintuyendungs, edit
 p, NHAN_SU, tintuyendungs, list
 p, NHAN_SU, tintuyendungs, show
+p, QUAN_TRI_VIEN, baocao, show
 p, QUAN_TRI_VIEN, cvthemes, create
 p, QUAN_TRI_VIEN, cvthemes, delete
 p, QUAN_TRI_VIEN, cvthemes, edit
