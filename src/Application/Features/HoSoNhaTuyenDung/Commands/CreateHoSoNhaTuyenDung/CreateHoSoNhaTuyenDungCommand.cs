@@ -30,6 +30,8 @@ public class CreateHoSoNhaTuyenDungCommandHandler(
         CancellationToken cancellationToken)
     {
         var ctx = await current.ResolveAsync();
+        if (ctx.VaiTro != VaiTroNguoiDung.QUAN_TRI_VIEN && request.NguoiDungId != ctx.Id)
+            throw new Application.Exceptions.ApiException("Thêm Nhân sự phải qua luồng lời mời; không được gán trực tiếp người dùng khác vào doanh nghiệp.", 403);
 
         var doanhNghiep = await context.DoanhNghieps
             .AsNoTracking()

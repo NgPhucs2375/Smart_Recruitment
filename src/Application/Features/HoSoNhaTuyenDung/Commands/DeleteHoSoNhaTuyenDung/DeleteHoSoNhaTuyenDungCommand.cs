@@ -12,7 +12,7 @@ namespace Application.Features.HoSoNhaTuyenDung.Commands.DeleteHoSoNhaTuyenDung
     }
 
     public class DeleteHoSoNhaTuyenDungCommandHandler(
-        IApplicationDbContext context)
+        IApplicationDbContext context, ICurrentNguoiDungService current)
         : IRequestHandler<DeleteHoSoNhaTuyenDungCommand, Response<int>>
     {
         public async Task<Response<int>> Handle(
@@ -28,6 +28,8 @@ namespace Application.Features.HoSoNhaTuyenDung.Commands.DeleteHoSoNhaTuyenDung
                     "Không tìm thấy hồ sơ nhà tuyển dụng.");
             }
 
+            if ((await current.ResolveAsync()).VaiTro != Domain.Enums.VaiTroNguoiDung.QUAN_TRI_VIEN)
+                throw new Application.Exceptions.ApiException("Gỡ Nhân sự phải qua luồng quản lý Nhân sự; không được xóa trực tiếp liên kết doanh nghiệp.", 403);
             context.HoSoNhaTuyenDungs.Remove(entity);
 
             await context.SaveChangesAsync(

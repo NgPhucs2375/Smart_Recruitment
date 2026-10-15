@@ -1,7 +1,7 @@
 "use client";
 
-import type { ResumeData } from "@/features/tao-cv/resume-data";
-import { DateText, EmptyPaper, SectionShell } from "./shared";
+import type { CvSectionId, ResumeData } from "@/features/tao-cv/resume-data";
+import { BannerSlot, DateText, EmptyPaper, SectionShell, SplitBlocks } from "./shared";
 
 /**
  * ATS Classic — single-column, compact, decoration-free layout for
@@ -30,9 +30,13 @@ export function AtsClassicTemplate({ data }: { data: ResumeData }) {
     );
   }
 
+  // Sóng 1 modular: thứ tự section theo layoutConfig (kéo thả ở form).
+  const orderOf = (id: CvSectionId): number => data.layout.sectionOrder.indexOf(id);
+
   return (
     <div className="cv-paper cv-paper-a4 px-9 py-7 text-[12.5px] leading-relaxed text-neutral-800">
       <header className="text-center">
+        <BannerSlot data={data} className="mb-1 text-[10px] font-bold uppercase tracking-[0.24em]" style={{ color: "#737373" }} />
         <h1 className="text-[24px] font-bold leading-tight tracking-tight text-neutral-950">
           {data.name || "Họ và tên"}
         </h1>
@@ -55,15 +59,18 @@ export function AtsClassicTemplate({ data }: { data: ResumeData }) {
         )}
       </header>
 
-      <div className="mt-5 space-y-4">
+      <div className="mt-5 flex flex-col gap-4">
         {data.summary && (
+          <div style={{ order: orderOf("summary") }}>
           <SectionShell>
             <ClassicTitle>Tóm tắt</ClassicTitle>
-            <p className="whitespace-pre-line text-center">{data.summary}</p>
+            <SplitBlocks text={data.summary} className="whitespace-pre-line break-words [overflow-wrap:anywhere] text-center" />
           </SectionShell>
+          </div>
         )}
 
         {data.experience.length > 0 && (
+          <div style={{ order: orderOf("experience") }}>
           <SectionShell>
             <ClassicTitle>Kinh nghiệm làm việc</ClassicTitle>
             <div className="space-y-3">
@@ -74,7 +81,7 @@ export function AtsClassicTemplate({ data }: { data: ResumeData }) {
                     <DateText range={job.range} className="text-[11.5px] text-neutral-500" />
                   </div>
                   <p className="font-medium text-neutral-700">{job.company}</p>
-                  {job.description && <p className="mt-0.5 whitespace-pre-line">{job.description}</p>}
+                  {job.description && <SplitBlocks text={job.description} className="mt-0.5 whitespace-pre-line break-words [overflow-wrap:anywhere]" />}
                   {job.skills.length > 0 && (
                     <p className="mt-0.5 text-[11.5px] text-neutral-600">{job.skills.join(" · ")}</p>
                   )}
@@ -82,9 +89,11 @@ export function AtsClassicTemplate({ data }: { data: ResumeData }) {
               ))}
             </div>
           </SectionShell>
+          </div>
         )}
 
         {data.education.length > 0 && (
+          <div style={{ order: orderOf("education") }}>
           <SectionShell>
             <ClassicTitle>Học vấn</ClassicTitle>
             <div className="space-y-2">
@@ -95,18 +104,20 @@ export function AtsClassicTemplate({ data }: { data: ResumeData }) {
                     <DateText range={edu.range} className="text-[11.5px] text-neutral-500" />
                   </div>
                   {edu.degree && <p className="font-medium text-neutral-700">{edu.degree}</p>}
-                  {edu.description && <p className="mt-0.5 whitespace-pre-line">{edu.description}</p>}
+                  {edu.description && <SplitBlocks text={edu.description} className="mt-0.5 whitespace-pre-line break-words [overflow-wrap:anywhere]" />}
                 </div>
               ))}
             </div>
           </SectionShell>
+          </div>
         )}
 
         {data.skills.length > 0 && (
+          <div style={{ order: orderOf("skills") }}>
           <SectionShell>
             <ClassicTitle>Kỹ năng</ClassicTitle>
             {/* Names only — no years, no proficiency suffixes. */}
-            <p className="text-center leading-loose">
+            <p className="cv-section-item text-center leading-loose">
               {data.skills.map((s, i) => (
                 <span key={s.id}>
                   {i > 0 && <span className="mx-1.5 text-neutral-400">·</span>}
@@ -115,9 +126,11 @@ export function AtsClassicTemplate({ data }: { data: ResumeData }) {
               ))}
             </p>
           </SectionShell>
+          </div>
         )}
 
         {data.projects.length > 0 && (
+          <div style={{ order: orderOf("projects") }}>
           <SectionShell>
             <ClassicTitle>Dự án</ClassicTitle>
             <div className="space-y-3">
@@ -130,7 +143,7 @@ export function AtsClassicTemplate({ data }: { data: ResumeData }) {
                     )}
                   </div>
                   {p.role && <p className="font-medium text-neutral-700">{p.role}</p>}
-                  {p.description && <p className="mt-0.5 whitespace-pre-line">{p.description}</p>}
+                  {p.description && <SplitBlocks text={p.description} className="mt-0.5 whitespace-pre-line break-words [overflow-wrap:anywhere]" />}
                   {p.tech.length > 0 && (
                     <p className="mt-0.5 text-[11.5px] text-neutral-600">{p.tech.join(" · ")}</p>
                   )}
@@ -138,9 +151,11 @@ export function AtsClassicTemplate({ data }: { data: ResumeData }) {
               ))}
             </div>
           </SectionShell>
+          </div>
         )}
 
         {data.certificates.length > 0 && (
+          <div style={{ order: orderOf("certificates") }}>
           <SectionShell>
             <ClassicTitle>Chứng chỉ</ClassicTitle>
             <div className="space-y-1.5">
@@ -157,6 +172,7 @@ export function AtsClassicTemplate({ data }: { data: ResumeData }) {
               ))}
             </div>
           </SectionShell>
+          </div>
         )}
       </div>
     </div>

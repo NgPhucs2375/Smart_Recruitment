@@ -25,6 +25,7 @@ namespace Application.Features.TinTuyenDung.Queries.GetTinTuyenDungById
         {
             var entity = await context.TinTuyenDungs
                 .Include(t => t.DoanhNghiep)
+                .Include(t => t.NguoiDangTin)
                 .Include(t => t.KyNangTinTuyenDungs)
                     .ThenInclude(k => k.KyNang)
                 .AsNoTracking()
@@ -38,12 +39,12 @@ namespace Application.Features.TinTuyenDung.Queries.GetTinTuyenDungById
 
             var ctx = await current.ResolveAsync();
 
-            var accessible = ctx.VaiTro == VaiTroNguoiDung.UNG_VIEN
-                ? entity.TrangThai == TrangThaiTinTuyenDung.DangTuyen
+            var accessible = ctx.VaiTro == VaiTroNguoiDung.QUAN_TRI_VIEN || (ctx.VaiTro == VaiTroNguoiDung.UNG_VIEN
+                ? entity.TrangThai == TrangThaiTinTuyenDung.DangTuyen && Domain.Common.RecruitmentDeadline.IsOpen(entity.NgayHetHan)
                 : ctx.VaiTro == VaiTroNguoiDung.NGUOI_DAI_DIEN
                     ? entity.DoanhNghiepId == ctx.DoanhNghiepId
                     : ctx.VaiTro == VaiTroNguoiDung.NHAN_SU &&
-                      entity.NguoiDangTinId == ctx.Id;
+                      entity.NguoiDangTinId == ctx.Id && entity.DoanhNghiepId == ctx.DoanhNghiepId);
 
             if (!accessible)
             {
@@ -78,6 +79,17 @@ namespace Application.Features.TinTuyenDung.Queries.GetTinTuyenDungById
                     .ToList(),
                 SoLuongUngVien = soLuongUngVien,
                 Created = entity.Created,
+                LastModified = entity.LastModified ?? entity.Created,
+                KetQuaSangLoc = ctx.VaiTro == VaiTroNguoiDung.UNG_VIEN ? "" : entity.KetQuaSangLoc,
+                NguoiDaiDienDaDuyet = entity.NguoiDaiDienDaDuyet,
+                VaiTroNguoiDang = entity.NguoiDangTin?.VaiTro.ToString() ?? "",
+                GhiChuKiemDuyet = ctx.VaiTro == VaiTroNguoiDung.UNG_VIEN ? "" : await context.Notifications
+                    .Where(n => n.ReferenceType == "TinTuyenDung" && n.ReferenceId == entity.Id)
+                    .OrderByDescending(n => n.Id).Select(n => n.NoiDung).FirstOrDefaultAsync(cancellationToken) ?? "",
+                KyNangYeuCaus = entity.KyNangTinTuyenDungs.Select(k => new GetAllTinTuyenDungs.JobSkillViewModel
+                {
+                    KyNangId = k.KyNangId, TenKyNang = k.KyNang.TenKyNang, MucDoYeuCau = (int)k.MucDoYeuCau
+                }).ToList(),
                 WorkMode = entity.PhuongThucLamViec.ToString(),
                 Level = InferLevel(entity.TieuDe, entity.KinhNghiemYeuCau),
                 EmploymentType = InferEmploymentType(entity.YeuCauCongViec, entity.MoTaCongViec)

@@ -5,6 +5,9 @@ using Application.Exceptions;
 using Application.Wrappers;
 using Infrastructure.Identity.Models;
 using Microsoft.AspNetCore.Identity;
+using Application.Interfaces;
+using Domain.Enums;
+using System;
 
 namespace Infrastructure.Identity
 {
@@ -18,13 +21,15 @@ namespace Infrastructure.Identity
         {
             private readonly RoleManager<IdentityRole> _roleManager;
             private readonly UserManager<ApplicationUser> _userManager;
+            private readonly IUserRoleService _roles;
             public UpdateUserCommandHandler(
                 UserManager<ApplicationUser> userManager,
-                RoleManager<IdentityRole> roleManager
+                RoleManager<IdentityRole> roleManager, IUserRoleService roles
                 )
             {
                 _userManager = userManager;
                 _roleManager = roleManager;
+                _roles = roles;
             }
 
             public async Task<Response<ApplicationUser>> Handle(UpdateUserCommand command, CancellationToken cancellationToken)
@@ -32,19 +37,15 @@ namespace Infrastructure.Identity
                 var user = await _userManager.FindByIdAsync(command.Id);
                 if (user == null) throw new ApiException($"User Not Found.");
                 user.EmailConfirmed = command.EmailConfirmed;
-                await _userManager.UpdateAsync(user);
-                var roles = await _userManager.GetRolesAsync(user);
-                // Add user claim for avatar
-
-                if (roles.Count > 0)
+                if (!string.IsNullOrWhiteSpace(command.RoleId))
                 {
                     var role = await _roleManager.FindByIdAsync(command.RoleId);
-                    if (!roles.Contains(command.RoleId))
-                    {
-                        await _userManager.RemoveFromRolesAsync(user, roles);
-                        await _userManager.AddToRoleAsync(user, role.Name);
-                    }
+                    if (role == null || !Enum.TryParse<VaiTroNguoiDung>(role.Name, out var parsed))
+                        throw new ApiException("Vai trò không hợp lệ.");
+                    await _roles.SetRoleAsync(user.Id, parsed, ct: cancellationToken);
                 }
+                var result = await _userManager.UpdateAsync(user);
+                if (!result.Succeeded) throw new ApiException("Không cập nhật được tài khoản.");
                 return new Response<ApplicationUser>(user);
             }
         }

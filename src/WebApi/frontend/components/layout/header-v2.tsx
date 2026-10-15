@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import { useSearchParams } from "next/navigation";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useActiveAuthProvider, useGetIdentity, useLogout } from "@refinedev/core";
 import { SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
 import {
@@ -16,7 +17,12 @@ import { ModeToggle } from "@/components/mode-toggle";
 import { NotificationBell } from "@/components/layout/notification-bell";
 import { cn } from "@/lib/utils";
 import { hoSoApi } from "@/lib/api/cv-api";
-import { LogOut, User, Search, Bell, Sun, Moon, Settings } from "lucide-react";
+import { LogOut, Search, Settings } from "lucide-react";
+
+const isApplePlatform =
+  typeof navigator !== "undefined" &&
+  (/Mac|iPhone|iPad|iPod/i.test(navigator.platform) ||
+    /Mac/.test(navigator.userAgent));
 
 interface Identity {
   id?: string;
@@ -32,8 +38,9 @@ export function AppHeaderV2() {
 }
 
 function DesktopHeaderV2() {
+  // Chiều cao khóa với SidebarHeader qua --shell-header-h (globals.css).
   return (
-    <header className="sticky top-0 z-[var(--z-header)] flex h-[4.5rem] shrink-0 items-center justify-between gap-4 border-b border-workspace-border/70 bg-workspace-topbar/85 px-4 backdrop-blur-xl supports-[backdrop-filter]:bg-workspace-topbar/70 md:px-8">
+    <header className="sticky top-0 z-[var(--z-header)] flex h-[var(--shell-header-h)] shrink-0 items-center justify-between gap-4 border-b border-workspace-border/70 bg-workspace-topbar/85 px-4 backdrop-blur-xl supports-[backdrop-filter]:bg-workspace-topbar/70 md:px-8">
       <div className="flex flex-1 items-center gap-4 min-w-0">
          <SidebarTrigger
           className="flex h-10 w-10 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
@@ -60,42 +67,72 @@ function MobileHeaderV2() {
         )}
       />
       <div className="flex-1" />
+      {/* Mobile không có SearchBar — link tới trang tìm việc là lối search duy nhất. */}
+      <Link
+        href="/viec-lam"
+        aria-label="Tìm việc làm"
+        className="flex size-9 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+      >
+        <Search className="size-4" />
+      </Link>
+      <NotificationBell />
       <ModeToggle />
+      <UserDropdownV2 />
     </header>
   );
 }
 
 function SearchBar() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const query = searchParams.get("q") ?? "";
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // ⌘K / Ctrl+K hoạt động toàn cục, không chỉ khi input đang focus.
+  useEffect(() => {
+    function handleGlobalShortcut(event: KeyboardEvent) {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        inputRef.current?.focus();
+        inputRef.current?.select();
+      }
+    }
+
+    window.addEventListener("keydown", handleGlobalShortcut);
+    return () => window.removeEventListener("keydown", handleGlobalShortcut);
+  }, []);
 
   return (
-    <div className="relative flex-1 max-w-xl hidden sm:block">
+    <form
+      className="relative flex-1 max-w-xl hidden sm:block"
+      onSubmit={(event) => {
+        event.preventDefault();
+        const value = inputRef.current?.value.trim() ?? "";
+        if (!value) return;
+        router.push(`/viec-lam?keyword=${encodeURIComponent(value)}`);
+      }}
+    >
       <label htmlFor="global-search" className="sr-only">
-        Tìm kiếm toàn cục
+        Tìm kiếm việc làm
       </label>
       <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
       <input
+        ref={inputRef}
         id="global-search"
         type="search"
         defaultValue={query}
-        placeholder="Tìm kiếm trang, nội dung... (⌘K)"
+        placeholder={isApplePlatform ? "Tìm việc làm... (⌘K)" : "Tìm việc làm... (Ctrl+K)"}
         className="flex h-10 w-full rounded-xl border border-input/80 bg-workspace-soft px-10 py-2 text-sm text-workspace-text shadow-sm ring-offset-background transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-workspace-muted focus-visible:bg-workspace-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-workspace-primary focus-visible:ring-offset-2"
-        onKeyDown={(e) => {
-          if ((e.metaKey || e.ctrlKey) && e.key === "k") {
-            e.preventDefault();
-            (e.currentTarget as HTMLInputElement).focus();
-          }
-        }}
       />
       <kbd className="hidden absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground items-center gap-1 px-1.5 py-0.5 rounded bg-muted">
-        ⌘K
+        {isApplePlatform ? "⌘K" : "Ctrl K"}
       </kbd>
-    </div>
+    </form>
   );
 }
 
 function UserDropdownV2() {
+  const router = useRouter();
   const authProvider = useActiveAuthProvider();
   const { data: identity } = useGetIdentity<Identity>();
   const { mutate: logout, isPending } = useLogout();
@@ -164,7 +201,7 @@ function UserDropdownV2() {
         <DropdownMenuSeparator />
         <DropdownMenuItem
           className="flex items-center gap-2 cursor-pointer"
-          onClick={() => window.location.href = "/settings"}
+          onClick={() => router.push("/settings")}
         >
           <Settings className="h-4 w-4" />
           <span>Cài đặt</span>
@@ -172,6 +209,7 @@ function UserDropdownV2() {
         <DropdownMenuSeparator />
         <DropdownMenuItem
           className="flex items-center gap-2 text-destructive focus:text-destructive cursor-pointer"
+          disabled={isPending}
           onClick={() => logout()}
         >
           <LogOut className="h-4 w-4" />

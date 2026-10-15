@@ -1,8 +1,10 @@
 using Application.Interfaces;
+using Application.Features.KetQuaPhuHop.Cache;
 using Application.Wrappers;
 using Domain.Enums;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Distributed;
 using System.Linq;
 
 namespace Application.Features.KyNangTinTuyenDung.Commands.UpdateKyNangTinTuyenDung;
@@ -20,15 +22,16 @@ public class UpdateKyNangTinTuyenDungCommand : IRequest<Response<int>>
 
 public class UpdateKyNangTinTuyenDungCommandHandler(
     IApplicationDbContext context,
-    ICurrentNguoiDungService current)
+    ICurrentNguoiDungService current,
+    IDistributedCache cache)
     : IRequestHandler<UpdateKyNangTinTuyenDungCommand, Response<int>>
 {
     public async Task<Response<int>> Handle(
         UpdateKyNangTinTuyenDungCommand request,
         CancellationToken cancellationToken)
     {
-        var entity = await context.KyNangTinTuyenDungs
-            .FindAsync([request.Id], cancellationToken);
+        var entity = await context.KyNangTinTuyenDungs.AsTracking()
+            .FirstOrDefaultAsync(x => x.Id == request.Id, cancellationToken);
 
         if (entity == null)
         {
@@ -98,12 +101,15 @@ public class UpdateKyNangTinTuyenDungCommandHandler(
                 "Kỹ năng này đã tồn tại trong tin tuyển dụng.");
         }
 
+        foreach (var tinId in new[] { entity.TinTuyenDungId, request.TinTuyenDungId }.Distinct())
+            await Application.Services.StateMachineTinTuyenDung.JobDraft.PrepareSkillEditAsync(context, tinId, ctx, cancellationToken);
         entity.TinTuyenDungId = request.TinTuyenDungId;
         entity.KyNangId = request.KyNangId;
         entity.MucDoYeuCau = request.MucDoYeuCau;
 
         await context.SaveChangesAsync(
             cancellationToken);
+        await RecommendationCache.InvalidateJobsAsync(cache, cancellationToken);
 
         return new Response<int>(
             data: entity.Id,

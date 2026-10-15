@@ -47,7 +47,7 @@ public class GetAllCVUngViensQueryHandler(
             cancellationToken) ?? "1";
         var cacheKey = CVUngVienListCache.BuildKey(
             currentUser.Id,
-            version,
+            version + ":role:" + currentUser.VaiTro + ":company:" + currentUser.DoanhNghiepId,
             skip,
             request._end,
             filter,
@@ -68,8 +68,7 @@ public class GetAllCVUngViensQueryHandler(
             .AsNoTracking()
             .Where(x =>
                 !x.IsDaXoa &&
-                x.HoSoUngVien.NguoiDungId ==
-                    currentUser.Id);
+                (currentUser.VaiTro == Domain.Enums.VaiTroNguoiDung.QUAN_TRI_VIEN || x.HoSoUngVien.NguoiDungId == currentUser.Id));
 
         if (!string.IsNullOrWhiteSpace(filter))
         {

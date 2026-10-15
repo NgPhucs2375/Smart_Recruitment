@@ -86,10 +86,22 @@ namespace Infrastructure.Identity
             services.AddIdentity<ApplicationUser, IdentityRole>().AddEntityFrameworkStores<IdentityContext>().AddDefaultTokenProviders();
             #region Services
             services.AddScoped<IAccountService, AccountService>();
+            services.AddScoped<IUserRoleService, UserRoleService>();
+            services.AddScoped<PermissionCache>();
+            services.AddScoped<IPermissionService, PermissionService>();
             services.AddScoped<IUserEmailResolver, UserEmailResolver>();
             #endregion
             services.Configure<JWTSettings>(configuration.GetSection("JWTSettings"));
             services.Configure<GoogleSettings>(configuration.GetSection("GoogleSettings"));
+            services.Configure<GitHubSettings>(configuration.GetSection("GitHubSettings"));
+            services.AddHttpClient("github", client =>
+            {
+                client.Timeout = TimeSpan.FromSeconds(20);
+                // GitHub API bắt buộc header User-Agent; Accept JSON áp dụng cho cả
+                // token endpoint (/login/oauth/access_token) lẫn REST API (api.github.com).
+                client.DefaultRequestHeaders.UserAgent.ParseAdd("HIREAI-Backend");
+                client.DefaultRequestHeaders.Accept.ParseAdd("application/json");
+            });
             services.AddAuthentication(options =>
             {
                 options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -113,6 +125,7 @@ namespace Infrastructure.Identity
                     };
                     o.Events = new JwtBearerEvents
                     {
+                        OnTokenValidated = BearerSessionValidator.ValidateAsync,
                         OnMessageReceived = context =>
                         {
                             var accessToken = context.Request.Query["access_token"];

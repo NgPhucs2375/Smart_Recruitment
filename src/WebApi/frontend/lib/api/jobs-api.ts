@@ -1,4 +1,4 @@
-import { getAuthToken } from "../auth-provider";
+import { getValidToken } from "../auth-provider";
 import type { Job, JobFilters } from "@/features/viec-lam/types";
 import { formatSalaryFull } from "@/features/viec-lam/salary";
 
@@ -28,7 +28,7 @@ function errorMessage(body: unknown, fallback: string): string {
 }
 
 async function fetchRaw(path: string, init?: RequestInit): Promise<Record<string, unknown> | null> {
-  const token = getAuthToken();
+  const token = await getValidToken();
   const res = await fetch(`/api/dotnet/${path}`, {
     ...init,
     cache: "no-store",
@@ -112,6 +112,12 @@ function relativeDate(value: string): string {
 }
 
 export const jobsApi = {
+  async getFilterOptions(): Promise<{ categories: { id: number; name: string }[]; skills: { id: number; name: string }[] }> {
+    const body = await fetchRaw("tintuyendungs/filter-options");
+    const source = (body?.Data ?? body?.data ?? {}) as Record<string, unknown>;
+    const read = (value: unknown) => Array.isArray(value) ? value.map(row => ({ id: Number(row.Id ?? row.id), name: String(row.Name ?? row.name ?? "") })) : [];
+    return { categories: read(source.Categories ?? source.categories), skills: read(source.Skills ?? source.skills) };
+  },
   async getJobs(filters: JobFilters, pageNumber = 1, pageSize = 10): Promise<JobsPage> {
     const params = new URLSearchParams();
     params.set("_start", String((pageNumber - 1) * pageSize));
@@ -123,6 +129,9 @@ export const jobsApi = {
     if (filters.level) params.set("Level", filters.level);
     if (filters.employmentType) params.set("EmploymentType", filters.employmentType);
     if (filters.workMode) params.set("WorkMode", filters.workMode);
+    if (filters.categoryId) params.set("DanhMucNgheId", String(filters.categoryId));
+    for (const skill of filters.skillIds ?? []) params.append("KyNangIds", String(skill));
+    if (filters.matchAllSkills) params.set("MatchAllSkills", "true");
 
     const body = await fetchRaw(`tintuyendungs?${params.toString()}`);
     const data = body?.Data ?? body?.data;

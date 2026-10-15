@@ -1,5 +1,9 @@
 import type { CvFormData } from "@/lib/types";
 import { normalizeCvPartialDate, renderCvDateRange } from "./cv-data";
+import { safeHref } from "./validation";
+
+/** Re-export để template dùng chung allowlist href (chống javascript:…). */
+export { safeHref };
 
 /**
  * View-only resume model for visual templates.
@@ -13,6 +17,90 @@ export type ResumeContact = {
   href?: string;
 };
 
+/** Modular layout: thứ tự + ẩn/hiện section, kéo thả ở form, render ở template. */
+export type CvSectionId = "summary" | "experience" | "projects" | "education" | "skills" | "certificates";
+
+export interface SectionConfig {
+  id: CvSectionId;
+  /** Tiêu đề hiển thị (cho phép đổi tên). */
+  title: string;
+  isVisible: boolean;
+}
+
+export interface ResumeLayoutConfig {
+  sectionOrder: CvSectionId[];
+  sections: Record<CvSectionId, SectionConfig>;
+  /** Section nào vào sidebar khi theme dùng layout 2 cột (config từng theme). */
+  sidebarSections?: CvSectionId[];
+  /** Khối liên hệ nằm ở header hay đầu sidebar (theme 2 cột). Mặc định header. */
+  contactsPlacement?: "header" | "sidebar";
+}
+
+/** Mặc định sidebar: liên hệ không có id riêng nên chỉ gồm skills + certificates. */
+export const DEFAULT_SIDEBAR_SECTIONS: CvSectionId[] = ["skills", "certificates"];
+
+export const DEFAULT_SECTION_ORDER: CvSectionId[] = [
+  "summary",
+  "experience",
+  "projects",
+  "education",
+  "skills",
+  "certificates",
+];
+
+const SECTION_TITLES: Record<CvSectionId, string> = {
+  summary: "Tóm tắt",
+  experience: "Kinh nghiệm làm việc",
+  projects: "Dự án tiêu biểu",
+  education: "Học vấn",
+  skills: "Kỹ năng",
+  certificates: "Chứng chỉ",
+};
+
+export function createDefaultLayoutConfig(): ResumeLayoutConfig {
+  const sections = {} as Record<CvSectionId, SectionConfig>;
+  for (const id of DEFAULT_SECTION_ORDER) {
+    sections[id] = { id, title: SECTION_TITLES[id], isVisible: true };
+  }
+  return { sectionOrder: [...DEFAULT_SECTION_ORDER], sections, sidebarSections: [...DEFAULT_SIDEBAR_SECTIONS], contactsPlacement: "header" };
+}
+
+/** Chuẩn hóa config từ JSON/draft cũ: thiếu → default, id lạ → bỏ. */
+export function normalizeLayoutConfig(raw: unknown): ResumeLayoutConfig {
+  const fallback = createDefaultLayoutConfig();
+  if (!raw || typeof raw !== "object") return fallback;
+  const r = raw as { sectionOrder?: unknown; sections?: unknown; sidebarSections?: unknown };
+  const order = Array.isArray(r.sectionOrder)
+    ? (r.sectionOrder as unknown[]).filter(
+        (id): id is CvSectionId => typeof id === "string" && (DEFAULT_SECTION_ORDER as string[]).includes(id),
+      )
+    : [];
+  const merged: CvSectionId[] = [...order];
+  for (const id of DEFAULT_SECTION_ORDER) {
+    if (!merged.includes(id)) merged.push(id);
+  }
+  const rawSections = (r.sections ?? {}) as Record<string, { title?: unknown; isVisible?: unknown }>;
+  const sections = { ...fallback.sections };
+  for (const id of DEFAULT_SECTION_ORDER) {
+    const s = rawSections[id];
+    if (s && typeof s === "object") {
+      sections[id] = {
+        id,
+        title: typeof s.title === "string" && s.title.trim() ? s.title : SECTION_TITLES[id],
+        isVisible: s.isVisible !== false,
+      };
+    }
+  }
+  const sidebar = validSidebar(r.sidebarSections) ? [...r.sidebarSections] : [...DEFAULT_SIDEBAR_SECTIONS];
+  const rawPlacement = (r as { contactsPlacement?: unknown }).contactsPlacement;
+  const contactsPlacement = rawPlacement === "sidebar" ? "sidebar" : "header";
+  return { sectionOrder: merged, sections, sidebarSections: sidebar, contactsPlacement };
+}
+
+const validSidebar = (v: unknown): v is CvSectionId[] =>
+  Array.isArray(v) &&
+  v.every((id) => typeof id === "string" && (DEFAULT_SECTION_ORDER as string[]).includes(id));
+
 export type ResumeDateRange = {
   start: string;
   end: string;
@@ -24,6 +112,8 @@ export type ResumeExperience = {
   role: string;
   company: string;
   range: ResumeDateRange;
+  /** Upzi: cờ "hiện vẫn đang làm ở đây" — mirror của range.current. */
+  isCurrent?: boolean;
   description?: string;
   skills: string[];
 };
@@ -33,6 +123,8 @@ export type ResumeEducation = {
   school: string;
   degree?: string;
   range: ResumeDateRange;
+  /** Upzi: cờ "hiện vẫn đang học ở đây" — mirror của range.current. */
+  isCurrent?: boolean;
   description?: string;
 };
 
@@ -63,6 +155,11 @@ export type ResumeCertificate = {
 export type ResumeData = {
   name: string;
   title?: string;
+  /** URL ảnh đại diện (proxy HoSo hoặc placeholder local). Trống = không render. */
+  avatarUrl?: string;
+  /** B4-title: override banner trang trí (VD "Thực đơn nghề nghiệp").
+      Trống = template dùng literal mặc định của nó. Additive, không vỡ cũ. */
+  customTitle?: string;
   summary?: string;
   contacts: ResumeContact[];
   experience: ResumeExperience[];
@@ -71,8 +168,17 @@ export type ResumeData = {
   projects: ResumeProject[];
   certificates: ResumeCertificate[];
   hasContent: boolean;
+  /** Bố cục kéo thả/ẩn hiện — template sóng 1 render theo sectionOrder. */
+  layout: ResumeLayoutConfig;
 };
 
+const hasText = (v: string | null | undefined): boolean => (v ?? "").trim() !== "";
+
+/**
+ * Card test trống (chưa gõ chữ nào) không lên preview: tránh hàng
+ * "Chức danh"/"Trường" giả chiếm chỗ, đẩy section sau và để lại
+ * khoảng trắng chết cuối trang. Dữ liệu form giữ nguyên.
+ */
 const fmtPartial = (v: string | null | undefined): string => normalizeCvPartialDate(v);
 
 const toRange = (
@@ -85,12 +191,9 @@ const toRange = (
 };
 
 const asLink = (value: string): string | undefined => {
-  const v = value.trim();
-  if (!v) return undefined;
-  if (/^(https?:\/\/|mailto:|tel:)/i.test(v)) return v;
-  if (v.includes("@") && !v.includes(" ")) return `mailto:${v}`;
-  if (/^[+\d][\d\s().-]*$/.test(v)) return `tel:${v.replace(/[\s().-]/g, "")}`;
-  return `https://${v}`;
+  // Ủy quyền allowlist cho validation.safeHref: chặn javascript:/data:…,
+  // giữ mailto:/tel:, còn lại prefix https://. Không link được -> undefined.
+  return safeHref(value);
 };
 
 /**
@@ -99,6 +202,9 @@ const asLink = (value: string): string | undefined => {
  */
 export function toResumeData(data: CvFormData): ResumeData {
   const lh = data.thongTinLienHe;
+  const layout = normalizeLayoutConfig(data.layoutConfig);
+  const visible = (id: CvSectionId): boolean => layout.sections[id]?.isVisible !== false;
+  const avatarUrl = lh.anhDaiDienUrl?.trim() || undefined;
 
   const contacts: ResumeContact[] = [];
   if (lh.email) contacts.push({ label: "Email", value: lh.email, href: asLink(lh.email) });
@@ -108,30 +214,48 @@ export function toResumeData(data: CvFormData): ResumeData {
   if (lh.github) contacts.push({ label: "GitHub", value: lh.github, href: asLink(lh.github) });
   if (lh.portfolio) contacts.push({ label: "Portfolio", value: lh.portfolio, href: asLink(lh.portfolio) });
 
-  const experience: ResumeExperience[] = data.kinhNghiemLamViec.map((k) => ({
+  const experience: ResumeExperience[] = !visible("experience")
+    ? []
+    : data.kinhNghiemLamViec
+    .filter((k) => hasText(k.congTy) || hasText(k.chucDanh) || hasText(k.moTa) || k.kyNangSuDung.length > 0)
+    .map((k) => ({
     id: k.id,
     role: k.chucDanh,
     company: k.congTy,
     range: toRange(k.tuNgay, k.denNgay, k.isHienTai),
+    isCurrent: k.isHienTai || undefined,
     description: k.moTa || undefined,
     skills: k.kyNangSuDung,
   }));
 
-  const education: ResumeEducation[] = data.hocVan.map((h) => ({
+  const education: ResumeEducation[] = !visible("education")
+    ? []
+    : data.hocVan
+    .filter((h) => hasText(h.truong) || hasText(h.chuyenNganh) || hasText(h.moTa))
+    .map((h) => ({
     id: h.id,
     school: h.truong,
     degree: h.chuyenNganh || undefined,
     range: toRange(h.tuNgay, h.denNgay, h.isHienTai),
+    isCurrent: h.isHienTai || undefined,
     description: h.moTa || undefined,
   }));
 
-  const skills: ResumeSkill[] = data.kyNang.map((k) => ({
+  const skills: ResumeSkill[] = !visible("skills")
+    ? []
+    : data.kyNang
+    .filter((k) => hasText(k.tenKyNang))
+    .map((k) => ({
     id: k.id,
     name: k.tenKyNang,
     detail: [k.soNamKinhNghiem, k.mucDoThanhThao].filter(Boolean).join(" · ") || undefined,
   }));
 
-  const projects: ResumeProject[] = data.duAn.map((d) => {
+  const projects: ResumeProject[] = !visible("projects")
+    ? []
+    : data.duAn
+    .filter((d) => hasText(d.tenDuAn) || hasText(d.vaiTro) || hasText(d.moTa) || d.congNghe.length > 0)
+    .map((d) => {
     const r = renderCvDateRange(d.tuNgay, d.denNgay, d.isHienTai);
     return {
       id: d.id,
@@ -144,7 +268,11 @@ export function toResumeData(data: CvFormData): ResumeData {
     };
   });
 
-  const certificates: ResumeCertificate[] = data.chungChi.map((c) => ({
+  const certificates: ResumeCertificate[] = !visible("certificates")
+    ? []
+    : data.chungChi
+    .filter((c) => hasText(c.tenChungChi) || hasText(c.donViCap))
+    .map((c) => ({
     id: c.id,
     name: c.tenChungChi,
     issuer: c.donViCap || undefined,
@@ -163,7 +291,9 @@ export function toResumeData(data: CvFormData): ResumeData {
   return {
     name: lh.hoTen,
     title: lh.viTriUngTuyen || undefined,
-    summary: lh.gioiThieuBanThan || undefined,
+    customTitle: data.tieuDeHienThi?.trim() || undefined,
+    avatarUrl,
+    summary: visible("summary") ? lh.gioiThieuBanThan || undefined : undefined,
     contacts,
     experience,
     education,
@@ -171,5 +301,6 @@ export function toResumeData(data: CvFormData): ResumeData {
     projects,
     certificates,
     hasContent,
+    layout,
   };
 }

@@ -16,6 +16,7 @@ using Infrastructure.Identity;
 namespace WebApp.Server.Controllers.v1
 {
     [Authorize]
+    [Authorize(Roles = "QUAN_TRI_VIEN")]
     [Route("api/nguoidungs")]
     public class NguoiDungController : BaseApiController
     {
@@ -64,7 +65,7 @@ namespace WebApp.Server.Controllers.v1
                 var users = await identityContext.Users
                     .AsNoTracking()
                     .Where(u => appIds.Contains(u.Id))
-                    .Select(u => new { u.Id, u.Email, u.UserName, u.LockoutEnd })
+                    .Select(u => new { u.Id, u.Email, u.UserName, u.LockoutEnd, u.FirstName, u.LastName, u.PhoneNumber })
                     .ToDictionaryAsync(u => u.Id);
 
                 var kw = search?.Trim().ToLowerInvariant();
@@ -78,6 +79,8 @@ namespace WebApp.Server.Controllers.v1
                             Id = x.Id,
                             Email = u?.Email,
                             UserName = u?.UserName,
+                            HoTen = string.Join(" ", new[] { u?.FirstName, u?.LastName }.Where(s => !string.IsNullOrWhiteSpace(s))),
+                            PhoneNumber = u?.PhoneNumber,
                             ApplicationUserId = x.ApplicationUserId,
                             VaiTro = x.VaiTro,
                             IsActive = x.IsActive,
@@ -87,7 +90,9 @@ namespace WebApp.Server.Controllers.v1
                     })
                     .Where(x => string.IsNullOrWhiteSpace(kw)
                         || (x.Email != null && x.Email.ToLowerInvariant().Contains(kw))
-                        || (x.UserName != null && x.UserName.ToLowerInvariant().Contains(kw)))
+                        || (x.UserName != null && x.UserName.ToLowerInvariant().Contains(kw))
+                        || (x.HoTen != null && x.HoTen.ToLowerInvariant().Contains(kw))
+                        || (x.PhoneNumber != null && x.PhoneNumber.Contains(kw)))
                     .OrderBy(x => x.Id)
                     .ToList();
 

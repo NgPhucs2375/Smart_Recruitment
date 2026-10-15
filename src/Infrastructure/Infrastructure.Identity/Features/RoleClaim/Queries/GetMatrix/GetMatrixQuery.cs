@@ -41,7 +41,7 @@ namespace Infrastructure.Identity.Features.RoleClaim.Queries.GetMatrix
 
                 // Build matrix: roleName -> resource -> actions[]
                 var matrix = new Dictionary<string, Dictionary<string, string[]>>();
-                var allResources = new HashSet<string>();
+                var allResources = new HashSet<string>(Infrastructure.Identity.Services.PermissionPolicy.Resources);
 
                 foreach (var role in roles)
                 {
@@ -49,9 +49,10 @@ namespace Infrastructure.Identity.Features.RoleClaim.Queries.GetMatrix
                     var resMap = new Dictionary<string, string[]>();
                     foreach (var rc in roleClaims)
                     {
-                        if (string.IsNullOrWhiteSpace(rc.ClaimType)) continue;
+                        if (string.IsNullOrWhiteSpace(rc.ClaimType) || !Infrastructure.Identity.Services.PermissionPolicy.Resources.Contains(rc.ClaimType)) continue;
                         var actions = rc.ClaimValue?.Split('#', System.StringSplitOptions.RemoveEmptyEntries) ?? System.Array.Empty<string>();
-                        resMap[rc.ClaimType] = actions;
+                        resMap[rc.ClaimType] = (resMap.GetValueOrDefault(rc.ClaimType) ?? System.Array.Empty<string>())
+                            .Concat(actions).Where(a => Infrastructure.Identity.Services.PermissionPolicy.IsEffective(role.Name, rc.ClaimType, a)).Distinct().ToArray();
                         allResources.Add(rc.ClaimType);
                     }
                     matrix[role.Name] = resMap;
@@ -62,6 +63,8 @@ namespace Infrastructure.Identity.Features.RoleClaim.Queries.GetMatrix
                 {
                     roles = roles.Select(r => new { id = r.Id, name = r.Name }).ToList(),
                     resources = allResources.OrderBy(r => r).ToList(),
+                    allowedActions = roles.ToDictionary(r => r.Name, r => Infrastructure.Identity.Services.PermissionPolicy.Resources
+                        .ToDictionary(resource => resource, resource => Infrastructure.Identity.Services.PermissionPolicy.AllowedActions(r.Name, resource))),
                     matrix
                 };
 

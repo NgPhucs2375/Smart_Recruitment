@@ -17,6 +17,7 @@ import {
   Laptop,
   Loader2,
   MapPin,
+  RefreshCw,
   Send,
   Users,
   Wallet,
@@ -283,6 +284,11 @@ export default function ViecLamChiTietPage() {
           icon={CircleAlert}
           title="Không tải được tin tuyển dụng"
           description={loadError || "Tin không tồn tại."}
+          action={loadError ? (
+            <Button variant="outline" size="sm" onClick={() => void load()}>
+              <RefreshCw className="size-4" /> Thử lại
+            </Button>
+          ) : undefined}
         />
       ) : (
         <div className="space-y-6">

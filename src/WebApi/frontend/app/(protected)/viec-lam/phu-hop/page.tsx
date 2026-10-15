@@ -109,25 +109,38 @@ function CandidatePhuHop() {
     .filter((item) => category === "all" || (category === "high" ? item.diemPhuHop >= 0.7 : category === "medium" ? item.diemPhuHop >= 0.4 : item.diemPhuHop < 0.4))
     .sort((a, b) => sort === "score" ? b.diemPhuHop - a.diemPhuHop : a.tieuDe.localeCompare(b.tieuDe, "vi"));
 
+  const highCount = items.filter((item) => item.diemPhuHop >= 0.66).length;
+  const mediumCount = items.filter((item) => item.diemPhuHop >= 0.5 && item.diemPhuHop < 0.66).length;
+
   const money = (value: number) => value > 0 ? `${Math.round(value).toLocaleString("vi-VN")} đ` : "Thỏa thuận";
 
   return (
     <AdminPageLayout>
-      <AdminPageHeader icon={Target} title="Việc làm phù hợp" description="Top 10 tin tuyển dụng được Recommen-Adam xếp hạng theo CV mặc định của bạn." />
+      <AdminPageHeader icon={Target} title="Việc làm phù hợp" description="Các tin đang tuyển được xếp hạng theo kỹ năng, vị trí, lương và địa điểm trong CV của bạn." />
 
       {err && <div className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">{err}</div>}
 
       <AdminCard>
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border p-5">
-          <AdminCardHeader title="Dành cho bạn" description={`${visibleItems.length}/${items.length} kết quả`} />
+        <div className="border-b border-border p-5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <AdminCardHeader title="Dành cho bạn" description={`${visibleItems.length}/${items.length} tin đang hiển thị`} />
+            <Link href="/viec-lam" className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-primary hover:border-primary/50">
+              Tìm thêm việc <ArrowRight className="size-3.5" />
+            </Link>
+          </div>
+          <div className="mt-4 grid gap-2 sm:grid-cols-3">
+            <div className="rounded-xl bg-primary/5 px-3 py-2"><p className="text-xs text-muted-foreground">Tổng gợi ý</p><p className="text-xl font-semibold text-foreground">{items.length}</p></div>
+            <div className="rounded-xl bg-emerald-500/10 px-3 py-2"><p className="text-xs text-muted-foreground">Phù hợp cao</p><p className="text-xl font-semibold text-emerald-700">{highCount}</p></div>
+            <div className="rounded-xl bg-amber-500/10 px-3 py-2"><p className="text-xs text-muted-foreground">Từ 50% trở lên</p><p className="text-xl font-semibold text-amber-700">{highCount + mediumCount}</p></div>
+          </div>
           <div className="flex flex-wrap gap-2">
             <Select value={category} onValueChange={(value) => setCategory(value as typeof category)}>
               <SelectTrigger className="h-9 w-44 rounded-lg px-3 text-sm"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Tất cả mức độ</SelectItem>
-                <SelectItem value="high">Cao từ 70%</SelectItem>
-                <SelectItem value="medium">Trung bình 40–69%</SelectItem>
-                <SelectItem value="low">Thấp dưới 40%</SelectItem>
+                <SelectItem value="high">Cao từ 66%</SelectItem>
+                <SelectItem value="medium">Trung bình 50–65%</SelectItem>
+                <SelectItem value="low">Thấp dưới 50%</SelectItem>
               </SelectContent>
             </Select>
             <Select value={sort} onValueChange={(value) => setSort(value as typeof sort)}>
@@ -146,18 +159,18 @@ function CandidatePhuHop() {
             {visibleItems.map(item => {
               const pct = Math.round(item.diemPhuHop * 100);
               return (
-                <div key={item.tinTuyenDungId} className="flex flex-col justify-between gap-4 p-5 sm:flex-row sm:items-center">
+                <div key={item.tinTuyenDungId} className="flex flex-col justify-between gap-4 p-5 transition-colors hover:bg-muted/30 sm:flex-row sm:items-center">
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="truncate text-sm font-medium text-foreground">{item.tieuDe}</span>
-                      <Badge>{pct}%</Badge>
+                      <Badge variant={pct >= 66 ? "default" : "secondary"}>{pct}% match</Badge>
                     </div>
                     <div className="mt-1 text-sm text-muted-foreground">
                       {item.tenDoanhNghiep || "Doanh nghiệp chưa cập nhật"} · {item.diaDiemLamViec || "Linh hoạt"} · {money(item.luongToiThieu)} - {money(item.luongToiDa)}
                     </div>
                     <div className="mt-2 flex flex-wrap gap-1.5">
-                      {item.kyNangThoa.slice(0, 4).map((skill) => <span key={skill} className="rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary">{skill}</span>)}
-                      {item.kyNangThieu.length > 0 && <span className="text-xs text-amber-700">Thiếu: {item.kyNangThieu.slice(0, 3).join(", ")}</span>}
+                      {item.kyNangThoa.slice(0, 4).map((skill) => <span key={skill} className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs text-emerald-700">Khớp: {skill}</span>)}
+                      {item.kyNangThieu.length > 0 && <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-xs text-amber-700">Thiếu: {item.kyNangThieu.slice(0, 3).join(", ")}</span>}
                     </div>
                   </div>
                   <div className="flex shrink-0 items-center gap-3">

@@ -1,119 +1,53 @@
-using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using MediatR;
+using Application.Exceptions;
 using Application.Wrappers;
 using Infrastructure.Identity.Contexts;
-using Microsoft.AspNetCore.Hosting;
+using Infrastructure.Identity.Services;
+using MediatR;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Casbin;
 
-namespace Infrastructure.Identity.Features.RoleClaim.Commands.UpdateMatrix
+namespace Infrastructure.Identity.Features.RoleClaim.Commands.UpdateMatrix;
+
+public class UpdateMatrixCommand : IRequest<Response<object>>
 {
-    public class UpdateMatrixCommand : IRequest<Response<object>>
+    public Dictionary<string, Dictionary<string, string[]>> Matrix { get; set; }
+}
+
+public class UpdateMatrixCommandHandler(IdentityContext context, PermissionCache cache)
+    : IRequestHandler<UpdateMatrixCommand, Response<object>>
+{
+    public async Task<Response<object>> Handle(UpdateMatrixCommand request, CancellationToken ct)
     {
-        // matrix: roleName -> resource -> actions[]
-        public Dictionary<string, Dictionary<string, string[]>> Matrix { get; set; }
-    }
-
-    public class UpdateMatrixCommandHandler : IRequestHandler<UpdateMatrixCommand, Response<object>>
-    {
-        private readonly IdentityContext _context;
-        private readonly RoleManager<IdentityRole> _roleManager;
-        private readonly IWebHostEnvironment _env;
-        private readonly Enforcer _enforcer;
-
-        public UpdateMatrixCommandHandler(
-            IdentityContext context,
-            RoleManager<IdentityRole> roleManager,
-            IWebHostEnvironment env,
-            Enforcer enforcer)
+        if (request.Matrix == null) throw new ApiException("Matrix không được rỗng.", 400);
+        var replacement = new List<IdentityRoleClaim<string>>();
+        var roleIds = new List<string>();
+        // Validate the whole request before any database/cache mutation.
+        foreach (var entry in request.Matrix)
         {
-            _context = context;
-            _roleManager = roleManager;
-            _env = env;
-            _enforcer = enforcer;
-        }
-
-        public async Task<Response<object>> Handle(UpdateMatrixCommand request, CancellationToken cancellationToken)
-        {
-            if (request.Matrix == null) throw new Application.Exceptions.ApiException("Matrix không được rỗng", 400);
-
-            var allowedNames = new HashSet<string>(new[] {
-                Domain.Enums.VaiTroNguoiDung.QUAN_TRI_VIEN.ToString(),
-                Domain.Enums.VaiTroNguoiDung.NGUOI_DAI_DIEN.ToString(),
-                Domain.Enums.VaiTroNguoiDung.NHAN_SU.ToString(),
-                Domain.Enums.VaiTroNguoiDung.UNG_VIEN.ToString()
-            });
-            // Chỉ cho 4 role chuẩn VaiTroNguoiDung.cs:10-13
-            foreach (var k in request.Matrix.Keys.ToList())
-                if (!allowedNames.Contains(k))
-                    throw new Application.Exceptions.ApiException($"Role {k} không hợp lệ — chỉ 4 role chuẩn được phép", 400);
-
-            using var tx = await _context.Database.BeginTransactionAsync(cancellationToken);
-
-            foreach (var roleEntry in request.Matrix)
+            if (!PermissionPolicy.IsSystemRole(entry.Key) || entry.Value == null) throw new ApiException("Vai trò/ma trận không hợp lệ.", 400);
+            var role = await context.Roles.SingleOrDefaultAsync(r => r.Name == entry.Key, ct) ?? throw new ApiException("Không tìm thấy vai trò.", 404);
+            roleIds.Add(role.Id);
+            var seen = new HashSet<string>();
+            foreach (var resource in entry.Value)
             {
-                var roleName = roleEntry.Key;
-                var role = await _roleManager.FindByNameAsync(roleName);
-                if (role == null) throw new Application.Exceptions.ApiException($"Role {roleName} không tồn tại", 404);
-
-                var existingClaims = await _context.RoleClaims.Where(rc => rc.RoleId == role.Id).ToListAsync(cancellationToken);
-                // Remove old claims for this role
-                _context.RoleClaims.RemoveRange(existingClaims);
-                await _context.SaveChangesAsync(cancellationToken);
-
-                // Remove from Casbin enforcer
-                await _enforcer.RemoveFilteredPolicyAsync(0, roleName);
-
-                foreach (var resEntry in roleEntry.Value)
-                {
-                    var resource = resEntry.Key?.Trim();
-                    var actions = resEntry.Value?.Where(a => !string.IsNullOrWhiteSpace(a)).Select(a => a.Trim()).Distinct().ToArray();
-                    if (string.IsNullOrWhiteSpace(resource) || actions == null || actions.Length == 0) continue;
-
-                    var claimValue = string.Join("#", actions);
-                    _context.RoleClaims.Add(new IdentityRoleClaim<string>
-                    {
-                        RoleId = role.Id,
-                        ClaimType = resource,
-                        ClaimValue = claimValue
-                    });
-
-                    foreach (var act in actions)
-                        await _enforcer.AddPolicyAsync(roleName, resource, act);
-                }
+                var grant = PermissionPolicy.Normalize(role.Name, resource.Key, resource.Value);
+                if (!seen.Add(grant.Resource)) throw new ApiException("Resource trùng sau khi chuẩn hóa.", 400);
+                if (grant.Actions.Length > 0)
+                    replacement.Add(new IdentityRoleClaim<string> { RoleId = role.Id, ClaimType = grant.Resource, ClaimValue = string.Join("#", grant.Actions) });
             }
-
-            await _context.SaveChangesAsync(cancellationToken);
-
-            // Atomic write policy.csv cache — chỉ 4 role chuẩn
-            var csvPath = Path.Combine(_env.WebRootPath, "policy.csv");
-            var lines = new List<string>();
-            var allRoles = await _roleManager.Roles.AsNoTracking().Where(r => allowedNames.Contains(r.Name)).ToListAsync(cancellationToken);
-            foreach (var role in allRoles)
-            {
-                var claims = await _context.RoleClaims.AsNoTracking().Where(rc => rc.RoleId == role.Id).ToListAsync(cancellationToken);
-                foreach (var rc in claims)
-                {
-                    var acts = rc.ClaimValue?.Split('#', StringSplitOptions.RemoveEmptyEntries) ?? Array.Empty<string>();
-                    foreach (var act in acts)
-                        lines.Add($"p, {role.Name}, {rc.ClaimType}, {act}");
-                }
-            }
-            lines = lines.Distinct().OrderBy(s => s).ToList();
-            var tmp = csvPath + ".tmp";
-            await File.WriteAllLinesAsync(tmp, lines, cancellationToken);
-            File.Move(tmp, csvPath, true);
-
-            await _enforcer.SavePolicyAsync();
-            await tx.CommitAsync(cancellationToken);
-
-            return new Response<object>(true, new { updated = lines.Count }, "Cập nhật ma trận quyền thành công");
         }
+        await using var transaction = await context.Database.BeginTransactionAsync(ct);
+        var old = await context.RoleClaims.Where(c => roleIds.Contains(c.RoleId)).ToListAsync(ct);
+        context.RoleClaims.RemoveRange(old);
+        await context.SaveChangesAsync(ct);
+        context.RoleClaims.AddRange(replacement);
+        await context.SaveChangesAsync(ct);
+        await transaction.CommitAsync(ct);
+        await cache.RefreshAsync();
+        return new Response<object>(true, new { updated = replacement.Sum(c => c.ClaimValue.Split('#').Length) }, "Cập nhật ma trận quyền thành công");
     }
 }

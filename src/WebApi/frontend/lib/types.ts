@@ -146,6 +146,11 @@ export type CvFormData = {
   chungChi: ChungChiItem[];
   templateId: string;
   tenFile: string;
+  /** B4-title: tiêu đề banner do người dùng gõ (VD thay "Thực đơn nghề nghiệp").
+      FE-only — mapper KHÔNG đưa vào Payload backend. Trống = dùng mặc định mẫu. */
+  tieuDeHienThi?: string;
+  /** Modular layout (kéo thả/ẩn hiện section). FE-only như tieuDeHienThi. */
+  layoutConfig?: import("@/features/tao-cv/resume-data").ResumeLayoutConfig;
 };
 
 export type CvDatePrecision = "month_year" | "year_only";

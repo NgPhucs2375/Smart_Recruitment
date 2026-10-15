@@ -1,8 +1,11 @@
 using Application.Interfaces;
+using Application.Features.KetQuaPhuHop.Cache;
+using Application.Features.KetQuaPhuHop.Matching;
 using Application.Wrappers;
 using Domain.Enums;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Distributed;
 
 namespace Application.Features.KetQuaPhuHop.Queries.SuggestCandidatesForJob;
 
@@ -27,18 +30,10 @@ public class SuggestedCandidateViewModel
 
 public class GetSuggestedCandidatesForJobQueryHandler(
     IApplicationDbContext context,
-    ICurrentNguoiDungService currentNguoiDungService)
+    ICurrentNguoiDungService currentNguoiDungService,
+    IDistributedCache cache)
     : IRequestHandler<GetSuggestedCandidatesForJobQuery, Response<List<SuggestedCandidateViewModel>>>
 {
-    private static readonly Dictionary<MucDoYC, float> MucDoWeights = new()
-    {
-        [MucDoYC.BatBuc] = 3f,
-        [MucDoYC.UuTien] = 2f,
-        [MucDoYC.KhongBatBuoc] = 1f,
-    };
-
-    private static string Norm(string? value) => (value ?? string.Empty).Trim().ToLowerInvariant();
-
     public async Task<Response<List<SuggestedCandidateViewModel>>> Handle(
         GetSuggestedCandidatesForJobQuery request,
         CancellationToken cancellationToken)
@@ -58,9 +53,39 @@ public class GetSuggestedCandidatesForJobQueryHandler(
         if (job == null)
             return new Response<List<SuggestedCandidateViewModel>>("Không tìm thấy tin tuyển dụng thuộc doanh nghiệp của bạn.");
 
+        var jobVersion = await RecommendationCache.GetVersionAsync(
+            cache,
+            RecommendationCache.JobsVersionKey,
+            cancellationToken);
+        var candidateVersion = await RecommendationCache.GetVersionAsync(
+            cache,
+            RecommendationCache.CandidatePoolVersionKey,
+            cancellationToken);
+        var cacheKey = RecommendationCache.CandidateRecommendationsKey(
+            current.DoanhNghiepId.Value,
+            job.Id,
+            jobVersion,
+            candidateVersion,
+            Math.Clamp(request.TopN, 1, 20));
+        var cached = await RecommendationCache.GetAsync<List<SuggestedCandidateViewModel>>(
+            cache,
+            cacheKey,
+            cancellationToken);
+        if (cached != null)
+        {
+            return new Response<List<SuggestedCandidateViewModel>>(
+                cached,
+                cached.Count == 0
+                    ? "Chưa tìm thấy ứng viên phù hợp với tin tuyển dụng này."
+                    : $"Tìm thấy {cached.Count} ứng viên phù hợp.");
+        }
+
         var requirements = job.KyNangTinTuyenDungs
             .Where(x => x.KyNang != null && !string.IsNullOrWhiteSpace(x.KyNang.TenKyNang))
+            .Select(x => new MatchRequirement(x.KyNangId, x.KyNang.TenKyNang, x.MucDoYeuCau))
             .ToList();
+        var jobInput = new JobMatchInput(requirements, job.TieuDe,
+            job.LuongToiThieu, job.LuongToiDa, job.DiaDiemLamViec);
         var now = DateTime.UtcNow;
         var cvs = await context.CVUngViens.AsNoTracking()
             .Include(x => x.ThongTinLienHe)
@@ -73,46 +98,14 @@ public class GetSuggestedCandidatesForJobQueryHandler(
         var results = new List<SuggestedCandidateViewModel>();
         foreach (var cv in cvs)
         {
-            var skillIds = cv.KyNangs.Where(x => x.KyNangId.HasValue)
-                .Select(x => x.KyNangId!.Value).ToHashSet();
-            var skillNames = cv.KyNangs.Select(x => Norm(x.TenKyNang))
-                .Where(x => x.Length > 0).ToHashSet();
-            var matched = new List<string>();
-            var missing = new List<string>();
-            float totalWeight = 0f, matchedWeight = 0f;
-
-            foreach (var requirement in requirements)
-            {
-                var weight = MucDoWeights.GetValueOrDefault(requirement.MucDoYeuCau, 1f);
-                totalWeight += weight;
-                var name = Norm(requirement.KyNang!.TenKyNang);
-                if (skillIds.Contains(requirement.KyNangId) || skillNames.Contains(name))
-                {
-                    matchedWeight += weight;
-                    matched.Add(requirement.KyNang!.TenKyNang.Trim());
-                }
-                else
-                {
-                    missing.Add(requirement.KyNang!.TenKyNang.Trim());
-                }
-            }
-
-            var score = totalWeight > 0f ? matchedWeight / totalWeight : 0f;
-            var position = Norm(cv.ThongTinLienHe?.ViTriUngTuyen ?? cv.HoSoUngVien.ViTriUngTuyen);
-            var title = Norm(job.TieuDe);
-            if (position.Length >= 3 && (title.Contains(position) || position.Contains(title))) score += 0.10f;
-
-            var desiredSalary = cv.ThongTinLienHe?.MucLuongMongMuon ?? (decimal)cv.HoSoUngVien.MucLuongMongMuon;
-            if (desiredSalary > 0 && job.LuongToiDa >= desiredSalary &&
-                (job.LuongToiThieu <= desiredSalary || job.LuongToiThieu == 0)) score += 0.05f;
-
-            var address = Norm(cv.ThongTinLienHe?.DiaChi ?? cv.HoSoUngVien.DiaChi);
-            var location = Norm(job.DiaDiemLamViec);
-            if (address.Length > 0 && location.Length > 0 &&
-                (location.Contains(address) || address.Contains(location))) score += 0.05f;
-
-            score = Math.Min(score, 1f);
-            if (score <= 0f) continue;
+            var match = ContentBasedMatcher.Evaluate(new CandidateMatchInput(
+                cv.KyNangs.Select(x => new MatchSkill(x.KyNangId, x.TenKyNang)).ToList(),
+                !string.IsNullOrWhiteSpace(cv.ThongTinLienHe?.ViTriUngTuyen)
+                    ? cv.ThongTinLienHe.ViTriUngTuyen : cv.HoSoUngVien.ViTriUngTuyen,
+                cv.ThongTinLienHe?.MucLuongMongMuon ?? (decimal)cv.HoSoUngVien.MucLuongMongMuon,
+                !string.IsNullOrWhiteSpace(cv.ThongTinLienHe?.DiaChi)
+                    ? cv.ThongTinLienHe.DiaChi : cv.HoSoUngVien.DiaChi), jobInput);
+            if (match.Score <= 0f) continue;
 
             results.Add(new SuggestedCandidateViewModel
             {
@@ -120,10 +113,10 @@ public class GetSuggestedCandidatesForJobQueryHandler(
                 CvUngVienId = cv.Id,
                 HoTen = cv.ThongTinLienHe?.HoTen ?? cv.HoSoUngVien.HoTen ?? string.Empty,
                 ViTriUngTuyen = cv.ThongTinLienHe?.ViTriUngTuyen ?? cv.HoSoUngVien.ViTriUngTuyen ?? string.Empty,
-                DiemPhuHop = score,
-                PhanLoai = score >= 0.66f ? "Cao" : score >= 0.33f ? "TrungBinh" : "Thap",
-                KyNangThoa = matched,
-                KyNangThieu = missing,
+                DiemPhuHop = match.Score,
+                PhanLoai = match.Score >= 0.66f ? "Cao" : match.Score >= 0.33f ? "TrungBinh" : "Thap",
+                KyNangThoa = match.MatchedSkills.ToList(),
+                KyNangThieu = match.MissingSkills.ToList(),
                 SoNamKinhNghiem = (int)Math.Floor(cv.HoSoUngVien.KinhNghiemLamViecs
                     .Where(x => x.TuNgay.HasValue)
                     .Sum(x => ((x.DenNgay ?? now) - x.TuNgay!.Value).TotalDays) / 365d)
@@ -134,6 +127,7 @@ public class GetSuggestedCandidatesForJobQueryHandler(
             .ThenBy(x => x.HoTen)
             .Take(Math.Clamp(request.TopN, 1, 20))
             .ToList();
+        await RecommendationCache.SetAsync(cache, cacheKey, top, cancellationToken);
         return new Response<List<SuggestedCandidateViewModel>>(top,
             top.Count == 0 ? "Chưa tìm thấy ứng viên phù hợp với tin tuyển dụng này." : $"Tìm thấy {top.Count} ứng viên phù hợp.");
     }

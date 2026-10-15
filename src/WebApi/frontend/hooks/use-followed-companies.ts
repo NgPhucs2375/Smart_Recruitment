@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 
 const STORAGE_KEY = "hireai.followed.companies";
 
@@ -31,6 +32,7 @@ export function useFollowedCompanies() {
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setFollowedIds(readStorage());
     setHydrated(true);
   }, []);
@@ -64,13 +66,20 @@ export function useFollowedCompanies() {
     };
   }, []);
 
+  // Ref để toggle đọc trạng thái mới nhất mà không kèm followedIds vào deps.
+  const followedRef = useRef(followedIds);
+  useEffect(() => { followedRef.current = followedIds; }, [followedIds]);
+
   const toggle = useCallback((id: number) => {
+    const wasFollowed = followedRef.current.has(id);
     setFollowedIds((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
+      if (wasFollowed) next.delete(id);
       else next.add(id);
       return next;
     });
+    // Toast ngoài updater — strict mode gọi updater 2 lần, toast sẽ nhân đôi.
+    toast.success(wasFollowed ? "Đã bỏ theo dõi công ty" : "Đã theo dõi công ty");
   }, []);
 
   const isFollowed = useCallback((id: number) => followedIds.has(id), [followedIds]);

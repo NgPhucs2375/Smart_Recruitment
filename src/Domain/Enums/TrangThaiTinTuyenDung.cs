@@ -7,7 +7,7 @@ public enum TrangThaiTinTuyenDung
     {
         Nhap = 0,               // HR đang soạn thảo
         ChoDuyetHeThong = 1,    // Đang chạy qua funnel rule kiểm duyệt
-        ChoAdminDuyet = 2,      // Tin rơi vào vùng nghi vấn (Vùng xám 30-85%), đẩy về Admin
+        ChoAdminDuyet = 2,      // Chờ Admin duyệt tay cuối cùng, chưa công khai
         DangTuyen = 3,          // Đã công khai trên hệ thống
         TamDung = 4,            // HR chủ động tạm ngưng nhận đơn
         HetHan = 5,             // Background Job quét tự động đóng khi qua Deadline

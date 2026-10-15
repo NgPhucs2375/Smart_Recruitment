@@ -51,6 +51,8 @@ export function MagicLinkForm({
           <Input
             id="magic-email-input"
             type="email"
+            autoComplete="email"
+            inputMode="email"
             placeholder="name@company.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}

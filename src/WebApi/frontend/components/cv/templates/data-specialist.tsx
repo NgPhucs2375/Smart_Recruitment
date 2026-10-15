@@ -1,7 +1,7 @@
 "use client";
 
 import type { ResumeData } from "@/features/tao-cv/resume-data";
-import { DateText, EmptyPaper, SectionShell, SkillChips } from "./shared";
+import { BannerSlot, DateText, EmptyPaper, SectionShell, SkillChips, SplitBlocks, resolveSectionTitle } from "./shared";
 
 /**
  * Data Specialist — stack strip directly under the header, project-led
@@ -36,12 +36,13 @@ export function DataSpecialistTemplate({ data }: { data: ResumeData }) {
   return (
     <div className="cv-paper cv-paper-a4 text-[12.5px] leading-relaxed" style={{ color: INK }}>
       <header className="px-7 pb-4 pt-6">
+        <BannerSlot data={data} className="mb-1 font-mono text-[10px] font-bold uppercase tracking-[0.24em]" style={{ color: SUBTLE }} />
         <div className="flex items-baseline justify-between gap-3">
           <h1 className="text-[24px] font-bold leading-tight tracking-tight">
             {data.name || "Họ và tên"}
           </h1>
           {data.title && (
-            <p className="shrink-0 font-mono text-[11.5px] font-bold" style={{ color: NAVY }}>{data.title}</p>
+            <p className="min-w-0 shrink-0 font-mono text-[11.5px] font-bold" style={{ color: NAVY }}>{data.title}</p>
           )}
         </div>
         {data.contacts.length > 0 && (
@@ -76,14 +77,14 @@ export function DataSpecialistTemplate({ data }: { data: ResumeData }) {
       <div className="space-y-4 px-7 py-5" style={{ borderTop: "1px solid var(--hire-line)" }}>
         {data.summary && (
           <SectionShell>
-            <Title>profile</Title>
-            <p className="whitespace-pre-line" style={{ color: SUBTLE }}>{data.summary}</p>
+            <Title>{resolveSectionTitle("summary", "profile")}</Title>
+            <SplitBlocks text={data.summary} className="whitespace-pre-line break-words [overflow-wrap:anywhere]" style={{ color: SUBTLE }} />
           </SectionShell>
         )}
 
         {data.projects.length > 0 && (
           <SectionShell>
-            <Title>selected_work</Title>
+            <Title>{resolveSectionTitle("projects", "selected_work")}</Title>
             <div className="space-y-3">
               {data.projects.map((p) => (
                 <div key={p.id} className="cv-section-item">
@@ -94,7 +95,7 @@ export function DataSpecialistTemplate({ data }: { data: ResumeData }) {
                     )}
                   </div>
                   {p.description && (
-                    <p className="mt-0.5 whitespace-pre-line" style={{ color: SUBTLE }}>{p.description}</p>
+                    <SplitBlocks text={p.description} className="mt-0.5 whitespace-pre-line break-words [overflow-wrap:anywhere]" style={{ color: SUBTLE }} />
                   )}
                   {p.tech.length > 0 && (
                     <p className="mt-0.5 font-mono text-[10.5px]" style={{ color: NAVY }}>
@@ -109,7 +110,7 @@ export function DataSpecialistTemplate({ data }: { data: ResumeData }) {
 
         {data.experience.length > 0 && (
           <SectionShell>
-            <Title>experience</Title>
+            <Title>{resolveSectionTitle("experience", "experience")}</Title>
             <div className="space-y-3">
               {data.experience.map((job) => (
                 <div key={job.id} className="cv-section-item">
@@ -120,7 +121,7 @@ export function DataSpecialistTemplate({ data }: { data: ResumeData }) {
                     <DateText range={job.range} className="font-mono text-[11px]" />
                   </div>
                   {job.description && (
-                    <p className="mt-0.5 whitespace-pre-line" style={{ color: SUBTLE }}>{job.description}</p>
+                    <SplitBlocks text={job.description} className="mt-0.5 whitespace-pre-line break-words [overflow-wrap:anywhere]" style={{ color: SUBTLE }} />
                   )}
                 </div>
               ))}
@@ -131,7 +132,7 @@ export function DataSpecialistTemplate({ data }: { data: ResumeData }) {
         <div className="grid grid-cols-2 gap-4">
           {data.education.length > 0 && (
             <SectionShell>
-              <Title>education</Title>
+              <Title>{resolveSectionTitle("education", "education")}</Title>
               <div className="space-y-2">
                 {data.education.map((edu) => (
                   <div key={edu.id} className="cv-section-item">
@@ -144,7 +145,7 @@ export function DataSpecialistTemplate({ data }: { data: ResumeData }) {
           )}
           {data.certificates.length > 0 && (
             <SectionShell>
-              <Title>certs</Title>
+              <Title>{resolveSectionTitle("certificates", "certs")}</Title>
               <div className="space-y-1.5">
                 {data.certificates.map((c) => (
                   <div key={c.id} className="cv-section-item text-[11.5px]">
@@ -159,7 +160,7 @@ export function DataSpecialistTemplate({ data }: { data: ResumeData }) {
 
         {data.skills.length > 0 && (
           <SectionShell>
-            <Title>skills</Title>
+            <Title>{resolveSectionTitle("skills", "skills")}</Title>
             <SkillChips skills={data.skills} variant="outline" />
           </SectionShell>
         )}

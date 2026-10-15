@@ -76,7 +76,10 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     if (typeof window !== "undefined" && process.env.NODE_ENV === "development") {
       console.error("[cv-api]", path, res.status, body);
     }
-    throw new Error(errorMessage(body, `HTTP ${res.status}`));
+    // Gắn status để caller phân biệt 404 (chưa có dữ liệu) với lỗi thật.
+    const error = new Error(errorMessage(body, `HTTP ${res.status}`)) as Error & { status?: number };
+    error.status = res.status;
+    throw error;
   }
   const succeeded = (body?.Succeeded ?? body?.succeeded) === true;
   if (!succeeded) {
@@ -213,7 +216,7 @@ function normalizeCvContent(raw: unknown): CvDetailVm["noiDung"] {
   };
 }
 
-function normalizeCvDetail(raw: unknown): CvDetailVm {
+export function normalizeCvDetail(raw: unknown): CvDetailVm {
   const summary = normalizeCv(raw);
   const r = record(raw);
   return {

@@ -45,7 +45,7 @@ namespace Infrastructure.Identity.Features.Role.Commands.RemoveRole
                 throw new ApiException($"Gỡ vai trò thất bại: {errors}");
             }
 
-            var nguoiDung = await _appContext.NguoiDungs
+            var nguoiDung = await _appContext.NguoiDungs.AsTracking()
                 .FirstOrDefaultAsync(x => x.ApplicationUserId == user.Id, ct);
 
             if (nguoiDung != null)
@@ -59,6 +59,7 @@ namespace Infrastructure.Identity.Features.Role.Commands.RemoveRole
                 {
                     nguoiDung.VaiTro = nextValidRole.Value;
                 }
+                else nguoiDung.IsActive = false;
 
                 await _appContext.SaveChangesAsync(ct);
             }

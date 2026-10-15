@@ -1,6 +1,7 @@
 "use client";
 
-import { getAuthToken } from "@/lib/auth-provider";
+import { getValidToken, refreshSession } from "@/lib/auth-provider";
+import { unwrapResponse } from "@/lib/api/response-contract";
 import { normalizeJob } from "@/lib/api/jobs-api";
 import type { Job } from "@/features/viec-lam/types";
 
@@ -32,10 +33,11 @@ export function normalizeCompany(raw: unknown): DoanhNghiepVm | null {
   const id = Number(r.id ?? r.Id ?? 0);
   if (!Number.isFinite(id) || id <= 0) return null;
   const repId = r.nguoiDaiDienId ?? r.NguoiDaiDienId;
+  const linhVuc = str(r.linhVucHoatDong ?? r.LinhVucHoatDong);
   return {
     id,
     tenDoanhNghiep: str(r.tenDoanhNghiep ?? r.TenDoanhNghiep),
-    moTa: str(r.moTa ?? r.MoTa),
+    moTa: cleanCompanyDescription(str(r.moTa ?? r.MoTa), linhVuc),
     website: str(r.website ?? r.Website),
     diaChi: str(r.diaChi ?? r.DiaChi),
     logoUrl: str(r.logoUrl ?? r.LogoUrl),
@@ -47,13 +49,16 @@ export function normalizeCompany(raw: unknown): DoanhNghiepVm | null {
 }
 
 async function apiFetch(path: string): Promise<unknown> {
-  const token = getAuthToken();
-  const res = await fetch(path, {
+  let token = await getValidToken();
+  const send = () => fetch(path, {
+    cache: "no-store",
     headers: {
       Accept: "application/json",
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
   });
+  let res = await send();
+  if (res.status === 401 && await refreshSession()) { token = await getValidToken(); res = await send(); }
   const body = (await res.json().catch(() => null)) as Record<string, unknown> | null;
   if (res.status === 403) {
     const err = new Error("forbidden") as Error & { code?: string };
@@ -70,7 +75,7 @@ async function apiFetch(path: string): Promise<unknown> {
     err.status = res.status;
     throw err;
   }
-  return body?.Data ?? body?.data ?? body;
+  return unwrapResponse(body);
 }
 
 function toList(payload: unknown): DoanhNghiepVm[] {
@@ -119,4 +124,20 @@ export function companyInitials(name: string): string {
   if (parts.length === 0) return "CT";
   if (parts.length === 1) return (parts[0] as string).slice(0, 2).toUpperCase();
   return `${(parts[0] as string)[0]}${(parts[parts.length - 1] as string)[0]}`.toUpperCase();
+}
+
+/** Câu văn seed thô cần ẩn (demo gắn tài khoản, email seed lộ liễu). */
+const SEED_DESC_PATTERNS = [/demo gắn với/i, /@seed\.local/i, /dùng để kiểm thử/i];
+
+/**
+ * Mô tả hiển thị: ẩn câu seed thô, fallback mô tả mặc định theo lĩnh vực.
+ * Áp dụng trong normalizeCompany nên phủ list + detail + mọi nơi dùng Vm.
+ */
+export function cleanCompanyDescription(moTa: string, linhVuc: string): string {
+  const text = moTa.trim();
+  if (!text || SEED_DESC_PATTERNS.some((re) => re.test(text))) {
+    const field = linhVuc.trim() || "đa ngành";
+    return `Doanh nghiệp hoạt động trong lĩnh vực ${field}, cam kết môi trường làm việc sáng tạo và chuyên nghiệp.`;
+  }
+  return text;
 }

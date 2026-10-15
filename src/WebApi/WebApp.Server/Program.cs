@@ -104,6 +104,7 @@ _services.AddSignalR();
 _services.AddWebAppServices();
 _services.AddAdamAgents();
 _services.AddHostedService<WebApp.Server.Jobs.TinTuyenDungHetHanJob>();
+_services.AddHostedService<WebApp.Server.Jobs.TinTuyenDungSangLocJob>();
 _services.AddHostedService<WebApp.Server.Jobs.CvImportSessionCleanupJob>();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 _services.AddEndpointsApiExplorer();
@@ -183,11 +184,18 @@ app.MapHealthEndpoints();
 app.MapControllers();
 
 app.MapHub<WebApp.Server.Hubs.NotificationsHub>("/api/hubs/notifications").RequireCors("AllowFrontend");
-app.MapHub<WebApp.Server.Hubs.ChatHub>("/api/hubs/chat").RequireCors("AllowFrontend");
+app.MapHub<WebApp.Server.Hubs.ChatHub>("/api/hubs/chat", options => options.CloseOnAuthenticationExpiration = true).RequireCors("AllowFrontend");
 
 // Map role=reasoning trong AG-UI history về assistant trước khi MAF parse,
 // nếu không continuation run sau tool result sẽ 500 "Unknown chat role".
 app.UseMiddleware<WebApp.Server.Middlewares.AguiReasoningRoleMiddleware>();
+
+// Hạn mức 15 chat/ngày cho agent Adam — chạy trước endpoint agent, sau auth middleware.
+app.UseMiddleware<WebApp.Server.Middlewares.AgentChatRateLimitMiddleware>();
+
+// Persist lịch sử chat agent theo threadId vào Redis (sau rate-limit, trước endpoint):
+// capture SSE response của run rồi lưu snapshot + run record; fail-open mọi lỗi.
+app.UseMiddleware<WebApp.Server.Middlewares.AgentThreadHistoryMiddleware>();
 
 // BE-first: một agent duy nhất ở BE (LLM + tool backend scoped, chỉ đọc).
 // FE giữ frontend tool v2 (useFrontendTool/useAgentContext) và trỏ runtimeUrl về endpoint này.

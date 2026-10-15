@@ -3,25 +3,48 @@
 // Registry thống nhất metadata và props của template, không chứa logic form/export.
 import type { ComponentType } from "react";
 import type { ResumeData } from "./resume-data";
+import { createDefaultLayoutConfig } from "./resume-data";
 import type { ResumeTemplateProps } from "@/components/cv/templates/shared";
 import { MinimalAtsTemplate } from "@/components/cv/templates/minimal-ats";
 import { TechModernTemplate } from "@/components/cv/templates/tech-modern";
 import { AtsClassicTemplate } from "@/components/cv/templates/ats-classic";
-import { ProfessionalSplitTemplate } from "@/components/cv/templates/professional-split";
-import { ModernAccentTemplate } from "@/components/cv/templates/modern-accent";
-import { ExecutiveTechTemplate } from "@/components/cv/templates/executive-tech";
 import { CompactDeveloperTemplate } from "@/components/cv/templates/compact-developer";
-import { SidebarProTemplate } from "@/components/cv/templates/sidebar-pro";
 import { CleanCorporateTemplate } from "@/components/cv/templates/clean-corporate";
 import { CreativePortfolioTemplate } from "@/components/cv/templates/creative-portfolio";
-import { SeniorExecutiveTemplate } from "@/components/cv/templates/senior-executive";
 import { AcademicCvTemplate } from "@/components/cv/templates/academic-cv";
 import { DataSpecialistTemplate } from "@/components/cv/templates/data-specialist";
-import { DevopsStackTemplate } from "@/components/cv/templates/devops-stack";
-import { ProductBuilderTemplate } from "@/components/cv/templates/product-builder";
 import { StartupModernTemplate } from "@/components/cv/templates/startup-modern";
-import { ElegantSerifTemplate } from "@/components/cv/templates/elegant-serif";
-import { MinimalGridTemplate } from "@/components/cv/templates/minimal-grid";
+import { OceanWaveTemplate } from "@/components/cv/templates/ocean-wave";
+import { ForestFreshTemplate } from "@/components/cv/templates/forest-fresh";
+import { BentoGridTemplate } from "@/components/cv/templates/bento-grid";
+import { ZenMinimalTemplate } from "@/components/cv/templates/zen-minimal";
+import { SnapshotProTemplate } from "@/components/cv/templates/snapshot-pro";
+import { CarePlusTemplate } from "@/components/cv/templates/care-plus";
+import { MentorClassTemplate } from "@/components/cv/templates/mentor-class";
+import { VaultFinanceTemplate } from "@/components/cv/templates/vault-finance";
+import { EditorialMagazineTemplate } from "@/components/cv/templates/editorial-magazine";
+import { ArchiPortfolioTemplate } from "@/components/cv/templates/archi-portfolio";
+import { LegalPrestigeTemplate } from "@/components/cv/templates/legal-prestige";
+import { ResearchScholarTemplate } from "@/components/cv/templates/research-scholar";
+import TEMPLATE_MANIFEST from "./template-manifest.json";
+import { CulinarySignatureTemplate } from "@/components/cv/templates/culinary-signature";
+import { MonoPortfolioTemplate } from "@/components/cv/templates/mono-portfolio";
+import { KemMinimalTemplate } from "@/components/cv/templates/kem-minimal";
+import { BeigeEditorialTemplate } from "@/components/cv/templates/beige-editorial";
+import { CanvaCorporateNavyTemplate } from "@/components/cv/templates/canva-corporate-navy";
+import { CanvaMinimalMonochromeTemplate } from "@/components/cv/templates/canva-minimal-monochrome";
+import { CanvaCleanSlateTemplate } from "@/components/cv/templates/canva-clean-slate";
+import { CanvaBlueGoldDesignerTemplate } from "@/components/cv/templates/canva-blue-gold-designer";
+import { CanvaExecutiveBannerTemplate } from "@/components/cv/templates/canva-executive-banner";
+import { CanvaDarkroomCreativeTemplate } from "@/components/cv/templates/canva-darkroom-creative";
+import { CanvaEditorialClassicTemplate } from "@/components/cv/templates/canva-editorial-classic";
+import { NhanSuRoyalTemplate } from "@/components/cv/templates/nhan-su-royal";
+import { DenMoodyTemplate } from "@/components/cv/templates/den-moody";
+import { DoHoaLimeTemplate } from "@/components/cv/templates/do-hoa-lime";
+import { createElement } from "react";
+import { ThemeCanvas } from "@/features/tao-cv/components/theme-canvas";
+import { parseDbTheme } from "@/features/tao-cv/services/theme-db-sync";
+import type { CvThemeConfig } from "@/features/tao-cv/types/theme-studio";
 
 export type TemplateCategory =
   | "ats"
@@ -45,7 +68,182 @@ export type ResumeTemplateMeta = {
   columns?: 1 | 2;
   /** Gallery/selector filter facets. Frontend-only. */
   categories?: TemplateCategory[];
+  /** DB-driven overlay (bảng cv_themes). Không đụng Component/render. */
+  previewImageUrl?: string;
+  isActive?: boolean;
+  sortOrder?: number;
+  /** Thân thiện ATS từ DB (cột ThanThienATS). Undefined = chưa hydrate. */
+  atsFriendly?: boolean;
+  source?: "static" | "db";
+  /** Id dòng DB (mới = Id lớn) — dùng sort "mới nhất lên đầu". */
+  sourceId?: number;
+  /** True = entry Studio do hydrate đăng ký động (render ThemeCanvas). */
+  isStudio?: boolean;
+  /** theme.id trong CauHinhJson — nối ?template=slug sang custom theme. */
+  studioThemeId?: string;
 };
+
+/** Metadata tối thiểu từ API cv_themes để phủ lên registry tĩnh. */
+export type DbThemeOverlay = {
+  Slug: string;
+  Ten?: string | null;
+  MoTa?: string | null;
+  Tags?: string | null;
+  DanhMuc?: string | null;
+  SoCot?: number | null;
+  IsActive?: boolean | null;
+  ThuTu?: number | null;
+  PreviewStorageKey?: string | null;
+  Id?: number | null;
+  ThanThienATS?: boolean | null;
+  CapBac?: string | null;
+  CauHinhJson?: string | null;
+};
+
+/**
+ * Đăng ký động 1 theme Studio (row DB có CauHinhJson) thành entry gallery.
+ * Render bằng ThemeCanvas đúng thiết kế đã Lưu — gallery thấy
+ * màu/layout mới ngay, không cần code template tĩnh mới.
+ */
+function registerStudioEntry(theme: DbThemeOverlay, slug: string): void {
+  const vm = theme as DbThemeOverlay & {
+    Ten?: string | null;
+    MoTa?: string | null;
+    CauHinhJson?: string | null;
+  };
+  const cfg: CvThemeConfig | null = vm.CauHinhJson
+    ? parseDbTheme({
+        Id: theme.Id ?? 0,
+        Slug: theme.Slug ?? slug,
+        Ten: theme.Ten ?? slug,
+        MoTa: theme.MoTa ?? null,
+        MoTaNgan: null,
+        PreviewStorageKey: theme.PreviewStorageKey ?? null,
+        DanhMuc: theme.DanhMuc ?? null,
+        NganhPhuHop: null,
+        ViTriMucTieu: null,
+        CapBac: theme.CapBac ?? null,
+        Tags: theme.Tags ?? null,
+        PhongCachThietKe: null,
+        SoCot: theme.SoCot ?? 1,
+        ThanThienATS: theme.ThanThienATS ?? false,
+        MauSacChuDao: null,
+        TamLyMauSac: null,
+        KhuyenNghiSuDung: null,
+        TranhSuDungKhi: null,
+        GoiYAI: null,
+        LaMacDinh: false,
+        IsActive: theme.IsActive ?? false,
+        ThuTu: theme.ThuTu ?? 100,
+        CauHinhJson: vm.CauHinhJson ?? null,
+      })
+    : null;
+  if (!cfg) return;
+  const tags = (theme.Tags ?? "")
+    .split(",")
+    .map((t) => t.trim())
+    .filter(Boolean);
+  TEMPLATE_REGISTRY[slug] = {
+    id: slug,
+    name: theme.Ten?.trim() || slug,
+    description: theme.MoTa?.trim() || "Theme tùy chỉnh từ Studio",
+    tags,
+    version: "1.0",
+    Component: function StudioThemePaper({ data }: ResumeTemplateProps) {
+      return createElement(ThemeCanvas, {
+        theme: cfg,
+        data: { ...data, layout: cfg.layout },
+      });
+    },
+    columns: theme.SoCot === 2 ? 2 : 1,
+    categories: mapStudioCategories(theme.DanhMuc, theme.CapBac),
+    atsFriendly: theme.ThanThienATS ?? false,
+    isActive: theme.IsActive ?? false,
+    sortOrder: theme.ThuTu ?? 100,
+    source: "db",
+    sourceId: theme.Id ?? undefined,
+    isStudio: true,
+    studioThemeId: cfg.id,
+  };
+}
+
+/** Map DanhMuc/CapBac (vocab Studio) sang facet gallery (vocab registry). */
+function mapStudioCategories(
+  danhMuc?: string | null,
+  capBac?: string | null,
+): TemplateCategory[] {
+  const out = new Set<TemplateCategory>();
+  const push = (c: string) => {
+    const v = c.trim().toLowerCase();
+    const mapped =
+      v === "designer" ? "creative" : v === "business" ? "corporate" : v;
+    if (
+      mapped === "ats" ||
+      mapped === "developer" ||
+      mapped === "corporate" ||
+      mapped === "creative" ||
+      mapped === "senior" ||
+      mapped === "fresher"
+    )
+      out.add(mapped);
+  };
+  danhMuc?.split(",").forEach(push);
+  capBac?.split(",").forEach(push);
+  return [...out];
+}
+
+/**
+ * Phủ metadata DB lên registry tĩnh; row Studio slug mới được đăng ký
+ * động (render ThemeCanvas) để gallery ứng viên thấy + dùng được ngay.
+ * previewImageUrl trỏ endpoint stream public của backend.
+ */
+export function hydrateTemplateRegistry(themes: DbThemeOverlay[]): void {
+  for (const theme of themes) {
+    const slug = (theme.Slug ?? "").trim().toLowerCase();
+    if (!slug) continue;
+    if (typeof theme.Id === "number") {
+      const existing = TEMPLATE_REGISTRY[slug];
+      if (existing) existing.sourceId = theme.Id;
+    }
+    const meta = TEMPLATE_REGISTRY[slug];
+    if (!meta) {
+      registerStudioEntry(theme, slug);
+      continue;
+    }
+    if (meta.isStudio) {
+      // Entry động: refresh theo row DB mới nhất (màu/layout vừa Lưu).
+      registerStudioEntry(theme, slug);
+      continue;
+    }
+    if (theme.Ten?.trim()) meta.name = theme.Ten.trim();
+    if (theme.MoTa?.trim()) meta.description = theme.MoTa.trim();
+    if (theme.Tags?.trim()) {
+      meta.tags = theme.Tags.split(",")
+        .map((t) => t.trim())
+        .filter(Boolean);
+    }
+    if (theme.DanhMuc?.trim()) {
+      const cats = theme.DanhMuc.split(",")
+        .map((c) => c.trim().toLowerCase())
+        .filter((c): c is TemplateCategory =>
+          (TEMPLATE_CATEGORIES as { id: string }[]).some((k) => k.id === c));
+      if (cats.length > 0) meta.categories = cats;
+    }
+    const renderer = TEMPLATE_MANIFEST[slug as keyof typeof TEMPLATE_MANIFEST];
+    if (renderer) { meta.columns = renderer.columns as 1 | 2; meta.version = renderer.version; }
+    if (typeof theme.IsActive === "boolean") meta.isActive = theme.IsActive;
+    if (typeof theme.ThuTu === "number") meta.sortOrder = theme.ThuTu;
+    if (typeof theme.ThanThienATS === "boolean") meta.atsFriendly = theme.ThanThienATS;
+    // Chỉ trỏ preview URL khi DB thực sự có ảnh. Gán mù khiến gallery
+    // chuyển sang <img> 404 trắng trơn — live render luôn là fallback.
+    if (typeof theme.Id === "number" && theme.PreviewStorageKey?.trim()) {
+      meta.previewImageUrl = `/api/dotnet/cvthemes/${theme.Id}/preview`;
+    } else {
+      delete meta.previewImageUrl;
+    }
+    meta.source = "db";
+  }
+}
 
 export const TEMPLATE_CATEGORIES: { id: TemplateCategory | "all"; label: string }[] = [
   { id: "all", label: "Tất cả" },
@@ -94,36 +292,6 @@ export const TEMPLATE_REGISTRY: Record<string, ResumeTemplateMeta> = {
     columns: 1,
     categories: ["ats", "developer", "one-column"],
   },
-  "professional-split": {
-    id: "professional-split",
-    name: "Professional Split",
-    description: "Hai cột thanh lịch, sidebar hẹp cho IT / BA / PM",
-    tags: ["IT", "2 cột", "Chuyên nghiệp"],
-    version: "1.0",
-    Component: ProfessionalSplitTemplate,
-    columns: 2,
-    categories: ["developer", "corporate", "two-column"],
-  },
-  "modern-accent": {
-    id: "modern-accent",
-    name: "Modern Accent",
-    description: "Hiện đại, điểm nhấn mạnh cho Product / Frontend",
-    tags: ["Hiện đại", "Frontend", "Product"],
-    version: "1.0",
-    Component: ModernAccentTemplate,
-    columns: 1,
-    categories: ["creative", "developer", "one-column"],
-  },
-  "executive-tech": {
-    id: "executive-tech",
-    name: "Executive Tech",
-    description: "Bố cục doanh nghiệp trang trọng cho senior / lead",
-    tags: ["Senior", "Chuyên nghiệp", "Lead"],
-    version: "1.0",
-    Component: ExecutiveTechTemplate,
-    columns: 1,
-    categories: ["senior", "corporate", "one-column"],
-  },
   "compact-developer": {
     id: "compact-developer",
     name: "Compact Developer",
@@ -133,16 +301,6 @@ export const TEMPLATE_REGISTRY: Record<string, ResumeTemplateMeta> = {
     Component: CompactDeveloperTemplate,
     columns: 1,
     categories: ["ats", "developer", "fresher", "one-column"],
-  },
-  "sidebar-pro": {
-    id: "sidebar-pro",
-    name: "Sidebar Pro",
-    description: "Sidebar phải, kỹ năng đặt lên đầu cho IT",
-    tags: ["IT", "2 cột", "Kỹ năng"],
-    version: "1.0",
-    Component: SidebarProTemplate,
-    columns: 2,
-    categories: ["developer", "two-column"],
   },
   "clean-corporate": {
     id: "clean-corporate",
@@ -164,16 +322,6 @@ export const TEMPLATE_REGISTRY: Record<string, ResumeTemplateMeta> = {
     columns: 1,
     categories: ["creative", "developer", "one-column"],
   },
-  "senior-executive": {
-    id: "senior-executive",
-    name: "Senior Executive",
-    description: "Thoáng đãng, tôn vinh kinh nghiệm lãnh đạo",
-    tags: ["Senior", "Leadership", "Manager"],
-    version: "1.0",
-    Component: SeniorExecutiveTemplate,
-    columns: 1,
-    categories: ["senior", "corporate", "one-column"],
-  },
   "academic-cv": {
     id: "academic-cv",
     name: "Academic CV",
@@ -194,26 +342,6 @@ export const TEMPLATE_REGISTRY: Record<string, ResumeTemplateMeta> = {
     columns: 1,
     categories: ["developer", "one-column"],
   },
-  "devops-stack": {
-    id: "devops-stack",
-    name: "DevOps Stack",
-    description: "Timeline ngày tháng, nhóm công cụ hạ tầng rõ ràng",
-    tags: ["DevOps", "Infra", "Cloud"],
-    version: "1.0",
-    Component: DevopsStackTemplate,
-    columns: 1,
-    categories: ["developer", "one-column"],
-  },
-  "product-builder": {
-    id: "product-builder",
-    name: "Product Builder",
-    description: "Dự án lên trước, nhấn mạnh kết quả sản phẩm",
-    tags: ["Product", "PM", "Freelance"],
-    version: "1.0",
-    Component: ProductBuilderTemplate,
-    columns: 1,
-    categories: ["creative", "fresher", "one-column"],
-  },
   "startup-modern": {
     id: "startup-modern",
     name: "Startup Modern",
@@ -224,25 +352,268 @@ export const TEMPLATE_REGISTRY: Record<string, ResumeTemplateMeta> = {
     columns: 1,
     categories: ["creative", "fresher", "one-column"],
   },
-  "elegant-serif": {
-    id: "elegant-serif",
-    name: "Elegant Serif",
-    description: "Tiêu đề serif trang nhã, thân thiện ATS",
-    tags: ["Serif", "Editorial", "Premium"],
+  "ocean-wave": {
+    id: "ocean-wave",
+    name: "Ocean Wave",
+    description: "Sidebar sóng xanh, timeline thân thiện cho dịch vụ",
+    tags: ["Sales", "CSKH", "Du lịch", "Giao tiếp"],
     version: "1.0",
-    Component: ElegantSerifTemplate,
-    columns: 1,
-    categories: ["corporate", "creative", "senior", "one-column"],
-  },
-  "minimal-grid": {
-    id: "minimal-grid",
-    name: "Minimal Grid",
-    description: "Mô-đun lưới gọn gàng, cấu trúc thị giác rõ",
-    tags: ["Grid", "Hiện đại", "Gọn"],
-    version: "1.0",
-    Component: MinimalGridTemplate,
+    Component: OceanWaveTemplate,
     columns: 2,
-    categories: ["developer", "creative", "two-column"],
+    categories: ["creative", "two-column"],
+  },
+  "forest-fresh": {
+    id: "forest-fresh",
+    name: "Forest Fresh",
+    description: "Xanh lá tươi mới, mục tiêu nghề nghiệp dạng quote",
+    tags: ["Môi trường", "Giáo dục", "NGO", "Content"],
+    version: "1.0",
+    Component: ForestFreshTemplate,
+    columns: 1,
+    categories: ["creative", "one-column"],
+  },
+  "bento-grid": {
+    id: "bento-grid",
+    name: "Bento Grid",
+    description: "Module lưới bento bất đối xứng kiểu portfolio web",
+    tags: ["Portfolio", "Frontend", "Product", "Dự án"],
+    version: "1.0",
+    Component: BentoGridTemplate,
+    columns: 2,
+    categories: ["creative", "two-column"],
+  },
+  "zen-minimal": {
+    id: "zen-minimal",
+    name: "Zen Minimal",
+    description: "Khoảng trắng cực lớn, không màu accent",
+    tags: ["Tối giản", "Cao cấp"],
+    version: "1.0",
+    Component: ZenMinimalTemplate,
+    columns: 1,
+    categories: ["ats", "one-column"],
+  },
+  "snapshot-pro": {
+    id: "snapshot-pro",
+    name: "Snapshot Pro",
+    description: "Ảnh đại diện lớn, chuẩn CV ảnh thị trường",
+    tags: ["Ảnh", "Giao tiếp", "Dịch vụ"],
+    version: "1.0",
+    Component: SnapshotProTemplate,
+    columns: 2,
+    categories: ["corporate", "two-column"],
+  },
+  "care-plus": {
+    id: "care-plus",
+    name: "Care Plus",
+    description: "Header chữ thập y tế, block chứng chỉ hành nghề",
+    tags: ["Y tế", "Bác sĩ", "Điều dưỡng", "Chứng chỉ"],
+    version: "1.0",
+    Component: CarePlusTemplate,
+    columns: 1,
+    categories: ["corporate", "one-column"],
+  },
+  "mentor-class": {
+    id: "mentor-class",
+    name: "Mentor Class",
+    description: "Sidebar thành tích giảng dạy, bảng khóa đào tạo",
+    tags: ["Giáo viên", "Đào tạo", "Học thuật"],
+    // 1.1: banner chuẩn hóa (custom → vị trí ứng tuyển → "Hồ sơ năng lực").
+    version: "1.1",
+    Component: MentorClassTemplate,
+    columns: 1,
+    categories: ["corporate", "one-column"],
+  },
+  "vault-finance": {
+    id: "vault-finance",
+    name: "Vault Finance",
+    description: "Navy + gold premium, bảng số liệu tài chính",
+    tags: ["Ngân hàng", "Tài chính", "CFA"],
+    version: "1.0",
+    Component: VaultFinanceTemplate,
+    columns: 1,
+    categories: ["senior", "one-column"],
+  },
+  "editorial-magazine": {
+    id: "editorial-magazine",
+    name: "Editorial Magazine",
+    description: "Bố cục tạp chí, drop-cap và pull-quote",
+    tags: ["Editorial", "Tạp chí", "Content"],
+    version: "1.0",
+    Component: EditorialMagazineTemplate,
+    columns: 2,
+    categories: ["creative", "two-column"],
+  },
+  "archi-portfolio": {
+    id: "archi-portfolio",
+    name: "Archi Portfolio",
+    description: "Khung bản vẽ kỹ thuật, nhãn sheet",
+    tags: ["Kiến trúc", "Bản vẽ", "Portfolio"],
+    version: "1.0",
+    Component: ArchiPortfolioTemplate,
+    columns: 2,
+    categories: ["creative", "two-column"],
+  },
+  "legal-prestige": {
+    id: "legal-prestige",
+    name: "Legal Prestige",
+    description: "Trang trọng, điều khoản đánh số La Mã",
+    tags: ["Luật", "Pháp chế"],
+    version: "1.0",
+    Component: LegalPrestigeTemplate,
+    columns: 1,
+    categories: ["corporate", "one-column"],
+  },
+  "research-scholar": {
+    id: "research-scholar",
+    name: "Research Scholar",
+    description: "Abstract, citation và metrics học thuật",
+    tags: ["Nghiên cứu", "Học thuật"],
+    version: "1.0",
+    Component: ResearchScholarTemplate,
+    columns: 2,
+    categories: ["senior", "two-column"],
+  },
+  "culinary-signature": {
+    id: "culinary-signature",
+    name: "Culinary Signature",
+    description: "Phong cách menu nhà hàng cao cấp",
+    tags: ["F&B", "Đầu bếp"],
+    // 1.1: banner/sections chuẩn hóa theo ngành (BATCH-print task).
+    // Version ghi vào Payload lúc lưu CV mới (mapper đọc từ đây).
+    version: "1.1",
+    Component: CulinarySignatureTemplate,
+    columns: 1,
+    categories: ["creative", "one-column"],
+  },
+  "mono-portfolio": {
+    id: "mono-portfolio",
+    name: "Portfolio Đơn Sắc",
+    description: "Đen trắng tối giản kiểu portfolio cá nhân",
+    tags: ["Đen trắng", "Portfolio", "Tối giản"],
+    version: "1.0",
+    Component: MonoPortfolioTemplate,
+    columns: 1,
+    categories: ["creative", "one-column"],
+  },
+  "kem-minimal": {
+    id: "kem-minimal",
+    name: "Tối Giản Kem",
+    description: "Nền kem thanh lịch, căn giữa tối giản",
+    tags: ["Tối giản", "Thanh lịch", "Nhẹ nhàng"],
+    version: "1.0",
+    Component: KemMinimalTemplate,
+    columns: 1,
+    categories: ["corporate", "one-column"],
+  },
+  "beige-editorial": {
+    id: "beige-editorial",
+    name: "Editorial Be",
+    description: "Phong cách báo chí, khung viền rõ ràng",
+    tags: ["Báo chí", "Thanh lịch", "Khung viền"],
+    version: "1.0",
+    Component: BeigeEditorialTemplate,
+    columns: 1,
+    categories: ["corporate", "one-column"],
+  },
+  "canva-corporate-navy": {
+    id: "canva-corporate-navy",
+    name: "Navy Công Sở",
+    description: "2 cột thanh lịch, sidebar khói tràn viền, avatar tròn",
+    tags: ["Navy", "Công sở", "2 cột"],
+    version: "1.0",
+    Component: CanvaCorporateNavyTemplate,
+    columns: 2,
+    categories: ["corporate", "two-column"],
+  },
+  "canva-minimal-monochrome": {
+    id: "canva-minimal-monochrome",
+    name: "Đơn Sắc ATS",
+    description: "Đen trắng tinh tế 1 cột, line mảnh, chuẩn máy quét",
+    tags: ["ATS", "Đen trắng", "Tối giản"],
+    version: "1.0",
+    Component: CanvaMinimalMonochromeTemplate,
+    columns: 1,
+    categories: ["ats", "one-column"],
+  },
+  "canva-clean-slate": {
+    id: "canva-clean-slate",
+    name: "Slate Sạch",
+    description: "Sidebar phải slate nhẹ, tag phẳng thoáng đãng",
+    tags: ["Slate", "Nhẹ nhàng", "Hiện đại"],
+    version: "1.0",
+    Component: CanvaCleanSlateTemplate,
+    columns: 2,
+    categories: ["developer", "two-column"],
+  },
+  "canva-blue-gold-designer": {
+    id: "canva-blue-gold-designer",
+    name: "Xanh Vàng Executive",
+    description: "Navy sang trọng nhấn line vàng gold mảnh",
+    tags: ["Navy", "Vàng gold", "Sang trọng"],
+    version: "1.0",
+    Component: CanvaBlueGoldDesignerTemplate,
+    columns: 2,
+    categories: ["corporate", "creative", "two-column"],
+  },
+  "canva-executive-banner": {
+    id: "canva-executive-banner",
+    name: "Banner Xanh",
+    description: "Banner ngang xanh sẫm tràn viền, 2 cột thoáng",
+    tags: ["Banner", "Xanh", "Senior"],
+    version: "1.0",
+    Component: CanvaExecutiveBannerTemplate,
+    columns: 2,
+    categories: ["corporate", "senior", "two-column"],
+  },
+  "canva-darkroom-creative": {
+    id: "canva-darkroom-creative",
+    name: "Than Chì Sáng Tạo",
+    description: "Sidebar than chì chữ trắng, dải chữ dọc tinh tế",
+    tags: ["Tối", "Sáng tạo", "Tương phản"],
+    version: "1.0",
+    Component: CanvaDarkroomCreativeTemplate,
+    columns: 2,
+    categories: ["creative", "two-column"],
+  },
+  "canva-editorial-classic": {
+    id: "canva-editorial-classic",
+    name: "Editorial Cổ Điển",
+    description: "Serif sang trọng, phân cách bằng khoảng trắng",
+    tags: ["Serif", "Báo chí", "Thanh lịch"],
+    version: "1.0",
+    Component: CanvaEditorialClassicTemplate,
+    columns: 1,
+    categories: ["ats", "senior", "one-column"],
+  },
+  "nhan-su-royal": {
+    id: "nhan-su-royal",
+    name: "Nhân Sự Royal",
+    description: "Xanh hoàng gia cho HR, photo blob, sóng footer",
+    tags: ["Nhân sự", "Xanh", "Chuyên nghiệp"],
+    version: "1.0",
+    Component: NhanSuRoyalTemplate,
+    columns: 1,
+    categories: ["corporate", "one-column"],
+  },
+  "den-moody": {
+    id: "den-moody",
+    name: "Đen Moody",
+    description: "Cột đen ảnh duotone tương phản cột sáng",
+    tags: ["Đen", "Cá tính", "Tương phản"],
+    version: "1.0",
+    Component: DenMoodyTemplate,
+    columns: 1,
+    categories: ["creative", "one-column"],
+  },
+  "do-hoa-lime": {
+    id: "do-hoa-lime",
+    name: "Đồ Họa Lime",
+    description: "Sidebar xanh dương, quote lime nổi bật",
+    tags: ["Thiết kế", "Xanh", "Nổi bật"],
+    version: "1.0",
+    Component: DoHoaLimeTemplate,
+    columns: 1,
+    categories: ["creative", "one-column"],
   },
 };
 
@@ -295,7 +666,7 @@ export const SAMPLE_RESUME: ResumeData = {
       id: "sample-exp-1",
       role: "Frontend Developer",
       company: "Tech Company",
-      range: { start: "06/2022", end: "Nay", current: true },
+      range: { start: "06/2022", end: "Hiện tại", current: true },
       description: "Phát triển giao diện với React và TypeScript.",
       skills: ["React", "TypeScript"],
     },
@@ -331,4 +702,5 @@ export const SAMPLE_RESUME: ResumeData = {
   ],
   certificates: [{ id: "sample-ce-1", name: "AWS Basics", issuer: "Amazon" }],
   hasContent: true,
+  layout: createDefaultLayoutConfig(),
 };

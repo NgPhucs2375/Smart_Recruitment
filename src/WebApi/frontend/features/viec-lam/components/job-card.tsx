@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { useBookmarks } from "@/hooks/use-bookmarks";
 import { toast } from "sonner";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { Job } from "../types";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -52,18 +53,8 @@ export function JobCard({ job, onPreview }: JobCardProps) {
 
   return (
     <Card
-      role="link"
-      tabIndex={0}
-      aria-label={`Xem chi tiết ${job.title}`}
       onClick={() => router.push(`/viec-lam/${job.id}`)}
-      onKeyDown={(event) => {
-        if (event.target !== event.currentTarget) return;
-        if (event.key === "Enter" || event.key === " ") {
-          event.preventDefault();
-          router.push(`/viec-lam/${job.id}`);
-        }
-      }}
-      className="group cursor-pointer rounded-[1.5rem] border-border bg-card transition-all duration-200 hover:-translate-y-0.5 hover:border-marine/25 hover:shadow-[0_18px_44px_rgba(53,92,140,0.10)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+      className="group cursor-pointer rounded-[1.5rem] border-border bg-card transition-all duration-200 hover:-translate-y-0.5 hover:border-marine/25 hover:shadow-[0_18px_44px_rgba(53,92,140,0.10)]"
     >
       <CardContent className="p-6">
         <div className="flex items-start gap-4">
@@ -73,8 +64,16 @@ export function JobCard({ job, onPreview }: JobCardProps) {
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <h3 className="font-semibold text-foreground truncate text-lg tracking-[-0.01em] group-hover:text-primary transition-colors">
-                  {job.title}
+                {/* Title là link thật: keyboard + mở tab mới bằng middle-click,
+                    card onClick chỉ là affordance phụ. */}
+                <h3 className="truncate text-lg font-semibold tracking-[-0.01em] text-foreground transition-colors">
+                  <Link
+                    href={`/viec-lam/${job.id}`}
+                    onClick={(event) => event.stopPropagation()}
+                    className="rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-primary hover:text-primary group-hover:text-primary"
+                  >
+                    {job.title}
+                  </Link>
                 </h3>
                 <p className="mt-0.5 truncate text-[13px] font-medium text-muted-foreground">{job.company}</p>
               </div>

@@ -1,8 +1,10 @@
 using Application.Interfaces;
+using Application.Features.KetQuaPhuHop.Cache;
 using Application.Wrappers;
 using Domain.Enums;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Distributed;
 using KyNangTinTuyenDungEntity = global::Domain.Entities.KyNangTinTuyenDung;
 
 namespace Application.Features.KyNangTinTuyenDung.Commands.CreateKyNangTinTuyenDung;
@@ -18,7 +20,8 @@ public class CreateKyNangTinTuyenDungCommand : IRequest<Response<int>>
 
 public class CreateKyNangTinTuyenDungCommandHandler(
     IApplicationDbContext context,
-    ICurrentNguoiDungService current)
+    ICurrentNguoiDungService current,
+    IDistributedCache cache)
     : IRequestHandler<CreateKyNangTinTuyenDungCommand, Response<int>>
 {
     public async Task<Response<int>> Handle(
@@ -89,12 +92,15 @@ public class CreateKyNangTinTuyenDungCommandHandler(
             MucDoYeuCau = request.MucDoYeuCau
         };
 
+        await Application.Services.StateMachineTinTuyenDung.JobDraft.PrepareSkillEditAsync(context, request.TinTuyenDungId, ctx, cancellationToken);
+
         await context.KyNangTinTuyenDungs.AddAsync(
             entity,
             cancellationToken);
 
         await context.SaveChangesAsync(
             cancellationToken);
+        await RecommendationCache.InvalidateJobsAsync(cache, cancellationToken);
 
         return new Response<int>(
             data: entity.Id,

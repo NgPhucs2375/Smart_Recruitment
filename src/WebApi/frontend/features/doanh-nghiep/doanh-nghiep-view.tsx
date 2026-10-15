@@ -1,7 +1,8 @@
 "use client";
 
 import { useDeferredValue, useEffect, useMemo, useState } from "react";
-import { Building2, ShieldAlert, Sparkles } from "lucide-react";
+import { Building2, RefreshCw, ShieldAlert, Sparkles } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Pagination } from "@/components/ui/pagination";
 import { Separator } from "@/components/ui/separator";
@@ -19,12 +20,24 @@ function distinct(values: string[]) {
   return [...new Set(values.map((value) => value.trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, "vi"));
 }
 
+/** Chuẩn hóa lĩnh vực (gộp khoảng trắng thừa) để label + lọc khớp nhau. */
+function sectorOf(value: string): string {
+  return value.trim().replace(/\s+/g, " ");
+}
+
+/** Rút tỉnh/thành (mảnh cuối sau dấu phẩy) từ địa chỉ tự do. */
+function cityOf(diaChi: string): string {
+  const parts = diaChi.split(",").map((s) => s.trim()).filter(Boolean);
+  return parts.length > 0 ? parts[parts.length - 1] : "";
+}
+
 export function DoanhNghiepView() {
   const [companies, setCompanies] = useState<DoanhNghiepVm[]>([]);
   const [jobCounts, setJobCounts] = useState<Record<number, number>>({});
   const [loading, setLoading] = useState(true);
   const [denied, setDenied] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [reloadTick, setReloadTick] = useState(0);
   const [keyword, setKeyword] = useState("");
   const [field, setField] = useState("all");
   const [location, setLocation] = useState("all");
@@ -49,15 +62,15 @@ export function DoanhNghiepView() {
       })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
-  }, []);
+  }, [reloadTick]);
 
-  const fields = useMemo(() => distinct(companies.map((company) => company.linhVucHoatDong)), [companies]);
-  const locations = useMemo(() => distinct(companies.map((company) => company.diaChi)), [companies]);
+  const fields = useMemo(() => distinct(companies.map((company) => sectorOf(company.linhVucHoatDong))).map((value) => ({ value, label: value })), [companies]);
+  const locations = useMemo(() => distinct(companies.map((company) => cityOf(company.diaChi))).map((value) => ({ value, label: value })), [companies]);
   const visible = useMemo(() => {
     const normalized = deferredKeyword.trim().toLowerCase();
     return companies.filter((company) => {
-      if (field !== "all" && company.linhVucHoatDong !== field) return false;
-      if (location !== "all" && company.diaChi !== location) return false;
+      if (field !== "all" && sectorOf(company.linhVucHoatDong) !== field) return false;
+      if (location !== "all" && cityOf(company.diaChi) !== location) return false;
       return !normalized || `${company.tenDoanhNghiep} ${company.linhVucHoatDong} ${company.diaChi} ${company.moTa}`.toLowerCase().includes(normalized);
     }).sort((a, b) => (jobCounts[b.id] ?? 0) - (jobCounts[a.id] ?? 0) || a.tenDoanhNghiep.localeCompare(b.tenDoanhNghiep, "vi"));
   }, [companies, deferredKeyword, field, jobCounts, location]);
@@ -65,6 +78,7 @@ export function DoanhNghiepView() {
   const totalPages = Math.max(1, Math.ceil(visible.length / PAGE_SIZE));
   const pagedCompanies = visible.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { setPage(1); }, [deferredKeyword, field, location]);
 
   return <main className="mx-auto w-full max-w-7xl space-y-10 px-4 py-6 sm:px-6 sm:py-10">
@@ -73,9 +87,9 @@ export function DoanhNghiepView() {
       <div className="mt-7 flex flex-col gap-2 lg:flex-row"><CompanySearch value={keyword} onChange={setKeyword} /><CompanyFilter fields={fields} locations={locations} field={field} location={location} onFieldChange={setField} onLocationChange={setLocation} /></div>
     </section>
 
-    {loading ? <section><div className="mb-4 flex items-center gap-2"><Sparkles className="size-4 text-primary" /><h2 className="text-xl font-semibold">Doanh nghiệp nổi bật</h2></div><div className="grid gap-4 md:grid-cols-3">{[1, 2, 3].map((item) => <CompanyCardSkeleton key={item} />)}</div></section> : denied ? <Card><CardContent className="flex min-h-64 flex-col items-center justify-center text-center"><ShieldAlert className="size-9 text-destructive" /><h2 className="mt-4 font-semibold">Chưa có quyền xem doanh nghiệp</h2><p className="mt-1 max-w-md text-sm text-muted-foreground">Tài khoản của bạn chưa được cấp quyền xem danh bạ doanh nghiệp.</p></CardContent></Card> : loadError ? <Card className="border-destructive/30"><CardContent className="py-8 text-center text-sm text-destructive">{loadError}</CardContent></Card> : <>
+    {loading ? <section><div className="mb-4 flex items-center gap-2"><Sparkles className="size-4 text-primary" /><h2 className="text-xl font-semibold">Doanh nghiệp nổi bật</h2></div><div className="grid gap-4 md:grid-cols-3">{[1, 2, 3].map((item) => <CompanyCardSkeleton key={item} />)}</div></section> : denied ? <Card><CardContent className="flex min-h-64 flex-col items-center justify-center text-center"><ShieldAlert className="size-9 text-destructive" /><h2 className="mt-4 font-semibold">Chưa có quyền xem doanh nghiệp</h2><p className="mt-1 max-w-md text-sm text-muted-foreground">Tài khoản của bạn chưa được cấp quyền xem danh bạ doanh nghiệp.</p></CardContent></Card> : loadError ? <Card className="border-destructive/30"><CardContent className="flex flex-col items-center gap-4 py-8 text-center text-sm text-destructive">{loadError}<Button variant="outline" size="sm" onClick={() => { setLoading(true); setLoadError(null); setReloadTick((tick) => tick + 1); }}><RefreshCw className="mr-2 size-4" /> Thử lại</Button></CardContent></Card> : <>
       {featured.length > 0 && <section className="rounded-3xl border border-border bg-muted/25 p-5 sm:p-7"><div className="mb-6 flex items-start justify-between gap-4"><div className="flex items-start gap-3"><span className="mt-0.5 flex size-9 items-center justify-center rounded-xl bg-primary text-primary-foreground"><Sparkles className="size-4" /></span><div><p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">Được quan tâm</p><h2 className="mt-1 text-2xl font-semibold tracking-tight">Doanh nghiệp nổi bật</h2></div></div><p className="hidden max-w-48 text-right text-sm leading-5 text-muted-foreground sm:block">Ưu tiên theo số vị trí tuyển dụng đang mở.</p></div><div className="grid items-stretch gap-4 md:grid-cols-3">{featured.map((company) => <CompanyCard key={company.id} company={company} jobCount={jobCounts[company.id] ?? 0} followed={isFollowed(company.id)} onToggleFollow={toggle} featured />)}</div></section>}
-      <section className="rounded-3xl border border-border bg-card p-5 sm:p-7"><div className="mb-6 flex items-end justify-between gap-4"><div><p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">Danh bạ doanh nghiệp</p><h2 className="mt-1 text-2xl font-semibold tracking-tight">Tất cả doanh nghiệp</h2></div><div className="rounded-lg bg-muted px-3 py-2 text-sm font-medium text-muted-foreground">{visible.length} kết quả</div></div><Separator className="mb-6" /><CompanyList companies={pagedCompanies} jobCounts={jobCounts} isFollowed={isFollowed} onToggleFollow={toggle} /><div className="mt-8 border-t border-border pt-5"><Pagination page={page} totalPages={totalPages} onPageChange={setPage} /></div></section>
+      <section className="rounded-3xl border border-border bg-card p-5 sm:p-7"><div className="mb-6 flex items-end justify-between gap-4"><div><p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">Danh bạ doanh nghiệp</p><h2 className="mt-1 text-2xl font-semibold tracking-tight">Tất cả doanh nghiệp</h2></div><div className="rounded-lg bg-muted px-3 py-2 text-sm font-medium text-muted-foreground">{visible.length} kết quả</div></div><Separator className="mb-6" /><CompanyList companies={pagedCompanies} jobCounts={jobCounts} isFollowed={isFollowed} onToggleFollow={toggle} /><div className="mt-8 flex flex-col items-center gap-2 border-t border-border pt-5"><p className="text-xs text-muted-foreground">Trang {page}/{totalPages} • Tổng {visible.length} doanh nghiệp</p><Pagination page={page} totalPages={totalPages} onPageChange={setPage} /></div></section>
     </>}
   </main>;
 }

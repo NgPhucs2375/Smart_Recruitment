@@ -60,7 +60,7 @@ export function AdminDashboard() {
     />
 
     {loading && !data ? <AdminCard><AdminLoadingState /></AdminCard> : error && !data ? <AdminErrorState message={error} onRetry={reload} /> : data ? <>
-      {error && <div className="flex items-center gap-2 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive"><AlertCircle className="size-4" />{error}</div>}
+      {error && <div role="alert" className="flex items-center gap-2 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive"><AlertCircle className="size-4" />{error}</div>}
 
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {data.Summary.map((metric) => <MetricCard key={metric.Key} metric={metric} />)}

@@ -21,6 +21,7 @@ import {
   AdminEmptyState,
   AdminLoadingState,
 } from "@/components/admin/admin-page-layout";
+import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 
 type KyNang = {
   id: number;
@@ -76,6 +77,8 @@ export default function KyNangPage() {
 
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+
+  const { confirm } = useConfirmDialog();
 
   const apiFetch = useCallback(
     async (url: string, options?: RequestInit) => {
@@ -144,6 +147,7 @@ export default function KyNangPage() {
   }, [apiFetch]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadKyNangs();
   }, [loadKyNangs]);
 
@@ -246,9 +250,12 @@ export default function KyNangPage() {
   }
 
   async function handleDelete(item: KyNang) {
-    const confirmed = window.confirm(
-      `Bạn có chắc muốn xóa kỹ năng "${item.tenKyNang}"?`,
-    );
+    const confirmed = await confirm({
+      title: "Xóa kỹ năng?",
+      description: `Bạn có chắc muốn xóa kỹ năng "${item.tenKyNang}"? Hành động này không thể hoàn tác.`,
+      confirmLabel: "Xóa",
+      destructive: true,
+    });
 
     if (!confirmed) {
       return;
@@ -299,13 +306,13 @@ export default function KyNangPage() {
       />
 
       {message && (
-        <div className="rounded-xl border border-border bg-card px-4 py-3 text-sm text-foreground shadow-sm">
+        <div role="status" className="rounded-xl border border-border bg-card px-4 py-3 text-sm text-foreground shadow-sm">
           {message}
         </div>
       )}
 
       {error && (
-        <div className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+        <div role="alert" className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
           {error}
         </div>
       )}
@@ -400,12 +407,13 @@ export default function KyNangPage() {
       <AdminCard>
         <AdminCardHeader
           title="Danh sách kỹ năng"
-          description={`${items.length} kỹ năng trong hệ thống`}
+          description={search ? `${filteredItems.length}/${items.length} kỹ năng (đang lọc)` : `${items.length} kỹ năng trong hệ thống`}
           action={
             <div className="relative w-full sm:w-72">
               <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
 
               <Input
+                aria-label="Tìm kiếm kỹ năng"
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
                 placeholder="Tìm kiếm kỹ năng..."

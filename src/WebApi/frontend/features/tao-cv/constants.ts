@@ -1,4 +1,5 @@
 import type { CvTemplate, CvFormData } from "@/lib/types";
+import { createDefaultLayoutConfig } from "./resume-data";
 
 export const cvTemplates: CvTemplate[] = [
   {
@@ -41,6 +42,7 @@ export const defaultCvData: CvFormData = {
     viTriUngTuyen: "",
     mucLuongMongMuon: "",
     gioiThieuBanThan: "",
+    anhDaiDienUrl: "",
   },
   hocVan: [],
   kinhNghiemLamViec: [],
@@ -49,4 +51,5 @@ export const defaultCvData: CvFormData = {
   chungChi: [],
   templateId: "modern",
   tenFile: "",
+  layoutConfig: createDefaultLayoutConfig(),
 };

@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Caching.Distributed;
+using Application.Features.KetQuaPhuHop.Cache;
 
 namespace Application.Features.CVUngVien.Cache;
 
@@ -41,6 +42,10 @@ public static class CVUngVienListCache
                 Guid.NewGuid().ToString("N"),
                 cancellationToken)
         };
+
+        tasks.Add(RecommendationCache.InvalidateCandidatePoolAsync(
+            cache,
+            cancellationToken));
 
         foreach (var cvId in cvIds.Distinct())
         {

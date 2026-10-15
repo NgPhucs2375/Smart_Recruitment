@@ -17,8 +17,9 @@ function Slider({ className, value, min, max, step = 1, onValueChange, ...props 
     <div className={cn("relative flex h-8 w-full items-center", className)}>
       <div className="absolute inset-x-0 h-1.5 rounded-full bg-muted" />
       <div className="absolute h-1.5 rounded-full bg-primary" style={{ left: percent(value[0]), right: `${100 - Number.parseFloat(percent(value[1]))}%` }} />
-      <input aria-label="Mức lương tối thiểu" type="range" min={min} max={max} step={step} value={value[0]} onChange={(event) => onValueChange([Math.min(Number(event.target.value), value[1]), value[1]])} className="slider-thumb absolute inset-x-0 z-20 w-full appearance-none bg-transparent" {...props} />
-      <input aria-label="Mức lương tối đa" type="range" min={min} max={max} step={step} value={value[1]} onChange={(event) => onValueChange([value[0], Math.max(Number(event.target.value), value[0])])} className="slider-thumb absolute inset-x-0 z-10 w-full appearance-none bg-transparent" {...props} />
+      {/* Chỉ thumb nhận pointer-events để hai input chồng nhau không chặn kéo của nhau. */}
+      <input aria-label="Mức lương tối thiểu" type="range" min={min} max={max} step={step} value={value[0]} onChange={(event) => onValueChange([Math.min(Number(event.target.value), value[1]), value[1]])} className="slider-thumb slider-thumb--min pointer-events-none absolute inset-x-0 top-1/2 z-20 h-4 w-full -translate-y-1/2 appearance-none bg-transparent" {...props} />
+      <input aria-label="Mức lương tối đa" type="range" min={min} max={max} step={step} value={value[1]} onChange={(event) => onValueChange([value[0], Math.max(Number(event.target.value), value[0])])} className="slider-thumb slider-thumb--max pointer-events-none absolute inset-x-0 top-1/2 z-10 h-4 w-full -translate-y-1/2 appearance-none bg-transparent" {...props} />
     </div>
   );
 }

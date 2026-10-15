@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Application.Interfaces;
 using Domain.Common;
 using Domain.Entities;
@@ -16,6 +17,33 @@ namespace Infrastructure.Persistence.Contexts
     {
         private readonly IDateTimeService _dateTime;
         private readonly IAuthenticatedUserService _authenticatedUser;
+        private readonly List<Func<CancellationToken, Task>> _afterSave = new();
+        private int _deferDelivery;
+        public void EnqueueAfterSave(Func<CancellationToken, Task> action) => _afterSave.Add(action);
+
+        public async Task<T> InTransactionAsync<T>(Func<Task<T>> action, CancellationToken ct = default)
+        {
+            if (Database.CurrentTransaction != null) return await action();
+            await using var transaction = Database.IsRelational() ? await Database.BeginTransactionAsync(ct) : null;
+            _deferDelivery++;
+            try
+            {
+                var result = await action();
+                if (transaction != null) { await transaction.CommitAsync(ct); await transaction.DisposeAsync(); }
+                _deferDelivery--;
+                await DeliverAfterSaveAsync(ct);
+                return result;
+            }
+            catch { _deferDelivery--; _afterSave.Clear(); throw; }
+        }
+
+        private async Task DeliverAfterSaveAsync(CancellationToken ct)
+        {
+            var actions = _afterSave.ToArray();
+            _afterSave.Clear();
+            foreach (var action in actions)
+                try { await action(ct); } catch (Exception) { }
+        }
 
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options, IDateTimeService dateTime, IAuthenticatedUserService authenticatedUser) : base(options)
         {
@@ -42,13 +70,14 @@ namespace Infrastructure.Persistence.Contexts
 	        public DbSet<CVImportSession> CVImportSessions { get; set; }
 	        public DbSet<CVTepTin> CVTepTins { get; set; }
 	        public DbSet<CVPhienBan> CVPhienBans { get; set; }
-	        public DbSet<DanhGia> DanhGias {get; set;}
+        public DbSet<DanhGia> DanhGias {get; set;}
         public DbSet<global::KyNangUngVien> KyNangUngViens { get; set; }
+        public DbSet<CvTheme> CvThemes { get; set; }
         public DbSet<Conversation> Conversations { get; set; }
         public DbSet<Message> Messages { get; set; }
         public DbSet<MarketingBanner> MarketingBanners { get; set; }
 
-        public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = new CancellationToken())
+        public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = new CancellationToken())
         {
             foreach (var entry in ChangeTracker.Entries<AuditableBaseEntity>())
             {
@@ -81,7 +110,17 @@ namespace Infrastructure.Persistence.Contexts
                     }
                 }
             }
-            return base.SaveChangesAsync(cancellationToken);
+            int result;
+            try { result = await base.SaveChangesAsync(cancellationToken); }
+            catch (DbUpdateConcurrencyException)
+            {
+                _afterSave.Clear();
+                throw new Application.Exceptions.ApiException("Tin đã được thay đổi bởi một thao tác khác. Vui lòng tải lại.", 409);
+            }
+            catch { _afterSave.Clear(); throw; }
+            if (_deferDelivery == 0 && Database.CurrentTransaction == null)
+                await DeliverAfterSaveAsync(cancellationToken);
+            return result;
         }
 
         private static DateTime NormalizeToUtc(DateTime value) => value.Kind switch
@@ -93,6 +132,11 @@ namespace Infrastructure.Persistence.Contexts
         protected override void OnModelCreating(ModelBuilder builder)
         {
             builder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
+            builder.Entity<Conversation>().HasIndex(c => new { c.DoanhNghiepId, c.ParticipantOneId, c.ParticipantTwoId })
+                .IsUnique().HasFilter("\"Type\" = 0 AND \"ParticipantOneId\" IS NOT NULL AND \"ParticipantTwoId\" IS NOT NULL");
+
+            // pgvector (phase 2: CvTheme.Embedding). Tạo extension qua migration.
+            builder.HasPostgresExtension("vector");
             
             //tat ca cac cot decimal co kieu du lieu la decimal(18,6)
             foreach (var property in builder.Model.GetEntityTypes()

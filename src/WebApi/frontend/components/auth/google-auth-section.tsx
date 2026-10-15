@@ -1,5 +1,18 @@
-import { GoogleLoginButton } from "@/components/google-login-button";
+"use client";
+
+import dynamic from "next/dynamic";
+import { GoogleOAuthProvider } from "@react-oauth/google";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+
+const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? "";
+
+const GoogleLoginButton = dynamic(
+  () => import("@/components/google-login-button").then((module) => module.GoogleLoginButton),
+  {
+    ssr: false,
+    loading: () => <div className="h-11 w-full animate-pulse rounded-xl bg-muted" aria-hidden="true" />,
+  },
+);
 
 interface GoogleAuthSectionProps {
   mode?: "login" | "register";
@@ -30,13 +43,15 @@ export function GoogleAuthSection({
           <AlertDescription className="text-xs text-red-700">{error}</AlertDescription>
         </Alert>
       )}
-      <GoogleLoginButton
-        mode={mode}
-        onSuccess={onGoogleLogin}
-        disabled={disabled}
-        text={text}
-        onError={onError}
-      />
+      <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+        <GoogleLoginButton
+          mode={mode}
+          onSuccess={onGoogleLogin}
+          disabled={disabled}
+          text={text}
+          onError={onError}
+        />
+      </GoogleOAuthProvider>
     </div>
   );
 }

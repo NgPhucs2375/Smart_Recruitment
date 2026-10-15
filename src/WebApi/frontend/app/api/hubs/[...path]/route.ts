@@ -74,11 +74,7 @@ async function proxyHub(req: NextRequest, path: string[]): Promise<NextResponse>
     });
   } catch (err) {
     console.error(`[${reqId}] fetch error:`, err);
-    return NextResponse.json({ error: "hub_proxy_error"
-                              // , detail: String(err) /// dev moi dung prodcution thi khong can tra toi detail, de tranh lo thong tin he thong
-                            }, 
-                            // { status: 502 } /// dev moi dung prodcution thi khong can tra toi detail, de tranh lo thong tin he thong
-                          );
+    return NextResponse.json({ error: "hub_proxy_error" }, { status: 502 });
   }
 }
 

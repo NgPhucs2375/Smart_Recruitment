@@ -3,12 +3,13 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { FileText, Send, Bookmark, ArrowRight, Clock, ChevronRight, TrendingUp, LayoutDashboard, Briefcase, Users, Plus, UserPlus, Eye, ListTodo, Bell, BarChart3, Filter, AlertTriangle } from "lucide-react";
+import { FileText, Send, Bookmark, ArrowRight, Clock, ChevronRight, TrendingUp, LayoutDashboard, Briefcase, Users, Plus, UserPlus, Eye, ListTodo, Bell, BarChart3, Filter, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { AdminPageLayout, AdminPageHeader, AdminCard, AdminCardHeader, AdminLoadingState, AdminErrorState } from "@/components/admin/admin-page-layout";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { Calendar } from "@/components/ui/calendar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -160,6 +161,9 @@ function CandidateDashboard() {
   const [jobTitles, setJobTitles] = useState<Record<number, string>>({});
   const [notifications, setNotifications] = useState<DashboardNotification[]>([]);
   const [notificationRefresh, setNotificationRefresh] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const [retryTick, setRetryTick] = useState(0);
   const { count: savedCount } = useBookmarks();
 
   const apiFetch = useCallback((url: string) => fetchDashboardApi(url), []);
@@ -174,6 +178,13 @@ function CandidateDashboard() {
         apiFetch("/api/dotnet/Notifications"),
       ]);
 
+      // Toàn bộ nguồn chính fail (mạng/401...) → báo lỗi thay vì hiện số 0.
+      if (!donRes && !hsRes && !pqRes && !tinRes) {
+        setLoadError(true);
+        setLoading(false);
+        return;
+      }
+      setLoadError(false);
       if (donRes && ok(donRes)) {
         const items = extractArray(donRes).map((v: unknown) => {
           const r = v as Record<string, unknown>;
@@ -237,8 +248,9 @@ function CandidateDashboard() {
       } catch {
         setCvCount(null);
       }
+      setLoading(false);
     })();
-  }, [apiFetch, notificationRefresh]);
+  }, [apiFetch, notificationRefresh, retryTick]);
 
   const profileCompletion = getProfileCompletion(profile);
 
@@ -252,15 +264,15 @@ function CandidateDashboard() {
     <AdminPageLayout>
       <Breadcrumb>
         <BreadcrumbList>
-          <BreadcrumbItem><BreadcrumbLink href="/dashboard">Workspace</BreadcrumbLink></BreadcrumbItem>
+          <BreadcrumbItem><BreadcrumbLink href="/dashboard">Không gian làm việc</BreadcrumbLink></BreadcrumbItem>
           <BreadcrumbSeparator />
-          <BreadcrumbItem><BreadcrumbPage>Dashboard</BreadcrumbPage></BreadcrumbItem>
+          <BreadcrumbItem><BreadcrumbPage>Tổng quan</BreadcrumbPage></BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
       <Card className="overflow-hidden border-border/80 bg-card shadow-sm">
         <CardContent className="flex flex-col justify-between gap-6 p-6 sm:p-8 md:flex-row md:items-center">
           <div>
-            <Badge variant="secondary" className="font-mono text-[10px] uppercase tracking-[0.2em]">Cổng ứng viên</Badge>
+            <Badge variant="secondary" className="text-[10px] uppercase tracking-[0.2em]">Cổng ứng viên</Badge>
             <h1 className="mt-3 text-3xl font-medium tracking-tight sm:text-4xl">Xin chào, {profileName}!</h1>
             <p className="mt-2 max-w-xl text-sm leading-6 text-muted-foreground">Quản lý hành trình ứng tuyển và khám phá những cơ hội phù hợp với bạn.</p>
           </div>
@@ -275,27 +287,44 @@ function CandidateDashboard() {
         </CardContent>
       </Card>
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        {[
+      {loadError ? (
+        <AdminErrorState
+          message="Không tải được dữ liệu dashboard. Vui lòng thử lại."
+          onRetry={() => { setLoading(true); setLoadError(false); setRetryTick((value) => value + 1); }}
+        />
+      ) : (
+        <>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {loading
+            ? Array.from({ length: 4 }, (_, index) => (
+                <Card key={index} className="h-full border-border/80 shadow-sm">
+                  <CardContent className="p-5">
+                    <Skeleton className="h-3 w-24" />
+                    <Skeleton className="mt-4 h-9 w-16" />
+                    <Skeleton className="mt-2 h-3 w-28" />
+                  </CardContent>
+                </Card>
+              ))
+            : [
           { label: "CV của bạn", value: cvCount ?? "—", note: "Quản lý CV", icon: FileText, href: "/CV" },
           { label: "Sẵn sàng ứng tuyển", value: appliedCount, note: "Theo dõi trạng thái", icon: Send, href: "/viec-lam/da-ung-tuyen" },
-          { label: "Việc phù hợp với bạn", value: matchCount, note: "Adam đã tìm thấy", icon: TrendingUp, href: "/viec-lam/phu-hop" },
+          { label: "Việc phù hợp với bạn", value: matchCount, note: "Gợi ý AI phù hợp", icon: TrendingUp, href: "/viec-lam/phu-hop" },
           { label: "Việc bạn đã lưu", value: savedCount, note: "Cơ hội bạn quan tâm", icon: Bookmark, href: "/viec-lam/da-luu" },
         ].map((item) => (
           <Link key={item.label} href={item.href} className="group">
-            <Card className="h-full border-border/80 shadow-sm transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md">
+            <Card className="h-full border-border/80 shadow-sm transition hover:border-primary/40">
               <CardContent className="p-5">
                 <div className="flex items-center justify-between text-muted-foreground">
                   <span className="text-[11px] font-semibold uppercase tracking-[0.14em]">{item.label}</span>
                   <item.icon className="size-4 transition group-hover:text-primary" />
                 </div>
-                <div className="mt-4 text-3xl font-semibold tracking-tight">{item.value}</div>
+                <div className="mt-4 text-3xl font-semibold tracking-tight tabular-nums">{item.value}</div>
                 <p className="mt-1 text-xs text-muted-foreground">{item.note}</p>
               </CardContent>
             </Card>
           </Link>
         ))}
-      </div>
+        </div>
 
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1.35fr)_minmax(300px,.65fr)]">
         <div className="space-y-6">
@@ -310,11 +339,24 @@ function CandidateDashboard() {
               <Link href="/viec-lam/da-ung-tuyen" className="shrink-0 text-xs font-medium text-primary hover:underline">Xem tất cả</Link>
             </CardHeader>
             <CardContent className="p-0">
-              {recentApplied.length === 0 ? (
-                <div className="px-5 py-10 text-center sm:px-6">
-                  <Send className="mx-auto size-8 text-muted-foreground/50" />
-                  <p className="mt-3 text-sm text-muted-foreground">Chưa có đơn ứng tuyển nào.</p>
-                  <Link href="/viec-lam" className="mt-3 inline-flex text-sm font-medium text-primary underline underline-offset-4">Tìm việc ngay</Link>
+              {loading ? (
+                <div className="space-y-4 px-5 py-5 sm:px-6">
+                  {Array.from({ length: 3 }, (_, index) => (
+                    <div key={index} className="flex items-center gap-3">
+                      <Skeleton className="size-9 rounded-xl" />
+                      <div className="flex-1 space-y-2">
+                        <Skeleton className="h-4 w-3/4" />
+                        <Skeleton className="h-3 w-24" />
+                      </div>
+                      <Skeleton className="h-6 w-16" />
+                    </div>
+                  ))}
+                </div>
+              ) : recentApplied.length === 0 ? (
+                <div className="px-5 py-8 text-center sm:px-6">
+                  <span className="mx-auto flex size-11 items-center justify-center rounded-xl bg-muted"><Send className="size-5 text-muted-foreground" /></span>
+                  <p className="mt-3 text-sm font-medium text-foreground">Chưa có đơn ứng tuyển nào.</p>
+                  <Link href="/viec-lam" className="mt-2 inline-flex text-sm font-medium text-primary underline underline-offset-4">Tìm việc ngay</Link>
                 </div>
               ) : (
                 <div className="divide-y divide-border/70">
@@ -388,7 +430,7 @@ function CandidateDashboard() {
             </CardHeader>
             <CardContent className="p-5 pt-2 sm:p-6 sm:pt-2">
               {notifications.length === 0 ? (
-                <div className="rounded-xl bg-muted/50 px-4 py-6 text-center text-xs text-muted-foreground">Chưa có thông báo mới.</div>
+                <div className="rounded-xl bg-muted/50 px-4 py-6 text-center"><Bell className="mx-auto size-5 text-muted-foreground/70" /><p className="mt-2 text-xs text-muted-foreground">Chưa có thông báo mới.</p></div>
               ) : (
                 <div className="divide-y divide-border/70">
                   {notifications.slice(0, 4).map((notification) => (
@@ -420,6 +462,8 @@ function CandidateDashboard() {
           </Card>
         </div>
       </div>
+        </>
+      )}
     </AdminPageLayout>
   );
 }
@@ -480,8 +524,9 @@ function RecruiterControlCenter() {
 
   const apiFetch = useCallback((url: string) => fetchDashboardApi(url), []);
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async (silent = false) => {
+    // Refresh ngầm (interval/focus) không bật loading — tránh flash toàn trang mỗi 30s.
+    if (!silent) setLoading(true);
     setErr("");
     try {
       const [jobRes, donRes] = await Promise.all([
@@ -544,7 +589,7 @@ function RecruiterControlCenter() {
 
   useEffect(() => {
     const refreshWhenActive = () => {
-      if (document.visibilityState === "visible") void load();
+      if (document.visibilityState === "visible") void load(true);
     };
     const interval = window.setInterval(refreshWhenActive, 30_000);
     window.addEventListener("focus", refreshWhenActive);
@@ -662,14 +707,14 @@ function RecruiterControlCenter() {
     <AdminPageLayout>
       <Breadcrumb>
         <BreadcrumbList>
-          <BreadcrumbItem><BreadcrumbLink href="/dashboard">Workspace</BreadcrumbLink></BreadcrumbItem>
+          <BreadcrumbItem><BreadcrumbLink href="/dashboard">Không gian làm việc</BreadcrumbLink></BreadcrumbItem>
           <BreadcrumbSeparator />
-          <BreadcrumbItem><BreadcrumbPage>Dashboard</BreadcrumbPage></BreadcrumbItem>
+          <BreadcrumbItem><BreadcrumbPage>Tổng quan</BreadcrumbPage></BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
       <AdminPageHeader
         icon={LayoutDashboard}
-        title="Recruitment Dashboard"
+        title="Tổng quan tuyển dụng"
         description="Trung tâm điều hành tuyển dụng hằng ngày của bạn."
         actions={
           <>
@@ -698,7 +743,7 @@ function RecruiterControlCenter() {
                 <kpi.icon className="size-4 text-primary" />
               </span>
             </div>
-            <p className="mt-4 text-3xl font-semibold tracking-tight">{kpi.value}</p>
+            <p className="mt-4 text-3xl font-semibold tracking-tight tabular-nums">{kpi.value}</p>
             <p className="mt-1 text-xs text-muted-foreground">{kpi.sub}</p>
           </Link>
         ))}
@@ -713,16 +758,14 @@ function RecruiterControlCenter() {
             </div>
             <span className="text-xs text-muted-foreground">Tổng: {dons.length} lượt</span>
           </div>
-          <div className="mt-6 flex h-40 items-end gap-2 sm:gap-4">
+          <div className="mt-4 space-y-3">
             {trend.map((point) => (
-              <div key={point.date.toISOString()} className="flex min-w-0 flex-1 flex-col items-center gap-2">
-                <span className="text-[11px] font-semibold text-foreground">{point.count || ""}</span>
-                <div className="flex h-24 w-full items-end rounded-lg bg-muted/40 px-1">
-                  <div className="flex h-full w-full items-end" title={`${point.count} lượt ứng tuyển`}>
-                    <Progress value={Math.max(point.count ? 12 : 4, (point.count / trendMax) * 100)} className="h-full w-full rotate-180 rounded-md [&>div]:rounded-md" />
-                  </div>
-                </div>
-                <span className="text-[10px] capitalize text-muted-foreground">{point.label}</span>
+              <div key={point.date.toISOString()}>
+                <p className="flex items-center justify-between text-xs">
+                  <span className="font-medium capitalize text-foreground">{point.label}</span>
+                  <span className="font-semibold tabular-nums text-muted-foreground">{point.count} lượt</span>
+                </p>
+                <Progress value={(point.count / trendMax) * 100} className="mt-1.5" />
               </div>
             ))}
           </div>
@@ -731,7 +774,7 @@ function RecruiterControlCenter() {
 
       {!isManager && (
         <AdminCard>
-          <AdminCardHeader title="Action required" description="Các việc cần ưu tiên xử lý" />
+          <AdminCardHeader title="Cần xử lý" description="Các việc cần ưu tiên xử lý" />
           <div className="grid divide-y divide-border md:grid-cols-3 md:divide-x md:divide-y-0">
             <div className="p-5">
               <div className="flex items-center justify-between gap-3">
@@ -908,7 +951,7 @@ function RecruiterControlCenter() {
       <AdminCard>
         <AdminCardHeader title="Việc cần xử lý hôm nay" description="Tổng hợp từ đơn chưa xem và tin sắp hết hạn" />
         {attentionCount === 0 ? (
-          <p className="px-5 py-6 text-sm text-muted-foreground">Mọi thứ đã được xử lý. Làm tốt lắm!</p>
+          <div className="flex items-center gap-3 px-5 py-6"><span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-muted"><CheckCircle2 className="size-4 text-muted-foreground" /></span><p className="text-sm text-muted-foreground">Mọi thứ đã được xử lý.</p></div>
         ) : (
           <ul className="divide-y divide-border">
             {unviewed.length > 0 && (

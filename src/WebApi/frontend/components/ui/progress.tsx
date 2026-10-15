@@ -6,6 +6,7 @@ export function Progress({ className, value = 0, ...props }: React.ComponentProp
   return (
     <div
       role="progressbar"
+      aria-label="Tiến độ"
       aria-valuemin={0}
       aria-valuemax={100}
       aria-valuenow={safeValue}

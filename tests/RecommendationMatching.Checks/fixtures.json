@@ -1,0 +1,37 @@
+[
+  {
+    "id": "frontend-aliases", "k": 2,
+    "candidate": { "skills": [{ "name": "JS" }, { "name": "React.js" }] },
+    "items": [
+      { "id": "frontend", "relevance": 3, "job": { "title": "Frontend Developer", "requirements": [{ "name": "JavaScript", "level": "BatBuc" }, { "name": "React", "level": "BatBuc" }] } },
+      { "id": "javascript", "relevance": 2, "job": { "title": "JavaScript Developer", "requirements": [{ "name": "JavaScript", "level": "BatBuc" }, { "name": "Docker", "level": "UuTien" }] } },
+      { "id": "java", "relevance": 0, "job": { "title": "Java Developer", "requirements": [{ "name": "Java", "level": "BatBuc" }] } }
+    ]
+  },
+  {
+    "id": "dotnet-framework-distinction", "k": 2,
+    "candidate": { "skills": [{ "name": "CSharp" }, { "name": "dotnet" }] },
+    "items": [
+      { "id": "dotnet", "relevance": 3, "job": { "title": ".NET Developer", "requirements": [{ "name": "C#", "level": "BatBuc" }, { "name": ".NET", "level": "BatBuc" }] } },
+      { "id": "cpp", "relevance": 0, "job": { "title": "C++ Developer", "requirements": [{ "name": "C++", "level": "BatBuc" }] } },
+      { "id": "aspnet", "relevance": 1, "job": { "title": "ASP.NET Core Developer", "requirements": [{ "name": "C#", "level": "BatBuc" }, { "name": "ASP.NET Core", "level": "BatBuc" }] } }
+    ]
+  },
+  {
+    "id": "exact-skills-baseline", "k": 2,
+    "candidate": { "skills": [{ "name": "Python" }, { "name": "SQL" }] },
+    "items": [
+      { "id": "data", "relevance": 3, "job": { "title": "Data Analyst", "requirements": [{ "name": "Python", "level": "BatBuc" }, { "name": "SQL", "level": "BatBuc" }] } },
+      { "id": "python", "relevance": 2, "job": { "title": "Python Developer", "requirements": [{ "name": "Python", "level": "BatBuc" }, { "name": "Docker", "level": "UuTien" }] } },
+      { "id": "design", "relevance": 0, "job": { "title": "Designer", "requirements": [{ "name": "Figma", "level": "BatBuc" }] } }
+    ]
+  },
+  {
+    "id": "unknown-candidate-cold-start", "k": 2,
+    "candidate": { "skills": [] },
+    "items": [
+      { "id": "intern", "relevance": 1, "job": { "title": "Intern Developer", "requirements": [] } },
+      { "id": "senior", "relevance": 0, "job": { "title": "Senior Developer", "requirements": [{ "name": "Java", "level": "BatBuc" }] } }
+    ]
+  }
+]

@@ -16,6 +16,7 @@ using System;
 using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
+using System.Net.Http;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
@@ -40,7 +41,9 @@ namespace Infrastructure.Identity.Services
         private readonly IApplicationDbContext _appContext;
         private readonly IAuthenticatedUserService _authenticatedUserService;
         private readonly IOptions<GoogleSettings> _googleSettings;
+        private readonly IOptions<GitHubSettings> _gitHubSettings;
         private readonly ILogger<AccountService> _logger;
+        private readonly IHttpClientFactory _httpClientFactory;
         public AccountService(
             IdentityContext context,
             IApplicationDbContext appContext,
@@ -52,7 +55,9 @@ namespace Infrastructure.Identity.Services
             IEmailService emailService,
             IAuthenticatedUserService authenticatedUserService,
             IOptions<GoogleSettings> googleSettings,
-            ILogger<AccountService> logger)
+            IOptions<GitHubSettings> gitHubSettings,
+            ILogger<AccountService> logger,
+            IHttpClientFactory httpClientFactory)
         {
             _context = context;
             _appContext = appContext;
@@ -64,7 +69,9 @@ namespace Infrastructure.Identity.Services
             this._emailService = emailService;
             _authenticatedUserService = authenticatedUserService;
             _googleSettings = googleSettings;
+            _gitHubSettings = gitHubSettings;
             _logger = logger;
+            _httpClientFactory = httpClientFactory;
         }
 
         internal sealed record RolePermission
@@ -88,7 +95,8 @@ namespace Infrastructure.Identity.Services
             }
 
             // Kiểm tra Mật khẩu
-            var result = await _signInManager.PasswordSignInAsync(user.UserName, request.Password, false, lockoutOnFailure: false);
+            await EnsureAccountEnabledAsync(user, requireVerified: false);
+            var result = await _signInManager.CheckPasswordSignInAsync(user, request.Password, lockoutOnFailure: true);
             if (result.IsLockedOut || await _userManager.IsLockedOutAsync(user))
             {
                 throw new ApiException($"Tài khoản '{request.Email}' đã bị khóa. Vui lòng liên hệ quản trị viên.");
@@ -98,20 +106,23 @@ namespace Infrastructure.Identity.Services
                 throw new ApiException($"Thông tin đăng nhập không hợp lệ cho '{request.Email}'.");
             }
 
-            // Không tự động xác thực email ở đây — giữ nguyên trạng thái EmailConfirmed
-            // để luồng xác thực email thực tế hoạt động khi SMTP được cấu hình.
-            // Đăng nhập vẫn cho phép để không khóa user cũ; IsVerified phản ánh đúng.
+            if (!user.EmailConfirmed)
+            {
+                throw new ApiException(
+                    "Email chưa được xác minh. Vui lòng kiểm tra hộp thư hoặc gửi lại email xác minh.");
+            }
            
             // 1. Khởi tạo Access Token và Refresh Token
             JwtSecurityToken jwtSecurityToken = await GenerateJWToken(user).ConfigureAwait(false);
             var refreshToken = GenerateRefreshToken(ipAddress);
 
             // 2. Quản lý danh sách Token và lưu trữ vào CSDL
+            await _context.Entry(user).Collection(x => x.RefreshTokens).LoadAsync();
             user.RefreshTokens ??= new List<RefreshToken>();
             user.RefreshTokens.RemoveAll(t => !t.IsActive && t.Created.AddDays(30) <= DateTime.UtcNow);
             user.RefreshTokens.Add(refreshToken);
 
-            await _userManager.UpdateAsync(user).ConfigureAwait(false);
+            EnsureIdentityResult(await _userManager.UpdateAsync(user).ConfigureAwait(false));
 
             // 3. Lấy danh sách Roles
             var rolesList = await _userManager.GetRolesAsync(user).ConfigureAwait(false);
@@ -137,6 +148,11 @@ namespace Infrastructure.Identity.Services
         /// </summary>
        public async Task<Response<string>> RegisterAsync(YeuCauDangKy request, string origin)
         {
+            request.Email = request.Email.Trim();
+            request.Role = request.Role.Trim().ToUpperInvariant();
+            if (!string.IsNullOrWhiteSpace(request.MaSoThue) && await _appContext.DoanhNghieps
+                .AnyAsync(x => x.MaSoThue == request.MaSoThue.Trim()))
+                throw new ApiException("Mã số thuế đã được sử dụng.");
             // 1. Kiểm tra tính hợp lệ của vai trò
             string ungVienRole = VaiTroNguoiDung.UNG_VIEN.ToString();
             string daidienRole = VaiTroNguoiDung.NGUOI_DAI_DIEN.ToString();
@@ -219,7 +235,9 @@ namespace Infrastructure.Identity.Services
                 throw new ApiException($"Đăng ký không thành công: {errors}");
             }
 
-            // 7. Phân luồng đăng ký hồ sơ theo vai trò
+            // Compensate Identity creation if domain provisioning fails.
+            try
+            {
             if (!string.IsNullOrWhiteSpace(request.InviteToken) && request.InviteToken != "string")
             {
                 await RegisterInvitedNhanSuAsync(user, request).ConfigureAwait(false);
@@ -233,14 +251,17 @@ namespace Infrastructure.Identity.Services
                 await RegisterEmployerAsync(user, request).ConfigureAwait(false);
             }
 
+            }
+            catch
+            {
+                await _userManager.DeleteAsync(user).ConfigureAwait(false);
+                throw;
+            }
             // 8. Tạo mã xác nhận và gửi email.
-            // Chỉ auto-confirm khi gửi email thất bại (SMTP chưa cấu hình — dev fallback).
-            // Khi SMTP hoạt động, giữ EmailConfirmed=false để xác thực email thực tế.
-            string verificationUri = null;
-            bool emailSent = false;
+            // EmailConfirmed phải giữ false cho tới khi người dùng bấm link xác nhận.
             try
             {
-                verificationUri = await SendVerificationEmail(user, origin).ConfigureAwait(false);
+                var verificationUri = await SendVerificationEmail(user, origin).ConfigureAwait(false);
                 await _emailService.SendAsync(new EmailRequest
                 {
                     From = null,
@@ -248,22 +269,22 @@ namespace Infrastructure.Identity.Services
                     Body = $"Vui lòng xác nhận tài khoản của bạn bằng cách nhấn vào liên kết: {verificationUri}",
                     Subject = "Xác nhận Đăng ký Tài khoản"
                 }).ConfigureAwait(false);
-                emailSent = true;
+                _logger.LogInformation(
+                    "Verification email sent for user {UserId}",
+                    user.Id);
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Gửi email xác thực thất bại cho {Email} — auto-confirm fallback.", user.Email);
-                verificationUri = null;
-                emailSent = false;
+                // Không auto-confirm khi SMTP lỗi: người dùng phải gửi lại email.
+                _logger.LogWarning(
+                    ex,
+                    "Gửi email xác thực thất bại cho {Email}",
+                    user.Email);
             }
 
-            if (!emailSent && !user.EmailConfirmed)
-            {
-                user.EmailConfirmed = true;
-                await _userManager.UpdateAsync(user).ConfigureAwait(false);
-            }
-
-            return new Response<string>(user.Id, $"Người dùng đã đăng ký thành công{(verificationUri != null && emailSent ? $". Vui lòng xác nhận tài khoản qua email: {verificationUri}" : "")}");
+            return new Response<string>(
+                user.Id,
+                "Tài khoản đã được tạo. Vui lòng kiểm tra email để xác minh hoặc gửi lại email xác minh.");
         }
 
         ///<summary>
@@ -275,7 +296,7 @@ namespace Infrastructure.Identity.Services
         /// </summary>
         private async Task RegisterCandidateAsync(ApplicationUser user) {
             // thêm .ConfigureAwait(false) để tránh chuyển ngữ cảnh luồng khi đang làm việc
-            await _userManager.AddToRoleAsync(user, VaiTroNguoiDung.UNG_VIEN.ToString()).ConfigureAwait(false);
+            EnsureIdentityResult(await _userManager.AddToRoleAsync(user, VaiTroNguoiDung.UNG_VIEN.ToString()).ConfigureAwait(false));
 
             var nd = new NguoiDung {
                 ApplicationUserId = user.Id,
@@ -298,7 +319,7 @@ namespace Infrastructure.Identity.Services
         private async Task RegisterEmployerAsync(ApplicationUser user, YeuCauDangKy request)
         {
             // 1. Gán vai trò Người đại diện trong Identity Context
-            await _userManager.AddToRoleAsync(user, VaiTroNguoiDung.NGUOI_DAI_DIEN.ToString()).ConfigureAwait(false);
+            EnsureIdentityResult(await _userManager.AddToRoleAsync(user, VaiTroNguoiDung.NGUOI_DAI_DIEN.ToString()).ConfigureAwait(false));
 
             // Optional tax codes must be stored as NULL, not an empty string,
             // otherwise the unique index rejects every later registration without an MST.
@@ -357,7 +378,7 @@ namespace Infrastructure.Identity.Services
         /// </summary>
         private async Task RegisterInvitedNhanSuAsync(ApplicationUser user, YeuCauDangKy request)
         {
-            var invitation = await _appContext.LoiMoiNhanSus.FirstOrDefaultAsync(l => l.Token == request.InviteToken).ConfigureAwait(false);
+            var invitation = await _appContext.LoiMoiNhanSus.AsTracking().FirstOrDefaultAsync(l => l.Token == request.InviteToken).ConfigureAwait(false);
             if (invitation == null)
                 throw new ApiException("Lời mời không hợp lệ.");
             if (invitation.LoiMoi != TrangThaiLoiMoi.ChoXacNhan)
@@ -383,10 +404,8 @@ namespace Infrastructure.Identity.Services
                 ChucVu = invitation.ChucVu
             };
 
-            await _userManager.AddToRoleAsync(user, VaiTroNguoiDung.NHAN_SU.ToString()).ConfigureAwait(false);
+            EnsureIdentityResult(await _userManager.AddToRoleAsync(user, VaiTroNguoiDung.NHAN_SU.ToString()).ConfigureAwait(false));
             await _appContext.HoSoNhaTuyenDungs.AddAsync(hs).ConfigureAwait(false);
-            await _appContext.SaveChangesAsync().ConfigureAwait(false);
-
             invitation.LoiMoi = TrangThaiLoiMoi.DaChapNhan;
             await _appContext.SaveChangesAsync().ConfigureAwait(false);
         }
@@ -396,7 +415,7 @@ namespace Infrastructure.Identity.Services
         /// </summary>
         public async Task<Response<string>> AcceptInviteAsync(string token)
         {
-            var invitation = await _appContext.LoiMoiNhanSus.FirstOrDefaultAsync(l => l.Token == token).ConfigureAwait(false);
+            var invitation = await _appContext.LoiMoiNhanSus.AsTracking().FirstOrDefaultAsync(l => l.Token == token).ConfigureAwait(false);
             if (invitation == null)
                 throw new ApiException("Lời mời không hợp lệ.");
             if (invitation.LoiMoi != TrangThaiLoiMoi.ChoXacNhan)
@@ -410,7 +429,10 @@ namespace Infrastructure.Identity.Services
             if (!string.Equals(user.Email, invitation.Email, StringComparison.OrdinalIgnoreCase))
                 throw new ApiException("Email tài khoản không khớp với lời mời.");
 
-            var nd = await _appContext.NguoiDungs.FirstOrDefaultAsync(n => n.ApplicationUserId == user.Id).ConfigureAwait(false);
+            await EnsureAccountEnabledAsync(user);
+            var nd = await _appContext.NguoiDungs.AsTracking().FirstOrDefaultAsync(n => n.ApplicationUserId == user.Id).ConfigureAwait(false);
+            if (nd != null && nd.VaiTro != VaiTroNguoiDung.UNG_VIEN)
+                throw new ApiException("Chỉ ứng viên chưa thuộc doanh nghiệp được nhận lời mời Nhân sự.");
             if (nd == null)
             {
                 nd = new NguoiDung { ApplicationUserId = user.Id, IsActive = true };
@@ -438,9 +460,9 @@ namespace Infrastructure.Identity.Services
                 .Where(role => !string.Equals(role, nhanSuRole, StringComparison.OrdinalIgnoreCase))
                 .ToArray();
             if (obsoleteRoles.Length > 0)
-                await _userManager.RemoveFromRolesAsync(user, obsoleteRoles).ConfigureAwait(false);
+                EnsureIdentityResult(await _userManager.RemoveFromRolesAsync(user, obsoleteRoles).ConfigureAwait(false));
             if (!currentRoles.Any(role => string.Equals(role, nhanSuRole, StringComparison.OrdinalIgnoreCase)))
-                await _userManager.AddToRoleAsync(user, nhanSuRole).ConfigureAwait(false);
+                EnsureIdentityResult(await _userManager.AddToRoleAsync(user, nhanSuRole).ConfigureAwait(false));
 
             invitation.LoiMoi = TrangThaiLoiMoi.DaChapNhan;
             await _appContext.SaveChangesAsync().ConfigureAwait(false);
@@ -516,15 +538,39 @@ namespace Infrastructure.Identity.Services
         /// </summary>
         private async Task<JwtSecurityToken> GenerateJWToken(ApplicationUser user)
         {
-            // IdentityContext is scoped and not thread-safe, so keep its queries sequential.
             var userClaims = await _userManager.GetClaimsAsync(user).ConfigureAwait(false);
             var roles = await _userManager.GetRolesAsync(user).ConfigureAwait(false);
 
             var roleClaims = new List<Claim>(roles.Count);
-            foreach (var role in roles)
+            if (roles.Count > 0)
             {
-                var permissionJson = await GetPermissionOfRole(role).ConfigureAwait(false);
-                roleClaims.Add(new Claim("roles", permissionJson));
+                // Read all role permissions in one query instead of doing two
+                // sequential Identity queries for every role on each login.
+                var roleClaimRows = await (
+                    from role in _context.Roles
+                    join claim in _context.RoleClaims on role.Id equals claim.RoleId
+                    where roles.Contains(role.Name)
+                    select new
+                    {
+                        Role = role.Name,
+                        claim.ClaimType,
+                        claim.ClaimValue
+                    })
+                    .ToListAsync()
+                    .ConfigureAwait(false);
+
+                foreach (var role in roles)
+                {
+                    var permissions = roleClaimRows
+                        .Where(item => item.Role == role && !string.IsNullOrWhiteSpace(item.ClaimValue))
+                        .Select(item => new RolePermission(
+                            item.ClaimType ?? string.Empty,
+                            item.ClaimValue.Split('#', StringSplitOptions.RemoveEmptyEntries)))
+                        .ToList();
+                    roleClaims.Add(new Claim(
+                        "roles",
+                        JsonConvert.SerializeObject(new { role, permissions })));
+                }
             }
 
             // 3. Lấy địa chỉ IP an toàn
@@ -538,6 +584,7 @@ namespace Infrastructure.Identity.Services
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
                 new Claim(JwtRegisteredClaimNames.Email, user.Email ?? string.Empty),
                 new Claim("uid", user.Id),
+                new Claim("sst", user.SecurityStamp ?? string.Empty),
                 new Claim("ip", ipAddress),
                 new Claim("permission", primaryPermission)
             };
@@ -568,9 +615,7 @@ namespace Infrastructure.Identity.Services
 
         private string RandomTokenString()
         {
-            using var rngCryptoServiceProvider = new RNGCryptoServiceProvider();
-            var randomBytes = new byte[40];
-            rngCryptoServiceProvider.GetBytes(randomBytes);
+            var randomBytes = RandomNumberGenerator.GetBytes(40);
             // convert random bytes to hex string
             return BitConverter.ToString(randomBytes).Replace("-", "");
         }
@@ -579,7 +624,7 @@ namespace Infrastructure.Identity.Services
         {
             var code = await _userManager.GenerateEmailConfirmationTokenAsync(user);
             code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(code));
-            var route = "api/dotnet/account/confirm-email";
+            var route = "confirm-email";
             var _enpointUri = new Uri(string.Concat($"{origin.TrimEnd('/')}/", route));
             var verificationUri = QueryHelpers.AddQueryString(_enpointUri.ToString(), "userId", user.Id);
             verificationUri = QueryHelpers.AddQueryString(verificationUri, "code", code);
@@ -590,11 +635,14 @@ namespace Infrastructure.Identity.Services
         public async Task<Response<string>> ConfirmEmailAsync(string userId, string code)
         {
             var user = await _userManager.FindByIdAsync(userId);
-            code = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(code));
+            if (user == null) throw new ApiException("Liên kết xác minh không hợp lệ.");
+            try { code = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(code)); }
+            catch (Exception ex) when (ex is FormatException or ArgumentException)
+            { throw new ApiException("Mã xác minh không hợp lệ."); }
             var result = await _userManager.ConfirmEmailAsync(user, code);
             if (result.Succeeded)
             {
-                return new Response<string>(user.Id, message: $"Tài khoản đã được xác nhận cho{user.Email}. You can now use the /api/Account/authenticate endpoint.");
+                return new Response<string>(user.Id, "Email đã được xác minh. Bạn có thể đăng nhập.");
             }
             else
             {
@@ -630,7 +678,8 @@ namespace Infrastructure.Identity.Services
                 To = model.Email,
                 Subject = "Đặt lại Mật khẩu",
             };
-            await _emailService.SendAsync(emailRequest);
+            try { await _emailService.SendAsync(emailRequest); }
+            catch (Exception ex) { _logger.LogWarning(ex, "Không gửi được email đặt lại mật khẩu cho {UserId}", account.Id); }
         }
 
         public async Task<Response<string>> ResetPassword(YeuCauGuiLaiXacMinh model)
@@ -640,7 +689,8 @@ namespace Infrastructure.Identity.Services
             var result = await _userManager.ResetPasswordAsync(account, model.Token, model.Password);
             if (result.Succeeded)
             {
-                return new Response<string>(model.Email, message: $"Mật khẩu đã được đặt lại.");
+                await RevokeSessionsAsync(account);
+                return new Response<string>(model.Email, "Mật khẩu đã được đặt lại. Vui lòng đăng nhập lại.");
             }
             else
             {
@@ -655,6 +705,8 @@ namespace Infrastructure.Identity.Services
 
             var account = await _userManager.FindByIdAsync(_authenticatedUserService.UserId);
             if (account == null) throw new ApiException("Không tìm thấy tài khoản.", 404);
+            if (model.MatKhauHienTai == model.MatKhauMoi)
+                throw new ApiException("Mật khẩu mới phải khác mật khẩu hiện tại.");
 
             var result = await _userManager.ChangePasswordAsync(account, model.MatKhauHienTai, model.MatKhauMoi);
             if (!result.Succeeded)
@@ -665,13 +717,14 @@ namespace Infrastructure.Identity.Services
                     : error?.Description ?? "Không thể đổi mật khẩu.");
             }
 
-            return new Response<string>(account.Email, "Đổi mật khẩu thành công.");
+            await RevokeSessionsAsync(account);
+            return new Response<string>(account.Email, "Đổi mật khẩu thành công. Vui lòng đăng nhập lại.");
         }
 
         public async Task ResendVerificationEmailAsync(string email, string origin)
         {
             var user = await _userManager.FindByEmailAsync(email);
-            if (user == null) return;
+            if (user == null || user.EmailConfirmed) return;
 
             var verificationUri = await SendVerificationEmail(user, origin);
             await _emailService.SendAsync(new EmailRequest { 
@@ -727,20 +780,20 @@ namespace Infrastructure.Identity.Services
 
         public async Task<Response<string>> RevokeRefreshTokenAsync(string token, string ipAddress)
         {
-            var user = _context.Users.SingleOrDefault(u => u.RefreshTokens.Any(t => t.Token == token));
+            var user = await _context.Users.Include(x => x.RefreshTokens).SingleOrDefaultAsync(u => u.RefreshTokens.Any(t => t.Token == token));
             if (user == null)
-                throw new ApiException("Token không tồn tại.");
+                return new Response<string>(null, "Phiên đã được đăng xuất.");
 
             var refreshToken = user.RefreshTokens.Single(x => x.Token == token);
 
             if (!refreshToken.IsActive)
-                throw new ApiException("Token này đã bị vô hiệu hóa từ trước.");
+                return new Response<string>(null, "Phiên đã được đăng xuất.");
 
             // Đánh dấu thu hồi
             refreshToken.Revoked = DateTime.UtcNow;
             refreshToken.RevokedByIp = ipAddress;
 
-            await _userManager.UpdateAsync(user);
+            EnsureIdentityResult(await _userManager.UpdateAsync(user));
 
             return new Response<string>(null, "Token đã bị thu hồi thành công.");
         }
@@ -764,6 +817,7 @@ namespace Infrastructure.Identity.Services
             }
 
             var oldRefreshToken = user.RefreshTokens.Single(x => x.Token == token);
+            await EnsureAccountEnabledAsync(user);
 
             // 2. Kiểm tra tính hợp lệ của Token (Chưa bị thu hồi và chưa hết hạn)
             if (!oldRefreshToken.IsActive)
@@ -782,7 +836,7 @@ namespace Infrastructure.Identity.Services
             user.RefreshTokens.RemoveAll(t => !t.IsActive && t.Created.AddDays(30) <= DateTime.UtcNow);
             user.RefreshTokens.Add(newRefreshToken);
 
-            await _userManager.UpdateAsync(user).ConfigureAwait(false);
+            EnsureIdentityResult(await _userManager.UpdateAsync(user).ConfigureAwait(false));
 
             // 4. Sinh Access Token (JWT) mới cùng danh sách Roles
             var jwtSecurityToken = await GenerateJWToken(user).ConfigureAwait(false);
@@ -805,6 +859,7 @@ namespace Infrastructure.Identity.Services
 
         public async Task<Response<AuthenticationResponse>> ExternalLoginAsync(ExternalAuthRequest request, string ipAddress)
         {
+            var timer = System.Diagnostics.Stopwatch.StartNew();
             if (string.IsNullOrWhiteSpace(request?.IdToken))
                 throw new ApiException("IdToken không được để trống.");
 
@@ -823,8 +878,8 @@ namespace Infrastructure.Identity.Services
                 {
                     Audience = new[] { configuredClientId },
                     // Dev: nới rất rộng để vượt lệch đồng hồ BE (đã thử 5m/10m vẫn "not yet valid" do w32tm chưa sync) — prod nên để 5m
-                    IssuedAtClockTolerance = TimeSpan.FromHours(1),
-                    ExpirationTimeClockTolerance = TimeSpan.FromHours(1)
+                    IssuedAtClockTolerance = TimeSpan.FromMinutes(5),
+                    ExpirationTimeClockTolerance = TimeSpan.FromMinutes(5)
                 };
                 // Log thêm iat/exp của token để chẩn lệch giờ
                 string tokenIatInfo = "unknown";
@@ -845,6 +900,7 @@ namespace Infrastructure.Identity.Services
                 } catch { }
                 _logger.LogInformation("Validating Google IdToken length={Len} for ClientId={ClientId} serverUtc={Utc} token={TokenInfo}", request.IdToken.Length, configuredClientId, DateTime.UtcNow, tokenIatInfo);
                 payload = await GoogleJsonWebSignature.ValidateAsync(request.IdToken, validationSettings).ConfigureAwait(false);
+                _logger.LogInformation("Google token validated in {ElapsedMs} ms", timer.ElapsedMilliseconds);
             }
             catch (InvalidJwtException jwtEx)
             {
@@ -865,9 +921,13 @@ namespace Infrastructure.Identity.Services
             }
 
             _logger.LogInformation("Google payload OK email={Email} aud={Aud} iss={Iss}", payload.Email, payload.Audience, payload.Issuer);
+            if (!payload.EmailVerified || string.IsNullOrWhiteSpace(payload.Email))
+                throw new ApiException("Google chưa xác minh địa chỉ email này.");
 
             // 2. Kiểm tra xem người dùng đã tồn tại trong hệ thống chưa[cite: 3]
             var user = await _userManager.FindByEmailAsync(payload.Email).ConfigureAwait(false);
+            var existingUser = user != null;
+            _logger.LogInformation("Google user lookup completed in {ElapsedMs} ms; existing={Existing}", timer.ElapsedMilliseconds, existingUser);
             
             if (user == null)
             {
@@ -890,17 +950,103 @@ namespace Infrastructure.Identity.Services
 
                 // Tái sử dụng luồng tạo thực thể NguoiDung và gán vai trò UNG_VIEN[cite: 3]
                 await RegisterCandidateAsync(user).ConfigureAwait(false);
+                _logger.LogInformation("Google user provisioning completed in {ElapsedMs} ms", timer.ElapsedMilliseconds);
             }
 
-            // 3. Sinh Access Token và Refresh Token[cite: 3]
+            // 3. Sinh Access Token và Refresh Token — helper dùng chung với GitHub login
+            return await IssueAuthResponseAsync(user, ipAddress, request.Provider, timer, existingUser).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Đăng nhập / Đăng ký bằng GitHub (Authorization Code Flow).
+        /// Frontend điều hướng người dùng tới GitHub rồi trả code về trang callback;
+        /// backend giữ client_secret để đổi code → access_token, lấy email đã xác minh,
+        /// find-or-create tài khoản (email trùng → đăng nhập thẳng, tự liên kết GitHub;
+        /// email mới → tạo UNG_VIEN như luồng Google) và cấp JWT + Refresh Token.
+        /// </summary>
+        public async Task<Response<AuthenticationResponse>> GitHubLoginAsync(GitHubLoginRequest request, string ipAddress)
+        {
+            var timer = System.Diagnostics.Stopwatch.StartNew();
+            if (string.IsNullOrWhiteSpace(request?.Code))
+                throw new ApiException("Mã ủy quyền GitHub không được để trống.");
+
+            var settings = _gitHubSettings.Value;
+            if (string.IsNullOrWhiteSpace(settings?.ClientId) || string.IsNullOrWhiteSpace(settings?.ClientSecret))
+            {
+                _logger.LogError("GitHubSettings:ClientId/ClientSecret chưa được cấu hình trên server.");
+                throw new ApiException("Cấu hình GitHub OAuth trên server bị thiếu.");
+            }
+
+            // 1. Đổi code lấy access_token (client_secret chỉ nằm ở server).
+            var accessToken = await ExchangeGitHubCodeAsync(settings, request.Code, request.RedirectUri).ConfigureAwait(false);
+            _logger.LogInformation("GitHub code exchanged in {ElapsedMs} ms", timer.ElapsedMilliseconds);
+
+            // 2. Lấy hồ sơ + email đã xác minh từ GitHub.
+            var profile = await FetchGitHubProfileAsync(accessToken).ConfigureAwait(false);
+
+            // 3. Tìm theo email: đã tồn tại → đăng nhập thẳng (khớp trải nghiệm Google).
+            var user = await _userManager.FindByEmailAsync(profile.Email).ConfigureAwait(false);
+            var existingUser = user != null;
+            _logger.LogInformation("GitHub user lookup completed in {ElapsedMs} ms; existing={Existing}", timer.ElapsedMilliseconds, existingUser);
+
+            if (user == null)
+            {
+                var (firstName, lastName) = SplitFullName(profile.FullName ?? profile.Login);
+                user = new ApplicationUser
+                {
+                    Email = profile.Email,
+                    UserName = profile.Email,
+                    FirstName = firstName,
+                    LastName = lastName,
+                    EmailConfirmed = true // email đã được GitHub xác minh
+                };
+
+                var result = await _userManager.CreateAsync(user).ConfigureAwait(false);
+                if (!result.Succeeded)
+                {
+                    var errors = string.Join(", ", result.Errors.Select(e => e.Description));
+                    throw new ApiException($"Tạo tài khoản không thành công: {errors}");
+                }
+
+                // Tái sử dụng luồng tạo NguoiDung + vai trò UNG_VIEN (giống Google).
+                await RegisterCandidateAsync(user).ConfigureAwait(false);
+                _logger.LogInformation("GitHub user provisioning completed in {ElapsedMs} ms", timer.ElapsedMilliseconds);
+            }
+
+            // 3b. Liên kết GitHub vào Identity (bảng UserLogins) — best effort, không chặn đăng nhập.
+            await TryLinkGitHubLoginAsync(user, profile.Id).ConfigureAwait(false);
+
+            // 4. Cấp Access Token + Refresh Token (helper dùng chung với Google).
+            return await IssueAuthResponseAsync(user, ipAddress, "GitHub", timer, existingUser).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Cấp Access Token (JWT) + Refresh Token và đóng gói AuthenticationResponse.
+        /// Dùng chung cho mọi luồng external login (Google, GitHub).
+        /// </summary>
+        private async Task<Response<AuthenticationResponse>> IssueAuthResponseAsync(
+            ApplicationUser user,
+            string ipAddress,
+            string providerLabel,
+            System.Diagnostics.Stopwatch timer,
+            bool existingUser)
+        {
+            await EnsureAccountEnabledAsync(user, requireVerified: false);
+            if (!user.EmailConfirmed)
+            {
+                user.EmailConfirmed = true;
+                EnsureIdentityResult(await _userManager.UpdateAsync(user));
+            }
+
             JwtSecurityToken jwtSecurityToken = await GenerateJWToken(user).ConfigureAwait(false);
             var refreshToken = GenerateRefreshToken(ipAddress);
 
+            await _context.Entry(user).Collection(x => x.RefreshTokens).LoadAsync();
             user.RefreshTokens ??= new List<RefreshToken>();
             user.RefreshTokens.RemoveAll(t => !t.IsActive && t.Created.AddDays(30) <= DateTime.UtcNow);
             user.RefreshTokens.Add(refreshToken);
 
-            await _userManager.UpdateAsync(user).ConfigureAwait(false);
+            EnsureIdentityResult(await _userManager.UpdateAsync(user).ConfigureAwait(false));
 
             var rolesList = await _userManager.GetRolesAsync(user).ConfigureAwait(false);
 
@@ -915,7 +1061,193 @@ namespace Infrastructure.Identity.Services
                 RefreshToken = refreshToken.Token
             };
 
-            return new Response<AuthenticationResponse>(response, $"Đã xác thực {user.UserName} thông qua {request.Provider}.");
+            _logger.LogInformation("{Provider} external login completed in {ElapsedMs} ms; existing={Existing}", providerLabel, timer.ElapsedMilliseconds, existingUser);
+            return new Response<AuthenticationResponse>(response, $"Đã xác thực {user.UserName} thông qua {providerLabel}.");
+        }
+
+        private const string GitHubLoginProvider = "github";
+
+        private sealed record GitHubProfile(string Id, string Email, string FullName, string Login);
+
+        private static (string FirstName, string LastName) SplitFullName(string fullName)
+        {
+            var hoTen = (fullName ?? string.Empty).Trim();
+            int firstSpaceIndex = hoTen.IndexOf(' ');
+            var firstName = firstSpaceIndex > 0 ? hoTen[..firstSpaceIndex] : hoTen;
+            var lastName = firstSpaceIndex > 0 ? hoTen[(firstSpaceIndex + 1)..].Trim() : string.Empty;
+            return (firstName, lastName);
+        }
+
+        /// <summary>
+        /// Đổi authorization code lấy access_token tại GitHub (server-side, giữ bí mật client_secret).
+        /// </summary>
+        private async Task<string> ExchangeGitHubCodeAsync(GitHubSettings settings, string code, string redirectUri)
+        {
+            var client = _httpClientFactory.CreateClient("github");
+            var form = new Dictionary<string, string>
+            {
+                ["client_id"] = settings.ClientId,
+                ["client_secret"] = settings.ClientSecret,
+                ["code"] = code
+            };
+            // redirect_uri (nếu gửi) phải khớp exact với lúc authorize.
+            if (!string.IsNullOrWhiteSpace(redirectUri))
+                form["redirect_uri"] = redirectUri;
+
+            string body;
+            try
+            {
+                using var content = new FormUrlEncodedContent(form);
+                using var response = await client.PostAsync("https://github.com/login/oauth/access_token", content).ConfigureAwait(false);
+                body = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Không kết nối được GitHub token endpoint.");
+                throw new ApiException("Không kết nối được GitHub. Vui lòng thử lại.");
+            }
+
+            string accessToken = null;
+            string error = null;
+            try
+            {
+                // Nhờ Accept: application/json (đã set ở client "github") nên GitHub trả JSON.
+                using var doc = System.Text.Json.JsonDocument.Parse(body);
+                if (doc.RootElement.TryGetProperty("access_token", out var tokenEl)) accessToken = tokenEl.GetString();
+                if (doc.RootElement.TryGetProperty("error_description", out var descEl)) error = descEl.GetString();
+                else if (doc.RootElement.TryGetProperty("error", out var errEl)) error = errEl.GetString();
+            }
+            catch (System.Text.Json.JsonException)
+            {
+                // Fallback: query-string dạng access_token=...&token_type=bearer
+                var parsed = QueryHelpers.ParseQuery(body);
+                if (parsed.TryGetValue("access_token", out var tokenVal)) accessToken = tokenVal.ToString();
+                else if (parsed.TryGetValue("error_description", out var descVal)) error = descVal.ToString();
+                else if (parsed.TryGetValue("error", out var errVal)) error = errVal.ToString();
+            }
+
+            if (string.IsNullOrWhiteSpace(accessToken))
+            {
+                _logger.LogWarning("GitHub code exchange failed: {Error}", error ?? body);
+                throw new ApiException(string.IsNullOrWhiteSpace(error)
+                    ? "Đổi mã ủy quyền GitHub không thành công."
+                    : $"Đổi mã ủy quyền GitHub không thành công: {error}");
+            }
+
+            return accessToken;
+        }
+
+        /// <summary>
+        /// Lấy id + tên + email từ GitHub: ưu tiên email verified từ /user/emails
+        /// (scope user:email), fallback email công khai trên hồ sơ.
+        /// </summary>
+        private async Task<GitHubProfile> FetchGitHubProfileAsync(string accessToken)
+        {
+            var client = _httpClientFactory.CreateClient("github");
+
+            string body;
+            using (var req = new HttpRequestMessage(HttpMethod.Get, "https://api.github.com/user"))
+            {
+                req.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+                try
+                {
+                    using var res = await client.SendAsync(req).ConfigureAwait(false);
+                    body = await res.Content.ReadAsStringAsync().ConfigureAwait(false);
+                    if (!res.IsSuccessStatusCode)
+                    {
+                        _logger.LogWarning("GitHub /user failed: {Status} {Body}", (int)res.StatusCode, body);
+                        throw new ApiException("Không lấy được thông tin từ GitHub.");
+                    }
+                }
+                catch (ApiException)
+                {
+                    throw;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Không kết nối được GitHub API.");
+                    throw new ApiException("Không kết nối được GitHub. Vui lòng thử lại.");
+                }
+            }
+
+            string id = null, login = null, name = null, profileEmail = null;
+            try
+            {
+                using var doc = System.Text.Json.JsonDocument.Parse(body);
+                var root = doc.RootElement;
+                if (root.TryGetProperty("id", out var idEl))
+                    id = idEl.ValueKind == System.Text.Json.JsonValueKind.Number ? idEl.GetInt64().ToString() : idEl.GetString();
+                if (root.TryGetProperty("login", out var loginEl)) login = loginEl.GetString();
+                if (root.TryGetProperty("name", out var nameEl)) name = nameEl.GetString();
+                if (root.TryGetProperty("email", out var emailEl)) profileEmail = emailEl.GetString();
+            }
+            catch (System.Text.Json.JsonException ex)
+            {
+                _logger.LogWarning(ex, "Không phân tích được hồ sơ GitHub.");
+            }
+
+            if (string.IsNullOrWhiteSpace(id))
+                throw new ApiException("Phản hồi từ GitHub không hợp lệ.");
+
+            var email = await FetchVerifiedGitHubEmailAsync(client, accessToken).ConfigureAwait(false) ?? profileEmail;
+            if (string.IsNullOrWhiteSpace(email))
+                throw new ApiException("Tài khoản GitHub chưa có email xác minh. Vui lòng thêm và xác minh email trên GitHub.");
+
+            return new GitHubProfile(id, email.Trim().ToLowerInvariant(), name, login);
+        }
+
+        /// <summary>Chọn email verified (ưu tiên primary) từ GET /user/emails; lỗi → null (fallback về email hồ sơ).</summary>
+        private async Task<string> FetchVerifiedGitHubEmailAsync(HttpClient client, string accessToken)
+        {
+            try
+            {
+                using var req = new HttpRequestMessage(HttpMethod.Get, "https://api.github.com/user/emails");
+                req.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+                using var res = await client.SendAsync(req).ConfigureAwait(false);
+                if (!res.IsSuccessStatusCode) return null;
+
+                var body = await res.Content.ReadAsStringAsync().ConfigureAwait(false);
+                using var doc = System.Text.Json.JsonDocument.Parse(body);
+                string fallback = null;
+                foreach (var item in doc.RootElement.EnumerateArray())
+                {
+                    if (!(item.TryGetProperty("verified", out var v) && v.GetBoolean())) continue;
+                    if (!item.TryGetProperty("email", out var e)) continue;
+                    var mail = e.GetString();
+                    if (string.IsNullOrWhiteSpace(mail)) continue;
+                    if (item.TryGetProperty("primary", out var p) && p.GetBoolean())
+                        return mail.Trim().ToLowerInvariant();
+                    fallback ??= mail.Trim().ToLowerInvariant();
+                }
+                return fallback;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Không lấy được danh sách email từ GitHub — sẽ fallback email hồ sơ.");
+                return null;
+            }
+        }
+
+        /// <summary>Ghi liên kết GitHub → tài khoản Identity (UserLogins). Lỗi → log, không chặn đăng nhập.</summary>
+        private async Task TryLinkGitHubLoginAsync(ApplicationUser user, string gitHubUserId)
+        {
+            try
+            {
+                var logins = await _userManager.GetLoginsAsync(user).ConfigureAwait(false);
+                if (logins.Any(l => l.LoginProvider == GitHubLoginProvider && l.ProviderKey == gitHubUserId))
+                    return;
+
+                var result = await _userManager.AddLoginAsync(
+                    user, new UserLoginInfo(GitHubLoginProvider, gitHubUserId, "GitHub")).ConfigureAwait(false);
+                if (!result.Succeeded)
+                    _logger.LogWarning("Không liên kết được GitHub cho {UserId}: {Errors}",
+                        user.Id, string.Join("; ", result.Errors.Select(e => e.Description)));
+            }
+            catch (Exception ex)
+            {
+                // Provider key đã gắn với user khác hoặc lỗi DB — vẫn cho đăng nhập.
+                _logger.LogWarning(ex, "Bỏ qua liên kết GitHub cho {UserId}", user.Id);
+            }
         }
 
         // Helper: Khởi tạo URL xác thực Magic Link
@@ -935,6 +1267,9 @@ namespace Infrastructure.Identity.Services
         {
             // 1. Chuẩn hóa Email
             string email = request.Email.Trim().ToLowerInvariant();
+            request.Role = request.Role?.Trim().ToUpperInvariant();
+            if (request.Role is not ("UNG_VIEN" or "NGUOI_DAI_DIEN"))
+                throw new ApiException("Magic link chỉ hỗ trợ đăng ký Ứng viên hoặc Người đại diện.");
 
             // 2. Vô hiệu hóa tất cả token cũ đang kích hoạt
             var oldTokens = await _context.MagicLinkTokens
@@ -1041,14 +1376,17 @@ namespace Infrastructure.Identity.Services
             }
 
             // 5. Cấp phát Token
+            await EnsureAccountEnabledAsync(user, requireVerified: false);
+            if (!user.EmailConfirmed) user.EmailConfirmed = true;
             var jwtSecurityToken = await GenerateJWToken(user);
             var refreshToken = GenerateRefreshToken(ipAddress);
 
+            await _context.Entry(user).Collection(x => x.RefreshTokens).LoadAsync();
             user.RefreshTokens ??= new List<RefreshToken>();
             user.RefreshTokens.RemoveAll(t => !t.IsActive && t.Created.AddDays(30) <= DateTime.UtcNow);
             user.RefreshTokens.Add(refreshToken);
             
-            await _userManager.UpdateAsync(user);
+            EnsureIdentityResult(await _userManager.UpdateAsync(user));
 
             // 6. Hủy Token xác thực
             magicToken.Used = true;
@@ -1070,6 +1408,28 @@ namespace Infrastructure.Identity.Services
             };
 
             return new Response<AuthenticationResponse>(response, "Đăng nhập thành công.");
+        }
+
+        private static void EnsureIdentityResult(IdentityResult result)
+        {
+            if (!result.Succeeded)
+                throw new ApiException(string.Join("; ", result.Errors.Select(x => x.Description)));
+        }
+
+        private async Task EnsureAccountEnabledAsync(ApplicationUser user, bool requireVerified = true)
+        {
+            if (await _userManager.IsLockedOutAsync(user)) throw new ApiException("Tài khoản đã bị khóa.", 403);
+            var profile = await _appContext.NguoiDungs.AsNoTracking().FirstOrDefaultAsync(x => x.ApplicationUserId == user.Id);
+            if (profile == null || !profile.IsActive) throw new ApiException("Tài khoản không hoạt động.", 403);
+            if (requireVerified && !user.EmailConfirmed) throw new ApiException("Vui lòng xác minh email trước khi đăng nhập.");
+            if ((await _userManager.GetRolesAsync(user)).Count == 0) throw new ApiException("Tài khoản chưa được phân vai trò.", 403);
+        }
+
+        private async Task RevokeSessionsAsync(ApplicationUser user)
+        {
+            await _context.Entry(user).Collection(x => x.RefreshTokens).LoadAsync();
+            foreach (var token in user.RefreshTokens.Where(x => x.IsActive)) token.Revoked = DateTime.UtcNow;
+            EnsureIdentityResult(await _userManager.UpdateAsync(user));
         }
     }
 

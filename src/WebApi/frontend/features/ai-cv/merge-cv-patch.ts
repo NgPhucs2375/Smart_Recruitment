@@ -158,7 +158,14 @@ export function applySectionItems(
       result.skipped.push("Item không phải object.");
       continue;
     }
-    const patch = raw as Record<string, unknown>;
+    const patch = { ...(raw as Record<string, unknown>) };
+    if (section === "kinhNghiemLamViec" && !patch.congTy && patch.truong) {
+      patch.congTy = patch.truong;
+    }
+    if (section === "chungChi") {
+      if (!patch.tenChungChi && patch.truong) patch.tenChungChi = patch.truong;
+      if (!patch.ngayCap && patch.moTa) patch.ngayCap = patch.moTa;
+    }
     const coerced: Record<string, unknown> = {};
     for (const [k, v] of Object.entries(patch)) {
       if (k === "id") continue;
@@ -272,7 +279,7 @@ export function applyTemplatePatch(
   templateId: string,
 ): { next: CvFormData; applied: boolean; report: string } {
   const raw = templateId.trim();
-  if (!TEMPLATE_REGISTRY[raw]) {
+  if (!TEMPLATE_REGISTRY[raw] || TEMPLATE_REGISTRY[raw].isActive === false) {
     return {
       next: data,
       applied: false,

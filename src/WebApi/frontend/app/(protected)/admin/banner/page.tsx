@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { getAuthToken } from "@/lib/auth-provider";
 
 type Banner = {
@@ -55,6 +56,7 @@ function BannerAdminPage() {
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const { confirm } = useConfirmDialog();
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -117,7 +119,13 @@ function BannerAdminPage() {
   };
 
   const remove = async (banner: Banner) => {
-    if (!window.confirm(`Xóa banner "${banner.title}"?`)) return;
+    const confirmed = await confirm({
+      title: "Xóa banner?",
+      description: `Xóa banner "${banner.title}"? Hành động này không thể hoàn tác.`,
+      confirmLabel: "Xóa",
+      destructive: true,
+    });
+    if (!confirmed) return;
     try {
       await request(`/${banner.id}`, { method: "DELETE" });
       toast.success("Đã xóa banner");

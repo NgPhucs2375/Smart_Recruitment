@@ -1,13 +1,15 @@
 "use client";
+import { ResendVerification } from "@/components/auth/resend-verification";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { usePasswordLogin, useGoogleAuth } from "@/hooks";
+import { sanitizeNext } from "@/lib/portal-roles";
 import {
   AuthLayout,
   GoogleAuthSection,
   GithubLoginButton,
-  WrongPortalAlert,
 } from "@/components/auth";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,10 +23,20 @@ import { Mail, Lock, ArrowRight, Loader2, Building2, Eye, EyeOff, Sparkles, Kanb
  * No duplicated authentication logic.
  */
 export default function EmployerLoginPage() {
+  return (
+    <Suspense fallback={<div className="min-h-dvh bg-background" />}>
+      <EmployerLoginContent />
+    </Suspense>
+  );
+}
+
+function EmployerLoginContent() {
   const [showPassword, setShowPassword] = useState(false);
-  const { register, handleSubmit, errors, isPending, submitError, wrongPortal: passwordWrongPortal } = usePasswordLogin("employer");
-  const { handleGoogleLogin, isPending: isGooglePending, error: googleError, wrongPortal: googleWrongPortal } = useGoogleAuth("employer");
-  const wrongPortal = passwordWrongPortal ?? googleWrongPortal;
+  const [githubError, setGithubError] = useState<string | null>(null);
+  const searchParams = useSearchParams();
+  const next = sanitizeNext(searchParams.get("next"));
+  const { register, handleSubmit, errors, isPending, submitError, email } = usePasswordLogin("employer", next);
+  const { handleGoogleLogin, isPending: isGooglePending, error: googleError } = useGoogleAuth("employer", next);
 
   return (
     <AuthLayout
@@ -103,12 +115,12 @@ export default function EmployerLoginPage() {
       </div>
 
       <form onSubmit={handleSubmit} noValidate className="space-y-3">
-        {wrongPortal && <WrongPortalAlert portal={wrongPortal} />}
         {submitError && (
           <Alert variant="destructive" className="border-red-200 bg-red-50 py-2.5">
             <AlertDescription className="text-xs text-red-700">{submitError}</AlertDescription>
           </Alert>
         )}
+        <ResendVerification email={email ?? ""} error={submitError} />
 
         <div className="space-y-1.5">
           <Label htmlFor="employer-email" className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
@@ -183,7 +195,14 @@ export default function EmployerLoginPage() {
           text="Đăng nhập nhanh bằng Google"
         />
         {googleError && <p className="text-xs text-red-500">{googleError}</p>}
-        <GithubLoginButton text="Đăng nhập bằng GitHub" />
+        <GithubLoginButton
+          text="Đăng nhập bằng GitHub"
+          portal="employer"
+          next={next}
+          disabled={isPending || isGooglePending}
+          onError={setGithubError}
+        />
+        {githubError && <p className="text-xs text-red-500">{githubError}</p>}
       </form>
 
       <div className="mt-6 border-t border-border/60 pt-4 text-center">

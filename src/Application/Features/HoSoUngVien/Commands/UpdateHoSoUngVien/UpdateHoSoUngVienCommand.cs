@@ -41,10 +41,14 @@ namespace Application.Features.HoSoUngVien.Commands.UpdateHoSoUngVien
                     "Không tìm thấy hồ sơ ứng viên.");
             }
 
+        // DbContext NoTracking toàn cục: Find/FirstOrDefault trả về entity
+        // không track — Attach cùng reference (không throw duplicate-track).
+        context.HoSoUngViens.Attach(entity);
+
             var ctx = await current.ResolveAsync();
 
-            if (ctx.VaiTro == VaiTroNguoiDung.UNG_VIEN &&
-                entity.NguoiDungId != ctx.Id)
+            if (ctx.VaiTro != VaiTroNguoiDung.QUAN_TRI_VIEN &&
+                (ctx.VaiTro != VaiTroNguoiDung.UNG_VIEN || entity.NguoiDungId != ctx.Id))
             {
                 return new Response<int>(
                     "Bạn chỉ được sửa hồ sơ của chính mình.");

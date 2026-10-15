@@ -5,6 +5,7 @@ import {
 import { HttpAgent, type HttpAgentFetchFn } from "@ag-ui/client";
 import { AsyncLocalStorage } from "node:async_hooks";
 import { sanitizeSseLine } from "./sanitize-agui";
+import { createRedisThreadRunner } from "./thread-runner";
 
 // Adapter CopilotKit Runtime: chuyển luồng hội thoại sang AG-UI agent .NET.
 // sanitize-agui.ts chuẩn hóa null-envelope của host .NET trước khi client parse.
@@ -141,6 +142,11 @@ const runtime = new CopilotRuntime({
     // CopilotKit client mặc định gọi agentId="default".
     default: new HttpAgent({ url: agentUrl, fetch: agentFetch }),
   },
+  // Runner quấn InMemoryAgentRunner: connect() fallback khôi phục lịch sử từ
+  // Redis backend khi reload trang (thread chưa có data in-process).
+  runner: createRedisThreadRunner({
+    apiBase: agentUrl.replace(/\/api\/copilotkit\/?$/, ""),
+  }),
 } as unknown as ConstructorParameters<typeof CopilotRuntime>[0]);
 
 /** Handler dùng chung cho route bare và catch-all [...path]. */

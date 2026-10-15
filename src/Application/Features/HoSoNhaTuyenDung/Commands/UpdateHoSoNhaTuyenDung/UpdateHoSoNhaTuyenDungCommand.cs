@@ -39,7 +39,15 @@ public class UpdateHoSoNhaTuyenDungCommandHandler(
                 "Không tìm thấy hồ sơ nhà tuyển dụng.");
         }
 
+        // DbContext NoTracking toàn cục: Find/FirstOrDefault trả về entity
+        // không track — Attach cùng reference (không throw duplicate-track).
+        context.HoSoNhaTuyenDungs.Attach(entity);
+
         var ctx = await current.ResolveAsync();
+        if (ctx.VaiTro != VaiTroNguoiDung.QUAN_TRI_VIEN &&
+            (entity.DoanhNghiepId != ctx.DoanhNghiepId ||
+             entity.NguoiDungId != request.NguoiDungId || entity.DoanhNghiepId != request.DoanhNghiepId))
+            throw new Application.Exceptions.ApiException("Không được chuyển liên kết người dùng/doanh nghiệp hoặc sửa hồ sơ ngoài phạm vi.", 403);
 
         var doanhNghiep = await context.DoanhNghieps
             .AsNoTracking()

@@ -4,29 +4,35 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { useBookmarks } from '@/features/bookmarks/bookmark-provider';
+import { useAuth } from '@/features/auth';
 import { useTheme } from '@/hooks/use-theme';
 
 export default function ProfileScreen() {
   const theme = useTheme();
   const { ids } = useBookmarks();
+  const { user, signOut } = useAuth();
+
+  const displayName = user?.fullname || user?.userName || user?.email || 'Người dùng';
+  const initial = displayName.trim().charAt(0).toUpperCase() || '?';
+  const roles = user?.roles?.join(', ') ?? '';
 
   return (
     <SafeAreaView edges={['top']} style={[styles.safeArea, { backgroundColor: theme.background }]}>
       <View style={styles.content}>
         <ThemedText style={styles.title}>Hồ sơ của bạn</ThemedText>
-        <ThemedText style={[styles.subtitle, { color: theme.textSecondary }]}>
-          Đăng nhập để quản lý hồ sơ, CV và các ứng tuyển.
-        </ThemedText>
 
         <ThemedView style={[styles.accountCard, { borderColor: theme.border }]}>
           <View style={[styles.avatar, { backgroundColor: theme.backgroundSelected }]}>
-            <ThemedText style={[styles.avatarText, { color: theme.primary }]}>?</ThemedText>
+            <ThemedText style={[styles.avatarText, { color: theme.primary }]}>{initial}</ThemedText>
           </View>
           <View style={styles.accountCopy}>
-            <ThemedText style={styles.accountTitle}>Chưa đăng nhập</ThemedText>
+            <ThemedText style={styles.accountTitle}>{displayName}</ThemedText>
             <ThemedText style={[styles.subtitle, { color: theme.textSecondary }]}>
-              Luồng xác thực mobile sẽ được kết nối ở bước tiếp theo.
+              {user?.email ?? ''}
             </ThemedText>
+            {roles ? (
+              <ThemedText style={[styles.roles, { color: theme.textSecondary }]}>{roles}</ThemedText>
+            ) : null}
           </View>
         </ThemedView>
 
@@ -37,8 +43,15 @@ export default function ProfileScreen() {
           </ThemedText>
         </ThemedView>
 
-        <Pressable accessibilityRole="button" disabled style={[styles.loginButton, { backgroundColor: theme.primary, opacity: 0.55 }]}>
-          <ThemedText style={styles.loginButtonText}>Đăng nhập (sắp có)</ThemedText>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => void signOut()}
+          style={({ pressed }) => [
+            styles.logoutButton,
+            { borderColor: theme.border, opacity: pressed ? 0.75 : 1 },
+          ]}
+        >
+          <ThemedText style={[styles.logoutText, { color: theme.text }]}>Đăng xuất</ThemedText>
         </Pressable>
       </View>
     </SafeAreaView>
@@ -55,8 +68,16 @@ const styles = StyleSheet.create({
   avatarText: { fontSize: 21, fontWeight: '800' },
   accountCopy: { flex: 1, gap: 3 },
   accountTitle: { fontSize: 15, fontWeight: '700' },
+  roles: { fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.4 },
   summaryCard: { padding: 18, borderRadius: 20, borderWidth: 1 },
   summaryValue: { fontSize: 26, fontWeight: '800' },
-  loginButton: { minHeight: 50, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
-  loginButtonText: { color: '#FFFFFF', fontSize: 14, fontWeight: '700' },
+  logoutButton: {
+    minHeight: 50,
+    borderRadius: 15,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 8,
+  },
+  logoutText: { fontSize: 14, fontWeight: '700' },
 });

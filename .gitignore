@@ -4,9 +4,10 @@
 **/node_modules/
 /.vscode
 # WebApp.Server/wwwroot/policy.csv
-/docs
+/docs/*
 /.docs
-**/docs/
+!/docs/ui/
+!/docs/ui/**
 *.userosscache
 *.sln.docstates
 

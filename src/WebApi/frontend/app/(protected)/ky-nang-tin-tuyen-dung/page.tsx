@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { AdminPageLayout, AdminPageHeader, AdminCard, AdminCardHeader, AdminEmptyState, AdminLoadingState } from "@/components/admin/admin-page-layout";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 
 type TinTuyenDung = { id: number; tieuDe: string };
 type KyNang = { id: number; tenKyNang: string };
@@ -53,6 +54,7 @@ export default function KyNangTinTuyenDungPage() {
   const [search, setSearch] = useState("");
 
   const [form, setForm] = useState({ kyNangId: 0, mucDoYeuCau: 2 });
+  const { confirm } = useConfirmDialog();
 
   const apiFetch = useCallback(async (url: string, opts?: RequestInit) => {
     const token = localStorage.getItem("access_token");
@@ -151,7 +153,13 @@ export default function KyNangTinTuyenDungPage() {
 
   async function handleDelete(item: KyNangTinTuyenDung) {
     const name = allSkills.find(k => k.id === item.kyNangId)?.tenKyNang ?? `Kỹ năng #${item.kyNangId}`;
-    if (!window.confirm(`Xóa kỹ năng "${name}" khỏi tin tuyển dụng?`)) return;
+    const confirmed = await confirm({
+      title: "Xóa kỹ năng khỏi tin?",
+      description: `Xóa kỹ năng "${name}" khỏi tin tuyển dụng?`,
+      confirmLabel: "Xóa",
+      destructive: true,
+    });
+    if (!confirmed) return;
     try {
       setErr(""); setSuccessMsg("");
       const res: ApiResponse<unknown> = await apiFetch(`${API_KNTTD}/${item.id}`, { method: "DELETE" });
@@ -183,14 +191,14 @@ export default function KyNangTinTuyenDungPage() {
         description="Quản lý kỹ năng yêu cầu cho từng tin tuyển dụng."
       />
 
-      {successMsg && <div className="rounded-xl border border-border bg-card px-4 py-3 text-sm text-foreground shadow-sm">{successMsg}</div>}
-      {err && <div className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">{err}</div>}
+      {successMsg && <div role="status" className="rounded-xl border border-border bg-card px-4 py-3 text-sm text-foreground shadow-sm">{successMsg}</div>}
+      {err && <div role="alert" className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">{err}</div>}
 
       <AdminCard>
         <div className="p-5">
-          <Label>Chọn tin tuyển dụng *</Label>
+          <Label htmlFor="knttd-tin">Chọn tin tuyển dụng *</Label>
           <Select value={String(selectedJob)} onValueChange={value => { setSelectedJob(Number(value)); setErr(""); setSuccessMsg(""); resetForm(); }}>
-            <SelectTrigger className="mt-1 h-9 w-full max-w-md"><SelectValue placeholder="-- Chọn tin tuyển dụng --" /></SelectTrigger>
+            <SelectTrigger id="knttd-tin" className="mt-1 h-9 w-full max-w-md"><SelectValue placeholder="-- Chọn tin tuyển dụng --" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="0">-- Chọn tin tuyển dụng --</SelectItem>
               {jobPostings.map(j => <SelectItem key={j.id} value={String(j.id)}>{j.tieuDe}</SelectItem>)}
@@ -214,9 +222,9 @@ export default function KyNangTinTuyenDungPage() {
               </div>
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
-                  <Label>Kỹ năng *</Label>
+                  <Label htmlFor="knttd-ky-nang">Kỹ năng *</Label>
                   <Select value={String(form.kyNangId)} onValueChange={value => setForm(f => ({ ...f, kyNangId: Number(value) }))} disabled={!!editing}>
-                    <SelectTrigger className="h-9 w-full"><SelectValue placeholder="Chọn kỹ năng..." /></SelectTrigger>
+                    <SelectTrigger id="knttd-ky-nang" className="h-9 w-full"><SelectValue placeholder="Chọn kỹ năng..." /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="0">Chọn kỹ năng...</SelectItem>
                       {availableSkills.map(k => <SelectItem key={k.id} value={String(k.id)}>{k.tenKyNang}</SelectItem>)}
@@ -224,9 +232,9 @@ export default function KyNangTinTuyenDungPage() {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>Mức độ yêu cầu *</Label>
+                  <Label htmlFor="knttd-muc-do">Mức độ yêu cầu *</Label>
                   <Select value={String(form.mucDoYeuCau)} onValueChange={value => setForm(f => ({ ...f, mucDoYeuCau: Number(value) }))}>
-                    <SelectTrigger className="h-9 w-full"><SelectValue /></SelectTrigger>
+                    <SelectTrigger id="knttd-muc-do" className="h-9 w-full"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       {MUC_DO.map(m => <SelectItem key={m.value} value={String(m.value)}>{m.label}</SelectItem>)}
                     </SelectContent>
@@ -245,7 +253,7 @@ export default function KyNangTinTuyenDungPage() {
               title={`Kỹ năng — ${selectedJobTitle ?? `Tin #${selectedJob}`}`}
               description={`${jobSkills.length} kỹ năng yêu cầu`}
               action={<div className="flex items-center gap-2">
-                <div className="relative w-full sm:w-48"><Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Tìm kỹ năng..." className="pl-3" /></div>
+                <div className="relative w-full sm:w-48"><Input aria-label="Tìm kỹ năng" value={search} onChange={e => setSearch(e.target.value)} placeholder="Tìm kỹ năng..." className="pl-3" /></div>
                 <Button onClick={openCreate} size="sm"><Plus className="size-4" /> Thêm</Button>
               </div>}
             />

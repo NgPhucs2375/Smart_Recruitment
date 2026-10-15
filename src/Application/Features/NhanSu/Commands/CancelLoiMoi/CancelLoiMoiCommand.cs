@@ -33,6 +33,10 @@ namespace Application.Features.NhanSu.Commands.CancelLoiMoi
             if (entity == null)
                 throw new ApiException("Không tìm thấy lời mời.");
 
+        // DbContext NoTracking toàn cục: Find/FirstOrDefault trả về entity
+        // không track — Attach cùng reference (không throw duplicate-track).
+        context.LoiMoiNhanSus.Attach(entity);
+
             var machine = new LoiMoiNhanSuStateMachine(workflow, current, entity);
             try
             {

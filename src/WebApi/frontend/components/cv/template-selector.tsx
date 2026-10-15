@@ -17,12 +17,14 @@ import {
   type ResumeTemplateMeta,
   type TemplateCategory,
 } from "@/features/tao-cv/template-registry";
+import { CustomThemeOptions, usePublishedThemes } from "./custom-theme-picker";
 
 interface TemplateSelectorProps {
   selectedId: string;
   onSelect: (id: string) => void;
   /** ID CV đang soạn (nếu có): gallery giữ ?cv= để quay về đúng CV, không mất nội dung. */
   cvId?: number | null;
+  compact?: boolean;
 }
 
 /**
@@ -37,21 +39,25 @@ const TEMPLATE_BADGES: Record<string, string> = {
   "minimal-ats": "ATS",
   "tech-modern": "Phổ biến",
   "ats-classic": "ATS",
-  "professional-split": "2 cột",
-  "modern-accent": "Hiện đại",
-  "executive-tech": "Chuyên nghiệp",
   "compact-developer": "Fresher",
-  "sidebar-pro": "2 cột",
   "clean-corporate": "Corporate",
   "creative-portfolio": "Creative",
-  "senior-executive": "Senior",
   "academic-cv": "Học thuật",
   "data-specialist": "Data",
-  "devops-stack": "DevOps",
-  "product-builder": "Product",
   "startup-modern": "Startup",
-  "elegant-serif": "Serif",
-  "minimal-grid": "Grid",
+  "ocean-wave": "2 cột",
+  "forest-fresh": "Tươi mới",
+  "bento-grid": "Bento",
+  "zen-minimal": "Tối giản",
+  "snapshot-pro": "Ảnh",
+  "care-plus": "Y tế",
+  "mentor-class": "Giáo dục",
+  "vault-finance": "Tài chính",
+  "editorial-magazine": "Editorial",
+  "archi-portfolio": "Kiến trúc",
+  "legal-prestige": "Luật",
+  "research-scholar": "Scholar",
+  "culinary-signature": "F&B",
 };
 
 function useTemplateBrowse(selectedId: string) {
@@ -88,17 +94,29 @@ function useTemplateBrowse(selectedId: string) {
  * active template opens a popover with search + category filter and a
  * compact row list (small live thumbnails). Full gallery stays at /mau-cv.
  */
-export function TemplatePicker({ selectedId, onSelect, cvId }: TemplateSelectorProps) {
+export function TemplatePicker({ selectedId, onSelect, cvId, compact = false }: TemplateSelectorProps) {
   const [open, setOpen] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
   const { active, activeId, query, setQuery, category, setCategory, visible, templates } =
     useTemplateBrowse(selectedId);
+  const published = usePublishedThemes();
+  const customActive = !active ? published.find((t) => t.id === selectedId) : undefined;
 
   // Select immediately and keep the popover open: closing + parent refetch
   // on every click caused the list jump and repeated-click feeling.
   const pick = (id: string) => {
     onSelect(id);
   };
+
+  // Theme Studio gộp chung 1 list với mẫu thường (không khu riêng).
+  const customQuery = query.trim().toLowerCase();
+  const customVisibleCount = customQuery
+    ? published.filter(
+        (t) =>
+          t.name.toLowerCase().includes(customQuery) ||
+          (t.description ?? "").toLowerCase().includes(customQuery),
+      ).length
+    : published.length;
 
   // Scroll the active row into view once when the popover opens —
   // never on selection, so scroll position stays stable while picking.
@@ -125,22 +143,32 @@ export function TemplatePicker({ selectedId, onSelect, cvId }: TemplateSelectorP
     >
       <DropdownMenuTrigger
         aria-label="Chọn mẫu CV"
-        className="flex w-full items-center gap-3 rounded-2xl border border-border bg-card p-3 text-left shadow-sm transition hover:border-primary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+        className={cn(
+          "flex items-center text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+          compact
+            ? "h-9 gap-2 rounded-md border border-border bg-card px-3 hover:bg-muted"
+            : "w-full gap-3 rounded-xl border border-border bg-card p-3 hover:border-primary/50",
+        )}
       >
-          <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+          <span className={cn("shrink-0 items-center justify-center bg-primary/10", compact ? "hidden" : "flex size-10 rounded-lg")}>
             <LayoutTemplate className="size-5 text-primary" />
           </span>
           <span className="min-w-0 flex-1">
-            <span className="block text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+            <span className={cn("text-[11px] font-medium uppercase tracking-wider text-muted-foreground", compact ? "inline" : "block")}>
               Mẫu CV
             </span>
             <span className="block truncate text-sm font-semibold text-foreground">
-              {active?.name ?? "Chọn mẫu"}
+              {active?.name ?? customActive?.name ?? "Chọn mẫu"}
             </span>
           </span>
-          {active && TEMPLATE_BADGES[active.id] && (
+          {!compact && active && TEMPLATE_BADGES[active.id] && (
             <span className="shrink-0 rounded-full bg-navy px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white">
               {TEMPLATE_BADGES[active.id]}
+            </span>
+          )}
+          {customActive && (
+            <span className="shrink-0 rounded-full bg-teal px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white">
+              Studio
             </span>
           )}
           <ChevronDown className={cn("size-4 shrink-0 text-muted-foreground transition-transform duration-200", open && "rotate-180")} />
@@ -190,14 +218,17 @@ export function TemplatePicker({ selectedId, onSelect, cvId }: TemplateSelectorP
             ))}
           </div>
           <div ref={listRef} className="cv-thin-scroll mt-2 min-h-0 flex-1 overflow-y-auto" role="listbox" aria-label="Danh sách mẫu CV">
-          {visible.length === 0 ? (
+            {visible.length === 0 && customVisibleCount === 0 ? (
             <p className="rounded-xl border border-dashed border-border px-3 py-5 text-center text-xs text-muted-foreground">
               Không tìm thấy mẫu phù hợp.
             </p>
           ) : (
-            visible.map((template) => {
-              const { Component } = template;
+            <>
+            {visible.map((template) => {const { Component } = template;
               const isActive = activeId === template.id;
+              const firstCat = TEMPLATE_CATEGORIES.find(
+                (c) => c.id !== "all" && (template.categories ?? []).includes(c.id),
+              );
               return (
                 <button
                   key={template.id}
@@ -206,17 +237,17 @@ export function TemplatePicker({ selectedId, onSelect, cvId }: TemplateSelectorP
                   aria-selected={isActive}
                   onClick={() => pick(template.id)}
                   className={cn(
-                    "template-card flex w-full items-center gap-3 rounded-xl border p-2 text-left",
+                    "template-card flex w-full items-center gap-3 rounded-xl border p-2.5 text-left",
                     isActive ? "border-primary bg-primary/5" : "border-transparent hover:border-border hover:bg-muted/60",
                   )}
                 >
                   <span
-                    className="h-16 w-14 shrink-0 overflow-hidden rounded-lg border border-border bg-white"
+                    className="h-20 w-[70px] shrink-0 overflow-hidden rounded-lg border border-border bg-white"
                     aria-hidden="true"
                   >
                     <span
                       className="block origin-top-left text-left"
-                      style={{ width: "280px", transform: "scale(0.2)", pointerEvents: "none" }}
+                      style={{ width: "350px", transform: "scale(0.2)", pointerEvents: "none" }}
                     >
                       <Component data={SAMPLE_RESUME} />
                     </span>
@@ -225,8 +256,17 @@ export function TemplatePicker({ selectedId, onSelect, cvId }: TemplateSelectorP
                     <span className="block truncate text-sm font-semibold text-foreground">
                       {template.name}
                     </span>
-                    <span className="block truncate text-xs text-muted-foreground">
-                      {template.tags.slice(0, 3).join(" · ")}
+                    <span className="mt-1 flex items-center gap-1">
+                      {firstCat && (
+                        <span className="rounded-full bg-muted px-1.5 py-px text-[10px] font-medium text-muted-foreground">
+                          {firstCat.label}
+                        </span>
+                      )}
+                      {template.atsFriendly === true && (
+                        <span className="rounded-full bg-teal/15 px-1.5 py-px text-[10px] font-semibold text-teal">
+                          ATS
+                        </span>
+                      )}
                     </span>
                   </span>
                   {isActive ? (
@@ -236,7 +276,9 @@ export function TemplatePicker({ selectedId, onSelect, cvId }: TemplateSelectorP
                   )}
                 </button>
               );
-            })
+            })}
+            <CustomThemeOptions variant="row" activeId={activeId} onPick={pick} query={query} bare />
+            </>
           )}
           </div>
           <Link
@@ -341,6 +383,7 @@ export function TemplateSelector({ selectedId, onSelect }: TemplateSelectorProps
           })}
         </div>
       )}
+      <CustomThemeOptions variant="card" activeId={activeId} onPick={onSelect} query={query} />
     </div>
   );
 }

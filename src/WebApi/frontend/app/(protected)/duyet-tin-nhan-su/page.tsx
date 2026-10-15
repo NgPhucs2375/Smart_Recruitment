@@ -6,7 +6,8 @@ import { toast } from "sonner";
 import { AdminPageLayout, AdminPageHeader, AdminCard, AdminCardHeader, AdminEmptyState, AdminLoadingState } from "@/components/admin/admin-page-layout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { getAuthToken } from "@/lib/auth-provider";
+import { useConfirmDialog } from "@/components/ui/confirm-dialog";
+import { getValidToken } from "@/lib/auth-provider";
 
 type TinChoDuyet = {
   id: number;
@@ -17,6 +18,7 @@ type TinChoDuyet = {
   luongToiDa: number;
   nguoiDangTinId: number;
   trangThai: string;
+  lastModified?: string;
 };
 
 const API = "/api/dotnet/tintuyendungs";
@@ -30,12 +32,16 @@ export default function DuyetTinNhanSuPage() {
   const [items, setItems] = useState<TinChoDuyet[]>([]);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<number | null>(null);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const { confirm, prompt } = useConfirmDialog();
 
   const request = useCallback(async (url: string, init?: RequestInit) => {
+    const token = await getValidToken();
     const response = await fetch(url, {
       cache: "no-store",
       ...init,
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${getAuthToken() ?? ""}`, ...init?.headers },
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token ?? ""}`, ...init?.headers },
     });
     const body = await response.json().catch(() => null) as Record<string, unknown> | null;
     if (!response.ok) throw new Error(String(body?.Message ?? body?.message ?? `HTTP ${response.status}`));
@@ -47,7 +53,9 @@ export default function DuyetTinNhanSuPage() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const body = await request(`${API}?_start=0&_end=0`);
+      // _end=0 trả 0 dòng → hàng chờ duyệt luôn rỗng; cần _end>0 như mọi list call khác.
+      const body = await request(`${API}?TrangThai=ChoNguoiDaiDienDuyet&_start=${(page - 1) * 20}&_end=${page * 20}`);
+      setTotalPages(Number(body?.TotalPages ?? body?.totalPages ?? 1) || 1);
       const raw = body?.Data ?? body?.data;
       const rows = Array.isArray(raw) ? raw : [];
       setItems(rows.map((item) => {
@@ -61,6 +69,7 @@ export default function DuyetTinNhanSuPage() {
           luongToiDa: Number(value(row, "luongToiDa", "LuongToiDa") ?? 0),
           nguoiDangTinId: Number(value(row, "nguoiDangTinId", "NguoiDangTinId") ?? 0),
           trangThai: String(value(row, "trangThai", "TrangThai") ?? ""),
+          lastModified: value(row, "lastModified", "LastModified") as string | undefined,
         };
       }).filter((item) => item.trangThai === "ChoNguoiDaiDienDuyet" || item.trangThai === "9"));
     } catch (error) {
@@ -68,26 +77,36 @@ export default function DuyetTinNhanSuPage() {
     } finally {
       setLoading(false);
     }
-  }, [request]);
+  }, [request, page]);
 
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { void load(); }, [load]);
 
   async function decide(item: TinChoDuyet, approve: boolean) {
-    const action = approve ? "duyệt" : "từ chối";
-    if (!window.confirm(`Bạn chắc chắn muốn ${action} tin “${item.tieuDe}”?`)) return;
+    const action = approve ? "Duyệt" : "Từ chối";
+    const reason = approve ? "Người đại diện đồng ý, chuyển sang bộ lọc hệ thống" : await prompt({ title: "Lý do từ chối tin", description: "Nêu nội dung cần Nhân sự sửa.", confirmLabel: "Từ chối" });
+    if (!reason?.trim()) return;
+    const confirmed = await confirm({
+      title: `${action} tin?`,
+      description: `Bạn chắc chắn muốn ${action.toLowerCase()} tin "${item.tieuDe}"?`,
+      confirmLabel: action,
+      destructive: !approve,
+    });
+    if (!confirmed) return;
     setBusyId(item.id);
     try {
-      await request(`${API}/${item.id}/fire`, {
+      const result = await request(`${API}/${item.id}/fire`, {
         method: "POST",
         body: JSON.stringify({
           id: item.id,
           trigger: approve ? TRIGGER.NguoiDaiDienDuyet : TRIGGER.NguoiDaiDienTuChoi,
-          ghiChu: `${approve ? "Đã duyệt" : "Đã từ chối"} bởi Người đại diện`,
+          ghiChu: reason,
+          expectedLastModified: item.lastModified,
         }),
       });
       setItems((current) => current.filter((row) => row.id !== item.id));
-      toast.success(approve ? "Tin đã được duyệt và công khai" : "Đã từ chối tin");
+      toast.success(String(result?.Message ?? result?.message ?? (approve ? "Đã chuyển sang bộ lọc hệ thống" : "Đã từ chối tin")));
+      await load();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Không thể cập nhật tin");
     } finally {
@@ -100,7 +119,7 @@ export default function DuyetTinNhanSuPage() {
       <AdminPageHeader
         icon={ClipboardCheck}
         title="Duyệt tin của Nhân sự"
-        description="Các tin đã đạt kiểm duyệt hệ thống và đang chờ quyết định của Người đại diện."
+        description="Nhân sự gửi tin → Người đại diện đồng ý → hệ thống lọc: OK thì công khai, vi phạm thì Admin duyệt tay."
         actions={<Button variant="outline" onClick={() => void load()}><RefreshCw className="size-4" /> Tải lại</Button>}
       />
 
@@ -129,7 +148,7 @@ export default function DuyetTinNhanSuPage() {
                     <XCircle className="size-4" /> Từ chối
                   </Button>
                   <Button disabled={busyId === item.id} onClick={() => void decide(item, true)}>
-                    <CheckCircle2 className="size-4" /> Duyệt và đăng
+                    <CheckCircle2 className="size-4" /> Đồng ý và chạy bộ lọc
                   </Button>
                 </div>
               </article>
@@ -137,6 +156,7 @@ export default function DuyetTinNhanSuPage() {
           </div>
         )}
       </AdminCard>
+      <div className="flex items-center justify-end gap-3"><Button variant="outline" disabled={loading || page <= 1} onClick={() => setPage(value => value - 1)}>Trang trước</Button><span className="text-sm">Trang {page}/{totalPages}</span><Button variant="outline" disabled={loading || page >= totalPages} onClick={() => setPage(value => value + 1)}>Trang sau</Button></div>
     </AdminPageLayout>
   );
 }

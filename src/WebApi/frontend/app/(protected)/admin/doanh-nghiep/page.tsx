@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { Building2, Pencil, Trash2, Plus, RotateCcw, Search } from "lucide-react";
 import { AdminGate } from "@/features/admin/AdminGate";
 import { adminApi } from "@/features/admin/api";
+import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 
 interface DoanhNghiepRow {
   Id: number;
@@ -58,6 +59,7 @@ export default function AdminDoanhNghiepPage() {
   const [editing, setEditing] = useState<DoanhNghiepRow | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
+  const { confirm } = useConfirmDialog();
 
   const fetchRows = useCallback(async (kw?: string) => {
     setLoading(true);
@@ -124,7 +126,13 @@ export default function AdminDoanhNghiepPage() {
   };
 
   const handleDelete = async (row: DoanhNghiepRow) => {
-    if (!window.confirm(`Xóa doanh nghiệp "${row.TenDoanhNghiep}"?`)) return;
+    const confirmed = await confirm({
+      title: "Xóa doanh nghiệp?",
+      description: `Xóa "${row.TenDoanhNghiep}"? Hành động này không thể hoàn tác.`,
+      confirmLabel: "Xóa",
+      destructive: true,
+    });
+    if (!confirmed) return;
     try {
       await adminApi.remove(`/doanhnghieps/${row.Id}`);
       toast.success("Đã xóa doanh nghiệp");
@@ -170,6 +178,7 @@ export default function AdminDoanhNghiepPage() {
                 <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   className="pl-9"
+                  aria-label="Tìm doanh nghiệp"
                   placeholder="Tìm theo tên doanh nghiệp..."
                   value={filter}
                   onChange={(e) => setFilter(e.target.value)}

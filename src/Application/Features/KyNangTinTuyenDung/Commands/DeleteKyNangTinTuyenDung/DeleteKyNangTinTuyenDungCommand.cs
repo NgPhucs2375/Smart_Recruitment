@@ -1,8 +1,10 @@
 using Application.Interfaces;
+using Application.Features.KetQuaPhuHop.Cache;
 using Application.Wrappers;
 using Domain.Enums;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Distributed;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -15,7 +17,8 @@ namespace Application.Features.KyNangTinTuyenDung.Commands.DeleteKyNangTinTuyenD
 
     public class DeleteKyNangTinTuyenDungByIdCommandHandler(
         IApplicationDbContext context,
-        ICurrentNguoiDungService current)
+        ICurrentNguoiDungService current,
+        IDistributedCache cache)
         : IRequestHandler<DeleteKyNangTinTuyenDungByIdCommand, Response<int>>
     {
         public async Task<Response<int>> Handle(
@@ -52,9 +55,11 @@ namespace Application.Features.KyNangTinTuyenDung.Commands.DeleteKyNangTinTuyenD
             }
 
             context.KyNangTinTuyenDungs.Remove(entity);
+            await Application.Services.StateMachineTinTuyenDung.JobDraft.PrepareSkillEditAsync(context, entity.TinTuyenDungId, ctx, cancellationToken);
 
             await context.SaveChangesAsync(
                 cancellationToken);
+            await RecommendationCache.InvalidateJobsAsync(cache, cancellationToken);
 
             return new Response<int>(
                 data: entity.Id,

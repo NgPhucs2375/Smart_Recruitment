@@ -22,7 +22,7 @@ namespace Application.Services.StateMachineTinTuyenDung
     public interface ITinTuyenDungFunnelService
     {
         /// <summary>
-        /// Sàng lọc tự động nội dung tin SAU khi GuiDuyet (tin đang ở ChoDuyetHeThong).
+        /// Sàng lọc khi tin ở ChoDuyetHeThong, sau Người đại diện đối với tin Nhân sự.
         /// Caller chịu trách nhiệm fire <see cref="KetQuaFunnel.Trigger"/> qua
         /// <see cref="TinTuyenDungStateMachine.FireSystemAsync"/> rồi SaveChanges.
         /// </summary>
@@ -31,9 +31,9 @@ namespace Application.Services.StateMachineTinTuyenDung
 
     /// <summary>
     /// Funnel kiểm duyệt 2 lớp (chạy đồng bộ, thuần logic — không gọi dịch vụ ngoài):
-    ///   Lớp 1: từ khóa cấm do Admin cấu hình → HeThongTuChoi.
+    ///   Lớp 1: từ khóa cấm do Admin cấu hình → chuyển Admin duyệt tay.
     ///   Lớp 2: chấm điểm an toàn 0-100 từ các tín hiệu rủi ro:
-    ///          >= 85 pass → HeThongTuDongDuyet | 30-84 vùng xám → PhatHienNghiVan | &lt; 30 → HeThongTuChoi.
+    ///          >= 85 đạt -> công khai; dưới 85 -> chuyển Admin duyệt tay, không tự từ chối.
     /// </summary>
     public class TinTuyenDungFunnelService : ITinTuyenDungFunnelService
     {
@@ -70,9 +70,9 @@ namespace Application.Services.StateMachineTinTuyenDung
             if (tuBat.Count > 0)
             {
                 string lietKe = string.Join(", ", tuBat.Select(t => $"'{t}'"));
-                return new KetQuaFunnel(
-                    TriggerTinTuyenDung.HeThongTuChoi,
-                    $"Lớp 1 vi phạm luật cứng — cụm từ cấm: {lietKe}.");
+                return Result(entity,
+                    TriggerTinTuyenDung.HeThongChuyenAdmin,
+                    $"VI PHẠM: Lớp 1 phát hiện cụm từ cấm {lietKe}. Chuyển Admin duyệt tay, chưa công khai.");
             }
 
             // ── Lớp 2: chấm điểm an toàn ──
@@ -110,33 +110,23 @@ namespace Application.Services.StateMachineTinTuyenDung
 
             if (diem >= DiemPass)
             {
-                string chiTiet = tinHieu.Count == 0
-                    ? "không có tín hiệu rủi ro đáng kể."
-                    : "tín hiệu nhỏ: " + LietKeTinHieu(tinHieu);
-                var vaiTroNguoiDang = await _context.NguoiDungs
-                    .AsNoTracking()
-                    .Where(x => x.Id == entity.NguoiDangTinId)
-                    .Select(x => x.VaiTro)
-                    .FirstOrDefaultAsync(ct);
-                var trigger = vaiTroNguoiDang == VaiTroNguoiDung.NHAN_SU
-                    ? TriggerTinTuyenDung.HeThongDuyetChoNguoiDaiDien
-                    : TriggerTinTuyenDung.HeThongTuDongDuyet;
-                return new KetQuaFunnel(
-                    trigger,
-                    $"Lớp 1 đạt; Lớp 2 điểm an toàn {diem}/100 — {chiTiet}");
+                string chiTiet = tinHieu.Count == 0 ? "không có tín hiệu rủi ro đáng kể."
+                    : LietKeTinHieu(tinHieu);
+                return Result(entity,
+                    TriggerTinTuyenDung.HeThongTuDongDuyet,
+                    $"OK: Lớp 1 đạt; điểm an toàn {diem}/100 — {chiTiet}. Đủ điều kiện công khai.");
             }
 
             string danhSach = LietKeTinHieu(tinHieu);
-            if (diem >= DiemVungXamToiThieu)
-            {
-                return new KetQuaFunnel(
-                    TriggerTinTuyenDung.PhatHienNghiVan,
-                    $"Lớp 1 đạt; Lớp 2 điểm an toàn {diem}/100 (vùng xám) — {danhSach}. Chuyển Admin kiểm tra.");
-            }
+            return Result(entity,
+                TriggerTinTuyenDung.HeThongChuyenAdmin,
+                $"{(diem < DiemVungXamToiThieu ? "VI PHẠM" : "NGHI VẤN")}: Điểm an toàn {diem}/100 — {danhSach}. Chuyển Admin duyệt tay, chưa công khai.");
+        }
 
-            return new KetQuaFunnel(
-                TriggerTinTuyenDung.HeThongTuChoi,
-                $"Lớp 1 đạt nhưng Lớp 2 điểm an toàn quá thấp ({diem}/100) — {danhSach}.");
+        private static KetQuaFunnel Result(TinTuyenDung job, TriggerTinTuyenDung trigger, string note)
+        {
+            job.KetQuaSangLoc = note;
+            return new KetQuaFunnel(trigger, note);
         }
 
         private static string LietKeTinHieu(List<(string MoTa, int Tru)> tinHieu)

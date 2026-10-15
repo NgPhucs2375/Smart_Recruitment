@@ -3,35 +3,13 @@
 export type PortalKind = "candidate" | "employer";
 
 /**
- * Portal role gate — single source of truth for login entry experiences.
- * Reuses the shared authentication API + stored identity (/me).
- * No JWT logic, no new role names, no backend contract change.
+ * Portal helpers — login entry hints + redirect sanitation.
+ * Roles from backend `/account/me` decide permissions (see AppLayout);
+ * no rejection gate lives here anymore.
  */
-export const CANDIDATE_PORTAL_ROLES = ["UNG_VIEN", "QUAN_TRI_VIEN"] as const;
-export const EMPLOYER_PORTAL_ROLES = ["NGUOI_DAI_DIEN", "NHAN_SU", "QUAN_TRI_VIEN"] as const;
-
-export const WRONG_PORTAL_MESSAGE: Record<PortalKind, string> = {
-  candidate: "Đây là tài khoản Nhà tuyển dụng.",
-  employer: "Đây là tài khoản Ứng viên.",
-};
-
-export const WRONG_PORTAL_CTA: Record<PortalKind, { label: string; href: string }> = {
-  candidate: { label: "Đăng nhập tại cổng Nhà tuyển dụng", href: "/employer/login" },
-  employer: { label: "Đăng nhập dành cho Ứng viên", href: "/login" },
-};
-
-export function allowedRolesFor(portal: PortalKind): readonly string[] {
-  return portal === "candidate" ? CANDIDATE_PORTAL_ROLES : EMPLOYER_PORTAL_ROLES;
-}
 
 function norm(role: string): string {
   return role.trim().toUpperCase();
-}
-
-export function isPortalAllowed(roles: string[] | null | undefined, portal: PortalKind): boolean {
-  if (!roles || roles.length === 0) return false;
-  const allowed = allowedRolesFor(portal);
-  return roles.some((r) => (allowed as readonly string[]).includes(norm(r)));
 }
 
 /** Which portal does this role set actually belong to? Used for CTA hints. */

@@ -9,7 +9,6 @@ import {
   TabSwitcher,
   SocialAuthSection,
   MagicLinkForm,
-  WrongPortalAlert,
 } from "@/components/auth";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,10 +17,12 @@ import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Mail, Lock, ArrowRight, Loader2, UserRound, Eye, EyeOff, Briefcase, Sparkles, Users } from "lucide-react";
 import { sanitizeNext, type PortalKind } from "@/lib/portal-roles";
+import { ResendVerification } from "@/components/auth/resend-verification";
 
 function LoginContent() {
   const [tab, setTab] = useState<"password" | "magic">("password");
   const [showPassword, setShowPassword] = useState(false);
+  const [githubError, setGithubError] = useState<string | null>(null);
   const searchParams = useSearchParams();
   const next = sanitizeNext(searchParams.get("next"));
   const portal: PortalKind | undefined = next?.startsWith("/accept-invite")
@@ -36,7 +37,7 @@ function LoginContent() {
     isPending,
     submitError,
     remember,
-    wrongPortal: passwordWrongPortal,
+    email,
   } = usePasswordLogin(portal, next);
 
   const {
@@ -44,7 +45,6 @@ function LoginContent() {
     isPending: isGooglePending,
     error: googleError,
     setError: setGoogleError,
-    wrongPortal: googleWrongPortal,
   } = useGoogleAuth(portal, next);
 
   const {
@@ -56,8 +56,6 @@ function LoginContent() {
     handleSubmit: handleMagicSubmit,
     reset: resetMagic,
   } = useMagicLink("Login", { portal, next: next ?? "/dashboard" });
-
-  const wrongPortal = passwordWrongPortal ?? googleWrongPortal;
 
   const leftPanelContent = (
     <div className="relative">
@@ -100,7 +98,7 @@ function LoginContent() {
       </div>
 
       <Link
-        href="/tao-cv"
+        href="/register?next=%2Ftao-cv"
         className="mt-4 inline-flex max-w-md items-center gap-2 rounded-full border border-white/20 bg-white/[0.06] px-5 py-2.5 text-sm font-semibold text-white backdrop-blur-sm transition hover:border-white/40 hover:bg-white/[0.10]"
       >
         Tạo CV miễn phí <ArrowRight className="size-4" aria-hidden="true" />
@@ -128,12 +126,6 @@ function LoginContent() {
         onChange={(id) => setTab(id as "password" | "magic")}
       />
 
-      {wrongPortal && (
-        <div className="mb-3">
-          <WrongPortalAlert portal={wrongPortal} />
-        </div>
-      )}
-
       {/* 1. EMAIL & MẬT KHẨU */}
       {tab === "password" && (
         <form onSubmit={handleSubmit} noValidate className="space-y-2.5">
@@ -142,6 +134,7 @@ function LoginContent() {
               <AlertDescription className="text-xs text-red-700">{submitError}</AlertDescription>
             </Alert>
           )}
+          <ResendVerification email={email ?? ""} error={submitError} />
 
           <div className="space-y-1.5">
             <Label htmlFor="email" className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
@@ -155,11 +148,13 @@ function LoginContent() {
                 autoComplete="username"
                 placeholder="name@company.com"
                 {...register("email")}
+                aria-invalid={!!errors.email}
+                aria-describedby="email-error"
                 disabled={isPending}
                 className="h-11 rounded-xl border-input bg-white pl-10 text-sm transition focus-visible:ring-1 focus-visible:ring-primary"
               />
             </div>
-            {errors.email && <p className="text-xs text-red-500">{errors.email.message}</p>}
+            {errors.email && <p id="email-error" role="alert" className="text-xs text-red-500">{errors.email.message}</p>}
           </div>
 
           <div className="space-y-1.5">
@@ -179,6 +174,8 @@ function LoginContent() {
                 autoComplete="current-password"
                 placeholder="••••••••"
                 {...register("password")}
+                aria-invalid={!!errors.password}
+                aria-describedby="password-error"
                 disabled={isPending}
                 className="h-11 rounded-xl border-input bg-white pl-10 pr-10 text-sm transition focus-visible:ring-1 focus-visible:ring-primary"
               />
@@ -193,7 +190,7 @@ function LoginContent() {
                 {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
               </button>
             </div>
-            {errors.password && <p className="text-xs text-red-500">{errors.password.message}</p>}
+            {errors.password && <p id="password-error" role="alert" className="text-xs text-red-500">{errors.password.message}</p>}
           </div>
 
           <div className="flex items-center gap-2 pt-0.5">
@@ -219,9 +216,13 @@ function LoginContent() {
 
           <SocialAuthSection
             mode="login"
+            portal={portal}
+            next={next}
             onGoogleLogin={handleGoogleLogin}
             onGoogleError={setGoogleError}
             googleError={googleError}
+            onGithubError={setGithubError}
+            githubError={githubError}
             disabled={isPending || isGooglePending}
           />
         </form>

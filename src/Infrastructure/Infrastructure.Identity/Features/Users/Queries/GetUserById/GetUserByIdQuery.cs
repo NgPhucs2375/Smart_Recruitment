@@ -48,7 +48,14 @@ namespace Infrastructure.Identity.Features.Users.Queries.GetUserById
 
                 user.RoleId = userRole.Id;
                 var userClaims = await _userManager.GetClaimsAsync(user);
-                var userModel = _mapper.Map<GetUserByIdModel>(user);
+                var userModel = new GetUserByIdModel
+                {
+                    Id = user.Id, UserName = user.UserName, Email = user.Email,
+                    FirstName = user.FirstName, LastName = user.LastName, RoleId = userRole.Id,
+                    PhoneNumber = user.PhoneNumber, EmailConfirmed = user.EmailConfirmed,
+                    PhoneNumberConfirmed = user.PhoneNumberConfirmed, LockoutEnabled = user.LockoutEnabled,
+                    LockoutEnd = user.LockoutEnd, TwoFactorEnabled = user.TwoFactorEnabled
+                };
                 userModel.Avatar = new UserAvatarClaim
                 {
                     AvatarUid = userClaims.FirstOrDefault(x => x.Type == "AvatarUid")?.Value,

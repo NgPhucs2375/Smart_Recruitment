@@ -25,7 +25,8 @@ export type TriggerTinTuyenDung =
   | "HeThongDuyetChoNguoiDaiDien"
   | "AdminDuyetChoNguoiDaiDien"
   | "NguoiDaiDienDuyet"
-  | "NguoiDaiDienTuChoi";
+  | "NguoiDaiDienTuChoi"
+  | "HeThongChuyenAdmin";
 
 export type DanhMucNghe = {
   id: number;
