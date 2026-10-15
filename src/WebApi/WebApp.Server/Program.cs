@@ -193,6 +193,10 @@ app.UseMiddleware<WebApp.Server.Middlewares.AguiReasoningRoleMiddleware>();
 // Hạn mức 15 chat/ngày cho agent Adam — chạy trước endpoint agent, sau auth middleware.
 app.UseMiddleware<WebApp.Server.Middlewares.AgentChatRateLimitMiddleware>();
 
+// Persist lịch sử chat agent theo threadId vào Redis (sau rate-limit, trước endpoint):
+// capture SSE response của run rồi lưu snapshot + run record; fail-open mọi lỗi.
+app.UseMiddleware<WebApp.Server.Middlewares.AgentThreadHistoryMiddleware>();
+
 // BE-first: một agent duy nhất ở BE (LLM + tool backend scoped, chỉ đọc).
 // FE giữ frontend tool v2 (useFrontendTool/useAgentContext) và trỏ runtimeUrl về endpoint này.
 // Ghi CV duy nhất qua nút "Lưu CV" ở /CV; chat từ trang khác dùng navigateToCvEditor + pending-patch.

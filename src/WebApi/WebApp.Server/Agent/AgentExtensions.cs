@@ -28,6 +28,11 @@ public static class AgentExtensions
         services.AddScoped<RateLimit.AgentChatDailyLimiter>();
         services.AddScoped<Middlewares.AgentChatRateLimitMiddleware>();
 
+        // Lịch sử chat agent theo threadId lưu ở Redis (shared store):
+        // persist mỗi run qua middleware, đọc qua /api/agent/threads (AgentThreadsController).
+        services.AddScoped<Threads.AgentThreadStore>();
+        services.AddScoped<Middlewares.AgentThreadHistoryMiddleware>();
+
         services.AddKeyedSingleton<IChatClient>(
             AdamInstructions.ChatClientKey,
             (serviceProvider, _) =>

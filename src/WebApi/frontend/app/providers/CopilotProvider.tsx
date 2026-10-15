@@ -13,6 +13,7 @@ import "@copilotkit/react-core/v2/styles.css";
 import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { getAuthToken, getValidToken } from "@/lib/auth-provider";
+import { loadThreadId, saveThreadId } from "@/lib/adam-thread";
 import dynamic from "next/dynamic";
 import { parseThemeResult } from "@/features/ai-cv/theme-recommendations";
 import { useGlobalCvAssistant } from "@/hooks/use-global-cv-assistant";
@@ -282,6 +283,25 @@ function InitialPopupState() {
   return null;
 }
 
+/**
+ * Persist threadId đang hoạt động vào localStorage theo userId.
+ * Ở lần render đầu configuration có thể chưa sẵn sàng — effect chạy lại khi
+ * configuration xuất hiện nên không cần ref guard ngoài lastSaved.
+ */
+function ThreadIdPersistor({ userId }: { userId: string | null }) {
+  const configuration = useCopilotChatConfiguration();
+  const lastSaved = useRef<string | null>(null);
+
+  useEffect(() => {
+    const threadId = configuration?.threadId;
+    if (!userId || !threadId || lastSaved.current === threadId) return;
+    lastSaved.current = threadId;
+    saveThreadId(userId, threadId);
+  }, [configuration?.threadId, userId]);
+
+  return null;
+}
+
 export function CopilotProvider({ children }: { children: React.ReactNode }) {
   // Key chuẩn của app là "access_token" (auth-provider.ts TOKEN_KEY) —
   // đọc sai key trước đây khiến header Authorization luôn rỗng.
@@ -289,6 +309,12 @@ export function CopilotProvider({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const identity = useStoredIdentity();
   const adamRoles = identity?.roles?.join(",") ?? "";
+  const userId = identity?.id ?? null;
+
+  // Khôi phục threadId đã lưu (nếu có) để nối lại lịch sử chat sau khi reload.
+  // Đọc trực tiếp theo userId (không setState): identity hydrate xong → render
+  // lại với threadId đúng; window luôn có vì CopilotProvider dynamic ssr:false.
+  const threadId = typeof window === "undefined" ? null : loadThreadId(userId);
 
   // The access token can expire while the protected layout remains mounted.
   // Refresh before the first chat request so CopilotKit does not keep sending
@@ -312,6 +338,7 @@ export function CopilotProvider({ children }: { children: React.ReactNode }) {
     <CopilotKit
       runtimeUrl={runtimeUrl}
       useSingleEndpoint={false}
+      threadId={threadId ?? undefined}
       headers={{
         Authorization: token ? `Bearer ${token}` : "",
         "X-Adam-Route": pathname ?? "",
@@ -323,6 +350,7 @@ export function CopilotProvider({ children }: { children: React.ReactNode }) {
     >
       {children}
       <InitialPopupState />
+      <ThreadIdPersistor userId={userId} />
       <GlobalCvAssistantMount />
       <ToolActivityMount /> 
       <SharedStateMount />
