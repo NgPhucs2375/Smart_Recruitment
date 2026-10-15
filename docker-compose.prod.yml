@@ -107,9 +107,9 @@ services:
 
       MailSettings__SmtpPort: "${MAIL_SMTP_PORT:-587}"
 
-      MailSettings__User: "${MAIL_USER:-}"
+      MailSettings__SmtpUser: "${MAIL_USER:-}"
 
-      MailSettings__Pass: "${MAIL_PASS:-}"
+      MailSettings__SmtpPass: "${MAIL_PASS:-}"
 
       MailSettings__EmailFrom: "${MAIL_FROM:-}"
 
