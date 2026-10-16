@@ -1,5 +1,0 @@
-{
-  "extends": "./tsconfig.json",
-  "compilerOptions": {"outDir": "/tmp/validtest2", "module": "commonjs", "moduleResolution": "node", "target": "es2020", "noEmit": false, "declaration": false, "sourceMap": false},
-  "include": ["features/tao-cv/validation.ts", "features/tao-cv/cv-data.ts", "lib/types.ts"]
-}
