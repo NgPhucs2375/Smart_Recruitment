@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { validateImageUpload } from "@/features/tao-cv/validation";
 import { ThemeCanvas } from "@/features/tao-cv/components/theme-canvas";
 import { parseDbTheme } from "@/features/tao-cv/services/theme-db-sync";
 import {
@@ -150,7 +151,11 @@ export function CvThemeLibrary({ onEdit }: { onEdit: (row: CvThemeVm) => void })
   };
 
   const handleUpload = async (row: CvThemeVm, file: File | undefined) => {
-    if (!file) return;
+    const err = validateImageUpload(file);
+    if (err || !file) {
+      toast.error(err ?? "Chưa chọn file ảnh.");
+      return;
+    }
     try {
       await cvThemesApi.uploadPreview(row.Id, file);
       toast.success("Tải ảnh preview thành công");

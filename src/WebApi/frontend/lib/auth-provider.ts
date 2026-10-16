@@ -359,7 +359,8 @@ export const authProvider: AuthProvider = {
       const rawToken: string | undefined = payload.idToken || payload.credential || payload.IdToken;
       // Chỉ Google cần JWT 3 phần; GitHub `code` không phải JWT — backend tự đổi code → token.
       if (isGoogle && (!rawToken || typeof rawToken !== "string" || rawToken.split(".").length !== 3)) {
-        console.warn("[auth] Google credential không hợp lệ, length=", rawToken?.length, "snippet=", rawToken?.slice(0,40));
+        // Không log token (dù chỉ snippet) — console lộ JWT cho extension/tab khác đọc.
+        console.warn("[auth] Google credential không hợp lệ.");
         return { success: false, error: { name: "Đăng nhập thất bại", message: "Token Google không hợp lệ (không phải JWT). Vui lòng thử lại." } };
       }
 
@@ -375,8 +376,8 @@ export const authProvider: AuthProvider = {
           ? { Provider: "Google", IdToken: rawToken }
           : { Email: payload.email, Password: payload.password };
 
-      if (isGoogle) console.log("[auth] external-login sending IdToken length", rawToken?.length);
-      if (isGitHub) console.log("[auth] github-login sending code length", String(payload.code ?? "").length);
+      if (isGoogle) console.log("[auth] external-login sending IdToken");
+      if (isGitHub) console.log("[auth] github-login sending code");
 
       const res = await fetch(endpoint, {
         method: "POST",
@@ -393,7 +394,8 @@ export const authProvider: AuthProvider = {
           const serverMsg = body?.Message ?? body?.message ?? body?.detail ?? body?.title;
           const serverErrors = Array.isArray(body?.Errors) ? body.Errors.join("; ") : Array.isArray(body?.errors) ? body.errors.join("; ") : "";
           if (serverMsg) message = serverErrors ? `${serverMsg}: ${serverErrors}` : serverMsg;
-          console.warn("[auth] login failed", endpoint, res.status, body);
+          // Không log body lỗi (có thể lẫn email/PII) — message thân thiện đã đủ cho user.
+          console.warn("[auth] login failed", endpoint, res.status);
         } catch { /* ignore */ }
         return { success: false, error: { name: "Đăng nhập thất bại", message } };
       }

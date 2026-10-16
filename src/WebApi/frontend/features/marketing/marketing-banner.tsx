@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ArrowUpRight, Megaphone } from "lucide-react";
 import { useEffect, useState } from "react";
 import { getValidToken } from "@/lib/auth-provider";
+import { safeHref } from "@/features/tao-cv/validation";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 
@@ -76,5 +77,7 @@ export function MarketingBanner() {
 
   if (!banner.linkUrl) return content;
   if (banner.linkUrl.startsWith("/")) return <Link href={banner.linkUrl}>{content}</Link>;
-  return <a href={banner.linkUrl} target="_blank" rel="noreferrer">{content}</a>;
+  const safeExternal = safeHref(banner.linkUrl);
+  if (!safeExternal) return content;
+  return <a href={safeExternal} target="_blank" rel="noreferrer">{content}</a>;
 }
