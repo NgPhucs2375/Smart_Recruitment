@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, usePathname } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useAgentContext, useFrontendTool } from "@copilotkit/react-core/v2";
 import { z } from "zod";
 import { toast } from "sonner";
@@ -110,6 +110,12 @@ export function useGlobalCvAssistant({ enabled = true }: { enabled?: boolean } =
   const pathname = usePathname();
   const isEditor = pathname?.startsWith("/tao-cv") || pathname?.startsWith("/CV") || false;
 
+  // Cooldown chống loop: navigateTo/navigateToCvEditor gọi router.push →
+  // CV page mount → useCvAssistant apply patch → state change → agent
+  // re-trigger với cùng message → loop vô tận (đã thấy 4 run liên tiếp
+  // chạm rate limit 429). Ghi timestamp lần navigate cuối, chặn trong 30s.
+  const lastNavigateAt = useRef(0);
+
   // Warm the editor chunk while the user is still chatting. This removes the
   // compile/fetch gap when navigateToCvEditor is called by a frontend tool.
   useEffect(() => {
@@ -147,6 +153,17 @@ export function useGlobalCvAssistant({ enabled = true }: { enabled?: boolean } =
           return `User đang ở page ${destination.label}.`;
         }
 
+        // Cooldown chống loop: nếu vừa navigate trong 30s, bỏ qua — tránh
+        // router.push → remount → agent re-trigger cùng message → loop.
+        if (Date.now() - lastNavigateAt.current < 30_000) {
+          return `Vừa điều hướng gần đây, bỏ qua để tránh loop. User đang ở ${pathname}.`;
+        }
+
+        if (destination.href === "/CV" && isEditor) {
+          return "User đã đang ở workspace CV, không cần điều hướng.";
+        }
+
+        lastNavigateAt.current = Date.now();
         await router.prefetch(destination.href);
         toast.success(`Đang mở ${destination.label}.`);
         window.setTimeout(() => router.push(destination.href), 0);
@@ -190,6 +207,10 @@ export function useGlobalCvAssistant({ enabled = true }: { enabled?: boolean } =
       parameters: navigateSchema,
       available: enabled && !isEditor,
       handler: async ({ tenFile, hoTen, contact, sections, templateId }) => {
+        // Cooldown chống loop: nếu vừa navigate trong 30s, chỉ lưu patch
+        // không navigate lại — tránh router.push → remount → re-trigger.
+        const cooldownActive = Date.now() - lastNavigateAt.current < 30_000;
+
         const cleanContact: Record<string, string> = {};
         const merged: Record<string, string> = { ...(contact ?? {}) };
         if (typeof hoTen === "string" && hoTen.trim()) {
@@ -254,7 +275,8 @@ export function useGlobalCvAssistant({ enabled = true }: { enabled?: boolean } =
         else if (cleanContact.hoTen && !cleanTenFile) savedBits.push(`họ tên "${cleanContact.hoTen}"`);
         if (cleanSections.length > 0) savedBits.push(`${cleanSections.length} nhóm mục`);
 
-        if (!isEditor) {
+        if (!isEditor && !cooldownActive) {
+          lastNavigateAt.current = Date.now();
           toast.success(
             savedBits.length > 0
               ? `Đã lưu ${savedBits.join(", ")} — đang mở trình soạn CV.`
@@ -263,6 +285,13 @@ export function useGlobalCvAssistant({ enabled = true }: { enabled?: boolean } =
           // Let the tool result finish before unmounting CopilotChat; otherwise
           // navigation can interrupt the final AG-UI tool response.
           window.setTimeout(() => router.push("/CV"), 0);
+        } else if (!isEditor && cooldownActive) {
+          // Đang cooldown: chỉ lưu patch, không navigate — tránh loop.
+          toast.success(
+            savedBits.length > 0
+              ? `Đã lưu ${savedBits.join(", ")} (bỏ qua điều hướng vì vừa mở trang).`
+              : "Đã lưu nháp (bỏ qua điều hướng vì vừa mở trang).",
+          );
         } else {
           // Đã ở editor: pending-patch sẽ được useCvAssistant đổ vào form ngay.
           toast.success(
@@ -273,7 +302,9 @@ export function useGlobalCvAssistant({ enabled = true }: { enabled?: boolean } =
         }
         return isEditor
           ? "Đã lưu nháp. Workspace /CV đang mở sẽ tự đổ patch vào."
-          : "Đã lưu nháp và điều hướng tới /CV. Workspace sẽ tự đổ patch khi load xong.";
+          : cooldownActive
+            ? "Đã lưu nháp. Bỏ qua điều hướng vì vừa mở trang gần đây — tránh loop."
+            : "Đã lưu nháp và điều hướng tới /CV. Workspace sẽ tự đổ patch khi load xong.";
       },
     },
     [enabled, isEditor, pathname],

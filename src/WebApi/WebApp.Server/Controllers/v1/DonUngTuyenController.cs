@@ -5,7 +5,6 @@ using Application.Features.DonUngTuyen.Commands.UpdateDonUngTuyen;
 using Application.Features.DonUngTuyen.Queries.GetAllDonUngTuyens;
 using Application.Features.DonUngTuyen.Queries.GetDonUngTuyenById;
 using AutoMapper;
-using Casbin;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -19,9 +18,8 @@ namespace WebApp.Server.Controllers.v1
 
         public DonUngTuyenController(
             Microsoft.AspNetCore.Hosting.IWebHostEnvironment hostingEnvironment,
-            Enforcer enforcer,
             IMapper mapper)
-            : base(hostingEnvironment, enforcer)
+            : base(hostingEnvironment)
         {
             _mapper = mapper;
         }

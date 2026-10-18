@@ -5,7 +5,6 @@ using Application.Features.KyNangUngVien.Commands.UpdateKyNangUngVien;
 using Application.Features.KyNangUngVien.Queries.GetAllKyNangUngViens;
 using Application.Features.KyNangUngVien.Queries.GetKyNangUngVienById;
 using AutoMapper;
-using Casbin;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -19,9 +18,8 @@ namespace WebApp.Server.Controllers.v1
 
         public KyNangUngVienController(
             Microsoft.AspNetCore.Hosting.IWebHostEnvironment hostingEnvironment,
-            Enforcer enforcer,
             IMapper mapper)
-            : base(hostingEnvironment, enforcer)
+            : base(hostingEnvironment)
         {
             _mapper = mapper;
         }

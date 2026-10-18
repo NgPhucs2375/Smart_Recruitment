@@ -1,9 +1,45 @@
 import * as SecureStore from 'expo-secure-store';
+import { Platform } from 'react-native';
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL?.trim().replace(/\/+$/, '');
 
 const ACCESS_TOKEN_KEY = 'smart-recruitment.access-token.v1';
 const REFRESH_TOKEN_KEY = 'smart-recruitment.refresh-token.v1';
+
+// expo-secure-store chỉ có native module trên iOS/Android; trên web bản build
+// export rỗng nên setItemAsync sẽ ném TypeError ngay sau khi đăng nhập xong.
+const IS_WEB = Platform.OS === 'web';
+
+async function storageGet(key: string): Promise<string | null> {
+  if (IS_WEB) {
+    try {
+      return globalThis.localStorage?.getItem(key) ?? null;
+    } catch {
+      return null;
+    }
+  }
+  return SecureStore.getItemAsync(key);
+}
+
+async function storageSet(key: string, value: string): Promise<void> {
+  if (IS_WEB) {
+    globalThis.localStorage?.setItem(key, value);
+    return;
+  }
+  await SecureStore.setItemAsync(key, value);
+}
+
+async function storageRemove(key: string): Promise<void> {
+  if (IS_WEB) {
+    try {
+      globalThis.localStorage?.removeItem(key);
+    } catch {
+      /* localStorage có thể bị chặn (private mode) — bỏ qua. */
+    }
+    return;
+  }
+  await SecureStore.deleteItemAsync(key);
+}
 
 let unauthorizedHandler: (() => void) | null = null;
 
@@ -14,22 +50,41 @@ export function setUnauthorizedHandler(handler: (() => void) | null): void {
 
 export async function getAccessToken(): Promise<string | null> {
   try {
-    return await SecureStore.getItemAsync(ACCESS_TOKEN_KEY);
+    return await storageGet(ACCESS_TOKEN_KEY);
   } catch {
     return null;
   }
 }
 
 export async function saveTokens(accessToken: string, refreshToken: string | null): Promise<void> {
-  await SecureStore.setItemAsync(ACCESS_TOKEN_KEY, accessToken);
+  await storageSet(ACCESS_TOKEN_KEY, accessToken);
   if (refreshToken) {
-    await SecureStore.setItemAsync(REFRESH_TOKEN_KEY, refreshToken);
+    await storageSet(REFRESH_TOKEN_KEY, refreshToken);
   }
 }
 
 export async function clearTokens(): Promise<void> {
-  await SecureStore.deleteItemAsync(ACCESS_TOKEN_KEY).catch(() => undefined);
-  await SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY).catch(() => undefined);
+  await storageRemove(ACCESS_TOKEN_KEY).catch(() => undefined);
+  await storageRemove(REFRESH_TOKEN_KEY).catch(() => undefined);
+}
+
+/**
+ * Thu hồi refresh token phía server (best-effort).
+ * Dùng fetch trực tiếp, KHÔNG qua apiRequest, để tránh vòng lặp 401 → refresh
+ * khi access token đã hết hạn (endpoint revoke-token là anonymous).
+ */
+export async function revokeRefreshToken(): Promise<void> {
+  try {
+    const refreshToken = await storageGet(REFRESH_TOKEN_KEY);
+    if (!refreshToken || !API_BASE_URL) return;
+    await fetch(`${API_BASE_URL}/account/revoke-token`, {
+      method: 'POST',
+      headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ Token: refreshToken }),
+    });
+  } catch {
+    /* Bỏ qua lỗi (offline, timeout...) — phiên local vẫn bị xoá. */
+  }
 }
 
 function messageFromBody(body: unknown, fallback: string): string {
@@ -83,7 +138,7 @@ let refreshInFlight: Promise<boolean> | null = null;
 async function refreshTokensOnce(): Promise<boolean> {
   if (!API_BASE_URL) return false;
   try {
-    const refreshToken = await SecureStore.getItemAsync(REFRESH_TOKEN_KEY);
+    const refreshToken = await storageGet(REFRESH_TOKEN_KEY);
     if (!refreshToken) return false;
 
     const response = await fetch(`${API_BASE_URL}/account/refresh-token`, {

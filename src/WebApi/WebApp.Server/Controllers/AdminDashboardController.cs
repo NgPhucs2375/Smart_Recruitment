@@ -41,7 +41,7 @@ public sealed class AdminDashboardController(
                     return Ok(new Response<AdminDashboardDto>(cachedDashboard));
             }
         }
-        catch (RedisException)
+        catch (Exception ex) when (ex is RedisException || ex is System.Text.Json.JsonException)
         {
             // Dashboard data remains available from PostgreSQL when Redis is degraded.
         }

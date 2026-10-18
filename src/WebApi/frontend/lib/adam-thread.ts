@@ -22,3 +22,17 @@ export function saveThreadId(userId: string | null | undefined, threadId: string
     // localStorage đầy/bị chặn (private mode) — bỏ qua, không chặn chat.
   }
 }
+
+/**
+ * Xóa threadId đang lưu — dùng cho nút "Chat mới": provider đọc lại key này
+ * lúc mount nên sau khi xóa + reload sẽ bắt đầu thread sạch (không còn
+ * history hỏng kích hoạt lỗi Gemini 400 từ các run trước).
+ */
+export function clearThreadId(userId: string | null | undefined): void {
+  if (typeof window === "undefined" || !userId) return;
+  try {
+    localStorage.removeItem(THREAD_KEY_PREFIX + userId);
+  } catch {
+    // Bỏ qua — nút vẫn reload để sinh threadId mới từ CopilotKit.
+  }
+}

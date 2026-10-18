@@ -1,3 +1,6 @@
+# SEED-ONLY: file này chỉ dùng để bơm grant mặc định cho role MỚI (DefaultRoles.SeedAsync).
+# Runtime enforcement đọc LIVE từ DB (PermissionService.RequireAsync) — sửa file này
+# KHÔNG đổi quyền của role đã tồn tại. Quản lý quyền qua UI ma trận (PUT roleclaims/matrix).
 p, NGUOI_DAI_DIEN, baocao, show
 p, NGUOI_DAI_DIEN, chat, create
 p, NGUOI_DAI_DIEN, chat, list

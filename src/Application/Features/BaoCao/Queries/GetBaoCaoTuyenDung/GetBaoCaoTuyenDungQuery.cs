@@ -98,13 +98,13 @@ public class GetBaoCaoTuyenDungQueryHandler(
 
         vm.KetQua = (await donKyNay
             .GroupBy(d => d.TrangThai)
-            .Select(g => new { TrangThaiId = (int)g.Key, SoLuong = g.Count() })
+            .Select(g => new { TrangThai = g.Key, SoLuong = g.Count() })
             .OrderByDescending(x => x.SoLuong)
             .ToListAsync(cancellationToken))
             .Select(x => new KetQuaTheoTrangThaiVm
             {
-                TrangThaiId = x.TrangThaiId,
-                TrangThai = ((TrangThaiDonUngTuyen)x.TrangThaiId).ToString(),
+                TrangThaiId = (int)x.TrangThai,
+                TrangThai = x.TrangThai.ToString(),
                 SoLuong = x.SoLuong
             }).ToList();
 

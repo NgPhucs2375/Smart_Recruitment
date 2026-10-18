@@ -64,6 +64,12 @@ const agentFetch: HttpAgentFetchFn = async (url, requestInit) => {
   const encoder = new TextEncoder();
   let buffer = "";
   let eventCount = 0;
+  // Cộng dồn delta đã thấy theo từng toolCallId trong run này — để phát hiện
+  // gateway gửi LẠI delta cũ (resend nguyên args / cumulative thay vì incremental).
+  // Client (@ag-ui) cộng dồn mù quáng (arguments += delta) nên resend biến
+  // arguments thành "{doc}{doc}" → run sau replay là backend nổ 500
+  // "'{' is invalid after a single JSON value... Path: $.hoTen".
+  const seenArgs = new Map<string, string>();
   console.info("[AG-UI bridge] upstream SSE opened", { traceId, backendTraceId: res.headers.get("x-agui-trace-id") });
   const stream = new TransformStream<Uint8Array, Uint8Array>({
     transform(chunk, controller) {
@@ -71,7 +77,7 @@ const agentFetch: HttpAgentFetchFn = async (url, requestInit) => {
       const parts = buffer.split(/\r?\n/);
       buffer = parts.pop() ?? "";
       for (const line of parts) {
-        const sanitized = sanitizeSseLine(line);
+        let sanitized = sanitizeSseLine(line);
         if (line.startsWith("data:")) {
           eventCount++;
           try {
@@ -121,6 +127,10 @@ const agentFetch: HttpAgentFetchFn = async (url, requestInit) => {
             console.warn("[AG-UI bridge] invalid SSE JSON line", { length: line.length });
           }
         }
+        // Chống duplicate/cumulative TOOL_CALL_ARGS delta trước khi tới client.
+        const filtered = filterDuplicateArgsDelta(line, seenArgs, traceId);
+        if (filtered === null) continue; // resend y hệt → nuốt, client giữ nguyên state.
+        if (filtered !== line) sanitized = sanitizeSseLine(filtered);
         controller.enqueue(encoder.encode(`${sanitized}\n`));
       }
     },
@@ -136,6 +146,67 @@ const agentFetch: HttpAgentFetchFn = async (url, requestInit) => {
     headers: res.headers,
   });
 };
+
+/**
+ * Lọc delta TOOL_CALL_ARGS bị gửi lại.
+ *
+ * Gateway/LLM đôi khi gửi LẠI toàn bộ args đã gửi (resend y hệt) hoặc gửi
+ * cumulative (delta mới = toàn bộ args tính tới giờ) thay vì incremental.
+ * Client cộng dồn mù quáng nên arguments thành "{doc}{doc}".
+ *
+ * - delta === accumulated (resend y hệt) → trả null (nuốt event).
+ * - delta bắt đầu bằng accumulated (cumulative) → viết lại delta thành phần
+ *   tăng thêm rồi forward.
+ * - còn lại (incremental chuẩn) → forward nguyên dòng.
+ * - TOOL_CALL_END → quên trạng thái của toolCallId đó.
+ *
+ * Pure theo từng dòng (không parse sâu), fail-open: parse lỗi → giữ nguyên.
+ */
+function filterDuplicateArgsDelta(
+  line: string,
+  seenArgs: Map<string, string>,
+  traceId: string,
+): string | null {
+  if (!line.startsWith("data:")) return line;
+  const payload = line.slice(5).trimStart();
+  if (!payload.startsWith("{")) return line;
+  let event: { type?: string; toolCallId?: string; delta?: string };
+  try {
+    event = JSON.parse(payload) as { type?: string; toolCallId?: string; delta?: string };
+  } catch {
+    return line;
+  }
+  if (typeof event.toolCallId !== "string") return line;
+  if (event.type === "TOOL_CALL_END") {
+    seenArgs.delete(event.toolCallId);
+    return line;
+  }
+  if (event.type !== "TOOL_CALL_ARGS") return line;
+  if (typeof event.delta !== "string") return line;
+  const prev = seenArgs.get(event.toolCallId) ?? "";
+  const delta = event.delta as string;
+  if (prev !== "" && delta === prev) {
+    console.warn("[AG-UI bridge] dropped duplicate TOOL_CALL_ARGS delta", {
+      traceId,
+      toolCallId: event.toolCallId,
+      deltaLength: delta.length,
+    });
+    return null;
+  }
+  if (prev !== "" && delta.startsWith(prev) && delta.length > prev.length) {
+    const incremental = delta.slice(prev.length);
+    seenArgs.set(event.toolCallId, delta);
+    console.warn("[AG-UI bridge] rewrote cumulative TOOL_CALL_ARGS delta", {
+      traceId,
+      toolCallId: event.toolCallId,
+      from: delta.length,
+      to: incremental.length,
+    });
+    return `data: ${JSON.stringify({ ...event, delta: incremental })}`;
+  }
+  seenArgs.set(event.toolCallId, prev + delta);
+  return line;
+}
 
 const runtime = new CopilotRuntime({
   agents: {

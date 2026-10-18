@@ -74,6 +74,11 @@ export function HoSoView() {
   const avatarPreviewRef = useRef<string | null>(null);
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const nativeDateRef = useRef<HTMLInputElement>(null);
+  const ngaySinhInputRef = useRef<HTMLInputElement>(null);
+  // Số chữ số trước caret mong muốn sau lần mask gần nhất (xem useEffect bên dưới).
+  const ngaySinhCaretDigitsRef = useRef<number | null>(null);
+  const mucLuongInputRef = useRef<HTMLInputElement>(null);
+  const mucLuongCaretDigitsRef = useRef<number | null>(null);
   const [allCompanies, setAllCompanies] = useState<DoanhNghiepVm[]>([]);
   const [companiesLoading, setCompaniesLoading] = useState(false);
   const { followedIds, count: followedCount, toggle: toggleFollowed, hydrated: followedHydrated } = useFollowedCompanies();
@@ -105,37 +110,35 @@ export function HoSoView() {
     setAnhDaiDienUrl("");
   };
 
-  // Gõ ngày sinh: mask caret-aware — strip chữ, tối đa 8 số, tự chèn "/"
-  // sau ngày và tháng, giữ caret đúng chỗ (backspace/select/replace tự nhiên).
+  // Gõ ngày sinh: mask dd/mm/yyyy đơn giản (maskDateVn). Caret KHÔNG set trong
+  // onChange (tránh race requestAnimationFrame: callback cũ chạy sau keystroke
+  // mới → caret nhảy về vị trí cũ → mất ký tự); thay vào đó ghi số-chữ-số-trước-
+  // caret vào ref rồi khôi phục trong useEffect bên dưới.
   const handleNgaySinhChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const el = e.target;
-    const raw = el.value;
-    const caret = el.selectionStart ?? raw.length;
-    const digitsBeforeCaret = raw.slice(0, caret).replace(/\D/g, "").length;
-    const digits = raw.replace(/\D/g, "").slice(0, 8);
-    let out = digits;
-    if (digits.length > 4) out = `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
-    else if (digits.length > 2) out = `${digits.slice(0, 2)}/${digits.slice(2)}`;
-    setNgaySinh(out);
-    // Đặt lại caret sau render: đếm qua số digit + dấu "/" đã chèn.
-    requestAnimationFrame(() => {
-      const target = el;
-      let seen = 0;
-      let pos = out.length;
-      for (let i = 0; i < out.length; i += 1) {
-        if (/\d/.test(out[i])) seen += 1;
-        if (seen >= digitsBeforeCaret) {
-          pos = i + 1;
-          break;
-        }
-      }
-      try {
-        target.setSelectionRange(pos, pos);
-      } catch {
-        // input không hỗ trợ selection — bỏ qua
-      }
-    });
+    const raw = e.target.value;
+    const caret = e.target.selectionStart ?? raw.length;
+    ngaySinhCaretDigitsRef.current = raw.slice(0, caret).replace(/\D/g, "").length;
+    setNgaySinh(maskDateVn(raw));
   };
+
+  // Khôi phục caret sau khi value được mask (một nguồn ghi duy nhất, không race).
+  useEffect(() => {
+    const el = ngaySinhInputRef.current;
+    const want = ngaySinhCaretDigitsRef.current;
+    if (!el || want == null) return;
+    ngaySinhCaretDigitsRef.current = null;
+    let pos = 0;
+    let seen = 0;
+    for (let i = 0; i < ngaySinh.length && seen < want; i += 1) {
+      if (/\d/.test(ngaySinh[i])) seen += 1;
+      pos = i + 1;
+    }
+    try {
+      el.setSelectionRange(pos, pos);
+    } catch {
+      // input không hỗ trợ selection — bỏ qua
+    }
+  }, [ngaySinh]);
 
   const handleNgaySinhBlur = () => {
     setNgaySinh((prev) => {
@@ -147,6 +150,33 @@ export function HoSoView() {
       return /^\d{2}\/\d{2}\/\d{4}$/.test(masked) ? masked : t;
     });
   };
+
+  // Mức lương: formatVndInput chèn dấu "." phân cách nghìn. Giữ caret bằng cách
+  // đếm số chữ số trước caret rồi khôi phục trong useEffect (tránh nhảy/chèn số).
+  const handleMucLuongChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value;
+    const caret = e.target.selectionStart ?? raw.length;
+    mucLuongCaretDigitsRef.current = raw.slice(0, caret).replace(/\D/g, "").length;
+    setMucLuongMongMuon(formatVndInput(raw));
+  };
+
+  useEffect(() => {
+    const el = mucLuongInputRef.current;
+    const want = mucLuongCaretDigitsRef.current;
+    if (!el || want == null) return;
+    mucLuongCaretDigitsRef.current = null;
+    let pos = 0;
+    let seen = 0;
+    for (let i = 0; i < mucLuongMongMuon.length && seen < want; i += 1) {
+      if (/\d/.test(mucLuongMongMuon[i])) seen += 1;
+      pos = i + 1;
+    }
+    try {
+      el.setSelectionRange(pos, pos);
+    } catch {
+      // input không hỗ trợ selection — bỏ qua
+    }
+  }, [mucLuongMongMuon]);
 
   const loadData = async () => {
     // DEV preview (?xem-truoc=1): render view-mode with sample data, no API.
@@ -783,6 +813,7 @@ export function HoSoView() {
                       <Calendar className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                       <Input
                         id="ho-so-ngay-sinh"
+                        ref={ngaySinhInputRef}
                         type="text"
                         inputMode="numeric"
                         placeholder="dd/mm/yyyy"
@@ -832,7 +863,7 @@ export function HoSoView() {
                       <User className="pointer-events-none absolute left-3.5 top-1/2 z-10 size-4 -translate-y-1/2 text-muted-foreground" />
                       <Select value={gioiTinh} onValueChange={(value) => { if (value !== null) setGioiTinh(value); }}>
                         <SelectTrigger id="ho-so-gioi-tinh" className="h-10 w-full rounded-xl border-input bg-card pl-10 text-sm"><SelectValue /></SelectTrigger>
-                        <SelectContent>
+                        <SelectContent alignItemWithTrigger={false}>
                           <SelectItem value="Nam">Nam</SelectItem>
                           <SelectItem value="Nữ">Nữ</SelectItem>
                           <SelectItem value="Khác">Khác</SelectItem>
@@ -883,12 +914,13 @@ export function HoSoView() {
                       <DollarSign className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                       <Input
                         id="ho-so-muc-luong"
+                        ref={mucLuongInputRef}
                         type="text"
                         inputMode="numeric"
                         placeholder="15.000.000"
                         aria-label="Mức lương mong muốn (VNĐ)"
                         value={mucLuongMongMuon}
-                        onChange={(e) => setMucLuongMongMuon(formatVndInput(e.target.value))}
+                        onChange={handleMucLuongChange}
                         onKeyDown={(e) => {
                           if (e.key === "ArrowUp") {
                             e.preventDefault();

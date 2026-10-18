@@ -50,11 +50,15 @@ public class CreateKetQuaPhuHopCommandHandler(
                 "Không tìm thấy tin tuyển dụng.");
         }
 
+        // Dòng nhập tay luôn có CVUngVienId null (dòng auto của
+        // suggest-jobs mang CV id): chỉ chặn trùng trong dòng manual,
+        // tránh dòng auto chặn oan việc tạo đánh giá thủ công.
         var daTonTai = await context.KetQuaPhuHops
             .AsNoTracking()
             .AnyAsync(
                 x => x.HoSoUngVienId == request.HoSoUngVienId &&
-                     x.TinTuyenDungId == request.TinTuyenDungId,
+                     x.TinTuyenDungId == request.TinTuyenDungId &&
+                     x.CVUngVienId == null,
                 cancellationToken);
 
         if (daTonTai)

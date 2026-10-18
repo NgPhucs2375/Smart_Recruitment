@@ -9,28 +9,12 @@ export const newId = () =>
 export const toDateInput = (v: string | null | undefined) =>
   typeof v === "string" && v.length >= 10 ? v.slice(0, 10) : "";
 
-/** Mask khi gõ ngày: hỗ trợ cả 1 hoặc 2 chữ số cho ngày/tháng. */
+/** Mask dd/mm/yyyy khi gõ tay: bỏ ký tự không phải số, tối đa 8 số, tự chèn "/". */
 export const maskDateVn = (raw: string) => {
-  if (raw.includes("/")) {
-    const parts = raw.split("/").map((part, index) =>
-      part.replace(/\D/g, "").slice(0, index === 2 ? 4 : 2),
-    );
-    return parts.slice(0, 3).join("/");
-  }
-
   const digits = raw.replace(/\D/g, "").slice(0, 8);
-  if (
-    digits.length === 7 &&
-    Number(digits.slice(0, 2)) >= 1 && Number(digits.slice(0, 2)) <= 31 &&
-    Number(digits[2]) >= 1 && Number(digits[2]) <= 9
-  ) {
-    return `${digits.slice(0, 2)}/${digits[2]}/${digits.slice(3)}`;
-  }
-
-  const d = digits.slice(0, 2);
-  const m = digits.slice(2, 4);
-  const y = digits.slice(4, 8);
-  return [d, m, y].filter((p, i) => p !== "" || i === 0).join("/");
+  return [digits.slice(0, 2), digits.slice(2, 4), digits.slice(4)]
+    .filter((part, index) => part !== "" || index === 0)
+    .join("/");
 };
 
 /** "31/12/2024" -> "2024-12-31", sai định dạng hoặc rỗng -> "". */

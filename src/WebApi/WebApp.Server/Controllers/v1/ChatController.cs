@@ -26,7 +26,8 @@ public sealed class ChatController(ApplicationDbContext db, ChatAccessService ac
     private async Task<bool> AllowedAsync(string action)
     {
         try { await access.RequireActorAsync(User, action); return true; }
-        catch (ApiException) { return false; }
+        // Hết phiên (401) phải nổi lên để FE đăng nhập lại — chỉ nuốt lỗi thiếu quyền (403).
+        catch (ApiException ex) when (ex.StatusCode != 401) { return false; }
     }
 
     [HttpGet("contacts")]

@@ -8,7 +8,6 @@ using Application.Features.HoSoNhaTuyenDung.Commands.UpdateHoSoNhaTuyenDung;
 using Application.Features.HoSoNhaTuyenDung.Commands.UpdateMyHoSoNhaTuyenDung;
 using Application.Features.HoSoNhaTuyenDung.Commands.DeleteHoSoNhaTuyenDung;
 using AutoMapper;
-using Casbin;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -22,9 +21,8 @@ namespace WebApp.Server.Controllers.v1
 
         public HoSoNhaTuyenDungController(
             Microsoft.AspNetCore.Hosting.IWebHostEnvironment hostingEnvironment,
-            Enforcer enforcer,
             IMapper mapper)
-            : base(hostingEnvironment, enforcer)
+            : base(hostingEnvironment)
         {
             _mapper = mapper;
         }

@@ -23,6 +23,11 @@ async function login(email, password = seedPassword) {
   return { id: data(result, "id"), token: result.JWToken ?? result.jwToken, refresh: data(result, "refreshToken") };
 }
 const check = (value, message) => { assert(value, message); console.log(`PASS ${message}`); };
+async function statusOnly(path, method = "GET", body) {
+  const response = await fetch(base + path, { method, headers: { "Content-Type": "application/json" }, ...(body ? { body: JSON.stringify(body) } : {}) });
+  await response.text();
+  return response.status;
+}
 try {
   const admin = await login("superadmin@gmail.com");
   const owner = await login("daidien.saokhue@seed.local");
@@ -46,6 +51,9 @@ try {
   check(!(await call("/account/authenticate", "POST", { email, password: initial })).ok, "Unverified email cannot login");
   const forgot = await call("/account/forgot-password", "POST", { Email: `${marker}-missing@seed.local` });
   check(forgot.ok && data(forgot.body, "succeeded") === true, "Forgot-password response matches frontend contract");
+  const spamStatuses = [];
+  for (let i = 0; i < 7; i++) spamStatuses.push(await statusOnly("/account/forgot-password", "POST", { Email: `${marker}-missing@seed.local` }));
+  check(spamStatuses[spamStatuses.length - 1] === 429, "Forgot-password is rate limited after repeated requests");
   check((await call(`/account/confirm-email?userId=${uid}&code=***`)).status === 400, "Malformed verification link is a validation error, not 500");
   check((await call("/account/reset-password", "POST", { Email: email, Token: "invalid", Password: "Reset1!Password", ConfirmPassword: "Reset1!Password" })).status === 400, "Invalid reset token is rejected");
   check(!(await call("/account/request-magic-link", "POST", { Email: email, Role: "QUAN_TRI_VIEN" })).ok, "Magic link cannot provision Admin");
@@ -53,6 +61,10 @@ try {
   assert(candidateRoleId);
   await ok(`/users/${uid}`, "PUT", { Id: uid, RoleId: candidateRoleId, EmailConfirmed: true }, admin.token);
   let session = await login(email, initial);
+  const wrongPwd = await call("/account/authenticate", "POST", { email, password: "Wrong1!Password" });
+  const ghost = await call("/account/authenticate", "POST", { email: `${marker}-ghost@seed.local`, password: "Wrong1!Password" });
+  check(wrongPwd.status === 401 && ghost.status === 401, "Wrong password and unknown email both return 401");
+  check(data(wrongPwd.body, "message") === data(ghost.body, "message"), "Failed login responses do not leak account existence");
   await ok("/roles/assign", "POST", { UserId: uid, RoleName: "QUAN_TRI_VIEN" }, admin.token);
   const elevated = await login(email, initial);
   check((await call("/roles", "GET", undefined, elevated.token)).ok, "Admin-assigned role takes effect");
@@ -66,6 +78,7 @@ try {
   session = await login(email, "Changed1!Password");
   const rotated = await ok("/account/refresh-token", "POST", { Token: session.refresh });
   check(!(await call("/account/refresh-token", "POST", { Token: session.refresh })).ok, "Rotated refresh token cannot be reused");
+  check(!(await call("/account/refresh-token", "POST", { Token: data(rotated, "refreshToken") })).ok, "Reuse of a rotated token revokes its whole family");
   await ok("/account/revoke-token", "POST", { Token: data(rotated, "refreshToken") });
   check(!(await call("/account/refresh-token", "POST", { Token: data(rotated, "refreshToken") })).ok, "Logout revokes refresh token");
   session = await login(email, "Changed1!Password");

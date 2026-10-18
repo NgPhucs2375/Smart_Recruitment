@@ -88,8 +88,10 @@ public class GetSuggestedJobsForCvQueryHandler(
             RecommendationCache.JobsVersionKey,
             cancellationToken);
         var pageSize = Math.Clamp(request.PageSize > 0 ? request.PageSize : request.TopN, 1, 20);
-        var pageNumber = Math.Clamp(request.PageNumber, 1, 1000);
-        var requestedTopN = Math.Min(pageNumber * pageSize, 20_000);
+        // FE chỉ lật vài trang đầu: chặn pageNumber để không cache/score
+        // tới 20.000 bản ghi khi client spam page lớn (1000 trang x 20).
+        var pageNumber = Math.Clamp(request.PageNumber, 1, 50);
+        var requestedTopN = Math.Min(pageNumber * pageSize, 1000);
         var minimumScore = Math.Clamp(request.MinimumScore, 0f, 1f);
         var cacheKey = RecommendationCache.JobRecommendationsKey(
             currentUser.Id,

@@ -4,7 +4,6 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Casbin;
 using Infrastructure.Identity.Contexts;
 using Infrastructure.Identity.Models;
 using Infrastructure.Persistence.Contexts;
@@ -54,8 +53,7 @@ namespace WebApp.Server.Initializer
                     logger.LogInformation("Đã seed banner marketing demo cho môi trường Development.");
                 }
 
-                await _serviceProvider.GetRequiredService<Infrastructure.Identity.Services.PermissionCache>().RefreshAsync();
-
+                // Grants đọc live từ DB (PermissionService) — không còn export policy.csv runtime.
                 logger.LogInformation("Đã hoàn thành bơm dữ liệu mặc định!");
                 logger.LogInformation("Ứng dụng đang khởi chạy ...");
             }

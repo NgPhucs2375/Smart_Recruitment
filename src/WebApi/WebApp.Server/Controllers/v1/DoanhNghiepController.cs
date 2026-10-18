@@ -6,7 +6,6 @@ using Application.Features.DoanhNghiep.Queries.GetAllDoanhNghieps;
 using Application.Features.DoanhNghiep.Queries.GetDoanhNghiepById;
 using Application.Features.DoanhNghiep.Queries.GetMyDoanhNghiep;
 using AutoMapper;
-using Casbin;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -20,9 +19,8 @@ namespace WebApp.Server.Controllers.v1
 
         public DoanhNghiepController(
             Microsoft.AspNetCore.Hosting.IWebHostEnvironment hostingEnvironment,
-            Enforcer enforcer,
             IMapper mapper)
-            : base(hostingEnvironment, enforcer)
+            : base(hostingEnvironment)
         {
             _mapper = mapper;
         }

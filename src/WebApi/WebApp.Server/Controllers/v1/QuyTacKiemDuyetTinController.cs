@@ -1,6 +1,5 @@
 using Application.Interfaces;
 using Application.Wrappers;
-using Casbin;
 using Domain.Entities;
 using Domain.Enums;
 using Microsoft.AspNetCore.Authorization;
@@ -17,8 +16,7 @@ namespace WebApp.Server.Controllers.v1
 
         public QuyTacKiemDuyetTinController(
             IWebHostEnvironment environment,
-            Enforcer enforcer,
-            IApplicationDbContext context) : base(environment, enforcer)
+            IApplicationDbContext context) : base(environment)
         {
             _context = context;
         }

@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import type { PropsWithChildren } from 'react';
 
-import { clearTokens, getAccessToken, saveTokens, setUnauthorizedHandler } from '@/services/api/client';
+import { clearTokens, getAccessToken, revokeRefreshToken, saveTokens, setUnauthorizedHandler } from '@/services/api/client';
 
 import { authApi } from './api/auth-api';
 import type { AuthUser } from './types';
@@ -24,6 +24,8 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
   const signOut = useCallback(async () => {
     setUser(null);
+    // Thu hồi refresh token phía server trước khi xoá local (best-effort).
+    await revokeRefreshToken();
     await clearTokens();
     setStatus('signedOut');
   }, []);

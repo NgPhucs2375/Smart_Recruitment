@@ -89,22 +89,23 @@ namespace Infrastructure.Identity.Services
         {
             // Tìm kiếm User theo Email
             var user = await _userManager.FindByEmailAsync(request.Email);
+            // Không tiết lộ email có tồn tại hay không (chống email enumeration)
             if (user == null)
             {
-                throw new ApiException($"Chưa có tài khoản nào đăng ký với {request.Email}.");
+                throw new ApiException("Email hoặc mật khẩu không chính xác.", 401);
             }
 
-            // Kiểm tra Mật khẩu
-            await EnsureAccountEnabledAsync(user, requireVerified: false);
+            // Xác thực mật khẩu TRƯỚC khi kiểm tra trạng thái tài khoản,
+            // để các lỗi trạng thái (403) không rò rỉ cho kẻ chưa biết mật khẩu
             var result = await _signInManager.CheckPasswordSignInAsync(user, request.Password, lockoutOnFailure: true);
-            if (result.IsLockedOut || await _userManager.IsLockedOutAsync(user))
+            // Gộp mọi thất bại (sai mật khẩu, tài khoản bị khóa) thành một thông báo chung
+            if (!result.Succeeded || result.IsLockedOut || await _userManager.IsLockedOutAsync(user))
             {
-                throw new ApiException($"Tài khoản '{request.Email}' đã bị khóa. Vui lòng liên hệ quản trị viên.");
+                throw new ApiException("Email hoặc mật khẩu không chính xác.", 401);
             }
-            if (!result.Succeeded)
-            {
-                throw new ApiException($"Thông tin đăng nhập không hợp lệ cho '{request.Email}'.");
-            }
+
+            // Chỉ kiểm tra trạng thái tài khoản khi mật khẩu đã đúng
+            await EnsureAccountEnabledAsync(user, requireVerified: false);
 
             if (!user.EmailConfirmed)
             {
@@ -685,7 +686,10 @@ namespace Infrastructure.Identity.Services
         public async Task<Response<string>> ResetPassword(YeuCauGuiLaiXacMinh model)
         {
             var account = await _userManager.FindByEmailAsync(model.Email);
-            if (account == null) throw new ApiException($"Không có tài khoản nào được đăng ký với {model.Email}.");
+            // Không tiết lộ email có tồn tại hay không: mọi trường hợp lỗi
+            // đều trả về cùng một thông báo như khi token không hợp lệ
+            if (account == null)
+                throw new ApiException("Mã đặt lại mật khẩu không hợp lệ hoặc đã hết hạn.");
             var result = await _userManager.ResetPasswordAsync(account, model.Token, model.Password);
             if (result.Succeeded)
             {
@@ -694,7 +698,7 @@ namespace Infrastructure.Identity.Services
             }
             else
             {
-                throw new ApiException($"Đã xảy ra lỗi khi đặt lại mật khẩu.");
+                throw new ApiException("Mã đặt lại mật khẩu không hợp lệ hoặc đã hết hạn.");
             }
         }
 
@@ -793,6 +797,11 @@ namespace Infrastructure.Identity.Services
             refreshToken.Revoked = DateTime.UtcNow;
             refreshToken.RevokedByIp = ipAddress;
 
+            // Xoay SecurityStamp để Access Token (JWT) của phiên này chết ngay lập tức
+            // (BearerSessionValidator so sánh claim sst mỗi request). Các thiết bị khác
+            // tự refresh trong suốt qua refresh token còn hiệu lực của chúng.
+            user.SecurityStamp = Guid.NewGuid().ToString();
+
             EnsureIdentityResult(await _userManager.UpdateAsync(user));
 
             return new Response<string>(null, "Token đã bị thu hồi thành công.");
@@ -822,6 +831,11 @@ namespace Infrastructure.Identity.Services
             // 2. Kiểm tra tính hợp lệ của Token (Chưa bị thu hồi và chưa hết hạn)
             if (!oldRefreshToken.IsActive)
             {
+                // Phát hiện tái sử dụng token đã hết hiệu lực: dấu hiệu refresh token
+                // có thể đã bị đánh cắp → thu hồi toàn bộ "gia đình" token của chuỗi này
+                // (OWASP ASVS 3.3.2), rồi mới từ chối bằng thông báo chung.
+                RevokeTokenFamily(user, oldRefreshToken, ipAddress);
+                EnsureIdentityResult(await _userManager.UpdateAsync(user).ConfigureAwait(false));
                 throw new ApiException("Mã Token không hợp lệ hoặc đã hết hạn.");
             }
 
@@ -1281,6 +1295,12 @@ namespace Infrastructure.Identity.Services
                 oldToken.Used = true;
             }
 
+            // 2b. Dọn token rác (đã dùng/hết hạn) của email này để bảng không phình vô hạn
+            var staleTokens = await _context.MagicLinkTokens
+                .Where(m => m.Email == email && (m.Used || m.ExpiresAt <= DateTime.UtcNow))
+                .ToListAsync();
+            _context.MagicLinkTokens.RemoveRange(staleTokens);
+
             // 3. Khởi tạo Token mới
             string token = Guid.NewGuid().ToString("N");
             var magicToken = new MagicLinkToken
@@ -1429,7 +1449,44 @@ namespace Infrastructure.Identity.Services
         {
             await _context.Entry(user).Collection(x => x.RefreshTokens).LoadAsync();
             foreach (var token in user.RefreshTokens.Where(x => x.IsActive)) token.Revoked = DateTime.UtcNow;
+            // Xoay SecurityStamp để mọi Access Token (JWT) đã phát hành chết ngay lập tức
+            // (BearerSessionValidator so sánh claim sst với stamp này mỗi request).
+            // Hệ quả: đăng xuất/đổi mật khẩu = đăng xuất mọi thiết bị.
+            user.SecurityStamp = Guid.NewGuid().ToString();
             EnsureIdentityResult(await _userManager.UpdateAsync(user));
+        }
+
+        /// <summary>
+        /// Thu hồi toàn bộ "gia đình" refresh token liên quan tới token bị tái sử dụng:
+        /// đi ngược lên các ancestor (qua ReplacedByToken) rồi lan xuống các descendant
+        /// còn đang active. Chỉ gọi khi phát hiện reuse — dấu hiệu token bị đánh cắp.
+        /// </summary>
+        private void RevokeTokenFamily(ApplicationUser user, RefreshToken reusedToken, string ipAddress)
+        {
+            var family = new List<RefreshToken> { reusedToken };
+            bool grew;
+            do
+            {
+                grew = false;
+                foreach (var token in user.RefreshTokens)
+                {
+                    if (family.Contains(token)) continue;
+                    bool isAncestor = string.Equals(token.ReplacedByToken, family.Last().Token, StringComparison.Ordinal);
+                    bool isDescendant = family.Any(f => string.Equals(f.Token, token.ReplacedByToken, StringComparison.Ordinal));
+                    if (isAncestor || isDescendant)
+                    {
+                        family.Add(token);
+                        grew = true;
+                    }
+                }
+            } while (grew);
+
+            foreach (var token in family.Where(x => x.IsActive))
+            {
+                token.Revoked = DateTime.UtcNow;
+                token.RevokedByIp = ipAddress;
+            }
+            _logger.LogWarning("Phát hiện tái sử dụng refresh token của người dùng {UserId}: đã thu hồi {Count} token trong chuỗi.", user.Id, family.Count);
         }
     }
 

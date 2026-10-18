@@ -1,10 +1,9 @@
-﻿using Infrastructure.Identity.Features.Role.Commands.CreateRole;
+using Infrastructure.Identity.Features.Role.Commands.CreateRole;
 using Infrastructure.Identity.Features.Role.Commands.DeleteRoleById;
 using Infrastructure.Identity.Features.Role.Commands.UpdateRole;
 using Infrastructure.Identity.Features.Role.Queries.GetPagingRole;
 using Infrastructure.Identity.Features.Role.Queries.GetRoleById;
 using Microsoft.AspNetCore.Mvc;
-using Casbin;
 using Infrastructure.Identity.Features.Role.Commands.AssignRole;
 using Infrastructure.Identity.Features.Role.Commands.RemoveRole;
 using Microsoft.AspNetCore.Authorization;
@@ -18,7 +17,7 @@ namespace WebApp.Server.Controllers.Identity
     public class RolesController : BaseApiController
     {
      
-        public RolesController(Microsoft.AspNetCore.Hosting.IWebHostEnvironment webEnvironment,Enforcer enforcer) : base(webEnvironment,enforcer)
+        public RolesController(Microsoft.AspNetCore.Hosting.IWebHostEnvironment webEnvironment) : base(webEnvironment)
         {
         }
         //GET: api/roles?_start=0&_end=10&_order=asc&_sort=Id

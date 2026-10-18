@@ -1,7 +1,6 @@
 using System.Text;
 using System.Text.Json;
 using Application.Features.BaoCao.Queries.GetBaoCaoTuyenDung;
-using Casbin;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Distributed;
@@ -13,9 +12,8 @@ namespace WebApp.Server.Controllers;
 [Route("api/baocao")]
 public class BaoCaoController(
     Microsoft.AspNetCore.Hosting.IWebHostEnvironment hostingEnvironment,
-    Enforcer enforcer,
     IDistributedCache cache)
-    : BaseApiController(hostingEnvironment, enforcer)
+    : BaseApiController(hostingEnvironment)
 {
     private static readonly int[] KyHopLe = [0, 30, 90];
     private static readonly TimeSpan CacheTtl = TimeSpan.FromSeconds(60);
@@ -74,9 +72,9 @@ public class BaoCaoController(
                     return cachedVm;
             }
         }
-        catch (RedisException)
+        catch (Exception ex) when (ex is RedisException || ex is System.Text.Json.JsonException)
         {
-            // PostgreSQL là nguồn truth; lỗi cache không fatal.
+            // PostgreSQL là nguồn truth; lỗi cache (kể cả value hỏng) không fatal.
         }
 
         var result = (await Mediator.Send(

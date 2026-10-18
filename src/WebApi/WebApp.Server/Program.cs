@@ -7,7 +7,8 @@ using WebApp.Server.Agent;
 using WebApp.Server.Extensions;
 using WebApp.Server.Initializer;
 using WebApp.Server.Health;
-using Casbin;
+using Microsoft.AspNetCore.RateLimiting;
+using System.Threading.RateLimiting;
 using Minio;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -35,11 +36,19 @@ _services.AddCors(options =>
     // Production: chỉ cho phép origin cấu hình rõ ràng qua
     // Frontend:AllowedOrigins (env Frontend__AllowedOrigins, phân tách bằng ';').
     // Development: giữ localhost + origin bổ sung nếu có.
-    var configuredOrigins = _config.GetSection("Frontend:AllowedOrigins").Get<string[]>()
-        ?.SelectMany(o => o.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
-        .Where(o => !string.IsNullOrWhiteSpace(o))
-        .Distinct(StringComparer.OrdinalIgnoreCase)
-        .ToArray() ?? Array.Empty<string>();
+        // Get<string[]>() trả về null với giá trị scalar ("AllowedOrigins": "http://a"),
+        // nên đọc trực tiếp chuỗi rồi tách; fallback sang children nếu khai báo dạng mảng.
+        var rawOrigins = _config["Frontend:AllowedOrigins"];
+        var originEntries = !string.IsNullOrWhiteSpace(rawOrigins)
+            ? new[] { rawOrigins }
+            : _config.GetSection("Frontend:AllowedOrigins").GetChildren()
+                .Select(c => c.Value ?? string.Empty)
+                .ToArray();
+        var configuredOrigins = originEntries
+            .SelectMany(o => o.Split(new[] { ';', ',' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+            .Where(o => !string.IsNullOrWhiteSpace(o))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
 
     string[] allowedOrigins;
     if (_env.IsDevelopment())
@@ -67,16 +76,6 @@ _services.AddCors(options =>
     });
 });
 
-_services.AddSingleton(opts=>
-{
-    var env = opts.GetRequiredService<IWebHostEnvironment>();
-    return new Enforcer(
-        Path.Combine(env.WebRootPath,"model.conf"),
-        Path.Combine(env.WebRootPath,"policy.csv")
-    );
-});
-
-
 _services.AddEnvironmentVariablesExtension();
 _services.AddIdentityLayer();
 _services.AddApplicationLayer();
@@ -99,6 +98,21 @@ _services.AddControllers().AddJsonOptions(opts =>
     opts.JsonSerializerOptions.PropertyNamingPolicy = null;
 });
 _services.AddApiVersioningExtension();
+// Giới hạn tần suất các endpoint gửi email (forgot-password, resend-verification,
+// request-magic-link) để chống spam/abuse mail relay.
+_services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddPolicy("auth-mail", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 5,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0
+            }));
+});
 // Liveness (luôn 200 khi process sống) + readiness dependency ở /health/ready.
 _services.AddSignalR();
 _services.AddWebAppServices();
@@ -177,6 +191,7 @@ app.UseRouting();
 app.UseCors("AllowFrontend");
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseRateLimiter();
 
 app.UseErrorHandlingMiddleware();
 app.MapHealthEndpoints();

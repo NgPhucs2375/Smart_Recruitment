@@ -68,8 +68,12 @@ namespace Application.Features.HoSoUngVien.Queries.GetAllHoSoUngViens
                 _ => query.OrderBy(x => x.Id)
             };
 
+            // Mặc định trang 20 bản ghi, tối đa 100: client không truyền
+            // _start/_end hợp lệ không được quét toàn bảng.
             var skip = request._start < 0 ? 0 : request._start;
-            var take = request._end - skip;
+            var end = request._end <= skip ? skip + 20 : request._end;
+            var take = end - skip;
+            if (take > 100) take = 100;
 
             if (skip > 0)
             {

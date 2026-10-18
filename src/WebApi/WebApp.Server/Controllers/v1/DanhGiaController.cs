@@ -6,7 +6,6 @@ using Application.Features.DanhGia.Commands.UpdateDanhGia;
 using Application.Features.DanhGia.Queries.GetAllDanhGias;
 using Application.Features.DanhGia.Queries.GetDanhGiaById;
 using AutoMapper;
-using Casbin;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -20,9 +19,8 @@ namespace WebApp.Server.Controllers.v1
 
         public DanhGiaController(
             Microsoft.AspNetCore.Hosting.IWebHostEnvironment hostingEnvironment,
-            Enforcer enforcer,
             IMapper mapper)
-            : base(hostingEnvironment, enforcer)
+            : base(hostingEnvironment)
         {
             _mapper = mapper;
         }

@@ -1,5 +1,6 @@
 #nullable enable
 using System;
+using System.Collections.Generic;
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Net;
@@ -20,12 +21,16 @@ public sealed class GeminiCvStructuredParser(
     IConfiguration configuration,
     ILogger<GeminiCvStructuredParser> logger) : ICvStructuredParser
 {
-    private const int MaxAttempts = 3;
+    private const int DefaultMaxAttempts = 5;
 
     // LLM sinh JSON cho cả CV có thể mất vài chục giây, nhưng khi connection
     // treo (mạng Docker/VPN không ổn định) phải cắt sớm từng lần thử để còn
     // thời gian retry thay vì để HttpClient.Timeout nuốt trọn 90s rồi trả 500.
     private static readonly TimeSpan AttemptTimeout = TimeSpan.FromSeconds(60);
+
+    // Backoff lũy tiến có jitter khi Gemini trả lỗi tạm thời (429/5xx).
+    private static readonly TimeSpan BaseRetryDelay = TimeSpan.FromMilliseconds(700);
+    private static readonly TimeSpan MaxRetryDelay = TimeSpan.FromSeconds(8);
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -46,9 +51,8 @@ public sealed class GeminiCvStructuredParser(
                 "Chưa khai báo Gemini:ApiKey (xem log backend để biết cách khắc phục).");
         }
 
-        var model = configuration["Gemini:Model"] ?? "gemini-3.6-flash";
-        var fallbackModel = configuration["Gemini:FallbackModel"];
-        var currentModel = model;
+        var models = ResolveModels(configuration);
+        var maxAttempts = ResolveMaxAttempts(configuration);
         var requestBody = new
         {
             contents = new[]
@@ -68,8 +72,23 @@ public sealed class GeminiCvStructuredParser(
             }
         };
 
-        for (var attempt = 1; attempt <= MaxAttempts; attempt++)
+        string? previousModel = null;
+        for (var attempt = 1; attempt <= maxAttempts; attempt++)
         {
+            // Xoay vòng qua danh sách model: mỗi lần thử lại (transient) nhảy sang
+            // model kế tiếp để né bucket quota/overload riêng của từng model.
+            var currentModel = models[(attempt - 1) % models.Count];
+            if (previousModel is not null
+                && !string.Equals(currentModel, previousModel, StringComparison.Ordinal))
+            {
+                logger.LogWarning(
+                    "Gemini chuyển sang model dự phòng {Model} (lần {Attempt}/{MaxAttempts}).",
+                    currentModel,
+                    attempt,
+                    maxAttempts);
+            }
+            previousModel = currentModel;
+
             using var request = new HttpRequestMessage(
                 HttpMethod.Post,
                 $"v1beta/models/{Uri.EscapeDataString(currentModel)}:generateContent");
@@ -97,8 +116,8 @@ public sealed class GeminiCvStructuredParser(
                     "Gemini parse CV quá thời gian chờ {Timeout}s. lần={Attempt}/{MaxAttempts}.",
                     AttemptTimeout.TotalSeconds,
                     attempt,
-                    MaxAttempts);
-                if (attempt >= MaxAttempts)
+                    maxAttempts);
+                if (attempt >= maxAttempts)
                 {
                     throw new ApiException(
                         "Gemini không phản hồi kịp thời. Vui lòng thử lại sau ít phút.",
@@ -113,8 +132,8 @@ public sealed class GeminiCvStructuredParser(
                     "Gemini parse CV lỗi mạng: {Error}. lần={Attempt}/{MaxAttempts}.",
                     ex.Message,
                     attempt,
-                    MaxAttempts);
-                if (attempt >= MaxAttempts)
+                    maxAttempts);
+                if (attempt >= maxAttempts)
                 {
                     throw new ApiException(
                         "Không kết nối được Gemini. Vui lòng kiểm tra kết nối mạng rồi thử lại.",
@@ -132,34 +151,16 @@ public sealed class GeminiCvStructuredParser(
                     (int)HttpStatusCode.ServiceUnavailable or
                     (int)HttpStatusCode.GatewayTimeout;
 
-                if (isTransient && attempt < MaxAttempts)
+                if (isTransient && attempt < maxAttempts)
                 {
-                    // Free-tier mỗi model có bucket quota riêng, nên khi model
-                    // chính bị 429/503 thử chuyển sang model dự phòng.
-                    TimeSpan delay;
-                    if (!string.IsNullOrWhiteSpace(fallbackModel) && currentModel != fallbackModel)
-                    {
-                        logger.LogWarning(
-                            "Gemini model {Model} lỗi {Status} — chuyển sang model dự phòng {Fallback}.",
-                            currentModel,
-                            (int)statusCode,
-                            fallbackModel);
-                        currentModel = fallbackModel;
-                        delay = TimeSpan.FromMilliseconds(500);
-                    }
-                    else
-                    {
-                        delay = retryAfter ?? TimeSpan.FromSeconds(attempt);
-                        if (delay > TimeSpan.FromSeconds(5))
-                            delay = TimeSpan.FromSeconds(5);
-                    }
-
+                    var delay = ComputeRetryDelay(attempt, retryAfter);
                     logger.LogWarning(
-                        "Gemini parse CV tạm thời thất bại. Status={Status}, lần={Attempt}/{MaxAttempts}. Thử lại sau {DelayMs}ms.",
+                        "Gemini parse CV tạm thời thất bại ({Model}). Status={Status}, lần={Attempt}/{MaxAttempts}. Thử lại sau {DelayMs}ms.",
+                        currentModel,
                         (int)statusCode,
                         attempt,
-                        MaxAttempts,
-                        delay.TotalMilliseconds);
+                        maxAttempts,
+                        (int)delay.TotalMilliseconds);
                     await Task.Delay(delay, cancellationToken);
                     continue;
                 }
@@ -215,6 +216,52 @@ public sealed class GeminiCvStructuredParser(
         }
 
         throw new ApiException("Gemini đang quá tải. Vui lòng thử lại sau ít phút.", (int)HttpStatusCode.ServiceUnavailable);
+    }
+
+    // Danh sách model theo thứ tự ưu tiên: Gemini:Model (chính), rồi
+    // Gemini:Models:0..n (nhiều dự phòng), rồi Gemini:FallbackModel (tương thích cũ).
+    private static List<string> ResolveModels(IConfiguration configuration)
+    {
+        var models = new List<string>();
+
+        void Add(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value)) return;
+            var model = value.Trim();
+            if (!models.Exists(m => string.Equals(m, model, StringComparison.OrdinalIgnoreCase))) models.Add(model);
+        }
+
+        var primary = configuration["Gemini:Model"];
+        Add(string.IsNullOrWhiteSpace(primary) ? "gemini-3.6-flash" : primary);
+
+        foreach (var child in configuration.GetSection("Gemini:Models").GetChildren())
+        {
+            Add(child.Value);
+        }
+
+        Add(configuration["Gemini:FallbackModel"]);
+
+        return models;
+    }
+
+    private static int ResolveMaxAttempts(IConfiguration configuration) =>
+        int.TryParse(configuration["Gemini:MaxAttempts"], out var value) && value > 0
+            ? value
+            : DefaultMaxAttempts;
+
+    // Backoff lũy tiến có jitter (±20%) để tránh dồn dập khi Gemini quá tải.
+    // Ưu tiên Retry-After của Gemini nếu có (đã giới hạn trần MaxRetryDelay).
+    private static TimeSpan ComputeRetryDelay(int attempt, TimeSpan? retryAfter)
+    {
+        if (retryAfter is { } retry && retry > TimeSpan.Zero)
+        {
+            return retry > MaxRetryDelay ? MaxRetryDelay : retry;
+        }
+
+        var backoffMs = BaseRetryDelay.TotalMilliseconds * Math.Pow(2, attempt - 1);
+        var capped = Math.Min(backoffMs, MaxRetryDelay.TotalMilliseconds);
+        var jitter = 0.8 + (Random.Shared.NextDouble() * 0.4); // 0.8x – 1.2x
+        return TimeSpan.FromMilliseconds(capped * jitter);
     }
 
     // Trích candidates[0].content.parts[0].text; trả null nếu Gemini trả 200

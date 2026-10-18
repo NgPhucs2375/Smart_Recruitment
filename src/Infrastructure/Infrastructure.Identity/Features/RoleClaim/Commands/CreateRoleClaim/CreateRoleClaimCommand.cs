@@ -16,7 +16,7 @@ public class CreateRoleClaimCommand : IRequest<Response<IdentityRoleClaim<string
     public string ClaimType { get; set; }
     public string[] ClaimValue { get; set; }
 
-    public class CreateRoleClaimCommandHandler(IdentityContext context, PermissionCache cache)
+    public class CreateRoleClaimCommandHandler(IdentityContext context)
         : IRequestHandler<CreateRoleClaimCommand, Response<IdentityRoleClaim<string>>>
     {
         public async Task<Response<IdentityRoleClaim<string>>> Handle(CreateRoleClaimCommand request, CancellationToken ct)
@@ -30,7 +30,7 @@ public class CreateRoleClaimCommand : IRequest<Response<IdentityRoleClaim<string
             try { await context.SaveChangesAsync(ct); }
             catch (DbUpdateException ex) when (ex.InnerException is Npgsql.PostgresException { SqlState: "23505" })
             { throw new ApiException("Resource đã có quyền cho vai trò này.", 409); }
-            await cache.RefreshAsync();
+            // Grants đọc live từ DB trong PermissionService — không cần refresh cache ngoài.
             return new Response<IdentityRoleClaim<string>>(claim);
         }
     }

@@ -6,7 +6,6 @@ using Application.Features.KetQuaPhanTichCv.Commands.UpdateKetQuaPhanTichCv;
 using Application.Features.KetQuaPhanTichCv.Queries.GetAllKetQuaPhanTichCvs;
 using Application.Features.KetQuaPhanTichCv.Queries.GetKetQuaPhanTichCvById;
 using AutoMapper;
-using Casbin;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -20,9 +19,8 @@ namespace WebApp.Server.Controllers.v1
 
         public KetQuaPhanTichCvController(
             Microsoft.AspNetCore.Hosting.IWebHostEnvironment hostingEnvironment,
-            Enforcer enforcer,
             IMapper mapper)
-            : base(hostingEnvironment, enforcer)
+            : base(hostingEnvironment)
         {
             _mapper = mapper;
         }

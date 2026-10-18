@@ -2046,7 +2046,8 @@ namespace Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("DonUngTuyenId");
+                    b.HasIndex("DonUngTuyenId")
+                        .IsUnique();
 
                     b.ToTable("DanhGia", (string)null);
                 });

@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { Plus, Trash2, FileText, Briefcase, GraduationCap, Wrench, FolderGit2, Award } from "lucide-react";
+import { useEffect, useRef, useState, type ChangeEvent } from "react";
+import { Plus, Trash2, FileText, Briefcase, GraduationCap, Wrench, FolderGit2, Award, Calendar } from "lucide-react";
 import {
   DndContext,
   KeyboardSensor,
@@ -38,7 +38,7 @@ import type {
   ChungChiItem,
   CvDatePrecision,
 } from "@/lib/types";
-import { newId, maskDateVn, isValidVnDate } from "@/features/tao-cv/cv-data";
+import { newId, maskDateVn, isValidVnDate, isoToVnDate, vnToIsoDate } from "@/features/tao-cv/cv-data";
 import {
   MSG_DOB_FUTURE,
   MSG_EMAIL,
@@ -84,20 +84,82 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 }
 
 function DateField({ label, value, onChange, disabled }: { label: string; value: string; onChange: (v: string) => void; disabled?: boolean }) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const datePickerRef = useRef<HTMLInputElement>(null);
+  const caretDigitsRef = useRef<number | null>(null);
+
   const badFormat = !isValidVnDate(value);
   const future = !badFormat && value.trim() !== "" && isFutureVnDate(value);
   const invalid = badFormat || future;
+
+  // Gõ tay: mask + khôi phục caret trong useEffect (không set caret trực tiếp
+  // trong onChange để tránh caret nhảy về vị trí cũ làm mất ký tự).
+  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value;
+    const caret = e.target.selectionStart ?? raw.length;
+    caretDigitsRef.current = raw.slice(0, caret).replace(/\D/g, "").length;
+    onChange(maskDateVn(raw));
+  };
+
+  useEffect(() => {
+    const el = inputRef.current;
+    const want = caretDigitsRef.current;
+    if (!el || want == null) return;
+    caretDigitsRef.current = null;
+    let pos = 0;
+    let seen = 0;
+    for (let i = 0; i < value.length && seen < want; i += 1) {
+      if (/\d/.test(value[i])) seen += 1;
+      pos = i + 1;
+    }
+    try {
+      el.setSelectionRange(pos, pos);
+    } catch {
+      // input không hỗ trợ selection — bỏ qua
+    }
+  }, [value]);
+
+  const openPicker = () => {
+    const el = datePickerRef.current as (HTMLInputElement & { showPicker?: () => void }) | null;
+    if (!el) return;
+    if (typeof el.showPicker === "function") el.showPicker();
+    else el.focus();
+  };
+
   return (
     <div>
       <label style={{ display: "block", marginBottom: "0.5rem" }}>{label}</label>
-      <Input
-        inputMode="numeric"
-        placeholder="dd/mm/yyyy"
-        value={value}
-        disabled={disabled}
-        onChange={(e) => onChange(maskDateVn(e.target.value))}
-        className={invalid ? "border-destructive" : ""}
-      />
+      <div className="relative">
+        <Input
+          ref={inputRef}
+          inputMode="numeric"
+          placeholder="dd/mm/yyyy"
+          value={value}
+          disabled={disabled}
+          onChange={handleChange}
+          className={invalid ? "border-destructive pr-9" : "pr-9"}
+        />
+        {/* Date picker ẩn: bấm icon lịch để chọn ngày, gõ tay không bị nhảy số */}
+        <input
+          ref={datePickerRef}
+          type="date"
+          tabIndex={-1}
+          aria-hidden
+          className="pointer-events-none absolute bottom-0 right-9 h-0 w-0 opacity-0"
+          value={vnToIsoDate(value) || ""}
+          max={new Date().toISOString().slice(0, 10)}
+          onChange={(e) => { if (e.target.value) onChange(isoToVnDate(e.target.value)); }}
+        />
+        <button
+          type="button"
+          aria-label={`Chọn ${label} từ lịch`}
+          disabled={disabled}
+          onClick={openPicker}
+          className="absolute right-2 top-1/2 flex size-7 -translate-y-1/2 items-center justify-center rounded-lg text-muted-foreground transition hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary disabled:pointer-events-none disabled:opacity-50"
+        >
+          <Calendar className="size-4" />
+        </button>
+      </div>
       {badFormat && <p className="text-xs text-destructive mt-1">Ngày không hợp lệ (dd/mm/yyyy)</p>}
       {future && <p className="text-xs text-destructive mt-1">{MSG_DOB_FUTURE}</p>}
     </div>

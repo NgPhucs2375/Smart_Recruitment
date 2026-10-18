@@ -125,6 +125,22 @@ public class SaveCvVersionCommandHandler(
                 await context.SaveChangesAsync(cancellationToken);
                 return new Response<SaveCvVersionResult>("Phiên import đã hết hạn.");
             }
+
+            // Claim nguyên tử chống double-confirm khi 2 request song song:
+            // UPDATE ... WHERE TrangThai != Confirmed chỉ 1 bên thành công,
+            // bên còn lại thấy affected == 0 và bị từ chối. Không dùng check
+            // trên entity tracked rồi SaveChanges cuối vì cửa sổ race vẫn mở.
+            var claimed = await context.CVImportSessions
+                .Where(x => x.Id == importSession.Id &&
+                            x.TrangThai != TrangThaiCvImport.Confirmed)
+                .ExecuteUpdateAsync(
+                    s => s.SetProperty(x => x.TrangThai, TrangThaiCvImport.Confirmed)
+                          .SetProperty(x => x.ConfirmedAt, DateTime.UtcNow),
+                    cancellationToken);
+            if (claimed == 0)
+                return new Response<SaveCvVersionResult>("Phiên import đã được sử dụng.");
+            // Đồng bộ tracker với DB để SaveChanges cuối không ghi đè trạng thái.
+            importSession.TrangThai = TrangThaiCvImport.Confirmed;
         }
 
         var hasAnyCv = await context.CVUngViens.AnyAsync(
@@ -233,6 +249,16 @@ public class SaveCvVersionCommandHandler(
         try
         {
             await context.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException)
+        {
+            if (generatedKey != null)
+                await fileStorageService.DeleteAsync(generatedKey, cancellationToken);
+            // Xung đột ở DB (điển hình: request song song vừa chiếm
+            // SoPhienBan — unique (CVUngVienId, SoPhienBan)): file đã dọn,
+            // trả lỗi retryable thay vì 500.
+            return new Response<SaveCvVersionResult>(
+                "Lưu phiên bản thất bại do xung đột dữ liệu, vui lòng thử lại.");
         }
         catch
         {

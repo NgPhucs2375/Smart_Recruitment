@@ -1,7 +1,9 @@
+using Application.Features.KetQuaPhuHop.Cache;
 using Application.Interfaces;
 using Application.Wrappers;
 using Domain.Enums;
 using MediatR;
+using Microsoft.Extensions.Caching.Distributed;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
@@ -25,7 +27,8 @@ namespace Application.Features.HoSoUngVien.Commands.UpdateHoSoUngVien
 
     public class UpdateHoSoUngVienCommandHandler(
         IApplicationDbContext context,
-        ICurrentNguoiDungService current)
+        ICurrentNguoiDungService current,
+        IDistributedCache cache)
         : IRequestHandler<UpdateHoSoUngVienCommand, Response<int>>
     {
         public async Task<Response<int>> Handle(
@@ -66,6 +69,13 @@ namespace Application.Features.HoSoUngVien.Commands.UpdateHoSoUngVien
             entity.IsTimViec = request.IsTimViec;
 
             await context.SaveChangesAsync(
+                cancellationToken);
+
+            // Hồ sơ là đầu vào của matching (IsTimViec/ViTri/MucLuong/
+            // DiaChi/HoTen): đổi xong phải hết hiệu lực pool gợi ý ứng viên,
+            // nếu không "tắt tìm việc" vẫn bị gợi ý tới khi cache hết hạn.
+            await RecommendationCache.InvalidateCandidatePoolAsync(
+                cache,
                 cancellationToken);
 
             return new Response<int>(
