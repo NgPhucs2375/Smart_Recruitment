@@ -7,7 +7,7 @@ Tài liệu này dành cho người tiếp tục phát triển ứng dụng mobi
 - Ứng dụng nằm riêng tại `src/Mobile`, không dùng chung UI với Next.js.
 - Framework: **React Native + Expo SDK 57**; React 19, TypeScript và Expo Router.
 - Điều hướng theo file, hỗ trợ Android/iOS và web.
-- Bản hiện tại có luồng xem/tìm việc, xem chi tiết, lưu việc làm cục bộ và dataset demo bật bằng env; chưa có đăng nhập mobile và ứng tuyển.
+- Bản hiện tại có đăng nhập/khôi phục phiên, xem/tìm/lọc/sắp xếp/phân trang việc làm, xem chi tiết, lưu việc làm cục bộ và dataset demo bật bằng env; chưa có ứng tuyển, quản lý CV, thông báo và chat.
 - Tài liệu nghiên cứu React Native/Expo và phương án chuyển frontend web: [`../../PHAN_TICH_REACT_NATIVE_EXPO.md`](../../PHAN_TICH_REACT_NATIVE_EXPO.md).
 
 ## 2. Cài đặt và chạy
@@ -45,10 +45,10 @@ Tại `src/Mobile`, nếu chưa có file `.env`, tạo từ mẫu:
 Copy-Item .env.example .env
 ```
 
-Đặt `EXPO_PUBLIC_API_URL` thành **prefix** API cần gọi. Với cấu hình Docker hiện tại trên Android Emulator, nếu frontend được publish ở cổng `3000`:
+Đặt `EXPO_PUBLIC_API_URL` thành **prefix** API cần gọi. Với cấu hình Docker hiện tại trên Android Emulator, frontend thường được publish ở cổng `3001` (kiểm tra `docker compose ps`):
 
 ```dotenv
-EXPO_PUBLIC_API_URL=http://10.0.2.2:3000/api/dotnet
+EXPO_PUBLIC_API_URL=http://10.0.2.2:3001/api/dotnet
 ```
 
 `10.0.2.2` là địa chỉ host từ Android Emulator. Dùng cổng thực tế từ `docker compose ps`; trên điện thoại thật, thay bằng IPv4 LAN của máy phát triển. Không dùng `localhost` trên điện thoại/emulator để trỏ tới máy tính.
@@ -93,17 +93,22 @@ src/Mobile/
 | `src/app/(tabs)/_layout.tsx` | Layout nhóm tab. `(tabs)` là route group, không xuất hiện trên URL. |
 | `src/app/(tabs)/index.tsx` | Màn danh sách/tìm việc; gọi `jobsApi.getJobs`. |
 | `src/app/(tabs)/saved.tsx` | Danh sách việc làm đã lưu; tải chi tiết theo các ID đã lưu. |
-| `src/app/(tabs)/profile.tsx` | Màn hồ sơ placeholder, hiển thị số việc đã lưu và trạng thái chưa đăng nhập. |
+| `src/app/(tabs)/profile.tsx` | Màn hồ sơ hiển thị tài khoản đang đăng nhập, số việc đã lưu và nút đăng xuất. |
 | `src/app/jobs/[id].tsx` | Chi tiết việc làm theo ID; có mô tả và lưu/bỏ lưu. |
 
 Quy ước Expo Router: mỗi page là file trong `src/app`, `_layout.tsx` định nghĩa navigator. Không đặt component dùng chung hoặc API service trong `src/app`, nếu không Router có thể hiểu nhầm chúng là routes.
 
 ### `src/features` — code theo domain
 
-- `features/jobs/types.ts`: model mobile `Job`.
-- `features/jobs/api/jobs-api.ts`: lấy danh sách/chi tiết, chuẩn hóa payload backend (PascalCase/camelCase) sang `Job`.
-- `features/jobs/mock-jobs.ts`: 6 việc làm mẫu và tìm kiếm cục bộ cho quá trình dựng UI; chỉ được sử dụng khi mock flag bật trong development.
+- `features/jobs/types.ts`: model `Job`, `JobFilters`, `JobSort`, `JobFilterOptions`, `JobsPage`.
+- `features/jobs/constants.ts`: địa điểm, cấp bậc, hình thức, cách thức, preset lương, page size và tham số sort.
+- `features/jobs/api/jobs-api.ts`: danh sách có filter/sort/pagination, `filter-options` và chi tiết; chuẩn hóa payload backend (PascalCase/camelCase) sang `Job`.
+- `features/jobs/mock-jobs.ts`: 6 việc làm mẫu, `queryMockJobs` (lọc/sort/phân trang) và mock filter options; chỉ dùng khi mock flag bật trong development.
+- `features/jobs/hooks/use-job-search.ts`: state tìm kiếm/lọc/sort/phân trang, refresh, tải thêm và retry.
+- `features/jobs/hooks/use-job-filter-options.ts`: tải ngành nghề/kỹ năng cho bộ lọc.
 - `features/jobs/components/job-card.tsx`: card việc làm và thao tác bookmark.
+- `features/jobs/components/job-filters-sheet.tsx`, `active-filter-chips.tsx`, `job-sort-tabs.tsx`: UI bộ lọc, chip đang bật và sắp xếp.
+- `features/auth/*`: đăng nhập, khôi phục phiên, refresh token và đăng xuất.
 - `features/bookmarks/bookmark-provider.tsx`: React context quản lý ID đã lưu; persist bằng AsyncStorage key `smart-recruitment.saved-jobs.v1`.
 
 Khi thêm domain mới (CV, auth, applications…), tạo feature riêng, ví dụ `src/features/auth/{api,components,types}`. Route nên gọi feature hook/service thay vì chứa toàn bộ logic nghiệp vụ.
@@ -115,9 +120,9 @@ Khi thêm domain mới (CV, auth, applications…), tạo feature riêng, ví d�
 - Đọc `EXPO_PUBLIC_API_URL` làm prefix.
 - Gọi `fetch`, parse JSON, báo lỗi HTTP và lỗi envelope `Succeeded=false`.
 - Trong development, `features/jobs/mock-jobs.ts` được dùng mặc định; đặt `EXPO_PUBLIC_USE_MOCK_DATA=false` để chuyển sang API thật. Mock luôn bị tắt trong production.
-- Chưa đính kèm JWT, chưa có refresh flow và chưa có timeout/retry policy.
+- Đính kèm `Authorization: Bearer ...`, tự refresh một lần khi gặp 401 và xoá phiên khi refresh thất bại; chưa có timeout/retry policy.
 
-Khi hoàn thiện auth, bổ sung token vào API client tại đây bằng `Authorization: Bearer ...`; tránh rải logic token ở từng screen.
+Auth đã được tách vào `features/auth` và token được xử lý tập trung trong `services/api/client.ts`; không rải logic token ở từng screen.
 
 ### `src/components`, theme và platform
 
@@ -132,18 +137,18 @@ Viết UI bằng React Native primitives (`View`, `Text`, `TextInput`, `Pressabl
 
 ## 4. Luồng dữ liệu hiện tại
 
-1. Màn Việc làm gọi `jobsApi.getJobs(keyword)`.
-2. Nếu bật mock mode, tìm trong bộ mẫu ở `features/jobs/mock-jobs.ts`; nếu không, API client nối prefix với `tintuyendungs?_start=0&_end=20` và `_filter` nếu có từ khóa.
+1. `useJobSearch` gọi `jobsApi.getJobs({ keyword, filters, sort, page })` với page size `10`.
+2. Nếu bật mock mode, `queryMockJobs` lọc/sort/phân trang trên dataset; nếu không, API client gọi `tintuyendungs` với `_start/_end`, `_filter`, `Location`, `SalaryMin/Max`, `Level`, `EmploymentType`, `WorkMode`, `DanhMucNgheId`, `KyNangIds`, `MatchAllSkills`, `_sort` và `_order`.
 3. `jobs-api.ts` chuẩn hóa trường backend; card hiển thị việc làm và cho phép lưu.
 4. Chọn card mở `/jobs/{id}`; màn chi tiết gọi `tintuyendungs/show/{id}`.
 5. Bookmark chỉ lưu ID vào AsyncStorage trên thiết bị. Màn Đã lưu tải lại chi tiết từ API; chưa đồng bộ bookmark với tài khoản/backend.
 
 ### Tình trạng và điểm cần biết
 
-- Luồng việc làm hiện có UI loading/error/empty và retry.
-- Dataset demo có 6 việc làm Việt hóa; tìm kiếm lọc theo tiêu đề, công ty, địa điểm, kỹ năng và mô tả. Chế độ này mặc định bật khi `__DEV__`; đặt `EXPO_PUBLIC_USE_MOCK_DATA=false` để tắt.
-- Khi kiểm tra API local không có JWT, request danh sách trả **401**. Mobile chưa có màn đăng nhập, nên muốn dữ liệu thật thì cần triển khai auth hoặc thống nhất endpoint public với backend.
-- Hồ sơ/đăng nhập hiện là placeholder. Ứng tuyển, CV upload/import/export, chat/SignalR, push notification và deep link từ notification chưa được tích hợp.
+- Luồng việc làm hiện có loading/error/empty, tải thêm, pull-to-refresh, bộ lọc, chip lọc đang bật và sắp xếp.
+- Dataset demo có 6 việc làm Việt hóa; mock cũng hỗ trợ lọc/sort/phân trang và trả filter options. Chế độ này mặc định bật khi `__DEV__`; đặt `EXPO_PUBLIC_USE_MOCK_DATA=false` để tắt. Đăng nhập vẫn cần backend vì mock chỉ thay dữ liệu việc làm.
+- API danh sách yêu cầu JWT. App đã có đăng nhập và khôi phục phiên; khi access token hết hạn, API client tự refresh một lần rồi mới báo lỗi.
+- Ứng tuyển, CV upload/import/export, chat/SignalR, push notification và deep link từ notification chưa được tích hợp. Hồ sơ và đăng nhập đã có.
 - Compose hiện trả `/health/ready` 200 sau khi RustFS và bucket đã khởi tạo. Volume MinIO cũ `minio_data` được giữ nhưng dữ liệu trong đó chưa được migrate sang các RustFS volumes mới.
 
 ## 5. Cách mở rộng phổ biến
@@ -159,14 +164,11 @@ Viết UI bằng React Native primitives (`View`, `Text`, `TextInput`, `Pressabl
 
 Tạo file route (ví dụ `src/app/companies/[id].tsx`) và nếu cần cấu hình header/presentation trong `src/app/_layout.tsx`. Dùng `useLocalSearchParams` từ `expo-router` để đọc path parameter.
 
-### Nối đăng nhập native — ưu tiên kế tiếp
+### Việc tiếp theo
 
-1. Đối chiếu login/refresh contracts hiện có trong `src/WebApi/frontend/lib/auth-provider.ts` và backend account endpoints.
-2. Tạo feature `src/features/auth` cho types, API và state; dựng native login form bằng `TextInput`/`Pressable`.
-3. Cài SecureStore bằng `npx expo install expo-secure-store`; access/refresh token không lưu trong AsyncStorage.
-4. Bổ sung Bearer token và refresh handling tập trung trong `src/services/api/client.ts`.
-5. Xác nhận endpoint danh sách việc làm public hay cần JWT; hiện request không token nhận 401.
-6. Thêm tests/kiểm thử login, refresh, logout, app restart và lỗi 401 trên Android.
+- Ứng tuyển và quản lý CV (upload/import/export) qua API backend.
+- Thông báo, chat/SignalR và deep link từ notification.
+- Bổ sung timeout/retry policy và kiểm thử hồi quy cho auth, bộ lọc và phân trang.
 
 ### Thêm Expo native module
 
@@ -174,7 +176,7 @@ Cài bằng `npx expo install <package>` để chọn version tương thích Exp
 
 ## 6. Cấu hình API local và Docker
 
-- `EXPO_PUBLIC_API_URL` là URL prefix, ví dụ `http://10.0.2.2:3000/api/dotnet`; mobile nối thêm endpoint khi mock mode tắt.
+- `EXPO_PUBLIC_API_URL` là URL prefix, ví dụ `http://10.0.2.2:3001/api/dotnet`; mobile nối thêm endpoint khi mock mode tắt.
 - Trong development, mock bật mặc định; đặt `EXPO_PUBLIC_USE_MOCK_DATA=false` để gọi backend. Mock bị vô hiệu hóa trong production bất kể giá trị biến.
 - Cổng host có thể thay đổi theo `.env` ở root. Luôn xem `docker compose ps`; không lấy port từ một máy khác.
 - Docker Compose local dùng service name `minio` cho backend, nhưng image là RustFS tương thích S3 do registry MinIO Quay trả 401. `minio-init` tạo bucket trước khi backend khởi động.

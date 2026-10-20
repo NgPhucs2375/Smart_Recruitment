@@ -1,12 +1,41 @@
+import {
+  BeVietnamPro_400Regular,
+  BeVietnamPro_500Medium,
+  BeVietnamPro_600SemiBold,
+  BeVietnamPro_700Bold,
+  BeVietnamPro_800ExtraBold,
+  useFonts,
+} from '@expo-google-fonts/be-vietnam-pro';
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
+import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
+import { useEffect } from 'react';
 import { ActivityIndicator, useColorScheme, View } from 'react-native';
 
 import { BookmarkProvider } from '@/features/bookmarks/bookmark-provider';
 import { AuthProvider, useAuth } from '@/features/auth';
 import { Colors } from '@/constants/theme';
 
+// Giữ splash cho đến khi font Be Vietnam Pro load xong, tránh nháy font hệ thống.
+SplashScreen.preventAutoHideAsync().catch(() => {});
+
 export default function RootLayout() {
+  const [fontsLoaded, fontError] = useFonts({
+    BeVietnamPro_400Regular,
+    BeVietnamPro_500Medium,
+    BeVietnamPro_600SemiBold,
+    BeVietnamPro_700Bold,
+    BeVietnamPro_800ExtraBold,
+  });
+
+  useEffect(() => {
+    if (fontsLoaded || fontError) {
+      SplashScreen.hideAsync().catch(() => {});
+    }
+  }, [fontsLoaded, fontError]);
+
+  if (!fontsLoaded && !fontError) return null;
+
   return (
     <BookmarkProvider>
       <AuthProvider>
@@ -49,10 +78,7 @@ function RootNavigator() {
 
         <Stack.Protected guard={isSignedIn}>
           <Stack.Screen name="(tabs)" />
-          <Stack.Screen
-            name="jobs/[id]"
-            options={{ headerShown: true, title: 'Chi tiết việc làm' }}
-          />
+          <Stack.Screen name="jobs/[id]" options={{ headerShown: false }} />
         </Stack.Protected>
       </Stack>
     </ThemeProvider>

@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Smart Recruitment",
+    "name": "HIREAI",
     "slug": "smart-recruitment-mobile",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -14,7 +14,7 @@
     "android": {
       "package": "com.smartrecruitment.mobile",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+          "backgroundColor": "#f7f3ec",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
@@ -30,7 +30,7 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#208AEF",
+          "backgroundColor": "#f7f3ec",
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 76
         }

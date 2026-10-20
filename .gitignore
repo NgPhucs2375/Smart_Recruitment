@@ -83,3 +83,6 @@ Lab/
 .agents/
 sodo/
 archify-artifacts/
+
+# Script may dev rieng (chua duong dan SDK/AVD ca nhan) — khong commit
+src/Mobile/start-android.bat

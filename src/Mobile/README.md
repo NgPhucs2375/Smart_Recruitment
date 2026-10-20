@@ -22,11 +22,11 @@ Tạo `.env` từ `.env.example` rồi đặt URL API có thể truy cập từ 
 EXPO_PUBLIC_API_URL=https://your-deployed-domain.example/api/dotnet
 ```
 
-Trong development, app mặc định dùng 6 việc làm mẫu trong `src/features/jobs/mock-jobs.ts` để tìm kiếm, mở chi tiết và lưu bookmark; nhãn `DEMO` báo rõ dữ liệu không lấy từ backend. Đặt `EXPO_PUBLIC_USE_MOCK_DATA=false` trong `.env` để gọi backend thật; mock tự tắt trong production và API việc làm hiện yêu cầu JWT.
+Trong development, app mặc định dùng 6 việc làm mẫu trong `src/features/jobs/mock-jobs.ts` để tìm kiếm, mở chi tiết và lưu bookmark; nhãn `DEMO` báo rõ dữ liệu không lấy từ backend. Đặt `EXPO_PUBLIC_USE_MOCK_DATA=false` trong `.env` để gọi backend thật; mock tự tắt trong production và API việc làm hiện yêu cầu JWT. Đăng nhập luôn gọi backend để lấy JWT, kể cả khi danh sách việc làm đang ở mock mode, nên cần chạy backend/proxy trước khi đăng nhập.
 
 Giá trị URL là prefix của API; ứng dụng nối thêm `tintuyendungs` để gọi danh sách/chi tiết. Có thể trỏ trực tiếp vào API .NET (prefix `/api`) hoặc Next.js proxy đã deploy (prefix `/api/dotnet`). Không đặt secret trong biến `EXPO_PUBLIC_*`.
 
-Với Docker Compose local hiện tại, `docker compose ps` cho thấy frontend publish ở cổng `3000`; Android Emulator dùng `http://10.0.2.2:3000/api/dotnet`. Nếu cổng khác, thay `3000` bằng cổng host đang hiển thị trong `docker compose ps`. Điện thoại thật dùng IPv4 của máy tính thay cho `10.0.2.2`.
+Với Docker Compose local hiện tại, frontend thường publish ở cổng `3001`; Android Emulator dùng `http://10.0.2.2:3001/api/dotnet`. Luôn kiểm tra cột `PORTS` trong `docker compose ps` và thay cổng cho đúng. Điện thoại thật dùng IPv4 của máy tính thay cho `10.0.2.2`.
 
 ```bash
 npx expo start
@@ -56,4 +56,4 @@ src/
 └── hooks/               # Hooks theme
 ```
 
-Luồng đang có: tìm kiếm danh sách việc làm, xem chi tiết và lưu/bỏ lưu cục bộ. Đăng nhập, ứng tuyển, upload CV, thông báo và chat sẽ được bổ sung ở các bước tiếp theo.
+Luồng đang có: đăng nhập/khôi phục phiên, tìm kiếm và lọc danh sách việc làm (địa điểm, cấp bậc, hình thức, cách thức, lương, ngành nghề, kỹ năng), sắp xếp, phân trang, xem chi tiết và lưu/bỏ lưu cục bộ. Ứng tuyển, upload CV, thông báo và chat sẽ được bổ sung ở các bước tiếp theo.

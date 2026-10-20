@@ -74,7 +74,6 @@ taskill /PID  17928 /F
 taskkill /F /IM dotnet.exe /T
 taskkill /F /IM WebApp.Server.exe /T
 
-=======
 # Sau khi chạy docker muốn test xem có lên chưa thì có thể vào
 http://localhost:5000/swagger
 
@@ -84,5 +83,7 @@ python -m venv .venv
 
 # active
 .venv\Scripts\activate
+
+npx expo start
 
 
