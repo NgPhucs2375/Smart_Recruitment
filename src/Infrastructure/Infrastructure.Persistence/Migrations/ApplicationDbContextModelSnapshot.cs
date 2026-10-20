@@ -462,6 +462,9 @@ namespace Infrastructure.Persistence.Migrations
                     b.Property<int>("CVUngVienId")
                         .HasColumnType("integer");
 
+                    b.Property<string>("CauHinhJson")
+                        .HasColumnType("text");
+
                     b.Property<DateTime>("Created")
                         .HasColumnType("timestamp with time zone");
 
@@ -648,6 +651,9 @@ namespace Infrastructure.Persistence.Migrations
                         .HasColumnType("integer");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("CauHinhJson")
+                        .HasColumnType("text");
 
                     b.Property<DateTime>("Created")
                         .HasColumnType("timestamp with time zone");

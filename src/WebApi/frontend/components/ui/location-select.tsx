@@ -31,9 +31,13 @@ export function LocationSelect({
   className,
   triggerClassName,
 }: LocationSelectProps) {
+  // Nhãn tường minh: null/"" / "all" -> placeholder, còn lại giữ nguyên
+  // (không bao giờ lọt raw value ra trigger).
+  const label = (v: string | null) =>
+    !v || v === "all" ? placeholder : v;
   return (
     <div className={cn("min-w-0", className)}>
-      <Select value={value} onValueChange={(v) => onValueChange(v ?? "")}>
+      <Select value={value} onValueChange={(v) => onValueChange(!v || v === "all" ? "" : v)}>
         <SelectTrigger
           aria-label="Chọn địa điểm"
           className={cn(
@@ -43,9 +47,10 @@ export function LocationSelect({
           )}
         >
           <MapPin className="size-3.5 shrink-0 text-marine" aria-hidden />
-          <SelectValue placeholder={placeholder} />
+          <SelectValue placeholder={placeholder}>{label}</SelectValue>
         </SelectTrigger>
         <SelectContent className="max-w-[260px]">
+          <SelectItem value="all">Tất cả địa điểm</SelectItem>
           {locations.map((loc) => (
             <SelectItem key={loc} value={loc}>
               <span className="block max-w-[220px] truncate">{loc}</span>

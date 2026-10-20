@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
+import { validateImageUpload } from "@/features/tao-cv/validation";
 import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { toast } from "sonner";
 import { LayoutTemplate, Pencil, Settings2, Trash2, Plus, Search, Upload } from "lucide-react";
@@ -159,7 +160,11 @@ export function CvThemesTable() {
   };
 
   const handleUpload = async (row: CvThemeVm, file: File | undefined) => {
-    if (!file) return;
+    const err = validateImageUpload(file);
+    if (err || !file) {
+      toast.error(err ?? "Chưa chọn file ảnh.");
+      return;
+    }
     setUploadingId(row.Id);
     try {
       await cvThemesApi.uploadPreview(row.Id, file);

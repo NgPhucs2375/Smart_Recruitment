@@ -132,7 +132,51 @@ export type ResumeSkill = {
   id: string;
   name: string;
   detail?: string;
+  /** Mức thành thạo suy từ dữ liệu người dùng nhập (1 Cơ bản → 4 Chuyên gia). */
+  level?: number;
+  /** Số năm kinh nghiệm (nếu người dùng nhập). */
+  years?: number;
 };
+
+/** Map mức thành thạo của form/DB -> thang số 1..4 (bỏ khoảng trắng, thường). */
+const SKILL_LEVEL_BY_LABEL: Record<string, number> = {
+  "0": 1,
+  "1": 2,
+  "2": 3,
+  "3": 4,
+  coban: 1,
+  cơbản: 1,
+  basic: 1,
+  beginner: 1,
+  trungbinh: 2,
+  trungbình: 2,
+  intermediate: 2,
+  thanhthao: 3,
+  thànhthạo: 3,
+  advanced: 3,
+  chuyengia: 4,
+  chuyêngia: 4,
+  expert: 4,
+};
+
+/**
+ * Mức kỹ năng 1..4 từ dữ liệu người dùng. Ưu tiên `mucDoThanhThao`; nếu trống
+ * thì suy từ số năm kinh nghiệm. Không có dữ liệu -> undefined (renderer tự
+ * fallback). Thay cho việc băm tên kỹ năng ra mức giả trước đây.
+ */
+function resolveSkillLevel(mucDo: string, years: string): number | undefined {
+  const key = (mucDo ?? "").trim().toLowerCase().replace(/\s+/g, "");
+  if (key && key in SKILL_LEVEL_BY_LABEL) return SKILL_LEVEL_BY_LABEL[key];
+  const rawYears = (years ?? "").trim();
+  const y = Number(rawYears);
+  if (rawYears && Number.isFinite(y) && y >= 0) {
+    if (y < 1) return 1;
+    if (y < 3) return 2;
+    if (y < 5) return 3;
+    return 4;
+  }
+  return undefined;
+}
 
 export type ResumeProject = {
   id: string;
@@ -249,6 +293,11 @@ export function toResumeData(data: CvFormData): ResumeData {
     id: k.id,
     name: k.tenKyNang,
     detail: [k.soNamKinhNghiem, k.mucDoThanhThao].filter(Boolean).join(" · ") || undefined,
+    level: resolveSkillLevel(k.mucDoThanhThao, k.soNamKinhNghiem),
+    years:
+      k.soNamKinhNghiem?.trim() && Number.isFinite(Number(k.soNamKinhNghiem))
+        ? Number(k.soNamKinhNghiem)
+        : undefined,
   }));
 
   const projects: ResumeProject[] = !visible("projects")

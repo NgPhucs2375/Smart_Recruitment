@@ -28,6 +28,20 @@ public static class CvThemeMatcher
         return JsonSerializer.Deserialize<Dictionary<string, Renderer>>(stream, new JsonSerializerOptions { PropertyNameCaseInsensitive = true })!;
     }
 
+    /// <summary>
+    /// Template tĩnh: lấy bố cục/version từ manifest đã embed.
+    /// Theme Studio động (row DB có CauHinhJson, vd preset Canva) không nằm
+    /// trong manifest tĩnh nhưng vẫn render được bằng ThemeCanvas — suy bố cục
+    /// từ cột SoCot. Không có renderer lẫn config -> loại.
+    /// </summary>
+    private static Renderer? ResolveRenderer(Theme theme)
+    {
+        if (Renderers.TryGetValue(theme.Slug ?? "", out var renderer)) return renderer;
+        if (!string.IsNullOrWhiteSpace(theme.CauHinhJson))
+            return new Renderer(theme.SoCot is 1 or 2 ? theme.SoCot : 1, "1.0");
+        return null;
+    }
+
     public static string Normalize(string? value)
     {
         var chars = (value ?? "").Normalize(NormalizationForm.FormD).Where(c => CharUnicodeInfo.GetUnicodeCategory(c) != UnicodeCategory.NonSpacingMark).ToArray();
@@ -120,7 +134,8 @@ public static class CvThemeMatcher
         var ranked = new List<SuggestedCvThemeViewModel>();
         foreach (var theme in themes.Where(t => t.IsActive))
         {
-            if (!Renderers.TryGetValue(theme.Slug ?? "", out var renderer)) continue;
+            var renderer = ResolveRenderer(theme);
+            if (renderer is null) continue;
             if (request.SoCot.HasValue && request.SoCot != renderer.Columns || request.BatBuocATS && !theme.ThanThienATS) continue;
             var reasons = new List<string>(); var warnings = new List<string>(); double score = 0;
             var roleMatch = RoleMatch(theme, position);

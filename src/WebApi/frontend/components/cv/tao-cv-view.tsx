@@ -19,6 +19,7 @@ import { CvPreview } from "./cv-preview";
 import { TemplatePicker } from "./template-selector";
 import { CvImportDialog } from "./cv-import-dialog";
 import { LayoutManager } from "./dnd/layout-manager-popover";
+import { UserThemeStudioDialog } from "@/features/tao-cv/components/user-theme-studio-dialog";
 import { AdamCvTab } from "./adam-cv-tab";
 import { normalizeLayoutConfig } from "@/features/tao-cv/resume-data";
 import { defaultCvData } from "@/features/tao-cv/constants";
@@ -309,6 +310,8 @@ export function TaoCvView() {
   const [versions, setVersions] = useState<CvVersionVm[]>([]);
   const [pageCount, setPageCount] = useState(1);
   const [loadError, setLoadError] = useState<string | null>(null);
+  // Template hiện tại có theme Studio nền → dùng User Studio thay LayoutManager.
+  const [studioAvailable, setStudioAvailable] = useState(false);
   const [zoom, setZoom] = useState(100);
   /** Auto-fit: co tờ A4 (794px) vừa cột preview, mặc định bật để hết cuộn ngang. */
   const [fitMode, setFitMode] = useState(true);
@@ -396,7 +399,8 @@ export function TaoCvView() {
   // flash the skeleton, refetch the CV and remount the preview + picker
   // (the list jump / repeated-click bug).
   const selectTemplate = (id: string) => {
-    setCvData((prev) => ({ ...prev, templateId: id }));
+    // Delta giao diện gắn với từng theme -> đổi theme là bỏ delta cũ.
+    setCvData((prev) => ({ ...prev, templateId: id, giaoDien: undefined }));
     const params = new URLSearchParams(searchParams.toString());
     params.set("template", id);
     window.history.replaceState(null, "", `${pathname}?${params.toString()}`);
@@ -479,13 +483,12 @@ export function TaoCvView() {
       let tid =
         rawTemplate && isKnownTemplateId(rawTemplate) ? resolveTemplateId(rawTemplate) : null;
       if (!tid && rawTemplate) {
-        // Slug theme Studio (entry động gallery): đổi sang theme.id để
-        // CvPreview render đúng ThemeCanvas (registry không biết slug này
-        // nếu bundle này chưa hydrate).
+        // Slug theme Studio (entry động gallery): giữ slug làm định danh
+        // canonical. CvPreview tự tra DB theo slug để render ThemeCanvas.
         try {
           const studio = await fetchDbThemeBySlugOrId(rawTemplate);
           if (stale()) return;
-          if (studio) tid = studio.id;
+          if (studio) tid = studio.slug || studio.id;
         } catch {
           // ignore -> tid giữ null, flow cũ xử lý tiếp
         }
@@ -743,8 +746,14 @@ export function TaoCvView() {
     const fresh = JSON.parse(JSON.stringify(defaultCvData)) as CvFormData;
     // Giữ mẫu từ ?template= (flow chọn mẫu ở gallery) khi tạo bản mới.
     const rawTemplate = searchParams.get("template");
-    if (rawTemplate && isKnownTemplateId(rawTemplate)) {
-      fresh.templateId = resolveTemplateId(rawTemplate);
+    if (rawTemplate) {
+      if (isKnownTemplateId(rawTemplate)) {
+        fresh.templateId = resolveTemplateId(rawTemplate);
+      } else if (/^[a-z0-9][a-z0-9-]*$/i.test(rawTemplate)) {
+        // Slug theme Studio: registry editor chưa hydrate nên chưa "known".
+        // Giữ nguyên slug làm định danh canonical, CvPreview tra DB sau.
+        fresh.templateId = rawTemplate;
+      }
     }
     setCvData(fresh);
     lastSavedRef.current = JSON.stringify(fresh);
@@ -1063,20 +1072,41 @@ export function TaoCvView() {
           </span>
         </div>
         <div className="flex shrink-0 items-center gap-2">
-          <LayoutManager
-            layout={normalizeLayoutConfig(cvData.layoutConfig)}
-            onChange={(layoutConfig) => {
-              setCvData((prev) => ({ ...prev, layoutConfig }));
+          <UserThemeStudioDialog
+            templateId={cvData.templateId}
+            cvData={cvData}
+            value={cvData.giaoDien}
+            onChange={(giaoDien) => {
+              setCvData((prev) => ({ ...prev, giaoDien }));
               setDirty(true);
             }}
+            onAvailabilityChange={setStudioAvailable}
           />
+          {!studioAvailable && (
+            <LayoutManager
+              layout={normalizeLayoutConfig(cvData.layoutConfig)}
+              onChange={(layoutConfig) => {
+                setCvData((prev) => ({ ...prev, layoutConfig }));
+                setDirty(true);
+              }}
+            />
+          )}
           <Button variant="outline" size="sm" onClick={scrollToTemplates} disabled={loading}>
             <LayoutTemplate className="h-4 w-4 mr-1.5" aria-hidden="true" />
             Đổi mẫu
           </Button>
           <Button size="sm" onClick={handleSave} disabled={saving || loading}>
-            <Save className="h-4 w-4 mr-1.5" aria-hidden="true" />
-            {saving ? "Đang lưu..." : "Lưu"}
+            <Save className="h-4 w-4 mr-1.5" />
+            {saving ? "Đang lưu..." : "Lưu CV"}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => void handleExportPdf()}
+            disabled={exportingPdf || loading}
+          >
+            <Printer className="h-4 w-4 mr-1.5" />
+            {exportingPdf ? "Đang xuất..." : "Xuất PDF"}
           </Button>
           <DropdownMenu>
             <DropdownMenuTrigger
@@ -1099,10 +1129,6 @@ export function TaoCvView() {
               <DropdownMenuItem onClick={() => setImportOpen(true)}>
                 <Upload className="h-4 w-4 mr-1.5" />
                 Tải CV lên
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => void handleExportPdf()} disabled={exportingPdf || loading}>
-                <Printer className="h-4 w-4 mr-1.5" />
-                Xuất PDF
               </DropdownMenuItem>
               <DropdownMenuItem onClick={handleExportJsonResume}>
                 <FileText className="h-4 w-4 mr-1.5" />

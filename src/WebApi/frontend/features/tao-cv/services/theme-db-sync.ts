@@ -2,7 +2,7 @@
 
 import { cvThemesApi, type CvThemeInput, type CvThemeVm } from "@/lib/api/cv-themes-api";
 import { normalizeLayoutConfig } from "../resume-data";
-import { sanitizeCssColor } from "../validation";
+import { sanitizeCssBackground, sanitizeCssColor } from "../validation";
 import type { CvThemeConfig } from "../types/theme-studio";
 
 /** Map theme Studio -> payload DB (metadata + toàn bộ design trong CauHinhJson). */
@@ -91,12 +91,13 @@ export function parseDbTheme(vm: CvThemeVm): CvThemeConfig | null {
         secondary: clean(rawColors.secondary, "#475569"),
         textPrimary: clean(rawColors.textPrimary, "#0f172a"),
         textMuted: clean(rawColors.textMuted, "#64748b"),
-        paperBackground: clean(rawColors.paperBackground, "#ffffff"),
+        // Nền giấy cho phép gradient (không ép về hex).
+        paperBackground: sanitizeCssBackground(rawColors.paperBackground, "#ffffff"),
       },
       zones: {
-        headerBg: clean(rawZones.headerBg, "transparent"),
-        sidebarBg: clean(rawZones.sidebarBg, "#f1f5f9"),
-        mainBg: clean(rawZones.mainBg, "transparent"),
+        headerBg: sanitizeCssBackground(rawZones.headerBg, "transparent"),
+        sidebarBg: sanitizeCssBackground(rawZones.sidebarBg, "#f1f5f9"),
+        mainBg: sanitizeCssBackground(rawZones.mainBg, "transparent"),
       },
       layout: normalizeLayoutConfig(
         (cfg as { layout?: unknown }).layout,
@@ -112,13 +113,17 @@ export function parseDbTheme(vm: CvThemeVm): CvThemeConfig | null {
   }
 }
 
-/** Theme Studio đã publish trên DB (IsActive) — nguồn chân lý cross-machine. */
+/**
+ * Theme Studio đã publish trên DB — nguồn chân lý cross-machine.
+ * Cổng publish duy nhất là cột IsActive (endpoint /active đã lọc sẵn);
+ * policyApproved chỉ là nhãn audit nội bộ admin, KHÔNG chặn user.
+ */
 export async function fetchDbThemes(): Promise<CvThemeConfig[]> {
   const list = await cvThemesApi.active();
   const out: CvThemeConfig[] = [];
   for (const vm of list) {
     const t = parseDbTheme(vm);
-    if (t && t.policy.policyApproved) out.push(t);
+    if (t) out.push(t);
   }
   return out;
 }

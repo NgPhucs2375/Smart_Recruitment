@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text.Json;
 using Application.DTOs.CV;
 using Application.Interfaces.Repositories;
 using Domain.Entities;
@@ -25,6 +26,8 @@ public class CvReadMapper : ICvReadMapper
 
             NoiDung = new ParsedCvDto
             {
+                GiaoDien = ParseGiaoDien(cv.CauHinhJson),
+
                 ThongTinLienHe =
                     MapThongTinLienHe(cv.ThongTinLienHe),
 
@@ -54,6 +57,20 @@ public class CvReadMapper : ICvReadMapper
                     .ToList()
             }
         };
+    }
+
+    private static JsonElement? ParseGiaoDien(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json)) return null;
+        try
+        {
+            using var doc = JsonDocument.Parse(json);
+            return doc.RootElement.Clone();
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
     }
 
     private static ParsedThongTinLienHeDto MapThongTinLienHe(

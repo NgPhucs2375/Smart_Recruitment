@@ -3,6 +3,10 @@ import { Platform } from 'react-native';
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL?.trim().replace(/\/+$/, '');
 
+export function getApiBaseUrl(): string | null {
+  return API_BASE_URL || null;
+}
+
 const ACCESS_TOKEN_KEY = 'smart-recruitment.access-token.v1';
 const REFRESH_TOKEN_KEY = 'smart-recruitment.refresh-token.v1';
 

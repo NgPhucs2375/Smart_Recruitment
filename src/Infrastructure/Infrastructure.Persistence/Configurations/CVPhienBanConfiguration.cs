@@ -11,6 +11,9 @@ public class CVPhienBanConfiguration : IEntityTypeConfiguration<CVPhienBan>
         builder.ToTable("CVPhienBan");
         builder.HasKey(x => x.Id);
         builder.Property(x => x.TemplateId).HasMaxLength(100);
+        builder.Property(x => x.CauHinhJson)
+            .HasColumnType("text")
+            .IsRequired(false);
         builder.HasIndex(x => new { x.CVUngVienId, x.SoPhienBan }).IsUnique();
         builder.HasOne(x => x.CVUngVien)
             .WithMany(x => x.PhienBans)

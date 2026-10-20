@@ -14,6 +14,7 @@ import { CvPreview } from "@/components/cv/cv-preview";
 import { defaultCvData } from "@/features/tao-cv/constants";
 import { manualCvDetailToForm } from "@/features/tao-cv/manual";
 import { cvApi, normalizeCvDetail } from "@/lib/api/cv-api";
+import { sanitizeNext } from "@/lib/portal-roles";
 import type { CvFormData } from "@/lib/types";
 
 type ApplicationResponse = {
@@ -39,9 +40,7 @@ export default function HrXemCvPage() {
   const cvId = Number(params.cvId);
   const donId = Number(searchParams.get("donId"));
   const requestedReturnTo = searchParams.get("returnTo");
-  const returnTo = requestedReturnTo?.startsWith("/")
-    ? requestedReturnTo
-    : `/tin-tuyen-dung/${tinId}/ung-vien`;
+  const returnTo = sanitizeNext(requestedReturnTo) ?? `/tin-tuyen-dung/${tinId}/ung-vien`;
 
   const [data, setData] = useState<CvFormData | null>(null);
   const [tenFile, setTenFile] = useState("");

@@ -151,6 +151,9 @@ export type CvFormData = {
   tieuDeHienThi?: string;
   /** Modular layout (kéo thả/ẩn hiện section). FE-only như tieuDeHienThi. */
   layoutConfig?: import("@/features/tao-cv/resume-data").ResumeLayoutConfig;
+  /** Delta tùy biến giao diện theme Studio (ỨNG VIÊN). Được lưu vào DB
+      (cột CauHinhJson) để giữ nguyên qua các lần mở lại. */
+  giaoDien?: import("@/features/tao-cv/types/theme-studio").CvThemeCustomization;
 };
 
 export type CvDatePrecision = "month_year" | "year_only";

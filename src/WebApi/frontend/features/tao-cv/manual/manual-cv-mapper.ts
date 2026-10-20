@@ -38,6 +38,7 @@ export function manualCvDetailToForm(detail: CvDetailVm, fallback: CvFormData): 
     ...clone(fallback),
     templateId: detail.templateId || fallback.templateId,
     tenFile: detail.tenFile || "",
+    giaoDien: content.giaoDien ?? fallback.giaoDien,
     thongTinLienHe: {
       ...clone(fallback.thongTinLienHe),
       ...content.thongTinLienHe,
@@ -176,6 +177,7 @@ function contentPayload(data: CvFormData): ManualCvContentPayload {
       credentialUrl: item.credentialUrl?.trim() || "",
       thuTu,
     })),
+    giaoDien: data.giaoDien ?? null,
   };
 }
 

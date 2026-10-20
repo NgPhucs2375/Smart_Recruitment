@@ -197,10 +197,29 @@ function inferSection(children: ReactNode): CvSection | undefined {
   return undefined;
 }
 
-export function SectionShell({ children, section }: { children: ReactNode; section?: CvSection }) {
+export function SectionShell({
+  children,
+  section,
+  style,
+  className = "",
+}: {
+  children: ReactNode;
+  section?: CvSection;
+  /** Style phụ (vd enclosure của theme Studio) — merge với class phân trang. */
+  style?: CSSProperties;
+  className?: string;
+}) {
   // BATCH1-wrap: min-w-0 để con flex/grid không đẩy phình section,
   // overflow-wrap để chuỗi dài bẻ dòng trong khung.
-  return <section className="cv-section-shell min-w-0 break-words [overflow-wrap:anywhere]" data-cv-section={section ?? inferSection(children)}>{children}</section>;
+  return (
+    <section
+      className={`cv-section-shell min-w-0 break-words [overflow-wrap:anywhere] ${className}`}
+      data-cv-section={section ?? inferSection(children)}
+      style={style}
+    >
+      {children}
+    </section>
+  );
 }
 
 /**

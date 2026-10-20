@@ -1,4 +1,4 @@
-using System.Security.Claims;
+﻿using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Application.DTOs.Account;
@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.RateLimiting;
 using Domain.Enums;
 using Application.Wrappers;
+ 
 
 namespace WebApp.Server.Controllers
 {
@@ -47,7 +48,7 @@ namespace WebApp.Server.Controllers
         }
 
         // Yêu cầu gửi email quên mật khẩu
-        [EnableRateLimiting("auth-mail")]
+         [EnableRateLimiting("auth-mail")]
         [HttpPost("forgot-password")]
         public async Task<IActionResult> ForgotPassword([FromBody] YeuCauQuenMatKhau model)
         {
@@ -82,7 +83,7 @@ namespace WebApp.Server.Controllers
         {
             return Ok(await _accountService.ChangePasswordAsync(model));
         }
-
+ 
         // Lấy thông tin tài khoản hiện tại từ JWT
         [Authorize]
         [HttpGet("me")]

@@ -38,6 +38,8 @@ function LoginContent() {
     submitError,
     remember,
     email,
+    cooling,
+    cooldownLeft,
   } = usePasswordLogin(portal, next);
 
   const {
@@ -144,7 +146,7 @@ function LoginContent() {
               <Mail className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
               <Input
                 id="email"
-                type="email"
+                type="email" maxLength={100}
                 autoComplete="username"
                 placeholder="name@company.com"
                 {...register("email")}
@@ -207,11 +209,11 @@ function LoginContent() {
 
           <Button
             type="submit"
-            disabled={isPending}
+            disabled={isPending || cooling}
             className="mt-1 h-11 w-full rounded-xl bg-primary font-medium text-white transition hover:bg-primary-hover"
           >
             {isPending ? <Loader2 className="mr-2 size-4 animate-spin" /> : <ArrowRight className="mr-2 size-4" />}
-            {isPending ? "Đang xác thực..." : "Tiếp tục với Email & mật khẩu"}
+            {isPending ? "Đang xác thực..." : cooling ? `Thử lại sau ${cooldownLeft}s (nhập sai nhiều lần)` : "Tiếp tục với Email & mật khẩu"}
           </Button>
 
           <SocialAuthSection

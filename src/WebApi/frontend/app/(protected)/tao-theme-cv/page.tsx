@@ -2,46 +2,25 @@
 
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import {
-  DndContext,
-  KeyboardSensor,
-  PointerSensor,
-  TouchSensor,
-  closestCenter,
-  useSensor,
-  useSensors,
-  type DragEndEvent,
-} from "@dnd-kit/core";
-import {
-  SortableContext,
-  arrayMove,
-  sortableKeyboardCoordinates,
-  useSortable,
-  verticalListSortingStrategy,
-} from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
+import { Dialog as DialogPrimitive } from "@base-ui/react/dialog";
 import {
   ArrowLeft,
   Check,
-  Eye,
-  EyeOff,
-  GripVertical,
+  Copy,
+  FilePlus2,
+  Loader2,
   Plus,
   RotateCcw,
   Save,
+  Search,
   Trash2,
+  X,
 } from "lucide-react";
 import { AdminGate } from "@/features/admin/AdminGate";
+import { cvThemesApi, type CvThemeVm } from "@/lib/api/cv-themes-api";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { ColorField } from "@/features/tao-cv/components/color-field";
 import {
   Select,
   SelectContent,
@@ -58,78 +37,33 @@ import { ThemeCanvas } from "@/features/tao-cv/components/theme-canvas";
 import {
   deleteDbThemeBySlug,
   fetchDbThemeBySlugOrId,
+  parseDbTheme,
   syncThemeToDb,
 } from "@/features/tao-cv/services/theme-db-sync";
 import {
+  cloneThemeConfig,
   deleteTheme,
   newThemeDraft,
   saveTheme,
 } from "@/features/tao-cv/services/theme-storage";
 import {
-  DEFAULT_SECTION_ORDER,
   createDefaultLayoutConfig,
-  type CvSectionId,
   type ResumeData,
 } from "@/features/tao-cv/resume-data";
 import type {
   CvThemeConfig,
-  FontFamilyToken,
-  HeadingVariant,
-  SpacingDensity,
   ThemeCategory,
   ThemeLevel,
 } from "@/features/tao-cv/types/theme-studio";
 import {
-  DEFAULT_AVATAR_CONFIG,
   THEME_CATEGORIES,
   THEME_LEVELS,
   slugifyThemeName,
 } from "@/features/tao-cv/types/theme-studio";
-
-/* ── Presets ─────────────────────────────────────────────── */
-
-const COLOR_PRESETS = [
-  { name: "Corporate Slate", primary: "#1e293b", paper: "#ffffff" },
-  { name: "Emerald Dev", primary: "#047857", paper: "#ffffff" },
-  { name: "Deep Royal Blue", primary: "#1d4ed8", paper: "#f8fafc" },
-  { name: "Burgundy Accent", primary: "#881337", paper: "#ffffff" },
-  { name: "Cyber Indigo", primary: "#4338ca", paper: "#f8fafc" },
-  { name: "Minimal Pitch Black", primary: "#111827", paper: "#ffffff" },
-];
-
-const PRESET_FRESHER: CvSectionId[] = [
-  "education",
-  "skills",
-  "projects",
-  "experience",
-  "certificates",
-  "summary",
-];
-const PRESET_PRO: CvSectionId[] = [
-  "experience",
-  "projects",
-  "skills",
-  "education",
-  "summary",
-  "certificates",
-];
-
-const DENSITY_GAPS: Record<
-  SpacingDensity,
-  { sectionGapMm: number; itemGapMm: number }
-> = {
-  compact: { sectionGapMm: 3, itemGapMm: 2 },
-  normal: { sectionGapMm: 5, itemGapMm: 3 },
-  relaxed: { sectionGapMm: 7, itemGapMm: 4 },
-};
-
-const HEADING_VARIANTS: { id: HeadingVariant; label: string }[] = [
-  { id: "underline", label: "Gạch chân" },
-  { id: "left-border", label: "Vạch trái" },
-  { id: "pill", label: "Thẻ pill" },
-  { id: "minimal", label: "Tối giản" },
-  { id: "accent-bg", label: "Nền nhấn" },
-];
+import {
+  THEME_STUDIO_TAB_ITEMS,
+  ThemeStudioControls,
+} from "@/features/tao-cv/components/theme-studio-controls";
 
 /* ── Dummy resume: full data để soi 100% thay đổi ─────────── */
 
@@ -202,75 +136,12 @@ function contrastRatio(a: string, b: string): number {
   return (hi + 0.05) / (lo + 0.05);
 }
 
-/* ── Sortable layout row ─────────────────────────────────── */
-
-function LayoutRow({
-  id,
-  title,
-  visible,
-  onToggle,
-  move,
-}: {
-  id: CvSectionId;
-  title: string;
-  visible: boolean;
-  onToggle: () => void;
-  move?: { label: string; onMove: () => void };
-}) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id });
-  return (
-    <div
-      ref={setNodeRef}
-      style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={cn(
-        "flex items-center gap-2 rounded-lg border border-transparent px-2 py-1.5",
-        isDragging && "border-primary/30 bg-card shadow-md",
-        !visible && "opacity-55",
-      )}
-    >
-      <span
-        {...attributes}
-        {...listeners}
-        role="button"
-        tabIndex={0}
-        aria-label={`Kéo ${title}`}
-        className="flex size-6 cursor-grab touch-none items-center justify-center rounded text-muted-foreground/60 hover:text-foreground active:cursor-grabbing"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <GripVertical className="size-3.5" />
-      </span>
-      <Checkbox
-        checked={visible}
-        onCheckedChange={onToggle}
-        aria-label={`Hiện ${title}`}
-      />
-      <span className="flex-1 text-sm">{title}</span>
-      {move && (
-        <button
-          type="button"
-          onClick={move.onMove}
-          title={move.label}
-          aria-label={`${move.label}: ${title}`}
-          className="rounded-md px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground"
-        >
-          {move.label}
-        </button>
-      )}
-      {visible ? (
-        <Eye className="size-3.5 text-muted-foreground" />
-      ) : (
-        <EyeOff className="size-3.5 text-muted-foreground" />
-      )}
-    </div>
-  );
-}
+const STRUCTURE_LABELS: Record<string, string> = {
+  single: "1 cột",
+  "sidebar-left": "Sidebar trái",
+  "sidebar-right": "Sidebar phải",
+  "banner-top": "Banner ngang",
+};
 
 /* ── Workbench ───────────────────────────────────────────── */
 
@@ -290,6 +161,69 @@ function StudioWorkbench() {
   const [fitScale, setFitScale] = useState(1);
   const scrollerRef = useRef<HTMLDivElement>(null);
   const dummy = useMemo(() => dummyResume(), []);
+
+  // Modal "Khởi tạo từ mẫu có sẵn": liệt kê theme Studio đã lưu trên DB.
+  const [cloneOpen, setCloneOpen] = useState(false);
+  const [cloneLoading, setCloneLoading] = useState(false);
+  const [cloneRows, setCloneRows] = useState<CvThemeVm[]>([]);
+  const [cloneQuery, setCloneQuery] = useState("");
+
+  const cloneFiltered = useMemo(() => {
+    const q = cloneQuery.trim().toLowerCase();
+    if (!q) return cloneRows;
+    return cloneRows.filter(
+      (t) =>
+        (t.Ten ?? "").toLowerCase().includes(q) ||
+        (t.Slug ?? "").toLowerCase().includes(q),
+    );
+  }, [cloneRows, cloneQuery]);
+
+  // Card thumbnail cho modal clone: parse config để lấy gradient + palette.
+  const cloneCards = useMemo(
+    () => cloneFiltered.map((row) => ({ row, theme: parseDbTheme(row) })),
+    [cloneFiltered],
+  );
+
+  /** Nạp thẳng 1 bản clone (không đè mẫu gốc) và chuyển sang chế độ tạo mới. */
+  const adoptClone = (draft: CvThemeConfig) => {
+    initialRef.current = draft;
+    setTheme(draft);
+    setLoadedDbSlug(null);
+    setSlugTouched(false);
+  };
+
+  const openClonePicker = async () => {
+    setCloneOpen(true);
+    setCloneQuery("");
+    setCloneLoading(true);
+    try {
+      const list = await cvThemesApi.list();
+      // Chỉ theme có CauHinhJson mới dựng lại được trong Studio.
+      setCloneRows(list.filter((t) => !!t.CauHinhJson));
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Không tải được danh mục theme");
+      setCloneRows([]);
+    } finally {
+      setCloneLoading(false);
+    }
+  };
+
+  const cloneFromRow = (row: CvThemeVm) => {
+    const parsed = parseDbTheme(row);
+    if (!parsed) {
+      toast.error("Theme này chưa có cấu hình Studio để nhân bản");
+      return;
+    }
+    adoptClone(cloneThemeConfig(parsed, `${parsed.name} (bản sao)`));
+    setCloneOpen(false);
+    toast.success("Đã nhân bản mẫu — sửa tên/slug rồi Lưu để tạo theme mới");
+  };
+
+  /** Tách theme đang sửa thành bản mới (sinh id/slug mới, KHÔNG đè bản gốc). */
+  const handleSaveAsNew = () => {
+    adoptClone(cloneThemeConfig(theme, `${theme.name} (bản sao)`));
+    toast.info("Đã tách thành mẫu mới — đổi tên/slug rồi bấm Lưu");
+  };
 
   const patch = (p: Partial<CvThemeConfig>) =>
     setTheme((t) => ({ ...t, ...p }));
@@ -337,16 +271,6 @@ function StudioWorkbench() {
     };
   }, [editKey]);
 
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-    useSensor(TouchSensor, {
-      activationConstraint: { delay: 150, tolerance: 5 },
-    }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    }),
-  );
-
   useEffect(() => {
     const el = scrollerRef.current;
     if (!el) return;
@@ -382,73 +306,6 @@ function StudioWorkbench() {
   const auditSections = visibleCount >= 3;
   const auditContrast = ratio >= 4.5;
   const isAuditPassed = auditName && auditSections && auditContrast;
-
-  const handleDragEnd = (event: {
-    active: { id: string | number };
-    over: { id: string | number } | null;
-  }) => {
-    const { active, over } = event;
-    if (!over || active.id === over.id) return;
-    const order = theme.layout.sectionOrder;
-    const from = order.indexOf(active.id as CvSectionId);
-    const to = order.indexOf(over.id as CvSectionId);
-    if (from < 0 || to < 0) return;
-    const rail = new Set(theme.layout.sidebarSections ?? []);
-    const nextRail = new Set(rail);
-    // Kéo qua danh sách cột khác → chuyển slot cột của item.
-    if (
-      rail.has(active.id as CvSectionId) !== rail.has(over.id as CvSectionId)
-    ) {
-      if (rail.has(over.id as CvSectionId))
-        nextRail.add(active.id as CvSectionId);
-      else nextRail.delete(active.id as CvSectionId);
-    }
-    patch({
-      layout: {
-        ...theme.layout,
-        sectionOrder: arrayMove(order, from, to),
-        sidebarSections: [...nextRail],
-      },
-    });
-  };
-
-  const moveToRail = (id: CvSectionId) => {
-    const rail = theme.layout.sidebarSections ?? [];
-    if (!rail.includes(id))
-      patch({ layout: { ...theme.layout, sidebarSections: [...rail, id] } });
-  };
-
-  const moveToMain = (id: CvSectionId) => {
-    patch({
-      layout: {
-        ...theme.layout,
-        sidebarSections: (theme.layout.sidebarSections ?? []).filter(
-          (x) => x !== id,
-        ),
-      },
-    });
-  };
-
-  const toggleSection = (id: CvSectionId) => {
-    const s = theme.layout.sections[id];
-    patch({
-      layout: {
-        ...theme.layout,
-        sections: {
-          ...theme.layout.sections,
-          [id]: { ...s, isVisible: !s.isVisible },
-        },
-      },
-    });
-  };
-
-  const applyPresetOrder = (order: CvSectionId[]) => {
-    const merged = [...order];
-    for (const id of DEFAULT_SECTION_ORDER) {
-      if (!merged.includes(id)) merged.push(id);
-    }
-    patch({ layout: { ...theme.layout, sectionOrder: merged } });
-  };
 
   const handleSave = async () => {
     const slug = (theme.slug.trim() || slugifyThemeName(theme.name)).trim();
@@ -532,6 +389,16 @@ function StudioWorkbench() {
             <ArrowLeft className="mr-1.5 size-4" />
             Quay lại danh sách
           </Button>
+          <Button variant="outline" size="sm" onClick={() => void openClonePicker()}>
+            <Copy className="mr-1.5 size-4" />
+            Tạo từ mẫu có sẵn
+          </Button>
+          {loadedDbSlug && (
+            <Button variant="outline" size="sm" onClick={handleSaveAsNew}>
+              <FilePlus2 className="mr-1.5 size-4" />
+              Lưu thành mẫu mới
+            </Button>
+          )}
           <Button variant="outline" size="sm" onClick={handleReset}>
             <RotateCcw className="mr-1.5 size-4" />
             Hủy / Làm mới
@@ -553,677 +420,21 @@ function StudioWorkbench() {
         <div className="min-w-0 rounded-xl border border-border/50 bg-card">
           <Tabs defaultValue="layout" className="p-5">
             <TabsList className="grid w-full grid-cols-4 overflow-x-auto">
-              <TabsTrigger value="layout" className="px-2 text-xs">Bố cục</TabsTrigger>
-              <TabsTrigger value="colors" className="px-2 text-xs">Màu sắc</TabsTrigger>
-              <TabsTrigger value="type" className="px-2 text-xs">Chữ</TabsTrigger>
-              <TabsTrigger value="publish" className="px-2 text-xs">Xuất bản</TabsTrigger>
+              {THEME_STUDIO_TAB_ITEMS.map((t) => (
+                <TabsTrigger
+                  key={t.value}
+                  value={t.value}
+                  className="px-2 text-xs"
+                >
+                  {t.label}
+                </TabsTrigger>
+              ))}
+              <TabsTrigger value="publish" className="px-2 text-xs">
+                Xuất bản
+              </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="layout" className="mt-4 space-y-3">
-              <div>
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Khung xương
-                </p>
-                <div className="grid grid-cols-2 gap-1.5">
-                  {(
-                    [
-                      ["single", "1 cột ATS"],
-                      ["sidebar-left", "Sidebar trái"],
-                      ["sidebar-right", "Sidebar phải"],
-                      ["banner-top", "Banner ngang"],
-                    ] as const
-                  ).map(([v, label]) => (
-                    <button
-                      key={v}
-                      type="button"
-                      onClick={() => patch({ structure: v })}
-                      aria-pressed={(theme.structure ?? "single") === v}
-                      className={cn(
-                        "rounded-lg border px-2 py-2 text-left text-xs font-medium transition",
-                        (theme.structure ?? "single") === v
-                          ? "border-primary bg-primary/5 text-foreground"
-                          : "border-border text-muted-foreground hover:border-primary/40 hover:text-foreground",
-                      )}
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              {(theme.structure === "sidebar-left" ||
-                theme.structure === "sidebar-right") && (
-                <div>
-                  <div className="mb-1 flex items-center justify-between">
-                    <Label className="text-xs">Rộng sidebar</Label>
-                    <span className="font-mono text-[11px] text-muted-foreground">
-                      {theme.sidebarWidthPct ?? 32}%
-                    </span>
-                  </div>
-                  <input
-                    type="range"
-                    min={25}
-                    max={45}
-                    step={1}
-                    value={theme.sidebarWidthPct ?? 32}
-                    onChange={(e) =>
-                      patch({ sidebarWidthPct: Number(e.target.value) })
-                    }
-                    className="w-full accent-primary"
-                    aria-label="Rộng sidebar phần trăm"
-                  />
-                </div>
-              )}
-              {(theme.structure === "sidebar-left" ||
-                theme.structure === "sidebar-right" ||
-                theme.structure === "banner-top") && (
-                <div className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2">
-                  <div className="text-sm">
-                    <p className="font-medium">Liên hệ ở sidebar</p>
-                    <p className="text-xs text-muted-foreground">
-                      Tắt = liên hệ nằm trên header
-                    </p>
-                  </div>
-                  <Switch
-                    id="theme-contacts-rail"
-                    checked={(theme.layout?.contactsPlacement ?? "header") === "sidebar"}
-                    onCheckedChange={(v) =>
-                      patch({
-                        layout: {
-                          ...theme.layout,
-                          contactsPlacement: v ? "sidebar" : "header",
-                        },
-                      })
-                    }
-                    aria-label="Liên hệ ở sidebar"
-                  />
-                </div>
-              )}
-              <div className="space-y-2 rounded-lg border border-border p-3">
-                <div className="flex items-center justify-between gap-3">
-                  <div className="text-sm">
-                    <p className="font-medium">Ảnh đại diện</p>
-                    <p className="text-xs text-muted-foreground">
-                      Hiện avatar ứng viên trên theme này
-                    </p>
-                  </div>
-                  <Switch
-                    id="theme-avatar-visible"
-                    checked={theme.avatarConfig?.visible ?? true}
-                    onCheckedChange={(v) =>
-                      patch({
-                        avatarConfig: {
-                          ...DEFAULT_AVATAR_CONFIG,
-                          ...(theme.avatarConfig ?? {}),
-                          visible: v === true,
-                        },
-                      })
-                    }
-                    aria-label="Hiện ảnh đại diện"
-                  />
-                </div>
-                {(theme.avatarConfig?.visible ?? true) && (
-                  <>
-                    <div>
-                      <p className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                        Kiểu dáng
-                      </p>
-                      <div className="grid grid-cols-3 gap-1.5">
-                        {(
-                          [
-                            ["circle", "Tròn"],
-                            ["rounded", "Bo góc"],
-                            ["square", "Vuông"],
-                          ] as const
-                        ).map(([v, label]) => (
-                          <button
-                            key={v}
-                            type="button"
-                            onClick={() =>
-                              patch({
-                                avatarConfig: {
-                                  ...DEFAULT_AVATAR_CONFIG,
-                                  ...(theme.avatarConfig ?? {}),
-                                  shape: v,
-                                },
-                              })
-                            }
-                            aria-pressed={(theme.avatarConfig?.shape ?? "circle") === v}
-                            className={cn(
-                              "rounded-lg border px-2 py-1.5 text-xs font-medium transition",
-                              (theme.avatarConfig?.shape ?? "circle") === v
-                                ? "border-primary bg-primary/5 text-foreground"
-                                : "border-border text-muted-foreground hover:border-primary/40 hover:text-foreground",
-                            )}
-                          >
-                            {label}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                    <div>
-                      <div className="mb-1 flex items-center justify-between">
-                        <Label className="text-xs">Kích thước</Label>
-                        <span className="font-mono text-[11px] text-muted-foreground">
-                          {theme.avatarConfig?.sizePx ?? 96}px
-                        </span>
-                      </div>
-                      <input
-                        type="range"
-                        min={80}
-                        max={120}
-                        step={4}
-                        value={theme.avatarConfig?.sizePx ?? 96}
-                        onChange={(e) =>
-                          patch({
-                            avatarConfig: {
-                              ...DEFAULT_AVATAR_CONFIG,
-                              ...(theme.avatarConfig ?? {}),
-                              sizePx: Number(e.target.value),
-                            },
-                          })
-                        }
-                        className="w-full accent-primary"
-                        aria-label="Kích thước avatar"
-                      />
-                    </div>
-                    <div className="flex items-center justify-between gap-3">
-                      <Label className="text-xs">Viền bao quanh</Label>
-                      <Switch
-                        id="theme-avatar-border"
-                        checked={theme.avatarConfig?.hasBorder ?? false}
-                        onCheckedChange={(v) =>
-                          patch({
-                            avatarConfig: {
-                              ...DEFAULT_AVATAR_CONFIG,
-                              ...(theme.avatarConfig ?? {}),
-                              hasBorder: v === true,
-                            },
-                          })
-                        }
-                        aria-label="Viền avatar"
-                      />
-                    </div>
-                    {theme.avatarConfig?.hasBorder && (
-                      <div className="grid grid-cols-4 gap-1.5">
-                        {(
-                          [
-                            ["primary", "Chính"],
-                            ["secondary", "Phụ"],
-                            ["white", "Trắng"],
-                            ["muted", "Mờ"],
-                          ] as const
-                        ).map(([v, label]) => (
-                          <button
-                            key={v}
-                            type="button"
-                            onClick={() =>
-                              patch({
-                                avatarConfig: {
-                                  ...DEFAULT_AVATAR_CONFIG,
-                                  ...(theme.avatarConfig ?? {}),
-                                  borderColor: v,
-                                },
-                              })
-                            }
-                            aria-pressed={(theme.avatarConfig?.borderColor ?? "primary") === v}
-                            className={cn(
-                              "rounded-lg border px-2 py-1.5 text-xs font-medium transition",
-                              (theme.avatarConfig?.borderColor ?? "primary") === v
-                                ? "border-primary bg-primary/5 text-foreground"
-                                : "border-border text-muted-foreground hover:border-primary/40 hover:text-foreground",
-                            )}
-                          >
-                            {label}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </>
-                )}
-              </div>
-              <DndContext
-                sensors={sensors}
-                collisionDetection={closestCenter}
-                onDragEnd={handleDragEnd}
-              >
-                {(() => {
-                  const rail = new Set(theme.layout.sidebarSections ?? []);
-                  const mainIds = theme.layout.sectionOrder.filter(
-                    (id) => !rail.has(id),
-                  );
-                  const railIds = theme.layout.sectionOrder.filter((id) =>
-                    rail.has(id),
-                  );
-                  const isTwoCol =
-                    theme.structure === "sidebar-left" ||
-                    theme.structure === "sidebar-right";
-                  const row = (id: CvSectionId, inRail: boolean) => (
-                    <LayoutRow
-                      key={id}
-                      id={id}
-                      title={theme.layout.sections[id]?.title ?? id}
-                      visible={theme.layout.sections[id]?.isVisible !== false}
-                      onToggle={() => toggleSection(id)}
-                      move={
-                        isTwoCol
-                          ? inRail
-                            ? { label: "→ Chính", onMove: () => moveToMain(id) }
-                            : { label: "→ Phụ", onMove: () => moveToRail(id) }
-                          : undefined
-                      }
-                    />
-                  );
-                  return (
-                    <>
-                      <div>
-                        <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                          {isTwoCol ? "Cột chính" : "Thứ tự mục"}
-                        </p>
-                        <SortableContext
-                          items={mainIds}
-                          strategy={verticalListSortingStrategy}
-                        >
-                          <div className="space-y-0.5">
-                            {mainIds.map((id) => row(id, false))}
-                          </div>
-                        </SortableContext>
-                      </div>
-                      {isTwoCol && (
-                        <div>
-                          <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                            Cột phụ (sidebar)
-                          </p>
-                          <SortableContext
-                            items={railIds}
-                            strategy={verticalListSortingStrategy}
-                          >
-                            <div className="space-y-0.5">
-                              {railIds.map((id) => row(id, true))}
-                              {railIds.length === 0 && (
-                                <p className="rounded-lg border border-dashed border-border px-2 py-2 text-center text-[11px] text-muted-foreground">
-                                  Kéo mục vào đây hoặc bấm “→ Phụ”
-                                </p>
-                              )}
-                            </div>
-                          </SortableContext>
-                        </div>
-                      )}
-                    </>
-                  );
-                })()}
-              </DndContext>
-              <div className="flex gap-1.5">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-7 flex-1 text-xs"
-                  onClick={() =>
-                    patch({
-                      layout: {
-                        ...theme.layout,
-                        sectionOrder: [
-                          ...PRESET_FRESHER.filter((id) =>
-                            theme.layout.sectionOrder.includes(id),
-                          ),
-                          ...theme.layout.sectionOrder.filter(
-                            (id) => !PRESET_FRESHER.includes(id),
-                          ),
-                        ],
-                      },
-                    })
-                  }
-                >
-                  Fresher (Học vấn trước)
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-7 flex-1 text-xs"
-                  onClick={() =>
-                    patch({
-                      layout: {
-                        ...theme.layout,
-                        sectionOrder: [
-                          ...PRESET_PRO.filter((id) =>
-                            theme.layout.sectionOrder.includes(id),
-                          ),
-                          ...theme.layout.sectionOrder.filter(
-                            (id) => !PRESET_PRO.includes(id),
-                          ),
-                        ],
-                      },
-                    })
-                  }
-                >
-                  Pro (Kinh nghiệm trước)
-                </Button>
-              </div>
-            </TabsContent>
-
-            <TabsContent value="colors" className="mt-4 space-y-4">
-              <div>
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Preset nhanh
-                </p>
-                <div className="grid grid-cols-2 gap-1.5">
-                  {COLOR_PRESETS.map((p) => (
-                    <button
-                      key={p.name}
-                      type="button"
-                      onClick={() =>
-                        patchColors({
-                          primary: p.primary,
-                          paperBackground: p.paper,
-                        })
-                      }
-                      className="flex items-center gap-2 rounded-lg border border-border px-2 py-1.5 text-left text-xs transition hover:border-primary/50"
-                    >
-                      <span
-                        className="size-5 shrink-0 rounded-full border border-border"
-                        style={{
-                          background: `linear-gradient(135deg, ${p.primary}, ${p.paper})`,
-                        }}
-                      />
-                      {p.name}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              {(
-                [
-                  ["primary", "Màu chủ đạo"],
-                  ["secondary", "Màu phụ"],
-                  ["textPrimary", "Màu chữ chính"],
-                  ["textMuted", "Màu chữ phụ"],
-                  ["paperBackground", "Nền giấy"],
-                ] as const
-              ).map(([key, label]) => (
-                <ColorField
-                  key={key}
-                  label={label}
-                  value={theme.colors[key]}
-                  onChange={(next) =>
-                    patchColors({ [key]: next } as Partial<
-                      CvThemeConfig["colors"]
-                    >)
-                  }
-                />
-              ))}
-              <div>
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Màu phân vùng
-                </p>
-                <div className="space-y-2">
-                  <ColorField
-                    label="Nền header / banner"
-                    value={theme.zones?.headerBg ?? "transparent"}
-                    onChange={(headerBg) =>
-                      patch({
-                        zones: {
-                          ...theme.zones,
-                          headerBg,
-                        } as CvThemeConfig["zones"],
-                      })
-                    }
-                    alpha
-                  />
-                  <ColorField
-                    label="Nền sidebar"
-                    value={theme.zones?.sidebarBg ?? "#f1f5f9"}
-                    onChange={(sidebarBg) =>
-                      patch({
-                        zones: {
-                          ...theme.zones,
-                          sidebarBg,
-                        } as CvThemeConfig["zones"],
-                      })
-                    }
-                    alpha
-                  />
-                  <ColorField
-                    label="Nền nội dung chính"
-                    value={theme.zones?.mainBg ?? "transparent"}
-                    onChange={(mainBg) =>
-                      patch({
-                        zones: {
-                          ...theme.zones,
-                          mainBg,
-                        } as CvThemeConfig["zones"],
-                      })
-                    }
-                  />
-                </div>
-              </div>
-            </TabsContent>
-
-            <TabsContent value="type" className="mt-4 space-y-4">
-              <div>
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Font chữ
-                </p>
-                <div className="grid grid-cols-3 gap-1.5">
-                  {(
-                    [
-                      ["font-sans", "Sans", "Inter/Geist"],
-                      ["font-serif", "Serif", "Merriweather"],
-                      ["font-mono", "Mono", "JetBrains Mono"],
-                    ] as [FontFamilyToken, string, string][]
-                  ).map(([v, label, hint]) => (
-                    <button
-                      key={v}
-                      type="button"
-                      onClick={() => patchTypography({ fontFamily: v })}
-                      aria-pressed={theme.typography.fontFamily === v}
-                      className={cn(
-                        "rounded-lg border px-2 py-2 text-left transition",
-                        theme.typography.fontFamily === v
-                          ? "border-primary bg-primary/5"
-                          : "border-border hover:border-primary/40",
-                      )}
-                    >
-                      <span className="block text-sm font-semibold">
-                        {label}
-                      </span>
-                      <span className="block text-[11px] text-muted-foreground">
-                        {hint}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <div className="mb-1 flex items-center justify-between">
-                  <Label>Cỡ chữ cơ bản</Label>
-                  <span className="font-mono text-xs text-muted-foreground">
-                    {theme.typography.baseFontSizePx}px
-                  </span>
-                </div>
-                <input
-                  type="range"
-                  min={12}
-                  max={15}
-                  step={0.5}
-                  value={theme.typography.baseFontSizePx}
-                  onChange={(e) =>
-                    patchTypography({ baseFontSizePx: Number(e.target.value) })
-                  }
-                  className="w-full accent-primary"
-                  aria-label="Cỡ chữ cơ bản"
-                />
-              </div>
-              <div>
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Kiểu header
-                </p>
-                <div className="flex flex-wrap gap-1.5">
-                  {HEADING_VARIANTS.map((h) => (
-                    <Button
-                      key={h.id}
-                      type="button"
-                      variant={
-                        theme.typography.headingVariant === h.id
-                          ? "default"
-                          : "outline"
-                      }
-                      size="sm"
-                      className="h-7 text-xs"
-                      onClick={() => patchTypography({ headingVariant: h.id })}
-                    >
-                      {h.label}
-                    </Button>
-                  ))}
-                </div>
-                <label className="mt-2 inline-flex items-center gap-2 text-sm">
-                  <Checkbox
-                    checked={theme.typography.uppercaseHeadings}
-                    onCheckedChange={(v) =>
-                      patchTypography({ uppercaseHeadings: v === true })
-                    }
-                  />
-                  In hoa tiêu đề mục
-                </label>
-              </div>
-              <div>
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Mật độ dòng
-                </p>
-                <div className="flex gap-1.5">
-                  {(["compact", "normal", "relaxed"] as SpacingDensity[]).map(
-                    (d) => (
-                      <Button
-                        key={d}
-                        type="button"
-                        variant={
-                          theme.spacing.density === d ? "default" : "outline"
-                        }
-                        size="sm"
-                        className="h-7 flex-1 text-xs capitalize"
-                        onClick={() =>
-                          patchSpacing({ density: d, ...DENSITY_GAPS[d] })
-                        }
-                      >
-                        {d === "compact"
-                          ? "Chặt"
-                          : d === "normal"
-                            ? "Thường"
-                            : "Thoáng"}
-                      </Button>
-                    ),
-                  )}
-                </div>
-              </div>
-              <div>
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Đường phân cách
-                </p>
-                <div className="flex flex-wrap gap-1.5">
-                  {(
-                    [
-                      ["solid", "Liền nét"],
-                      ["dashed", "Nét đứt"],
-                      ["gradient", "Mờ dần"],
-                      ["accent-dot", "Chấm tròn"],
-                      ["none", "Ẩn"],
-                    ] as const
-                  ).map(([v, label]) => (
-                    <Button
-                      key={v}
-                      type="button"
-                      variant={
-                        (theme.typography.dividerStyle ?? "solid") === v
-                          ? "default"
-                          : "outline"
-                      }
-                      size="sm"
-                      className="h-7 text-xs"
-                      onClick={() => patchTypography({ dividerStyle: v })}
-                    >
-                      {label}
-                    </Button>
-                  ))}
-                </div>
-                {(theme.typography.dividerStyle === "solid" ||
-                  theme.typography.dividerStyle === "dashed") && (
-                  <div className="mt-2 flex gap-1.5">
-                    {([1, 2] as const).map((w) => (
-                      <Button
-                        key={w}
-                        type="button"
-                        variant={
-                          (theme.typography.dividerWidthPx ?? 2) === w
-                            ? "default"
-                            : "outline"
-                        }
-                        size="sm"
-                        className="h-7 flex-1 text-xs"
-                        onClick={() => patchTypography({ dividerWidthPx: w })}
-                      >
-                        {w}px
-                      </Button>
-                    ))}
-                  </div>
-                )}
-              </div>
-              <div>
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Khung section
-                </p>
-                <div className="flex gap-1.5">
-                  {(
-                    [
-                      ["flat", "Phẳng"],
-                      ["boxed", "Khung viền"],
-                      ["left-pill", "Tiêu đề pill"],
-                    ] as const
-                  ).map(([v, label]) => (
-                    <Button
-                      key={v}
-                      type="button"
-                      variant={
-                        (theme.typography.enclosure ?? "flat") === v
-                          ? "default"
-                          : "outline"
-                      }
-                      size="sm"
-                      className="h-7 flex-1 text-xs"
-                      onClick={() => patchTypography({ enclosure: v })}
-                    >
-                      {label}
-                    </Button>
-                  ))}
-                </div>
-              </div>
-              <div className="rounded-lg border border-border px-3 py-2.5">
-                <label className="flex items-center justify-between gap-3 text-sm">
-                  <span>
-                    <span className="block font-medium">
-                      Nhãn chữ dọc mép giấy
-                    </span>
-                    <span className="block text-xs text-muted-foreground">
-                      Dải vertical editorial như tạp chí
-                    </span>
-                  </span>
-                  <Checkbox
-                    checked={theme.typography.verticalTagEnabled === true}
-                    onCheckedChange={(v) =>
-                      patchTypography({ verticalTagEnabled: v === true })
-                    }
-                    aria-label="Bật nhãn chữ dọc"
-                  />
-                </label>
-                {theme.typography.verticalTagEnabled && (
-                  <Input
-                    value={theme.typography.verticalTagText ?? ""}
-                    maxLength={40}
-                    onChange={(e) =>
-                      patchTypography({ verticalTagText: e.target.value })
-                    }
-                    placeholder="Trống = dùng chức danh"
-                    className="mt-2 h-8 text-xs"
-                  />
-                )}
-              </div>
-            </TabsContent>
+            <ThemeStudioControls theme={theme} onChange={setTheme} />
 
             <TabsContent value="publish" className="mt-4 space-y-3">
               <div>
@@ -1509,7 +720,7 @@ function StudioWorkbench() {
           </div>
           <div className="mt-3">
             <Button
-              onClick={() => setTheme(newThemeDraft())}
+              onClick={() => adoptClone(newThemeDraft())}
               variant="ghost"
               size="sm"
               className="text-xs"
@@ -1520,6 +731,137 @@ function StudioWorkbench() {
           </div>
         </div>
       </div>
+
+      <DialogPrimitive.Root open={cloneOpen} onOpenChange={setCloneOpen}>
+        <DialogPrimitive.Portal>
+          <DialogPrimitive.Backdrop className="fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px]" />
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <DialogPrimitive.Popup className="flex max-h-[88vh] w-full max-w-4xl flex-col rounded-xl border border-border bg-card p-5 shadow-xl outline-none">
+              <div className="flex items-start gap-3">
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                  <Copy className="size-5" />
+                </span>
+                <div className="min-w-0">
+                  <DialogPrimitive.Title className="text-lg font-semibold tracking-tight text-foreground">
+                    Khởi tạo từ mẫu có sẵn
+                  </DialogPrimitive.Title>
+                  <DialogPrimitive.Description className="mt-1 text-sm leading-6 text-muted-foreground">
+                    Nhân bản một theme Studio thành bản mới rồi tùy biến sâu.
+                    Mẫu gốc không bị thay đổi.
+                  </DialogPrimitive.Description>
+                </div>
+                <DialogPrimitive.Close
+                  aria-label="Đóng"
+                  className="ml-auto flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition hover:bg-muted hover:text-foreground"
+                >
+                  <X className="size-4" />
+                </DialogPrimitive.Close>
+              </div>
+
+              <div className="relative mt-4">
+                <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  autoFocus
+                  value={cloneQuery}
+                  onChange={(e) => setCloneQuery(e.target.value)}
+                  placeholder="Tìm theo tên hoặc slug…"
+                  className="pl-9"
+                  aria-label="Tìm theme mẫu"
+                />
+              </div>
+
+              <div className="mt-3 min-h-0 flex-1 overflow-y-auto">
+                {cloneLoading ? (
+                  <p
+                    className="flex items-center gap-2 py-8 text-sm text-muted-foreground"
+                    role="status"
+                  >
+                    <Loader2 className="size-4 animate-spin" />
+                    Đang tải danh mục theme…
+                  </p>
+                ) : cloneFiltered.length === 0 ? (
+                  <p className="py-8 text-center text-sm text-muted-foreground">
+                    {cloneRows.length === 0
+                      ? "Chưa có theme Studio nào để nhân bản."
+                      : "Không có theme khớp từ khóa."}
+                  </p>
+                ) : (
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                    {cloneCards.map(({ row, theme }) => (
+                      <button
+                        key={row.Id}
+                        type="button"
+                        onClick={() => cloneFromRow(row)}
+                        className="group flex flex-col overflow-hidden rounded-xl border border-border bg-card text-left transition hover:border-primary/50 hover:shadow-sm"
+                      >
+                        <span
+                          className="relative block h-24 w-full overflow-hidden"
+                          style={{
+                            background:
+                              theme?.thumbnailGradient ??
+                              "linear-gradient(135deg,#1e293b,#0ea5e9)",
+                          }}
+                        >
+                          <span className="absolute inset-x-4 bottom-0 top-4 rounded-t-md bg-white/95 shadow-sm" />
+                          <span
+                            className="absolute left-6 right-6 top-6 h-1.5 rounded-full"
+                            style={{
+                              background:
+                                theme?.colors.primary ?? "#1e293b",
+                            }}
+                          />
+                          <span
+                            className="absolute left-6 top-9 h-1 w-16 rounded-full"
+                            style={{
+                              background:
+                                theme?.colors.secondary ?? "#475569",
+                            }}
+                          />
+                          <span
+                            className={cn(
+                              "absolute right-3 top-3 rounded-full px-2 py-0.5 text-[10px] font-medium",
+                              row.IsActive
+                                ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300"
+                                : "bg-white/80 text-muted-foreground",
+                            )}
+                          >
+                            {row.IsActive ? "Đang hiển thị" : "Bản nháp"}
+                          </span>
+                        </span>
+                        <span className="flex flex-1 flex-col gap-1 p-3">
+                          <span className="truncate text-sm font-medium text-foreground">
+                            {row.Ten || row.Slug}
+                          </span>
+                          <span className="truncate font-mono text-[11px] text-muted-foreground">
+                            {row.Slug}
+                          </span>
+                          <span className="mt-1 flex items-center gap-1">
+                            {[
+                              theme?.colors.primary,
+                              theme?.colors.secondary,
+                              theme?.colors.paperBackground,
+                            ].map((c, i) => (
+                              <span
+                                key={i}
+                                className="size-4 rounded-full border border-border"
+                                style={{ background: c ?? "#e2e8f0" }}
+                              />
+                            ))}
+                            <span className="ml-auto text-[10px] text-muted-foreground">
+                              {STRUCTURE_LABELS[theme?.structure ?? "single"] ??
+                                "1 cột"}
+                            </span>
+                          </span>
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </DialogPrimitive.Popup>
+          </div>
+        </DialogPrimitive.Portal>
+      </DialogPrimitive.Root>
     </div>
   );
 }

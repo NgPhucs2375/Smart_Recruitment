@@ -1,11 +1,15 @@
+import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, StyleSheet, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { Bookmark } from 'lucide-react-native';
 
+import { AppHeader } from '@/components/app-header';
 import { ThemedText } from '@/components/themed-text';
-import { JobCard } from '@/features/jobs/components/job-card';
+import { Button } from '@/components/ui/button';
+import { font, Palette, Radius } from '@/constants/theme';
 import { useBookmarks } from '@/features/bookmarks/bookmark-provider';
 import { jobsApi } from '@/features/jobs/api/jobs-api';
+import { JobCard } from '@/features/jobs/components/job-card';
 import type { Job } from '@/features/jobs/types';
 import { useTheme } from '@/hooks/use-theme';
 
@@ -52,7 +56,8 @@ export default function SavedJobsScreen() {
   }, [ids, isLoaded, requestKey]);
 
   return (
-    <SafeAreaView edges={['top']} style={[styles.safeArea, { backgroundColor: theme.background }]}>
+    <View style={[styles.root, { backgroundColor: theme.background }]}>
+      <AppHeader />
       <FlatList
         data={jobs}
         keyExtractor={(job) => job.id}
@@ -60,10 +65,27 @@ export default function SavedJobsScreen() {
         contentContainerStyle={styles.content}
         ListHeaderComponent={
           <View style={styles.header}>
-            <ThemedText style={styles.title}>Việc làm đã lưu</ThemedText>
-            <ThemedText style={[styles.subtitle, { color: theme.textSecondary }]}>
-              Những cơ hội bạn muốn xem lại.
-            </ThemedText>
+            {/* Web DaLuuView: icon box bg-sandsoft + Bookmark bronze */}
+            <View style={styles.titleRow}>
+              <View style={[styles.iconBox, { backgroundColor: Palette.sandsoft }]}>
+                <Bookmark size={22} color={Palette.bronze} />
+              </View>
+              <View style={styles.titleCopy}>
+                <ThemedText style={[styles.title, { color: theme.text }]}>
+                  Việc làm đã lưu
+                </ThemedText>
+                <ThemedText style={[styles.subtitle, { color: theme.textSecondary }]}>
+                  Những cơ hội bạn muốn xem lại.
+                </ThemedText>
+              </View>
+            </View>
+            {ids.length > 0 ? (
+              <View style={[styles.countPill, { backgroundColor: theme.backgroundSelected }]}>
+                <ThemedText style={[styles.countPillText, { color: theme.primary }]}>
+                  {`${ids.length} việc đã lưu`}
+                </ThemedText>
+              </View>
+            ) : null}
           </View>
         }
         ListEmptyComponent={
@@ -71,28 +93,64 @@ export default function SavedJobsScreen() {
             {!isLoaded || loading ? (
               <ActivityIndicator color={theme.primary} />
             ) : (
-              <>
-                <ThemedText style={styles.emptyTitle}>
+              <View style={styles.emptyInner}>
+                <View style={[styles.emptyIconBox, { backgroundColor: Palette.sandsoft }]}>
+                  <Bookmark size={26} color={Palette.bronze} />
+                </View>
+                <ThemedText style={[styles.emptyTitle, { color: theme.text }]}>
                   {error ? 'Không tải được việc làm đã lưu' : 'Chưa có việc làm nào được lưu'}
                 </ThemedText>
-                <ThemedText style={[styles.subtitle, { color: theme.textSecondary }]}>
-                  {error ?? 'Chạm biểu tượng ngôi sao trên một tin tuyển dụng để lưu tại đây.'}
+                <ThemedText style={[styles.emptyMessage, { color: theme.textSecondary }]}>
+                  {error ??
+                    'Chạm biểu tượng bookmark trên một tin tuyển dụng để lưu tại đây.'}
                 </ThemedText>
-              </>
+                <View style={styles.emptyActions}>
+                  <Button pill onPress={() => router.push('/')}>
+                    Tìm việc làm
+                  </Button>
+                </View>
+              </View>
             )}
           </View>
         }
       />
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1 },
+  root: { flex: 1 },
   content: { paddingHorizontal: 20, paddingBottom: 28, flexGrow: 1 },
-  header: { paddingTop: 20, paddingBottom: 24 },
-  title: { fontSize: 26, fontWeight: '800' },
-  subtitle: { fontSize: 14, lineHeight: 21, marginTop: 8 },
-  empty: { minHeight: 180, alignItems: 'center', justifyContent: 'center', gap: 10, paddingHorizontal: 12 },
-  emptyTitle: { fontSize: 16, fontWeight: '700', textAlign: 'center' },
+  header: { paddingTop: 18, paddingBottom: 20, gap: 14 },
+  titleRow: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  iconBox: {
+    width: 44,
+    height: 44,
+    borderRadius: Radius['2xl'],
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  titleCopy: { flex: 1, gap: 3 },
+  title: { fontFamily: font('semibold'), fontSize: 24, lineHeight: 30, letterSpacing: -0.4 },
+  subtitle: { fontSize: 13, lineHeight: 19 },
+  countPill: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: Radius.pill,
+  },
+  countPillText: { fontFamily: font('semibold'), fontSize: 12 },
+  empty: { minHeight: 220, alignItems: 'center', justifyContent: 'center', paddingVertical: 24 },
+  emptyInner: { alignItems: 'center', gap: 10, paddingHorizontal: 12 },
+  emptyIconBox: {
+    width: 56,
+    height: 56,
+    borderRadius: Radius['3xl'],
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
+  },
+  emptyTitle: { fontFamily: font('semibold'), fontSize: 16, textAlign: 'center' },
+  emptyMessage: { fontSize: 13, lineHeight: 19, textAlign: 'center', maxWidth: 300 },
+  emptyActions: { flexDirection: 'row', gap: 10, marginTop: 6 },
 });

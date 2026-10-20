@@ -24,6 +24,9 @@ public class CvUngVienConfiguration : IEntityTypeConfiguration<CVUngVien>
             .HasConversion<string>()
             .HasMaxLength(50)
             .IsRequired();
+        builder.Property(x => x.CauHinhJson)
+            .HasColumnType("text")
+            .IsRequired(false);
 
         builder.HasOne(x => x.HoSoUngVien)
             .WithMany(x => x.CVUngViens)

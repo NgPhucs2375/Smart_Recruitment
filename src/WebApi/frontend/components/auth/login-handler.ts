@@ -21,8 +21,24 @@ export function normalizeAuthError(
   fallback: string,
 ): string {
   if (!error) return fallback;
-  if (typeof error === "string") return error || fallback;
-  return error.message || fallback;
+  const raw = typeof error === "string" ? error : (error.message || "");
+  if (!raw) return fallback;
+  // Tài khoản bị BE khóa (Identity lockout, BE trả 403 hoặc chữ "khóa"):
+  // message riêng để user biết chờ, không bấm thử vô ích.
+  if (/khóa|khoa|lockout|locked/i.test(raw)) {
+    const mins = raw.match(/(\d+)\s*phút/);
+    return mins
+      ? `Tài khoản tạm khóa, vui lòng thử lại sau ${mins[1]} phút.`
+      : "Tài khoản tạm khóa do nhập sai nhiều lần, vui lòng thử lại sau ít phút.";
+  }
+  // Rate-limit BE (429 / Retry-After): hiện số giây nếu parse được.
+  if (/429|quá nhiều|too many|thử lại sau|retry/i.test(raw)) {
+    const secs = raw.match(/(\d+)\s*(giây|giay|s\b)/i);
+    return secs
+      ? `Thao tác quá nhanh, vui lòng thử lại sau ${secs[1]} giây.`
+      : "Thao tác quá nhanh, vui lòng chậm lại một chút rồi thử lại.";
+  }
+  return raw || fallback;
 }
 
 /**

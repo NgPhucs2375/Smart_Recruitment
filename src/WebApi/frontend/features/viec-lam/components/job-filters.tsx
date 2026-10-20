@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { X, SlidersHorizontal, Check, Sparkles, BarChart3 } from "lucide-react";
+import { Search, X, SlidersHorizontal, Check, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -26,9 +26,10 @@ const fmtTriệu = (v?: number) => (v === undefined || v === null ? "" : `${Math
 interface JobFiltersBarProps {
   filters: JobFilters;
   onFilterChange: (filters: JobFilters) => void;
+  totalJobs: number;
 }
 
-export function JobFiltersBar({ filters, onFilterChange }: JobFiltersBarProps) {
+export function JobFiltersBar({ filters, onFilterChange, totalJobs }: JobFiltersBarProps) {
   const query = filters.keyword;
   const [options, setOptions] = React.useState<{ categories: { id: number; name: string }[]; skills: { id: number; name: string }[] }>({ categories: [], skills: [] });
   const [optionError, setOptionError] = React.useState("");
@@ -79,6 +80,30 @@ export function JobFiltersBar({ filters, onFilterChange }: JobFiltersBarProps) {
     });
   };
 
+  // Nhãn trigger tường minh (không bao giờ lọt raw value như "all"):
+  // null/"" / "all" -> placeholder, còn lại tra tên hiển thị.
+  const levelLabel = (v: string | null) =>
+    !v || v === "all" ? "Cấp bậc" : v;
+  const employmentTypeLabel = (v: string | null) =>
+    !v || v === "all" ? "Hình thức" : v;
+  const workModeLabel = (v: string | null) =>
+    !v || v === "all" ? "Cách thức" : v;
+  const categoryLabel = (v: string | null) =>
+    !v || v === "all"
+      ? "Ngành nghề"
+      : (options.categories.find((c) => String(c.id) === v)?.name ?? v);
+  const salaryLabel = (v: string | null) => {
+    if (!v || v === "all") return "Mức lương";
+    const preset = salaryRanges.find(
+      (range: SalaryRange) => `${range.min}-${range.max ?? ""}` === v,
+    );
+    if (preset) return preset.label;
+    const [minStr, maxStr] = v.split("-");
+    const min = minStr === "" ? undefined : Number(minStr);
+    const max = !maxStr ? undefined : Number(maxStr);
+    return `Tùy chỉnh${min !== undefined && Number.isFinite(min) ? ` ${fmtTriệu(min)}` : " 0tr"} – ${max !== undefined && Number.isFinite(max) && max > 0 ? `${fmtTriệu(max)}` : "200tr+"}`;
+  };
+
   const activeCount = [
     filters.location,
     filters.level,
@@ -90,47 +115,87 @@ export function JobFiltersBar({ filters, onFilterChange }: JobFiltersBarProps) {
   ].filter(Boolean).length;
 
   return (
-    <div className="rounded-2xl border border-border bg-card p-4 shadow-sm sm:p-5">
-      {/* Search — live (debounced), Enter nhảy tới danh sách kết quả */}
-      <div
-        className="flex flex-col"
-        onKeyDown={(event) => {
-          if (event.key === "Enter") {
-            document.getElementById("viec-lam-results")?.scrollIntoView({ behavior: "smooth", block: "start" });
-          }
-        }}
-      >
+    <div className="rounded-[1.75rem] border border-border bg-card p-4 shadow-[0_12px_36px_rgba(53,92,140,0.06)] sm:p-5">
+      {/* Search */}
+      <div className="flex flex-col gap-3 sm:flex-row">
         <div className="relative flex-1">
-          <Command className="relative border border-border bg-background shadow-none">
-            <CommandInput aria-label="Tìm việc, kỹ năng hoặc công ty" placeholder="Nhập vị trí, kỹ năng, công ty..." value={query} onChange={(event) => updateFilter("keyword", event.target.value)} />
+          <Command className="relative border border-border bg-muted shadow-none">
+            <CommandInput aria-label="Tìm việc, kỹ năng hoặc công ty" placeholder="Tìm việc, kỹ năng hoặc công ty..." value={query} onChange={(event) => updateFilter("keyword", event.target.value)} />
             {query && <CommandList className="absolute left-0 right-0 top-full z-20 mt-2 rounded-xl border border-border bg-popover shadow-xl"><CommandEmpty>Nhấn Enter để tìm “{query}”</CommandEmpty>{suggestions.map((item) => <CommandItem key={item} onClick={() => updateFilter("keyword", item)}>{item}<Check className="ml-auto size-4 text-primary opacity-0 group-hover:opacity-100" /></CommandItem>)}</CommandList>}
           </Command>
         </div>
+        <Button
+          type="button"
+          className="h-12 rounded-full px-7 text-sm font-semibold"
+          onClick={() => {
+            updateFilter("keyword", query);
+            document.getElementById("viec-lam-results")?.scrollIntoView({ behavior: "smooth", block: "start" });
+          }}
+        ><Search className="mr-2 size-4" />Tìm việc</Button>
       </div>
 
-      {/* Chip filters — địa điểm & cấp bậc trước, phần còn lại theo sau */}
+      {/* Pill selects */}
       <div className="mt-4 flex flex-wrap items-center gap-2">
+        <Select value={String(filters.categoryId ?? "all")} onValueChange={value => updateFilter("categoryId", value === "all" ? undefined : Number(value))}>
+          <SelectTrigger aria-label="Ngành nghề" className="h-10 w-52 rounded-full"><SelectValue placeholder="Ngành nghề">{categoryLabel}</SelectValue></SelectTrigger>
+          <SelectContent><SelectItem value="all">Tất cả ngành nghề</SelectItem>{options.categories.map(category => <SelectItem key={category.id} value={String(category.id)}>{category.name}</SelectItem>)}</SelectContent>
+        </Select>
+        <Select value="" onValueChange={value => {
+          const id = Number(value);
+          if (id > 0) onFilterChange({ ...filters, skillIds: [...(filters.skillIds ?? []), id] });
+        }}>
+          <SelectTrigger aria-label="Thêm bộ lọc kỹ năng" disabled={(filters.skillIds?.length ?? 0) >= 20} className="h-10 w-52 rounded-full"><SelectValue placeholder="Thêm kỹ năng" /></SelectTrigger>
+          <SelectContent>{options.skills.filter(skill => !filters.skillIds?.includes(skill.id)).map(skill => <SelectItem key={skill.id} value={String(skill.id)}>{skill.name}</SelectItem>)}</SelectContent>
+        </Select>
+        {(filters.skillIds ?? []).map(id => <Button key={id} variant="outline" size="sm" className="rounded-full" aria-label={`Bỏ kỹ năng ${options.skills.find(s => s.id === id)?.name ?? id}`} onClick={() => onFilterChange({ ...filters, skillIds: filters.skillIds?.filter(value => value !== id) })}>{options.skills.find(s => s.id === id)?.name ?? `#${id}`}<X className="size-3" /></Button>)}
+        {!!filters.skillIds?.length && <label className="flex items-center gap-2 text-xs"><input type="checkbox" checked={!!filters.matchAllSkills} onChange={event => onFilterChange({ ...filters, matchAllSkills: event.target.checked })} />Khớp tất cả kỹ năng</label>}
         {optionError && <p role="alert" className="w-full text-sm text-destructive">{optionError}</p>}
-
+        <span className="mr-1 hidden items-center gap-1.5 text-xs font-medium text-muted-foreground sm:inline-flex">
+          <SlidersHorizontal className="h-3.5 w-3.5" /> Lọc theo
+        </span>
         <LocationSelect
           value={filters.location}
           onValueChange={(v) => updateFilter("location", v)}
         />
 
-        <Select value={filters.level} onValueChange={(v) => updateFilter("level", v ?? "")}>
-          <SelectTrigger aria-label="Cấp bậc" className="h-10 w-auto min-w-[130px] rounded-full border-border bg-muted px-4 text-[13px] shadow-none">
-            <BarChart3 className="size-3.5 shrink-0 text-primary" aria-hidden />
-            <SelectValue placeholder="Cấp bậc" />
+        <Select value={filters.level} onValueChange={(v) => updateFilter("level", !v || v === "all" ? "" : v)}>
+          <SelectTrigger className="h-10 w-auto min-w-[130px] rounded-full border-border bg-muted px-4 text-[13px] shadow-none">
+            <SelectValue placeholder="Cấp bậc">{levelLabel}</SelectValue>
           </SelectTrigger>
           <SelectContent>
+            <SelectItem value="all">Tất cả cấp bậc</SelectItem>
             {jobLevels.map((level) => (
               <SelectItem key={level} value={level}>{level}</SelectItem>
             ))}
           </SelectContent>
         </Select>
 
+        <Select value={filters.employmentType} onValueChange={(v) => updateFilter("employmentType", !v || v === "all" ? "" : v)}>
+          <SelectTrigger className="h-10 w-auto min-w-[140px] rounded-full border-border bg-muted px-4 text-[13px] shadow-none">
+            <SelectValue placeholder="Hình thức">{employmentTypeLabel}</SelectValue>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tất cả hình thức</SelectItem>
+            {employmentTypes.map((type) => (
+              <SelectItem key={type} value={type}>{type}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select value={filters.workMode} onValueChange={(v) => updateFilter("workMode", !v || v === "all" ? "" : v)}>
+          <SelectTrigger className="h-10 w-auto min-w-[130px] rounded-full border-border bg-muted px-4 text-[13px] shadow-none">
+            <SelectValue placeholder="Cách thức">{workModeLabel}</SelectValue>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tất cả cách thức</SelectItem>
+            {workModes.map((mode) => (
+              <SelectItem key={mode} value={mode}>{mode}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
         <Sheet open={advancedOpen} onOpenChange={setAdvancedOpen}>
-          <SheetTrigger render={<Button variant="outline" className="h-10 rounded-full px-4" />}><SlidersHorizontal className="mr-2 size-3.5" />Lọc<span className={`ml-1 flex size-5 items-center justify-center rounded-full text-[11px] font-medium ${activeCount > 0 ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`} aria-label={`${activeCount} bộ lọc đang bật`}>{activeCount}</span></SheetTrigger>
+          <SheetTrigger render={<Button variant="outline" className="h-10 rounded-full px-4" />}><SlidersHorizontal className="mr-2 size-3.5" />Lọc nâng cao{activeCount > 0 && <span className="ml-1 flex size-5 items-center justify-center rounded-full bg-primary text-[11px] text-primary-foreground">{activeCount}</span>}</SheetTrigger>
           <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-md">
             <SheetHeader><SheetTitle>Bộ lọc nâng cao</SheetTitle><SheetDescription>Tinh chỉnh kết quả theo thu nhập và kỹ năng.</SheetDescription></SheetHeader>
             <div className="space-y-7 px-4 pb-6">
@@ -142,36 +207,9 @@ export function JobFiltersBar({ filters, onFilterChange }: JobFiltersBarProps) {
           </SheetContent>
         </Sheet>
 
-        <Select value={String(filters.categoryId ?? "all")} onValueChange={value => updateFilter("categoryId", value === "all" ? undefined : Number(value))}>
-          <SelectTrigger aria-label="Ngành nghề" className="h-10 w-52 rounded-full"><SelectValue placeholder="Ngành nghề" /></SelectTrigger>
-          <SelectContent><SelectItem value="all">Tất cả ngành nghề</SelectItem>{options.categories.map(category => <SelectItem key={category.id} value={String(category.id)}>{category.name}</SelectItem>)}</SelectContent>
-        </Select>
-
-        <Select value={filters.employmentType} onValueChange={(v) => updateFilter("employmentType", v ?? "")}>
-          <SelectTrigger aria-label="Hình thức" className="h-10 w-auto min-w-[140px] rounded-full border-border bg-muted px-4 text-[13px] shadow-none">
-            <SelectValue placeholder="Hình thức" />
-          </SelectTrigger>
-          <SelectContent>
-            {employmentTypes.map((type) => (
-              <SelectItem key={type} value={type}>{type}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <Select value={filters.workMode} onValueChange={(v) => updateFilter("workMode", v ?? "")}>
-          <SelectTrigger aria-label="Cách thức" className="h-10 w-auto min-w-[130px] rounded-full border-border bg-muted px-4 text-[13px] shadow-none">
-            <SelectValue placeholder="Cách thức" />
-          </SelectTrigger>
-          <SelectContent>
-            {workModes.map((mode) => (
-              <SelectItem key={mode} value={mode}>{mode}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
         <Select value={salaryValue} onValueChange={handleSalaryChange}>
-          <SelectTrigger aria-label="Mức lương" className="h-10 w-auto min-w-[150px] rounded-full border-border bg-muted px-4 text-[13px] shadow-none">
-            <SelectValue placeholder="Mức lương" />
+          <SelectTrigger className="h-10 w-auto min-w-[150px] rounded-full border-border bg-muted px-4 text-[13px] shadow-none">
+            <SelectValue placeholder="Mức lương">{salaryLabel}</SelectValue>
           </SelectTrigger>
           <SelectContent>
             <SelectItem key="all" value="all">Tất cả</SelectItem>
@@ -186,16 +224,6 @@ export function JobFiltersBar({ filters, onFilterChange }: JobFiltersBarProps) {
           </SelectContent>
         </Select>
 
-        <Select value="" onValueChange={value => {
-          const id = Number(value);
-          if (id > 0) onFilterChange({ ...filters, skillIds: [...(filters.skillIds ?? []), id] });
-        }}>
-          <SelectTrigger aria-label="Thêm bộ lọc kỹ năng" disabled={(filters.skillIds?.length ?? 0) >= 20} className="h-10 w-52 rounded-full"><SelectValue placeholder="Thêm kỹ năng" /></SelectTrigger>
-          <SelectContent>{options.skills.filter(skill => !filters.skillIds?.includes(skill.id)).map(skill => <SelectItem key={skill.id} value={String(skill.id)}>{skill.name}</SelectItem>)}</SelectContent>
-        </Select>
-        {(filters.skillIds ?? []).map(id => <Button key={id} variant="outline" size="sm" className="rounded-full" aria-label={`Bỏ kỹ năng ${options.skills.find(s => s.id === id)?.name ?? id}`} onClick={() => onFilterChange({ ...filters, skillIds: filters.skillIds?.filter(value => value !== id) })}>{options.skills.find(s => s.id === id)?.name ?? `#${id}`}<X className="size-3" /></Button>)}
-        {!!filters.skillIds?.length && <label className="flex items-center gap-2 text-xs"><input type="checkbox" checked={!!filters.matchAllSkills} onChange={event => onFilterChange({ ...filters, matchAllSkills: event.target.checked })} />Khớp tất cả kỹ năng</label>}
-
         {activeCount > 0 && (
           <Button variant="ghost" size="sm" onClick={clearFilters} className="gap-1.5 rounded-full text-muted-foreground hover:text-primary">
             <X className="h-3.5 w-3.5" />
@@ -203,6 +231,11 @@ export function JobFiltersBar({ filters, onFilterChange }: JobFiltersBarProps) {
           </Button>
         )}
       </div>
+
+      {/* Results count */}
+      <p className="mt-4 border-t border-border pt-3.5 text-[13px] text-muted-foreground">
+        Tìm thấy <span className="font-semibold text-primary">{totalJobs}</span> việc làm phù hợp
+      </p>
     </div>
   );
 }

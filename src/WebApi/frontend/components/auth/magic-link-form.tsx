@@ -55,6 +55,7 @@ export function MagicLinkForm({
             inputMode="email"
             placeholder="name@company.com"
             value={email}
+            maxLength={100}
             onChange={(e) => setEmail(e.target.value)}
             disabled={loading}
             required

@@ -6,9 +6,12 @@
 import { createDefaultLayoutConfig } from "../resume-data";
 import type {
   CvThemeConfig,
+  DecorationStyle,
   LayoutStructure,
   ThemeCategory,
   ThemeLevel,
+  TimelineStyle,
+  ZoneStyle,
 } from "../types/theme-studio";
 
 type SeedInput = {
@@ -27,6 +30,13 @@ type SeedInput = {
   typography: Partial<CvThemeConfig["typography"]>;
   zones?: Partial<CvThemeConfig["zones"]>;
   avatarConfig?: CvThemeConfig["avatarConfig"];
+  mainWidthPct?: number;
+  borderRadiusPx?: number;
+  skillDisplayMode?: CvThemeConfig["skillDisplayMode"];
+  zoneStyle?: ZoneStyle;
+  decoration?: DecorationStyle;
+  timelineStyle?: TimelineStyle;
+  accentGradient?: string;
 };
 
 const BASE_TYPOGRAPHY: CvThemeConfig["typography"] = {
@@ -38,6 +48,9 @@ const BASE_TYPOGRAPHY: CvThemeConfig["typography"] = {
   dividerWidthPx: 2,
   enclosure: "flat",
   verticalTagEnabled: false,
+  lineHeightScale: 1.4,
+  headerAlign: "left",
+  dividerSpacingMm: 2,
 };
 
 const BASE_SPACING: CvThemeConfig["spacing"] = {
@@ -73,6 +86,13 @@ function makeSeed(input: SeedInput): CvThemeConfig {
     layout,
     structure: input.structure,
     sidebarWidthPct: input.sidebarWidthPct,
+    mainWidthPct: input.mainWidthPct ?? 100,
+    borderRadiusPx: input.borderRadiusPx ?? 8,
+    zoneStyle: input.zoneStyle ?? "flat",
+    decoration: input.decoration ?? "none",
+    timelineStyle: input.timelineStyle ?? "none",
+    accentGradient: input.accentGradient ?? "",
+    skillDisplayMode: input.skillDisplayMode ?? "outline-tag",
     colors: { ...input.colors },
     typography: { ...BASE_TYPOGRAPHY, ...input.typography },
     spacing: { ...BASE_SPACING },
@@ -123,7 +143,7 @@ export const CANVA_SEEDS: CvThemeConfig[] = [
       textMuted: "#6b7280",
       paperBackground: "#ffffff",
     },
-    typography: { headingVariant: "minimal", dividerStyle: "solid", dividerWidthPx: 1, enclosure: "flat", uppercaseHeadings: true },
+    typography: { headingVariant: "minimal", dividerStyle: "solid", dividerWidthPx: 1, enclosure: "flat", uppercaseHeadings: true, headerAlign: "center" },
     zones: { sidebarBg: "transparent", headerBg: "transparent" },
     avatarConfig: { visible: false, shape: "circle", sizePx: 96, hasBorder: false },
   }),
@@ -146,7 +166,7 @@ export const CANVA_SEEDS: CvThemeConfig[] = [
       textMuted: "#64748b",
       paperBackground: "#ffffff",
     },
-    typography: { headingVariant: "left-border", dividerStyle: "dashed", enclosure: "left-pill" },
+    typography: { headingVariant: "left-border", dividerStyle: "dashed", enclosure: "left-pill", headerAlign: "split" },
     zones: { sidebarBg: "#f8fafc", headerBg: "transparent" },
     avatarConfig: { visible: true, shape: "circle", sizePx: 96, hasBorder: false },
   }),
@@ -162,6 +182,8 @@ export const CANVA_SEEDS: CvThemeConfig[] = [
     sidebarWidthPct: 35,
     sidebarSections: ["skills", "certificates"],
     contactsPlacement: "sidebar",
+    zoneStyle: "floating-cards",
+    decoration: "geometric-circles",
     colors: {
       primary: "#0c4a6e",
       secondary: "#eab308",
@@ -190,6 +212,9 @@ export const CANVA_SEEDS: CvThemeConfig[] = [
     sidebarWidthPct: 30,
     sidebarSections: ["skills", "certificates"],
     contactsPlacement: "header",
+    zoneStyle: "overlap-header",
+    decoration: "top-accent-bar",
+    timelineStyle: "boxed-item",
     colors: {
       primary: "#1d4ed8",
       secondary: "#60a5fa",
@@ -213,6 +238,9 @@ export const CANVA_SEEDS: CvThemeConfig[] = [
     sidebarWidthPct: 36,
     sidebarSections: ["skills", "certificates"],
     contactsPlacement: "sidebar",
+    zoneStyle: "floating-cards",
+    decoration: "soft-blobs",
+    timelineStyle: "vertical-line",
     colors: {
       primary: "#7c3aed",
       secondary: "#f59e0b",
@@ -247,7 +275,7 @@ export const CANVA_SEEDS: CvThemeConfig[] = [
       textMuted: "#71717a",
       paperBackground: "#ffffff",
     },
-    typography: { fontFamily: "font-serif", headingVariant: "underline", dividerStyle: "solid", enclosure: "boxed" },
+    typography: { fontFamily: "font-serif", headingVariant: "underline", dividerStyle: "solid", enclosure: "boxed", headerAlign: "split" },
     zones: { sidebarBg: "transparent", headerBg: "transparent" },
     avatarConfig: { visible: true, shape: "circle", sizePx: 96, hasBorder: true, borderColor: "muted" },
   }),

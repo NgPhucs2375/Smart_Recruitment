@@ -2,8 +2,15 @@ import { flushSync } from "react-dom";
 import { createRoot, type Root } from "react-dom/client";
 import { CvDocument } from "@/components/cv/cv-document";
 import type { CvFormData } from "@/lib/types";
-import { getPublishedThemes } from "@/features/tao-cv/services/theme-storage";
+import {
+  applyThemeCustomization,
+  findPublishedTheme,
+  getPublishedThemes,
+  themeMatchesId,
+} from "@/features/tao-cv/services/theme-storage";
+import { hydrateThemeFromTemplate } from "@/features/tao-cv/services/theme-hydrate";
 import { fetchDbThemes } from "@/features/tao-cv/services/theme-db-sync";
+import type { CvThemeConfig } from "@/features/tao-cv/types/theme-studio";
 import { manualCvPdfFileName } from "./manual-cv-pdf";
 
 /** Print a snapshot of the working copy, independently of saved files and UI tabs. */
@@ -11,9 +18,8 @@ export async function printManualCv(data: CvFormData): Promise<void> {
   const snapshot = structuredClone(data);
   // Theme Studio custom (kèm avatar): local trước, DB sau (timeout ngắn).
   // Rớt mạng/chậm -> null, CvDocument fallback registry như cũ.
-  let customTheme =
-    getPublishedThemes().find((t) => t.id === snapshot.templateId) ?? null;
-  if (!customTheme) {
+  let published = findPublishedTheme(getPublishedThemes(), snapshot.templateId);
+  if (!published) {
     try {
       const db = await Promise.race([
         fetchDbThemes(),
@@ -21,10 +27,31 @@ export async function printManualCv(data: CvFormData): Promise<void> {
           setTimeout(() => reject(new Error("theme timeout")), 3000),
         ),
       ]);
-      customTheme = db.find((t) => t.id === snapshot.templateId) ?? null;
+      published = findPublishedTheme(db, snapshot.templateId);
     } catch {
-      customTheme = null;
+      published = null;
     }
+  }
+  // Ghép delta tùy biến y hệt preview (/tao-cv): nền = theme đã publish HOẶC
+  // base hydrate từ template gốc. Không tùy biến & không publish -> null ->
+  // CvDocument in template tĩnh gốc (không đổi hành vi cũ).
+  const hydrated = hydrateThemeFromTemplate(snapshot.templateId);
+  const giaoDien = snapshot.giaoDien;
+  const matchesPublished =
+    published && giaoDien ? themeMatchesId(published, giaoDien.themeId) : false;
+  const matchesHydrated = giaoDien
+    ? themeMatchesId(hydrated, giaoDien.themeId)
+    : false;
+  const base = matchesPublished
+    ? published
+    : matchesHydrated
+      ? hydrated
+      : published;
+  let customTheme: CvThemeConfig | null = base;
+  if (customTheme) {
+    const delta =
+      giaoDien && (matchesPublished || matchesHydrated) ? giaoDien : undefined;
+    customTheme = applyThemeCustomization(customTheme, delta);
   }
   const frame = document.createElement("iframe");
   frame.title = "Xuất CV thành PDF";

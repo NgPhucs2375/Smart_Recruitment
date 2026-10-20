@@ -35,7 +35,7 @@ function EmployerLoginContent() {
   const [githubError, setGithubError] = useState<string | null>(null);
   const searchParams = useSearchParams();
   const next = sanitizeNext(searchParams.get("next"));
-  const { register, handleSubmit, errors, isPending, submitError, email } = usePasswordLogin("employer", next);
+  const { register, handleSubmit, errors, isPending, submitError, email, cooling, cooldownLeft } = usePasswordLogin("employer", next);
   const { handleGoogleLogin, isPending: isGooglePending, error: googleError } = useGoogleAuth("employer", next);
 
   return (
@@ -130,7 +130,7 @@ function EmployerLoginContent() {
             <Mail className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
             <Input
                id="employer-email"
-               type="email"
+               type="email" maxLength={100}
                autoComplete="username"
                placeholder="hr@company.com"
               {...register("email")}
@@ -177,11 +177,11 @@ function EmployerLoginContent() {
 
         <Button
           type="submit"
-          disabled={isPending}
+          disabled={isPending || cooling}
           className="mt-2 h-11 w-full rounded-xl bg-primary font-medium text-white transition hover:bg-primary-hover"
         >
           {isPending ? <Loader2 className="mr-2 size-4 animate-spin" /> : <ArrowRight className="mr-2 size-4" />}
-          {isPending ? "Đang xác thực..." : "Đăng nhập"}
+          {isPending ? "Đang xác thực..." : cooling ? `Thử lại sau ${cooldownLeft}s (nhập sai nhiều lần)` : "Đăng nhập"}
         </Button>
 
         <div className="relative my-4 text-center text-xs text-muted-foreground">

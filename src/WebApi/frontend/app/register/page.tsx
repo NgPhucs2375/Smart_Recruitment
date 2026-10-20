@@ -212,7 +212,7 @@ function RegisterContent() {
                 <Phone className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
                  <Input
                    id="reg-so-dien-thoai"
-                   type="tel"
+                   type="tel" maxLength={20}
                    autoComplete="tel"
                   {...registerPwd("soDienThoai")}
                   aria-invalid={!!pwdErrors.soDienThoai}
@@ -232,7 +232,7 @@ function RegisterContent() {
               <Mail className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
                <Input
                    id="reg-email"
-                   type="email"
+                   type="email" maxLength={100}
                    autoComplete="email"
                   {...registerPwd("email")}
                   aria-invalid={!!pwdErrors.email}
@@ -371,7 +371,7 @@ function RegisterContent() {
                   <Mail className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
                   <Input
                     id="reg-magic-email"
-                    type="email"
+                    type="email" maxLength={100}
                     autoComplete="email"
                     {...registerMagic("email")}
                     aria-invalid={!!magicErrors.email}
