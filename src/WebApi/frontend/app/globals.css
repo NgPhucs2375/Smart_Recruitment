@@ -2013,6 +2013,35 @@ html {
   break-inside: avoid;
 }
 
+/* Bố cục ThemeCanvas đặt bằng CLASS (không phải inline display) để khâu
+   phân trang — vốn reset style.display inline trên con trực tiếp của .cv-paper
+   — không làm sập 2 cột thành 1 cột/mất gap. Xem cv-paginated-preview B1-RESET. */
+.cv-theme-flow {
+  display: flex;
+  flex-direction: column;
+}
+
+.cv-theme-columns {
+  display: flex;
+  flex-direction: row;
+}
+
+/* ── Click-to-select vùng trên canvas Studio (chỉ màn hình, không in) ── */
+@media screen {
+  .cv-studio-picking [data-cv-section] {
+    outline: 2px solid transparent;
+    outline-offset: 2px;
+    border-radius: 4px;
+    transition: outline-color 150ms ease, background-color 150ms ease;
+  }
+
+  .cv-studio-picking [data-cv-section]:hover {
+    outline-color: color-mix(in srgb, var(--cv-primary, #2563eb) 55%, transparent);
+    background-color: color-mix(in srgb, var(--cv-primary, #2563eb) 4%, transparent);
+    cursor: pointer;
+  }
+}
+
 /* In CV: chỉ in tài liệu CV (window.print -> Save as PDF), ẩn toàn bộ app shell.
    Quy tắc break: CHỈ item đơn lẻ avoid-split; section dài phải tách qua trang
    (tránh khoảng trống lớn cuối trang + trang trắng khi section dài hơn 1 trang). */

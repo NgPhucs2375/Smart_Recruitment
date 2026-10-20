@@ -9,6 +9,42 @@ export type LayoutStructure =
 export type DividerStyle =
   "solid" | "dashed" | "gradient" | "accent-dot" | "none";
 export type SectionEnclosure = "flat" | "boxed" | "left-pill";
+/** Căn lề khối header (tên, chức danh, liên hệ). */
+/** split = tên/chức danh bên trái, avatar + liên hệ dồn sang phải. */
+export type HeaderAlign = "left" | "center" | "right" | "split";
+/**
+ * Cách hiển thị danh sách kỹ năng (chuẩn mới kiểu Canva).
+ * Legacy `tags | inline | bars` được normalize sang `outline-tag | minimal-comma | progress-bar`.
+ */
+export type SkillDisplayMode =
+  | "pill"
+  | "outline-tag"
+  | "progress-bar"
+  | "dot-rating"
+  | "minimal-comma"
+  | "list"
+  // Legacy (theme cũ trong DB / seeds cũ) — luôn map về canonical khi normalize.
+  | "tags"
+  | "inline"
+  | "bars";
+/** Vị trí avatar so với khối chữ trong header. */
+export type AvatarPosition = "left" | "right";
+/** Kiểu dáng phân vùng (Canva-like): ghép sát / thẻ nổi / lề giấy / đè header. */
+export type ZoneStyle =
+  | "flat"
+  | "floating-cards"
+  | "split-margin"
+  | "overlap-header";
+/** Họa tiết trang trí nền tờ CV. */
+export type DecorationStyle =
+  | "none"
+  | "soft-blobs"
+  | "geometric-circles"
+  | "diagonal-cut"
+  | "top-accent-bar"
+  | "subtle-grid";
+/** Kiểu timeline cho Kinh nghiệm / Học vấn. */
+export type TimelineStyle = "none" | "vertical-line" | "boxed-item";
 
 export interface CvColorPalette {
   /** Màu thương hiệu (tiêu đề, gạch chân, icon, tag). */
@@ -39,6 +75,12 @@ export interface CvTypographyConfig {
   verticalTagEnabled: boolean;
   /** Chữ trong dải dọc (trống = dùng chức danh). */
   verticalTagText?: string;
+  /** Hệ số giãn dòng (1.1–1.7, default 1.4). */
+  lineHeightScale: number;
+  /** Căn lề khối header. */
+  headerAlign: HeaderAlign;
+  /** Khoảng hở trên/dưới đường phân cách mục (0–6mm, default 2). */
+  dividerSpacingMm: number;
 }
 
 export interface CvSpacingConfig {
@@ -72,6 +114,8 @@ export interface CvAvatarConfig {
   hasBorder: boolean;
   /** Màu viền theo token theme. */
   borderColor?: "primary" | "secondary" | "white" | "muted";
+  /** Vị trí avatar so với khối chữ (default trái). */
+  position?: AvatarPosition;
 }
 
 export const DEFAULT_AVATAR_CONFIG: CvAvatarConfig = {
@@ -80,6 +124,7 @@ export const DEFAULT_AVATAR_CONFIG: CvAvatarConfig = {
   sizePx: 96,
   hasBorder: false,
   borderColor: "primary",
+  position: "left",
 };
 
 export interface CvPublishPolicy {
@@ -155,6 +200,20 @@ export interface CvThemeConfig {
   structure: LayoutStructure;
   /** Rộng sidebar % (25–45) khi layout 2 cột. */
   sidebarWidthPct: number;
+  /** Bề rộng vùng nội dung chính % tờ giấy (60–100) — áp cho 1 cột/banner. */
+  mainWidthPct: number;
+  /** Bo góc khối bọc/kỹ năng (0–16px, default 8). */
+  borderRadiusPx: number;
+  /** Kiểu dáng phân vùng (thẻ nổi, vát lề…) — Canva-like. */
+  zoneStyle: ZoneStyle;
+  /** Họa tiết trang trí nền (blob, vòng tròn, vát chéo…). */
+  decoration: DecorationStyle;
+  /** Kiểu timeline cho Kinh nghiệm / Học vấn. */
+  timelineStyle: TimelineStyle;
+  /** Gradient điểm nhấn (heading accent-bg, divider, thanh đỉnh). Optional. */
+  accentGradient?: string;
+  /** Kiểu hiển thị kỹ năng. */
+  skillDisplayMode: SkillDisplayMode;
   colors: CvColorPalette;
   typography: CvTypographyConfig;
   spacing: CvSpacingConfig;
@@ -162,6 +221,31 @@ export interface CvThemeConfig {
   policy: CvPublishPolicy;
   /** Cấu hình avatar (optional để tương thích theme cũ). */
   avatarConfig?: CvAvatarConfig;
+}
+
+/**
+ * Delta tùy biến giao diện của ỨNG VIÊN trên một theme Studio đã publish.
+ * Chỉ chứa phần khác mặc định (guardrail: không clone full theme); null = dùng
+ * nguyên theme gốc. Lưu ở cột `CauHinhJson` của CV / CVPhienBan.
+ */
+export interface CvThemeCustomization {
+  /** Slug theme Studio làm nền. */
+  themeId: string;
+  structure?: LayoutStructure;
+  sidebarWidthPct?: number;
+  mainWidthPct?: number;
+  borderRadiusPx?: number;
+  zoneStyle?: ZoneStyle;
+  decoration?: DecorationStyle;
+  timelineStyle?: TimelineStyle;
+  accentGradient?: string;
+  skillDisplayMode?: SkillDisplayMode;
+  colors?: Partial<CvColorPalette>;
+  typography?: Partial<CvTypographyConfig>;
+  spacing?: Partial<CvSpacingConfig>;
+  zones?: Partial<CvZoneBackgrounds>;
+  avatarConfig?: Partial<CvAvatarConfig>;
+  layout?: ResumeLayoutConfig;
 }
 
 export type { CvSectionId, ResumeLayoutConfig };

@@ -111,6 +111,45 @@ export function sanitizeCssColor(raw: unknown, fallback = "#1e293b"): string {
   return isValidCssColor(v) ? v : fallback;
 }
 
+/**
+ * Linear-gradient hợp lệ cho nền phân vùng kiểu Canva:
+ *   linear-gradient(<deg>, <color> [pos], <color> [pos], ...)
+ * Chỉ nhận 2–4 stop, mỗi stop là màu an toàn (hex/rgba/transparent) + vị trí % tùy chọn.
+ * Chặn mọi payload CSS khác (không có url(), var(), expression()…).
+ */
+const GRADIENT_RE = /^linear-gradient\(\s*(-?\d{1,3}(?:\.\d+)?)deg\s*,\s*(.+)\)$/i;
+
+export function isValidCssGradient(raw: string): boolean {
+  const v = cleanInput(raw);
+  const m = GRADIENT_RE.exec(v);
+  if (!m) return false;
+  const stops = m[2].split(",").map((s) => s.trim());
+  if (stops.length < 2 || stops.length > 4) return false;
+  return stops.every((stop) => {
+    const tokens = stop.split(/\s+/);
+    return isValidCssColor(tokens[0] ?? "");
+  });
+}
+
+/** Nền phân vùng: chấp nhận màu đục/trong suốt hoặc linear-gradient; còn lại fallback. */
+export function sanitizeCssBackground(raw: unknown, fallback = "transparent"): string {
+  if (typeof raw !== "string") return fallback;
+  const v = cleanInput(raw);
+  if (v === "transparent" || isValidCssColor(v)) return v;
+  return isValidCssGradient(v) ? v : fallback;
+}
+
+/** Tách các màu stop của linear-gradient (để tính tương phản). [] nếu không phải gradient. */
+export function gradientStops(raw: string): string[] {
+  const v = cleanInput(raw);
+  const m = GRADIENT_RE.exec(v);
+  if (!m) return [];
+  return m[2]
+    .split(",")
+    .map((s) => s.trim().split(/\s+/)[0] ?? "")
+    .filter(Boolean);
+}
+
 /* ── Upload ảnh client-side ─────────────────────────── */
 
 const IMAGE_MIME_ALLOWLIST = ["image/jpeg", "image/png", "image/webp", "image/gif"];

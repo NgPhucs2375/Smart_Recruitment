@@ -39,6 +39,8 @@ import { CvPreview } from "@/components/cv/cv-preview";
 import { defaultCvData } from "@/features/tao-cv/constants";
 import { createManualCvPayload } from "@/features/tao-cv/manual";
 import { DEFAULT_TEMPLATE_ID, TEMPLATE_REGISTRY } from "@/features/tao-cv/template-registry";
+import { themeMatchesId } from "@/features/tao-cv/services/theme-storage";
+import { themeKey, usePublishedThemes } from "@/components/cv/custom-theme-picker";
 import { useCvAssistant } from "@/hooks/use-cv-assistant";
 import { cvApi } from "@/lib/api/cv-api";
 import type { CvFormData } from "@/lib/types";
@@ -295,15 +297,19 @@ const PreviewPanel = memo(function PreviewPanel({ data, zoom, setZoom, onTemplat
       setExportingPdf(false);
     }
   };
+  const published = usePublishedThemes();
+  const customActive = published.find((t) => themeMatchesId(t, data.templateId));
+  const selectedKey = customActive ? themeKey(customActive) : data.templateId;
   const template = TEMPLATE_REGISTRY[data.templateId];
   return (
      <Card className="cv-preview" data-cv-surface="preview">
       <div className="cv-preview__bar">
         <div className="cv-preview__label"><FileText size={16} /><strong>Preview CV</strong><span>Realtime</span></div>
-         <Select value={data.templateId} onValueChange={(value) => { if (value !== null) onTemplateChange(value); }}>
+         <Select value={selectedKey} onValueChange={(value) => { if (value !== null) onTemplateChange(value); }}>
            <SelectTrigger className="h-9 w-44" aria-label="Chọn mẫu CV"><SelectValue placeholder="Chọn mẫu" /></SelectTrigger>
            <SelectContent>
              {Object.values(TEMPLATE_REGISTRY).map((item) => <SelectItem key={item.id} value={item.id}>{item.name}</SelectItem>)}
+             {published.map((item) => <SelectItem key={themeKey(item)} value={themeKey(item)}>{item.name} · Studio</SelectItem>)}
            </SelectContent>
          </Select>
          <div className="cv-zoom"><Button variant="ghost" size="icon-sm" type="button" aria-label="Thu nhỏ" disabled={zoom <= 0.8} onClick={() => setZoom((value) => Math.max(0.8, +(value - 0.1).toFixed(2)))}><ZoomOut className="size-4" /></Button><span>{Math.round(zoom * 100)}%</span><Button variant="ghost" size="icon-sm" type="button" aria-label="Phóng to" disabled={zoom >= 1.2} onClick={() => setZoom((value) => Math.min(1.2, +(value + 0.1).toFixed(2)))}><ZoomIn className="size-4" /></Button></div>
@@ -312,7 +318,7 @@ const PreviewPanel = memo(function PreviewPanel({ data, zoom, setZoom, onTemplat
       <div className="cv-preview__canvas">
         {hasPreviewContent(data) ? <div className="cv-document" style={{ width: `${100 / zoom}%`, transform: `scale(${zoom})` }}><CvPreview data={data} /></div> : <EmptyPreview />}
       </div>
-      <div className="cv-preview__footer"><span>{template?.name ?? DEFAULT_TEMPLATE_ID}</span><span>Chỉ lưu khi bạn bấm Lưu CV</span></div>
+      <div className="cv-preview__footer"><span>{customActive?.name ?? template?.name ?? DEFAULT_TEMPLATE_ID}</span><span>Chỉ lưu khi bạn bấm Lưu CV</span></div>
     </Card>
   );
 });

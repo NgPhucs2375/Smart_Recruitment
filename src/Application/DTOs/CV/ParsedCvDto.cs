@@ -1,3 +1,5 @@
+using System.Text.Json;
+
 namespace Application.DTOs.CV;
 public class ParsedCvDto
 {
@@ -12,4 +14,10 @@ public class ParsedCvDto
     public List<ParsedKyNangDto> KyNang { get; set; } = new();
 
     public List<ParsedChungChiDto> ChungChi { get; set; } = new();
+
+    /// <summary>
+    /// Delta tùy biến giao diện theme Studio (JSON tùy ý). JsonElement để giữ
+    /// nguyên cấu trúc FE gửi lên; null = không tùy biến.
+    /// </summary>
+    public JsonElement? GiaoDien { get; set; }
 }

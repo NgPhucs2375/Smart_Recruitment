@@ -3,11 +3,20 @@
 import { useEffect, useState } from "react";
 import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { getPublishedThemes } from "@/features/tao-cv/services/theme-storage";
+import {
+  findPublishedTheme,
+  getPublishedThemes,
+  themeMatchesId,
+} from "@/features/tao-cv/services/theme-storage";
 import { fetchDbThemes } from "@/features/tao-cv/services/theme-db-sync";
 import type { CvThemeConfig } from "@/features/tao-cv/types/theme-studio";
 
-/** Theme Studio đã duyệt: gộp DB (nguồn chân lý) + local (fallback offline). */
+/** Định danh canonical để chọn theme: slug, fallback id nội bộ. */
+export function themeKey(t: CvThemeConfig): string {
+  return t.slug || t.id;
+}
+
+/** Theme Studio đang Hiển thị: gộp DB (nguồn chân lý) + local (fallback offline). */
 export function usePublishedThemes(): CvThemeConfig[] {
   const [themes, setThemes] = useState<CvThemeConfig[]>(() => getPublishedThemes());
   useEffect(() => {
@@ -19,7 +28,7 @@ export function usePublishedThemes(): CvThemeConfig[] {
         if (!alive) return;
         const merged = [...db];
         for (const t of local) {
-          if (!merged.some((m) => m.id === t.id)) merged.push(t);
+          if (!merged.some((m) => themeKey(m) === themeKey(t))) merged.push(t);
         }
         setThemes(merged.length > 0 ? merged : local);
       } catch {
@@ -43,7 +52,7 @@ export function customThemeById(
   id: string | null | undefined,
 ): CvThemeConfig | undefined {
   if (!id || typeof window === "undefined") return undefined;
-  return getPublishedThemes().find((t) => t.id === id);
+  return findPublishedTheme(getPublishedThemes(), id) ?? undefined;
 }
 
 interface CustomThemeOptionsProps {
@@ -81,14 +90,15 @@ export function CustomThemeOptions({
   }
 
   function rowButton(t: (typeof visible)[number]) {
-    const isActive = activeId === t.id;
+    const key = themeKey(t);
+    const isActive = themeMatchesId(t, activeId);
     return (
       <button
-        key={t.id}
+        key={key}
         type="button"
         role="option"
         aria-selected={isActive}
-        onClick={() => onPick(t.id)}
+        onClick={() => onPick(key)}
         className={cn(
           "template-card flex w-full items-center gap-3 rounded-xl border p-2.5 text-left",
           isActive
@@ -131,7 +141,7 @@ export function CustomThemeOptions({
   return (
     <div className={variant === "row" ? "mt-1" : "mt-4"}>
       <p className="px-1 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-        Theme Studio · đã duyệt ({visible.length})
+        Theme Studio · đang hiển thị ({visible.length})
       </p>
       {variant === "row" ? (
         <div className="space-y-0.5">
@@ -140,11 +150,12 @@ export function CustomThemeOptions({
       ) : (
         <div className="grid grid-cols-1 gap-3 min-[480px]:grid-cols-2">
           {visible.map((t) => {
-            const isActive = activeId === t.id;
+            const key = themeKey(t);
+            const isActive = themeMatchesId(t, activeId);
             return (
               <button
-                key={t.id}
-                onClick={() => onPick(t.id)}
+                key={key}
+                onClick={() => onPick(key)}
                 aria-pressed={isActive}
                 className={cn(
                   "template-card group relative flex flex-col items-center gap-2 rounded-2xl border-2 p-3 text-left",

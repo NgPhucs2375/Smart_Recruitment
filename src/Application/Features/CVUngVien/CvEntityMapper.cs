@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text.Json;
 using Application.DTOs.CV;
 using Application.Features.CVUngVien.Commands.ImportCvUngVien;
 using Domain.Entities;
@@ -9,6 +10,9 @@ internal static class CvEntityMapper
 {
     public static void ApplyContent(Domain.Entities.CVUngVien entity, ParsedCvDto source)
     {
+        // Delta tùy biến giao diện (theme Studio): chỉ lưu khi là object/array.
+        entity.CauHinhJson = SerializeGiaoDien(source.GiaoDien);
+
         entity.ThongTinLienHe ??= new CVThongTinLienHe();
         var contact = source.ThongTinLienHe;
         entity.ThongTinLienHe.HoTen = contact.HoTen!;
@@ -124,6 +128,8 @@ internal static class CvEntityMapper
 
     public static ParsedCvDto ToDto(Domain.Entities.CVUngVien entity) => new()
     {
+        GiaoDien = DeserializeGiaoDien(entity.CauHinhJson),
+
         ThongTinLienHe = new ParsedThongTinLienHeDto
         {
             HoTen = entity.ThongTinLienHe?.HoTen,
@@ -209,6 +215,26 @@ internal static class CvEntityMapper
         .Select(x => x!.Value)
         .Distinct()
         .ToList();
+
+    /// <summary>Chỉ lưu delta giao diện khi là object/array; còn lại coi như null.</summary>
+    private static string? SerializeGiaoDien(JsonElement? value) =>
+        value is { ValueKind: JsonValueKind.Object or JsonValueKind.Array }
+            ? value.Value.GetRawText()
+            : null;
+
+    private static JsonElement? DeserializeGiaoDien(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json)) return null;
+        try
+        {
+            using var doc = JsonDocument.Parse(json);
+            return doc.RootElement.Clone();
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+    }
 
     private static string? FormatDate(DateTime? value) =>
         value?.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture);

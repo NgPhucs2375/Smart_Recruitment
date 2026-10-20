@@ -631,9 +631,22 @@ const LEGACY_ALIASES: Record<string, string> = {
   creative: "tech-modern",
 };
 
+/**
+ * Với theme Studio, định danh canonical là slug (key registry). Bản CV cũ
+ * có thể lưu `theme.id` (cfg.id) — tra ngược về slug để không mất theme.
+ */
+export function findStudioSlugByThemeId(themeId: string): string | null {
+  for (const [key, meta] of Object.entries(TEMPLATE_REGISTRY)) {
+    if (meta.studioThemeId === themeId) return key;
+  }
+  return null;
+}
+
 export function resolveTemplateId(rawId: string | null | undefined): string {
   if (!rawId) return DEFAULT_TEMPLATE_ID;
   if (TEMPLATE_REGISTRY[rawId]) return rawId;
+  const studioSlug = findStudioSlugByThemeId(rawId);
+  if (studioSlug) return studioSlug;
   return LEGACY_ALIASES[rawId] ?? DEFAULT_TEMPLATE_ID;
 }
 
@@ -644,7 +657,8 @@ export function resolveTemplateId(rawId: string | null | undefined): string {
  */
 export function isKnownTemplateId(rawId: string | null | undefined): boolean {
   if (!rawId) return false;
-  return Boolean(TEMPLATE_REGISTRY[rawId] ?? LEGACY_ALIASES[rawId]);
+  if (TEMPLATE_REGISTRY[rawId] ?? LEGACY_ALIASES[rawId]) return true;
+  return findStudioSlugByThemeId(rawId) !== null;
 }
 
 export function resolveTemplate(rawId: string | null | undefined): ResumeTemplateMeta {

@@ -11,6 +11,8 @@ public class CVPhienBan : AuditableBaseEntity
     public int? TepDaSinhId { get; set; }
     public string? TemplateId { get; set; }
     public string? TemplateVersion { get; set; }
+    /// <summary>Ảnh chụp delta tùy biến giao diện tại thời điểm lưu phiên bản.</summary>
+    public string? CauHinhJson { get; set; }
 
     public CVUngVien CVUngVien { get; set; }
     public CVTepTin? TepGoc { get; set; }

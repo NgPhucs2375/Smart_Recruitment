@@ -9,28 +9,39 @@ export const newId = () =>
 export const toDateInput = (v: string | null | undefined) =>
   typeof v === "string" && v.length >= 10 ? v.slice(0, 10) : "";
 
-/** Mask khi gõ ngày: hỗ trợ cả 1 hoặc 2 chữ số cho ngày/tháng. */
+/**
+ * Mask khi gõ ngày dd/mm/yyyy. Tự chèn "/" khi đủ chữ số mỗi phần và KHÔNG cắt
+ * mất chữ số đã gõ (phần vượt ngưỡng sẽ tràn sang phần kế tiếp), nhờ đó gõ năm
+ * ngay sau "23/10" (raw "23/102") vẫn ra "23/10/2" mà không cần gõ "/" tay.
+ * Vẫn tôn trọng "/" do người dùng chủ động gõ (hỗ trợ ngày/tháng 1 chữ số).
+ */
 export const maskDateVn = (raw: string) => {
   if (raw.includes("/")) {
-    const parts = raw.split("/").map((part, index) =>
-      part.replace(/\D/g, "").slice(0, index === 2 ? 4 : 2),
-    );
-    return parts.slice(0, 3).join("/");
+    const caps = [2, 2, 4];
+    const parts = raw.split("/").slice(0, 3);
+    const out: string[] = [];
+    let carry = "";
+    for (let i = 0; i < parts.length; i += 1) {
+      const seg = (carry + parts[i]).replace(/\D/g, "");
+      carry = "";
+      if (seg.length > caps[i]) {
+        out.push(seg.slice(0, caps[i]));
+        carry = seg.slice(caps[i]);
+      } else {
+        out.push(seg);
+      }
+    }
+    if (carry && out.length < 3) out.push(carry.slice(0, 4));
+    return out.slice(0, 3).join("/");
   }
 
   const digits = raw.replace(/\D/g, "").slice(0, 8);
-  if (
-    digits.length === 7 &&
-    Number(digits.slice(0, 2)) >= 1 && Number(digits.slice(0, 2)) <= 31 &&
-    Number(digits[2]) >= 1 && Number(digits[2]) <= 9
-  ) {
-    return `${digits.slice(0, 2)}/${digits[2]}/${digits.slice(3)}`;
-  }
-
+  if (digits === "") return "";
   const d = digits.slice(0, 2);
+  if (digits.length <= 2) return d;
   const m = digits.slice(2, 4);
-  const y = digits.slice(4, 8);
-  return [d, m, y].filter((p, i) => p !== "" || i === 0).join("/");
+  if (digits.length <= 4) return `${d}/${m}`;
+  return `${d}/${m}/${digits.slice(4, 8)}`;
 };
 
 /** "31/12/2024" -> "2024-12-31", sai định dạng hoặc rỗng -> "". */

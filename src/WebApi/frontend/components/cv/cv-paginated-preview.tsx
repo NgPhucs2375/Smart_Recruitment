@@ -416,6 +416,33 @@ export function CvPaginatedPreview({ resume, Component, templateKey, onPageCount
           }
         });
 
+      // Mark "đang tiếp" cho section chảy qua nhiều trang. Engine grouping
+      // chỉ set data-continued khi owner top-level là <section>, nhưng theme
+      // Studio có wrapper (body/flex) nên shell lồng sâu — quét trực tiếp
+      // theo item index để heading continuation hiện "(tiếp theo)".
+      paper
+        .querySelectorAll<HTMLElement>("section.cv-section-shell")
+        .forEach((sec) => {
+          if (sec.style.display === "none") {
+            sec.removeAttribute("data-continued");
+            return;
+          }
+          const own = Array.from(
+            sec.querySelectorAll<HTMLElement>(".cv-section-item"),
+          );
+          let shownHere = false;
+          let shownBefore = false;
+          for (const el of own) {
+            const gi = sheetItems.indexOf(el);
+            if (gi < 0) continue;
+            const p = pageOf[gi];
+            if (p === page) shownHere = true;
+            if (p < page) shownBefore = true;
+          }
+          if (shownHere && shownBefore) sec.setAttribute("data-continued", "true");
+          else sec.removeAttribute("data-continued");
+        });
+
       // BATCH-blank: sheet sống ⟺ header sống, hoặc có ≥1 item thuộc
       // trang này, hoặc (trang 0) nhóm rỗng trang trí còn hiện. Không xét
       // wrapper trang trí (sidebar/grid nền) — chúng có rect nhưng không

@@ -2,6 +2,21 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const Module = require("node:module");
+
+// Node < 18 không có global Response/fetch. Test cần dựng Response giả cho
+// nhánh kiểm tra trạng thái mẫu (ensureActiveTemplate).
+if (typeof globalThis.Response === "undefined") {
+  globalThis.Response = class Response {
+    constructor(body, init = {}) {
+      this._body = body;
+      this.status = init.status ?? 200;
+      this.ok = this.status >= 200 && this.status < 300;
+    }
+    async json() {
+      return JSON.parse(this._body);
+    }
+  };
+}
 const frontend = path.resolve(__dirname, "../../src/WebApi/frontend");
 const projectRequire = Module.createRequire(path.join(frontend, "package.json"));
 const ts = projectRequire("typescript");

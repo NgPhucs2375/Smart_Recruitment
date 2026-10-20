@@ -209,7 +209,10 @@ public class SaveCvVersionCommandHandler(
             TepDaSinh = generatedFile,
             TepDaSinhId = generatedFile != null ? generatedFile.Id : null,
             TemplateId = payload.TemplateId,
-            TemplateVersion = payload.TemplateVersion
+            TemplateVersion = payload.TemplateVersion,
+            CauHinhJson = payload.NoiDung.GiaoDien is { ValueKind: JsonValueKind.Object or JsonValueKind.Array }
+                ? payload.NoiDung.GiaoDien.Value.GetRawText()
+                : null
         };
         if (generatedFile != null)
         {
@@ -230,6 +233,41 @@ public class SaveCvVersionCommandHandler(
             importSession.ConfirmedAt = DateTime.UtcNow;
         }
 
+        // Guardrail: tối đa 5 phiên bản/CV — xoá bản cũ nhất nhưng BỎ QUA bản
+        // đang được đơn ứng tuyển tham chiếu (FK OnDelete Restrict).
+        var staleFileKeys = new List<string>();
+        if (payload.CVUngVienId.HasValue)
+        {
+            const int maxVersions = 5;
+            var existingVersions = await context.CVPhienBans.AsTracking()
+                .Where(x => x.CVUngVienId == cv.Id)
+                .Include(x => x.TepDaSinh)
+                .ToListAsync(cancellationToken);
+            var overflow = existingVersions.Count + 1 - maxVersions;
+            if (overflow > 0)
+            {
+                var versionIds = existingVersions.Select(x => x.Id).ToList();
+                var referenced = (await context.DonUngTuyens.AsNoTracking()
+                        .Where(x => x.CVPhienBanId != null && versionIds.Contains(x.CVPhienBanId.Value))
+                        .Select(x => x.CVPhienBanId!.Value)
+                        .ToListAsync(cancellationToken))
+                    .ToHashSet();
+                foreach (var old in existingVersions.OrderBy(x => x.SoPhienBan))
+                {
+                    if (overflow <= 0) break;
+                    if (referenced.Contains(old.Id)) continue;
+                    context.CVPhienBans.Remove(old);
+                    if (old.TepDaSinh != null)
+                    {
+                        context.CVTepTins.Remove(old.TepDaSinh);
+                        if (!string.IsNullOrWhiteSpace(old.TepDaSinh.ObjectKey))
+                            staleFileKeys.Add(old.TepDaSinh.ObjectKey);
+                    }
+                    overflow--;
+                }
+            }
+        }
+
         try
         {
             await context.SaveChangesAsync(cancellationToken);
@@ -239,6 +277,20 @@ public class SaveCvVersionCommandHandler(
             if (generatedKey != null)
                 await fileStorageService.DeleteAsync(generatedKey, cancellationToken);
             throw;
+        }
+
+        // Dọn file phiên bản đã prune (best-effort; giữ nguyên file đang dùng).
+        foreach (var key in staleFileKeys)
+        {
+            if (key == cv.StorageKey) continue;
+            try
+            {
+                await fileStorageService.DeleteAsync(key, cancellationToken);
+            }
+            catch
+            {
+                // bỏ qua: file rác không chặn luồng lưu CV.
+            }
         }
 
         await CVUngVienListCache.InvalidateAsync(

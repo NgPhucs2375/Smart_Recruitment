@@ -1,3 +1,5 @@
+import type { CvThemeCustomization } from "../types/theme-studio";
+
 export type ManualCvSkillReference = {
   kyNangId: number | null;
   tenKyNang: string;
@@ -67,6 +69,8 @@ export type ManualCvContentPayload = {
     credentialUrl: string;
     thuTu: number;
   }>;
+  /** Delta giao diện theme Studio (null = không tùy biến). */
+  giaoDien?: CvThemeCustomization | null;
 };
 
 export type CreateManualCvPayload = {

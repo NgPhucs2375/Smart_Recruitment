@@ -20,6 +20,12 @@ namespace Domain.Entities
         public string TemplateId { get; set; }
         public PhuongThucTaoCV PhuongThucTao { get; set; }
 
+        /// <summary>
+        /// Delta tùy biến giao diện (theme Studio) do ứng viên chỉnh — JSON gọn,
+        /// chỉ chứa phần khác mặc định. Null = dùng nguyên theme gốc.
+        /// </summary>
+        public string? CauHinhJson { get; set; }
+
         public bool IsDefault { get; set; } = true;
 
         public bool IsDaXoa { get; set; } = false;

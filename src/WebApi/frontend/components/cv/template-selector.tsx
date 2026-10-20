@@ -17,6 +17,7 @@ import {
   type ResumeTemplateMeta,
   type TemplateCategory,
 } from "@/features/tao-cv/template-registry";
+import { themeMatchesId } from "@/features/tao-cv/services/theme-storage";
 import { CustomThemeOptions, usePublishedThemes } from "./custom-theme-picker";
 
 interface TemplateSelectorProps {
@@ -100,7 +101,10 @@ export function TemplatePicker({ selectedId, onSelect, cvId, compact = false }: 
   const { active, activeId, query, setQuery, category, setCategory, visible, templates } =
     useTemplateBrowse(selectedId);
   const published = usePublishedThemes();
-  const customActive = !active ? published.find((t) => t.id === selectedId) : undefined;
+  // Slug (canonical) hoặc id nội bộ của theme Studio đang được chọn.
+  const customActive = published.find((t) => themeMatchesId(t, selectedId));
+  // Khi đang chọn theme Studio thì không highlight trùng bên list template tĩnh.
+  const staticActiveId = customActive ? "" : activeId;
 
   // Select immediately and keep the popover open: closing + parent refetch
   // on every click caused the list jump and repeated-click feeling.
@@ -225,7 +229,7 @@ export function TemplatePicker({ selectedId, onSelect, cvId, compact = false }: 
           ) : (
             <>
             {visible.map((template) => {const { Component } = template;
-              const isActive = activeId === template.id;
+              const isActive = staticActiveId === template.id;
               const firstCat = TEMPLATE_CATEGORIES.find(
                 (c) => c.id !== "all" && (template.categories ?? []).includes(c.id),
               );
@@ -277,7 +281,7 @@ export function TemplatePicker({ selectedId, onSelect, cvId, compact = false }: 
                 </button>
               );
             })}
-            <CustomThemeOptions variant="row" activeId={activeId} onPick={pick} query={query} bare />
+            <CustomThemeOptions variant="row" activeId={selectedId} onPick={pick} query={query} bare />
             </>
           )}
           </div>
@@ -383,7 +387,7 @@ export function TemplateSelector({ selectedId, onSelect }: TemplateSelectorProps
           })}
         </div>
       )}
-      <CustomThemeOptions variant="card" activeId={activeId} onPick={onSelect} query={query} />
+      <CustomThemeOptions variant="card" activeId={selectedId} onPick={onSelect} query={query} />
     </div>
   );
 }

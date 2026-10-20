@@ -213,6 +213,9 @@ function normalizeCvContent(raw: unknown): CvDetailVm["noiDung"] {
       maXacMinh: text(item.maXacMinh ?? item.MaXacMinh),
       credentialUrl: text(item.credentialUrl ?? item.CredentialUrl),
     })),
+    giaoDien: (source.giaoDien ??
+      source.GiaoDien ??
+      undefined) as CvDetailVm["noiDung"]["giaoDien"],
   };
 }
 
