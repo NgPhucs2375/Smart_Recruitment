@@ -14,7 +14,8 @@ namespace WebApp.Server.Extensions
                 // Include XML comments for documentation
                 var xmlFilename = $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.xml";
                 var xmlPath = System.IO.Path.Combine(System.AppContext.BaseDirectory, xmlFilename);
-                c.IncludeXmlComments(xmlPath);
+                // Chỉ nạp khi file tồn tại (nếu tắt GenerateDocumentationFile thì
+                // IncludeXmlComments vô điều kiện sẽ ném lúc startup).
                 if (File.Exists(xmlPath))
                 {
                     c.IncludeXmlComments(xmlPath);

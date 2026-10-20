@@ -551,6 +551,7 @@ public sealed class AguiReasoningRoleMiddleware
         private readonly Stream _inner;
         private readonly Action<string> _onLine;
         private readonly StringBuilder _buffer = new();
+        private readonly object _lock = new();
 
         public SseTracingStream(Stream inner, Action<string> onLine)
         {
@@ -595,14 +596,20 @@ public sealed class AguiReasoningRoleMiddleware
 
         private void Capture(ReadOnlySpan<byte> bytes)
         {
-            _buffer.Append(Encoding.UTF8.GetString(bytes));
-            while (true)
+            // Đồng bộ như SseCaptureStream (AgentThreadHistoryMiddleware) — tránh
+            // hỏng _buffer nếu response body bị ghi đồng thời.
+            lock (_lock)
             {
-                var newline = _buffer.ToString().IndexOf('\n');
-                if (newline < 0) return;
-                var line = _buffer.ToString(0, newline).TrimEnd('\r');
-                _buffer.Remove(0, newline + 1);
-                _onLine(line);
+                _buffer.Append(Encoding.UTF8.GetString(bytes));
+                while (true)
+                {
+                    var text = _buffer.ToString();
+                    var newline = text.IndexOf('\n');
+                    if (newline < 0) return;
+                    var line = text[..newline].TrimEnd('\r');
+                    _buffer.Remove(0, newline + 1);
+                    _onLine(line);
+                }
             }
         }
     }

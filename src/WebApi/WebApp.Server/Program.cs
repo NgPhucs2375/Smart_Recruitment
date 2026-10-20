@@ -8,6 +8,7 @@ using WebApp.Server.Extensions;
 using WebApp.Server.Initializer;
 using WebApp.Server.Health;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.AspNetCore.HttpOverrides;
 using System.Threading.RateLimiting;
 using Minio;
 
@@ -112,6 +113,23 @@ _services.AddRateLimiter(options =>
                 Window = TimeSpan.FromMinutes(1),
                 QueueLimit = 0
             }));
+});
+// X-Forwarded-For/Proto: chỉ tin proxy đã biết, tránh client giả mạo IP.
+// Mặc định chỉ tin loopback (an toàn khi không có proxy). Khi chạy sau proxy
+// khác, khai báo IP proxy qua env "ForwardedHeaders:KnownProxies" (';'/',' phân tách).
+_services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    options.ForwardLimit = 1;
+    var knownProxies = _config["ForwardedHeaders:KnownProxies"];
+    if (!string.IsNullOrWhiteSpace(knownProxies))
+    {
+        options.KnownProxies.Clear();
+        foreach (var entry in knownProxies.Split(new[] { ';', ',' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            if (System.Net.IPAddress.TryParse(entry, out var proxy)) options.KnownProxies.Add(proxy);
+        }
+    }
 });
 // Liveness (luôn 200 khi process sống) + readiness dependency ở /health/ready.
 _services.AddSignalR();

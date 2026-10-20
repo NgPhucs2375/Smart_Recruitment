@@ -144,11 +144,12 @@ internal sealed class ScopedRecommenAdamAgent : AIAgent
 
         if (streamError is not null)
         {
+            // Không lộ chi tiết nội bộ (tên/loại exception, endpoint, SQL) ra end-user;
+            // chi tiết đã được ghi log ở trên. Chỉ trả thông báo chung, dễ hiểu.
             yield return new AgentResponseUpdate
             {
                 Contents = [new TextContent(
-                    $"Xin lỗi, Adam gặp sự cố khi xử lý (mã: {streamError.GetType().Name}). " +
-                    $"Chi tiết: {TrimError(streamError.Message)} " +
+                    "Xin lỗi, Adam gặp sự cố khi xử lý. " +
                     "Vui lòng thử lại hoặc bắt đầu đoạn chat mới.")]
             };
         }
@@ -176,14 +177,6 @@ internal sealed class ScopedRecommenAdamAgent : AIAgent
             agent,
             services.GetRequiredService<SharedStateStore>(),
             services.GetRequiredService<ILogger<SharedStateAgent>>());
-    }
-
-    private static string TrimError(string? message)
-    {
-        if (string.IsNullOrWhiteSpace(message))
-            return "không rõ nguyên nhân.";
-        var singleLine = message.ReplaceLineEndings(" ").Trim();
-        return singleLine.Length <= 300 ? singleLine : singleLine[..300] + "...";
     }
 
     private static bool IsJobRecommendationRequest(IEnumerable<ChatMessage> messages)

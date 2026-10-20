@@ -1471,8 +1471,11 @@ namespace Infrastructure.Identity.Services
                 foreach (var token in user.RefreshTokens)
                 {
                     if (family.Contains(token)) continue;
-                    bool isAncestor = string.Equals(token.ReplacedByToken, family.Last().Token, StringComparison.Ordinal);
-                    bool isDescendant = family.Any(f => string.Equals(f.Token, token.ReplacedByToken, StringComparison.Ordinal));
+                    // ReplacedByToken = token KẾ NHIỆM (token mà token này bị thay bằng).
+                    // ancestor: token này bị thay bằng một token trong family.
+                    // descendant: một token trong family bị thay bằng chính token này.
+                    bool isAncestor = family.Any(f => string.Equals(token.ReplacedByToken, f.Token, StringComparison.Ordinal));
+                    bool isDescendant = family.Any(f => string.Equals(f.ReplacedByToken, token.Token, StringComparison.Ordinal));
                     if (isAncestor || isDescendant)
                     {
                         family.Add(token);

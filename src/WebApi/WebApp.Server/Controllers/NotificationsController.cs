@@ -123,7 +123,25 @@ namespace WebApp.Server.Controllers
             });
         }
 
+        // Khóa theo user để 2 GET song song không cùng vượt qua bước kiểm tra
+        // "đã gửi hôm nay" rồi gửi trùng digest (dedupe hiện là check-then-insert).
+        private static readonly System.Collections.Concurrent.ConcurrentDictionary<int, SemaphoreSlim> DigestGates = new();
+
         private async Task EnsureRecommendationDigestAsync(int userId)
+        {
+            var gate = DigestGates.GetOrAdd(userId, _ => new SemaphoreSlim(1, 1));
+            await gate.WaitAsync(HttpContext.RequestAborted);
+            try
+            {
+                await EnsureRecommendationDigestCoreAsync(userId);
+            }
+            finally
+            {
+                gate.Release();
+            }
+        }
+
+        private async Task EnsureRecommendationDigestCoreAsync(int userId)
         {
             var today = DateTime.UtcNow.Date;
             var alreadySent = await _context.Notifications

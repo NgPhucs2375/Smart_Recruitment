@@ -6,6 +6,7 @@ using Application.Exceptions;
 using Application.Interfaces;
 using Infrastructure.Identity.Features.Users.Queries.GetMeByToken;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.RateLimiting;
 using Domain.Enums;
 using Application.Wrappers;
 
@@ -30,6 +31,7 @@ namespace WebApp.Server.Controllers
         }
 
         // Đăng ký tài khoản
+        [EnableRateLimiting("auth-mail")]
         [HttpPost("register")]
         public async Task<IActionResult> RegisterAsync([FromBody] YeuCauDangKy request)
         {
@@ -45,6 +47,7 @@ namespace WebApp.Server.Controllers
         }
 
         // Yêu cầu gửi email quên mật khẩu
+        [EnableRateLimiting("auth-mail")]
         [HttpPost("forgot-password")]
         public async Task<IActionResult> ForgotPassword([FromBody] YeuCauQuenMatKhau model)
         {
@@ -55,6 +58,7 @@ namespace WebApp.Server.Controllers
         }
 
         // Đặt lại mật khẩu
+        [EnableRateLimiting("auth-mail")]
         [HttpPost("resend-verification-email")]
         public async Task<IActionResult> ResendVerificationEmail([FromBody] YeuCauQuenMatKhau model)
         {
@@ -113,6 +117,7 @@ namespace WebApp.Server.Controllers
             return Ok(await _accountService.GitHubLoginAsync(request, GenerateIPAddress()));
         }
 
+        [EnableRateLimiting("auth-mail")]
         [HttpPost("request-magic-link")]
         public async Task<IActionResult> RequestMagicLinkAsync([FromBody] YeuCauMagicLink request)
         {
@@ -127,11 +132,9 @@ namespace WebApp.Server.Controllers
         }
         private string GenerateIPAddress()
         {
-           if (Request.Headers.TryGetValue("X-Forwarded-For", out var forwardedFor))
-            {
-                return forwardedFor.ToString();
-            }
-
+            // Chỉ dùng RemoteIpAddress (đã được ForwardedHeaders middleware xử lý
+            // và chỉ tin proxy đã cấu hình). KHÔNG đọc thô X-Forwarded-For do client
+            // gửi — tránh giả mạo IP ghi vào audit refresh-token/login.
             return HttpContext.Connection.RemoteIpAddress?.MapToIPv4().ToString() ?? "127.0.0.1";
         }
 
