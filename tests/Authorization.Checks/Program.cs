@@ -26,6 +26,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using WebApp.Server.Services;
 using System.Text.Json;
@@ -107,16 +108,23 @@ Check((await cvList.Handle(new() { _end = 20 }, default)).Data.Count == 2, "Admi
 current.Value = new() { Id = 1, VaiTro = VaiTroNguoiDung.UNG_VIEN };
 Check((await cvList.Handle(new() { _end = 20 }, default)).Data.Select(x => x.Id).SequenceEqual([11]), "Admin-to-candidate role change cannot reuse privileged list cache");
 var webAssembly = typeof(CurrentNguoiDungService).Assembly;
+var toolCacheType = webAssembly.GetType("WebApp.Server.Agent.Cache.AgentToolCache")!;
+var toolCache = Activator.CreateInstance(
+    toolCacheType,
+    new MemoryDistributedCache(Options.Create(new MemoryDistributedCacheOptions())),
+    current,
+    new ConfigurationBuilder().Build(),
+    typeof(NullLogger<>).MakeGenericType(toolCacheType).GetField("Instance")!.GetValue(null))!;
 foreach (var spec in new[] {
-    ("WebApp.Server.Agent.Adam.Tools.CvQueryTools", "GetCvDetailAsync", 4, new object[] { 11, CancellationToken.None }),
-    ("WebApp.Server.Agent.RecommenAdam.Candidate.CandidateTools", "GetJobDetailsAsync", 3, new object[] { 41, CancellationToken.None }),
-    ("WebApp.Server.Agent.RecommenAdam.Recruiter.Tools.RecruiterTools", "GetApplicationsAsync", 6, new object[] { (int?)41, 20, CancellationToken.None })
+    ("WebApp.Server.Agent.Adam.Tools.CvQueryTools", "GetCvDetailAsync", 5, 3, 4, new object[] { 11, CancellationToken.None }),
+    ("WebApp.Server.Agent.RecommenAdam.Candidate.CandidateTools", "GetJobDetailsAsync", 4, 2, 3, new object[] { 41, CancellationToken.None }),
+    ("WebApp.Server.Agent.RecommenAdam.Recruiter.Tools.RecruiterTools", "GetApplicationsAsync", 7, 5, 6, new object[] { (int?)41, 20, CancellationToken.None })
 })
 {
     var type = webAssembly.GetType(spec.Item1)!;
-    var arguments = new object?[spec.Item3]; arguments[^1] = new DenyPermissions();
+    var arguments = new object?[spec.Item3]; arguments[spec.Item4] = new DenyPermissions(); arguments[spec.Item5] = toolCache;
     var tools = Activator.CreateInstance(type, arguments)!;
-    await Denied(async () => await (Task)type.GetMethod(spec.Item2)!.Invoke(tools, spec.Item4)!, $"AI tool {spec.Item2} cannot bypass withdrawn endpoint permission");
+    await Denied(async () => await (Task)type.GetMethod(spec.Item2)!.Invoke(tools, spec.Item6)!, $"AI tool {spec.Item2} cannot bypass withdrawn endpoint permission");
 }
 
 var temp = Path.Combine(Path.GetTempPath(), "opencode", "authorization-check-" + Guid.NewGuid().ToString("N"));

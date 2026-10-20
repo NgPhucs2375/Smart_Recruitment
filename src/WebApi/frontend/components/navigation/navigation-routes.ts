@@ -12,7 +12,7 @@ export const NAVIGABLE_ROUTES = {
   "cv-templates": { href: "/mau-cv", label: "Mẫu CV" },
   candidates: { href: "/ung-vien", label: "Ứng viên" },
   employees: { href: "/nhan-su", label: "Nhân sự" },
-  "recruiter-profile": { href: "/ho-so-nha-tuyen-dung", label: "Hồ sơ nhà tuyển dụng" },
+  "recruiter-profile": { href: "/tai-khoan", label: "Tài khoản" },
   companies: { href: "/doanh-nghiep", label: "Doanh nghiệp" },
   reports: { href: "/reports", label: "Báo cáo" },
   settings: { href: "/settings", label: "Cài đặt" },

@@ -9,7 +9,7 @@ export function CvCompletion({ progress, items }: { progress: number; items: { l
     <DropdownMenu modal={false}>
       <DropdownMenuTrigger className="w-full rounded-lg px-2 py-3 text-left transition hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
         <span className="flex items-center justify-between text-xs font-medium text-muted-foreground">
-          <span>CV completeness</span><span className="font-mono text-foreground">{progress}%</span>
+          <span>Độ hoàn thiện CV</span><span className="font-mono text-foreground">{progress}%</span>
         </span>
         <Progress value={progress} className="mt-2 h-1.5" />
       </DropdownMenuTrigger>

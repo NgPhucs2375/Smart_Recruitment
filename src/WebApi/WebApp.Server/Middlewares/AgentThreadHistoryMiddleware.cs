@@ -159,6 +159,9 @@ internal sealed class AgentThreadHistoryMiddleware : IMiddleware
     private static string? GetString(JsonObject obj, string name)
         => obj[name] is JsonValue value && value.TryGetValue<string>(out var s) ? s : null;
 
+    private static string? GetArgsDelta(JsonObject obj)
+        => GetString(obj, "delta") ?? GetString(obj, "args");
+
     private static List<JsonNode> ParseEvents(IReadOnlyList<string> capturedLines)
     {
         var events = new List<JsonNode>();
@@ -275,18 +278,31 @@ internal sealed class AgentThreadHistoryMiddleware : IMiddleware
 
         void FlushText()
         {
-            if (currentTextMessageId == null) return;
-            var message = new JsonObject
-            {
-                ["id"] = currentTextMessageId,
-                ["role"] = "assistant",
-                ["content"] = currentText.ToString()
-            };
-            if (currentToolCalls.Count > 0) message["toolCalls"] = currentToolCalls.DeepClone();
-            messages.Add(message);
+            var hasText = currentText.Length > 0;
+            var hasCalls = currentToolCalls.Count > 0;
+            // Không text mở mà cũng không có toolCalls chờ → không có gì để flush
+            // (tránh lặp lại message trước đó).
+            if (currentTextMessageId == null && !hasCalls) return;
+            var messageId = currentTextMessageId ?? Guid.NewGuid().ToString("n");
+            var text = currentText.ToString();
+            var calls = currentToolCalls;
             currentTextMessageId = null;
             currentText.Clear();
             currentToolCalls = new JsonArray();
+            // Turn assistant hoàn toàn rỗng (không text, không toolCalls):
+            // validator strict của Gemini từ chối cả request
+            // ("function call turn comes immediately..."), nên bỏ hẳn.
+            if (!hasText && !hasCalls) return;
+            var message = new JsonObject
+            {
+                ["id"] = messageId,
+                ["role"] = "assistant",
+            };
+            // Content rỗng kèm toolCalls (VD model chỉ gọi tool không nói gì)
+            // thì bỏ field content: giữ "" cũng bị strict validator soi.
+            if (hasText) message["content"] = text;
+            if (hasCalls) message["toolCalls"] = calls.DeepClone();
+            messages.Add(message);
         }
 
         foreach (var e in events)
@@ -314,9 +330,10 @@ internal sealed class AgentThreadHistoryMiddleware : IMiddleware
                     break;
 
                 case "TOOL_CALL_ARGS":
+                    // AG-UI TOOL_CALL_ARGS mang fragment ở field "delta"
+                    // (spec chính thức); giữ "args" làm fallback cho bản preview cũ.
                     if (currentToolCallId != null
-                        && obj["args"] is JsonValue argsValue
-                        && argsValue.TryGetValue<string>(out var argsText))
+                        && GetArgsDelta(obj) is { } argsText)
                     {
                         pendingArgs[currentToolCallId].Append(argsText);
                     }
@@ -325,6 +342,10 @@ internal sealed class AgentThreadHistoryMiddleware : IMiddleware
                 case "TOOL_CALL_END":
                     if (currentToolCallId != null)
                     {
+                        // Không bao giờ persist arguments hỏng ("{doc1}{doc2}")
+                        // vào Redis: history hỏng sẽ replay lại ở mọi run sau
+                        // và làm MapAGUIServer nổ JsonException 500 vĩnh viễn.
+                        var rawArgs = pendingArgs.GetValueOrDefault(currentToolCallId)?.ToString();
                         currentToolCalls.Add(new JsonObject
                         {
                             ["id"] = currentToolCallId,
@@ -332,7 +353,7 @@ internal sealed class AgentThreadHistoryMiddleware : IMiddleware
                             ["function"] = new JsonObject
                             {
                                 ["name"] = pendingToolNames.GetValueOrDefault(currentToolCallId) ?? "",
-                                ["arguments"] = pendingArgs.GetValueOrDefault(currentToolCallId)?.ToString() ?? ""
+                                ["arguments"] = AguiJsonRepair.NormalizeArguments(rawArgs)
                             }
                         });
                         pendingArgs.Remove(currentToolCallId);

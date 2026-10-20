@@ -11,6 +11,9 @@ const A4_RATIO = 297 / 210;
 /** A4 @96dpi — mốc quy đổi hằng px cứng thành tỉ lệ bất biến zoom. */
 const A4_PX = 794;
 
+/** Giới hạn trang preview (screen) — tránh render 7+ sheet nặng. Print giữ đủ. */
+const MAX_PAGES = 2;
+
 /** Ngưỡng text chrome: khối không-item dài hơn mức này không được đu theo. */
 const CHROME_TEXT_LIMIT = 200;
 
@@ -188,6 +191,10 @@ export function CvPaginatedPreview({ resume, Component, templateKey, onPageCount
     const oversize = new Set<number>(oversizeList);
     oversizeRef.current = oversize;
 
+    // Giới hạn preview tối đa MAX_PAGES trang — quá thì cắt và hiện note.
+    const cappedPageCount = Math.min(pageCount, MAX_PAGES);
+    const truncated = pageCount > MAX_PAGES;
+
     // PINNED-OVERFLOW: khối chrome dài (items rỗng → chỉ hiện trang đầu, vd.
     // "giới thiệu bản thân" rất dài do prompt dài mà template không gắn
     // .cv-section-item) nếu tràn khỏi sức chứa trang 1 thì sheet 1 phải dãn
@@ -210,10 +217,16 @@ export function CvPaginatedPreview({ resume, Component, templateKey, onPageCount
     pinnedOverflowRef.current = pinnedOverflow;
     pageOfRef.current = pageOf;
 
-    setPages(Array.from({ length: pageCount }, (_, p) => p));
-    if (lastCountRef.current !== pageCount) {
-      lastCountRef.current = pageCount;
-      onPageCount?.(pageCount);
+    setPages(Array.from({ length: cappedPageCount }, (_, p) => p));
+    if (lastCountRef.current !== cappedPageCount) {
+      lastCountRef.current = cappedPageCount;
+      onPageCount?.(cappedPageCount);
+    }
+    // Ghi note truncated vào root để render banner.
+    const root = measure.closest(".cv-pages-root") as HTMLElement | null;
+    if (root) {
+      root.dataset.truncated = truncated ? "true" : "false";
+      root.dataset.totalPages = String(pageCount);
     }
   }, [onPageCount]);
 
@@ -490,10 +503,28 @@ export function CvPaginatedPreview({ resume, Component, templateKey, onPageCount
 
   return (
     <div className="cv-pages-root" data-cv-document data-cv-surface="preview">
+      {pages && pages.length >= MAX_PAGES && (
+        <TruncatedBanner maxPages={MAX_PAGES} />
+      )}
       <div ref={pagesRef} className="cv-pages cv-preview-crossfade" />
       <div ref={measureRef} className="cv-measure" aria-hidden="true">
         <Component data={resume} />
       </div>
     </div>
+  );
+}
+
+function TruncatedBanner({ maxPages }: { maxPages: number }) {
+  return (
+    <p
+      style={{
+        textAlign: "center",
+        fontSize: 12,
+        color: "var(--color-text-tertiary, #888)",
+        margin: "4px 0 8px",
+      }}
+    >
+      Preview hiển thị tối đa {maxPages} trang — in/Xuất PDF sẽ đủ toàn bộ.
+    </p>
   );
 }

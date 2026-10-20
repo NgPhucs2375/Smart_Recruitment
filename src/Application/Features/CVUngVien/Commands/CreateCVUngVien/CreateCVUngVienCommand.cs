@@ -39,20 +39,7 @@ public class CreateCVUngVienCommandHandler(
         // check ho so ung vien co dung khong
         var hoSo = await context.HoSoUngViens
             .FirstOrDefaultAsync(x => x.Id == request.HoSoUngVienId, cancellationToken);
-        var extension = Path.GetExtension(request.File.FileName);
-        var objectName =
-            $"cvs/{request.HoSoUngVienId}/{DateTime.UtcNow:yyyy/MM}/" +
-            $"{Guid.NewGuid():N}{extension}";
 
-        await using var stream = request.File.OpenReadStream();
-
-        await fileStorageService.UploadAsync(
-            stream,
-            objectName,
-            "application/pdf",
-            request.File.Length,
-            cancellationToken);
-            
         if (hoSo == null)
         {
             return new Response<int>("Hồ sơ ứng viên không tồn tại.");
@@ -69,6 +56,22 @@ public class CreateCVUngVienCommandHandler(
         {
             return new Response<int>($"Không tìm thấy kỹ năng có ID: {string.Join(", ", invalidSkillIds)}.");
         }
+
+        // Mọi validation xong mới đẩy file lên storage: tránh file mồ côi
+        // khi request bị từ chối (trước đây upload chạy trước mọi check).
+        var extension = Path.GetExtension(request.File.FileName);
+        var objectName =
+            $"cvs/{request.HoSoUngVienId}/{DateTime.UtcNow:yyyy/MM}/" +
+            $"{Guid.NewGuid():N}{extension}";
+
+        await using var stream = request.File.OpenReadStream();
+
+        await fileStorageService.UploadAsync(
+            stream,
+            objectName,
+            "application/pdf",
+            request.File.Length,
+            cancellationToken);
 
         var hasAnyCv = await context.CVUngViens.AnyAsync(
             x => x.HoSoUngVienId == hoSo.Id && !x.IsDaXoa,

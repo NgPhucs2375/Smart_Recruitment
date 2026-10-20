@@ -6,7 +6,6 @@ using Application.Exceptions;
 using Application.Interfaces;
 using Infrastructure.Identity.Features.Users.Queries.GetMeByToken;
 using Microsoft.AspNetCore.Hosting;
-using Casbin;
 using Domain.Enums;
 using Application.Wrappers;
 
@@ -18,7 +17,7 @@ namespace WebApp.Server.Controllers
     {
         private readonly IAccountService _accountService;
 
-        public AccountController(IAccountService accountService, IWebHostEnvironment webEnvironment, Enforcer enforcer) : base(webEnvironment, enforcer)
+        public AccountController(IAccountService accountService, IWebHostEnvironment webEnvironment) : base(webEnvironment)
         {
             _accountService = accountService;
         }

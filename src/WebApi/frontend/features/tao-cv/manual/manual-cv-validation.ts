@@ -15,6 +15,13 @@ import {
 const MSG_CONTROL_CHARS = "Nội dung chứa ký tự điều khiển không hợp lệ.";
 const MSG_TOO_LONG = "Nội dung vượt quá độ dài cho phép.";
 
+/** Mô tả ngắn giá trị sai (bỏ control chars, cắt bớt) để user biết ô đang chứa gì. */
+function describeValue(raw: string): string {
+  const cleaned = raw.replace(/[\u0000-\u001f\u007f]/g, " ").replace(/\s+/g, " ").trim();
+  if (!cleaned) return "(trống)";
+  return cleaned.length > 60 ? `"${cleaned.slice(0, 60)}…"` : `"${cleaned}"`;
+}
+
 /** Tên riêng/địa chỉ/công ty: cấm control chars + giới hạn độ dài mềm. */
 function checkText(value: string, label: string, max: number): string | null {
   const v = value.trim();
@@ -111,7 +118,7 @@ export function validateManualCv(data: CvFormData): string | null {
     const badProj = checkText(proj.tenDuAn, "Tên dự án", 100);
     if (badProj) return badProj;
     if (proj.link?.trim() && !isValidHttpUrl(proj.link)) {
-      return `Link dự án "${proj.tenDuAn || "chưa đặt tên"}": ${MSG_URL}`;
+      return `Link dự án "${proj.tenDuAn || "chưa đặt tên"}": ${MSG_URL} Giá trị hiện tại: ${describeValue(proj.link)}`;
     }
   }
   for (const cert of data.chungChi) {

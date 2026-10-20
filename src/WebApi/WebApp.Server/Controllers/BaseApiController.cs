@@ -1,6 +1,5 @@
 using System.Security.Claims;
 using Application.Exceptions;
-using Casbin;
 using Infrastructure.Identity.Contexts;
 using Infrastructure.Identity.Services;
 using MediatR;
@@ -15,10 +14,9 @@ public abstract class BaseApiController : ControllerBase
 {
     private IMediator? _mediator;
     protected IMediator Mediator => _mediator ??= HttpContext.RequestServices.GetRequiredService<IMediator>();
-    protected readonly Enforcer _enforcer;
     protected readonly string _webRootPath;
-    protected BaseApiController(IWebHostEnvironment environment, Enforcer enforcer)
-    { _webRootPath = environment.WebRootPath ?? ""; _enforcer = enforcer; }
+    protected BaseApiController(IWebHostEnvironment environment)
+    { _webRootPath = environment.WebRootPath ?? ""; }
 
     protected async Task<IActionResult> EnforcePermissionAndExecute(string resource, string action, Func<Task<IActionResult>> execute)
     {

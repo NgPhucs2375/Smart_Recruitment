@@ -57,13 +57,20 @@ public class GetAllDanhMucNghesQueryHandler(
 
         if (!string.IsNullOrWhiteSpace(cached))
         {
-            var cachedResponse =
-                JsonSerializer.Deserialize<
-                    Response<List<GetAllDanhMucNghesViewModel>>>(
-                        cached
-                    );
+            try
+            {
+                var cachedResponse =
+                    JsonSerializer.Deserialize<
+                        Response<List<GetAllDanhMucNghesViewModel>>>(
+                            cached
+                        );
 
-            if(cachedResponse != null) return cachedResponse;
+                if(cachedResponse != null) return cachedResponse;
+            }
+            catch (JsonException)
+            {
+                // Cache hỏng: bỏ qua, đọc tiếp từ DB thay vì nổ 500.
+            }
         }
 
         if (!string.IsNullOrWhiteSpace(filter))

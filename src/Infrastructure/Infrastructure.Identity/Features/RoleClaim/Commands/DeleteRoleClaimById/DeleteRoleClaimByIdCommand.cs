@@ -13,7 +13,7 @@ public class DeleteRoleClaimByIdCommand : IRequest<Response<IdentityRoleClaim<st
 {
     public int Id { get; set; }
 
-    public class DeleteRoleClaimByIdCommandHandler(IdentityContext context, PermissionCache cache)
+    public class DeleteRoleClaimByIdCommandHandler(IdentityContext context)
         : IRequestHandler<DeleteRoleClaimByIdCommand, Response<IdentityRoleClaim<string>>>
     {
         public async Task<Response<IdentityRoleClaim<string>>> Handle(DeleteRoleClaimByIdCommand request, CancellationToken ct)
@@ -21,7 +21,6 @@ public class DeleteRoleClaimByIdCommand : IRequest<Response<IdentityRoleClaim<st
             var claim = await context.RoleClaims.FindAsync([request.Id], ct) ?? throw new ApiException("Không tìm thấy quyền.", 404);
             context.RoleClaims.Remove(claim);
             await context.SaveChangesAsync(ct);
-            await cache.RefreshAsync();
             return new Response<IdentityRoleClaim<string>>(claim);
         }
     }

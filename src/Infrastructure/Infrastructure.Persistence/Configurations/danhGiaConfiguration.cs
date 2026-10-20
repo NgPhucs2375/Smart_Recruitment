@@ -20,7 +20,12 @@ namespace Infrastructure.Persistence.Configurations
             builder.Property(x => x.NgayPhanHoi)
                    .IsRequired(false);
 
-            // Quan hệ 1 - N với DonUngTuyen (Một đơn ứng tuyển có thể có các lượt đánh giá/phản hồi)
+            // Một đơn ứng tuyển chỉ có một đánh giá: unique index biến
+            // check-then-insert ở Create/UpdateDanhGia thành guard chống race.
+            builder.HasIndex(x => x.DonUngTuyenId)
+                   .IsUnique();
+
+            // Quan hệ 1 - 1 với DonUngTuyen (Một đơn ứng tuyển có tối đa một đánh giá/phản hồi)
             builder.HasOne(x => x.DonUngTuyen)
                    .WithMany(x => x.DanhGias)
                    .HasForeignKey(x => x.DonUngTuyenId)

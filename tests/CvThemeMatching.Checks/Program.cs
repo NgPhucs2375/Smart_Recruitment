@@ -69,7 +69,7 @@ Check(!validator.Validate(new GetSuggestedCvThemesQuery { ViTri = new string('a'
 Check(!validator.Validate(new GetSuggestedCvThemesQuery { NhanManh = ["unknown"] }).IsValid, "Only supported emphasis sections accepted");
 var assembly = typeof(WebApp.Server.Services.CurrentNguoiDungService).Assembly;
 var toolType = assembly.GetType("WebApp.Server.Agent.Adam.Tools.CvQueryTools")!;
-var tool = Activator.CreateInstance(toolType, new object?[] { null, null, null, new Deny() })!;
+var tool = Activator.CreateInstance(toolType, new object?[] { null, null, null, new Deny(), null })!;
 var method = toolType.GetMethod("SuggestCvThemeAsync")!;
 var signature = method.GetParameters().Select(p => p.ParameterType).Append(method.ReturnType).ToArray();
 var function = AIFunctionFactory.Create(method.CreateDelegate(System.Linq.Expressions.Expression.GetDelegateType(signature), tool));

@@ -39,9 +39,11 @@ namespace Infrastructure.Identity.Features.Role.Queries.GetPagingRole
             {
                 if (request.id != null && request.id.Count > 0)
                 {
+                    // Chỉ trả Id/Name — không lọt field nội bộ của IdentityRole.
                     var roleIds = await _context.Roles
                         .AsNoTracking()
                         .Where(x => request.id.Contains(x.Id))
+                        .Select(x => new { x.Id, x.Name })
                         .ToListAsync();
                     return new Response<object>(true, roleIds, message: "Success");
                 }
@@ -54,15 +56,17 @@ namespace Infrastructure.Identity.Features.Role.Queries.GetPagingRole
                 }
 
                 var roles = await PagedList<IdentityRole>.ToPagedList(roleQuery.OrderByDynamic(request._sort, request._order).AsNoTracking(), request._start, request._end);
+                // Project sau paging (giữ nguyên sort/filter trên entity): chỉ trả Id/Name.
+                var projected = new PagedList<object>(roles.Select(r => new { r.Id, r.Name }).ToList<object>(), roles._total, roles._start, roles._end);
                 return new Response<object>(true, new
                 {
-                    roles._start,
-                    roles._end,
-                    roles._total,
-                    roles._hasNext,
-                    roles._hasPrevious,
-                    roles._pages,
-                    _data = roles
+                    projected._start,
+                    projected._end,
+                    projected._total,
+                    projected._hasNext,
+                    projected._hasPrevious,
+                    projected._pages,
+                    _data = projected
                 }, message: "Success");
             }
         }

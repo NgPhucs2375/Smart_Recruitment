@@ -213,8 +213,8 @@ export default function AdminDoanhNghiepPage() {
                 <Input id="diachi" value={form.DiaChi} onChange={set("DiaChi")} />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="logo">Logo URL</Label>
-                <Input id="logo" value={form.LogoUrl} onChange={set("LogoUrl")} />
+                <Label htmlFor="logo">Liên kết logo</Label>
+                <Input id="logo" value={form.LogoUrl} onChange={set("LogoUrl")} placeholder="https://..." />
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="mst">Mã số thuế</Label>

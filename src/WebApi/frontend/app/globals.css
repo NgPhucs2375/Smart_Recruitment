@@ -820,6 +820,36 @@ html {
   box-shadow: 0 16px 34px rgba(37, 99, 235, 0.42), 0 0 0 8px rgba(37, 99, 235, 0.14) !important;
 }
 
+/* Nút "Chat mới" — nằm ngay phía trên nút chat Adam, cùng vị trí fixed. */
+.adam-new-chat-btn {
+  position: fixed;
+  bottom: 88px;
+  right: 24px;
+  z-index: 50;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 9999px;
+  border: 1px solid #1d4ed8;
+  background: #ffffff;
+  color: #1d4ed8;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.18);
+  transition: transform 150ms ease, box-shadow 150ms ease;
+}
+.adam-new-chat-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.28);
+}
+.dark .adam-new-chat-btn {
+  background: #1e293b;
+  color: #60a5fa;
+  border-color: #2563eb;
+}
+
 /* CopilotPopup v2 đặt panel trong một wrapper fixed inset-0 có data-copilotkit.
    Reset background của wrapper để nó không thành một lớp full-screen phía sau
    panel thật; chỉ panel [data-copilot-popup] được phép có nền. */

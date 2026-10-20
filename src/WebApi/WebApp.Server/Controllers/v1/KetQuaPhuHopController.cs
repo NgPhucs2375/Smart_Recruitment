@@ -5,7 +5,6 @@ using Application.Features.KetQuaPhuHop.Commands.CreateKetQuaPhuHop;
 using Application.Features.KetQuaPhuHop.Commands.UpdateKetQuaPhuHop;
 using Application.Features.KetQuaPhuHop.Commands.DeleteKetQuaPhuHop;
 using AutoMapper;
-using Casbin;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
@@ -23,9 +22,8 @@ namespace WebApp.Server.Controllers.v1
 
         public KetQuaPhuHopController(
             IWebHostEnvironment hostingEnvironment,
-            Enforcer enforcer,
             IMapper mapper)
-            : base(hostingEnvironment, enforcer)
+            : base(hostingEnvironment)
         {
             _mapper = mapper;
         }

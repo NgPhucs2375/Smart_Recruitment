@@ -220,17 +220,21 @@ async function fetchAndSaveMe(token: string): Promise<MeResponse | null> {
 // ─── Refresh token ────────────────────────────────────────────────────────────
 
 let sessionEpoch = 0;
-let refreshInFlight: Promise<boolean> | null = null;
 
-async function attemptRefresh(): Promise<boolean> {
+/** Kết quả refresh: ok = xoay thành công; stale = tab khác vừa xoay token
+ *  (localStorage đã có token mới, KHÔNG phải lỗi); fail = bị từ chối thật. */
+type RefreshOutcome = "ok" | "stale" | "fail";
+let refreshInFlight: Promise<RefreshOutcome> | null = null;
+
+async function attemptRefresh(): Promise<RefreshOutcome> {
   if (!refreshInFlight) refreshInFlight = refreshOnce().finally(() => { refreshInFlight = null; });
   return refreshInFlight;
 }
 
-async function refreshOnce(): Promise<boolean> {
+async function refreshOnce(): Promise<RefreshOutcome> {
   const epoch = sessionEpoch;
   const CurrentrefreshToken = getRefreshToken();
-  if (!CurrentrefreshToken) return false;
+  if (!CurrentrefreshToken) return "fail";
 
   try {
     const res = await fetch(`${API_URL}/refresh-token`, {
@@ -239,18 +243,20 @@ async function refreshOnce(): Promise<boolean> {
       body: JSON.stringify({ Token: CurrentrefreshToken }),
       signal: AbortSignal.timeout(AUTH_REQUEST_TIMEOUT_MS),
     });
-    if (!res.ok) return false;
+    if (!res.ok) return "fail";
     const body = await res.json();
     const data = body?.Data ?? body?.data;
     const jwToken = data?.JWToken ?? data?.jwToken;
     const newRefreshToken = data?.RefreshToken ?? data?.refreshToken;
-    if (!jwToken || epoch !== sessionEpoch || getRefreshToken() !== CurrentrefreshToken) return false;
-    
+    // Token trong localStorage đã đổi (tab khác xoay trước) → dùng token mới
+    // của tab kia, không coi là lỗi và không được xoá phiên.
+    if (!jwToken || epoch !== sessionEpoch || getRefreshToken() !== CurrentrefreshToken) return "stale";
+
     saveTokens(jwToken, newRefreshToken);
     await fetchAndSaveMe(jwToken);
-    return true;
+    return "ok";
   } catch {
-    return false;
+    return "fail";
   }
 }
 
@@ -301,12 +307,21 @@ export async function getValidToken(): Promise<string | null> {
   const exp = parseJwtExp(token);
   if (exp !== null && exp - Date.now() > 60_000) return token;
   // Hết hạn hoặc không đọc được exp → thử refresh
-  const refreshed = await attemptRefresh();
-  if (!refreshed) {
-    clearAuth();
+  const outcome = await attemptRefresh();
+  if (outcome === "ok") return getToken();
+  if (outcome === "stale") {
+    // Tab khác vừa xoay token thành công: dùng token mới đã lưu trong
+    // localStorage. Tuyệt đối KHÔNG clearAuth ở nhánh này.
+    const latest = getToken();
+    if (latest) {
+      const latestExp = parseJwtExp(latest);
+      if (latestExp === null || latestExp - Date.now() > 0) return latest;
+    }
     return null;
   }
-  return getToken();
+  // Refresh bị từ chối thật (token bị thu hồi/không hợp lệ) → đăng xuất
+  clearAuth();
+  return null;
 }
 
 /** Re-fetch /me and refresh the cached identity + permissions in localStorage. */
@@ -321,7 +336,8 @@ export async function refreshIdentity(): Promise<boolean> {
 
 /** Force a new JWT after a server-side role change. */
 export async function refreshSession(): Promise<boolean> {
-  return attemptRefresh();
+  const outcome = await attemptRefresh();
+  return outcome === "ok" || outcome === "stale";
 }
 
 // ─── AuthProvider ─────────────────────────────────────────────────────────────

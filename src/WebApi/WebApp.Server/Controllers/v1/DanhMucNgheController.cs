@@ -5,7 +5,6 @@ using Application.Features.DanhMucNghe.Commands.UpdateDanhMucNghe;
 using Application.Features.DanhMucNghe.Queries.GetAllDanhMucNghes;
 using Application.Features.DanhMucNghe.Queries.GetDanhMucNgheById;
 using AutoMapper;
-using Casbin;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -19,9 +18,8 @@ namespace WebApp.Server.Controllers.v1
 
         public DanhMucNgheController(
             Microsoft.AspNetCore.Hosting.IWebHostEnvironment hostingEnvironment,
-            Enforcer enforcer,
             IMapper mapper)
-            : base(hostingEnvironment, enforcer)
+            : base(hostingEnvironment)
         {
             _mapper = mapper;
         }

@@ -87,6 +87,7 @@ internal sealed class ScopedRecommenAdamAgent : AIAgent
         timeout.CancelAfter(_maxStreamingRunTime);
 
         var timedOut = false;
+        Exception? streamError = null;
         var enumerator = agent
             .RunStreamingAsync(messageList, session, options, timeout.Token)
             .GetAsyncEnumerator(timeout.Token);
@@ -106,8 +107,11 @@ internal sealed class ScopedRecommenAdamAgent : AIAgent
                 }
                 catch (Exception ex) when (ex is not OperationCanceledException)
                 {
+                    // Không yield trong catch (C# cấm): ghi nhận rồi break,
+                    // trả lời text gọn ở dưới để client không chỉ thấy RUN_ERROR câm.
                     _logger.LogError(ex, "Adam streaming run failed while reading an update.");
-                    throw;
+                    streamError = ex;
+                    break;
                 }
 
                 if (!hasNext) break;
@@ -137,6 +141,17 @@ internal sealed class ScopedRecommenAdamAgent : AIAgent
                 Contents = [new TextContent($"Model chưa phản hồi trong {_maxStreamingRunTime.TotalSeconds:0} giây. Vui lòng thử lại hoặc rút gọn yêu cầu.")]
             };
         }
+
+        if (streamError is not null)
+        {
+            yield return new AgentResponseUpdate
+            {
+                Contents = [new TextContent(
+                    $"Xin lỗi, Adam gặp sự cố khi xử lý (mã: {streamError.GetType().Name}). " +
+                    $"Chi tiết: {TrimError(streamError.Message)} " +
+                    "Vui lòng thử lại hoặc bắt đầu đoạn chat mới.")]
+            };
+        }
     }
 
     protected override async ValueTask<AgentSession> CreateSessionCoreAsync(CancellationToken cancellationToken = default)
@@ -161,6 +176,14 @@ internal sealed class ScopedRecommenAdamAgent : AIAgent
             agent,
             services.GetRequiredService<SharedStateStore>(),
             services.GetRequiredService<ILogger<SharedStateAgent>>());
+    }
+
+    private static string TrimError(string? message)
+    {
+        if (string.IsNullOrWhiteSpace(message))
+            return "không rõ nguyên nhân.";
+        var singleLine = message.ReplaceLineEndings(" ").Trim();
+        return singleLine.Length <= 300 ? singleLine : singleLine[..300] + "...";
     }
 
     private static bool IsJobRecommendationRequest(IEnumerable<ChatMessage> messages)

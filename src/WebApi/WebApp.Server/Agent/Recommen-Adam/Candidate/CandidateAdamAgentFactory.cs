@@ -52,7 +52,10 @@ internal sealed class CandidateAdamAgentFactory
                 {
                     Instructions = CandidateAdamInstructions.SystemPrompt,
                     Temperature = 0.1f,
-                    MaxOutputTokens = 512,
+                    // CV đầy đủ chuyên nghiệp (skills, experience, projects, certificates)
+                    // cần ~2000-3000 tokens output. 512 tokens khiến model bị cắt
+                    // giữa chừng → thiếu section, format hỏng. Match AdamAgentFactory.
+                    MaxOutputTokens = 4096,
                     // The model must receive the tool result and produce a user-facing
                     // answer in the same run; false ends the stream at TOOL_CALL_RESULT.
                     // Frontend tool calls must be resumed one at a time by AG-UI.

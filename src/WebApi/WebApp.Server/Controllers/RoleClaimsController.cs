@@ -1,4 +1,4 @@
-﻿using Infrastructure.Identity;
+using Infrastructure.Identity;
 using Infrastructure.Identity.Features.RoleClaim.Commands.CreateRoleClaim;
 using Infrastructure.Identity.Features.RoleClaim.Commands.DeleteRoleClaimById;
 using Infrastructure.Identity.Features.RoleClaim.Commands.UpdateRoleClaim;
@@ -8,7 +8,6 @@ using Infrastructure.Identity.Features.RoleClaim.Queries.GetPagingRoleClaim;
 using Infrastructure.Identity.Features.RoleClaim.Queries.GetRoleClaimById;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Hosting;
-using Casbin;
 using Microsoft.AspNetCore.Authorization;
 
 namespace WebApp.Server.Controllers.Identity;
@@ -20,7 +19,7 @@ namespace WebApp.Server.Controllers.Identity;
 public class RoleClaimsController : BaseApiController
 {
  
-    public RoleClaimsController(IWebHostEnvironment webEnvironment, Enforcer enforcer) : base(webEnvironment, enforcer)
+    public RoleClaimsController(IWebHostEnvironment webEnvironment) : base(webEnvironment)
     {
     }
     // GET: api/roleclaims?_sort=Id&_order=asc&_start=0&_end=10

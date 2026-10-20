@@ -17,12 +17,17 @@ public class UpdateMatrixCommand : IRequest<Response<object>>
     public Dictionary<string, Dictionary<string, string[]>> Matrix { get; set; }
 }
 
-public class UpdateMatrixCommandHandler(IdentityContext context, PermissionCache cache)
+public class UpdateMatrixCommandHandler(IdentityContext context)
     : IRequestHandler<UpdateMatrixCommand, Response<object>>
 {
     public async Task<Response<object>> Handle(UpdateMatrixCommand request, CancellationToken ct)
     {
         if (request.Matrix == null) throw new ApiException("Matrix không được rỗng.", 400);
+        // Hợp đồng full-replace: payload phải chứa đủ 4 vai trò hệ thống.
+        // Tránh trường hợp thiếu role khiến quyền role đó bị "đóng băng" ngoài ý muốn.
+        var requiredRoles = new[] { "QUAN_TRI_VIEN", "NGUOI_DAI_DIEN", "NHAN_SU", "UNG_VIEN" };
+        var missing = requiredRoles.Where(r => !request.Matrix.ContainsKey(r)).ToArray();
+        if (missing.Length > 0) throw new ApiException($"Matrix thiếu vai trò: {string.Join(", ", missing)}. Hãy tải lại ma trận mới nhất rồi lưu.", 400);
         var replacement = new List<IdentityRoleClaim<string>>();
         var roleIds = new List<string>();
         // Validate the whole request before any database/cache mutation.
@@ -47,7 +52,7 @@ public class UpdateMatrixCommandHandler(IdentityContext context, PermissionCache
         context.RoleClaims.AddRange(replacement);
         await context.SaveChangesAsync(ct);
         await transaction.CommitAsync(ct);
-        await cache.RefreshAsync();
+        // Grants đọc live từ DB — ma trận có hiệu lực ngay, không cần refresh cache ngoài.
         return new Response<object>(true, new { updated = replacement.Sum(c => c.ClaimValue.Split('#').Length) }, "Cập nhật ma trận quyền thành công");
     }
 }

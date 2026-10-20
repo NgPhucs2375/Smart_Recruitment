@@ -54,7 +54,7 @@ export function JobCard({ job, onPreview }: JobCardProps) {
   return (
     <Card
       onClick={() => router.push(`/viec-lam/${job.id}`)}
-      className="group cursor-pointer rounded-[1.5rem] border-border bg-card transition-all duration-200 hover:-translate-y-0.5 hover:border-marine/25 hover:shadow-[0_18px_44px_rgba(53,92,140,0.10)]"
+      className="group cursor-pointer rounded-2xl border-border bg-card transition-all duration-200 hover:-translate-y-0.5 hover:border-marine/25 hover:shadow-[0_18px_44px_rgba(53,92,140,0.10)]"
     >
       <CardContent className="p-6">
         <div className="flex items-start gap-4">
@@ -146,7 +146,7 @@ export function JobCard({ job, onPreview }: JobCardProps) {
    khối xám + lớp quét sáng chạy ngang, đúng layout JobCard để không giật layout. */
 export function JobCardSkeleton() {
   return (
-    <Card aria-hidden className="rounded-[1.5rem] border-border bg-card overflow-hidden">
+    <Card aria-hidden className="rounded-2xl border-border bg-card overflow-hidden">
       <CardContent className="p-6">
         <div className="relative flex items-start gap-4">
           <div className="size-13 shrink-0 rounded-2xl bg-muted animate-pulse" />

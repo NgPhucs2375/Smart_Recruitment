@@ -8,7 +8,6 @@ using Application.Features.HoSoUngVien.Commands.DeleteHoSoUngVien;
 using Application.Features.HoSoUngVien.Commands.UpdateHoSoUngVienAvatar;
 using Application.Interfaces;
 using AutoMapper;
-using Casbin;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -24,10 +23,9 @@ namespace WebApp.Server.Controllers.v1
          private readonly IFileStorageService _storage;
          public HoSoUngVienController(
              Microsoft.AspNetCore.Hosting.IWebHostEnvironment hostingEnvironment,
-             Enforcer enforcer,
              IMapper mapper,
              IApplicationDbContext context,
-             IFileStorageService storage) : base(hostingEnvironment,enforcer)
+             IFileStorageService storage) : base(hostingEnvironment)
          {
              _mapper = mapper;
              _context = context;

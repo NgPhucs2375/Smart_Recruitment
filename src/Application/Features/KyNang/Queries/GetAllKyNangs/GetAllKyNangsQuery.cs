@@ -50,11 +50,18 @@ namespace Application.Features.KyNang.Queries.GetAllKyNangs
             var cached = await cache.GetStringAsync(cacheKey, cancellationToken);
             if (!string.IsNullOrWhiteSpace(cached))
             {
-                var cachedResponse = JsonSerializer.Deserialize<
-                    Response<List<GetAllKyNangsViewModel>>>(cached);
+                try
+                {
+                    var cachedResponse = JsonSerializer.Deserialize<
+                        Response<List<GetAllKyNangsViewModel>>>(cached);
 
-                if (cachedResponse != null)
-                    return cachedResponse;
+                    if (cachedResponse != null)
+                        return cachedResponse;
+                }
+                catch (JsonException)
+                {
+                    // Cache hỏng: bỏ qua, đọc tiếp từ DB thay vì nổ 500.
+                }
             }
 
             var query = context.KyNangs.AsNoTracking();

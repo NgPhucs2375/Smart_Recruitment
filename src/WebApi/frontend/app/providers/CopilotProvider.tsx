@@ -1,9 +1,9 @@
 "use client";
 
 // Frontend luôn gọi Runtime nội bộ; Runtime sẽ adapter request sang AG-UI .NET.
+import { suppressFlushSyncWarning } from "@/lib/suppress-flushsync-warning";
 import {
   CopilotKit,
-  CopilotPopup,
   useDefaultRenderTool,
   useAgent,
   useConfigureSuggestions,
@@ -13,7 +13,7 @@ import "@copilotkit/react-core/v2/styles.css";
 import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { getAuthToken, getValidToken } from "@/lib/auth-provider";
-import { loadThreadId, saveThreadId } from "@/lib/adam-thread";
+import { loadThreadId, saveThreadId, clearThreadId } from "@/lib/adam-thread";
 import dynamic from "next/dynamic";
 import { parseThemeResult } from "@/features/ai-cv/theme-recommendations";
 import { useGlobalCvAssistant } from "@/hooks/use-global-cv-assistant";
@@ -24,6 +24,13 @@ import {
   requestCvSectionsFocus,
   type CvFocusSection,
 } from "@/features/ai-cv/cv-focus";
+
+// Tải CopilotPopup client-only — tách chunk riêng, không tham gia
+// render tree ban đầu → không còn flushSync trong lifecycle warning.
+const LazyCopilotPopup = dynamic(
+  () => import("@copilotkit/react-core/v2").then((m) => m.CopilotPopup),
+  { ssr: false },
+);
 
 const CHAT_SUGGESTIONS = [
   { title: "Chọn mẫu CV", message: "Gợi ý mẫu CV phù hợp với ngành và cấp độ công việc mục tiêu của tôi; cho xem trước và giải thích lựa chọn." },
@@ -284,6 +291,35 @@ function InitialPopupState() {
 }
 
 /**
+ * Nút "Chat mới" — xóa threadId đang lưu và reload trang để CopilotKit sinh
+ * threadId mới (không còn replay history hỏng kích hoạt lỗi Gemini 400).
+ * Provider chỉ đọc threadId lúc mount nên reload là cách chắc chắn nhất.
+ */
+function NewChatButton({ userId }: { userId: string | null }) {
+  const startNew = () => {
+    if (!userId) return;
+    clearThreadId(userId);
+    // Reload để provider mount lại với threadId mới (CopilotKit tự gen nếu
+    // loadThreadId trả về null).
+    window.location.reload();
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={startNew}
+      className="adam-new-chat-btn"
+      title="Bắt đầu đoạn chat mới"
+    >
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+        <path d="M8 2v12M2 8h12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      </svg>
+      Chat mới
+    </button>
+  );
+}
+
+/**
  * Persist threadId đang hoạt động vào localStorage theo userId.
  * Ở lần render đầu configuration có thể chưa sẵn sàng — effect chạy lại khi
  * configuration xuất hiện nên không cần ref guard ngoài lastSaved.
@@ -329,6 +365,13 @@ export function CopilotProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
+  // Cài filter cảnh báo flushSync của CopilotKit SAU khi Next patch
+  // console.error lúc bootstrap (useEffect chạy sau khi render → chắc chắn
+  // sau thời điểm Next patch, tránh double-wrap/loop).
+  useEffect(() => {
+    suppressFlushSyncWarning();
+  }, []);
+
   // BE-first: LLM + tool backend (hồ sơ, CV) chạy ở .NET smart-agent.
   // FE chỉ expose action client-side (useCopilotAction ghi nháp vào form) để BE gọi ngược qua AG-UI.
   // Đi qua Next proxy cùng origin để giữ SSE streaming, sanitize event hỏng
@@ -354,26 +397,46 @@ export function CopilotProvider({ children }: { children: React.ReactNode }) {
       <GlobalCvAssistantMount />
       <ToolActivityMount /> 
       <SharedStateMount />
-      <CopilotPopup
-        defaultOpen={false}
-        width="min(92vw, 650px)"
-        height="min(88vh, 1100px)"
-        messageView={adamMessageView}
-        clickOutsideToClose
-        toggleButton={{
-          className: "adam-chat-toggle",
-        }}
-        header={{
-          className: "adam-chat-header",
-        }}
-        labels={{
-          modalHeaderTitle: "Adam - Trợ lý thông minh",
-          chatToggleOpenLabel: "Trò chuyện với Adam",
-          chatToggleCloseLabel: "Tạm biệt Adam",
-          welcomeMessageText: "Xin chào, tôi là Adam. Tôi có thể giúp gì cho bạn?",
-          chatInputPlaceholder: "Nhắn cho Adam...",
-        }}
+      <NewChatButton userId={userId} />
+      <DeferredCopilotPopup
+        adamMessageView={adamMessageView}
       />
     </CopilotKit>
+  );
+}
+
+/**
+ * CopilotPopup gọi flushSync() trong render — React 19 warning
+ * "flushSync was called from inside a lifecycle method".
+ * Fix: mount popup sau khi React đã render xong (useEffect → microtask).
+ */
+function DeferredCopilotPopup({
+  adamMessageView,
+}: {
+  adamMessageView: typeof import("@/components/ai/adam-markdown").adamMessageView;
+}) {
+  // LazyCopilotPopup đã ssr:false — mount sau khi client hydrate xong,
+  // không cần setTimeout thêm.
+  return (
+    <LazyCopilotPopup
+      defaultOpen={false}
+      width="min(92vw, 650px)"
+      height="min(88vh, 1100px)"
+      messageView={adamMessageView}
+      clickOutsideToClose
+      toggleButton={{
+        className: "adam-chat-toggle",
+      }}
+      header={{
+        className: "adam-chat-header",
+      }}
+      labels={{
+        modalHeaderTitle: "Adam - Trợ lý thông minh",
+        chatToggleOpenLabel: "Trò chuyện với Adam",
+        chatToggleCloseLabel: "Tạm biệt Adam",
+        welcomeMessageText: "Xin chào, tôi là Adam. Tôi có thể giúp gì cho bạn?",
+        chatInputPlaceholder: "Nhắn cho Adam...",
+      }}
+    />
   );
 }

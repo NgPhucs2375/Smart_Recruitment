@@ -69,10 +69,26 @@ namespace Application.Features.DonUngTuyen.Queries.GetDonUngTuyenById
                 NgayUngTuyen = entity.NgayUngTuyen, LastModified = entity.LastModified ?? entity.Created,
                 TieuDe = entity.TinTuyenDung.TieuDe,
                 TenCvDaNop = entity.CVUngVien?.TenFile,
-                CvDaNop = string.IsNullOrEmpty(entity.CvSnapshotJson) ? null : JsonSerializer.Deserialize<CvDetailDto>(entity.CvSnapshotJson)
+                CvDaNop = DeserializeSnapshot(entity.CvSnapshotJson)
             };
 
             return new Response<GetAllDonUngTuyens.GetAllDonUngTuyensViewModel>(vm);
+        }
+
+        private static CvDetailDto? DeserializeSnapshot(string? snapshotJson)
+        {
+            if (string.IsNullOrWhiteSpace(snapshotJson))
+                return null;
+            try
+            {
+                return JsonSerializer.Deserialize<CvDetailDto>(snapshotJson);
+            }
+            catch (JsonException)
+            {
+                // Snapshot hỏng (VD 2 JSON dính nhau) không được làm sập cả
+                // request/agent tool bằng 500: trả null, UI vẫn hiện đơn.
+                return null;
+            }
         }
     }
 }

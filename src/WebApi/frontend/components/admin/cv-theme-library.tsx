@@ -385,7 +385,7 @@ function LibraryCard({
           <Badge variant={row.ThanThienATS ? "secondary" : "outline"} className="rounded-full text-[10px]">
             {row.ThanThienATS ? "ATS" : "Không ATS"}
           </Badge>
-          <Badge variant="outline" className="rounded-full text-[10px]">{row.CapBac ?? "all"}</Badge>
+          <Badge variant="outline" className="rounded-full text-[10px]">{row.CapBac ?? "Tất cả"}</Badge>
         </div>
         <div className="mt-auto flex flex-wrap gap-2 pt-2">
           <Button type="button" variant="outline" size="sm" className="flex-1" onClick={onPreview} disabled={!canPreview}>

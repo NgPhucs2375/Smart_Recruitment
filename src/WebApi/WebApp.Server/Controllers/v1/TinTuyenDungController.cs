@@ -4,7 +4,6 @@ using Application.Features.TinTuyenDung.Commands.FireTinTuyenDungTrigger;
 using Application.Features.TinTuyenDung.Commands.UpdateTinTuyenDung;
 using Application.Features.TinTuyenDung.Queries.GetAllTinTuyenDungs;
 using Application.Features.TinTuyenDung.Queries.GetTinTuyenDungById;
-using Casbin;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Application.Interfaces;
@@ -18,7 +17,7 @@ namespace WebApp.Server.Controllers.v1
     public class TinTuyenDungController : BaseApiController
     {
         public TinTuyenDungController(
-            Microsoft.AspNetCore.Hosting.IWebHostEnvironment hostingEnvironment, Enforcer enforcer) : base(hostingEnvironment, enforcer)
+            Microsoft.AspNetCore.Hosting.IWebHostEnvironment hostingEnvironment) : base(hostingEnvironment)
         {
         }
 

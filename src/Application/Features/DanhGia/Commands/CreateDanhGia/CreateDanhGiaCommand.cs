@@ -48,54 +48,14 @@ public class CreateDanhGiaCommandHandler(
 
         var ctx = await current.ResolveAsync();
 
-        // Chỉ Admin, Người đại diện và Nhân sự
-        // mới được tạo đánh giá.
-        if (ctx.VaiTro != VaiTroNguoiDung.QUAN_TRI_VIEN &&
-            ctx.VaiTro != VaiTroNguoiDung.NGUOI_DAI_DIEN &&
-            ctx.VaiTro != VaiTroNguoiDung.NHAN_SU)
-        {
-            return new Response<int>(
-                "Bạn không có quyền đánh giá ứng viên.");
-        }
-
-        var doanhNghiepId =
-            donUngTuyen.TinTuyenDung.DoanhNghiepId;
-
-        // Người đại diện chỉ được đánh giá đơn thuộc
-        // doanh nghiệp mình sở hữu.
-        if (ctx.VaiTro == VaiTroNguoiDung.NGUOI_DAI_DIEN)
-        {
-            var nguoiDaiDienId =
-                donUngTuyen.TinTuyenDung
-                    .DoanhNghiep
-                    .NguoiDaiDienId;
-
-            if (!nguoiDaiDienId.HasValue ||
-                nguoiDaiDienId.Value != ctx.Id)
-            {
-                return new Response<int>(
-                    "Bạn không có quyền đánh giá đơn ứng tuyển này.");
-            }
-        }
-
-        // Nhân sự phải thuộc đúng doanh nghiệp
-        // đang quản lý tin tuyển dụng.
-        if (ctx.VaiTro == VaiTroNguoiDung.NHAN_SU)
-        {
-            var laNhanSuCuaDoanhNghiep =
-                await context.HoSoNhaTuyenDungs
-                    .AsNoTracking()
-                    .AnyAsync(
-                        x => x.NguoiDungId == ctx.Id &&
-                             x.DoanhNghiepId == doanhNghiepId,
-                        cancellationToken);
-
-            if (!laNhanSuCuaDoanhNghiep)
-            {
-                return new Response<int>(
-                    "Bạn không thuộc doanh nghiệp quản lý đơn ứng tuyển này.");
-            }
-        }
+        // Cùng chuẩn poster-scope với xem/sửa/xóa đánh giá
+        // (ScopeReviews / EnsureApplicationReviewerAsync): Nhân sự chỉ
+        // đánh giá đơn thuộc tin mình đăng, Người đại diện chỉ đánh giá
+        // đơn thuộc doanh nghiệp mình. HR khác tin dù cùng công ty cũng
+        // không tạo được, tránh review "dead-end" (tạo xong không xem,
+        // sửa, xóa được, lại chặn người phụ trách tạo review đúng).
+        await Application.Security.ResourceAccess.EnsureApplicationReviewerAsync(
+            context, ctx, request.DonUngTuyenId, cancellationToken);
 
         // Một đơn ứng tuyển chỉ có một đánh giá.
         var daDanhGia = await context.DanhGias
@@ -122,8 +82,18 @@ public class CreateDanhGiaCommandHandler(
             entity,
             cancellationToken);
 
-        await context.SaveChangesAsync(
-            cancellationToken);
+        try
+        {
+            await context.SaveChangesAsync(
+                cancellationToken);
+        }
+        catch (DbUpdateException)
+        {
+            // Race với request song song: check-then-insert ở trên qua được
+            // nhưng unique index (DonUngTuyenId) chặn ở DB — trả cùng message.
+            return new Response<int>(
+                "Đơn ứng tuyển này đã được đánh giá.");
+        }
 
         return new Response<int>(
             data: entity.Id,

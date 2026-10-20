@@ -5,7 +5,6 @@ using Application.Features.KyNangTinTuyenDung.Commands.CreateKyNangTinTuyenDung;
 using Application.Features.KyNangTinTuyenDung.Commands.UpdateKyNangTinTuyenDung;
 using Application.Features.KyNangTinTuyenDung.Commands.DeleteKyNangTinTuyenDung;
 using AutoMapper;
-using Casbin;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
@@ -21,9 +20,8 @@ namespace WebApp.Server.Controllers.v1
 
         public KyNangTinTuyenDungController(
             IWebHostEnvironment hostingEnvironment,
-            Enforcer enforcer,
             IMapper mapper)
-            : base(hostingEnvironment, enforcer)
+            : base(hostingEnvironment)
         {
             _mapper = mapper;
         }

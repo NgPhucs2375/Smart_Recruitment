@@ -67,13 +67,20 @@ public class UpdateDanhGiaCommandHandler(
         entity.NoiDungPhanHoi = request.NoiDungPhanHoi?.Trim();
         entity.KetLuan = request.KetLuan?.Trim();
 
-        if (request.NgayPhanHoi.HasValue)
-        {
-            entity.NgayPhanHoi = request.NgayPhanHoi;
-        }
+        // Thời điểm phản hồi do server quyết, không nhận từ client.
+        entity.NgayPhanHoi = DateTime.UtcNow;
 
-        await context.SaveChangesAsync(
-            cancellationToken);
+        try
+        {
+            await context.SaveChangesAsync(
+                cancellationToken);
+        }
+        catch (DbUpdateException)
+        {
+            // Race đổi sang đơn đã có đánh giá: unique index chặn ở DB.
+            return new Response<int>(
+                "Đơn ứng tuyển này đã được đánh giá.");
+        }
 
         return new Response<int>(
             data: entity.Id,

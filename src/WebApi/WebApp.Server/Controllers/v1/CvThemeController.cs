@@ -9,7 +9,6 @@ using Application.Features.CvTheme.Queries.GetCvThemeById;
 using Application.Features.CvTheme.Queries.SuggestCvThemes;
 using Application.Interfaces;
 using AutoMapper;
-using Casbin;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -27,11 +26,10 @@ namespace WebApp.Server.Controllers.v1
 
         public CvThemeController(
             Microsoft.AspNetCore.Hosting.IWebHostEnvironment hostingEnvironment,
-            Enforcer enforcer,
             IMapper mapper,
             IApplicationDbContext context,
             IFileStorageService storage)
-            : base(hostingEnvironment, enforcer)
+            : base(hostingEnvironment)
         {
             _mapper = mapper;
             _context = context;

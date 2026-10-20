@@ -36,6 +36,14 @@ namespace Application.Features.NhanSu.Commands.DeleteNhanSu
                     "Không xác định người dùng.");
             }
 
+            // Chỉ người đại diện doanh nghiệp hoặc quản trị viên được xóa nhân sự.
+            // Handler tự bảo vệ độc lập với claim (permission policy cũng đã chặn NHAN_SU).
+            if (ndd.VaiTro != VaiTroNguoiDung.NGUOI_DAI_DIEN && ndd.VaiTro != VaiTroNguoiDung.QUAN_TRI_VIEN)
+            {
+                throw new ApiException(
+                    "Chỉ người đại diện doanh nghiệp hoặc quản trị viên được xóa nhân sự.", 403);
+            }
+
             var myHs = await context.HoSoNhaTuyenDungs
                 .AsNoTracking()
                 .FirstOrDefaultAsync(
@@ -88,7 +96,7 @@ namespace Application.Features.NhanSu.Commands.DeleteNhanSu
                 cancellationToken);
 
             // Gỡ role NHAN_SU phía Identity — nếu không họ vẫn vào cổng employer
-            // và giữ quyền tintuyendungs.* theo Casbin dù không thuộc DN nào.
+            // và giữ grant tintuyendungs.* trong DB dù không thuộc DN nào.
             if (!string.IsNullOrWhiteSpace(removedAppUserId))
             {
                 try { await accountService.RemoveNhanSuRoleAsync(removedAppUserId); }

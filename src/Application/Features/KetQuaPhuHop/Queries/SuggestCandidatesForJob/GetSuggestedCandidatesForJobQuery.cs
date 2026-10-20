@@ -87,7 +87,10 @@ public class GetSuggestedCandidatesForJobQueryHandler(
         var jobInput = new JobMatchInput(requirements, job.TieuDe,
             job.LuongToiThieu, job.LuongToiDa, job.DiaDiemLamViec);
         var now = DateTime.UtcNow;
+        // 4 Include trên cùng query sinh cartesian explosion: tách thành
+        // nhiều query (cùng kết quả, không đổi semantics scoring).
         var cvs = await context.CVUngViens.AsNoTracking()
+            .AsSplitQuery()
             .Include(x => x.ThongTinLienHe)
             .Include(x => x.KyNangs)
             .Include(x => x.HoSoUngVien)

@@ -11,7 +11,6 @@ using Application.Features.CVUngVien.Queries.GetAllCVUngViens;
 using Application.Features.CVUngVien.Queries.GetCVDownloadUrl;
 using Application.Features.CVUngVien.Queries.GetCVUngVienById;
 using Application.Features.CVUngVien.Queries.GetCvVersions;
-using Casbin;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Text.Json;
@@ -24,9 +23,8 @@ namespace WebApp.Server.Controllers.v1
     public class CVUngVienController : BaseApiController
     {
         public CVUngVienController(
-            Microsoft.AspNetCore.Hosting.IWebHostEnvironment hostingEnvironment,
-            Enforcer enforcer)
-            : base(hostingEnvironment, enforcer)
+            Microsoft.AspNetCore.Hosting.IWebHostEnvironment hostingEnvironment)
+            : base(hostingEnvironment)
         {
         }
 

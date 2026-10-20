@@ -5,7 +5,6 @@ using Application.Features.KyNang.Commands.CreateKyNang;
 using Application.Features.KyNang.Commands.UpdateKyNang;
 using Application.Features.KyNang.Commands.DeleteKyNang;
 using AutoMapper;
-using Casbin;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
@@ -21,9 +20,8 @@ namespace WebApp.Server.Controllers.v1
 
         public KyNangController(
             IWebHostEnvironment hostingEnvironment,
-            Enforcer enforcer,
             IMapper mapper)
-            : base(hostingEnvironment, enforcer)
+            : base(hostingEnvironment)
         {
             _mapper = mapper;
         }

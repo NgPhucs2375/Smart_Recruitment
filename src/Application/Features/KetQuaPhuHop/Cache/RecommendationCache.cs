@@ -35,9 +35,17 @@ public static class RecommendationCache
         CancellationToken cancellationToken)
     {
         var value = await cache.GetStringAsync(key, cancellationToken);
-        return string.IsNullOrWhiteSpace(value)
-            ? default
-            : JsonSerializer.Deserialize<T>(value);
+        if (string.IsNullOrWhiteSpace(value))
+            return default;
+        try
+        {
+            return JsonSerializer.Deserialize<T>(value);
+        }
+        catch (JsonException)
+        {
+            // Cache hỏng: coi như miss để query lại từ DB thay vì nổ 500.
+            return default;
+        }
     }
 
     public static Task SetAsync<T>(

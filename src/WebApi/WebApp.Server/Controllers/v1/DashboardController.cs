@@ -1,5 +1,4 @@
 using Application.Features.Dashboard.Queries.GetAdminSummary;
-using Casbin;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -10,9 +9,8 @@ namespace WebApp.Server.Controllers.v1
     public class DashboardController : BaseApiController
     {
         public DashboardController(
-            Microsoft.AspNetCore.Hosting.IWebHostEnvironment hostingEnvironment,
-            Enforcer enforcer)
-            : base(hostingEnvironment, enforcer)
+            Microsoft.AspNetCore.Hosting.IWebHostEnvironment hostingEnvironment)
+            : base(hostingEnvironment)
         {
         }
 

@@ -8,7 +8,7 @@ namespace Infrastructure.Identity.Services;
 
 public static class PermissionPolicy
 {
-    public static readonly string[] Resources = ["chat", "cvthemes", "cvungviens", "danhgias", "danhmucnghes", "dashboard",
+    public static readonly string[] Resources = ["baocao", "chat", "cvthemes", "cvungviens", "danhgias", "danhmucnghes", "dashboard",
         "doanhnghieps", "donungtuyens", "hosonhatuyendungs", "hosoungviens", "ketquaphantichcvs",
         "ketquaphuhops", "kynangs", "kynangtintuyendungs", "kynangungviens", "loimoinhansus",
         "nguoidungs", "nhansus", "quytackiemduyettins", "roleclaims", "roles", "tintuyendungs", "users"];
@@ -22,9 +22,15 @@ public static class PermissionPolicy
             && action is "list" or "show" or "create" or "send")) &&
         (role == nameof(VaiTroNguoiDung.QUAN_TRI_VIEN) || !AdminOnly.Contains(resource)) &&
         !(role is "NHAN_SU" or "NGUOI_DAI_DIEN" && resource == "cvungviens" && action is not ("show" or "download")) &&
+        // Nhân sự không được quản lý danh sách nhân sự (chỉ NGUOI_DAI_DIEN/QUAN_TRI_VIEN):
+        // chặn ngay ở policy để matrix không thể cấp quyền này cho NHAN_SU.
+        !(role == nameof(VaiTroNguoiDung.NHAN_SU) && resource == "nhansus") &&
         !(role == "UNG_VIEN" && resource is "hosonhatuyendungs" or "nhansus" or "loimoinhansus") &&
         !(role != nameof(VaiTroNguoiDung.QUAN_TRI_VIEN) && resource == "ketquaphuhops" && action is "create" or "edit" or "delete") &&
-        !(role == nameof(VaiTroNguoiDung.UNG_VIEN) && resource == "danhgias" && action is "create" or "edit" or "delete");
+        !(role == nameof(VaiTroNguoiDung.UNG_VIEN) && resource == "danhgias" && action is "create" or "edit" or "delete") &&
+        // Không có transition xóa đơn trong state machine (rút/từ chối xử lý qua trigger).
+        // Xóa vật lý chỉ là dọn dữ liệu của admin: matrix không thể cấp delete cho role khác.
+        !(role != nameof(VaiTroNguoiDung.QUAN_TRI_VIEN) && resource == "donungtuyens" && action == "delete");
 
     public static string[] AllowedActions(string role, string resource) => Actions.Append("download").Append("send").Where(a => IsEffective(role, resource, a)).ToArray();
 

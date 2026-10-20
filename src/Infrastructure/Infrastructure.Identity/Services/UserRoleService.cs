@@ -58,4 +58,43 @@ public class UserRoleService(UserManager<ApplicationUser> users, RoleManager<Ide
     }
     private static void Ensure(IdentityResult result)
     { if (!result.Succeeded) throw new ApiException(string.Join("; ", result.Errors.Select(x => x.Description))); }
+
+    public async Task RemoveRoleAsync(string applicationUserId, string roleName, CancellationToken ct = default)
+    {
+        var user = await users.FindByIdAsync(applicationUserId) ?? throw new ApiException("Không tìm thấy tài khoản.");
+        var current = await users.GetRolesAsync(user);
+        if (!current.Contains(roleName)) return; // idempotent: đã gỡ rồi thì thôi
+        var profile = await app.NguoiDungs.AsTracking().SingleOrDefaultAsync(x => x.ApplicationUserId == applicationUserId, ct);
+        var existed = profile != null;
+        var previousRole = profile?.VaiTro;
+        var previousActive = profile?.IsActive;
+        try
+        {
+            Ensure(await users.RemoveFromRoleAsync(user, roleName));
+            if (profile != null)
+            {
+                var remaining = await users.GetRolesAsync(user);
+                var next = remaining
+                    .Select(r => Enum.TryParse<VaiTroNguoiDung>(r, true, out var v) ? (VaiTroNguoiDung?)v : null)
+                    .FirstOrDefault(v => v.HasValue);
+                if (next.HasValue) profile.VaiTro = next.Value;
+                else profile.IsActive = false;
+                await app.SaveChangesAsync(ct);
+            }
+        }
+        catch
+        {
+            // Bù trừ 2 context như SetRoleAsync: gỡ role xong mà save domain lỗi
+            // thì gắn lại role để tránh split-brain (profile cũ + roles rỗng).
+            var assigned = await users.GetRolesAsync(user);
+            if (!assigned.Contains(roleName) && current.Contains(roleName))
+                Ensure(await users.AddToRoleAsync(user, roleName));
+            if (profile != null)
+            {
+                if (!existed) app.NguoiDungs.Remove(profile);
+                else { profile.VaiTro = previousRole!.Value; profile.IsActive = previousActive!.Value; }
+            }
+            throw;
+        }
+    }
 }

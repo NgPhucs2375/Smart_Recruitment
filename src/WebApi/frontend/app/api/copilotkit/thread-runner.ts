@@ -35,10 +35,16 @@ export function createRedisThreadRunner(options: {
 
       // Chưa có local history → replay events từ backend (đã sanitize null-envelope
       // bên .NET trước khi lưu nên client zod accept được).
+      // Bỏ RUN_ERROR khi replay: đó là lỗi của run cũ (VD thời kỳ 500),
+      // phát lại nó khiến CopilotKit bắn agent_run_error_event "ma" dù
+      // hiện tại không có run nào thất bại.
       const subject = new ReplaySubject<BaseEvent>(Infinity);
       void fetchThreadEvents(options.apiBase, request.threadId, request.headers)
         .then((events) => {
-          for (const event of compactEvents(events)) subject.next(event);
+          const replayable = events.filter(
+            (e) => (e as { type?: string }).type !== "RUN_ERROR",
+          );
+          for (const event of compactEvents(replayable)) subject.next(event);
         })
         .catch((error) => {
           console.warn("[thread-runner] redis restore failed", {

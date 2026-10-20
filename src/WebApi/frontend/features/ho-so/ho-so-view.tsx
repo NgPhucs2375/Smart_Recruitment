@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useEffectEvent, useRef, useState, type ChangeEvent } from "react";
+import { useEffect, useEffectEvent, useMemo, useRef, useState, type ChangeEvent } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import {
@@ -15,7 +15,6 @@ import {
   Loader2,
   PlusCircle,
   Pencil,
-  ArrowRight,
   Mail,
   Printer,
   Minus,
@@ -23,6 +22,8 @@ import {
   ImagePlus,
   Trash2,
   Sparkles,
+  Zap,
+  Building2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,6 +38,8 @@ import { formatVndInput, parseVndInput } from "@/lib/format-vnd";
 import { isoToVnDate, isValidVnDate, maskDateVn, vnToIsoDate } from "@/features/tao-cv/cv-data";
 import { MOCK_CVS, MOCK_HO_SO } from "./mock-preview";
 import { useStoredIdentity } from "@/hooks/use-stored-identity";
+import { useFollowedCompanies } from "@/hooks/use-followed-companies";
+import { doanhNghiepApi, type DoanhNghiepVm } from "@/features/doanh-nghiep/doanh-nghiep-api";
 
 /** Stepper step for expected salary (matches previous type=number convention). */
 const SALARY_STEP = 500000;
@@ -71,6 +74,15 @@ export function HoSoView() {
   const avatarPreviewRef = useRef<string | null>(null);
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const nativeDateRef = useRef<HTMLInputElement>(null);
+  const ngaySinhInputRef = useRef<HTMLInputElement>(null);
+  // Số chữ số trước caret mong muốn sau lần mask gần nhất (xem useEffect bên dưới).
+  const ngaySinhCaretDigitsRef = useRef<number | null>(null);
+  const mucLuongInputRef = useRef<HTMLInputElement>(null);
+  const mucLuongCaretDigitsRef = useRef<number | null>(null);
+  const [allCompanies, setAllCompanies] = useState<DoanhNghiepVm[]>([]);
+  const [companiesLoading, setCompaniesLoading] = useState(false);
+  const { followedIds, count: followedCount, toggle: toggleFollowed, hydrated: followedHydrated } = useFollowedCompanies();
+  const companiesFetchedRef = useRef(false);
 
   const handleAvatarFile = (file: File | undefined | null) => {
     if (!file) return;
@@ -98,37 +110,35 @@ export function HoSoView() {
     setAnhDaiDienUrl("");
   };
 
-  // Gõ ngày sinh: mask caret-aware — strip chữ, tối đa 8 số, tự chèn "/"
-  // sau ngày và tháng, giữ caret đúng chỗ (backspace/select/replace tự nhiên).
+  // Gõ ngày sinh: mask dd/mm/yyyy đơn giản (maskDateVn). Caret KHÔNG set trong
+  // onChange (tránh race requestAnimationFrame: callback cũ chạy sau keystroke
+  // mới → caret nhảy về vị trí cũ → mất ký tự); thay vào đó ghi số-chữ-số-trước-
+  // caret vào ref rồi khôi phục trong useEffect bên dưới.
   const handleNgaySinhChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const el = e.target;
-    const raw = el.value;
-    const caret = el.selectionStart ?? raw.length;
-    const digitsBeforeCaret = raw.slice(0, caret).replace(/\D/g, "").length;
-    const digits = raw.replace(/\D/g, "").slice(0, 8);
-    let out = digits;
-    if (digits.length > 4) out = `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
-    else if (digits.length > 2) out = `${digits.slice(0, 2)}/${digits.slice(2)}`;
-    setNgaySinh(out);
-    // Đặt lại caret sau render: đếm qua số digit + dấu "/" đã chèn.
-    requestAnimationFrame(() => {
-      const target = el;
-      let seen = 0;
-      let pos = out.length;
-      for (let i = 0; i < out.length; i += 1) {
-        if (/\d/.test(out[i])) seen += 1;
-        if (seen >= digitsBeforeCaret) {
-          pos = i + 1;
-          break;
-        }
-      }
-      try {
-        target.setSelectionRange(pos, pos);
-      } catch {
-        // input không hỗ trợ selection — bỏ qua
-      }
-    });
+    const raw = e.target.value;
+    const caret = e.target.selectionStart ?? raw.length;
+    ngaySinhCaretDigitsRef.current = raw.slice(0, caret).replace(/\D/g, "").length;
+    setNgaySinh(maskDateVn(raw));
   };
+
+  // Khôi phục caret sau khi value được mask (một nguồn ghi duy nhất, không race).
+  useEffect(() => {
+    const el = ngaySinhInputRef.current;
+    const want = ngaySinhCaretDigitsRef.current;
+    if (!el || want == null) return;
+    ngaySinhCaretDigitsRef.current = null;
+    let pos = 0;
+    let seen = 0;
+    for (let i = 0; i < ngaySinh.length && seen < want; i += 1) {
+      if (/\d/.test(ngaySinh[i])) seen += 1;
+      pos = i + 1;
+    }
+    try {
+      el.setSelectionRange(pos, pos);
+    } catch {
+      // input không hỗ trợ selection — bỏ qua
+    }
+  }, [ngaySinh]);
 
   const handleNgaySinhBlur = () => {
     setNgaySinh((prev) => {
@@ -140,6 +150,33 @@ export function HoSoView() {
       return /^\d{2}\/\d{2}\/\d{4}$/.test(masked) ? masked : t;
     });
   };
+
+  // Mức lương: formatVndInput chèn dấu "." phân cách nghìn. Giữ caret bằng cách
+  // đếm số chữ số trước caret rồi khôi phục trong useEffect (tránh nhảy/chèn số).
+  const handleMucLuongChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value;
+    const caret = e.target.selectionStart ?? raw.length;
+    mucLuongCaretDigitsRef.current = raw.slice(0, caret).replace(/\D/g, "").length;
+    setMucLuongMongMuon(formatVndInput(raw));
+  };
+
+  useEffect(() => {
+    const el = mucLuongInputRef.current;
+    const want = mucLuongCaretDigitsRef.current;
+    if (!el || want == null) return;
+    mucLuongCaretDigitsRef.current = null;
+    let pos = 0;
+    let seen = 0;
+    for (let i = 0; i < mucLuongMongMuon.length && seen < want; i += 1) {
+      if (/\d/.test(mucLuongMongMuon[i])) seen += 1;
+      pos = i + 1;
+    }
+    try {
+      el.setSelectionRange(pos, pos);
+    } catch {
+      // input không hỗ trợ selection — bỏ qua
+    }
+  }, [mucLuongMongMuon]);
 
   const loadData = async () => {
     // DEV preview (?xem-truoc=1): render view-mode with sample data, no API.
@@ -243,6 +280,34 @@ export function HoSoView() {
     };
   }, [hoSo?.id, isEditing, isMock]);
 
+  // Danh bạ doanh nghiệp — lấy 1 lần để lọc theo danh sách theo dõi (localStorage).
+  // Mock preview không gọi API, giữ trạng thái rỗng.
+  useEffect(() => {
+    if (!followedHydrated || isMock || companiesFetchedRef.current) return;
+    companiesFetchedRef.current = true;
+    let cancelled = false;
+    setCompaniesLoading(true);
+    void doanhNghiepApi
+      .list()
+      .then((list) => {
+        if (!cancelled) setAllCompanies(list);
+      })
+      .catch(() => {
+        if (!cancelled) setAllCompanies([]);
+      })
+      .finally(() => {
+        if (!cancelled) setCompaniesLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [followedHydrated, isMock]);
+
+  const followedCompanies = useMemo(
+    () => (isMock ? [] : allCompanies.filter((company) => followedIds.has(company.id))),
+    [allCompanies, followedIds, isMock]
+  );
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isMock) {
@@ -342,6 +407,7 @@ export function HoSoView() {
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
+      <h1 className="sr-only">Hồ sơ ứng viên</h1>
       {loadError && (
         <div role="alert" className="flex flex-col gap-3 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm text-destructive">Không tải được hồ sơ: {loadError}</p>
@@ -355,31 +421,6 @@ export function HoSoView() {
           Chế độ xem trước giao diện (dữ liệu minh họa) — thao tác lưu và tải danh sách thật bị tắt cho tới khi BE hoạt động. Xóa <span className="font-mono">?xem-truoc=1</span> để dùng dữ liệu thật.
         </div>
       )}
-      {/* Header Bar */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">Hồ sơ ứng viên</h1>
-          <p className="text-sm text-muted-foreground">
-            Quản lý thông tin cá nhân và định hướng nghề nghiệp của bạn.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          {hoSo && !isEditing && (
-            <Button variant="outline" onClick={() => setIsEditing(true)}>
-              <Pencil className="mr-2 h-4 w-4" />
-              Chỉnh sửa hồ sơ
-            </Button>
-          )}
-          <Link href="/tao-cv">
-            <Button>
-              <FileText className="mr-2 h-4 w-4" />
-              Tạo CV từ hồ sơ
-              <ArrowRight className="ml-2 h-4 w-4" />
-            </Button>
-          </Link>
-        </div>
-      </div>
-
       {!hoSo && !isEditing && (
         <Card className="border-dashed">
           <CardHeader className="text-center">
@@ -400,115 +441,120 @@ export function HoSoView() {
         </Card>
       )}
 
-      {/* View Mode */}
+      {/* SECTION 1 — HỒ SƠ ỨNG VIÊN */}
       {hoSo && !isEditing && (
-        <div className="grid items-stretch gap-6 md:grid-cols-3">
-          {/* Card Thông tin chính */}
-          <Card className="h-full md:col-span-1">
-            <CardHeader className="text-center">
-               <div className="relative mx-auto flex h-20 w-20 items-center justify-center overflow-hidden rounded-full bg-primary/10 text-2xl font-bold text-primary ring-2 ring-border">
-                  {hoSo.anhDaiDienUrl && <Image src={hoSo.anhDaiDienUrl} alt={`Ảnh đại diện của ${hoSo.hoTen}`} fill sizes="80px" unoptimized className="object-cover" />}
-                 <span className={hoSo.anhDaiDienUrl ? "sr-only" : undefined}>
-                 {hoSo.hoTen
-                  ? hoSo.hoTen
-                      .split(" ")
-                      .map((n) => n[0])
-                      .slice(-2)
-                      .join("")
-                      .toUpperCase()
-                   : "UV"}
-                 </span>
-               </div>
-              <CardTitle className="mt-4 text-xl">{hoSo.hoTen}</CardTitle>
-              <CardDescription>{hoSo.viTriUngTuyen || "Chưa cập nhật vị trí"}</CardDescription>
-              <div className="pt-2">
-                <Badge variant={hoSo.isTimViec ? "default" : "secondary"}>
-                  {hoSo.isTimViec ? "Đang tìm việc" : "Đã có việc / Tạm dừng"}
-                </Badge>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-3 text-sm">
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <Mail className="h-4 w-4 shrink-0 text-primary" />
-                <span className="min-w-0 truncate">{identity?.email || "Chưa có email"}</span>
-              </div>
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <Phone className="h-4 w-4 shrink-0 text-primary" />
-                <span>{hoSo.sdt || "Chưa có SĐT"}</span>
-              </div>
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <Calendar className="h-4 w-4 shrink-0 text-primary" />
-                <span>
-                  {hoSo.ngaySinh
-                    ? new Date(hoSo.ngaySinh).toLocaleDateString("vi-VN")
-                    : "Chưa cập nhật ngày sinh"}
-                </span>
-              </div>
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <MapPin className="h-4 w-4 shrink-0 text-primary" />
-                <span>{hoSo.diaChi || "Chưa có địa chỉ"}</span>
-              </div>
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <DollarSign className="h-4 w-4 shrink-0 text-primary" />
-                <span>
-                  {hoSo.mucLuongMongMuon
-                    ? `${hoSo.mucLuongMongMuon.toLocaleString("vi-VN")} VNĐ`
-                    : "Thương lượng"}
-                </span>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Chi tiết Giới thiệu & Mục tiêu */}
-          <Card className="h-full md:col-span-2">
-            <CardHeader>
-              <CardTitle>Giới thiệu bản thân & Mục tiêu</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <h4 className="text-sm font-semibold text-muted-foreground">Giới thiệu</h4>
-                <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed">
-                  {hoSo.gioiThieu || "Chưa có lời giới thiệu bản thân."}
-                </p>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4 rounded-lg bg-muted/40 p-4">
-                <div>
-                  <span className="text-xs text-muted-foreground">Giới tính</span>
-                  <p className="font-medium text-foreground">{hoSo.gioiTinh || "Khác"}</p>
+        <section className="space-y-3">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+              Hồ sơ ứng viên
+            </h2>
+            <Button variant="outline" size="sm" className="rounded-full" onClick={() => setIsEditing(true)}>
+              <Pencil className="mr-1.5 size-3.5" />
+              Chỉnh sửa
+            </Button>
+          </div>
+          <Card className="rounded-2xl">
+            <CardContent className="p-5 sm:p-6">
+              <div className="flex items-start gap-4">
+                <div className="relative flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-primary/10 text-lg font-bold text-primary sm:size-20">
+                  {hoSo.anhDaiDienUrl && (
+                    <Image
+                      src={hoSo.anhDaiDienUrl}
+                      alt={`Ảnh đại diện của ${hoSo.hoTen}`}
+                      fill
+                      sizes="80px"
+                      unoptimized
+                      className="object-cover"
+                    />
+                  )}
+                  <span className={hoSo.anhDaiDienUrl ? "sr-only" : undefined}>
+                    {hoSo.hoTen
+                      ? hoSo.hoTen
+                          .split(" ")
+                          .map((n) => n[0])
+                          .slice(-2)
+                          .join("")
+                          .toUpperCase()
+                      : "UV"}
+                  </span>
                 </div>
-                <div>
-                  <span className="text-xs text-muted-foreground">Mức lương mong muốn</span>
-                  <p className="font-medium text-foreground">
+                <div className="min-w-0 flex-1">
+                  <h3 className="text-lg font-semibold text-foreground sm:text-xl">{hoSo.hoTen}</h3>
+                  <p className="mt-0.5 text-sm text-muted-foreground">{hoSo.viTriUngTuyen || "Chưa cập nhật vị trí"}</p>
+                  <span
+                    className={
+                      hoSo.isTimViec
+                        ? "mt-2 inline-flex items-center gap-1.5 rounded-full bg-teal/10 px-2.5 py-1 text-xs font-medium text-teal"
+                        : "mt-2 inline-flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground"
+                    }
+                  >
+                    <span
+                      className={hoSo.isTimViec ? "size-1.5 rounded-full bg-teal" : "size-1.5 rounded-full bg-muted-foreground/50"}
+                      aria-hidden
+                    />
+                    {hoSo.isTimViec ? "Đang bật tìm việc" : "Tạm dừng tìm việc"}
+                  </span>
+                </div>
+              </div>
+              <div className="mt-4 space-y-2.5 border-t border-border/50 pt-4 text-sm">
+                <div className="flex items-center gap-2.5 text-muted-foreground">
+                  <Mail className="size-4 shrink-0 text-primary" aria-hidden />
+                  <span className="min-w-0 truncate">{identity?.email || "Chưa có email"}</span>
+                </div>
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-muted-foreground">
+                  <span className="inline-flex items-center gap-2.5">
+                    <Phone className="size-4 shrink-0 text-primary" aria-hidden />
+                    {hoSo.sdt || "Chưa có SĐT"}
+                  </span>
+                  <span aria-hidden className="text-border">•</span>
+                  <span className="inline-flex items-center gap-2.5">
+                    <Calendar className="size-4 shrink-0 text-primary" aria-hidden />
+                    {hoSo.ngaySinh
+                      ? `${new Date(hoSo.ngaySinh).toLocaleDateString("vi-VN")}${hoSo.gioiTinh ? ` (${hoSo.gioiTinh})` : ""}`
+                      : "Chưa cập nhật ngày sinh"}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2.5 text-muted-foreground">
+                  <MapPin className="size-4 shrink-0 text-primary" aria-hidden />
+                  <span className="min-w-0 truncate">{hoSo.diaChi || "Chưa có địa chỉ"}</span>
+                </div>
+                <div className="flex items-center gap-2.5 text-muted-foreground">
+                  <DollarSign className="size-4 shrink-0 text-primary" aria-hidden />
+                  <span>
+                    Mong muốn:{" "}
                     {hoSo.mucLuongMongMuon
-                      ? `${hoSo.mucLuongMongMuon.toLocaleString("vi-VN")} đ`
+                      ? `${hoSo.mucLuongMongMuon.toLocaleString("vi-VN")} VNĐ/tháng`
                       : "Thương lượng"}
-                  </p>
+                  </span>
                 </div>
               </div>
+              {hoSo.gioiThieu && (
+                <div className="mt-4 border-t border-border/50 pt-4">
+                  <h4 className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Giới thiệu</h4>
+                  <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-foreground">{hoSo.gioiThieu}</p>
+                </div>
+              )}
             </CardContent>
           </Card>
-        </div>
+        </section>
       )}
 
-      {/* SECTION 2 — CV của tôi (existing created CV list) */}
+      {/* SECTION 2 — DANH SÁCH CV ĐÃ TẠO */}
       {hoSo && !isEditing && (
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between gap-3">
-            <div>
-              <CardTitle className="text-lg">CV của tôi</CardTitle>
-              <CardDescription>
-                Các CV bạn đã tạo — mở, chỉnh sửa hoặc in từ trình quản lý CV.
-              </CardDescription>
-            </div>
+        <section className="space-y-3">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+              Danh sách CV đã tạo {cvsLoading ? "" : `(${cvs.length})`}
+            </h2>
             <Link href="/tao-cv">
-              <Button size="sm">
-                <PlusCircle className="mr-2 h-4 w-4" />
+              <Button size="sm" className="rounded-full">
+                <PlusCircle className="mr-1.5 size-3.5" />
                 Tạo CV
               </Button>
             </Link>
-          </CardHeader>
-          <CardContent>
+          </div>
+          <Card className="rounded-2xl">
+            <CardContent className="p-4 sm:p-5">
             {cvsLoading ? (
               <div className="flex items-center gap-2 py-6 text-sm text-muted-foreground">
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -532,18 +578,11 @@ export function HoSoView() {
               </div>
             ) : cvs.length === 0 ? (
               <div className="flex flex-col items-center py-8 text-center">
-                <span className="flex size-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
-                  <FileText className="h-6 w-6" />
-                </span>
-                <p className="mt-3 text-sm font-medium text-foreground">Bạn chưa có CV</p>
-                <p className="mt-1 max-w-sm text-xs text-muted-foreground">
-                  Tạo CV đầu tiên từ hồ sơ của bạn để bắt đầu ứng tuyển.
-                </p>
+                <p className="text-sm text-muted-foreground">Chưa có CV nào được lưu.</p>
                 <Link href="/tao-cv" className="mt-4">
                   <Button>
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                    Tạo CV đầu tiên
-                    <ArrowRight className="ml-2 h-4 w-4" />
+                    <Zap className="mr-2 size-4" />
+                    Tạo CV nhanh từ Hồ sơ này
                   </Button>
                 </Link>
               </div>
@@ -570,7 +609,7 @@ export function HoSoView() {
                         </p>
                       </div>
                     </div>
-                    <div className="flex shrink-0 items-center gap-2">
+                    <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
                       {!cv.isDefault && (
                         <Button
                           type="button"
@@ -606,6 +645,70 @@ export function HoSoView() {
             )}
           </CardContent>
         </Card>
+        </section>
+      )}
+
+      {/* SECTION 3 — CÔNG TY ĐANG THEO DÕI */}
+      {hoSo && !isEditing && (
+        <section className="space-y-3">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+              Công ty đang theo dõi {followedHydrated && !companiesLoading ? `(${followedCount})` : ""}
+            </h2>
+            <Link href="/doanh-nghiep">
+              <Button variant="outline" size="sm" className="rounded-full">
+                Khám phá
+              </Button>
+            </Link>
+          </div>
+          <Card className="rounded-2xl">
+            <CardContent className="p-4 sm:p-5">
+              {companiesLoading ? (
+                <div className="flex items-center gap-2 py-2 text-sm text-muted-foreground">
+                  <Loader2 className="size-4 animate-spin" />
+                  Đang tải danh sách công ty...
+                </div>
+              ) : followedCompanies.length === 0 ? (
+                <p className="py-4 text-center text-sm text-muted-foreground">
+                  Bạn chưa theo dõi doanh nghiệp nào.
+                </p>
+              ) : (
+                <ul className="divide-y divide-border/50">
+                  {followedCompanies.map((company) => (
+                    <li key={company.id} className="flex items-center justify-between gap-3 py-3">
+                      <Link
+                        href={`/doanh-nghiep/${company.id}`}
+                        className="flex min-w-0 items-center gap-3 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      >
+                        <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                          <Building2 className="size-5" aria-hidden />
+                        </span>
+                        <span className="min-w-0">
+                          <span className="block truncate text-sm font-medium text-foreground">
+                            {company.tenDoanhNghiep}
+                          </span>
+                          {(company.linhVucHoatDong || company.diaChi) && (
+                            <span className="mt-0.5 block truncate text-xs text-muted-foreground">
+                              {company.linhVucHoatDong || company.diaChi}
+                            </span>
+                          )}
+                        </span>
+                      </Link>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="shrink-0 text-muted-foreground hover:text-foreground"
+                        onClick={() => toggleFollowed(company.id)}
+                      >
+                        Bỏ theo dõi
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
+        </section>
       )}
 
       {/* Edit / Create Form Mode */}
@@ -710,6 +813,7 @@ export function HoSoView() {
                       <Calendar className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                       <Input
                         id="ho-so-ngay-sinh"
+                        ref={ngaySinhInputRef}
                         type="text"
                         inputMode="numeric"
                         placeholder="dd/mm/yyyy"
@@ -759,7 +863,7 @@ export function HoSoView() {
                       <User className="pointer-events-none absolute left-3.5 top-1/2 z-10 size-4 -translate-y-1/2 text-muted-foreground" />
                       <Select value={gioiTinh} onValueChange={(value) => { if (value !== null) setGioiTinh(value); }}>
                         <SelectTrigger id="ho-so-gioi-tinh" className="h-10 w-full rounded-xl border-input bg-card pl-10 text-sm"><SelectValue /></SelectTrigger>
-                        <SelectContent>
+                        <SelectContent alignItemWithTrigger={false}>
                           <SelectItem value="Nam">Nam</SelectItem>
                           <SelectItem value="Nữ">Nữ</SelectItem>
                           <SelectItem value="Khác">Khác</SelectItem>
@@ -810,12 +914,13 @@ export function HoSoView() {
                       <DollarSign className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                       <Input
                         id="ho-so-muc-luong"
+                        ref={mucLuongInputRef}
                         type="text"
                         inputMode="numeric"
                         placeholder="15.000.000"
                         aria-label="Mức lương mong muốn (VNĐ)"
                         value={mucLuongMongMuon}
-                        onChange={(e) => setMucLuongMongMuon(formatVndInput(e.target.value))}
+                        onChange={handleMucLuongChange}
                         onKeyDown={(e) => {
                           if (e.key === "ArrowUp") {
                             e.preventDefault();

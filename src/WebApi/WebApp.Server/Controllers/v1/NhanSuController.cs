@@ -7,7 +7,6 @@ using Application.Features.NhanSu.Queries.GetAllNhanSus;
 using Application.Features.NhanSu.Queries.GetLoiMoiByToken;
 using Application.Features.NhanSu.Queries.GetPendingLoiMoi;
 using Application.Interfaces;
-using Casbin;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Threading.Tasks;
@@ -24,8 +23,7 @@ namespace WebApp.Server.Controllers.v1
 
         public NhanSuController(
             Microsoft.AspNetCore.Hosting.IWebHostEnvironment hostingEnvironment,
-            Enforcer enforcer,
-            IAccountService accountService) : base(hostingEnvironment, enforcer)
+            IAccountService accountService) : base(hostingEnvironment)
         {
             _accountService = accountService;
         }

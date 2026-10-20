@@ -5,7 +5,6 @@ using Application.Features.NguoiDung.Commands.CreateNguoiDung;
 using Application.Features.NguoiDung.Commands.UpdateNguoiDung;
 using Application.Features.NguoiDung.Commands.DeleteNguoiDung;
 using Application.Wrappers;
-using Casbin;
 using Infrastructure.Identity.Contexts;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Hosting;
@@ -21,7 +20,7 @@ namespace WebApp.Server.Controllers.v1
     public class NguoiDungController : BaseApiController
     {
         public NguoiDungController(
-            IWebHostEnvironment hostingEnvironment, Enforcer enforcer) : base(hostingEnvironment, enforcer)
+            IWebHostEnvironment hostingEnvironment) : base(hostingEnvironment)
         {
         }
 
