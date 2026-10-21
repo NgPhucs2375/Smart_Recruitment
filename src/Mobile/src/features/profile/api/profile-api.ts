@@ -41,7 +41,49 @@ function normalizeProfile(value: unknown): CandidateProfile | null {
   };
 }
 
+export type ProfileUpdateInput = {
+  hoTen: string;
+  sdt: string;
+  /** ISO datetime hoặc null (giống payload của web ho-so-view). */
+  ngaySinh: string | null;
+  gioiTinh: string;
+  diaChi: string;
+  gioiThieu: string;
+  viTriUngTuyen: string;
+  mucLuongMongMuon: number;
+  isTimViec: boolean;
+};
+
 export const profileApi = {
+  /** PUT hosoungviens/{id} — cập nhật hồ sơ ứng viên. */
+  async update(hoSoId: string, data: ProfileUpdateInput): Promise<void> {
+    if (USE_MOCK_JOBS) return;
+    await apiRequest<unknown>(`hosoungviens/${encodeURIComponent(hoSoId)}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
+  /** POST hosoungviens — tạo hồ sơ khi tài khoản chưa có (trả về id mới). */
+  async create(data: ProfileUpdateInput): Promise<string> {
+    if (USE_MOCK_JOBS) return 'demo-profile';
+    const payload = await apiRequest<unknown>('hosoungviens', {
+      method: 'POST',
+      body: JSON.stringify({ nguoiDungId: 0, ...data }),
+    });
+    return asText(unwrapData(payload));
+  },
+
+  /**
+   * POST hosoungviens/{id}/avatar — multipart field `file` (xem web hoSoApi.uploadAvatar).
+   * Chưa hỗ trợ trên mobile (không có expo-image-picker) — dùng bản web để đổi ảnh.
+   */
+  uploadAvatar(_hoSoId: string, _fileUri: string): Promise<never> {
+    return Promise.reject(
+      new Error('Tải ảnh đại diện chưa được hỗ trợ trên app. Vui lòng dùng bản web.'),
+    );
+  },
+
   async getMine(fallback: {
     name?: string;
     email?: string;

@@ -199,6 +199,24 @@ function JobsHeader({
         </ScrollView>
       </View>
 
+      {/* Entry chips — shortcut tới Việc phù hợp + Danh bạ công ty (Web: nav section). */}
+      <View style={styles.quickRow}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Việc làm phù hợp"
+          onPress={() => router.push('/phu-hop')}
+          style={[styles.quickChip, { backgroundColor: theme.muted, borderColor: theme.border }]}>
+          <ThemedText style={[styles.quickChipText, { color: theme.text }]}>Việc phù hợp</ThemedText>
+        </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Khám phá công ty"
+          onPress={() => router.push('/companies')}
+          style={[styles.quickChip, { backgroundColor: theme.muted, borderColor: theme.border }]}>
+          <ThemedText style={[styles.quickChipText, { color: theme.text }]}>Công ty</ThemedText>
+        </Pressable>
+      </View>
+
       <ActiveFilterChips
         filters={filters}
         options={options}
@@ -577,6 +595,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   clearPillText: { fontFamily: font('semibold'), fontSize: 13 },
+  quickRow: { flexDirection: 'row', gap: 8, marginTop: 10 },
+  quickChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: Radius.pill,
+    borderWidth: 1,
+    alignItems: 'center',
+  },
+  quickChipText: { fontFamily: font('semibold'), fontSize: 12 },
   banner: {
     marginTop: 12,
     borderWidth: 1,

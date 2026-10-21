@@ -13,6 +13,8 @@ export type ApplicationSummary = {
   statusTone: ApplicationStatusTone;
   appliedAt: string;
   appliedAtValue: number;
+  /** Kết luận/lý do từ nhà tuyển dụng (nếu có). */
+  ketLuan?: string;
 };
 
 export type ApplicationsResult = {

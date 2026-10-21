@@ -1,7 +1,7 @@
 import { useFocusEffect, router } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
-import { LogOut } from 'lucide-react-native';
+import { FilePlus2, LogOut, Pencil, Settings } from 'lucide-react-native';
 
 import { AppHeader } from '@/components/app-header';
 import { ThemedText } from '@/components/themed-text';
@@ -163,6 +163,41 @@ export default function ProfileScreen() {
 
         <SectionHeading title="Hồ sơ ứng viên" />
         <ProfileInfoCard profile={profile} />
+        <View style={styles.quickActions}>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => router.push('/profile-edit')}
+            style={({ pressed }) => [
+              styles.quickPill,
+              { borderColor: theme.border, backgroundColor: theme.backgroundElement, opacity: pressed ? 0.7 : 1 },
+            ]}>
+            <Pencil size={14} color={theme.text} />
+            <ThemedText style={styles.quickPillText}>Chỉnh sửa hồ sơ</ThemedText>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => router.push('/settings')}
+            style={({ pressed }) => [
+              styles.quickPill,
+              { borderColor: theme.border, backgroundColor: theme.backgroundElement, opacity: pressed ? 0.7 : 1 },
+            ]}>
+            <Settings size={14} color={theme.text} />
+            <ThemedText style={styles.quickPillText}>Cài đặt</ThemedText>
+          </Pressable>
+        </View>
+
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => router.push('/tao-cv')}
+          style={({ pressed }) => [
+            styles.createCvButton,
+            { backgroundColor: theme.primary, opacity: pressed ? 0.85 : 1 },
+          ]}>
+          <FilePlus2 size={16} color={theme.primaryForeground} />
+          <ThemedText style={[styles.createCvText, { color: theme.primaryForeground }]}>
+            Tạo CV mới
+          </ThemedText>
+        </Pressable>
 
         <SectionHeading
           title="Đơn ứng tuyển gần đây"
@@ -202,6 +237,17 @@ export default function ProfileScreen() {
           )}
         </ListSurface>
 
+        {applications.length > 0 ? (
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => router.push('/applications')}
+            style={({ pressed }) => [styles.seeAllRow, { opacity: pressed ? 0.7 : 1 }]}>
+            <ThemedText style={[styles.seeAllText, { color: theme.primary }]}>
+              Xem tất cả đơn ứng tuyển →
+            </ThemedText>
+          </Pressable>
+        ) : null}
+
         <SectionHeading
           title="Danh sách CV đã tạo"
           caption="Chọn CV nhanh khi ứng tuyển trên điện thoại"
@@ -223,7 +269,9 @@ export default function ProfileScreen() {
               message="Tạo hoặc tải CV lên trên bản web, sau đó quay lại đây để ứng tuyển nhanh."
             />
           ) : (
-            cvs.map((cv, index) => <CvRow key={cv.id} cv={cv} first={index === 0} />)
+            cvs.map((cv, index) => (
+              <CvRow key={cv.id} cv={cv} first={index === 0} onChange={handleRefresh} />
+            ))
           )}
         </ListSurface>
 
@@ -249,6 +297,30 @@ const styles = StyleSheet.create({
   content: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 38 },
   demoRow: { marginBottom: 4 },
   demoBadge: { fontFamily: font('semibold'), fontSize: 10, letterSpacing: 0.5 },
+  seeAllRow: { alignItems: 'center', paddingVertical: 6 },
+  seeAllText: { fontFamily: font('semibold'), fontSize: 13 },
+  quickActions: { flexDirection: 'row', gap: 8, marginTop: -2 },
+  quickPill: {
+    flex: 1,
+    minHeight: 40,
+    borderRadius: Radius.pill,
+    borderWidth: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  quickPillText: { fontFamily: font('semibold'), fontSize: 12 },
+  createCvButton: {
+    minHeight: 46,
+    borderRadius: Radius.pill,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 10,
+  },
+  createCvText: { fontFamily: font('semibold'), fontSize: 14 },
   logoutButton: {
     minHeight: 50,
     borderRadius: Radius['2xl'],

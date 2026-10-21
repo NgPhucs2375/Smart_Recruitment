@@ -1,4 +1,5 @@
-import { USE_MOCK_JOBS } from '@/features/jobs/api/jobs-api';
+import { jobsApi, USE_MOCK_JOBS } from '@/features/jobs/api/jobs-api';
+import type { Job } from '@/features/jobs/types';
 import { formatDate, formatSalary, toTimestamp } from '@/features/jobs/format';
 import { getApplicationStatus } from '@/features/applications/constants';
 import type {
@@ -141,8 +142,7 @@ function normalizeApplication(value: unknown, index: number): ApplicationSummary
   if (!raw) return null;
 
   const jobId = asText(raw.tinTuyenDungId ?? raw.TinTuyenDungId);
-  const jobTitle = asText(raw.tieuDe ?? raw.TieuDe);
-  if (!jobId || !jobTitle) return null;
+  if (!jobId) return null;
 
   const status = getApplicationStatus(raw.trangThai ?? raw.TrangThai);
   const appliedAtValue = toTimestamp(raw.ngayUngTuyen ?? raw.NgayUngTuyen);
@@ -150,7 +150,7 @@ function normalizeApplication(value: unknown, index: number): ApplicationSummary
   return {
     id: asText(raw.id ?? raw.Id, `application-${index}`),
     jobId,
-    jobTitle,
+    jobTitle: asText(raw.tieuDe ?? raw.TieuDe),
     company: asText(raw.tenDoanhNghiep ?? raw.TenDoanhNghiep, 'Doanh nghiệp tuyển dụng'),
     location: asText(raw.diaDiemLamViec ?? raw.DiaDiemLamViec, 'Chưa cập nhật địa điểm'),
     salary: formatSalary(
@@ -166,6 +166,7 @@ function normalizeApplication(value: unknown, index: number): ApplicationSummary
       'Chưa rõ ngày ứng tuyển',
     ),
     appliedAtValue: appliedAtValue ?? 0,
+    ketLuan: asText(raw.ketLuan ?? raw.KetLuan ?? raw.phanHoi ?? raw.PhanHoi) || undefined,
   };
 }
 
@@ -191,6 +192,99 @@ export const applicationsApi = {
       `donungtuyens?_start=0&_end=${Math.max(1, limit)}&_sort=ngayungtuyen&_order=desc`,
     );
     return parseRecentApplications(payload, limit);
+  },
+
+  /** Trang đơn ứng tuyển (bản web: /viec-lam/da-ung-tuyen). */
+  async listPage(params: {
+    page?: number;
+    pageSize?: number;
+    statusCode?: number;
+  }): Promise<ApplicationsResult> {
+    const page = Math.max(1, params.page ?? 1);
+    const pageSize = Math.max(1, params.pageSize ?? 10);
+    const { statusCode } = params;
+
+    if (USE_MOCK_JOBS) {
+      let rows = [...mockAddedApplications, ...MOCK_BASE_APPLICATIONS].sort(
+        (left, right) => right.appliedAtValue - left.appliedAtValue,
+      );
+      if (statusCode !== undefined) rows = rows.filter((row) => row.statusCode === statusCode);
+      const start = (page - 1) * pageSize;
+      return { items: rows.slice(start, start + pageSize), totalCount: rows.length, source: 'demo' };
+    }
+
+    const query = new URLSearchParams();
+    query.set('_start', String((page - 1) * pageSize));
+    query.set('_end', String(page * pageSize));
+    query.set('_sort', 'ngayungtuyen');
+    query.set('_order', 'desc');
+    if (statusCode !== undefined) query.set('TrangThai', String(statusCode));
+
+    const payload = await apiRequest<unknown>(`donungtuyens?${query.toString()}`);
+    const envelope = asRecord(payload);
+    const rows = Array.isArray(unwrapData(payload)) ? (unwrapData(payload) as unknown[]) : [];
+    const items = rows
+      .map((row, index) => normalizeApplication(row, index))
+      .filter((application): application is ApplicationSummary => application !== null);
+
+    // Đơn cũ thiếu thông tin tin tuyển → lấy thêm chi tiết (bản web enrich từng jobId).
+    const missingIds = [
+      ...new Set(
+        items
+          .filter((item) => !item.jobTitle && Number.isInteger(Number(item.jobId)) && Number(item.jobId) > 0)
+          .map((item) => item.jobId),
+      ),
+    ];
+    if (missingIds.length > 0) {
+      const fetched = await Promise.allSettled(missingIds.map((id) => jobsApi.getJobById(id)));
+      const jobMap = new Map<string, Job>();
+      missingIds.forEach((id, index) => {
+        const result = fetched[index];
+        if (result.status === 'fulfilled' && result.value) jobMap.set(id, result.value);
+      });
+      for (const item of items) {
+        if (item.jobTitle) continue;
+        const job = jobMap.get(item.jobId);
+        if (!job) continue;
+        item.jobTitle = job.title;
+        item.company = job.company || item.company;
+        item.location = job.location || item.location;
+        if (job.salaryMin || job.salaryMax) {
+          item.salary = formatSalary(job.salaryMin ?? 0, job.salaryMax ?? 0);
+        }
+      }
+    }
+
+    return {
+      items,
+      totalCount: asNumber(envelope?.TotalCount ?? envelope?.totalCount, items.length),
+      source: 'api',
+    };
+  },
+
+  /** Rút đơn: PUT donungtuyens/{id} với trigger=8 (RutDon) — đúng bản web. */
+  async withdraw(id: string): Promise<void> {
+    if (USE_MOCK_JOBS) {
+      const numericId = Number(id);
+      const row =
+        mockAddedApplications.find((item) => item.id === id) ??
+        MOCK_BASE_APPLICATIONS.find((item) => item.id === id);
+      if (row) row.statusCode = 4;
+      if (!row && Number.isFinite(numericId)) {
+        const base = MOCK_BASE_APPLICATIONS.find((item) => item.id === id);
+        if (base) base.statusCode = 4;
+      }
+      return;
+    }
+
+    const numericId = Number(id);
+    if (!Number.isInteger(numericId) || numericId <= 0) {
+      throw new Error('Đơn ứng tuyển không hợp lệ.');
+    }
+    await apiRequest<unknown>(`donungtuyens/${numericId}`, {
+      method: 'PUT',
+      body: JSON.stringify({ id: numericId, trigger: 8, ghiChu: 'Ứng viên rút đơn' }),
+    });
   },
 
   async hasApplied(jobId: string): Promise<boolean> {

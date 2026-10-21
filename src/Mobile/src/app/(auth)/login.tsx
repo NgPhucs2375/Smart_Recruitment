@@ -11,7 +11,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowRight, Eye, EyeOff, Lock, Mail, UserRound } from 'lucide-react-native';
+import { ArrowRight, Eye, EyeOff, Lock, Mail } from 'lucide-react-native';
 
 import { BrandLogo } from '@/components/brand-logo';
 import { ThemedText } from '@/components/themed-text';
@@ -59,15 +59,9 @@ export default function LoginScreen() {
           <BrandLogo variant="navy" size="auth" style={styles.logo} />
 
           <View style={styles.headingBlock}>
-            <View style={[styles.portalBadge, { backgroundColor: theme.muted, borderColor: theme.border }]}>
-              <UserRound size={12} color={theme.textSecondary} />
-              <ThemedText style={[styles.portalBadgeText, { color: theme.textSecondary }]}>
-                Cổng ứng viên
-              </ThemedText>
-            </View>
-            <ThemedText style={styles.title}>Đăng nhập ứng viên</ThemedText>
+            <ThemedText style={styles.title}>Đăng nhập</ThemedText>
             <ThemedText style={[styles.subtitle, { color: theme.textSecondary }]}>
-              Dùng chung hệ thống xác thực HIREAI
+              Ứng viên và nhà tuyển dụng dùng chung HIREAI
             </ThemedText>
           </View>
 
@@ -98,9 +92,11 @@ export default function LoginScreen() {
             <ThemedText style={[styles.label, { color: theme.textSecondary }]}>
               Mật khẩu
             </ThemedText>
-            <ThemedText style={[styles.linkText, { color: theme.textSecondary }]}>
-              Quên mật khẩu?
-            </ThemedText>
+            <Pressable accessibilityRole="link" hitSlop={8} onPress={() => router.push('/forgot-password')}>
+              <ThemedText style={[styles.linkText, { color: theme.primary }]}>
+                Quên mật khẩu?
+              </ThemedText>
+            </Pressable>
           </View>
           <View
             style={[
@@ -158,11 +154,25 @@ export default function LoginScreen() {
 
           <View style={[styles.hint, { borderColor: theme.border }]}>
             <ThemedText style={[styles.hintTitle, { color: theme.textSecondary }]}>
-              Tài khoản demo
+              Tài khoản demo · mật khẩu 123Pa$$word!
             </ThemedText>
             <ThemedText style={[styles.hintText, { color: theme.textSecondary }]}>
-              basicuser@gmail.com · 123Pa$$word!
+              basicuser@gmail.com (ứng viên)
             </ThemedText>
+            <ThemedText style={[styles.hintText, { color: theme.textSecondary }]}>
+              employer@gmail.com (nhà tuyển dụng)
+            </ThemedText>
+          </View>
+
+          <View style={styles.registerRow}>
+            <ThemedText style={[styles.registerText, { color: theme.textSecondary }]}>
+              Chưa có tài khoản?
+            </ThemedText>
+            <Pressable accessibilityRole="link" hitSlop={8} onPress={() => router.push('/register')}>
+              <ThemedText style={[styles.registerText, { color: theme.primary, fontFamily: font('semibold') }]}>
+                Đăng ký
+              </ThemedText>
+            </Pressable>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -182,21 +192,6 @@ const styles = StyleSheet.create({
   },
   logo: { alignSelf: 'center', marginBottom: 28 },
   headingBlock: { alignItems: 'center', gap: 6, marginBottom: 24 },
-  portalBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    borderRadius: Radius.pill,
-    borderWidth: 1,
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-  },
-  portalBadgeText: {
-    fontFamily: font('semibold'),
-    fontSize: 10,
-    textTransform: 'uppercase',
-    letterSpacing: 2,
-  },
   title: { fontFamily: font('semibold'), fontSize: 24, letterSpacing: -0.4 },
   subtitle: { fontFamily: font('regular'), fontSize: 14 },
   label: {
@@ -235,4 +230,12 @@ const styles = StyleSheet.create({
     letterSpacing: 0.6,
   },
   hintText: { fontFamily: font('regular'), fontSize: 13 },
+  registerRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 20,
+  },
+  registerText: { fontFamily: font('regular'), fontSize: 13 },
 });

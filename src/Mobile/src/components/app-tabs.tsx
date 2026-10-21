@@ -10,8 +10,9 @@ export default function AppTabs() {
   return (
     <NativeTabs
       backgroundColor={colors.background}
-      indicatorColor={colors.backgroundSelected}
-      labelStyle={{ selected: { color: colors.primary } }}>
+      indicatorColor={`${colors.primary}1f`}
+      iconColor={{ default: colors.textSecondary, selected: colors.primary }}
+      labelStyle={{ default: { color: colors.textSecondary }, selected: { color: colors.primary } }}>
       <NativeTabs.Trigger name="index">
         <NativeTabs.Trigger.Label>Việc làm</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon sf="magnifyingglass" md="work" />
@@ -20,6 +21,11 @@ export default function AppTabs() {
       <NativeTabs.Trigger name="saved">
         <NativeTabs.Trigger.Label>Đã lưu</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon sf="bookmark" md="bookmark" />
+      </NativeTabs.Trigger>
+
+      <NativeTabs.Trigger name="notifications">
+        <NativeTabs.Trigger.Label>Thông báo</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon sf="bell" md="notifications" />
       </NativeTabs.Trigger>
 
       <NativeTabs.Trigger name="profile">
