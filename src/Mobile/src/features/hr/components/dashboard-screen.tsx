@@ -9,6 +9,7 @@ import {
   Clock,
   LayoutDashboard,
   ListTodo,
+  MessageCircle,
   Plus,
   Send,
   TrendingUp,
@@ -235,6 +236,13 @@ export function DashboardScreen() {
               Mời nhân sự
             </Button>
           ) : null}
+          <Button
+            pill
+            variant="outline"
+            onPress={() => router.push('/hr/messages')}
+            icon={<MessageCircle size={16} color={theme.text} />}>
+            Tin nhắn
+          </Button>
         </View>
 
         {data?.source === 'demo' ? (
@@ -471,7 +479,7 @@ export function DashboardScreen() {
                   <View style={[styles.attentionIcon, { backgroundColor: '#f7eddc' }]}>
                     <Send size={15} color={theme.text} />
                   </View>
-                  <ThemedText style={styles.attentionText} type="small">
+                  <ThemedText style={styles.attentionText} type="small" numberOfLines={2}>
                     {unviewed.length} đơn mới chưa xem
                   </ThemedText>
                   <Pressable accessibilityRole="button" onPress={() => router.push('/(hr)/applicants')}>
@@ -593,7 +601,7 @@ function getTrangThai(job: HrJob): number {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  content: { padding: 16, gap: 14, paddingBottom: 32 },
+  content: { padding: 16, gap: 16, paddingBottom: 32 },
   headerRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   headerIcon: { width: 38, height: 38, borderRadius: Radius.md, alignItems: 'center', justifyContent: 'center' },
   headerTexts: { flex: 1, gap: 2 },
@@ -602,7 +610,7 @@ const styles = StyleSheet.create({
   greeting: { fontSize: 13 },
   actionRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   demoNote: { fontSize: 11 },
-  kpiGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  kpiGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   section: { borderRadius: Radius['2xl'], borderWidth: 1, padding: 16, gap: 12 },
   sectionHead: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 },
   sectionHeadTexts: { flex: 1, gap: 2 },
@@ -613,7 +621,7 @@ const styles = StyleSheet.create({
   trendTrack: { width: '100%', flex: 1, justifyContent: 'flex-end' },
   trendFill: { width: '100%', borderRadius: 4 },
   attentionGrid: { gap: 0 },
-  attentionBlock: { paddingVertical: 12, borderTopWidth: StyleSheet.hairlineWidth, gap: 4 },
+  attentionBlock: { paddingVertical: 12, borderTopWidth: StyleSheet.hairlineWidth, gap: 8 },
   attentionBlockHead: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   attentionValue: { fontFamily: font('bold'), fontSize: 26, lineHeight: 30 },
   stageGrid: { gap: 8 },

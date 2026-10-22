@@ -325,7 +325,7 @@ const styles = StyleSheet.create({
   content: { padding: 16, gap: 14, paddingBottom: 48 },
   chipRow: { gap: 8, paddingRight: 8 },
   stamp: { fontSize: 11 },
-  kpiRow: { flexDirection: 'row', gap: 12 },
+  kpiRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   block: { borderRadius: Radius.xl, borderWidth: 1, padding: 14, gap: 12 },
   blockTitle: { fontSize: 14 },
   ringWrap: { flexDirection: 'row', alignItems: 'center', gap: 16, flexWrap: 'wrap' },

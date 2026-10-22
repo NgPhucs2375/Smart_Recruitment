@@ -450,12 +450,12 @@ export default function BuilderScreen() {
           accessibilityLabel="Quay lại"
           icon={<ArrowLeft size={18} color={theme.text} />}
         />
-        <ThemedText style={{ color: theme.text }} type="smallBold" numberOfLines={1}>
+        <ThemedText style={{ color: theme.text, flex: 1 }} type="smallBold" numberOfLines={1}>
           Trình tạo CV
         </ThemedText>
         <View style={[styles.statusPill, { borderColor: theme.border }]}>
           <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
-          <ThemedText style={{ color: theme.textSecondary }} type="code">
+          <ThemedText style={{ color: theme.textSecondary }} type="code" numberOfLines={1}>
             {statusLabel}
           </ThemedText>
         </View>
@@ -614,7 +614,7 @@ export default function BuilderScreen() {
 
             <View style={[styles.footerNote, { borderColor: theme.border }]}>
               <Info size={14} color={theme.primary} />
-              <ThemedText style={{ color: theme.textSecondary }} type="code">
+              <ThemedText style={{ color: theme.textSecondary, flex: 1 }} type="code">
                 Lưu ý: Hãy kiểm tra lại thông tin trước khi bấm Lưu CV hoặc Xuất PDF.
               </ThemedText>
             </View>
@@ -664,7 +664,7 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
   },
   statusDot: { width: 7, height: 7, borderRadius: 999 },
-  topActions: { flexDirection: 'row', alignItems: 'center', gap: 6, marginLeft: 'auto' },
+  topActions: { flexDirection: 'row', alignItems: 'center', gap: 6, marginLeft: 'auto', flexShrink: 1 },
   content: { padding: 16, gap: 14, paddingBottom: 48 },
   loadingBox: { alignItems: 'center', gap: 10, paddingVertical: 56 },
   errorBox: {

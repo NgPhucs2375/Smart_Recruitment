@@ -410,7 +410,7 @@ const styles = StyleSheet.create({
   },
   stateTitle: { fontFamily: font('semibold'), fontSize: 16, textAlign: 'center' },
   stateMessage: { fontSize: 13, lineHeight: 19, textAlign: 'center' },
-  stateButton: { paddingHorizontal: 16, paddingVertical: 10, borderRadius: Radius.lg, marginTop: 3 },
+  stateButton: { paddingHorizontal: 16, paddingVertical: 10, borderRadius: Radius.lg },
   stateButtonText: { fontFamily: font('bold'), fontSize: 13 },
   footerState: { alignItems: 'center', justifyContent: 'center', paddingVertical: 22 },
   footerMessage: { fontSize: 12, lineHeight: 18, textAlign: 'center', paddingVertical: 12 },
@@ -420,7 +420,6 @@ const styles = StyleSheet.create({
     borderRadius: Radius.lg,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 4,
   },
   loadMoreText: { fontFamily: font('semibold'), fontSize: 13 },
 });

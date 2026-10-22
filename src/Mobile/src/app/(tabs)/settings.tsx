@@ -271,11 +271,11 @@ function PasswordInput({
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  content: { padding: 16, gap: 10, paddingBottom: 32 },
+  content: { padding: 16, gap: 16, paddingBottom: 32 },
   headingBlock: { gap: 4, marginBottom: 4 },
   title: { fontFamily: font('semibold'), fontSize: 24, letterSpacing: -0.4 },
   subtitle: { fontFamily: font('regular'), fontSize: 13, lineHeight: 19 },
-  sectionTitle: { fontFamily: font('semibold'), fontSize: 11, letterSpacing: 1.4, marginTop: 14 },
+  sectionTitle: { fontFamily: font('semibold'), fontSize: 11, letterSpacing: 1.4 },
   groupCard: { padding: 16, gap: 12, borderRadius: Radius.xl },
   row: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
   rowCopy: { flex: 1, gap: 2 },
@@ -298,11 +298,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    flexWrap: 'wrap',
     gap: 12,
-    marginTop: 2,
   },
   showToggle: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   showToggleText: { fontFamily: font('medium'), fontSize: 12 },
   submitButton: { borderRadius: Radius.lg },
-  logoutButton: { marginTop: 20, borderRadius: Radius.xl },
+  logoutButton: { marginTop: 16, borderRadius: Radius.xl },
 });

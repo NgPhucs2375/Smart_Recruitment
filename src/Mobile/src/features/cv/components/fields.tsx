@@ -131,11 +131,13 @@ export function DateField({
   value,
   onChange,
   disabled,
+  style,
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
   disabled?: boolean;
+  style?: StyleProp<ViewStyle>;
 }) {
   const badFormat = !isValidVnDate(value);
   const future = !badFormat && value.trim() !== '' && isFutureVnDate(value);
@@ -154,6 +156,7 @@ export function DateField({
       keyboardType="number-pad"
       disabled={disabled}
       error={error}
+      style={style}
     />
   );
 }
@@ -164,12 +167,14 @@ export function PartialDateField({
   precision,
   onChange,
   disabled,
+  style,
 }: {
   label: string;
   value: string;
   precision: 'month_year' | 'year_only';
   onChange: (value: string) => void;
   disabled?: boolean;
+  style?: StyleProp<ViewStyle>;
 }) {
   const invalid = !isValidCvPartialDate(value, precision);
   const hint = precision === 'year_only' ? 'YYYY' : 'MM/YYYY';
@@ -185,6 +190,7 @@ export function PartialDateField({
       keyboardType="number-pad"
       disabled={disabled}
       error={invalid ? `Ngày không hợp lệ (${hint})` : null}
+      style={style}
     />
   );
 }
@@ -250,7 +256,7 @@ export function WritingTips({ items }: { items: string[] }) {
           <ThemedText style={{ color: theme.primary }} type="code">
             ✓
           </ThemedText>
-          <ThemedText style={{ color: theme.textSecondary }} type="code">
+          <ThemedText style={{ color: theme.textSecondary, flex: 1 }} type="code">
             {tip}
           </ThemedText>
         </View>
@@ -322,7 +328,7 @@ export function ChipInput({
                 { backgroundColor: theme.backgroundSelected, borderColor: theme.border },
               ]}
             >
-              <ThemedText style={{ color: theme.primaryHover }} type="code">
+              <ThemedText style={{ color: theme.primaryHover, flexShrink: 1 }} type="code" numberOfLines={1}>
                 {value}
               </ThemedText>
               <Pressable
@@ -400,7 +406,7 @@ const styles = StyleSheet.create({
   multiline: { minHeight: 96, textAlignVertical: 'top' },
   counterWrap: { position: 'relative' },
   error: { fontSize: 11 },
-  precisionGroup: { gap: 8, marginBottom: 4 },
+  precisionGroup: { gap: 8 },
   precisionRow: { flexDirection: 'row', gap: 6 },
   tips: {
     borderWidth: 1,
@@ -409,7 +415,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     gap: 4,
-    marginBottom: 10,
   },
   tipRow: { flexDirection: 'row', gap: 6 },
   chipInputRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
@@ -418,6 +423,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
+    maxWidth: '100%',
     borderWidth: 1,
     borderRadius: Radius.pill,
     paddingHorizontal: 10,

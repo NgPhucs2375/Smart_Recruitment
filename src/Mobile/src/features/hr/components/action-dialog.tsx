@@ -80,7 +80,7 @@ export function HrActionDialog({
           style={[styles.card, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}
           onPress={() => undefined}
         >
-          <ThemedText style={styles.title} type="smallBold">
+          <ThemedText style={styles.title} type="smallBold" numberOfLines={1}>
             {request.title}
           </ThemedText>
           {request.description ? (

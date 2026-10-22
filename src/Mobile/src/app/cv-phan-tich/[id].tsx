@@ -129,7 +129,7 @@ export default function CvPhanTichScreen() {
           accessibilityLabel="Quay lại"
           icon={<ArrowLeft size={18} color={theme.text} />}
         />
-        <ThemedText style={{ color: theme.text }} type="subtitle">
+        <ThemedText style={{ color: theme.text, flex: 1 }} type="subtitle" numberOfLines={1}>
           Phân tích CV
         </ThemedText>
       </View>
@@ -182,8 +182,7 @@ export default function CvPhanTichScreen() {
               <Button
                 onPress={() =>
                   router.push({ pathname: '/tao-cv/[id]', params: { id: cvId || 'new' } })
-                }
-                style={{ marginTop: 6 }}>
+                }>
                 Mở CV để lưu
               </Button>
             </View>
@@ -250,7 +249,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  content: { padding: 16, gap: 14, paddingBottom: 40 },
+  content: { padding: 16, gap: 16, paddingBottom: 40 },
   hero: {
     borderWidth: 1,
     borderRadius: Radius['3xl'],

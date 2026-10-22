@@ -228,7 +228,7 @@ export function ApprovalsScreen() {
                           <View
                             key={skill.kyNangId}
                             style={[styles.skillPill, { backgroundColor: theme.backgroundSelected }]}>
-                            <ThemedText style={{ color: theme.primary }} type="code">
+                            <ThemedText style={{ color: theme.primary, flexShrink: 1 }} type="code" numberOfLines={1}>
                               {skill.tenKyNang}
                               {SKILL_LEVELS[skill.mucDoYeuCau]
                                 ? ` • ${SKILL_LEVELS[skill.mucDoYeuCau]}`
@@ -291,7 +291,7 @@ const styles = StyleSheet.create({
   money: { fontFamily: font('medium') },
   paragraph: { lineHeight: 19 },
   skillWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  skillPill: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: Radius.pill },
+  skillPill: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: Radius.pill, maxWidth: '100%' },
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   actions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 8, marginTop: 4 },
 });

@@ -42,7 +42,7 @@ function FilterChip({ label, onPress }: { label: string; onPress: () => void }) 
       <ThemedText numberOfLines={1} style={[styles.chipText, { color: theme.primary }]}>
         {label}
       </ThemedText>
-      <ThemedText style={[styles.chipRemove, { color: theme.primary }]}>×</ThemedText>
+      <ThemedText style={[styles.chipRemove, { color: theme.primary }]} numberOfLines={1}>×</ThemedText>
     </Pressable>
   );
 }

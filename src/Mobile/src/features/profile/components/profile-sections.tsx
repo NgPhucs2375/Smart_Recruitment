@@ -248,7 +248,7 @@ export function ApplicationRow({
       {application.salary ? (
         <View style={[styles.salaryPill, { backgroundColor: `${Palette.sage}26` }]}>
           <Wallet size={12} color={theme.primary} />
-          <ThemedText style={[styles.salaryText, { color: theme.primary }]}>
+          <ThemedText style={[styles.salaryText, { color: theme.primary }]} numberOfLines={1}>
             {application.salary}
           </ThemedText>
         </View>
@@ -499,7 +499,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: 12,
-    marginTop: 26,
+    marginTop: 24,
     marginBottom: 12,
   },
   sectionHeadingCopy: { flex: 1, gap: 4 },
@@ -508,7 +508,7 @@ const styles = StyleSheet.create({
   countBadge: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: Radius.pill },
   countBadgeText: { fontFamily: font('bold'), fontSize: 11 },
   listSurface: { borderRadius: Radius['2xl'], borderWidth: 1, overflow: 'hidden' },
-  row: { paddingHorizontal: 16, paddingVertical: 16, gap: 6 },
+  row: { paddingHorizontal: 16, paddingVertical: 16, gap: 8 },
   appTop: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   appBadge: { fontFamily: font('medium'), fontSize: 11 },
   appTitle: { fontFamily: font('semibold'), fontSize: 15, lineHeight: 21 },
@@ -518,12 +518,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
     alignSelf: 'flex-start',
+    maxWidth: '100%',
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: Radius.pill,
-    marginTop: 2,
   },
-  salaryText: { fontFamily: font('bold'), fontSize: 12 },
+  salaryText: { fontFamily: font('bold'), fontSize: 12, flexShrink: 1 },
   viewPill: {
     alignSelf: 'flex-start',
     minHeight: 36,
@@ -532,7 +532,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 4,
   },
   viewPillText: { fontFamily: font('semibold'), fontSize: 12 },
   cvRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
@@ -548,7 +547,7 @@ const styles = StyleSheet.create({
   cvName: { fontFamily: font('medium'), fontSize: 14, flexShrink: 1 },
   cvDefaultBadge: { fontFamily: font('medium'), fontSize: 11 },
   cvMeta: { fontSize: 12, lineHeight: 17 },
-  cvActions: { flexDirection: 'row', gap: 8, marginTop: 4 },
+  cvActions: { flexDirection: 'row', gap: 8 },
   cvActionPill: {
     minHeight: 32,
     paddingHorizontal: 14,

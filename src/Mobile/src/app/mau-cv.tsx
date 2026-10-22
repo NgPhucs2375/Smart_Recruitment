@@ -90,7 +90,7 @@ export default function MauCvGalleryScreen() {
           accessibilityLabel="Quay lại"
           icon={<ArrowLeft size={18} color={theme.text} />}
         />
-        <ThemedText style={{ color: theme.text }} type="subtitle" numberOfLines={1}>
+        <ThemedText style={{ color: theme.text, flex: 1 }} type="subtitle" numberOfLines={1}>
           Chọn mẫu CV
         </ThemedText>
         <View style={styles.topRight}>
@@ -152,7 +152,8 @@ export default function MauCvGalleryScreen() {
                 ]}>
                 <ThemedText
                   style={{ color: active ? theme.primaryForeground : theme.textSecondary }}
-                  type="code">
+                  type="code"
+                  numberOfLines={1}>
                   {GALLERY_CHIP_LABELS[item.id] ?? item.label}
                 </ThemedText>
               </Pressable>
@@ -221,7 +222,7 @@ export default function MauCvGalleryScreen() {
                         { backgroundColor: theme.backgroundSelected, borderColor: theme.border },
                       ]}>
                       <Tag size={11} color={theme.primary} />
-                      <ThemedText style={{ color: theme.primary }} type="code">
+                      <ThemedText style={{ color: theme.primary, flexShrink: 1 }} type="code" numberOfLines={1}>
                         {`${templateCategoryLabel(template)} • ${columns} cột`}
                       </ThemedText>
                     </View>
@@ -302,7 +303,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  topRight: { flexDirection: 'row', alignItems: 'center', gap: 8, marginLeft: 'auto' },
+  topRight: { flexDirection: 'row', alignItems: 'center', gap: 8, marginLeft: 'auto', flexShrink: 1 },
   sortGroup: {
     flexDirection: 'row',
     borderWidth: 1,
@@ -356,6 +357,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 4,
     alignSelf: 'flex-start',
+    maxWidth: '100%',
     borderRadius: Radius.pill,
     borderWidth: 1,
     paddingHorizontal: 8,

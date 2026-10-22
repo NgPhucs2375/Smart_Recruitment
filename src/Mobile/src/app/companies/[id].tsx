@@ -321,7 +321,7 @@ const styles = StyleSheet.create({
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, gap: 8 },
   errorTitle: { fontFamily: font('semibold'), fontSize: 17, textAlign: 'center' },
   errorBody: { fontFamily: font('regular'), fontSize: 13, textAlign: 'center' },
-  content: { padding: 16, paddingBottom: 32, gap: 14 },
+  content: { padding: 16, paddingBottom: 32, gap: 16 },
   hero: { borderRadius: Radius['3xl'], borderWidth: 1, overflow: 'hidden' },
   heroBanner: { height: 72, backgroundColor: Palette.navy },
   heroBody: { flexDirection: 'row', alignItems: 'flex-end', gap: 14, paddingHorizontal: 20, marginTop: -36 },

@@ -107,7 +107,7 @@ function JobsHeader({
           accessibilityLabel="Việc đã lưu"
           onPress={onOpenSaved}
           style={[styles.savedPill, { borderColor: theme.border }]}>
-          <ThemedText style={[styles.savedPillText, { color: theme.text }]}>
+          <ThemedText style={[styles.savedPillText, { color: theme.text }]} numberOfLines={1}>
             {`Việc đã lưu (${savedCount})`}
           </ThemedText>
         </Pressable>
@@ -191,7 +191,7 @@ function JobsHeader({
               accessibilityRole="button"
               onPress={onClearFilters}
               style={[styles.clearPill, { borderColor: theme.border }]}>
-              <ThemedText style={[styles.clearPillText, { color: theme.destructive }]}>
+              <ThemedText style={[styles.clearPillText, { color: theme.destructive }]} numberOfLines={1}>
                 {`Xóa lọc (${activeFilterCount})`}
               </ThemedText>
             </Pressable>
@@ -265,7 +265,9 @@ function JobsHeader({
 function PageTitle() {
   const theme = useTheme();
   return (
-    <ThemedText style={[styles.pageTitle, { color: theme.text }]}>Tìm Việc Làm</ThemedText>
+    <ThemedText style={[styles.pageTitle, { color: theme.text }]} numberOfLines={1}>
+      Tìm Việc Làm
+    </ThemedText>
   );
 }
 
@@ -537,7 +539,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   pageTitleCopy: { flexShrink: 1, gap: 2 },
-  pageTitle: { fontFamily: font('semibold'), fontSize: 26, lineHeight: 32, letterSpacing: -0.5 },
+  pageTitle: { fontFamily: font('semibold'), fontSize: 26, lineHeight: 32, letterSpacing: -0.5, flexShrink: 1 },
   savedPill: {
     minHeight: 40,
     paddingHorizontal: 16,
@@ -545,6 +547,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    flexShrink: 1,
   },
   savedPillText: { fontFamily: font('medium'), fontSize: 13 },
   filterCard: {

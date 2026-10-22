@@ -243,7 +243,7 @@ export function CompanyScreen() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  content: { padding: 16, gap: 18, paddingBottom: 48 },
+  content: { padding: 16, gap: 16, paddingBottom: 48 },
   headBlock: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   headIcon: { width: 40, height: 40, borderRadius: Radius.md, alignItems: 'center', justifyContent: 'center' },
   pageTitle: { fontFamily: font('semibold'), fontSize: 17, letterSpacing: -0.3 },

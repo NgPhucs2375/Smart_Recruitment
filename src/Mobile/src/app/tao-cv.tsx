@@ -10,7 +10,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft, FilePlus2, LayoutTemplate, Upload } from 'lucide-react-native';
+import { ArrowLeft, FilePlus2, LayoutTemplate, Sparkles, Upload } from 'lucide-react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { Badge, PillBadge } from '@/components/ui/badge';
@@ -225,11 +225,20 @@ export default function CvListScreen() {
           <Button
             variant="outline"
             onPress={() => router.push('/mau-cv')}
+            style={styles.actionGrow}
             accessibilityLabel="Kho mẫu CV">
             <LayoutTemplate size={16} color={theme.text} />
             Kho mẫu
           </Button>
         </View>
+
+        <Button
+          variant="outline"
+          onPress={() => router.push('/tao-cv/ai')}
+          accessibilityLabel="Tạo CV với AI">
+          <Sparkles size={16} color={theme.primary} />
+          Tạo CV với AI — dán nội dung, AI dựng CV
+        </Button>
 
         {source === 'demo' ? (
           <View style={styles.demoRow}>
@@ -275,7 +284,7 @@ export default function CvListScreen() {
             <Card style={styles.cvCard} elevated>
               <View style={styles.cvCardHead}>
                 <ThemedText
-                  style={{ color: theme.text }}
+                  style={{ color: theme.text, flex: 1 }}
                   type="smallBold"
                   numberOfLines={1}>
                   {item.name}
@@ -335,9 +344,9 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  content: { padding: 16, gap: 10, paddingBottom: 32 },
+  content: { padding: 16, gap: 16, paddingBottom: 32 },
   actionsRow: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
-  actionGrow: { flexGrow: 1, flexBasis: 140 },
+  actionGrow: { flexGrow: 1, flexBasis: 0 },
   demoRow: { alignItems: 'flex-start' },
   error: { fontFamily: font('medium'), fontSize: 13, lineHeight: 20 },
   loadingBox: { paddingVertical: 48, alignItems: 'center' },

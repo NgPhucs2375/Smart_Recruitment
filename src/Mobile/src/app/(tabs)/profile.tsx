@@ -299,7 +299,7 @@ const styles = StyleSheet.create({
   demoBadge: { fontFamily: font('semibold'), fontSize: 10, letterSpacing: 0.5 },
   seeAllRow: { alignItems: 'center', paddingVertical: 6 },
   seeAllText: { fontFamily: font('semibold'), fontSize: 13 },
-  quickActions: { flexDirection: 'row', gap: 8, marginTop: -2 },
+  quickActions: { flexDirection: 'row', gap: 8 },
   quickPill: {
     flex: 1,
     minHeight: 40,
@@ -318,7 +318,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    marginTop: 10,
+    marginTop: 12,
   },
   createCvText: { fontFamily: font('semibold'), fontSize: 14 },
   logoutButton: {
@@ -329,7 +329,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    marginTop: 26,
+    marginTop: 24,
   },
   logoutText: { fontFamily: font('semibold'), fontSize: 14 },
 });

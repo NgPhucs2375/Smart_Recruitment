@@ -173,7 +173,8 @@ export default function ApplicationsScreen() {
                   style={[
                     styles.filterChipText,
                     { color: active ? theme.primaryForeground : theme.textSecondary },
-                  ]}>
+                  ]}
+                  numberOfLines={1}>
                   {option.label}
                 </ThemedText>
               </Pressable>
@@ -296,7 +297,7 @@ export default function ApplicationsScreen() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  content: { padding: 16, gap: 10, paddingBottom: 32 },
+  content: { padding: 16, gap: 16, paddingBottom: 32 },
   titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   title: { fontFamily: font('semibold'), fontSize: 24, letterSpacing: -0.4 },
   filterRow: { flexDirection: 'row', gap: 6, flexWrap: 'wrap' },
@@ -347,7 +348,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 4,
   },
   loadMoreText: { fontFamily: font('semibold'), fontSize: 13 },
 });

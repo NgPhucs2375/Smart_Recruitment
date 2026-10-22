@@ -447,7 +447,7 @@ export function JobFormScreen() {
 }
 
 const styles = StyleSheet.create({
-  content: { padding: 16, gap: 18, paddingBottom: 48 },
+  content: { padding: 16, gap: 16, paddingBottom: 48 },
   formTitle: { fontSize: 16 },
   formDesc: { fontSize: 11, lineHeight: 16 },
   moneyRow: { flexDirection: 'row', gap: 12 },

@@ -148,7 +148,7 @@ function EmptyHint({ text }: { text: string }) {
   return (
     <View style={[styles.empty, { backgroundColor: theme.backgroundSelected }]}>
       <FileText size={16} color={theme.textSecondary} />
-      <ThemedText style={{ color: theme.textSecondary }} type="small">
+      <ThemedText style={{ color: theme.textSecondary, flex: 1 }} type="small">
         {text}
       </ThemedText>
     </View>
@@ -445,12 +445,14 @@ export function ManualCvForm({
           label="Ngày sinh"
           value={lh.ngaySinh}
           onChange={(next) => setLienHe('ngaySinh', next)}
+          style={styles.flex1}
         />
         <CvInput
           label="Giới tính"
           value={lh.gioiTinh}
           onChangeText={(next) => setLienHe('gioiTinh', next)}
           placeholder="Nam / Nữ"
+          style={styles.flex1}
         />
       </Row>
       <CvInput
@@ -468,6 +470,7 @@ export function ManualCvForm({
           autoCapitalize="none"
           keyboardType="url"
           error={urlErr(lh.github)}
+          style={styles.flex1}
         />
         <CvInput
           label="LinkedIn"
@@ -477,6 +480,7 @@ export function ManualCvForm({
           autoCapitalize="none"
           keyboardType="url"
           error={urlErr(lh.linkedIn)}
+          style={styles.flex1}
         />
       </Row>
       <Row>
@@ -488,6 +492,7 @@ export function ManualCvForm({
           autoCapitalize="none"
           keyboardType="url"
           error={urlErr(lh.portfolio)}
+          style={styles.flex1}
         />
         <CvInput
           label="Vị trí ứng tuyển"
@@ -495,6 +500,7 @@ export function ManualCvForm({
           onChangeText={(next) => setLienHe('viTriUngTuyen', next)}
           placeholder="VD: Backend .NET"
           maxLength={CV_MAX_LENGTH.shortTitle}
+          style={styles.flex1}
         />
       </Row>
       <CvInput
@@ -594,6 +600,7 @@ export function ManualCvForm({
                   onChange={(next) =>
                     updateList('kinhNghiemLamViec', item.id, 'tuNgay', next)
                   }
+                  style={styles.flex1}
                 />
                 <PartialDateField
                   label="Thời gian kết thúc"
@@ -603,6 +610,7 @@ export function ManualCvForm({
                   onChange={(next) =>
                     updateList('kinhNghiemLamViec', item.id, 'denNgay', next)
                   }
+                  style={styles.flex1}
                 />
               </Row>
               <CheckRow
@@ -703,6 +711,7 @@ export function ManualCvForm({
                   precision={mode}
                   value={item.tuNgay}
                   onChange={(next) => updateList('hocVan', item.id, 'tuNgay', next)}
+                  style={styles.flex1}
                 />
                 <PartialDateField
                   label="Thời gian kết thúc"
@@ -710,6 +719,7 @@ export function ManualCvForm({
                   value={item.denNgay}
                   disabled={item.isHienTai}
                   onChange={(next) => updateList('hocVan', item.id, 'denNgay', next)}
+                  style={styles.flex1}
                 />
               </Row>
               <CheckRow
@@ -852,6 +862,7 @@ export function ManualCvForm({
                   precision={mode}
                   value={item.tuNgay}
                   onChange={(next) => updateList('duAn', item.id, 'tuNgay', next)}
+                  style={styles.flex1}
                 />
                 <PartialDateField
                   label="Thời gian kết thúc"
@@ -859,6 +870,7 @@ export function ManualCvForm({
                   value={item.denNgay}
                   disabled={item.isHienTai}
                   onChange={(next) => updateList('duAn', item.id, 'denNgay', next)}
+                  style={styles.flex1}
                 />
               </Row>
               <CheckRow
@@ -962,6 +974,7 @@ export function ManualCvForm({
                   precision={mode}
                   value={item.ngayCap}
                   onChange={(next) => updateList('chungChi', item.id, 'ngayCap', next)}
+                  style={styles.flex1}
                 />
                 <CvInput
                   label="Mã xác minh"
@@ -969,6 +982,7 @@ export function ManualCvForm({
                   onChangeText={(next) => updateList('chungChi', item.id, 'maXacMinh', next)}
                   placeholder="Mã xác minh"
                   maxLength={80}
+                  style={styles.flex1}
                 />
               </Row>
               <Row>
@@ -981,6 +995,7 @@ export function ManualCvForm({
                   placeholder="MM/YYYY hoặc để trống"
                   keyboardType="number-pad"
                   maxLength={7}
+                  style={styles.flex1}
                 />
                 <CvInput
                   label="Link xác minh"
@@ -990,6 +1005,7 @@ export function ManualCvForm({
                   autoCapitalize="none"
                   keyboardType="url"
                   error={urlErr(item.credentialUrl ?? '')}
+                  style={styles.flex1}
                 />
               </Row>
             </ItemCard>
@@ -1045,7 +1061,6 @@ const styles = StyleSheet.create({
   sectionActions: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   itemCard: {
     padding: 12,
-    marginBottom: 10,
     gap: 10,
     borderRadius: Radius.xl,
   },
@@ -1056,8 +1071,8 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: Radius.md,
   },
-  quickActions: { flexDirection: 'row', marginTop: -2 },
-  avatarRow: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  quickActions: { flexDirection: 'row' },
+  avatarRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   avatarBox: {
     width: 72,
     height: 72,

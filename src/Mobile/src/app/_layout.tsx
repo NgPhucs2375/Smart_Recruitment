@@ -3,7 +3,6 @@ import {
   BeVietnamPro_500Medium,
   BeVietnamPro_600SemiBold,
   BeVietnamPro_700Bold,
-  BeVietnamPro_800ExtraBold,
   useFonts,
 } from '@expo-google-fonts/be-vietnam-pro';
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
@@ -28,7 +27,6 @@ export default function RootLayout() {
     BeVietnamPro_500Medium,
     BeVietnamPro_600SemiBold,
     BeVietnamPro_700Bold,
-    BeVietnamPro_800ExtraBold,
   });
 
   useEffect(() => {
@@ -105,6 +103,7 @@ function RootNavigator() {
           <Stack.Screen name="companies/[id]" options={{ headerShown: false }} />
           <Stack.Screen name="tao-cv" options={{ headerShown: false }} />
           <Stack.Screen name="tao-cv/[id]" options={{ headerShown: false }} />
+          <Stack.Screen name="tao-cv/ai" options={{ headerShown: false }} />
           <Stack.Screen name="mau-cv" options={{ headerShown: false }} />
           <Stack.Screen name="cv-phan-tich/[id]" options={{ headerShown: false }} />
         </Stack.Protected>
@@ -118,6 +117,8 @@ function RootNavigator() {
           <Stack.Screen name="hr/nhan-su" options={{ headerShown: false }} />
           <Stack.Screen name="hr/reports" options={{ headerShown: false }} />
           <Stack.Screen name="hr/company" options={{ headerShown: false }} />
+          <Stack.Screen name="hr/messages" options={{ headerShown: false }} />
+          <Stack.Screen name="hr/messages/[id]" options={{ headerShown: false }} />
         </Stack.Protected>
       </Stack>
     </ThemeProvider>

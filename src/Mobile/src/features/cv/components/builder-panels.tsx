@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Check, ListChecks, Sparkles } from 'lucide-react-native';
 
 import { ThemedText } from '@/components/themed-text';
@@ -131,53 +131,49 @@ export function TemplatePickerPanel({
       Object.values(TEMPLATE_REGISTRY).sort((a, b) => a.label.localeCompare(b.label)),
     [],
   );
-  const rows: (typeof templates)[] = [];
-  for (let index = 0; index < templates.length; index += 2) {
-    rows.push(templates.slice(index, index + 2));
-  }
 
   return (
     <View style={styles.pickerWrap}>
       <ThemedText style={{ color: theme.textSecondary }} type="smallBold">
         Mẫu CV ({templates.length})
       </ThemedText>
-      {rows.map((row, rowIndex) => (
-        <View key={`row-${rowIndex}`} style={styles.templateRow}>
-          {row.map((meta) => {
-            const active = meta.id === selectedId;
-            return (
-              <Pressable
-                key={meta.id}
-                accessibilityRole="button"
-                accessibilityState={{ selected: active }}
-                onPress={() => onSelect(meta.id)}
-                style={({ pressed }) => [
-                  styles.templateCard,
-                  {
-                    backgroundColor: active ? theme.backgroundSelected : theme.backgroundElement,
-                    borderColor: active ? theme.primary : theme.border,
-                    opacity: pressed ? 0.92 : 1,
-                  },
-                ]}>
-                <View style={styles.templateHead}>
-                  <ThemedText
-                    style={{ color: active ? theme.primary : theme.text }}
-                    type="smallBold"
-                    numberOfLines={1}>
-                    {meta.label}
-                  </ThemedText>
-                  {active ? <Check size={14} color={theme.primary} /> : null}
-                </View>
-                <ThemedText style={{ color: theme.textSecondary }} type="code" numberOfLines={2}>
-                  {templateCategoryLabel(meta)}
-                  {meta.columns ? ` • ${meta.columns} cột` : ''}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.templateHRow}>
+        {templates.map((meta) => {
+          const active = meta.id === selectedId;
+          return (
+            <Pressable
+              key={meta.id}
+              accessibilityRole="button"
+              accessibilityState={{ selected: active }}
+              onPress={() => onSelect(meta.id)}
+              style={({ pressed }) => [
+                styles.templateCard,
+                {
+                  backgroundColor: active ? theme.backgroundSelected : theme.backgroundElement,
+                  borderColor: active ? theme.primary : theme.border,
+                  opacity: pressed ? 0.92 : 1,
+                },
+              ]}>
+              <View style={styles.templateHead}>
+                <ThemedText
+                  style={{ color: active ? theme.primary : theme.text }}
+                  type="smallBold"
+                  numberOfLines={1}>
+                  {meta.label}
                 </ThemedText>
-              </Pressable>
-            );
-          })}
-          {row.length === 1 ? <View style={styles.templateSpacer} /> : null}
-        </View>
-      ))}
+                {active ? <Check size={14} color={theme.primary} /> : null}
+              </View>
+              <ThemedText style={{ color: theme.textSecondary }} type="code" numberOfLines={2}>
+                {templateCategoryLabel(meta)}
+                {meta.columns ? ` • ${meta.columns} cột` : ''}
+              </ThemedText>
+            </Pressable>
+          );
+        })}
+      </ScrollView>
     </View>
   );
 }
@@ -268,9 +264,9 @@ const styles = StyleSheet.create({
   },
   pickerWrap: { gap: 8 },
   templateHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 6 },
-  templateRow: { flexDirection: 'row', gap: 8 },
+  templateHRow: { gap: 8, paddingRight: 4 },
   templateCard: {
-    flex: 1,
+    width: 168,
     borderWidth: 1,
     borderRadius: Radius.lg,
     padding: 12,
@@ -278,7 +274,6 @@ const styles = StyleSheet.create({
     minHeight: 74,
     justifyContent: 'center',
   },
-  templateSpacer: { flex: 1 },
   layoutRow: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -231,7 +231,7 @@ export function KpiCard({
       ]}
     >
       <View style={styles.kpiHead}>
-        <ThemedText style={{ color: theme.textSecondary }} type="small">
+        <ThemedText style={[styles.kpiLabel, { color: theme.textSecondary }]} type="small" numberOfLines={2}>
           {label}
         </ThemedText>
         <View style={[styles.kpiIcon, { backgroundColor: `${theme.primary}14` }]}>{icon}</View>
@@ -271,12 +271,21 @@ const styles = StyleSheet.create({
   center: { alignItems: 'center', justifyContent: 'center', paddingVertical: 48, paddingHorizontal: 24, gap: 8 },
   centerTitle: { fontSize: 15 },
   centerLabel: { textAlign: 'center', fontSize: 13 },
-  stateButton: { marginTop: 8, paddingHorizontal: 16, paddingVertical: 8, borderRadius: Radius.pill },
+  stateButton: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: Radius.pill },
   stateButtonText: { fontFamily: font('semibold'), fontSize: 13 },
   notice: { borderRadius: Radius.lg, borderWidth: 1, paddingHorizontal: 14, paddingVertical: 10 },
   noticeText: { fontSize: 13 },
-  kpi: { flex: 1, minWidth: 150, borderRadius: Radius['2xl'], borderWidth: 1, padding: 16, gap: 4 },
+  kpi: {
+    flexBasis: '48%',
+    flexGrow: 1,
+    minWidth: 0,
+    borderRadius: Radius['2xl'],
+    borderWidth: 1,
+    padding: 16,
+    gap: 4,
+  },
   kpiHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
-  kpiIcon: { width: 32, height: 32, borderRadius: Radius.md, alignItems: 'center', justifyContent: 'center' },
+  kpiLabel: { flex: 1 },
+  kpiIcon: { width: 32, height: 32, borderRadius: Radius.md, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   kpiValue: { fontFamily: font('bold'), fontSize: 28, lineHeight: 34, letterSpacing: -0.5 },
 });

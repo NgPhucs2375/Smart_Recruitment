@@ -207,7 +207,8 @@ export function NotificationsScreen({ onOpenJob }: NotificationsScreenProps) {
                   style={[
                     styles.tabChipText,
                     { color: active ? theme.primaryForeground : theme.textSecondary },
-                  ]}>
+                  ]}
+                  numberOfLines={1}>
                   {value === 'all' ? 'Tất cả' : `Chưa đọc${unreadCount > 0 ? ` (${unreadCount})` : ''}`}
                 </ThemedText>
               </Pressable>
@@ -382,7 +383,7 @@ function groupSections(rows: NotificationItem[]): { key: NotificationItem['secti
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  content: { padding: 16, gap: 10, paddingBottom: 32 },
+  content: { padding: 16, gap: 16, paddingBottom: 32 },
   titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   title: { fontFamily: font('semibold'), fontSize: 24, letterSpacing: -0.4 },
   markAllButton: { flexDirection: 'row', alignItems: 'center', gap: 6, padding: 4 },
@@ -398,7 +399,7 @@ const styles = StyleSheet.create({
     borderColor: 'transparent',
   },
   tabChipText: { fontFamily: font('semibold'), fontSize: 13 },
-  typeRow: { flexDirection: 'row', gap: 6, flexWrap: 'wrap' },
+  typeRow: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
   typeChip: {
     minHeight: 30,
     paddingHorizontal: 12,

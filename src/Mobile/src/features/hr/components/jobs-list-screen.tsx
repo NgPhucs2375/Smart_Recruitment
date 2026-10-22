@@ -523,7 +523,7 @@ function JobDetailSheet({
               <View
                 key={skill.kyNangId}
                 style={[styles.skillPill, { backgroundColor: theme.backgroundSelected }]}>
-                <ThemedText style={{ color: theme.primaryHover }} type="code">
+                <ThemedText style={{ color: theme.primaryHover, flexShrink: 1 }} type="code" numberOfLines={1}>
                   {skill.tenKyNang || `Kỹ năng #${skill.kyNangId}`} · {SKILL_LEVELS[skill.mucDoYeuCau] ?? SKILL_LEVELS[0]}
                 </ThemedText>
               </View>
@@ -615,7 +615,7 @@ const styles = StyleSheet.create({
   sheetContent: { padding: 16, gap: 12, paddingBottom: 40 },
   sheetJobTitle: { flex: 1, minWidth: 160 },
   skillWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  skillPill: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999 },
+  skillPill: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999, maxWidth: '100%' },
   detailSection: { gap: 4 },
   detailTitle: { fontSize: 11, letterSpacing: 1 },
   detailBody: { fontSize: 13, lineHeight: 20 },

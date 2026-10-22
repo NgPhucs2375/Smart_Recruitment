@@ -32,13 +32,13 @@ export default function HRAccountScreen() {
         <Card style={styles.infoCard}>
           <View style={styles.infoRow}>
             <UserRound size={16} color={theme.textSecondary} />
-            <ThemedText style={styles.infoValue}>
+            <ThemedText style={styles.infoValue} numberOfLines={2}>
               {user?.fullname || user?.userName || 'Nhà tuyển dụng'}
             </ThemedText>
           </View>
           <View style={styles.infoRow}>
             <Mail size={16} color={theme.textSecondary} />
-            <ThemedText style={styles.infoValue}>{user?.email ?? ''}</ThemedText>
+            <ThemedText style={styles.infoValue} numberOfLines={2}>{user?.email ?? ''}</ThemedText>
           </View>
           <View style={styles.infoRow}>
             <ShieldCheck size={16} color={theme.textSecondary} />
@@ -50,7 +50,7 @@ export default function HRAccountScreen() {
                   </Badge>
                 ))
               ) : (
-                <ThemedText style={styles.infoValue}>Nhà tuyển dụng</ThemedText>
+                <ThemedText style={styles.infoValue} numberOfLines={2}>Nhà tuyển dụng</ThemedText>
               )}
             </View>
           </View>

@@ -335,7 +335,7 @@ const styles = StyleSheet.create({
     fontFamily: font('regular'),
     fontSize: 13,
     lineHeight: 22,
-    marginTop: 4,
+    marginTop: 8,
   },
   scroll: { flexShrink: 1, marginTop: 16 },
   list: { gap: 8, paddingBottom: 8 },

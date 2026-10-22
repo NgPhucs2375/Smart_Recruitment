@@ -67,7 +67,7 @@ export function PreviewModal({
           <Button variant="ghost" size="icon" onPress={onClose} accessibilityLabel="Đóng">
             <X size={18} color={theme.text} />
           </Button>
-          <ThemedText style={{ color: theme.text }} type="smallBold" numberOfLines={1}>
+          <ThemedText style={{ color: theme.text, flex: 1 }} type="smallBold" numberOfLines={1}>
             {title}
           </ThemedText>
           <View style={styles.topActions}>
@@ -122,7 +122,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  topActions: { flexDirection: 'row', alignItems: 'center', gap: 8, marginLeft: 'auto' },
+  topActions: { flexDirection: 'row', alignItems: 'center', gap: 8, marginLeft: 'auto', flexShrink: 1 },
   webview: { flex: 1 },
   loading: {
     position: 'absolute',

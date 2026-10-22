@@ -265,7 +265,9 @@ export default function ProfileEditScreen() {
           style={({ pressed }) => [styles.backButton, { opacity: pressed ? 0.6 : 1 }]}>
           <ArrowLeft size={20} color={theme.text} />
         </Pressable>
-        <ThemedText style={styles.topBarTitle}>Chỉnh sửa hồ sơ</ThemedText>
+        <ThemedText style={styles.topBarTitle} numberOfLines={1}>
+          Chỉnh sửa hồ sơ
+        </ThemedText>
         <View style={styles.backButton} />
       </View>
 
@@ -625,7 +627,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   backButton: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
-  topBarTitle: { fontFamily: font('semibold'), fontSize: 16 },
+  topBarTitle: { fontFamily: font('semibold'), fontSize: 16, flex: 1, textAlign: 'center' },
   content: { padding: 16, gap: 12, paddingBottom: 32 },
   demoBadge: { fontFamily: font('semibold'), fontSize: 10, letterSpacing: 0.5 },
   loadingBox: { paddingVertical: 48, alignItems: 'center', gap: 10 },
@@ -642,11 +644,11 @@ const styles = StyleSheet.create({
   },
   errorText: { fontFamily: font('medium'), fontSize: 13, lineHeight: 18, flex: 1 },
   errorRetry: { fontFamily: font('semibold'), fontSize: 12 },
-  sectionTitle: { fontFamily: font('semibold'), fontSize: 11, letterSpacing: 1.2, marginTop: 6 },
+  sectionTitle: { fontFamily: font('semibold'), fontSize: 11, letterSpacing: 1.2 },
   avatarBlock: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 14,
+    gap: 12,
     borderWidth: 1,
     borderRadius: Radius.xl,
     padding: 14,
@@ -727,7 +729,6 @@ const styles = StyleSheet.create({
     gap: 10,
     borderTopWidth: StyleSheet.hairlineWidth,
     paddingTop: 16,
-    marginTop: 8,
   },
   cancelButton: { borderRadius: Radius.xl },
   saveButton: { borderRadius: Radius.xl },
