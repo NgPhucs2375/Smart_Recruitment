@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import {
   Calendar,
+  ChevronRight,
   DollarSign,
   FileText,
   Mail,
@@ -25,7 +26,9 @@ import { font, Palette, Radius, Shadows } from '@/constants/theme';
 import { getToneColors } from '@/features/applications/constants';
 import type { ApplicationSummary } from '@/features/applications/types';
 import { cvApi } from '@/features/cv/api/cv-api';
+import { sourceLabel } from '@/features/cv/cv-format';
 import type { CvSummary } from '@/features/cv/types';
+import { isoToVnDate } from '@/features/profile/format';
 import type { CandidateProfile } from '@/features/profile/types';
 import { useTheme } from '@/hooks/use-theme';
 
@@ -46,12 +49,15 @@ export function ProfileInfoCard({ profile }: { profile: CandidateProfile }) {
         .toUpperCase()
     : 'UV';
 
+  const birthDate = isoToVnDate(profile.birthDate);
   const rows: { icon: typeof Mail; value: string }[] = [
     { icon: Mail, value: profile.email || 'Chưa có email' },
     { icon: Phone, value: profile.phone || 'Chưa có SĐT' },
     {
       icon: Calendar,
-      value: profile.birthDate ? profile.birthDate : 'Chưa cập nhật ngày sinh',
+      value: birthDate
+        ? `${birthDate}${profile.gender ? ` (${profile.gender})` : ''}`
+        : 'Chưa cập nhật ngày sinh',
     },
     { icon: MapPin, value: profile.location || 'Chưa có địa chỉ' },
     {
@@ -153,10 +159,14 @@ export function SectionHeading({
   title,
   caption,
   badge,
+  actionLabel,
+  onAction,
 }: {
   title: string;
   caption?: string;
   badge?: string;
+  actionLabel?: string;
+  onAction?: () => void;
 }) {
   const theme = useTheme();
   return (
@@ -171,11 +181,24 @@ export function SectionHeading({
           </ThemedText>
         ) : null}
       </View>
-      {badge ? (
-        <View style={[styles.countBadge, { backgroundColor: theme.backgroundSelected }]}>
-          <ThemedText style={[styles.countBadgeText, { color: theme.primary }]}>{badge}</ThemedText>
-        </View>
-      ) : null}
+      <View style={styles.sectionHeadingRight}>
+        {actionLabel && onAction ? (
+          <Pressable
+            accessibilityRole="button"
+            onPress={onAction}
+            hitSlop={8}
+            style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}>
+            <ThemedText style={[styles.sectionAction, { color: theme.primary }]}>
+              {actionLabel}
+            </ThemedText>
+          </Pressable>
+        ) : null}
+        {badge ? (
+          <View style={[styles.countBadge, { backgroundColor: theme.backgroundSelected }]}>
+            <ThemedText style={[styles.countBadgeText, { color: theme.primary }]}>{badge}</ThemedText>
+          </View>
+        ) : null}
+      </View>
     </View>
   );
 }
@@ -269,15 +292,17 @@ export function ApplicationRow({
   );
 }
 
-/** CvRow — clone CV row của ho-so-view.tsx: đặt mặc định / xóa (kèm confirm). */
+/** CvRow — CV trong hồ sơ: mở màn chi tiết + đặt mặc định / xóa (kèm confirm). */
 export function CvRow({
   cv,
   first = false,
   onChange,
+  onPress,
 }: {
   cv: CvSummary;
   first?: boolean;
   onChange?: () => void;
+  onPress?: () => void;
 }) {
   const theme = useTheme();
   const [busy, setBusy] = useState<'set-default' | 'remove' | null>(null);
@@ -331,26 +356,34 @@ export function CvRow({
         styles.row,
         !first && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.border },
       ]}>
-      <View style={styles.cvRow}>
-        <View style={[styles.cvIconBox, { backgroundColor: `${theme.primary}1A` }]}>
-          <FileText size={20} color={theme.primary} />
-        </View>
-        <View style={styles.cvCopy}>
-          <View style={styles.cvTitleRow}>
-            <ThemedText numberOfLines={1} style={[styles.cvName, { color: theme.text }]}>
-              {cv.name}
-            </ThemedText>
-            {cv.isDefault ? (
-              <Badge variant="secondary" textStyle={styles.cvDefaultBadge}>
-                Mặc định
-              </Badge>
-            ) : null}
+      <Pressable
+        accessibilityRole={onPress ? 'button' : undefined}
+        accessibilityLabel={onPress ? `Mở ${cv.name}` : undefined}
+        disabled={!onPress}
+        onPress={onPress}
+        style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1 }]}>
+        <View style={styles.cvRow}>
+          <View style={[styles.cvIconBox, { backgroundColor: `${theme.primary}1A` }]}>
+            <FileText size={20} color={theme.primary} />
           </View>
-          <ThemedText numberOfLines={1} style={[styles.cvMeta, { color: theme.textSecondary }]}>
-            {`Mẫu ${cv.role || 'chuẩn'} • Cập nhật ${cv.uploadedAt}`}
-          </ThemedText>
+          <View style={styles.cvCopy}>
+            <View style={styles.cvTitleRow}>
+              <ThemedText numberOfLines={1} style={[styles.cvName, { color: theme.text }]}>
+                {cv.name}
+              </ThemedText>
+              {cv.isDefault ? (
+                <Badge variant="secondary" textStyle={styles.cvDefaultBadge}>
+                  Mặc định
+                </Badge>
+              ) : null}
+            </View>
+            <ThemedText numberOfLines={1} style={[styles.cvMeta, { color: theme.textSecondary }]}>
+              {`${sourceLabel(cv.source)}${cv.uploadedAt ? ` • Cập nhật ${cv.uploadedAt}` : ''}`}
+            </ThemedText>
+          </View>
+          {onPress ? <ChevronRight size={16} color={theme.textSecondary} /> : null}
         </View>
-      </View>
+      </Pressable>
       <View style={styles.cvActions}>
         {!cv.isDefault ? (
           <Pressable
@@ -505,6 +538,8 @@ const styles = StyleSheet.create({
   sectionHeadingCopy: { flex: 1, gap: 4 },
   sectionTitle: { fontFamily: font('semibold'), fontSize: 11, letterSpacing: 1.6 },
   sectionCaption: { fontSize: 12, lineHeight: 17 },
+  sectionHeadingRight: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  sectionAction: { fontFamily: font('semibold'), fontSize: 12 },
   countBadge: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: Radius.pill },
   countBadgeText: { fontFamily: font('bold'), fontSize: 11 },
   listSurface: { borderRadius: Radius['2xl'], borderWidth: 1, overflow: 'hidden' },

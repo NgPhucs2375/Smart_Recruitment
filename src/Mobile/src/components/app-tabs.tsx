@@ -1,22 +1,29 @@
-import { Bookmark, Bell, Search, User } from 'lucide-react-native';
+import { Bell, Bookmark, MessageCircle, Search, User } from 'lucide-react-native';
 import { Tabs } from 'expo-router';
-import { useColorScheme } from 'react-native';
 
-import { Colors } from '@/constants/theme';
+import { font } from '@/constants/theme';
+import { useAuth } from '@/features/auth';
+import { canUseInternalChat } from '@/features/chat/roles';
 
 export default function AppTabs() {
-  const scheme = useColorScheme();
-  const colors = Colors[scheme === 'unspecified' ? 'light' : scheme];
+  const { user } = useAuth();
+  const canChat = canUseInternalChat(user?.roles);
 
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: colors.textSecondary,
+        tabBarActiveTintColor: '#355C8C',
+        tabBarInactiveTintColor: '#6D7480',
         tabBarStyle: {
-          backgroundColor: colors.background,
-          borderTopColor: colors.border,
+          backgroundColor: '#FFFDF9',
+          borderTopColor: '#DDD4C7',
+          borderTopWidth: 1,
+        },
+        tabBarLabelStyle: {
+          fontFamily: font('semibold'),
+          fontWeight: '600',
+          fontSize: 12,
         },
       }}>
       <Tabs.Screen
@@ -32,6 +39,17 @@ export default function AppTabs() {
           title: 'Đã lưu',
           tabBarIcon: ({ color, size }) => <Bookmark size={size} color={color} />,
         }}
+      />
+      <Tabs.Screen
+        name="chat"
+        options={
+          canChat
+            ? {
+                title: 'Tin nhắn',
+                tabBarIcon: ({ color, size }) => <MessageCircle size={size} color={color} />,
+              }
+            : { href: null }
+        }
       />
       <Tabs.Screen
         name="notifications"

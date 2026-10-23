@@ -173,11 +173,11 @@ export default function HRAccountScreen() {
       setChangingPassword(true);
       setPasswordNotice(null);
       try {
-        const message = await authApi.changePassword(currentPassword, newPassword);
+        const result = await authApi.changePassword(currentPassword, newPassword);
         setCurrentPassword('');
         setNewPassword('');
         setConfirmPassword('');
-        setPasswordNotice({ type: 'success', message: message || 'Đổi mật khẩu thành công.' });
+        setPasswordNotice({ type: 'success', message: result.message || 'Đổi mật khẩu thành công.' });
       } catch (reason) {
         setPasswordNotice({
           type: 'error',

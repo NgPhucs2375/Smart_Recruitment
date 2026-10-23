@@ -140,7 +140,7 @@ export default function BuilderScreen() {
       return;
     }
     try {
-      const rows = await cvApi.getVersions(cvId);
+      const rows = await cvApi.getVersionsVm(cvId);
       if (mountedRef.current) setVersions(rows);
     } catch {
       if (mountedRef.current) setVersions([]);

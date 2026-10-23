@@ -58,11 +58,11 @@ export default function SettingsScreen() {
       setSubmitting(true);
       setNotice(null);
       try {
-        const message = await authApi.changePassword(currentPassword, newPassword);
+        const result = await authApi.changePassword(currentPassword, newPassword);
         setCurrentPassword('');
         setNewPassword('');
         setConfirmPassword('');
-        setNotice({ type: 'success', message: message || 'Đổi mật khẩu thành công.' });
+        setNotice({ type: 'success', message: result.message || 'Đổi mật khẩu thành công.' });
       } catch (error) {
         setNotice({
           type: 'error',

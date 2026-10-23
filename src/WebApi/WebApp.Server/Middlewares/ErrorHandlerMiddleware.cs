@@ -8,10 +8,12 @@ namespace WebApp.Server.Middlewares
     public class ErrorHandlerMiddleware
     {
         private readonly RequestDelegate _next;
+        private readonly ILogger<ErrorHandlerMiddleware> _logger;
 
-        public ErrorHandlerMiddleware(RequestDelegate next)
+        public ErrorHandlerMiddleware(RequestDelegate next, ILogger<ErrorHandlerMiddleware> logger)
         {
             _next = next;
+            _logger = logger;
         }
 
         public async Task Invoke(HttpContext context)
@@ -23,6 +25,18 @@ namespace WebApp.Server.Middlewares
             catch (Exception error)
             {
                 var response = context.Response;
+
+                // Response đã bắt đầu gửi (vd. SSE của agent đang stream giữa chừng):
+                // không thể đổi status/content-type hay ghi đè body — chỉ log rồi kết thúc,
+                // tránh ném thêm InvalidOperationException che lỗi gốc.
+                if (response.HasStarted)
+                {
+                    _logger.LogError(error, "Lỗi sau khi response đã bắt đầu gửi; không thể ghi error body.");
+                    return;
+                }
+
+                _logger.LogError(error, "Unhandled exception tại {Path}.", context.Request.Path);
+
                 response.ContentType = "application/json";
                 var responseModel = new Response<string>() { Succeeded = false, Message = error?.Message };
 
@@ -50,8 +64,9 @@ namespace WebApp.Server.Middlewares
                         response.StatusCode = (int)HttpStatusCode.Unauthorized;
                         break;
                     default:
-                        // unhandled error
+                        // unhandled error: KHÔNG lộ chi tiết nội bộ (DB/SQL/đường dẫn) ra client.
                         response.StatusCode = (int)HttpStatusCode.InternalServerError;
+                        responseModel.Message = "Đã xảy ra lỗi hệ thống. Vui lòng thử lại sau.";
                         break;
                 }
                 var result = JsonSerializer.Serialize(responseModel);

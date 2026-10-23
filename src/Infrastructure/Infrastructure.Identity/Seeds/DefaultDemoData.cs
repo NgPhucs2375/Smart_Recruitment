@@ -21,10 +21,29 @@ namespace Infrastructure.Identity.Seeds
     {
         public static async Task SeedAsync(UserManager<ApplicationUser> userManager, IApplicationDbContext appContext)
         {
-            // 1. Danh mục nghề do admin quản lý trong module Danh mục nghề.
-            // Seed demo chỉ đọc danh mục đã có để gắn vào các tin mẫu.
+            // 1. Các tin demo cần hai danh mục này. Tạo bổ sung khi database
+            // mới chưa có dữ liệu quản trị, nhưng không thay đổi danh mục đã có.
+            var requiredCategories = new[]
+            {
+                ("Backend Development", "Phát triển phần mềm backend."),
+                ("Data Science & Analytics", "Phân tích dữ liệu và khoa học dữ liệu.")
+            };
             var danhMucMap = appContext.DanhMucNghes
                 .ToDictionary(d => d.TenNghe, d => d.Id);
+            foreach (var (name, description) in requiredCategories)
+            {
+                if (danhMucMap.ContainsKey(name)) continue;
+
+                var category = new DanhMucNghe
+                {
+                    TenNghe = name,
+                    MoTa = description,
+                    IsActive = true
+                };
+                await appContext.DanhMucNghes.AddAsync(category);
+                await appContext.SaveChangesAsync();
+                danhMucMap[name] = category.Id;
+            }
 
             // 2. Doanh nghiệp + hồ sơ nhà tuyển dụng + tin đang tuyển
             //    cho tài khoản người đại diện được seed.
@@ -106,9 +125,7 @@ namespace Infrastructure.Identity.Seeds
                     continue;
                 }
                 if (!danhMucMap.TryGetValue(t.DanhMuc, out var danhMucNgheId))
-                {
-                    continue;
-                }
+                    throw new InvalidOperationException($"Không tìm thấy danh mục seed '{t.DanhMuc}'.");
                 await appContext.TinTuyenDungs.AddAsync(new TinTuyenDung
                 {
                     DoanhNghiepId = doanhNghiep.Id,

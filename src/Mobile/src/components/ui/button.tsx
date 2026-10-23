@@ -94,10 +94,9 @@ export function Button({
         {icon}
         {children ? (
           <Text
-            style={[styles.text, { color: v.text, fontSize }]}
+            style={[styles.text, { color: v.text, fontSize, flexShrink: 1 }]}
             numberOfLines={1}
             ellipsizeMode="tail"
-            flexShrink={1}
           >
             {children}
           </Text>

@@ -1,6 +1,12 @@
 import { apiRequest } from '@/services/api/client';
 
-import type { AuthSession, AuthUser } from '../types';
+import type {
+  AuthActionResult,
+  AuthSession,
+  AuthUser,
+  RegisterInput,
+  RegisterResult,
+} from '../types';
 
 function asRecord(value: unknown): Record<string, unknown> | null {
   return value !== null && typeof value === 'object' ? (value as Record<string, unknown>) : null;
@@ -15,32 +21,23 @@ function unwrapData(payload: unknown): unknown {
   return envelope?.Data ?? envelope?.data ?? payload;
 }
 
-/** Đọc message từ envelope Response<T> hoặc lỗi ProblemDetails. */
 function readMessage(payload: unknown, fallback: string): string {
-  const record = asRecord(payload);
-  const message = asText(record?.Message ?? record?.message);
-  return message || fallback;
+  const envelope = asRecord(payload);
+  return asText(envelope?.Message ?? envelope?.message) || fallback;
 }
 
-export type RegisterRole = 'UNG_VIEN' | 'NGUOI_DAI_DIEN';
+function readSession(payload: unknown, fallback: string): AuthSession {
+  const data = asRecord(unwrapData(payload));
+  const accessToken = asText(data?.JWToken ?? data?.jwToken);
+  if (!accessToken) {
+    throw new Error(asText(data?.message ?? data?.Message) || fallback);
+  }
 
-export type RegisterInput = {
-  role: RegisterRole;
-  email: string;
-  password: string;
-  confirmPassword: string;
-  hoTen: string;
-  soDienThoai: string;
-  /** Bắt buộc khi role=NGUOI_DAI_DIEN */
-  chucVu?: string;
-  tenDoanhNghiep?: string;
-  diaChiDoanhNghiep?: string;
-  maSoThue?: string;
-  linhVucHoatDong?: string;
-  quyMoNhanSu?: string;
-  website?: string;
-  moTaDoanhNghiep?: string;
-};
+  return {
+    accessToken,
+    refreshToken: asText(data?.RefreshToken ?? data?.refreshToken) || null,
+  };
+}
 
 export const authApi = {
   /** POST account/authenticate — trả về JWT + refresh token. */
@@ -50,15 +47,114 @@ export const authApi = {
       body: JSON.stringify({ Email: email, Password: password }),
     });
 
-    const data = asRecord(unwrapData(payload));
-    const accessToken = asText(data?.JWToken ?? data?.jwToken);
-    if (!accessToken) {
-      throw new Error(asText(data?.message ?? data?.Message) || 'Đăng nhập thất bại.');
-    }
+    return readSession(payload, 'Đăng nhập thất bại.');
+  },
 
+  async googleLogin(idToken: string): Promise<AuthSession> {
+    const payload = await apiRequest<unknown>('account/external-login', {
+      method: 'POST',
+      body: JSON.stringify({ Provider: 'Google', IdToken: idToken }),
+    });
+
+    return readSession(payload, 'Đăng nhập Google thất bại.');
+  },
+
+  async githubLogin(code: string, redirectUri: string): Promise<AuthSession> {
+    const payload = await apiRequest<unknown>('account/github-login', {
+      method: 'POST',
+      body: JSON.stringify({ Code: code, RedirectUri: redirectUri }),
+    });
+
+    return readSession(payload, 'Đăng nhập GitHub thất bại.');
+  },
+
+  async register(input: RegisterInput): Promise<RegisterResult> {
+    const payload = await apiRequest<unknown>('account/register', {
+      method: 'POST',
+      body: JSON.stringify({
+        role: input.role,
+        email: input.email,
+        password: input.password,
+        confirmPassword: input.confirmPassword,
+        hoTen: input.hoTen,
+        soDienThoai: input.soDienThoai,
+        userName: input.userName,
+        tenDoanhNghiep: input.tenDoanhNghiep,
+        diaChiDoanhNghiep: input.diaChiDoanhNghiep,
+        chucVu: input.chucVu,
+        maSoThue: input.maSoThue,
+      }),
+    });
+
+    const data = unwrapData(payload);
+    const record = asRecord(data);
     return {
-      accessToken,
-      refreshToken: asText(data?.RefreshToken ?? data?.refreshToken) || null,
+      userId: typeof data === 'string' ? data : asText(record?.Id ?? record?.id),
+      message: readMessage(
+        payload,
+        'Tài khoản đã được tạo. Vui lòng kiểm tra email để xác minh.',
+      ),
+    };
+  },
+
+  async confirmEmail(userId: string, code: string): Promise<AuthActionResult> {
+    const payload = await apiRequest<unknown>(
+      `account/confirm-email?userId=${encodeURIComponent(userId)}&code=${encodeURIComponent(code)}`,
+    );
+    return {
+      message: readMessage(payload, 'Email đã được xác minh. Bạn có thể đăng nhập.'),
+    };
+  },
+
+  async resendVerificationEmail(email: string): Promise<AuthActionResult> {
+    const payload = await apiRequest<unknown>('account/resend-verification-email', {
+      method: 'POST',
+      body: JSON.stringify({ Email: email }),
+    });
+    return {
+      message: readMessage(
+        payload,
+        'Nếu email chưa xác minh, yêu cầu gửi lại liên kết đã được tiếp nhận.',
+      ),
+    };
+  },
+
+  async forgotPassword(email: string): Promise<AuthActionResult> {
+    const payload = await apiRequest<unknown>('account/forgot-password', {
+      method: 'POST',
+      body: JSON.stringify({ Email: email }),
+    });
+    return {
+      message: readMessage(
+        payload,
+        'Nếu tài khoản tồn tại, yêu cầu gửi liên kết đặt lại mật khẩu đã được tiếp nhận.',
+      ),
+    };
+  },
+
+  async resetPassword(email: string, password: string, token: string): Promise<AuthActionResult> {
+    const payload = await apiRequest<unknown>('account/reset-password', {
+      method: 'POST',
+      body: JSON.stringify({ Email: email, Password: password, Token: token }),
+    });
+    return {
+      message: readMessage(payload, 'Mật khẩu đã được đặt lại. Vui lòng đăng nhập lại.'),
+    };
+  },
+
+  async changePassword(
+    currentPassword: string,
+    newPassword: string,
+  ): Promise<AuthActionResult> {
+    const payload = await apiRequest<unknown>('account/change-password', {
+      method: 'POST',
+      body: JSON.stringify({
+        MatKhauHienTai: currentPassword,
+        MatKhauMoi: newPassword,
+      }),
+    });
+    return {
+      message: readMessage(payload, 'Đổi mật khẩu thành công. Vui lòng đăng nhập lại.'),
     };
   },
 
@@ -77,71 +173,5 @@ export const authApi = {
       roles: Array.isArray(rawRoles) ? rawRoles.map((role) => String(role)).filter(Boolean) : [],
       avatarUrl: asText(data.AvatarUrl ?? data.avatarUrl) || undefined,
     };
-  },
-
-  /** POST account/register — đăng ký ứng viên hoặc nhà tuyển dụng. */
-  async register(input: RegisterInput): Promise<string> {
-    const payload = await apiRequest<unknown>('account/register', {
-      method: 'POST',
-      body: JSON.stringify({
-        role: input.role,
-        email: input.email,
-        password: input.password,
-        confirmPassword: input.confirmPassword,
-        hoTen: input.hoTen,
-        soDienThoai: input.soDienThoai,
-        chucVu: input.chucVu || undefined,
-        tenDoanhNghiep: input.tenDoanhNghiep || undefined,
-        diaChiDoanhNghiep: input.diaChiDoanhNghiep || undefined,
-        maSoThue: input.maSoThue || undefined,
-        linhVucHoatDong: input.linhVucHoatDong || undefined,
-        quyMoNhanSu: input.quyMoNhanSu || undefined,
-        website: input.website || undefined,
-        moTaDoanhNghiep: input.moTaDoanhNghiep || undefined,
-      }),
-    });
-    return readMessage(payload, 'Đăng ký thành công.');
-  },
-
-  /** POST account/forgot-password — gửi email đặt lại mật khẩu. */
-  async forgotPassword(email: string): Promise<string> {
-    const payload = await apiRequest<unknown>('account/forgot-password', {
-      method: 'POST',
-      body: JSON.stringify({ Email: email }),
-    });
-    return readMessage(
-      payload,
-      'Nếu tài khoản tồn tại, yêu cầu gửi liên kết đặt lại mật khẩu đã được tiếp nhận.',
-    );
-  },
-
-  /** POST account/reset-password — đặt lại mật khẩu bằng token từ email. */
-  async resetPassword(email: string, token: string, newPassword: string): Promise<string> {
-    const payload = await apiRequest<unknown>('account/reset-password', {
-      method: 'POST',
-      body: JSON.stringify({ Email: email, Token: token, Password: newPassword }),
-    });
-    return readMessage(payload, 'Đặt lại mật khẩu thành công.');
-  },
-
-  /** POST account/change-password — đổi mật khẩu (cần đăng nhập). */
-  async changePassword(currentPassword: string, newPassword: string): Promise<string> {
-    const payload = await apiRequest<unknown>('account/change-password', {
-      method: 'POST',
-      body: JSON.stringify({ MatKhauHienTai: currentPassword, MatKhauMoi: newPassword }),
-    });
-    return readMessage(payload, 'Đổi mật khẩu thành công.');
-  },
-
-  /** POST account/resend-verification-email */
-  async resendVerificationEmail(email: string): Promise<string> {
-    const payload = await apiRequest<unknown>('account/resend-verification-email', {
-      method: 'POST',
-      body: JSON.stringify({ Email: email }),
-    });
-    return readMessage(
-      payload,
-      'Nếu email chưa xác minh, yêu cầu gửi lại liên kết đã được tiếp nhận.',
-    );
   },
 };

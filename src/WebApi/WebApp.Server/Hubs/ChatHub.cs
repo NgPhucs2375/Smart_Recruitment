@@ -12,8 +12,6 @@ public sealed class ChatHub(ApplicationDbContext db, ChatAccessService access, C
 {
     public override async Task OnConnectedAsync()
     {
-        try { await access.RequireActorAsync(Context.User, "show"); }
-        catch (ApiException) { Context.Abort(); return; }
         await base.OnConnectedAsync();
     }
 

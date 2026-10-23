@@ -1,36 +1,41 @@
-export type NotificationsSource = 'api' | 'demo';
+export type NotificationAudience = 'candidate' | 'hr';
+
+export type NotificationType = 0 | 1 | 3;
 
 export type NotificationItem = {
   id: number;
   message: string;
-  /** 0 = Chung, 1 = Lịch phỏng vấn, 3 = Đơn ứng tuyển (bảng của Web). */
-  type: number;
+  type: NotificationType;
   isRead: boolean;
-  createdValue: number;
-  createdLabel: string;
-  section: 'today' | 'yesterday' | 'older';
-  jobId?: number;
-  referenceType?: string;
-  referenceId?: number;
+  created: string;
+  createdAtValue: number;
+  invoiceId: number | null;
+  approverGroup: string | null;
+  referenceType: string | null;
+  referenceId: number | null;
+  jobId: number | null;
+  inviteToken: string | null;
 };
 
-export type NotificationsResult = {
+export type NotificationListQuery = {
+  audience: NotificationAudience;
+  pageNumber?: number;
+  pageSize?: number;
+  unreadOnly?: boolean;
+  type?: NotificationType | null;
+};
+
+export type NotificationListResult = {
   items: NotificationItem[];
   unreadCount: number;
   totalCount: number;
-  source: NotificationsSource;
+  pageNumber: number;
+  pageSize: number;
+  source: 'api' | 'demo';
 };
 
-export type NotificationsQuery = {
-  unreadOnly?: boolean;
-  pageNumber?: number;
-  pageSize?: number;
-  /** 0 | 1 | 3 — bỏ trống = tất cả. */
-  type?: number;
-};
-
-export const NOTIFICATION_TYPE_LABELS: Record<number, string> = {
-  0: 'Chung',
-  1: 'Lịch phỏng vấn',
-  3: 'Đơn ứng tuyển',
+export type NotificationGroup = {
+  key: 'today' | 'yesterday' | 'older';
+  title: string;
+  data: NotificationItem[];
 };

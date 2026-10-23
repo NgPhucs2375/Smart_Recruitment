@@ -66,12 +66,12 @@ internal sealed class AgentChatRateLimitMiddleware : IMiddleware
     }
 
     private static bool IsAgentChatRun(HttpContext context)
+        // Mọi POST tới endpoint agent (MapAdamAgent "/api/copilotkit") đều là một lượt
+        // chạy. KHÔNG nhận diện theo Accept/Content-Type: endpoint stream SSE bất kể
+        // header, nên client gửi application/json không kèm Accept: text/event-stream
+        // vẫn chạy agent mà trước đây né được quota.
         => HttpMethods.IsPost(context.Request.Method)
-           && context.Request.Path.StartsWithSegments("/api/copilotkit")
-           && ((context.Request.Headers.Accept.ToString()
-                    .Contains("text/event-stream", StringComparison.OrdinalIgnoreCase))
-               || (context.Request.ContentType?
-                    .Contains("text/event-stream", StringComparison.OrdinalIgnoreCase) == true));
+           && context.Request.Path.StartsWithSegments("/api/copilotkit");
 
     /// <summary>
     /// Run này là TIẾP NỐI (frontend tool đã trả kết quả) hay lượt chat MỚI
@@ -94,16 +94,47 @@ internal sealed class AgentChatRateLimitMiddleware : IMiddleware
             using var document = await JsonDocument.ParseAsync(
                 context.Request.Body, cancellationToken: context.RequestAborted);
 
-            if (document.RootElement.TryGetProperty("messages", out var messages)
-                && messages.ValueKind == JsonValueKind.Array
-                && messages.GetArrayLength() > 0
-                && messages[messages.GetArrayLength() - 1] is { ValueKind: JsonValueKind.Object } last
-                && last.TryGetProperty("role", out var role)
-                && role.ValueKind == JsonValueKind.String
-                && string.Equals(role.GetString(), "tool", StringComparison.OrdinalIgnoreCase))
+            if (!document.RootElement.TryGetProperty("messages", out var messages)
+                || messages.ValueKind != JsonValueKind.Array
+                || messages.GetArrayLength() == 0)
             {
-                return true;
+                return false;
             }
+
+            var count = messages.GetArrayLength();
+            if (messages[count - 1] is not { ValueKind: JsonValueKind.Object } last
+                || !last.TryGetProperty("role", out var role)
+                || role.ValueKind != JsonValueKind.String
+                || !string.Equals(role.GetString(), "tool", StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            // Chỉ coi là resume khi tồn tại message assistant chứa tool-call ở trước đó.
+            // Nếu không, đây chỉ là body giả (một message role=tool đơn lẻ) cố né quota.
+            for (var i = 0; i < count - 1; i++)
+            {
+                if (messages[i] is not { ValueKind: JsonValueKind.Object } m) continue;
+                if (!m.TryGetProperty("role", out var r)
+                    || r.ValueKind != JsonValueKind.String
+                    || !string.Equals(r.GetString(), "assistant", StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+                if (m.TryGetProperty("toolCalls", out var toolCalls)
+                    && toolCalls.ValueKind == JsonValueKind.Array
+                    && toolCalls.GetArrayLength() > 0)
+                {
+                    return true;
+                }
+                if (m.TryGetProperty("tool_calls", out var toolCallsSnake)
+                    && toolCallsSnake.ValueKind == JsonValueKind.Array
+                    && toolCallsSnake.GetArrayLength() > 0)
+                {
+                    return true;
+                }
+            }
+            return false;
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {

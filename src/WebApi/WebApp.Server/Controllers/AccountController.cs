@@ -6,8 +6,10 @@ using Application.Exceptions;
 using Application.Interfaces;
 using Infrastructure.Identity.Features.Users.Queries.GetMeByToken;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.RateLimiting;
 using Domain.Enums;
 using Application.Wrappers;
+ 
 
 namespace WebApp.Server.Controllers
 {
@@ -30,10 +32,11 @@ namespace WebApp.Server.Controllers
         }
 
         // Đăng ký tài khoản
+        [EnableRateLimiting("auth-mail")]
         [HttpPost("register")]
         public async Task<IActionResult> RegisterAsync([FromBody] YeuCauDangKy request)
         {
-            var origin = FrontendOrigin();
+            var origin = LinkOrigin();
             return Ok(await _accountService.RegisterAsync(request, origin));
         }
 
@@ -45,20 +48,22 @@ namespace WebApp.Server.Controllers
         }
 
         // Yêu cầu gửi email quên mật khẩu
+         [EnableRateLimiting("auth-mail")]
         [HttpPost("forgot-password")]
         public async Task<IActionResult> ForgotPassword([FromBody] YeuCauQuenMatKhau model)
         {
-            var origin = FrontendOrigin();
+            var origin = LinkOrigin();
 
             await _accountService.ForgotPassword(model, origin);
             return Ok(new Response<string>(string.Empty, "Nếu tài khoản tồn tại, yêu cầu gửi liên kết đặt lại mật khẩu đã được tiếp nhận."));
         }
 
         // Đặt lại mật khẩu
+        [EnableRateLimiting("auth-mail")]
         [HttpPost("resend-verification-email")]
         public async Task<IActionResult> ResendVerificationEmail([FromBody] YeuCauQuenMatKhau model)
         {
-            await _accountService.ResendVerificationEmailAsync(model.Email, FrontendOrigin());
+            await _accountService.ResendVerificationEmailAsync(model.Email, LinkOrigin());
             return Ok(new Response<string>(string.Empty, "Nếu email chưa xác minh, yêu cầu gửi lại liên kết đã được tiếp nhận."));
         }
 
@@ -78,7 +83,7 @@ namespace WebApp.Server.Controllers
         {
             return Ok(await _accountService.ChangePasswordAsync(model));
         }
-
+ 
         // Lấy thông tin tài khoản hiện tại từ JWT
         [Authorize]
         [HttpGet("me")]
@@ -113,10 +118,11 @@ namespace WebApp.Server.Controllers
             return Ok(await _accountService.GitHubLoginAsync(request, GenerateIPAddress()));
         }
 
+        [EnableRateLimiting("auth-mail")]
         [HttpPost("request-magic-link")]
         public async Task<IActionResult> RequestMagicLinkAsync([FromBody] YeuCauMagicLink request)
         {
-            var origin = FrontendOrigin();
+            var origin = LinkOrigin();
             return Ok(await _accountService.RequestMagicLinkAsync(request, origin));
         }
 
@@ -127,12 +133,33 @@ namespace WebApp.Server.Controllers
         }
         private string GenerateIPAddress()
         {
-           if (Request.Headers.TryGetValue("X-Forwarded-For", out var forwardedFor))
-            {
-                return forwardedFor.ToString();
-            }
-
+            // Chỉ dùng RemoteIpAddress (đã được ForwardedHeaders middleware xử lý
+            // và chỉ tin proxy đã cấu hình). KHÔNG đọc thô X-Forwarded-For do client
+            // gửi — tránh giả mạo IP ghi vào audit refresh-token/login.
             return HttpContext.Connection.RemoteIpAddress?.MapToIPv4().ToString() ?? "127.0.0.1";
+        }
+
+        private string LinkOrigin()
+        {
+            var platform = Request.Headers["X-Client-Platform"].ToString();
+            if (!string.Equals(platform, "mobile", StringComparison.OrdinalIgnoreCase))
+                return FrontendOrigin();
+
+            var configuration = HttpContext.RequestServices.GetRequiredService<IConfiguration>();
+            var linkBase = configuration["Mobile:LinkBase"]?.Trim();
+            if (string.IsNullOrWhiteSpace(linkBase))
+                throw new ApiException("Chưa cấu hình địa chỉ liên kết mobile.");
+
+            if (!Uri.TryCreate(linkBase, UriKind.Absolute, out var uri))
+                throw new ApiException("Địa chỉ liên kết mobile không hợp lệ.");
+
+            var environment = HttpContext.RequestServices.GetRequiredService<IWebHostEnvironment>();
+            var isAllowedScheme = uri.Scheme == Uri.UriSchemeHttps
+                || (environment.IsDevelopment() && uri.Scheme == "smartrecruitment");
+            if (!isAllowedScheme)
+                throw new ApiException("Địa chỉ liên kết mobile không hợp lệ.");
+
+            return linkBase;
         }
 
         private string FrontendOrigin()

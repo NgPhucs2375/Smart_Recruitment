@@ -625,12 +625,11 @@ namespace Infrastructure.Identity.Services
         {
             var code = await _userManager.GenerateEmailConfirmationTokenAsync(user);
             code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(code));
-            var route = "confirm-email";
-            var _enpointUri = new Uri(string.Concat($"{origin.TrimEnd('/')}/", route));
-            var verificationUri = QueryHelpers.AddQueryString(_enpointUri.ToString(), "userId", user.Id);
-            verificationUri = QueryHelpers.AddQueryString(verificationUri, "code", code);
-            //Email Service Call Here
-            return verificationUri;
+            return BuildLink(origin, "confirm-email", new Dictionary<string, string>
+            {
+                ["userId"] = user.Id,
+                ["code"] = code
+            });
         }
 
         public async Task<Response<string>> ConfirmEmailAsync(string userId, string code)
@@ -670,9 +669,11 @@ namespace Infrastructure.Identity.Services
             if (account == null) return;
 
             var code = await _userManager.GeneratePasswordResetTokenAsync(account);
-            var resetUri = QueryHelpers.AddQueryString(
-                $"{origin.TrimEnd('/')}/reset-password",
-                new Dictionary<string, string> { ["email"] = model.Email, ["token"] = code });
+            var resetUri = BuildLink(origin, "reset-password", new Dictionary<string, string>
+            {
+                ["email"] = model.Email,
+                ["token"] = code
+            });
             var emailRequest = new EmailRequest()
             {
                 Body = $"<p>Bạn vừa yêu cầu đặt lại mật khẩu HIREAI.</p><p><a href=\"{resetUri}\">Đặt lại mật khẩu</a></p><p>Liên kết có thể hết hạn. Nếu bạn không yêu cầu, hãy bỏ qua email này.</p>",
@@ -1264,17 +1265,25 @@ namespace Infrastructure.Identity.Services
             }
         }
 
+        private static string BuildLink(string baseUrl, string route, Dictionary<string, string> query = null)
+        {
+            var normalizedBase = baseUrl.Trim();
+            var normalizedRoute = route.TrimStart('/');
+            var url = normalizedBase.EndsWith("://", StringComparison.Ordinal)
+                ? $"{normalizedBase}{normalizedRoute}"
+                : $"{normalizedBase.TrimEnd('/')}/{normalizedRoute}";
+            return query is null ? url : QueryHelpers.AddQueryString(url, query);
+        }
+
         // Helper: Khởi tạo URL xác thực Magic Link
         private string BuildMagicLink(string token, string email, string origin)
         {
-            var route = "magic-login";
-            var endpointUri = new Uri(string.Concat($"{origin.TrimEnd('/')}/", route));
-            
-            var verificationUri = QueryHelpers.AddQueryString(endpointUri.ToString(), "token", token);
-            verificationUri = QueryHelpers.AddQueryString(verificationUri, "email", email);
-            verificationUri = QueryHelpers.AddQueryString(verificationUri, "mode", "magic");
-            
-            return verificationUri;
+            return BuildLink(origin, "magic-login", new Dictionary<string, string>
+            {
+                ["token"] = token,
+                ["email"] = email,
+                ["mode"] = "magic"
+            });
         }
 
         public async Task<Response<string>> RequestMagicLinkAsync(YeuCauMagicLink request, string origin)
@@ -1471,8 +1480,11 @@ namespace Infrastructure.Identity.Services
                 foreach (var token in user.RefreshTokens)
                 {
                     if (family.Contains(token)) continue;
-                    bool isAncestor = string.Equals(token.ReplacedByToken, family.Last().Token, StringComparison.Ordinal);
-                    bool isDescendant = family.Any(f => string.Equals(f.Token, token.ReplacedByToken, StringComparison.Ordinal));
+                    // ReplacedByToken = token KẾ NHIỆM (token mà token này bị thay bằng).
+                    // ancestor: token này bị thay bằng một token trong family.
+                    // descendant: một token trong family bị thay bằng chính token này.
+                    bool isAncestor = family.Any(f => string.Equals(token.ReplacedByToken, f.Token, StringComparison.Ordinal));
+                    bool isDescendant = family.Any(f => string.Equals(f.ReplacedByToken, token.Token, StringComparison.Ordinal));
                     if (isAncestor || isDescendant)
                     {
                         family.Add(token);

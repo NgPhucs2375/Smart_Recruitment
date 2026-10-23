@@ -14,6 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BookmarkProvider } from '@/features/bookmarks/bookmark-provider';
 import { AuthProvider, portalFor, useAuth } from '@/features/auth';
+import { NotificationProvider } from '@/features/notifications/notification-provider';
 import { Colors } from '@/constants/theme';
 import { ThemedText } from '@/components/themed-text';
 import { Button } from '@/components/ui/button';
@@ -40,7 +41,9 @@ export default function RootLayout() {
   return (
     <BookmarkProvider>
       <AuthProvider>
-        <RootNavigator />
+        <NotificationProvider>
+          <RootNavigator />
+        </NotificationProvider>
       </AuthProvider>
     </BookmarkProvider>
   );
@@ -96,6 +99,13 @@ function RootNavigator() {
           <Stack.Screen name="(auth)" />
         </Stack.Protected>
 
+        <Stack.Protected guard={isSignedIn}>
+          <Stack.Screen name="notifications" />
+          <Stack.Screen name="change-password" />
+          <Stack.Screen name="profile-edit" />
+          <Stack.Screen name="chat/[id]" options={{ headerShown: false }} />
+        </Stack.Protected>
+
         <Stack.Protected guard={isSignedIn && portal === 'candidate'}>
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="jobs/[id]" options={{ headerShown: false }} />
@@ -106,6 +116,12 @@ function RootNavigator() {
           <Stack.Screen name="tao-cv/ai" options={{ headerShown: false }} />
           <Stack.Screen name="mau-cv" options={{ headerShown: false }} />
           <Stack.Screen name="cv-phan-tich/[id]" options={{ headerShown: false }} />
+          <Stack.Screen name="applications" />
+          <Stack.Screen name="cvs" />
+          <Stack.Screen name="cv-create" />
+          <Stack.Screen name="cv-detail" />
+          <Stack.Screen name="cv-upload" />
+          <Stack.Screen name="cv-agent" />
         </Stack.Protected>
 
         <Stack.Protected guard={isSignedIn && portal === 'hr'}>

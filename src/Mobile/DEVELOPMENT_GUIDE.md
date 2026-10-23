@@ -7,7 +7,7 @@ Tài liệu này dành cho người tiếp tục phát triển ứng dụng mobi
 - Ứng dụng nằm riêng tại `src/Mobile`, không dùng chung UI với Next.js.
 - Framework: **React Native + Expo SDK 57**; React 19, TypeScript và Expo Router.
 - Điều hướng theo file, hỗ trợ Android/iOS và web.
-- Bản hiện tại có đăng nhập/khôi phục phiên, xem/tìm/lọc/sắp xếp/phân trang việc làm, xem chi tiết, lưu việc làm cục bộ và dataset demo bật bằng env; chưa có ứng tuyển, quản lý CV, thông báo và chat.
+- Bản hiện tại có đăng nhập/khôi phục phiên (gồm xác thực email, quên/đổi mật khẩu, Google/GitHub), xem/tìm/lọc/sắp xếp/phân trang việc làm, xem chi tiết, lưu việc làm cục bộ, nộp đơn nhanh, quản lý danh sách đơn ứng tuyển (lọc trạng thái, phân trang, rút đơn), hồ sơ ứng viên (tạo/chỉnh sửa, ảnh đại diện), quản lý CV (danh sách, chi tiết, đặt mặc định, xoá, upload PDF/DOCX, tải xuống), thông báo trong app (chuông/badge, lọc, đánh dấu đọc, xoá, SignalR + polling fallback) và chat nội bộ cho Nhân sự/Người đại diện (chat riêng, phòng chung, SignalR, tải tin cũ); chưa có trình soạn CV nhiều mục, push notification, đính kèm chat và workspace nhà tuyển dụng.
 - Tài liệu nghiên cứu React Native/Expo và phương án chuyển frontend web: [`../../PHAN_TICH_REACT_NATIVE_EXPO.md`](../../PHAN_TICH_REACT_NATIVE_EXPO.md).
 
 ## 2. Cài đặt và chạy
@@ -55,6 +55,8 @@ EXPO_PUBLIC_API_URL=http://10.0.2.2:3001/api/dotnet
 
 Có thể gọi backend trực tiếp bằng prefix `/api` nếu backend được publish và cấu hình phù hợp; mặc định nên dùng proxy Next.js `/api/dotnet`. `EXPO_PUBLIC_*` được đóng gói vào ứng dụng nên **không được đặt secret/API key** ở đây. File `.env` là cấu hình local, không commit.
 
+Hub realtime mặc định suy ra URL từ `EXPO_PUBLIC_API_URL` (`.../api` hoặc `.../api/dotnet` → `.../api/hubs/{notifications|chat}`). Nếu proxy/backend dùng URL khác cho hub thông báo, đặt `EXPO_PUBLIC_SIGNALR_URL`; để trống nếu không cần override.
+
 Khởi chạy Expo trong `src/Mobile`:
 
 ```powershell
@@ -89,12 +91,22 @@ src/Mobile/
 
 | File | Route/chức năng |
 |---|---|
-| `src/app/_layout.tsx` | Root stack, theme provider, bookmark provider và status bar. |
+| `src/app/_layout.tsx` | Root stack, theme/bookmark/auth/notification provider, status bar và guard route theo phiên đăng nhập. |
 | `src/app/(tabs)/_layout.tsx` | Layout nhóm tab. `(tabs)` là route group, không xuất hiện trên URL. |
 | `src/app/(tabs)/index.tsx` | Màn danh sách/tìm việc; gọi `jobsApi.getJobs`. |
 | `src/app/(tabs)/saved.tsx` | Danh sách việc làm đã lưu; tải chi tiết theo các ID đã lưu. |
-| `src/app/(tabs)/profile.tsx` | Màn hồ sơ hiển thị tài khoản đang đăng nhập, số việc đã lưu và nút đăng xuất. |
-| `src/app/jobs/[id].tsx` | Chi tiết việc làm theo ID; có mô tả và lưu/bỏ lưu. |
+| `src/app/(tabs)/chat.tsx` | Danh sách chat nội bộ cho `NHAN_SU`/`NGUOI_DAI_DIEN`: lọc chat riêng/phòng chung, tìm kiếm, tạo hội thoại và pull-to-refresh. |
+| `src/app/(tabs)/profile.tsx` | Hồ sơ ứng viên, đơn ứng tuyển gần đây, danh sách CV rút gọn, đổi mật khẩu và đăng xuất. |
+| `src/app/profile-edit.tsx` | Tạo mới hoặc chỉnh sửa hồ sơ ứng viên, validate ngày sinh/lương và upload/xoá ảnh đại diện. |
+| `src/app/cvs.tsx` | Danh sách CV: tải lại khi focus, pull-to-refresh, trạng thái loading/error/empty và mở màn upload. |
+| `src/app/cv-detail.tsx` | Chi tiết CV, đặt mặc định, xoá và tải file gốc/bản đã tạo; hiển thị lịch sử phiên bản. |
+| `src/app/cv-upload.tsx` | Chọn PDF/DOCX tối đa 10MB, lưu qua `prepare` + `save-version`, giữ phiên import để thử lưu lại khi lỗi. |
+| `src/app/jobs/[id].tsx` | Chi tiết việc làm theo ID; lưu/bỏ lưu và nộp đơn nhanh bằng `QuickApplySheet`. |
+| `src/app/chat/[id].tsx` | Khung chat: tải lịch sử, join SignalR, gửi tin, tải tin cũ, xử lý mất kết nối và `AccessRevoked`. |
+| `src/app/applications.tsx` | “Việc đã ứng tuyển”: lọc trạng thái, phân trang, refresh và rút đơn. |
+| `src/app/notifications.tsx` | Trung tâm thông báo: tab tất cả/chưa đọc, lọc loại, nhóm theo ngày, đánh dấu đọc, xoá và deep link theo vai trò. |
+| `src/app/(auth)/*` | Đăng nhập, đăng ký, xác thực email, quên mật khẩu và đặt lại mật khẩu. |
+| `src/app/change-password.tsx` | Đổi mật khẩu; thành công sẽ thu hồi phiên và buộc đăng nhập lại. |
 
 Quy ước Expo Router: mỗi page là file trong `src/app`, `_layout.tsx` định nghĩa navigator. Không đặt component dùng chung hoặc API service trong `src/app`, nếu không Router có thể hiểu nhầm chúng là routes.
 
@@ -108,7 +120,31 @@ Quy ước Expo Router: mỗi page là file trong `src/app`, `_layout.tsx` đị
 - `features/jobs/hooks/use-job-filter-options.ts`: tải ngành nghề/kỹ năng cho bộ lọc.
 - `features/jobs/components/job-card.tsx`: card việc làm và thao tác bookmark.
 - `features/jobs/components/job-filters-sheet.tsx`, `active-filter-chips.tsx`, `job-sort-tabs.tsx`: UI bộ lọc, chip đang bật và sắp xếp.
-- `features/auth/*`: đăng nhập, khôi phục phiên, refresh token và đăng xuất.
+- `features/auth/*`: đăng nhập/đăng ký, xác thực email, quên/đổi mật khẩu, Google/GitHub, khôi phục phiên, refresh token và đăng xuất.
+- `features/applications/api/applications-api.ts`: danh sách đơn phân trang/lọc trạng thái, nộp đơn và rút đơn; có mock tương đương.
+- `features/applications/hooks/use-applications.ts`: state lọc/phân trang, refresh, tải thêm, retry và cập nhật lạc quan sau khi rút đơn.
+- `features/applications/components/*`: card đơn, sheet lọc trạng thái và `QuickApplySheet`.
+- `features/profile/*`: hồ sơ ứng viên và các section dùng lại ở màn Hồ sơ.
+- `features/profile/api/profile-api.ts`: `getMine`, `create`, `update`, `uploadAvatar`, `deleteAvatar`; chuẩn hoá ngày sinh `yyyy-MM-dd`, dựng URL ảnh từ object key và có mock tương đương.
+- `features/profile/format.ts`: format/validate ngày `dd/mm/yyyy`, chuyển đổi ISO và định dạng tiền VND.
+- `features/profile/components/*`: field nhập liệu, chip giới tính, switch tìm việc và `ProfileAvatarPicker` (kiểm tra JPEG/PNG/WEBP/GIF, tối đa 5MB).
+- `features/cv/types.ts`: model `CvSummary`, `CvDetail`, `CvContent`, `CvVersion`, `CvImportSession` và các section học vấn/kinh nghiệm/dự án/kỹ năng/chứng chỉ.
+- `features/cv/api/cv-api.ts`: danh sách/chi tiết/phiên bản, đặt mặc định, xoá, `prepareImport` + `saveImport` multipart và lấy presigned URL tải file; chuẩn hoá PascalCase/camelCase và có mock mutable cho development.
+- `features/cv/cv-format.ts`: nhãn nguồn CV, mức kỹ năng, ngày/khoảng thời gian, lương, dung lượng và chữ viết tắt.
+- `features/cv/hooks/use-cv-list.ts`: tải danh sách khi focus, reload im lặng sau lần đầu, refresh, error và cờ demo.
+- `features/cv/components/*`: `CvCard` cho danh sách và `CvDetailBody`/`CvVersionsSection` cho chi tiết.
+- `features/notifications/types.ts`: `NotificationItem`, `NotificationType` (0/1/3), audience và query/result type.
+- `features/notifications/api/notifications-api.ts`: `listPage`, `unreadCount`, `markRead`, `markAllRead`, `remove`; chuẩn hoá PascalCase/camelCase và mock mutable riêng cho Ứng viên/Nhân sự.
+- `features/notifications/notification-provider.tsx`: unread badge dùng chung, SignalR `ReceiveNotification`, polling fallback 30 giây và refresh khi app trở lại foreground.
+- `features/notifications/hooks/use-notifications.ts`: tải trang, lọc chưa đọc/loại, refresh, tải thêm, mark/delete lạc quan và rollback.
+- `features/notifications/notification-target.ts`: xác định audience theo role và route đích; HR trả `null` vì workspace mobile chưa có.
+- `features/notifications/components/*`: `NotificationBell` và `NotificationRow`.
+- `features/chat/types.ts`: model `ChatContext`, `ChatContact`, `ChatConversation`, `ChatMessage` và input tạo hội thoại.
+- `features/chat/api/chat-api.ts`: `getContext`, `listContacts`, `listConversations`, `createConversation`, `listMessages`; chuẩn hoá PascalCase/camelCase, parse message từ REST/SignalR và mock mutable trong development.
+- `features/chat/hooks/use-chat-conversations.ts`: tải context/contact/hội thoại, poll 30 giây khi focus, refresh và tạo hội thoại.
+- `features/chat/hooks/use-chat-thread.ts`: tải lịch sử, join/leave SignalR, merge tin theo ID, gửi tin, tải tin cũ, reconnect và xử lý `AccessRevoked`.
+- `features/chat/components/*`: avatar, dòng hội thoại, bubble, composer, banner kết nối và sheet tạo hội thoại.
+- `features/chat/roles.ts`: chỉ `NHAN_SU`/`NGUOI_DAI_DIEN` được dùng chat nội bộ.
 - `features/bookmarks/bookmark-provider.tsx`: React context quản lý ID đã lưu; persist bằng AsyncStorage key `smart-recruitment.saved-jobs.v1`.
 
 Khi thêm domain mới (CV, auth, applications…), tạo feature riêng, ví dụ `src/features/auth/{api,components,types}`. Route nên gọi feature hook/service thay vì chứa toàn bộ logic nghiệp vụ.
@@ -141,42 +177,63 @@ Viết UI bằng React Native primitives (`View`, `Text`, `TextInput`, `Pressabl
 2. Nếu bật mock mode, `queryMockJobs` lọc/sort/phân trang trên dataset; nếu không, API client gọi `tintuyendungs` với `_start/_end`, `_filter`, `Location`, `SalaryMin/Max`, `Level`, `EmploymentType`, `WorkMode`, `DanhMucNgheId`, `KyNangIds`, `MatchAllSkills`, `_sort` và `_order`.
 3. `jobs-api.ts` chuẩn hóa trường backend; card hiển thị việc làm và cho phép lưu.
 4. Chọn card mở `/jobs/{id}`; màn chi tiết gọi `tintuyendungs/show/{id}`.
-5. Bookmark chỉ lưu ID vào AsyncStorage trên thiết bị. Màn Đã lưu tải lại chi tiết từ API; chưa đồng bộ bookmark với tài khoản/backend.
+5. `QuickApplySheet` tải CV của ứng viên, gọi `POST donungtuyens` và cập nhật trạng thái “Đã ứng tuyển”.
+6. `/applications` gọi `GET donungtuyens` với `_start/_end`, `_sort=ngayungtuyen` và `TrangThai`; rút đơn gọi `PUT donungtuyens/{id}` với `Trigger = 8`.
+7. Bookmark chỉ lưu ID vào AsyncStorage trên thiết bị. Màn Đã lưu tải lại chi tiết từ API; chưa đồng bộ bookmark với tài khoản/backend.
+8. `/profile` gọi `GET hosoungviens/cua-toi`. Nếu chưa có, nút “Tạo hồ sơ” mở `/profile-edit`; lưu lần đầu gọi `POST hosoungviens`, các lần sau gọi `PUT hosoungviens/{id}`. Ảnh đại diện đi qua endpoint multipart riêng `POST hosoungviens/{id}/avatar` và xoá bằng `DELETE` cùng path; `PUT` hồ sơ không cập nhật URL ảnh.
+9. `/cvs` gọi `GET cvungviens?_start=0&_end=100`; danh sách tự tải lại khi màn hình được focus và có pull-to-refresh. Mỗi dòng mở `/cv-detail?id={id}`; nút thêm mở `/cv-upload`.
+10. `/cv-detail` tải song song `GET cvungviens/show/{id}` và `GET cvungviens/{id}/versions`. Đặt mặc định gọi `POST cvungviens/{id}/set-default`, xoá gọi `DELETE cvungviens/{id}` sau khi xác nhận.
+11. `/cv-upload` tải hồ sơ hiện tại, cho chọn PDF/DOCX tối đa 10MB, gọi `POST cvungviens/import/prepare` (multipart `HoSoUngVienId`, `File`) rồi `POST cvungviens/save-version` với `Payload` chứa `hoSoUngVienId`, `importSessionId`, `tenFile`, `isDefault`, `phuongThucTao = 2` và `noiDung` dựng từ hồ sơ. Nếu bước lưu lỗi, giữ `importSessionId` để thử lưu lại; chọn tệp khác sẽ reset phiên.
+12. Tải CV gọi `GET cvungviens/{id}/download-url`; nếu CV có file gốc thì dùng `GET cvungviens/{id}/original/download-url`. Native tải bằng `expo-file-system/legacy` rồi mở `expo-sharing`; web mở URL bằng `Linking.openURL`.
+13. `NotificationProvider` chọn audience theo role (`UNG_VIEN` ưu tiên trước `NHAN_SU`), gọi `GET Notifications?pageNumber=1&pageSize=1&unreadOnly=true` để lấy badge rồi mở SignalR `/api/hubs/notifications`. Event `ReceiveNotification` debounce để refresh badge và tăng revision cho danh sách; hub lỗi/đóng thì polling mỗi 30 giây.
+14. `/notifications` gọi `GET Notifications` với `unreadOnly`, `pageNumber`, `pageSize=15`, `type`; đánh dấu đọc dùng `POST Notifications/read/{id}`, đọc tất cả dùng `POST Notifications/read`, xoá dùng `DELETE Notifications/{id}`. Chạm thông báo của Ứng viên mở `/`, `/applications` hoặc `/jobs/{id}`; thông báo Nhân sự chỉ đánh dấu đọc.
+15. `/chat` chỉ mở với `NHAN_SU`/`NGUOI_DAI_DIEN`, gọi song song `GET chat/context`, `GET chat/contacts`, `GET chat/conversations`; tạo chat riêng bằng `POST chat/conversations` với `Type=0, RecipientId`, tạo phòng chung với `Type=1, Title`. Danh sách poll 30 giây khi màn hình focus và refresh khi app trở lại foreground.
+16. `/chat/{id}` tải `GET chat/conversations/{id}/messages?take=100`, sau đó mở SignalR `/api/hubs/chat`, gọi `JoinConversation` rồi mới nhận `MessageReceived`. Gửi tin bằng `SendMessage`; reconnect sẽ join lại và tải lại lịch sử. Tải tin cũ dùng `beforeId`; `AccessRevoked` xoá nội dung và chặn gửi. Mock mode không mở SignalR, gửi tin cập nhật local.
 
 ### Tình trạng và điểm cần biết
 
 - Luồng việc làm hiện có loading/error/empty, tải thêm, pull-to-refresh, bộ lọc, chip lọc đang bật và sắp xếp.
-- Dataset demo có 6 việc làm Việt hóa; mock cũng hỗ trợ lọc/sort/phân trang và trả filter options. Chế độ này mặc định bật khi `__DEV__`; đặt `EXPO_PUBLIC_USE_MOCK_DATA=false` để tắt. Đăng nhập vẫn cần backend vì mock chỉ thay dữ liệu việc làm.
+- Dataset demo có 6 việc làm Việt hóa; mock cũng hỗ trợ lọc/sort/phân trang và trả filter options. Đơn ứng tuyển và CV có mock riêng để thử luồng nộp/lọc/rút đơn. Chế độ này mặc định bật khi `__DEV__`; đặt `EXPO_PUBLIC_USE_MOCK_DATA=false` để tắt. Đăng nhập vẫn cần backend vì mock chỉ thay dữ liệu nghiệp vụ.
 - API danh sách yêu cầu JWT. App đã có đăng nhập và khôi phục phiên; khi access token hết hạn, API client tự refresh một lần rồi mới báo lỗi.
-- Ứng tuyển, CV upload/import/export, chat/SignalR, push notification và deep link từ notification chưa được tích hợp. Hồ sơ và đăng nhập đã có.
+- Danh sách đơn ứng tuyển hỗ trợ đủ 10 trạng thái, phân trang 20 đơn/lần, pull-to-refresh và rút đơn ở trạng thái `0, 2, 3, 5`. Backend chỉ trả đơn thuộc ứng viên đang đăng nhập.
+- Hồ sơ ứng viên hỗ trợ tạo/chỉnh sửa thông tin cá nhân, ngày sinh, giới tính, lương mong muốn, trạng thái tìm việc và ảnh đại diện. Ảnh giới hạn 5MB, chỉ nhận JPEG/PNG/WEBP/GIF; upload/xoá dùng endpoint riêng sau khi hồ sơ đã có ID.
+- Module CV chỉ upload file gốc PDF/DOCX (tối đa 10MB) và lưu snapshot thông tin liên hệ từ hồ sơ; chưa trích xuất nội dung PDF/DOCX, chưa import JSON Resume và chưa có trình soạn CV nhiều mục. Danh sách dùng nguồn CV/ngày cập nhật thay cho `NgayUpload` vì view model danh sách không trả trường này; chi tiết lấy `Created` của phiên bản mới nhất.
+- Thông báo trong app đã có cho `UNG_VIEN`/`NHAN_SU`: badge, danh sách, lọc, mark/delete và SignalR + polling fallback. Chưa có push notification của hệ điều hành và workspace nhà tuyển dụng; HR chưa có route đích nên thông báo HR chỉ xem/đọc/xoá. Tài khoản Quản trị viên/Người đại diện không hiển thị chuông thông báo.
+- Chat nội bộ chỉ dành cho `NHAN_SU`/`NGUOI_DAI_DIEN` cùng doanh nghiệp. UI hỗ trợ chat riêng/phòng chung, tìm kiếm, tạo hội thoại, gửi tin, tải tin cũ và trạng thái kết nối. Backend chưa có last-message/unread/đính kèm/typing, nên danh sách không hiển thị các thông tin đó. Web dùng LongPolling; native dùng WebSocket và gửi access token qua `accessTokenFactory`.
 - Compose hiện trả `/health/ready` 200 sau khi RustFS và bucket đã khởi tạo. Volume MinIO cũ `minio_data` được giữ nhưng dữ liệu trong đó chưa được migrate sang các RustFS volumes mới.
 
 ## 5. Cách mở rộng phổ biến
 
 ### Thêm tab mới
 
-1. Tạo route, ví dụ `src/app/(tabs)/applications.tsx`.
-2. Thêm trigger `applications` trong `src/components/app-tabs.tsx` và `src/components/app-tabs.web.tsx`.
-3. Tách API/type/UI ứng tuyển vào `src/features/applications/`.
+1. Tạo route, ví dụ `src/app/(tabs)/notifications.tsx`.
+2. Thêm trigger `notifications` trong `src/components/app-tabs.tsx` và `src/components/app-tabs.web.tsx`.
+3. Tách API/type/UI thông báo vào `src/features/notifications/`.
 4. Kiểm tra cả Android và web vì thanh tab có implementation riêng.
 
 ### Thêm trang chi tiết/stack route
 
-Tạo file route (ví dụ `src/app/companies/[id].tsx`) và nếu cần cấu hình header/presentation trong `src/app/_layout.tsx`. Dùng `useLocalSearchParams` từ `expo-router` để đọc path parameter.
+Tạo file route (ví dụ `src/app/applications.tsx`) và khai báo `<Stack.Screen>` trong `src/app/_layout.tsx`. Dùng `StackHeader` cho màn stack có nút quay lại. Dùng `useLocalSearchParams` từ `expo-router` để đọc path parameter.
 
 ### Việc tiếp theo
 
-- Ứng tuyển và quản lý CV (upload/import/export) qua API backend.
-- Thông báo, chat/SignalR và deep link từ notification.
+- Trình soạn CV nhiều mục/template renderer và import JSON Resume nếu mở rộng ngoài phạm vi upload file gốc.
+- Push notification, deep link từ notification ra ngoài app và đính kèm/typing cho chat nếu backend bổ sung.
+- Workspace nhà tuyển dụng và role-based navigation đầy đủ.
 - Bổ sung timeout/retry policy và kiểm thử hồi quy cho auth, bộ lọc và phân trang.
 
 ### Thêm Expo native module
 
 Cài bằng `npx expo install <package>` để chọn version tương thích Expo SDK đang dùng. Nếu package có native code, cần development build; không chỉ dựa vào Expo Go. Cấu hình iOS/Android trong `app.json` hoặc Expo config plugin. Expo-managed app không nên tự tạo/sửa `ios/` và `android/` bằng tay trừ khi chủ động chuyển workflow.
 
+`expo-image-picker` đã được cài cho avatar và khai báo plugin trong `app.json` với `photosPermission` tiếng Việt. Khi chỉnh quyền ảnh, cập nhật cả plugin lẫn phần xử lý từ chối quyền trong `src/app/profile-edit.tsx`; kiểm tra lại trên thiết bị thật vì quyền thư viện ảnh khác nhau giữa iOS, Android và web.
+
+Module CV dùng `expo-document-picker` để chọn PDF/DOCX, `expo-file-system/legacy` để tải file tạm và `expo-sharing` để mở share sheet trên native; web dùng `Linking.openURL`. Sau khi thêm các module native này, development build hiện có cần được build lại. Lint, typecheck và export web đã chạy qua, nhưng chưa kiểm thử chọn/tải tệp trên thiết bị thật hoặc với backend thật.
+
 ## 6. Cấu hình API local và Docker
 
 - `EXPO_PUBLIC_API_URL` là URL prefix, ví dụ `http://10.0.2.2:3001/api/dotnet`; mobile nối thêm endpoint khi mock mode tắt.
+- `EXPO_PUBLIC_SIGNALR_URL` là tùy chọn cho hub thông báo; nếu trống, app suy ra `/api/hubs/notifications`. Chat luôn suy ra `/api/hubs/chat` từ `EXPO_PUBLIC_API_URL`. Mock mode không mở SignalR.
 - Trong development, mock bật mặc định; đặt `EXPO_PUBLIC_USE_MOCK_DATA=false` để gọi backend. Mock bị vô hiệu hóa trong production bất kể giá trị biến.
 - Cổng host có thể thay đổi theo `.env` ở root. Luôn xem `docker compose ps`; không lấy port từ một máy khác.
 - Docker Compose local dùng service name `minio` cho backend, nhưng image là RustFS tương thích S3 do registry MinIO Quay trả 401. `minio-init` tạo bucket trước khi backend khởi động.
@@ -315,12 +372,23 @@ src/app/
 │   ├── _layout.tsx             # Tab navigator
 │   ├── index.tsx               # / — danh sách/tìm việc
 │   ├── saved.tsx               # /saved
+│   ├── chat.tsx                # /chat — danh sách chat nội bộ (theo role)
 │   └── profile.tsx             # /profile
+├── applications.tsx            # /applications — đơn đã ứng tuyển
+├── chat/
+│   └── [id].tsx                # /chat/:id — khung chat
+├── notifications.tsx           # /notifications — trung tâm thông báo
+├── change-password.tsx         # /change-password
+├── cvs.tsx                     # /cvs — danh sách CV
+├── cv-detail.tsx               # /cv-detail?id=... — chi tiết CV
+├── cv-upload.tsx               # /cv-upload — upload PDF/DOCX
+├── profile-edit.tsx            # /profile-edit — tạo/chỉnh sửa hồ sơ
+├── (auth)/                     # /login, /register, /confirm-email, /forgot-password, /reset-password
 └── jobs/
     └── [id].tsx                # /jobs/:id — chi tiết việc làm
 ```
 
-`src/app/_layout.tsx` là nơi đăng ký root `<Stack>` và các provider toàn app. `src/app/(tabs)/_layout.tsx` đưa ba trang vào tab navigator. Component thanh tab tách theo platform: `src/components/app-tabs.tsx` dùng native tabs Android/iOS; `src/components/app-tabs.web.tsx` dựng tab bar web. Khi thêm/bỏ tab, cập nhật cả route và hai implementation này.
+`src/app/_layout.tsx` là nơi đăng ký root `<Stack>` và các provider toàn app. `src/app/(tabs)/_layout.tsx` đưa các trang vào tab navigator; tab **Tin nhắn** chỉ hiện với `NHAN_SU`/`NGUOI_DAI_DIEN`. Component thanh tab tách theo platform: `src/components/app-tabs.tsx` dùng native tabs Android/iOS; `src/components/app-tabs.web.tsx` dựng tab bar web. Khi thêm/bỏ tab, cập nhật cả route và hai implementation này.
 
 ### Điều hướng đến trang chi tiết
 
