@@ -78,6 +78,44 @@ let mockDetailSeq = 3;
 const MOCK_CV_DETAILS = new Map<string, CvDetailVm>();
 const MOCK_VERSIONS = new Map<string, CvVersionVm[]>();
 
+// Seed lịch sử phiên bản cho 1 CV demo — màn "Lịch sử" có dữ liệu minh họa.
+MOCK_VERSIONS.set('demo-cv-001', [
+  {
+    id: 1,
+    soPhienBan: 1,
+    tenFile: 'CV Frontend Developer.pdf',
+    templateId: 'minimal-ats',
+    created: new Date(Date.now() - 12 * DAY).toISOString(),
+    hasOriginal: false,
+  },
+  {
+    id: 2,
+    soPhienBan: 2,
+    tenFile: 'CV Frontend Developer.pdf',
+    templateId: 'minimal-ats',
+    created: new Date(Date.now() - 5 * DAY).toISOString(),
+    hasOriginal: true,
+  },
+]);
+
+/** Tăng số phiên bản của CV trong mock (như save-version thật). */
+function bumpMockVersion(cvId: string, tenFile: string, templateId: string): number {
+  const rows = MOCK_VERSIONS.get(cvId) ?? [];
+  const soPhienBan = (rows.length ? Math.max(...rows.map((row) => row.soPhienBan)) : 0) + 1;
+  MOCK_VERSIONS.set(cvId, [
+    ...rows,
+    {
+      id: rows.length ? Math.max(...rows.map((row) => row.id)) + 1 : 1,
+      soPhienBan,
+      tenFile,
+      templateId,
+      created: new Date().toISOString(),
+      hasOriginal: rows.some((row) => row.hasOriginal),
+    },
+  ]);
+  return soPhienBan;
+}
+
 function mockDetailContent(): CvDetailVm['noiDung'] {
   const { templateId: _templateId, tenFile: _tenFile, ...content } = sampleCvFormData;
   return content;
@@ -375,7 +413,11 @@ export const cvApi = {
         };
         MOCK_CVS = MOCK_CVS.map((cv) => (cv.id === existing.id ? updated : cv));
         MOCK_CV_DETAILS.delete(existing.id);
-        return { cvUngVienId: 0, cvPhienBanId: 0, soPhienBan: 1 };
+        return {
+          cvUngVienId: 0,
+          cvPhienBanId: 0,
+          soPhienBan: bumpMockVersion(existing.id, tenFile, updated.templateId ?? 'minimal-ats'),
+        };
       }
       mockDetailSeq += 1;
       const id = `demo-cv-${String(mockDetailSeq).padStart(3, '0')}`;
@@ -393,7 +435,11 @@ export const cvApi = {
         ...MOCK_CVS,
       ];
       MOCK_CV_DETAILS.delete(id);
-      return { cvUngVienId: 0, cvPhienBanId: 0, soPhienBan: 1 };
+      return {
+        cvUngVienId: 0,
+        cvPhienBanId: 0,
+        soPhienBan: bumpMockVersion(id, tenFile, asText(payload.templateId, 'minimal-ats')),
+      };
     }
 
     const form = new FormData();
@@ -432,7 +478,7 @@ export const cvApi = {
         };
         MOCK_CVS = MOCK_CVS.map((cv) => (cv.id === existing.id ? updated : cv));
         MOCK_CV_DETAILS.delete(existing.id);
-        return { cvId: existing.id, soPhienBan: 1 };
+        return { cvId: existing.id, soPhienBan: bumpMockVersion(existing.id, tenFile, base.templateId) };
       }
       mockDetailSeq += 1;
       const createdId = `demo-cv-${String(mockDetailSeq).padStart(3, '0')}`;
@@ -450,7 +496,7 @@ export const cvApi = {
         ...MOCK_CVS,
       ];
       MOCK_CV_DETAILS.delete(createdId);
-      return { cvId: createdId, soPhienBan: 1 };
+      return { cvId: createdId, soPhienBan: bumpMockVersion(createdId, tenFile, base.templateId) };
     }
 
     const numericId = input.cvId && /^\d+$/.test(input.cvId) ? Number(input.cvId) : null;
@@ -504,6 +550,9 @@ export const cvApi = {
     versionId?: number,
     original = false,
   ): Promise<{ url: string; tenFile: string }> {
+    if (USE_MOCK_JOBS) {
+      throw new Error('Bản demo chưa có file tải xuống. Chạy cùng backend thật để tải phiên bản.');
+    }
     const path = original
       ? `cvungviens/${encodeURIComponent(cvId)}/original/download-url`
       : versionId
