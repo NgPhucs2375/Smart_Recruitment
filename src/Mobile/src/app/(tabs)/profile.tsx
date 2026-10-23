@@ -1,7 +1,7 @@
 import { useFocusEffect, router } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
-import { LogOut } from 'lucide-react-native';
+import { LogOut, KeyRound } from 'lucide-react-native';
 
 import { AppHeader } from '@/components/app-header';
 import { ThemedText } from '@/components/themed-text';
@@ -29,6 +29,7 @@ type ProfileData = {
   profile: CandidateProfile;
   applications: ApplicationsResult;
   cvs: CvsResult;
+  profileError: string | null;
   applicationsError: string | null;
   cvsError: string | null;
   demo: boolean;
@@ -92,6 +93,10 @@ export default function ProfileScreen() {
       profile,
       applications,
       cvs,
+      profileError:
+        profileResult.status === 'rejected'
+          ? errorMessage(profileResult.reason, 'Không thể tải hồ sơ ứng viên.')
+          : null,
       applicationsError:
         applicationsResult.status === 'rejected'
           ? errorMessage(applicationsResult.reason, 'Không thể tải đơn ứng tuyển.')
@@ -161,8 +166,26 @@ export default function ProfileScreen() {
           </View>
         ) : null}
 
-        <SectionHeading title="Hồ sơ ứng viên" />
+        <SectionHeading
+          title="Hồ sơ ứng viên"
+          actionLabel={
+            !loading && !data?.profileError ? (profile.id ? 'Chỉnh sửa' : 'Tạo hồ sơ') : undefined
+          }
+          onAction={
+            !loading && !data?.profileError ? () => router.push('/profile-edit') : undefined
+          }
+        />
         <ProfileInfoCard profile={profile} />
+        {data?.profileError ? (
+          <ListSurface>
+            <ProfileEmptyState
+              title="Không tải được hồ sơ"
+              message={data.profileError}
+              actionLabel="Thử lại"
+              onAction={handleRefresh}
+            />
+          </ListSurface>
+        ) : null}
 
         <SectionHeading
           title="Đơn ứng tuyển gần đây"
@@ -174,6 +197,10 @@ export default function ProfileScreen() {
                 : 'Theo dõi trạng thái hồ sơ đã gửi'
           }
           badge={!loading && applicationCount > 0 ? String(applicationCount) : undefined}
+          actionLabel={!loading && applicationCount > 0 ? 'Xem tất cả' : undefined}
+          onAction={
+            !loading && applicationCount > 0 ? () => router.push('/applications') : undefined
+          }
         />
         <ListSurface>
           {loading ? (
@@ -206,6 +233,10 @@ export default function ProfileScreen() {
           title="Danh sách CV đã tạo"
           caption="Chọn CV nhanh khi ứng tuyển trên điện thoại"
           badge={!loading && cvs.length > 0 ? String(cvs.length) : undefined}
+          actionLabel={!loading && !data?.cvsError ? 'Quản lý' : undefined}
+          onAction={
+            !loading && !data?.cvsError ? () => router.push('/cvs') : undefined
+          }
         />
         <ListSurface>
           {loading ? (
@@ -220,12 +251,48 @@ export default function ProfileScreen() {
           ) : cvs.length === 0 ? (
             <ProfileEmptyState
               title="Chưa có CV nào"
-              message="Tạo hoặc tải CV lên trên bản web, sau đó quay lại đây để ứng tuyển nhanh."
+              message="Tải CV PDF hoặc DOCX lên để ứng tuyển nhanh trên điện thoại."
+              actionLabel="Quản lý CV"
+              onAction={() => router.push('/cvs')}
             />
           ) : (
-            cvs.map((cv, index) => <CvRow key={cv.id} cv={cv} first={index === 0} />)
+            cvs.map((cv, index) => (
+              <CvRow
+                key={cv.id}
+                cv={cv}
+                first={index === 0}
+                onPress={() =>
+                  router.push({
+                    pathname: '/cv-detail',
+                    params: { id: cv.id },
+                  })
+                }
+              />
+            ))
           )}
         </ListSurface>
+
+        <SectionHeading
+          title="Tài khoản & bảo mật"
+          caption="Quản lý mật khẩu và phiên đăng nhập trên thiết bị"
+        />
+
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => router.push('/change-password')}
+          style={({ pressed }) => [
+            styles.changePasswordButton,
+            {
+              borderColor: theme.border,
+              backgroundColor: theme.backgroundElement,
+              opacity: pressed ? 0.7 : 1,
+            },
+          ]}>
+          <KeyRound size={16} color={theme.primary} />
+          <ThemedText style={[styles.changePasswordText, { color: theme.primary }]}>
+            Đổi mật khẩu
+          </ThemedText>
+        </Pressable>
 
         <Pressable
           accessibilityRole="button"
@@ -249,6 +316,17 @@ const styles = StyleSheet.create({
   content: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 38 },
   demoRow: { marginBottom: 4 },
   demoBadge: { fontFamily: font('semibold'), fontSize: 10, letterSpacing: 0.5 },
+  changePasswordButton: {
+    minHeight: 50,
+    borderRadius: Radius['2xl'],
+    borderWidth: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 10,
+  },
+  changePasswordText: { fontFamily: font('semibold'), fontSize: 14 },
   logoutButton: {
     minHeight: 50,
     borderRadius: Radius['2xl'],
@@ -257,7 +335,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    marginTop: 26,
+    marginTop: 10,
   },
   logoutText: { fontFamily: font('semibold'), fontSize: 14 },
 });

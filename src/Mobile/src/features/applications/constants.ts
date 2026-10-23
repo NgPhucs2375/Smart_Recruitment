@@ -23,6 +23,16 @@ const STATUS_BY_CODE: Record<number, ApplicationStatus> = {
   9: { code: 9, label: 'Vô hiệu', tone: 'secondary' },
 };
 
+export const APPLICATION_STATUSES: ApplicationStatus[] = Object.values(STATUS_BY_CODE).sort(
+  (left, right) => left.code - right.code,
+);
+
+const WITHDRAWABLE_STATUSES = new Set([0, 2, 3, 5]);
+
+export function canWithdrawApplication(statusCode: number): boolean {
+  return WITHDRAWABLE_STATUSES.has(statusCode);
+}
+
 const CODE_BY_NAME: Record<string, number> = {
   khoitao: 0,
   loixulyhoso: 1,

@@ -34,7 +34,14 @@
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 76
         }
-      ]
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "HIREAI cần truy cập thư viện ảnh để cập nhật ảnh đại diện."
+        }
+      ],
+      "./plugins/with-google-signin"
     ],
     "experiments": {
       "typedRoutes": true,

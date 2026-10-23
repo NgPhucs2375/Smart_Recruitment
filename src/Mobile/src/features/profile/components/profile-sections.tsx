@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, useColorScheme, View } from 'react-native';
 import {
   Calendar,
+  ChevronRight,
   DollarSign,
   FileText,
   Mail,
@@ -16,7 +17,9 @@ import { Badge } from '@/components/ui/badge';
 import { font, Palette, Radius, Shadows } from '@/constants/theme';
 import { getToneColors } from '@/features/applications/constants';
 import type { ApplicationSummary } from '@/features/applications/types';
+import { sourceLabel } from '@/features/cv/cv-format';
 import type { CvSummary } from '@/features/cv/types';
+import { isoToVnDate } from '@/features/profile/format';
 import type { CandidateProfile } from '@/features/profile/types';
 import { useTheme } from '@/hooks/use-theme';
 
@@ -37,12 +40,15 @@ export function ProfileInfoCard({ profile }: { profile: CandidateProfile }) {
         .toUpperCase()
     : 'UV';
 
+  const birthDate = isoToVnDate(profile.birthDate);
   const rows: { icon: typeof Mail; value: string }[] = [
     { icon: Mail, value: profile.email || 'Chưa có email' },
     { icon: Phone, value: profile.phone || 'Chưa có SĐT' },
     {
       icon: Calendar,
-      value: profile.birthDate ? profile.birthDate : 'Chưa cập nhật ngày sinh',
+      value: birthDate
+        ? `${birthDate}${profile.gender ? ` (${profile.gender})` : ''}`
+        : 'Chưa cập nhật ngày sinh',
     },
     { icon: MapPin, value: profile.location || 'Chưa có địa chỉ' },
     {
@@ -144,10 +150,14 @@ export function SectionHeading({
   title,
   caption,
   badge,
+  actionLabel,
+  onAction,
 }: {
   title: string;
   caption?: string;
   badge?: string;
+  actionLabel?: string;
+  onAction?: () => void;
 }) {
   const theme = useTheme();
   return (
@@ -162,11 +172,24 @@ export function SectionHeading({
           </ThemedText>
         ) : null}
       </View>
-      {badge ? (
-        <View style={[styles.countBadge, { backgroundColor: theme.backgroundSelected }]}>
-          <ThemedText style={[styles.countBadgeText, { color: theme.primary }]}>{badge}</ThemedText>
-        </View>
-      ) : null}
+      <View style={styles.sectionHeadingRight}>
+        {actionLabel && onAction ? (
+          <Pressable
+            accessibilityRole="button"
+            onPress={onAction}
+            hitSlop={8}
+            style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}>
+            <ThemedText style={[styles.sectionAction, { color: theme.primary }]}>
+              {actionLabel}
+            </ThemedText>
+          </Pressable>
+        ) : null}
+        {badge ? (
+          <View style={[styles.countBadge, { backgroundColor: theme.backgroundSelected }]}>
+            <ThemedText style={[styles.countBadgeText, { color: theme.primary }]}>{badge}</ThemedText>
+          </View>
+        ) : null}
+      </View>
     </View>
   );
 }
@@ -260,14 +283,27 @@ export function ApplicationRow({
   );
 }
 
-/** CvRow — clone CV row của ho-so-view.tsx (read-only, không CRUD). */
-export function CvRow({ cv, first = false }: { cv: CvSummary; first?: boolean }) {
+/** CvRow — CV trong hồ sơ, có thể mở màn hình quản lý. */
+export function CvRow({
+  cv,
+  first = false,
+  onPress,
+}: {
+  cv: CvSummary;
+  first?: boolean;
+  onPress?: () => void;
+}) {
   const theme = useTheme();
   return (
-    <View
-      style={[
+    <Pressable
+      accessibilityRole={onPress ? 'button' : undefined}
+      accessibilityLabel={onPress ? `Mở ${cv.name}` : undefined}
+      disabled={!onPress}
+      onPress={onPress}
+      style={({ pressed }) => [
         styles.row,
         !first && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.border },
+        { opacity: pressed ? 0.7 : 1 },
       ]}>
       <View style={styles.cvRow}>
         <View style={[styles.cvIconBox, { backgroundColor: `${theme.primary}1A` }]}>
@@ -285,11 +321,12 @@ export function CvRow({ cv, first = false }: { cv: CvSummary; first?: boolean })
             ) : null}
           </View>
           <ThemedText numberOfLines={1} style={[styles.cvMeta, { color: theme.textSecondary }]}>
-            {`Mẫu ${cv.role || 'chuẩn'} • Cập nhật ${cv.uploadedAt}`}
+            {`${sourceLabel(cv.source)}${cv.uploadedAt ? ` • Cập nhật ${cv.uploadedAt}` : ''}`}
           </ThemedText>
         </View>
+        {onPress ? <ChevronRight size={16} color={theme.textSecondary} /> : null}
       </View>
-    </View>
+    </Pressable>
   );
 }
 
@@ -405,6 +442,8 @@ const styles = StyleSheet.create({
   sectionHeadingCopy: { flex: 1, gap: 4 },
   sectionTitle: { fontFamily: font('semibold'), fontSize: 11, letterSpacing: 1.6 },
   sectionCaption: { fontSize: 12, lineHeight: 17 },
+  sectionHeadingRight: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  sectionAction: { fontFamily: font('semibold'), fontSize: 12 },
   countBadge: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: Radius.pill },
   countBadgeText: { fontFamily: font('bold'), fontSize: 11 },
   listSurface: { borderRadius: Radius['2xl'], borderWidth: 1, overflow: 'hidden' },

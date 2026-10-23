@@ -121,6 +121,7 @@ function buildHeaders(init: RequestInit | undefined, accessToken: string | null)
     ...(isJsonBody ? { 'Content-Type': 'application/json' } : {}),
     ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
     ...init?.headers,
+    'X-Client-Platform': 'mobile',
   };
 }
 

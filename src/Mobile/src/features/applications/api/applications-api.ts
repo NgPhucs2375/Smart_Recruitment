@@ -1,11 +1,16 @@
 import { USE_MOCK_JOBS } from '@/features/jobs/api/jobs-api';
 import { formatDate, formatSalary, toTimestamp } from '@/features/jobs/format';
-import { getApplicationStatus } from '@/features/applications/constants';
+import {
+  canWithdrawApplication,
+  getApplicationStatus,
+} from '@/features/applications/constants';
 import type {
+  ApplicationListQuery,
   ApplicationSummary,
   ApplicationsResult,
   ApplyApplicationInput,
   ApplyResult,
+  WithdrawResult,
 } from '@/features/applications/types';
 import { apiRequest } from '@/services/api/client';
 import { asNumber, asRecord, asText, unwrapData } from '@/services/api/parse';
@@ -80,6 +85,7 @@ const MOCK_BASE_APPLICATIONS: ApplicationSummary[] = [
 ];
 
 const mockAddedApplications: ApplicationSummary[] = [];
+const mockWithdrawnIds = new Set<string>();
 
 function mockIsApplied(jobId: string): boolean {
   return (
@@ -88,15 +94,49 @@ function mockIsApplied(jobId: string): boolean {
   );
 }
 
-function mockListApplications(limit: number): ApplicationsResult {
-  const items = [...mockAddedApplications, ...MOCK_BASE_APPLICATIONS]
-    .sort((left, right) => right.appliedAtValue - left.appliedAtValue)
-    .slice(0, limit);
+function mockListApplications(query: ApplicationListQuery = {}): ApplicationsResult {
+  const offset = Math.max(0, query.offset ?? 0);
+  const limit = Math.min(100, Math.max(1, query.limit ?? 20));
+  const withdrawnStatus = getApplicationStatus(4);
+
+  const allItems = [...mockAddedApplications, ...MOCK_BASE_APPLICATIONS]
+    .map((application) =>
+      mockWithdrawnIds.has(application.id)
+        ? {
+            ...application,
+            statusCode: withdrawnStatus.code,
+            statusLabel: withdrawnStatus.label,
+            statusTone: withdrawnStatus.tone,
+          }
+        : application,
+    )
+    .filter((application) =>
+      query.statusCode === undefined || query.statusCode === null
+        ? true
+        : application.statusCode === query.statusCode,
+    )
+    .sort((left, right) => right.appliedAtValue - left.appliedAtValue);
 
   return {
-    items,
-    totalCount: mockAddedApplications.length + MOCK_BASE_APPLICATIONS.length,
+    items: allItems.slice(offset, offset + limit),
+    totalCount: allItems.length,
     source: 'demo',
+  };
+}
+
+function mockWithdraw(id: string): WithdrawResult {
+  const application = [...mockAddedApplications, ...MOCK_BASE_APPLICATIONS].find(
+    (item) => item.id === id,
+  );
+  if (!application) throw new Error('Không tìm thấy đơn ứng tuyển.');
+  if (mockWithdrawnIds.has(id) || !canWithdrawApplication(application.statusCode)) {
+    throw new Error('Đơn ứng tuyển này không thể rút ở trạng thái hiện tại.');
+  }
+
+  mockWithdrawnIds.add(id);
+  return {
+    source: 'demo',
+    message: 'Đã rút đơn ứng tuyển ở chế độ minh họa.',
   };
 }
 
@@ -141,8 +181,8 @@ function normalizeApplication(value: unknown, index: number): ApplicationSummary
   if (!raw) return null;
 
   const jobId = asText(raw.tinTuyenDungId ?? raw.TinTuyenDungId);
-  const jobTitle = asText(raw.tieuDe ?? raw.TieuDe);
-  if (!jobId || !jobTitle) return null;
+  if (!jobId) return null;
+  const jobTitle = asText(raw.tieuDe ?? raw.TieuDe, `Tin tuyển dụng #${jobId}`);
 
   const status = getApplicationStatus(raw.trangThai ?? raw.TrangThai);
   const appliedAtValue = toTimestamp(raw.ngayUngTuyen ?? raw.NgayUngTuyen);
@@ -166,10 +206,13 @@ function normalizeApplication(value: unknown, index: number): ApplicationSummary
       'Chưa rõ ngày ứng tuyển',
     ),
     appliedAtValue: appliedAtValue ?? 0,
+    note: asText(raw.ghiChu ?? raw.GhiChu) || undefined,
+    feedback: asText(raw.phanHoi ?? raw.PhanHoi) || undefined,
+    conclusion: asText(raw.ketLuan ?? raw.KetLuan) || undefined,
   };
 }
 
-function parseRecentApplications(payload: unknown, limit: number): ApplicationsResult {
+function parseApplications(payload: unknown, limit: number): ApplicationsResult {
   const rows = Array.isArray(unwrapData(payload)) ? (unwrapData(payload) as unknown[]) : [];
   const items = rows
     .map((row, index) => normalizeApplication(row, index))
@@ -183,14 +226,59 @@ function parseRecentApplications(payload: unknown, limit: number): ApplicationsR
   };
 }
 
-export const applicationsApi = {
-  async listRecent(limit = 4): Promise<ApplicationsResult> {
-    if (USE_MOCK_JOBS) return mockListApplications(limit);
+async function listApplicationsPage(
+  query: ApplicationListQuery = {},
+): Promise<ApplicationsResult> {
+  const offset = Math.max(0, query.offset ?? 0);
+  const limit = Math.min(100, Math.max(1, query.limit ?? 20));
+  if (USE_MOCK_JOBS) return mockListApplications({ ...query, offset, limit });
 
-    const payload = await apiRequest<unknown>(
-      `donungtuyens?_start=0&_end=${Math.max(1, limit)}&_sort=ngayungtuyen&_order=desc`,
+  const params = new URLSearchParams({
+    _start: String(offset),
+    _end: String(offset + limit),
+    _sort: 'ngayungtuyen',
+    _order: 'desc',
+  });
+  if (query.statusCode !== undefined && query.statusCode !== null) {
+    params.set('TrangThai', String(query.statusCode));
+  }
+
+  const payload = await apiRequest<unknown>(`donungtuyens?${params.toString()}`);
+  return parseApplications(payload, limit);
+}
+
+export const applicationsApi = {
+  listPage: listApplicationsPage,
+
+  async listRecent(limit = 4): Promise<ApplicationsResult> {
+    return listApplicationsPage({ offset: 0, limit });
+  },
+
+  async withdraw(id: string): Promise<WithdrawResult> {
+    if (USE_MOCK_JOBS) return mockWithdraw(id);
+
+    const numericId = Number(id);
+    if (!Number.isInteger(numericId) || numericId <= 0) {
+      throw new Error('Đơn ứng tuyển không hợp lệ.');
+    }
+
+    const payload = await apiRequest<unknown>(`donungtuyens/${numericId}`, {
+      method: 'PUT',
+      body: JSON.stringify({
+        Id: numericId,
+        Trigger: 8,
+        GhiChu: 'Ứng viên rút đơn',
+      }),
+    });
+    const data = asRecord(unwrapData(payload));
+    const message = asText(
+      data?.message ??
+        data?.Message ??
+        asRecord(payload)?.Message ??
+        asRecord(payload)?.message,
+      'Đã rút đơn ứng tuyển.',
     );
-    return parseRecentApplications(payload, limit);
+    return { source: 'api', message };
   },
 
   async hasApplied(jobId: string): Promise<boolean> {

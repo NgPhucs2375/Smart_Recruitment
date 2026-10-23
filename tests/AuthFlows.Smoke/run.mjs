@@ -10,7 +10,8 @@ const data = (object, key) => object?.[key] ?? object?.[key[0].toUpperCase() + k
 const sql = query => execFileSync("docker", ["exec", "postgres", "psql", "-U", "postgres", "-d", "smart_recruitment_db", "-t", "-A", "-v", "ON_ERROR_STOP=1", "-c", query], { encoding: "utf8" }).trim();
 async function call(path, method = "GET", body, token) {
   const response = await fetch(base + path, { method, headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) }, ...(body ? { body: JSON.stringify(body) } : {}) });
-  const result = await response.json();
+  const text = await response.text();
+  const result = text ? JSON.parse(text) : null;
   return { status: response.status, body: result, value: data(result, "data"), ok: response.ok && data(result, "succeeded") !== false };
 }
 async function ok(path, method = "GET", body, token) {
@@ -49,6 +50,7 @@ try {
   const uid = await ok("/account/register", "POST", registration);
   check(typeof uid === "string", "Candidate registration succeeds with a response wrapper");
   check(!(await call("/account/authenticate", "POST", { email, password: initial })).ok, "Unverified email cannot login");
+  check(!(await call("/account/request-magic-link", "POST", { Email: email, Role: "QUAN_TRI_VIEN" })).ok, "Magic link cannot provision Admin");
   const forgot = await call("/account/forgot-password", "POST", { Email: `${marker}-missing@seed.local` });
   check(forgot.ok && data(forgot.body, "succeeded") === true, "Forgot-password response matches frontend contract");
   const spamStatuses = [];
@@ -56,7 +58,6 @@ try {
   check(spamStatuses[spamStatuses.length - 1] === 429, "Forgot-password is rate limited after repeated requests");
   check((await call(`/account/confirm-email?userId=${uid}&code=***`)).status === 400, "Malformed verification link is a validation error, not 500");
   check((await call("/account/reset-password", "POST", { Email: email, Token: "invalid", Password: "Reset1!Password", ConfirmPassword: "Reset1!Password" })).status === 400, "Invalid reset token is rejected");
-  check(!(await call("/account/request-magic-link", "POST", { Email: email, Role: "QUAN_TRI_VIEN" })).ok, "Magic link cannot provision Admin");
   const candidateRoleId = sql(`SELECT "Id" FROM "Identity"."Role" WHERE "Name"='UNG_VIEN'`);
   assert(candidateRoleId);
   await ok(`/users/${uid}`, "PUT", { Id: uid, RoleId: candidateRoleId, EmailConfirmed: true }, admin.token);

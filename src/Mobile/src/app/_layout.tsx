@@ -14,6 +14,7 @@ import { ActivityIndicator, useColorScheme, View } from 'react-native';
 
 import { BookmarkProvider } from '@/features/bookmarks/bookmark-provider';
 import { AuthProvider, useAuth } from '@/features/auth';
+import { NotificationProvider } from '@/features/notifications/notification-provider';
 import { Colors } from '@/constants/theme';
 
 // Giữ splash cho đến khi font Be Vietnam Pro load xong, tránh nháy font hệ thống.
@@ -39,7 +40,9 @@ export default function RootLayout() {
   return (
     <BookmarkProvider>
       <AuthProvider>
-        <RootNavigator />
+        <NotificationProvider>
+          <RootNavigator />
+        </NotificationProvider>
       </AuthProvider>
     </BookmarkProvider>
   );
@@ -79,6 +82,14 @@ function RootNavigator() {
         <Stack.Protected guard={isSignedIn}>
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="jobs/[id]" options={{ headerShown: false }} />
+          <Stack.Screen name="applications" />
+          <Stack.Screen name="notifications" />
+          <Stack.Screen name="chat/[id]" />
+          <Stack.Screen name="change-password" />
+          <Stack.Screen name="profile-edit" />
+          <Stack.Screen name="cvs" />
+          <Stack.Screen name="cv-detail" />
+          <Stack.Screen name="cv-upload" />
         </Stack.Protected>
       </Stack>
     </ThemeProvider>

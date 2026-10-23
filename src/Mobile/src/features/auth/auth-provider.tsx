@@ -4,7 +4,7 @@ import type { PropsWithChildren } from 'react';
 import { clearTokens, getAccessToken, revokeRefreshToken, saveTokens, setUnauthorizedHandler } from '@/services/api/client';
 
 import { authApi } from './api/auth-api';
-import type { AuthUser } from './types';
+import type { AuthSession, AuthUser } from './types';
 
 export type AuthStatus = 'loading' | 'signedOut' | 'signedIn';
 
@@ -12,8 +12,10 @@ type AuthContextValue = {
   status: AuthStatus;
   user: AuthUser | null;
   signIn: (email: string, password: string) => Promise<void>;
+  completeSignIn: (session: AuthSession) => Promise<void>;
   signOut: () => Promise<void>;
   reloadUser: () => Promise<void>;
+  changePassword: (currentPassword: string, newPassword: string) => Promise<string>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -65,8 +67,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     };
   }, []);
 
-  const signIn = useCallback(async (email: string, password: string) => {
-    const session = await authApi.login(email, password);
+  const completeSignIn = useCallback(async (session: AuthSession) => {
     await saveTokens(session.accessToken, session.refreshToken);
     try {
       const me = await authApi.me();
@@ -80,15 +81,39 @@ export function AuthProvider({ children }: PropsWithChildren) {
     }
   }, []);
 
+  const signIn = useCallback(
+    async (email: string, password: string) => {
+      const session = await authApi.login(email, password);
+      await completeSignIn(session);
+    },
+    [completeSignIn],
+  );
+
   const reloadUser = useCallback(async () => {
     const me = await authApi.me();
     setUser(me);
     setStatus('signedIn');
   }, []);
 
+  const changePassword = useCallback(async (currentPassword: string, newPassword: string) => {
+    const result = await authApi.changePassword(currentPassword, newPassword);
+    await clearTokens();
+    setUser(null);
+    setStatus('signedOut');
+    return result.message;
+  }, []);
+
   const value = useMemo(
-    () => ({ status, user, signIn, signOut, reloadUser }),
-    [status, user, signIn, signOut, reloadUser],
+    () => ({
+      status,
+      user,
+      signIn,
+      completeSignIn,
+      signOut,
+      reloadUser,
+      changePassword,
+    }),
+    [status, user, signIn, completeSignIn, signOut, reloadUser, changePassword],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
