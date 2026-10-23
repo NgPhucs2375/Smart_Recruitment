@@ -461,7 +461,7 @@ const styles = StyleSheet.create({
   completionCtaText: { fontFamily: font('semibold'), fontSize: 13 },
   seeAllRow: { alignItems: 'center', paddingVertical: 6 },
   seeAllText: { fontFamily: font('semibold'), fontSize: 13 },
-  quickActions: { flexDirection: 'row', gap: 8 },
+  quickActions: { flexDirection: 'row', gap: 12, marginTop: 12 },
   quickPill: {
     flex: 1,
     minHeight: 40,

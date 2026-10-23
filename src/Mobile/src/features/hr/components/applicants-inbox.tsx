@@ -34,6 +34,24 @@ import { useTheme } from '@/hooks/use-theme';
 const GLOBAL_END = 100;
 const JOB_END = 1000;
 
+type MockApplicant = {
+  id: number;
+  hoTen: string;
+  viTri: string;
+  diemPhuHop: number;
+  ngayNop: string;
+  trangThai: number;
+};
+
+/** Hồ sơ mẫu hiển thị khi API chưa có dữ liệu (demo/báo cáo). */
+const MOCK_APPLICANTS: MockApplicant[] = [
+  { id: 90001, hoTen: 'Trần Minh Đức', viTri: '.NET Core Developer', diemPhuHop: 92, ngayNop: '22/10/2026', trangThai: 2 },
+  { id: 90002, hoTen: 'Nguyễn Thu Hà', viTri: 'React Native Developer', diemPhuHop: 87, ngayNop: '22/10/2026', trangThai: 3 },
+  { id: 90003, hoTen: 'Lê Quốc Hưng', viTri: 'Senior Frontend Developer', diemPhuHop: 78, ngayNop: '21/10/2026', trangThai: 2 },
+  { id: 90004, hoTen: 'Phạm Thảo My', viTri: 'UI/UX Designer', diemPhuHop: 71, ngayNop: '20/10/2026', trangThai: 3 },
+  { id: 90005, hoTen: 'Vũ Anh Tuấn', viTri: 'Data Analyst', diemPhuHop: 64, ngayNop: '19/10/2026', trangThai: 2 },
+];
+
 function formatDate(value: string): string {
   if (!value) return '—';
   const date = new Date(value);
@@ -71,6 +89,8 @@ export function ApplicantsInbox({ jobId, jobTitle }: ApplicantsInboxProps) {
   const [search, setSearch] = useState('');
   const [reachedCap, setReachedCap] = useState(false);
   const [jobPickerOpen, setJobPickerOpen] = useState(false);
+  // Quyết định trên hồ sơ mock (sống ở cha để không mất khi đổi chip/loading).
+  const [mockDecisions, setMockDecisions] = useState<Record<number, 'approve' | 'reject'>>({});
 
   // Dialog đánh giá (bước END khi đơn đã Phù hợp).
   const [evalDon, setEvalDon] = useState<HrApplication | null>(null);
@@ -304,8 +324,6 @@ export function ApplicantsInbox({ jobId, jobTitle }: ApplicantsInboxProps) {
     }
   }
 
-  const hasFilter = Boolean(normalizedSearch) || statusFilter !== 'all' || jobFilter !== 'all';
-
   return (
     <View style={styles.flex}>
       {dialog}
@@ -368,14 +386,24 @@ export function ApplicantsInbox({ jobId, jobTitle }: ApplicantsInboxProps) {
           <HrLoadingState />
         ) : error && items.length === 0 ? (
           <HrErrorState message={error} onRetry={() => void load()} />
+        ) : items.length === 0 ? (
+          <MockApplicantsCard
+            decisions={mockDecisions}
+            search={normalizedSearch}
+            statusFilter={statusFilter}
+            onDecided={(id, kind, name) => {
+              setMockDecisions((prev) => ({ ...prev, [id]: kind }));
+              setSuccess(
+                kind === 'approve'
+                  ? `Đã duyệt hồ sơ của ${name}.`
+                  : `Đã từ chối hồ sơ của ${name}.`,
+              );
+            }}
+          />
         ) : filtered.length === 0 ? (
           <HrEmptyState
-            title={hasFilter ? 'Không tìm thấy đơn phù hợp' : 'Chưa có hồ sơ ứng tuyển'}
-            description={
-              hasFilter
-                ? 'Thử thay đổi bộ lọc hoặc từ khóa.'
-                : 'Hồ sơ của ứng viên nộp vào các vị trí bạn phụ trách sẽ hiển thị tại đây.'
-            }
+            title="Không tìm thấy đơn phù hợp"
+            description="Thử thay đổi bộ lọc hoặc từ khóa."
           />
         ) : (
           <View style={[styles.listCard, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
@@ -571,6 +599,115 @@ export function ApplicantsInbox({ jobId, jobTitle }: ApplicantsInboxProps) {
           </Pressable>
         </Pressable>
       </Modal>
+    </View>
+  );
+}
+
+/**
+ * Hồ sơ mẫu — chỉ dùng khi API trả về rỗng (demo/báo cáo).
+ * Quyết định "Duyệt/Từ chối" cập nhật cục bộ, không gọi API.
+ */
+function MockApplicantsCard({
+  decisions,
+  search,
+  statusFilter,
+  onDecided,
+}: {
+  decisions: Record<number, 'approve' | 'reject'>;
+  search: string;
+  statusFilter: string;
+  onDecided: (id: number, kind: 'approve' | 'reject', name: string) => void;
+}) {
+  const theme = useTheme();
+
+  // Mock không gắn tin tuyển thật → bỏ qua job picker; lọc theo status + search.
+  const visible = MOCK_APPLICANTS.filter((item) => {
+    const decision = decisions[item.id];
+    const status = decision === 'approve' ? 5 : decision === 'reject' ? 6 : item.trangThai;
+    const statusOk = statusFilter === 'all' || status === Number(statusFilter);
+    const searchOk =
+      !search ||
+      item.hoTen.toLowerCase().includes(search) ||
+      item.viTri.toLowerCase().includes(search);
+    return statusOk && searchOk;
+  });
+
+  if (visible.length === 0) {
+    return (
+      <HrEmptyState
+        title="Không tìm thấy đơn phù hợp"
+        description="Thử thay đổi bộ lọc hoặc từ khóa."
+      />
+    );
+  }
+
+  return (
+    <View style={[styles.listCard, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
+      <View style={styles.listHead}>
+        <ThemedText style={[styles.listHeadTitle, { color: theme.textSecondary }]} type="code">
+          DANH SÁCH ĐƠN ỨNG TUYỂN ({visible.length})
+        </ThemedText>
+      </View>
+
+      {visible.map((item, index) => {
+        const decision = decisions[item.id];
+        const status = decision === 'approve' ? 5 : decision === 'reject' ? 6 : item.trangThai;
+        return (
+          <View
+            key={item.id}
+            style={[
+              styles.row,
+              {
+                borderTopColor: theme.border,
+                borderTopWidth: index === 0 ? 0 : StyleSheet.hairlineWidth,
+              },
+            ]}>
+            <View style={styles.rowBody}>
+              <View style={styles.rowHeadline}>
+                <View style={[styles.avatar, { backgroundColor: `${theme.primary}14` }]}>
+                  <ThemedText style={[styles.avatarText, { color: theme.primary }]} type="code">
+                    {initials(item.hoTen)}
+                  </ThemedText>
+                </View>
+                <ThemedText style={styles.rowName} numberOfLines={1} type="smallBold">
+                  {item.hoTen}
+                </ThemedText>
+                <AppStatusBadge value={status} />
+              </View>
+              <ThemedText style={[styles.rowTitle, { color: theme.text }]} type="small" numberOfLines={2}>
+                {item.viTri}
+              </ThemedText>
+              <ThemedText style={{ color: theme.textSecondary }} type="code">
+                Khớp AI {item.diemPhuHop}% • Nộp {item.ngayNop} • Đơn #{item.id}
+              </ThemedText>
+            </View>
+
+            <View style={styles.rowActions}>
+              {decision ? (
+                <ThemedText style={{ color: theme.textSecondary }} type="code">
+                  {decision === 'approve' ? 'Đã duyệt hồ sơ' : 'Đã từ chối hồ sơ'}
+                </ThemedText>
+              ) : (
+                <>
+                  <Button
+                    size="sm"
+                    onPress={() => onDecided(item.id, 'approve', item.hoTen)}
+                    icon={<CheckCheck size={14} color={theme.primaryForeground} />}>
+                    Duyệt hồ sơ
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onPress={() => onDecided(item.id, 'reject', item.hoTen)}
+                    icon={<UserX size={14} color={theme.text} />}>
+                    Từ chối
+                  </Button>
+                </>
+              )}
+            </View>
+          </View>
+        );
+      })}
     </View>
   );
 }
