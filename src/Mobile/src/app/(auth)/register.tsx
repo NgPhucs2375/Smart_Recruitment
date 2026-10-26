@@ -1,41 +1,31 @@
 import { router } from 'expo-router';
-import { BriefcaseBusiness, Building2, Mail, MapPin, Phone, UserRound, UserRoundCheck } from 'lucide-react-native';
 import { useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
+import {
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  View,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { ArrowLeft, ArrowRight, Building2, Eye, EyeOff, Lock, Mail, Phone, UserRound } from 'lucide-react-native';
 
+import { BrandLogo } from '@/components/brand-logo';
 import { ThemedText } from '@/components/themed-text';
 import { Button } from '@/components/ui/button';
 import { font, Radius } from '@/constants/theme';
 import { authApi, type RegisterRole } from '@/features/auth';
-import {
-  AuthField,
-  AuthFooterLink,
-  AuthMessage,
-  AuthPasswordField,
-  AuthScreen,
-} from '@/features/auth/components/auth-ui';
-import {
-  normalizeEmail,
-  validateEmail,
-  validatePassword,
-  validatePasswordConfirmation,
-  validatePhone,
-} from '@/features/auth/validation';
 import { useTheme } from '@/hooks/use-theme';
+import { safeBack } from '@/utils/navigation';
 
-const ROLE_OPTIONS: { value: RegisterRole; label: string; description: string; icon: typeof UserRound }[] = [
-  {
-    value: 'UNG_VIEN',
-    label: 'Ứng viên',
-    description: 'Tìm việc và tạo CV',
-    icon: UserRoundCheck,
-  },
-  {
-    value: 'NGUOI_DAI_DIEN',
-    label: 'Nhà tuyển dụng',
-    description: 'Đăng tin và quản lý ứng viên',
-    icon: BriefcaseBusiness,
-  },
+type RoleOption = { value: RegisterRole; label: string };
+
+const ROLE_OPTIONS: RoleOption[] = [
+  { value: 'UNG_VIEN', label: 'Ứng viên' },
+  { value: 'NGUOI_DAI_DIEN', label: 'Nhà tuyển dụng' },
 ];
 
 export default function RegisterScreen() {
@@ -43,237 +33,389 @@ export default function RegisterScreen() {
 
   const [role, setRole] = useState<RegisterRole>('UNG_VIEN');
   const [hoTen, setHoTen] = useState('');
-  const [email, setEmail] = useState('');
   const [soDienThoai, setSoDienThoai] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [chucVu, setChucVu] = useState('');
   const [tenDoanhNghiep, setTenDoanhNghiep] = useState('');
   const [diaChiDoanhNghiep, setDiaChiDoanhNghiep] = useState('');
-  const [chucVu, setChucVu] = useState('');
   const [maSoThue, setMaSoThue] = useState('');
+  const [linhVucHoatDong, setLinhVucHoatDong] = useState('');
+  const [quyMoNhanSu, setQuyMoNhanSu] = useState('');
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
   const isEmployer = role === 'NGUOI_DAI_DIEN';
 
   const handleSubmit = async () => {
-    const normalizedEmail = normalizeEmail(email);
-    const validationError =
-      (!hoTen.trim() ? 'Nhập họ và tên.' : null) ??
-      validateEmail(normalizedEmail) ??
-      validatePhone(soDienThoai) ??
-      validatePassword(password) ??
-      validatePasswordConfirmation(password, confirmPassword);
-
-    if (validationError) {
-      setError(validationError);
+    const trimmedEmail = email.trim();
+    if (!hoTen.trim() || !soDienThoai.trim() || !trimmedEmail || !password || !confirmPassword) {
+      setError('Điền đủ họ tên, số điện thoại, email và mật khẩu.');
       return;
     }
-
-    if (isEmployer) {
-      if (!tenDoanhNghiep.trim()) {
-        setError('Nhập tên doanh nghiệp.');
-        return;
-      }
-      if (!diaChiDoanhNghiep.trim()) {
-        setError('Nhập địa chỉ doanh nghiệp.');
-        return;
-      }
-      if (!chucVu.trim()) {
-        setError('Nhập chức vụ của bạn tại doanh nghiệp.');
-        return;
-      }
+    if (password.length < 6) {
+      setError('Mật khẩu cần ít nhất 6 ký tự.');
+      return;
+    }
+    if (password !== confirmPassword) {
+      setError('Mật khẩu xác nhận không khớp.');
+      return;
+    }
+    if (isEmployer && (!chucVu.trim() || !tenDoanhNghiep.trim() || !diaChiDoanhNghiep.trim())) {
+      setError('Nhà tuyển dụng cần điền chức vụ, tên và địa chỉ doanh nghiệp.');
+      return;
     }
 
     setSubmitting(true);
     setError('');
+    setSuccess('');
     try {
-      await authApi.register({
+      const message = await authApi.register({
         role,
-        email: normalizedEmail,
+        email: trimmedEmail,
         password,
         confirmPassword,
         hoTen: hoTen.trim(),
         soDienThoai: soDienThoai.trim(),
+        chucVu: isEmployer ? chucVu.trim() : undefined,
         tenDoanhNghiep: isEmployer ? tenDoanhNghiep.trim() : undefined,
         diaChiDoanhNghiep: isEmployer ? diaChiDoanhNghiep.trim() : undefined,
-        chucVu: isEmployer ? chucVu.trim() : undefined,
         maSoThue: isEmployer ? maSoThue.trim() || undefined : undefined,
+        linhVucHoatDong: isEmployer ? linhVucHoatDong.trim() || undefined : undefined,
+        quyMoNhanSu: isEmployer ? quyMoNhanSu.trim() || undefined : undefined,
       });
-      router.replace({ pathname: '/confirm-email', params: { email: normalizedEmail, sent: '1' } });
-    } catch (reason) {
-      setError(reason instanceof Error ? reason.message : 'Đăng ký thất bại. Vui lòng thử lại.');
+      setSuccess(`${message} Kiểm tra email để xác thực, sau đó đăng nhập.`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Đăng ký thất bại. Vui lòng thử lại.');
     } finally {
       setSubmitting(false);
     }
   };
 
   return (
-    <AuthScreen
-      title="Tạo tài khoản"
-      subtitle="Chọn vai trò phù hợp để bắt đầu sử dụng HIREAI."
-      contentStyle={styles.topContent}
-      footer={
-        <AuthFooterLink
-          prompt="Đã có tài khoản?"
-          action="Đăng nhập"
-          disabled={submitting}
-          onPress={() => router.replace('/login')}
-        />
-      }>
-      <ThemedText style={[styles.sectionLabel, { color: theme.textSecondary }]}>Vai trò</ThemedText>
-      <View style={styles.roleRow}>
-        {ROLE_OPTIONS.map((option) => {
-          const Icon = option.icon;
-          const selected = role === option.value;
-          return (
-            <Pressable
-              key={option.value}
-              accessibilityRole="radio"
-              accessibilityState={{ selected, disabled: submitting }}
-              disabled={submitting}
-              onPress={() => setRole(option.value)}
-              style={({ pressed }) => [
-                styles.roleCard,
-                {
-                  borderColor: selected ? theme.primary : theme.border,
-                  backgroundColor: selected ? `${theme.primary}10` : theme.backgroundElement,
-                  opacity: pressed ? 0.75 : 1,
-                },
-              ]}>
-              <Icon size={18} color={selected ? theme.primary : theme.textSecondary} />
-              <ThemedText style={[styles.roleTitle, { color: selected ? theme.primary : theme.text }]}>
-                {option.label}
-              </ThemedText>
-              <ThemedText style={[styles.roleDescription, { color: theme.textSecondary }]}>
-                {option.description}
-              </ThemedText>
+    <SafeAreaView edges={['top', 'bottom']} style={[styles.safeArea, { backgroundColor: theme.background }]}>
+      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <ScrollView
+          contentContainerStyle={styles.content}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}>
+          <View style={styles.topRow}>
+            <Pressable accessibilityRole="button" hitSlop={8} onPress={() => safeBack('/login')}>
+              <ArrowLeft size={20} color={theme.text} />
             </Pressable>
-          );
-        })}
+            <BrandLogo variant="navy" size="auth" style={styles.topLogo} />
+            <View style={styles.topSpacer} />
+          </View>
+
+          <ThemedText style={styles.title}>Đăng ký tài khoản</ThemedText>
+          <ThemedText style={[styles.subtitle, { color: theme.textSecondary }]}>
+            Chọn loại tài khoản để bắt đầu
+          </ThemedText>
+
+          <View style={[styles.roleRow, { borderColor: theme.border }]}>
+            {ROLE_OPTIONS.map((option) => {
+              const active = role === option.value;
+              return (
+                <Pressable
+                  key={option.value}
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected: active }}
+                  disabled={submitting}
+                  onPress={() => setRole(option.value)}
+                  style={[
+                    styles.roleChip,
+                    active && { backgroundColor: theme.primary, borderColor: theme.primary },
+                  ]}>
+                  {option.value === 'NGUOI_DAI_DIEN' ? (
+                    <Building2 size={14} color={active ? theme.primaryForeground : theme.textSecondary} />
+                  ) : (
+                    <UserRound size={14} color={active ? theme.primaryForeground : theme.textSecondary} />
+                  )}
+                  <ThemedText
+                    style={[
+                      styles.roleChipText,
+                      { color: active ? theme.primaryForeground : theme.textSecondary },
+                    ]}>
+                    {option.label}
+                  </ThemedText>
+                </Pressable>
+              );
+            })}
+          </View>
+
+          <Field label="Họ và tên" icon={<UserRound size={16} color="#9ca3af" />}>
+            <TextInput
+              editable={!submitting}
+              onChangeText={setHoTen}
+              placeholder="Nguyễn Văn A"
+              placeholderTextColor={theme.textSecondary}
+              selectionColor={theme.primary}
+              style={[styles.input, { color: theme.text }]}
+              value={hoTen}
+            />
+          </Field>
+
+          <Field label="Số điện thoại" icon={<Phone size={16} color="#9ca3af" />}>
+            <TextInput
+              editable={!submitting}
+              keyboardType="phone-pad"
+              onChangeText={setSoDienThoai}
+              placeholder="09xx xxx xxx"
+              placeholderTextColor={theme.textSecondary}
+              selectionColor={theme.primary}
+              style={[styles.input, { color: theme.text }]}
+              value={soDienThoai}
+            />
+          </Field>
+
+          <Field label="Email" icon={<Mail size={16} color="#9ca3af" />}>
+            <TextInput
+              autoCapitalize="none"
+              autoCorrect={false}
+              editable={!submitting}
+              keyboardType="email-address"
+              onChangeText={setEmail}
+              placeholder="name@company.com"
+              placeholderTextColor={theme.textSecondary}
+              selectionColor={theme.primary}
+              style={[styles.input, { color: theme.text }]}
+              value={email}
+            />
+          </Field>
+
+          <Field label="Mật khẩu" icon={<Lock size={16} color="#9ca3af" />}>
+            <TextInput
+              autoCapitalize="none"
+              editable={!submitting}
+              onChangeText={setPassword}
+              placeholder="Tối thiểu 6 ký tự"
+              placeholderTextColor={theme.textSecondary}
+              secureTextEntry={!showPassword}
+              selectionColor={theme.primary}
+              style={[styles.input, { paddingRight: 36, color: theme.text }]}
+              value={password}
+            />
+            <Pressable
+              accessibilityRole="button"
+              hitSlop={8}
+              disabled={submitting}
+              onPress={() => setShowPassword((value) => !value)}
+              style={styles.eyeButton}>
+              {showPassword ? (
+                <EyeOff size={16} color="#9ca3af" />
+              ) : (
+                <Eye size={16} color="#9ca3af" />
+              )}
+            </Pressable>
+          </Field>
+
+          <Field label="Xác nhận mật khẩu" icon={<Lock size={16} color="#9ca3af" />}>
+            <TextInput
+              autoCapitalize="none"
+              editable={!submitting}
+              onChangeText={setConfirmPassword}
+              onSubmitEditing={handleSubmit}
+              placeholder="Nhập lại mật khẩu"
+              placeholderTextColor={theme.textSecondary}
+              secureTextEntry={!showPassword}
+              selectionColor={theme.primary}
+              style={[styles.input, { color: theme.text }]}
+              value={confirmPassword}
+            />
+          </Field>
+
+          {isEmployer ? (
+            <View style={styles.employerBlock}>
+              <ThemedText style={[styles.employerTitle, { color: theme.textSecondary }]}>
+                Thông tin nhà tuyển dụng
+              </ThemedText>
+              <Field label="Chức vụ" icon={<UserRound size={16} color="#9ca3af" />}>
+                <TextInput
+                  editable={!submitting}
+                  onChangeText={setChucVu}
+                  placeholder="Chuyên viên tuyển dụng"
+                  placeholderTextColor={theme.textSecondary}
+                  selectionColor={theme.primary}
+                  style={[styles.input, { color: theme.text }]}
+                  value={chucVu}
+                />
+              </Field>
+              <Field label="Tên doanh nghiệp" icon={<Building2 size={16} color="#9ca3af" />}>
+                <TextInput
+                  editable={!submitting}
+                  onChangeText={setTenDoanhNghiep}
+                  placeholder="Công ty TNHH ABC"
+                  placeholderTextColor={theme.textSecondary}
+                  selectionColor={theme.primary}
+                  style={[styles.input, { color: theme.text }]}
+                  value={tenDoanhNghiep}
+                />
+              </Field>
+              <Field label="Địa chỉ doanh nghiệp" icon={<Building2 size={16} color="#9ca3af" />}>
+                <TextInput
+                  editable={!submitting}
+                  onChangeText={setDiaChiDoanhNghiep}
+                  placeholder="Quận 1, TP. Hồ Chí Minh"
+                  placeholderTextColor={theme.textSecondary}
+                  selectionColor={theme.primary}
+                  style={[styles.input, { color: theme.text }]}
+                  value={diaChiDoanhNghiep}
+                />
+              </Field>
+              <Field label="Mã số thuế (không bắt buộc)">
+                <TextInput
+                  editable={!submitting}
+                  keyboardType="number-pad"
+                  onChangeText={setMaSoThue}
+                  placeholder="0123456789"
+                  placeholderTextColor={theme.textSecondary}
+                  selectionColor={theme.primary}
+                  style={[styles.input, { color: theme.text }]}
+                  value={maSoThue}
+                />
+              </Field>
+              <Field label="Lĩnh vực (không bắt buộc)">
+                <TextInput
+                  editable={!submitting}
+                  onChangeText={setLinhVucHoatDong}
+                  placeholder="Công nghệ thông tin"
+                  placeholderTextColor={theme.textSecondary}
+                  selectionColor={theme.primary}
+                  style={[styles.input, { color: theme.text }]}
+                  value={linhVucHoatDong}
+                />
+              </Field>
+              <Field label="Quy mô nhân sự (không bắt buộc)">
+                <TextInput
+                  editable={!submitting}
+                  onChangeText={setQuyMoNhanSu}
+                  placeholder="20-50 nhân viên"
+                  placeholderTextColor={theme.textSecondary}
+                  selectionColor={theme.primary}
+                  style={[styles.input, { color: theme.text }]}
+                  value={quyMoNhanSu}
+                />
+              </Field>
+            </View>
+          ) : null}
+
+          {error ? (
+            <ThemedText style={[styles.error, { color: theme.destructive }]}>{error}</ThemedText>
+          ) : null}
+          {success ? (
+            <ThemedText style={[styles.error, { color: theme.primary }]}>
+              {success}
+              {'  '}
+              <ThemedText
+                onPress={() => router.replace('/login')}
+                style={{ color: theme.primary, fontFamily: font('semibold') }}>
+                Đăng nhập ngay
+              </ThemedText>
+            </ThemedText>
+          ) : null}
+
+          <Button
+            pill={false}
+            size="lg"
+            disabled={submitting}
+            onPress={handleSubmit}
+            icon={
+              submitting ? (
+                <ActivityIndicator size="small" color={theme.primaryForeground} />
+              ) : (
+                <ArrowRight size={16} color={theme.primaryForeground} />
+              )
+            }
+            style={styles.submit}>
+            {submitting ? 'Đang đăng ký...' : 'Tạo tài khoản'}
+          </Button>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
+  );
+}
+
+function Field({
+  label,
+  icon,
+  children,
+}: {
+  label: string;
+  icon?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  const theme = useTheme();
+  return (
+    <View>
+      <ThemedText style={[styles.label, { color: theme.textSecondary }]}>{label}</ThemedText>
+      <View style={[styles.inputWrap, { backgroundColor: theme.backgroundElement, borderColor: theme.input }]}>
+        {icon ? <>{icon}</> : null}
+        {icon ? <View style={styles.inputIconSpacer} /> : null}
+        {children}
       </View>
-
-      <AuthField
-        autoCapitalize="words"
-        icon={<UserRound size={16} color="#9ca3af" />}
-        label="Họ và tên"
-        onChangeText={setHoTen}
-        placeholder="Nguyễn Văn A"
-        value={hoTen}
-      />
-      <AuthField
-        autoCapitalize="none"
-        autoComplete="email"
-        icon={<Mail size={16} color="#9ca3af" />}
-        keyboardType="email-address"
-        label="Email"
-        onChangeText={setEmail}
-        placeholder="name@example.com"
-        textContentType="emailAddress"
-        value={email}
-      />
-      <AuthField
-        autoComplete="tel"
-        icon={<Phone size={16} color="#9ca3af" />}
-        keyboardType="phone-pad"
-        label="Số điện thoại"
-        onChangeText={setSoDienThoai}
-        placeholder="09xx xxx xxx"
-        textContentType="telephoneNumber"
-        value={soDienThoai}
-      />
-
-      {isEmployer ? (
-        <>
-          <AuthField
-            autoCapitalize="words"
-            icon={<Building2 size={16} color="#9ca3af" />}
-            label="Tên doanh nghiệp"
-            onChangeText={setTenDoanhNghiep}
-            placeholder="Công ty TNHH ..."
-            value={tenDoanhNghiep}
-          />
-          <AuthField
-            autoCapitalize="sentences"
-            icon={<MapPin size={16} color="#9ca3af" />}
-            label="Địa chỉ doanh nghiệp"
-            onChangeText={setDiaChiDoanhNghiep}
-            placeholder="Số nhà, đường, quận/huyện, tỉnh/thành"
-            value={diaChiDoanhNghiep}
-          />
-          <AuthField
-            autoCapitalize="words"
-            icon={<BriefcaseBusiness size={16} color="#9ca3af" />}
-            label="Chức vụ"
-            onChangeText={setChucVu}
-            placeholder="Giám đốc, Trưởng phòng nhân sự..."
-            value={chucVu}
-          />
-          <AuthField
-            autoCapitalize="none"
-            label="Mã số thuế (không bắt buộc)"
-            onChangeText={setMaSoThue}
-            placeholder="Mã số thuế doanh nghiệp"
-            value={maSoThue}
-          />
-        </>
-      ) : null}
-
-      <AuthPasswordField
-        autoComplete="new-password"
-        icon={<UserRound size={16} color="#9ca3af" />}
-        label="Mật khẩu"
-        onChangeText={setPassword}
-        placeholder="Tối thiểu 6 ký tự"
-        textContentType="newPassword"
-        value={password}
-      />
-      <AuthPasswordField
-        autoComplete="new-password"
-        label="Nhập lại mật khẩu"
-        onChangeText={setConfirmPassword}
-        placeholder="Nhập lại mật khẩu"
-        textContentType="newPassword"
-        value={confirmPassword}
-      />
-
-      {error ? <AuthMessage message={error} variant="error" /> : null}
-
-      <Button
-        disabled={submitting}
-        icon={
-          submitting ? (
-            <ActivityIndicator size="small" color={theme.primaryForeground} />
-          ) : undefined
-        }
-        onPress={handleSubmit}
-        size="lg"
-        style={styles.submit}>
-        {submitting ? 'Đang tạo tài khoản...' : 'Đăng ký'}
-      </Button>
-    </AuthScreen>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  topContent: { justifyContent: 'flex-start', paddingTop: 20 },
-  sectionLabel: {
+  safeArea: { flex: 1 },
+  flex: { flex: 1 },
+  content: { paddingHorizontal: 24, paddingVertical: 24, gap: 4 },
+  topRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
+  topLogo: { flex: 1 },
+  topSpacer: { width: 20 },
+  title: { fontFamily: font('semibold'), fontSize: 24, letterSpacing: -0.4 },
+  subtitle: { fontFamily: font('regular'), fontSize: 14, marginBottom: 12 },
+  roleRow: {
+    flexDirection: 'row',
+    gap: 8,
+    borderWidth: 1,
+    borderRadius: Radius.xl,
+    padding: 4,
+    marginBottom: 8,
+  },
+  roleChip: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    minHeight: 40,
+    borderRadius: Radius.lg,
+    borderWidth: 1,
+    borderColor: 'transparent',
+  },
+  roleChipText: { fontFamily: font('semibold'), fontSize: 13 },
+  label: {
     fontFamily: font('medium'),
     fontSize: 11,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
-    marginBottom: 8,
+    marginBottom: 6,
+    marginTop: 10,
   },
-  roleRow: { flexDirection: 'row', gap: 10, marginBottom: 6 },
-  roleCard: {
-    flex: 1,
-    minHeight: 104,
+  inputWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    minHeight: 44,
     borderRadius: Radius.xl,
     borderWidth: 1,
-    padding: 12,
-    gap: 5,
+    paddingHorizontal: 14,
   },
-  roleTitle: { fontFamily: font('semibold'), fontSize: 13 },
-  roleDescription: { fontFamily: font('regular'), fontSize: 11, lineHeight: 15 },
-  submit: { width: '100%', marginTop: 18, borderRadius: Radius.xl },
+  inputIconSpacer: { marginRight: 10 },
+  input: { flex: 1, fontFamily: font('regular'), fontSize: 14, paddingVertical: 10 },
+  eyeButton: { position: 'absolute', right: 12, padding: 4 },
+  employerBlock: { marginTop: 4 },
+  employerTitle: {
+    fontFamily: font('semibold'),
+    fontSize: 11,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+    marginTop: 14,
+  },
+  error: { fontFamily: font('medium'), fontSize: 13, lineHeight: 20, marginTop: 10 },
+  submit: { width: '100%', marginTop: 16, marginBottom: 24, borderRadius: Radius.xl },
 });

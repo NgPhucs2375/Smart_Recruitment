@@ -117,7 +117,16 @@ public sealed class AgentThreadStore
             tran.SortedSetRemoveRangeByRankAsync(indexKey, 0, -(IndexKeep + 1)),
             tran.KeyExpireAsync(indexKey, Ttl)
         };
-        await tran.ExecuteAsync();
+
+        var committed = await tran.ExecuteAsync();
+        if (!committed)
+        {
+            _logger.LogWarning(
+                "Redis transaction lưu thread thất bại (aborted). UserId={UserId}, ThreadId={ThreadId}",
+                userId, data.ThreadId
+            );
+            return;
+        }
         await Task.WhenAll(tasks);
 
         _logger.LogInformation(
@@ -209,7 +218,15 @@ public sealed class AgentThreadStore
             tran.KeyDeleteAsync(new RedisKey[] { threadKey, $"{threadKey}:runs" }),
             tran.SortedSetRemoveAsync(IndexKey(userId), threadId)
         };
-        await tran.ExecuteAsync();
+
+        var committed = await tran.ExecuteAsync();
+        if (!committed)
+        {
+            _logger.LogWarning(
+                "Redis transaction xóa thread thất bại (aborted). UserId={UserId}, ThreadId={ThreadId}",
+                userId, threadId
+            );
+        }
         await Task.WhenAll(tasks);
         return true;
     }

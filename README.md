@@ -87,3 +87,4 @@ python -m venv .venv
 npx expo start
 
 
+

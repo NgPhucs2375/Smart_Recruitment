@@ -2,6 +2,7 @@ import {
   Redirect,
   router,
   useLocalSearchParams,
+  usePathname,
   type Href,
 } from 'expo-router';
 import { useMemo, useRef } from 'react';
@@ -30,6 +31,7 @@ import { useChatThread } from '@/features/chat/hooks/use-chat-thread';
 import { canUseInternalChat } from '@/features/chat/roles';
 import type { ChatMessage } from '@/features/chat/types';
 import { useTheme } from '@/hooks/use-theme';
+import { safeBack } from '@/utils/navigation';
 
 type MessageRow = {
   message: ChatMessage;
@@ -39,6 +41,8 @@ type MessageRow = {
 export default function ChatThreadScreen() {
   const { user } = useAuth();
   const allowed = canUseInternalChat(user?.roles);
+  const pathname = usePathname();
+  const basePath = pathname.startsWith('/hr/messages') ? '/hr/messages' : '/chat';
   const params = useLocalSearchParams<{ id?: string | string[] }>();
   const rawId = Array.isArray(params.id) ? params.id[0] : params.id;
   const conversationId = Number(rawId);
@@ -46,13 +50,14 @@ export default function ChatThreadScreen() {
     Number.isInteger(conversationId) && conversationId > 0 && Boolean(rawId);
 
   if (!allowed) return <Redirect href="/" />;
-  if (!validId) return <Redirect href={'/chat' as Href} />;
+  if (!validId) return <Redirect href={basePath as Href} />;
 
   return (
     <ChatThreadView
       key={conversationId}
       conversationId={conversationId}
       allowed={allowed}
+      basePath={basePath}
     />
   );
 }
@@ -60,9 +65,11 @@ export default function ChatThreadScreen() {
 function ChatThreadView({
   conversationId,
   allowed,
+  basePath,
 }: {
   conversationId: number;
   allowed: boolean;
+  basePath: string;
 }) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
@@ -112,11 +119,7 @@ function ChatThreadView({
     : conversation?.title ?? 'Hội thoại';
 
   const handleBack = () => {
-    if (router.canGoBack()) {
-      router.back();
-      return;
-    }
-    router.replace('/chat' as Href);
+    safeBack(basePath as Href);
   };
 
   const body = (() => {
@@ -128,7 +131,7 @@ function ChatThreadView({
           title="Quyền truy cập đã thay đổi"
           message="Bạn không còn là thành viên của hội thoại này. Tin nhắn đã được ẩn."
           actionLabel="Về danh sách"
-          onAction={() => router.replace('/chat' as Href)}
+          onAction={() => router.replace(basePath as Href)}
         />
       );
     }

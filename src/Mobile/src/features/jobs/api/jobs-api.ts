@@ -14,7 +14,8 @@ import { asNumber, asRecord, asText } from '@/services/api/parse';
 export const USE_MOCK_JOBS =
   __DEV__ && process.env.EXPO_PUBLIC_USE_MOCK_DATA !== 'false';
 
-function normalizeJob(value: unknown): Job | null {
+/** Export để features khác (companies) tái sử dụng — mirror web lib/api/jobs-api. */
+export function normalizeJob(value: unknown): Job | null {
   const raw = asRecord(value);
   if (!raw) return null;
 

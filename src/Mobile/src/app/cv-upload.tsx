@@ -136,7 +136,8 @@ export default function CvUploadScreen() {
 
   const submit = async () => {
     setSubmitError('');
-    if (!profile?.id) {
+    const hoSoUngVienId = profile?.id ? Number(profile.id) : 0;
+    if (!hoSoUngVienId) {
       setSubmitError('Bạn cần hoàn thiện hồ sơ ứng viên trước khi tải CV lên.');
       return;
     }
@@ -150,22 +151,19 @@ export default function CvUploadScreen() {
       let currentSession = sessionId;
       if (!currentSession) {
         setStage('Đang chuẩn bị tệp');
-        const prepared = await cvApi.prepareImport(profile.id, file);
+        const prepared = await cvApi.prepareImport(hoSoUngVienId, file);
         currentSession = prepared.sessionId;
         setSessionId(currentSession);
       }
 
-      setStage('Đang lưu CV');
-      const result = await cvApi.saveImport({
-        profile,
-        file,
-        sessionId: currentSession,
-        isDefault,
-      });
-
+      setStage('Đang mở trình chỉnh sửa CV');
       router.replace({
-        pathname: '/cv-detail',
-        params: { id: result.cvId },
+        pathname: '/tao-cv/[id]',
+        params: {
+          id: 'new',
+          importSession: currentSession,
+          importFile: file.name,
+        },
       });
     } catch (reason) {
       setSubmitError(

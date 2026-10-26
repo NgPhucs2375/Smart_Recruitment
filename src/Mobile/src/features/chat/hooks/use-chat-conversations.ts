@@ -1,3 +1,4 @@
+import * as signalR from '@microsoft/signalr';
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useRef, useState } from 'react';
 import { AppState } from 'react-native';
@@ -9,8 +10,12 @@ import type {
   ChatConversation,
   CreateConversationInput,
 } from '@/features/chat/types';
+import { USE_MOCK_JOBS } from '@/features/jobs/api/jobs-api';
+import { getAccessToken } from '@/services/api/client';
+import { getSignalRHubUrl } from '@/services/api/signalr';
 
 const POLL_INTERVAL = 30_000;
+const REALTIME_REFRESH_DELAY = 350;
 
 type ListStatus = 'loading' | 'refreshing' | 'ready' | 'error';
 
@@ -91,11 +96,45 @@ export function useChatConversations(enabled: boolean) {
         if (next === 'active') void load('silent');
       });
 
+      let active = true;
+      let refreshTimer: ReturnType<typeof setTimeout> | null = null;
+      const scheduleRefresh = () => {
+        if (refreshTimer) clearTimeout(refreshTimer);
+        refreshTimer = setTimeout(() => {
+          refreshTimer = null;
+          void load('silent');
+        }, REALTIME_REFRESH_DELAY);
+      };
+
+      let hub: signalR.HubConnection | null = null;
+      const hubUrl = getSignalRHubUrl('chat');
+      if (!USE_MOCK_JOBS && hubUrl) {
+        hub = new signalR.HubConnectionBuilder()
+          .withUrl(hubUrl, {
+            accessTokenFactory: () =>
+              getAccessToken().then((token) => token ?? ''),
+            transport: signalR.HttpTransportType.LongPolling,
+          })
+          .withAutomaticReconnect()
+          .configureLogging(signalR.LogLevel.Warning)
+          .build();
+        hub.on('ConversationUpdated', scheduleRefresh);
+        void hub
+          .start()
+          .then(() => {
+            if (!active) void hub?.stop().catch(() => undefined);
+          })
+          .catch(() => undefined);
+      }
+
       return () => {
+        active = false;
         mountedRef.current = false;
         clearTimeout(timer);
         clearInterval(interval);
         subscription.remove();
+        if (refreshTimer) clearTimeout(refreshTimer);
+        if (hub) void hub.stop().catch(() => undefined);
       };
     }, [enabled, load]),
   );

@@ -1,9 +1,16 @@
 import { Image } from 'expo-image';
 import type { ReactNode } from 'react';
-import { Pressable, StyleSheet, useColorScheme, View } from 'react-native';
+import { useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  Pressable,
+  StyleSheet,
+  useColorScheme,
+  View,
+} from 'react-native';
 import {
   Calendar,
-  ChevronRight,
   DollarSign,
   FileText,
   Mail,
@@ -17,9 +24,8 @@ import { Badge } from '@/components/ui/badge';
 import { font, Palette, Radius, Shadows } from '@/constants/theme';
 import { getToneColors } from '@/features/applications/constants';
 import type { ApplicationSummary } from '@/features/applications/types';
-import { sourceLabel } from '@/features/cv/cv-format';
+import { cvApi } from '@/features/cv/api/cv-api';
 import type { CvSummary } from '@/features/cv/types';
-import { isoToVnDate } from '@/features/profile/format';
 import type { CandidateProfile } from '@/features/profile/types';
 import { useTheme } from '@/hooks/use-theme';
 
@@ -40,15 +46,12 @@ export function ProfileInfoCard({ profile }: { profile: CandidateProfile }) {
         .toUpperCase()
     : 'UV';
 
-  const birthDate = isoToVnDate(profile.birthDate);
   const rows: { icon: typeof Mail; value: string }[] = [
     { icon: Mail, value: profile.email || 'Chưa có email' },
     { icon: Phone, value: profile.phone || 'Chưa có SĐT' },
     {
       icon: Calendar,
-      value: birthDate
-        ? `${birthDate}${profile.gender ? ` (${profile.gender})` : ''}`
-        : 'Chưa cập nhật ngày sinh',
+      value: profile.birthDate ? profile.birthDate : 'Chưa cập nhật ngày sinh',
     },
     { icon: MapPin, value: profile.location || 'Chưa có địa chỉ' },
     {
@@ -133,7 +136,7 @@ export function ProfileInfoCard({ profile }: { profile: CandidateProfile }) {
           <ThemedText style={[styles.bioHeading, { color: theme.textSecondary }]}>
             GIỚI THIỆU
           </ThemedText>
-          <ThemedText style={[styles.bioText, { color: theme.text }]}>
+          <ThemedText numberOfLines={3} style={[styles.bioText, { color: theme.text }]}>
             {profile.bio}
           </ThemedText>
         </View>
@@ -150,14 +153,10 @@ export function SectionHeading({
   title,
   caption,
   badge,
-  actionLabel,
-  onAction,
 }: {
   title: string;
   caption?: string;
   badge?: string;
-  actionLabel?: string;
-  onAction?: () => void;
 }) {
   const theme = useTheme();
   return (
@@ -172,24 +171,11 @@ export function SectionHeading({
           </ThemedText>
         ) : null}
       </View>
-      <View style={styles.sectionHeadingRight}>
-        {actionLabel && onAction ? (
-          <Pressable
-            accessibilityRole="button"
-            onPress={onAction}
-            hitSlop={8}
-            style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}>
-            <ThemedText style={[styles.sectionAction, { color: theme.primary }]}>
-              {actionLabel}
-            </ThemedText>
-          </Pressable>
-        ) : null}
-        {badge ? (
-          <View style={[styles.countBadge, { backgroundColor: theme.backgroundSelected }]}>
-            <ThemedText style={[styles.countBadgeText, { color: theme.primary }]}>{badge}</ThemedText>
-          </View>
-        ) : null}
-      </View>
+      {badge ? (
+        <View style={[styles.countBadge, { backgroundColor: theme.backgroundSelected }]}>
+          <ThemedText style={[styles.countBadgeText, { color: theme.primary }]}>{badge}</ThemedText>
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -262,7 +248,7 @@ export function ApplicationRow({
       {application.salary ? (
         <View style={[styles.salaryPill, { backgroundColor: `${Palette.sage}26` }]}>
           <Wallet size={12} color={theme.primary} />
-          <ThemedText style={[styles.salaryText, { color: theme.primary }]}>
+          <ThemedText style={[styles.salaryText, { color: theme.primary }]} numberOfLines={1}>
             {application.salary}
           </ThemedText>
         </View>
@@ -283,27 +269,67 @@ export function ApplicationRow({
   );
 }
 
-/** CvRow — CV trong hồ sơ, có thể mở màn hình quản lý. */
+/** CvRow — clone CV row của ho-so-view.tsx: đặt mặc định / xóa (kèm confirm). */
 export function CvRow({
   cv,
   first = false,
-  onPress,
+  onChange,
 }: {
   cv: CvSummary;
   first?: boolean;
-  onPress?: () => void;
+  onChange?: () => void;
 }) {
   const theme = useTheme();
+  const [busy, setBusy] = useState<'set-default' | 'remove' | null>(null);
+
+  const handleSetDefault = () => {
+    void (async () => {
+      setBusy('set-default');
+      try {
+        await cvApi.setDefault(cv.id);
+        onChange?.();
+      } catch (error) {
+        Alert.alert(
+          'Không thể đặt CV mặc định',
+          error instanceof Error ? error.message : 'Vui lòng thử lại.',
+        );
+      } finally {
+        setBusy(null);
+      }
+    })();
+  };
+
+  const handleRemove = () => {
+    Alert.alert('Xóa CV?', `"${cv.name}" sẽ bị xóa vĩnh viễn.`, [
+      { text: 'Hủy', style: 'cancel' },
+      {
+        text: 'Xóa',
+        style: 'destructive',
+        onPress: () => {
+          void (async () => {
+            setBusy('remove');
+            try {
+              await cvApi.remove(cv.id);
+              onChange?.();
+            } catch (error) {
+              Alert.alert(
+                'Không thể xóa CV',
+                error instanceof Error ? error.message : 'Vui lòng thử lại.',
+              );
+            } finally {
+              setBusy(null);
+            }
+          })();
+        },
+      },
+    ]);
+  };
+
   return (
-    <Pressable
-      accessibilityRole={onPress ? 'button' : undefined}
-      accessibilityLabel={onPress ? `Mở ${cv.name}` : undefined}
-      disabled={!onPress}
-      onPress={onPress}
-      style={({ pressed }) => [
+    <View
+      style={[
         styles.row,
         !first && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.border },
-        { opacity: pressed ? 0.7 : 1 },
       ]}>
       <View style={styles.cvRow}>
         <View style={[styles.cvIconBox, { backgroundColor: `${theme.primary}1A` }]}>
@@ -321,12 +347,49 @@ export function CvRow({
             ) : null}
           </View>
           <ThemedText numberOfLines={1} style={[styles.cvMeta, { color: theme.textSecondary }]}>
-            {`${sourceLabel(cv.source)}${cv.uploadedAt ? ` • Cập nhật ${cv.uploadedAt}` : ''}`}
+            {`Mẫu ${cv.role || 'chuẩn'} • Cập nhật ${cv.uploadedAt}`}
           </ThemedText>
         </View>
-        {onPress ? <ChevronRight size={16} color={theme.textSecondary} /> : null}
       </View>
-    </Pressable>
+      <View style={styles.cvActions}>
+        {!cv.isDefault ? (
+          <Pressable
+            accessibilityRole="button"
+            disabled={busy !== null}
+            onPress={handleSetDefault}
+            style={({ pressed }) => [
+              styles.cvActionPill,
+              { borderColor: theme.border, opacity: busy ? 0.5 : pressed ? 0.7 : 1 },
+            ]}>
+            {busy === 'set-default' ? (
+              <ActivityIndicator size="small" color={theme.primary} />
+            ) : (
+              <ThemedText style={[styles.cvActionText, { color: theme.text }]}>
+                Đặt mặc định
+              </ThemedText>
+            )}
+          </Pressable>
+        ) : null}
+        <Pressable
+          accessibilityRole="button"
+          disabled={busy !== null}
+          onPress={handleRemove}
+          style={({ pressed }) => [
+            styles.cvActionPill,
+            {
+              borderColor: `${theme.destructive}66`,
+              backgroundColor: `${theme.destructive}0D`,
+              opacity: busy ? 0.5 : pressed ? 0.7 : 1,
+            },
+          ]}>
+          {busy === 'remove' ? (
+            <ActivityIndicator size="small" color={theme.destructive} />
+          ) : (
+            <ThemedText style={[styles.cvActionText, { color: theme.destructive }]}>Xóa</ThemedText>
+          )}
+        </Pressable>
+      </View>
+    </View>
   );
 }
 
@@ -436,18 +499,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: 12,
-    marginTop: 26,
+    marginTop: 24,
     marginBottom: 12,
   },
   sectionHeadingCopy: { flex: 1, gap: 4 },
   sectionTitle: { fontFamily: font('semibold'), fontSize: 11, letterSpacing: 1.6 },
   sectionCaption: { fontSize: 12, lineHeight: 17 },
-  sectionHeadingRight: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  sectionAction: { fontFamily: font('semibold'), fontSize: 12 },
   countBadge: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: Radius.pill },
   countBadgeText: { fontFamily: font('bold'), fontSize: 11 },
   listSurface: { borderRadius: Radius['2xl'], borderWidth: 1, overflow: 'hidden' },
-  row: { paddingHorizontal: 16, paddingVertical: 16, gap: 6 },
+  row: { paddingHorizontal: 16, paddingVertical: 16, gap: 8 },
   appTop: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   appBadge: { fontFamily: font('medium'), fontSize: 11 },
   appTitle: { fontFamily: font('semibold'), fontSize: 15, lineHeight: 21 },
@@ -457,12 +518,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
     alignSelf: 'flex-start',
+    maxWidth: '100%',
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: Radius.pill,
-    marginTop: 2,
   },
-  salaryText: { fontFamily: font('bold'), fontSize: 12 },
+  salaryText: { fontFamily: font('bold'), fontSize: 12, flexShrink: 1 },
   viewPill: {
     alignSelf: 'flex-start',
     minHeight: 36,
@@ -471,7 +532,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 4,
   },
   viewPillText: { fontFamily: font('semibold'), fontSize: 12 },
   cvRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
@@ -487,6 +547,15 @@ const styles = StyleSheet.create({
   cvName: { fontFamily: font('medium'), fontSize: 14, flexShrink: 1 },
   cvDefaultBadge: { fontFamily: font('medium'), fontSize: 11 },
   cvMeta: { fontSize: 12, lineHeight: 17 },
+  cvActions: { flexDirection: 'row', gap: 8 },
+  cvActionPill: {
+    minHeight: 32,
+    paddingHorizontal: 14,
+    justifyContent: 'center',
+    borderRadius: Radius.pill,
+    borderWidth: 1,
+  },
+  cvActionText: { fontFamily: font('semibold'), fontSize: 12 },
   emptyState: { alignItems: 'center', justifyContent: 'center', padding: 24, gap: 8 },
   emptyTitle: { fontFamily: font('semibold'), fontSize: 15, textAlign: 'center' },
   emptyMessage: { fontSize: 13, lineHeight: 19, textAlign: 'center', maxWidth: 300 },

@@ -96,11 +96,9 @@ services:
       GoogleSettings__ClientId: "${GOOGLE_CLIENT_ID:-}"
 
 
-      Groq__ApiKey: "${GROQ_API_KEY:-}"
-
       Gemini__ApiKey: "${GEMINI_API_KEY:-}"
-
-      Gemini__Model: "${GEMINI_MODEL:-}"
+      Gemini__Endpoint: "${GEMINI_ENDPOINT:-https://generativelanguage.googleapis.com/v1beta/openai/}"
+      Gemini__Model: "${GEMINI_MODEL:-gemini-3.6-flash-lite}"
 
 
       MailSettings__SmtpHost: "${MAIL_SMTP_HOST:-}"

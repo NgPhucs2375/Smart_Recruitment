@@ -12,9 +12,12 @@ public sealed class AiProviderHealthCheck(
         HealthCheckContext context,
         CancellationToken cancellationToken = default)
     {
-        var endpoint = configuration["Ai:Endpoint"]?.TrimEnd('/');
-        var apiKey = configuration["Groq:ApiKey"]
-            ?? Environment.GetEnvironmentVariable("GROQ_API_KEY");
+        var endpoint = (
+            configuration["Gemini:Endpoint"]
+            ?? "https://generativelanguage.googleapis.com/v1beta/openai/")
+            .TrimEnd('/');
+        var apiKey = configuration["Gemini:ApiKey"]
+            ?? Environment.GetEnvironmentVariable("GEMINI_API_KEY");
 
         if (string.IsNullOrWhiteSpace(endpoint))
             return HealthCheckResult.Unhealthy("AI endpoint is not configured.");

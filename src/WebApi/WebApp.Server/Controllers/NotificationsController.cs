@@ -22,19 +22,22 @@ namespace WebApp.Server.Controllers
         private readonly ICurrentNguoiDungService _current;
         private readonly ISender _sender;
         private readonly INotificationService _notifications;
+        private readonly ILogger<NotificationsController> _logger;
 
         public NotificationsController(
             IApplicationDbContext context,
             IAuthenticatedUserService auth,
             ICurrentNguoiDungService current,
             ISender sender,
-            INotificationService notifications)
+            INotificationService notifications,
+            ILogger<NotificationsController> logger)
         {
             _context = context;
             _auth = auth;
             _current = current;
             _sender = sender;
             _notifications = notifications;
+            _logger = logger;
         }
 
         [HttpGet]
@@ -133,7 +136,13 @@ namespace WebApp.Server.Controllers
             await gate.WaitAsync(HttpContext.RequestAborted);
             try
             {
+                // Digest gợi ý chỉ là tiện ích: lỗi cache/matching không được
+                // làm hỏng danh sách thông báo của người dùng.
                 await EnsureRecommendationDigestCoreAsync(userId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Không tạo được digest gợi ý cho người dùng {UserId}.", userId);
             }
             finally
             {

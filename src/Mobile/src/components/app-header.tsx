@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { BrandLogo } from '@/components/brand-logo';
 import { NotificationBell } from '@/features/notifications/components/notification-bell';
 import { useTheme } from '@/hooks/use-theme';
+import { useResponsive } from '@/hooks/use-responsive';
 
 /**
  * AppHeader 1:1 với CandidateHeader của Web (phiên bản mobile):
@@ -12,12 +13,14 @@ import { useTheme } from '@/hooks/use-theme';
  */
 export function AppHeader() {
   const theme = useTheme();
+  const { isCompact } = useResponsive();
 
   return (
     <SafeAreaView edges={['top']} style={[styles.safe, { backgroundColor: theme.background }]}>
       <View
         style={[
           styles.bar,
+          isCompact && styles.compactBar,
           { borderBottomColor: theme.border, backgroundColor: theme.background },
         ]}
       >
@@ -35,7 +38,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
+    width: '100%',
+    maxWidth: 1120,
+    alignSelf: 'center',
+    paddingHorizontal: 24,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
+  compactBar: { paddingHorizontal: 16 },
 });

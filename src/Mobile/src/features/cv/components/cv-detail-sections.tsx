@@ -18,18 +18,17 @@ import { Badge } from '@/components/ui/badge';
 import { font, Palette, Radius } from '@/constants/theme';
 import {
   formatCvDate,
-  formatCvMoney,
   formatCvRange,
-  skillLevelLabel,
   sourceLabel,
 } from '@/features/cv/cv-format';
 import type {
-  CvCertificate,
-  CvDetail,
-  CvEducation,
-  CvExperience,
-  CvProject,
-  CvVersion,
+  ChungChiItem,
+  CvDetailVm,
+  CvVersionVm,
+  DuAnItem,
+  HocVanItem,
+  KinhNghiemItem,
+  KyNangItem,
 } from '@/features/cv/types';
 import { useTheme } from '@/hooks/use-theme';
 
@@ -143,11 +142,11 @@ function ContactRow({ icon: Icon, value }: { icon: IconComponent; value: string 
   );
 }
 
-function EducationItem({ item, first }: { item: CvEducation; first: boolean }) {
+function EducationItem({ item, first }: { item: HocVanItem; first: boolean }) {
   const theme = useTheme();
-  const title = item.school || 'Cơ sở đào tạo';
-  const subtitle = [item.degree, item.major].filter(Boolean).join(' · ');
-  const range = formatCvRange(item.startDate, item.endDate, item.current);
+  const title = item.truong || 'Cơ sở đào tạo';
+  const subtitle = [item.bangCap, item.chuyenNganh].filter(Boolean).join(' · ');
+  const range = formatCvRange(item.tuNgay, item.denNgay, Boolean(item.isHienTai));
 
   return (
     <ItemBlock first={first}>
@@ -156,20 +155,20 @@ function EducationItem({ item, first }: { item: CvEducation; first: boolean }) {
         <DatePill label={range} />
       </View>
       {subtitle ? <ItemSubtitle>{subtitle}</ItemSubtitle> : null}
-      {item.description ? (
+      {item.moTa ? (
         <ThemedText style={[styles.description, { color: theme.textSecondary }]}>
-          {item.description}
+          {item.moTa}
         </ThemedText>
       ) : null}
     </ItemBlock>
   );
 }
 
-function ExperienceItem({ item, first }: { item: CvExperience; first: boolean }) {
+function ExperienceItem({ item, first }: { item: KinhNghiemItem; first: boolean }) {
   const theme = useTheme();
-  const title = item.title || 'Vị trí công việc';
-  const subtitle = [item.company, item.location].filter(Boolean).join(' · ');
-  const range = formatCvRange(item.startDate, item.endDate, item.current);
+  const title = item.chucDanh || 'Vị trí công việc';
+  const subtitle = [item.congTy, item.diaChi].filter(Boolean).join(' · ');
+  const range = formatCvRange(item.tuNgay, item.denNgay, item.isHienTai);
 
   return (
     <ItemBlock first={first}>
@@ -178,14 +177,14 @@ function ExperienceItem({ item, first }: { item: CvExperience; first: boolean })
         <DatePill label={range} />
       </View>
       {subtitle ? <ItemSubtitle>{subtitle}</ItemSubtitle> : null}
-      {item.description ? (
+      {item.moTa ? (
         <ThemedText style={[styles.description, { color: theme.textSecondary }]}>
-          {item.description}
+          {item.moTa}
         </ThemedText>
       ) : null}
-      {item.skills.length > 0 ? (
+      {item.kyNangSuDung.length > 0 ? (
         <View style={styles.tags}>
-          {item.skills.map((skill) => (
+          {item.kyNangSuDung.map((skill) => (
             <Badge
               key={skill}
               variant="secondary"
@@ -199,26 +198,26 @@ function ExperienceItem({ item, first }: { item: CvExperience; first: boolean })
   );
 }
 
-function ProjectItem({ item, first }: { item: CvProject; first: boolean }) {
+function ProjectItem({ item, first }: { item: DuAnItem; first: boolean }) {
   const theme = useTheme();
-  const subtitle = [item.role, item.link].filter(Boolean).join(' · ');
-  const range = formatCvRange(item.startDate, item.endDate, item.current);
+  const subtitle = [item.vaiTro, item.link].filter(Boolean).join(' · ');
+  const range = formatCvRange(item.tuNgay, item.denNgay, Boolean(item.isHienTai));
 
   return (
     <ItemBlock first={first}>
       <View style={styles.itemHeading}>
-        <ItemTitle>{item.name || 'Dự án'}</ItemTitle>
+        <ItemTitle>{item.tenDuAn || 'Dự án'}</ItemTitle>
         <DatePill label={range} />
       </View>
       {subtitle ? <ItemSubtitle>{subtitle}</ItemSubtitle> : null}
-      {item.description ? (
+      {item.moTa ? (
         <ThemedText style={[styles.description, { color: theme.textSecondary }]}>
-          {item.description}
+          {item.moTa}
         </ThemedText>
       ) : null}
-      {item.technologies.length > 0 ? (
+      {item.congNghe.length > 0 ? (
         <View style={styles.tags}>
-          {item.technologies.map((technology) => (
+          {item.congNghe.map((technology) => (
             <Badge
               key={technology}
               variant="secondary"
@@ -232,17 +231,17 @@ function ProjectItem({ item, first }: { item: CvProject; first: boolean }) {
   );
 }
 
-function CertificateItem({ item, first }: { item: CvCertificate; first: boolean }) {
+function CertificateItem({ item, first }: { item: ChungChiItem; first: boolean }) {
   const theme = useTheme();
-  const subtitle = [item.issuer, item.credentialId].filter(Boolean).join(' · ');
-  const range = formatCvRange(item.issuedAt, item.expiresAt, false);
+  const subtitle = [item.donViCap, item.maXacMinh].filter(Boolean).join(' · ');
+  const range = formatCvRange(item.ngayCap, item.ngayHetHan ?? '', false);
 
   return (
     <ItemBlock first={first}>
       <View style={styles.itemHeading}>
         <View style={styles.certTitle}>
           <BadgeCheck size={16} color={Palette.sage} />
-          <ItemTitle>{item.name || 'Chứng chỉ'}</ItemTitle>
+          <ItemTitle>{item.tenChungChi || 'Chứng chỉ'}</ItemTitle>
         </View>
         <DatePill label={range} />
       </View>
@@ -256,23 +255,27 @@ function CertificateItem({ item, first }: { item: CvCertificate; first: boolean 
   );
 }
 
-export function CvDetailBody({ detail }: { detail: CvDetail }) {
+export function CvDetailBody({ detail }: { detail: CvDetailVm }) {
   const theme = useTheme();
-  const { contact, education, experience, projects, skills, certificates } = detail.content;
+  const {
+    thongTinLienHe: contact,
+    hocVan,
+    kinhNghiemLamViec,
+    duAn,
+    kyNang,
+    chungChi,
+  } = detail.noiDung;
 
   const contactRows: { icon: IconComponent; value: string }[] = [
     { icon: Mail, value: contact.email },
-    { icon: Phone, value: contact.phone },
-    { icon: MapPin, value: contact.location },
+    { icon: Phone, value: contact.sdt },
+    { icon: MapPin, value: contact.diaChi },
     {
       icon: CalendarDays,
-      value: [formatCvDate(contact.birthDate), contact.gender].filter(Boolean).join(' · '),
+      value: [formatCvDate(contact.ngaySinh), contact.gioiTinh].filter(Boolean).join(' · '),
     },
-    { icon: UserRound, value: contact.title },
-    {
-      icon: DollarSign,
-      value: contact.expectedSalary ? formatCvMoney(contact.expectedSalary) : '',
-    },
+    { icon: UserRound, value: contact.viTriUngTuyen },
+    { icon: DollarSign, value: contact.mucLuongMongMuon },
     { icon: Code2, value: contact.github },
     { icon: Link2, value: contact.linkedIn },
     { icon: Globe2, value: contact.portfolio },
@@ -283,7 +286,7 @@ export function CvDetailBody({ detail }: { detail: CvDetail }) {
       <Section title="Thông tin liên hệ">
         <View style={styles.contactBlock}>
           <ThemedText style={[styles.contactName, { color: theme.text }]}>
-            {contact.fullName || 'Chưa cập nhật họ tên'}
+            {contact.hoTen || 'Chưa cập nhật họ tên'}
           </ThemedText>
           {contactRows.length > 0 ? (
             <View style={styles.contactRows}>
@@ -301,62 +304,64 @@ export function CvDetailBody({ detail }: { detail: CvDetail }) {
         </View>
       </Section>
 
-      {contact.bio ? (
+      {contact.gioiThieuBanThan ? (
         <Section title="Giới thiệu">
           <View style={styles.item}>
-            <ThemedText style={[styles.bio, { color: theme.text }]}>{contact.bio}</ThemedText>
+            <ThemedText style={[styles.bio, { color: theme.text }]}>
+              {contact.gioiThieuBanThan}
+            </ThemedText>
           </View>
         </Section>
       ) : null}
 
-      <Section title="Học vấn" count={education.length || undefined}>
-        {education.length === 0 ? (
+      <Section title="Học vấn" count={hocVan.length || undefined}>
+        {hocVan.length === 0 ? (
           <EmptySection message="CV chưa có thông tin học vấn." />
         ) : (
-          education.map((item, index) => (
-            <EducationItem key={`${item.school}-${index}`} item={item} first={index === 0} />
+          hocVan.map((item, index) => (
+            <EducationItem key={`${item.truong}-${index}`} item={item} first={index === 0} />
           ))
         )}
       </Section>
 
-      <Section title="Kinh nghiệm làm việc" count={experience.length || undefined}>
-        {experience.length === 0 ? (
+      <Section title="Kinh nghiệm làm việc" count={kinhNghiemLamViec.length || undefined}>
+        {kinhNghiemLamViec.length === 0 ? (
           <EmptySection message="CV chưa có kinh nghiệm làm việc." />
         ) : (
-          experience.map((item, index) => (
-            <ExperienceItem key={`${item.company}-${index}`} item={item} first={index === 0} />
+          kinhNghiemLamViec.map((item, index) => (
+            <ExperienceItem key={`${item.congTy}-${index}`} item={item} first={index === 0} />
           ))
         )}
       </Section>
 
-      <Section title="Dự án" count={projects.length || undefined}>
-        {projects.length === 0 ? (
+      <Section title="Dự án" count={duAn.length || undefined}>
+        {duAn.length === 0 ? (
           <EmptySection message="CV chưa có thông tin dự án." />
         ) : (
-          projects.map((item, index) => (
-            <ProjectItem key={`${item.name}-${index}`} item={item} first={index === 0} />
+          duAn.map((item, index) => (
+            <ProjectItem key={`${item.tenDuAn}-${index}`} item={item} first={index === 0} />
           ))
         )}
       </Section>
 
-      <Section title="Kỹ năng" count={skills.length || undefined}>
-        {skills.length === 0 ? (
+      <Section title="Kỹ năng" count={kyNang.length || undefined}>
+        {kyNang.length === 0 ? (
           <EmptySection message="CV chưa có thông tin kỹ năng." />
         ) : (
           <View style={styles.skillGrid}>
-            {skills.map((skill, index) => (
+            {kyNang.map((skill: KyNangItem, index) => (
               <View
-                key={`${skill.name}-${index}`}
+                key={`${skill.tenKyNang}-${index}`}
                 style={[
                   styles.skillCard,
                   { borderColor: theme.border, backgroundColor: theme.muted },
                 ]}>
                 <ThemedText numberOfLines={1} style={[styles.skillName, { color: theme.text }]}>
-                  {skill.name}
+                  {skill.tenKyNang}
                 </ThemedText>
                 <ThemedText style={[styles.skillMeta, { color: theme.textSecondary }]}>
-                  {skillLevelLabel(skill.level)}
-                  {skill.years ? ` · ${skill.years} năm` : ''}
+                  {skill.mucDoThanhThao || 'Chưa xác định'}
+                  {skill.soNamKinhNghiem ? ` · ${skill.soNamKinhNghiem} năm` : ''}
                 </ThemedText>
               </View>
             ))}
@@ -364,13 +369,13 @@ export function CvDetailBody({ detail }: { detail: CvDetail }) {
         )}
       </Section>
 
-      <Section title="Chứng chỉ" count={certificates.length || undefined}>
-        {certificates.length === 0 ? (
+      <Section title="Chứng chỉ" count={chungChi.length || undefined}>
+        {chungChi.length === 0 ? (
           <EmptySection message="CV chưa có chứng chỉ." />
         ) : (
-          certificates.map((item, index) => (
+          chungChi.map((item, index) => (
             <CertificateItem
-              key={`${item.name}-${index}`}
+              key={`${item.tenChungChi}-${index}`}
               item={item}
               first={index === 0}
             />
@@ -381,7 +386,7 @@ export function CvDetailBody({ detail }: { detail: CvDetail }) {
   );
 }
 
-export function CvVersionsSection({ versions }: { versions: CvVersion[] }) {
+export function CvVersionsSection({ versions }: { versions: CvVersionVm[] }) {
   const theme = useTheme();
 
   return (
@@ -392,10 +397,10 @@ export function CvVersionsSection({ versions }: { versions: CvVersion[] }) {
         versions.map((version, index) => (
           <ItemBlock key={version.id} first={index === 0}>
             <View style={styles.itemHeading}>
-              <ItemTitle>{`Phiên bản ${version.number}`}</ItemTitle>
-              <DatePill label={formatCvDate(version.createdAt)} />
+              <ItemTitle>{`Phiên bản ${version.soPhienBan}`}</ItemTitle>
+              <DatePill label={formatCvDate(version.created)} />
             </View>
-            <ItemSubtitle>{version.name}</ItemSubtitle>
+            <ItemSubtitle>{version.tenFile}</ItemSubtitle>
             <View style={styles.tags}>
               <Badge variant="outline" textStyle={styles.tagText}>
                 {version.hasOriginal ? 'Có file gốc' : 'Bản tạo trên hệ thống'}

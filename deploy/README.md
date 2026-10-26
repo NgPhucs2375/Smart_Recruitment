@@ -48,9 +48,9 @@ MINIO_PUBLIC_ENDPOINT=http://<IP-VM>:9000
 FRONTEND_ALLOWED_ORIGINS=http://<IP-VM>
 
 # --- AI / Mail / Google (để trống = tính năng đó tắt, app vẫn chạy) ---
-GROQ_API_KEY=
-GEMINI_API_KEY=
-GEMINI_MODEL=
+GEMINI_API_KEY=<google-ai-studio-api-key>
+GEMINI_MODEL=gemini-3.6-flash-lite
+GEMINI_ENDPOINT=https://generativelanguage.googleapis.com/v1beta/openai/
 MAIL_SMTP_HOST=
 MAIL_SMTP_PORT=587
 MAIL_USER=

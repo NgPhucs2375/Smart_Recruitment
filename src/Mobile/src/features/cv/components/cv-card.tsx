@@ -5,7 +5,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { font, Palette, Radius } from '@/constants/theme';
-import { sourceLabel } from '@/features/cv/cv-format';
+import { sourceFromMethod, sourceLabel } from '@/features/cv/cv-format';
 import type { CvSummary } from '@/features/cv/types';
 import { useTheme } from '@/hooks/use-theme';
 
@@ -38,7 +38,7 @@ export function CvCard({ cv, onPress }: { cv: CvSummary; onPress: () => void }) 
               backgroundColor={`${theme.primary}12`}
               color={theme.primary}
               textStyle={styles.sourceBadge}>
-              {sourceLabel(cv.source)}
+              {sourceLabel(sourceFromMethod(cv.phuongThucTao))}
             </Badge>
             {cv.isDefault ? (
               <Badge

@@ -96,6 +96,8 @@ export function Button({
           <Text
             style={[styles.text, { color: v.text, fontSize }]}
             numberOfLines={1}
+            ellipsizeMode="tail"
+            flexShrink={1}
           >
             {children}
           </Text>

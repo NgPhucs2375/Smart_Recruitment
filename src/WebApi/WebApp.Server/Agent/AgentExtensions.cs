@@ -37,23 +37,8 @@ public static class AgentExtensions
             AdamInstructions.ChatClientKey,
             (serviceProvider, _) =>
             {
-                // Endpoint/Model đọc từ cấu hình để chạy được cả 2 môi trường:
-                // - dotnet run local: mặc định http://localhost:20128/v1 + Ahihi (9Router ở host).
-                // - docker backend: override bằng Ai__Endpoint=http://host.docker.internal:20128/v1
-                //   (localhost của container != host, và 9router ở network khác).
                 var configuration = serviceProvider.GetRequiredService<IConfiguration>();
-                // Chấp nhận cả 2 tên: Groq:ApiKey (env Groq__ApiKey, chuẩn của dự án)
-                // và GROQ_API_KEY (tương thích docker-compose local hiện tại).
-                var apiKey = GetGroqApiKey(configuration);
-                var clientOptions = new OpenAIClientOptions
-                {
-                    Endpoint = new Uri(
-                        configuration["Ai:Endpoint"] ?? "http://localhost:20128/v1")
-                };
-
-                return new OpenAIClient(new ApiKeyCredential(apiKey), clientOptions)
-                    .GetChatClient(configuration["Ai:Model"] ?? "Ahihi")
-                    .AsIChatClient();
+                return CreateGeminiChatClient(configuration);
             });
 
         // lifetime of that request to complete that request =  Scoped<>();
@@ -67,14 +52,7 @@ public static class AgentExtensions
             (serviceProvider, _) =>
             {
                 var configuration = serviceProvider.GetRequiredService<IConfiguration>();
-                var apiKey = GetGroqApiKey(configuration);
-                var clientOptions = new OpenAIClientOptions
-                {
-                    Endpoint = new Uri(configuration["Ai:Endpoint"] ?? "http://localhost:20128/v1")
-                };
-                return new OpenAIClient(new ApiKeyCredential(apiKey), clientOptions)
-                    .GetChatClient(configuration["Ai:Model"] ?? "Ahihi")
-                    .AsIChatClient();
+                return CreateGeminiChatClient(configuration);
             });
         services.AddScoped<RecruiterTools>();
         services.AddScoped<CandidateTools>();
@@ -85,21 +63,48 @@ public static class AgentExtensions
         return services;
     }
 
-    private static string GetGroqApiKey(IConfiguration configuration)
+    private static IChatClient CreateGeminiChatClient(IConfiguration configuration)
     {
-        var apiKey = configuration["Groq:ApiKey"];
+        var apiKey = configuration["Gemini:ApiKey"];
         if (string.IsNullOrWhiteSpace(apiKey))
-            apiKey = Environment.GetEnvironmentVariable("GROQ_API_KEY");
+            apiKey = Environment.GetEnvironmentVariable("GEMINI_API_KEY");
 
-        return !string.IsNullOrWhiteSpace(apiKey)
-            ? apiKey
-            : throw new InvalidOperationException(
-                "Chưa khai báo Groq API key. Set Groq__ApiKey (hoặc GROQ_API_KEY).");
+        if (string.IsNullOrWhiteSpace(apiKey))
+            throw new InvalidOperationException(
+                "Chưa khai báo Gemini API key. Set Gemini__ApiKey (hoặc GEMINI_API_KEY).");
+
+        var endpoint = configuration["Gemini:Endpoint"]
+            ?? "https://generativelanguage.googleapis.com/v1beta/openai/";
+        var model = configuration["Gemini:Model"] ?? "gemini-3.6-flash-lite";
+
+        return new OpenAIClient(
+                new ApiKeyCredential(apiKey),
+                new OpenAIClientOptions { Endpoint = new Uri(endpoint) })
+            .GetChatClient(model)
+            .AsIChatClient();
     }
 
+    /// <summary>
+    /// Map endpoint AG-UI cho Trợ lý Global Adam (quản lí CV, hồ sơ ứng viên).
+    /// </summary>
+    /// <param name="endpoints"></param>
+    /// <param name="pattern"></param>
+    /// <returns></returns>
     public static IEndpointConventionBuilder MapAdamAgent(
         this IEndpointRouteBuilder endpoints,
         string pattern)
+    {
+        var agent = endpoints.ServiceProvider.GetRequiredService<ScopedAdamAgent>();
+        return endpoints.MapAGUIServer(pattern, agent);
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="endpoints"></param>
+    /// <param name="pattern"></param>
+    /// <returns></returns>
+    public static IEndpointConventionBuilder MapRecommenAdamAgent(this IEndpointRouteBuilder endpoints, string pattern)
     {
         var agent = endpoints.ServiceProvider.GetRequiredService<ScopedRecommenAdamAgent>();
         return endpoints.MapAGUIServer(pattern, agent);

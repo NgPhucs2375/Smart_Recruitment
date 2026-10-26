@@ -15,6 +15,7 @@ import {
 } from 'lucide-react-native';
 
 import { ThemedText } from '@/components/themed-text';
+import { safeBack } from '@/utils/navigation';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Monogram } from '@/components/ui/card';
@@ -99,12 +100,14 @@ export default function JobDetailsScreen() {
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Quay lại"
-          onPress={() => router.back()}
+          onPress={() => safeBack('/')}
           hitSlop={8}
           style={({ pressed }) => [styles.backButton, { opacity: pressed ? 0.6 : 1 }]}>
           <ArrowLeft size={20} color={theme.text} />
         </Pressable>
-        <ThemedText style={styles.topBarTitle}>Chi tiết việc làm</ThemedText>
+        <ThemedText style={styles.topBarTitle} numberOfLines={1}>
+          Chi tiết việc làm
+        </ThemedText>
         <View style={styles.backButton} />
       </View>
 
@@ -358,7 +361,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  topBarTitle: { fontFamily: font('semibold'), fontSize: 15 },
+  topBarTitle: { fontFamily: font('semibold'), fontSize: 15, flex: 1, textAlign: 'center' },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, gap: 8 },
   errorTitle: { fontFamily: font('semibold'), fontSize: 17, textAlign: 'center' },
   errorBody: { fontFamily: font('regular'), fontSize: 13, textAlign: 'center' },
@@ -376,12 +379,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
+    maxWidth: '100%',
     borderRadius: Radius.pill,
     borderWidth: 1,
     paddingHorizontal: 12,
     paddingVertical: 6,
   },
-  metaPillText: { fontFamily: font('medium'), fontSize: 12 },
+  metaPillText: { fontFamily: font('medium'), fontSize: 12, flexShrink: 1 },
   badgesRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 8 },
   ctaRow: {
     flexDirection: 'row',
@@ -409,7 +413,7 @@ const styles = StyleSheet.create({
     letterSpacing: 1.4,
   },
   bodyText: { fontFamily: font('regular'), fontSize: 14, lineHeight: 23 },
-  asideCard: { borderRadius: Radius['2xl'] + 8, borderWidth: 1, padding: 20, gap: 14 },
+  asideCard: { borderRadius: Radius['2xl'] + 8, borderWidth: 1, padding: 20, gap: 16 },
   overview: { gap: 12 },
   overviewRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 },
   overviewLabel: { fontFamily: font('regular'), fontSize: 13, flexShrink: 1 },

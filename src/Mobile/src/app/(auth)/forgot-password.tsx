@@ -1,148 +1,158 @@
 import { router } from 'expo-router';
-import { MailCheck, MailQuestion } from 'lucide-react-native';
 import { useState } from 'react';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import {
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  View,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { ArrowLeft, ArrowRight, Mail } from 'lucide-react-native';
 
+import { BrandLogo } from '@/components/brand-logo';
 import { ThemedText } from '@/components/themed-text';
 import { Button } from '@/components/ui/button';
 import { font, Radius } from '@/constants/theme';
 import { authApi } from '@/features/auth';
-import {
-  AuthField,
-  AuthFooterLink,
-  AuthMessage,
-  AuthScreen,
-} from '@/features/auth/components/auth-ui';
-import { normalizeEmail, validateEmail } from '@/features/auth/validation';
 import { useTheme } from '@/hooks/use-theme';
+import { safeBack } from '@/utils/navigation';
 
 export default function ForgotPasswordScreen() {
   const theme = useTheme();
 
   const [email, setEmail] = useState('');
-  const [sentTo, setSentTo] = useState('');
-  const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async () => {
-    const normalizedEmail = normalizeEmail(email);
-    const validationError = validateEmail(normalizedEmail);
-    if (validationError) {
-      setError(validationError);
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail) {
+      setError('Nhập email đã đăng ký.');
       return;
     }
 
     setSubmitting(true);
     setError('');
+    setSuccess('');
     try {
-      const result = await authApi.forgotPassword(normalizedEmail);
-      setSentTo(normalizedEmail);
-      setMessage(result.message);
-    } catch (reason) {
-      setError(reason instanceof Error ? reason.message : 'Không thể gửi yêu cầu. Vui lòng thử lại.');
+      const message = await authApi.forgotPassword(trimmedEmail);
+      setSuccess(message);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Gửi yêu cầu thất bại. Vui lòng thử lại.');
     } finally {
       setSubmitting(false);
     }
   };
 
-  if (sentTo) {
-    return (
-      <AuthScreen
-        title="Kiểm tra email"
-        subtitle={`Nếu ${sentTo} đã đăng ký, liên kết đặt lại mật khẩu sẽ sớm được gửi tới hộp thư.`}
-        footer={
-          <AuthFooterLink
-            prompt="Nhớ mật khẩu?"
-            action="Đăng nhập"
-            onPress={() => router.replace('/login')}
-          />
-        }>
-        <View style={styles.resultBlock}>
-          <View style={[styles.iconCircle, { backgroundColor: `${theme.primary}14` }]}>
-            <MailCheck size={28} color={theme.primary} />
-          </View>
-          <AuthMessage message={message} variant="success" />
-          {error ? <AuthMessage message={error} variant="error" /> : null}
-          <ThemedText style={[styles.helper, { color: theme.textSecondary }]}>
-            Không thấy email? Kiểm tra hộp thư rác hoặc gửi lại sau ít phút.
-          </ThemedText>
-          <Button
-            variant="outline"
-            disabled={submitting}
-            icon={submitting ? <ActivityIndicator size="small" color={theme.text} /> : undefined}
-            onPress={handleSubmit}
-            size="lg"
-            style={styles.action}>
-            {submitting ? 'Đang gửi lại...' : 'Gửi lại liên kết'}
-          </Button>
-        </View>
-      </AuthScreen>
-    );
-  }
-
   return (
-    <AuthScreen
-      title="Quên mật khẩu?"
-      subtitle="Nhập email đã đăng ký. HIREAI sẽ gửi liên kết để bạn đặt lại mật khẩu."
-      footer={
-        <View style={styles.footerLinks}>
-          <AuthFooterLink
-            prompt="Nhớ mật khẩu?"
-            action="Đăng nhập"
+    <SafeAreaView edges={['top', 'bottom']} style={[styles.safeArea, { backgroundColor: theme.background }]}>
+      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <ScrollView
+          contentContainerStyle={styles.content}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}>
+          <View style={styles.topRow}>
+            <Pressable accessibilityRole="button" hitSlop={8} onPress={() => safeBack('/login')}>
+              <ArrowLeft size={20} color={theme.text} />
+            </Pressable>
+            <BrandLogo variant="navy" size="auth" style={styles.topLogo} />
+            <View style={styles.topSpacer} />
+          </View>
+
+          <ThemedText style={styles.title}>Quên mật khẩu</ThemedText>
+          <ThemedText style={[styles.subtitle, { color: theme.textSecondary }]}>
+            Nhập email để nhận liên kết đặt lại mật khẩu
+          </ThemedText>
+
+          <ThemedText style={[styles.label, { color: theme.textSecondary }]}>Email</ThemedText>
+          <View style={[styles.inputWrap, { backgroundColor: theme.backgroundElement, borderColor: theme.input }]}>
+            <Mail size={16} color="#9ca3af" style={styles.inputIcon} />
+            <TextInput
+              autoCapitalize="none"
+              autoCorrect={false}
+              editable={!submitting}
+              keyboardType="email-address"
+              onChangeText={setEmail}
+              onSubmitEditing={handleSubmit}
+              placeholder="name@company.com"
+              placeholderTextColor={theme.textSecondary}
+              selectionColor={theme.primary}
+              style={[styles.input, { color: theme.text }]}
+              value={email}
+            />
+          </View>
+
+          {error ? (
+            <ThemedText style={[styles.message, { color: theme.destructive }]}>{error}</ThemedText>
+          ) : null}
+          {success ? (
+            <ThemedText style={[styles.message, { color: theme.primary }]}>{success}</ThemedText>
+          ) : null}
+          {success ? (
+            <Pressable
+              accessibilityRole="link"
+              hitSlop={8}
+              onPress={() => router.push({ pathname: '/reset-password', params: { email } })}>
+              <ThemedText style={[styles.messageLink, { color: theme.primary }]}>
+                Có token từ email? Đặt lại mật khẩu →
+              </ThemedText>
+            </Pressable>
+          ) : null}
+
+          <Button
+            pill={false}
+            size="lg"
             disabled={submitting}
-            onPress={() => router.replace('/login')}
-          />
-          <AuthFooterLink
-            prompt="Chưa có tài khoản?"
-            action="Đăng ký"
-            disabled={submitting}
-            onPress={() => router.replace('/register')}
-          />
-        </View>
-      }>
-      <View style={[styles.iconCircle, { backgroundColor: `${theme.primary}14`, alignSelf: 'center' }]}>
-        <MailQuestion size={28} color={theme.primary} />
-      </View>
-
-      <AuthField
-        autoCapitalize="none"
-        autoComplete="email"
-        keyboardType="email-address"
-        label="Email"
-        onChangeText={setEmail}
-        onSubmitEditing={handleSubmit}
-        placeholder="name@example.com"
-        returnKeyType="send"
-        textContentType="emailAddress"
-        value={email}
-      />
-
-      {error ? <AuthMessage message={error} variant="error" /> : null}
-
-      <Button
-        disabled={submitting}
-        icon={submitting ? <ActivityIndicator size="small" color={theme.primaryForeground} /> : undefined}
-        onPress={handleSubmit}
-        size="lg"
-        style={styles.action}>
-        {submitting ? 'Đang gửi...' : 'Gửi liên kết đặt lại'}
-      </Button>
-    </AuthScreen>
+            onPress={handleSubmit}
+            icon={
+              submitting ? (
+                <ActivityIndicator size="small" color={theme.primaryForeground} />
+              ) : (
+                <ArrowRight size={16} color={theme.primaryForeground} />
+              )
+            }
+            style={styles.submit}>
+            {submitting ? 'Đang gửi...' : 'Gửi yêu cầu'}
+          </Button>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  resultBlock: { alignItems: 'center', gap: 12, paddingTop: 4 },
-  iconCircle: {
-    width: 64,
-    height: 64,
-    borderRadius: Radius.pill,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 8,
+  safeArea: { flex: 1 },
+  flex: { flex: 1 },
+  content: { paddingHorizontal: 24, paddingVertical: 24, gap: 4 },
+  topRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
+  topLogo: { flex: 1 },
+  topSpacer: { width: 20 },
+  title: { fontFamily: font('semibold'), fontSize: 24, letterSpacing: -0.4 },
+  subtitle: { fontFamily: font('regular'), fontSize: 14, marginBottom: 12 },
+  label: {
+    fontFamily: font('medium'),
+    fontSize: 11,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+    marginBottom: 6,
+    marginTop: 10,
   },
-  helper: { fontFamily: font('regular'), fontSize: 13, lineHeight: 19, textAlign: 'center' },
-  action: { width: '100%', marginTop: 8, borderRadius: Radius.xl },
-  footerLinks: { alignItems: 'center', gap: 8 },
+  inputWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    minHeight: 44,
+    borderRadius: Radius.xl,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+  },
+  inputIcon: { marginRight: 10 },
+  input: { flex: 1, fontFamily: font('regular'), fontSize: 14, paddingVertical: 10 },
+  message: { fontFamily: font('medium'), fontSize: 13, lineHeight: 20, marginTop: 10 },
+  messageLink: { fontFamily: font('semibold'), fontSize: 13, marginTop: 6 },
+  submit: { width: '100%', marginTop: 16, borderRadius: Radius.xl },
 });

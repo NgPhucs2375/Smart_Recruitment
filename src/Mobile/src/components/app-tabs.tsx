@@ -1,40 +1,56 @@
-import { NativeTabs } from 'expo-router/unstable-native-tabs';
+import { Bookmark, Bell, Search, User } from 'lucide-react-native';
+import { Tabs } from 'expo-router';
 import { useColorScheme } from 'react-native';
 
 import { Colors } from '@/constants/theme';
-import { useAuth } from '@/features/auth';
-import { canUseInternalChat } from '@/features/chat/roles';
 
 export default function AppTabs() {
   const scheme = useColorScheme();
   const colors = Colors[scheme === 'unspecified' ? 'light' : scheme];
-  const { user } = useAuth();
-  const canChat = canUseInternalChat(user?.roles);
 
   return (
-    <NativeTabs
-      backgroundColor={colors.background}
-      indicatorColor={colors.backgroundSelected}
-      labelStyle={{ selected: { color: colors.primary } }}>
-      <NativeTabs.Trigger name="index">
-        <NativeTabs.Trigger.Label>Việc làm</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon sf="magnifyingglass" md="work" />
-      </NativeTabs.Trigger>
-
-      <NativeTabs.Trigger name="saved">
-        <NativeTabs.Trigger.Label>Đã lưu</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon sf="bookmark" md="bookmark" />
-      </NativeTabs.Trigger>
-
-      <NativeTabs.Trigger name="chat" hidden={!canChat}>
-        <NativeTabs.Trigger.Label>Tin nhắn</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon sf="message" md="chat" />
-      </NativeTabs.Trigger>
-
-      <NativeTabs.Trigger name="profile">
-        <NativeTabs.Trigger.Label>Hồ sơ</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon sf="person.crop.circle" md="person" />
-      </NativeTabs.Trigger>
-    </NativeTabs>
+    <Tabs
+      screenOptions={{
+        headerShown: false,
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.textSecondary,
+        tabBarStyle: {
+          backgroundColor: colors.background,
+          borderTopColor: colors.border,
+        },
+      }}>
+      <Tabs.Screen
+        name="index"
+        options={{
+          title: 'Việc làm',
+          tabBarIcon: ({ color, size }) => <Search size={size} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="saved"
+        options={{
+          title: 'Đã lưu',
+          tabBarIcon: ({ color, size }) => <Bookmark size={size} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="notifications"
+        options={{
+          title: 'Thông báo',
+          tabBarIcon: ({ color, size }) => <Bell size={size} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: 'Hồ sơ',
+          tabBarIcon: ({ color, size }) => <User size={size} color={color} />,
+        }}
+      />
+      <Tabs.Screen name="applications" options={{ href: null }} />
+      <Tabs.Screen name="settings" options={{ href: null }} />
+      <Tabs.Screen name="profile-edit" options={{ href: null }} />
+      <Tabs.Screen name="phu-hop" options={{ href: null }} />
+    </Tabs>
   );
 }
