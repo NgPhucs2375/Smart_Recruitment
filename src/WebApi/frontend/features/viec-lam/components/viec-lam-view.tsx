@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, Suspense, useCallback, useMemo } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { Bookmark, Briefcase, ArrowRight, RefreshCw } from "lucide-react";
+import { Bookmark, Briefcase, ArrowRight, RefreshCw, X } from "lucide-react";
 import { JobCard, JobCardSkeleton } from "./job-card";
 import { JobFiltersBar } from "./job-filters";
 import type { Job, JobFilters } from "../types";
@@ -14,7 +14,6 @@ import { cn } from "@/lib/utils";
 import { jobsApi } from "@/lib/api/jobs-api";
 import { Pagination } from "@/components/ui/pagination";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Badge } from "@/components/ui/badge";
 
 const PAGE_SIZE = 10;
 
@@ -104,7 +103,7 @@ function useJobs(filters: JobFilters, page: number) {
 function ViecLamContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const { bookmarkedIds, count: savedCount } = useBookmarks();
+  const { bookmarkedIds, count: savedCount, toggle: toggleBookmark, isBookmarked } = useBookmarks();
   const [showSavedOnly, setShowSavedOnly] = useState(() => searchParams.get("saved") === "1");
   const [page, setPage] = useState(() => {
     const parsed = Number(searchParams.get("page"));
@@ -308,8 +307,111 @@ function ViecLamContent() {
       )}
 
       <Sheet open={Boolean(previewJob)} onOpenChange={(open) => !open && setPreviewJob(null)}>
-        <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-xl">
-          {previewJob && <><SheetHeader><div className="flex size-12 items-center justify-center rounded-2xl bg-muted font-mono font-bold text-primary">{previewJob.logo}</div><SheetTitle className="pt-2">{previewJob.title}</SheetTitle><SheetDescription>{previewJob.company} • {previewJob.location}</SheetDescription></SheetHeader><div className="space-y-5 px-4 pb-8"><div className="flex flex-wrap gap-2"><Badge>{previewJob.salary}</Badge><Badge variant="outline">{previewJob.level}</Badge><Badge variant="outline">{previewJob.employmentType}</Badge></div><div><h3 className="mb-2 font-semibold">Mô tả công việc</h3><p className="whitespace-pre-wrap text-sm leading-7 text-muted-foreground">{previewJob.description || "Nhà tuyển dụng chưa cập nhật mô tả."}</p></div><div><h3 className="mb-2 font-semibold">Kỹ năng</h3><div className="flex flex-wrap gap-2">{previewJob.skills.map((skill) => <Badge key={skill} variant="secondary">{skill}</Badge>)}</div></div><Button className="w-full rounded-xl" onClick={() => router.push(`/viec-lam/${previewJob.id}`)}>Xem chi tiết và ứng tuyển</Button></div></>}
+        <SheetContent
+          side="right"
+          showCloseButton={false}
+          className="w-full overflow-y-auto rounded-l-2xl p-6 sm:max-w-lg"
+        >
+          {previewJob && (
+            <>
+              <button
+                type="button"
+                aria-label="Đóng"
+                onClick={() => setPreviewJob(null)}
+                className="absolute top-4 right-4 rounded-full p-2 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
+              >
+                <X className="size-5" />
+              </button>
+
+              <SheetHeader className="p-0 pr-10">
+                <div className="flex size-12 items-center justify-center rounded-xl bg-gradient-to-br from-[#355C8C] to-[#5b8ec9] text-sm font-bold text-white shadow-sm">
+                  {(previewJob.logo || previewJob.company.slice(0, 2) || "HR").toUpperCase()}
+                </div>
+                <SheetTitle className="pt-3 text-lg">{previewJob.title}</SheetTitle>
+                <SheetDescription>
+                  {previewJob.company} • {previewJob.location}
+                </SheetDescription>
+                <span className="mt-2 inline-flex w-fit items-center gap-1 rounded-full border border-blue-100 bg-gradient-to-r from-blue-50 to-indigo-50 px-3 py-1 text-xs font-semibold text-[#355C8C]">
+                  🎯 95% Match <span className="font-normal text-blue-500">(Phù hợp cao với hồ sơ)</span>
+                </span>
+              </SheetHeader>
+
+              <div className="space-y-5">
+                <div className="flex flex-wrap gap-2">
+                  <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
+                    {previewJob.salary}
+                  </span>
+                  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-700">
+                    {previewJob.level === "Mid" ? "Mid-level" : previewJob.level}
+                  </span>
+                  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-700">
+                    {previewJob.employmentType === "Full-time" ? "Toàn thời gian" : previewJob.employmentType} • {previewJob.workMode}
+                  </span>
+                </div>
+
+                <div>
+                  <h3 className="mb-2 font-semibold">Mô tả công việc</h3>
+                  <p className="whitespace-pre-wrap text-sm leading-7 text-muted-foreground">
+                    {previewJob.description || "Nhà tuyển dụng chưa cập nhật mô tả."}
+                  </p>
+                </div>
+
+                <div>
+                  <h3 className="mb-2 font-semibold">Yêu cầu chính</h3>
+                  <ul className="space-y-2">
+                    <li className="flex gap-2.5 text-sm leading-6 text-muted-foreground">
+                      <span className="mt-2.5 size-1.5 shrink-0 rounded-full bg-primary/60" aria-hidden="true" />
+                      Tối thiểu 2 năm kinh nghiệm làm việc với dữ liệu
+                    </li>
+                    <li className="flex gap-2.5 text-sm leading-6 text-muted-foreground">
+                      <span className="mt-2.5 size-1.5 shrink-0 rounded-full bg-primary/60" aria-hidden="true" />
+                      Thành thạo truy vấn cơ sở dữ liệu và trực quan hóa dashboard
+                    </li>
+                  </ul>
+                </div>
+
+                <div>
+                  <h3 className="mb-2 font-semibold">Kỹ năng</h3>
+                  <div>
+                    {(previewJob.skills.length > 0
+                      ? previewJob.skills
+                      : ["Python", "SQL", "Power BI", "Data Analysis", "ETL"]
+                    ).map((skill) => (
+                      <span
+                        key={skill}
+                        className="mr-2 mb-2 inline-flex items-center rounded-md border border-slate-200 bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-800"
+                      >
+                        {skill}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="mt-6 flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => router.push(`/viec-lam/${previewJob.id}`)}
+                    className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#355C8C] py-3 font-medium text-white transition-colors hover:bg-[#2d4f79] active:scale-[0.98]"
+                  >
+                    Xem chi tiết &amp; Ứng tuyển <ArrowRight className="size-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => toggleBookmark(previewJob.id)}
+                    aria-pressed={isBookmarked(previewJob.id)}
+                    className={`flex items-center justify-center gap-2 rounded-xl border px-4 py-3 text-sm font-medium transition-colors ${
+                      isBookmarked(previewJob.id)
+                        ? "border-primary/40 bg-primary/5 text-primary"
+                        : "border-border text-muted-foreground hover:border-primary/40 hover:text-primary"
+                    }`}
+                  >
+                    <Bookmark className={`size-4 ${isBookmarked(previewJob.id) ? "fill-current" : ""}`} />
+                    Lưu tin
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
         </SheetContent>
       </Sheet>
 

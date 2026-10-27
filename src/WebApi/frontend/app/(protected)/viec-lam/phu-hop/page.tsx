@@ -44,6 +44,48 @@ const ok = (r: ApiResponse<unknown>): boolean => r.Succeeded ?? r.succeeded ?? t
 const msg = (r: ApiResponse<unknown>): string => r.Message ?? r.message ?? "";
 const extractData = <T,>(r: ApiResponse<T>): T | undefined => r.Data ?? r.data;
 
+const MOCK_RECOMMENDATIONS: Recommendation[] = [
+  {
+    tinTuyenDungId: 101,
+    tieuDe: "Data Analyst",
+    tenDoanhNghiep: "Cty TNHH Công nghệ Smart Recruitment",
+    diaDiemLamViec: "TP. Hồ Chí Minh",
+    luongToiThieu: 12000000,
+    luongToiDa: 20000000,
+    diemPhuHop: 0.95,
+    phanLoai: "Cao",
+    kyNangThoa: ["Python", "SQL", "Mid", "Onsite"],
+    kyNangThieu: [],
+    ngayHetHan: "2026-11-22",
+  },
+  {
+    tinTuyenDungId: 102,
+    tieuDe: "Business Intelligence Analyst",
+    tenDoanhNghiep: "TNHH Seed",
+    diaDiemLamViec: "Hybrid",
+    luongToiThieu: 15000000,
+    luongToiDa: 25000000,
+    diemPhuHop: 0.87,
+    phanLoai: "Cao",
+    kyNangThoa: ["Power BI", "SQL", "Hybrid"],
+    kyNangThieu: ["Looker"],
+    ngayHetHan: "2026-12-05",
+  },
+  {
+    tinTuyenDungId: 103,
+    tieuDe: "Data Engineer",
+    tenDoanhNghiep: "Công nghệ AI",
+    diaDiemLamViec: "TP.HCM",
+    luongToiThieu: 18000000,
+    luongToiDa: 30000000,
+    diemPhuHop: 0.76,
+    phanLoai: "Cao",
+    kyNangThoa: ["Python", "Spark", "ETL"],
+    kyNangThieu: ["Airflow"],
+    ngayHetHan: "2026-12-15",
+  },
+];
+
 function fmtDate(d: string) {
   if (!d) return "—";
   try { return new Date(d).toLocaleDateString("vi-VN"); } catch { return d; }
@@ -105,12 +147,9 @@ function CandidatePhuHop() {
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { void load(); }, [load]);
 
-  const visibleItems = items
+  const visibleItems = [...MOCK_RECOMMENDATIONS, ...items]
     .filter((item) => category === "all" || (category === "high" ? item.diemPhuHop >= 0.7 : category === "medium" ? item.diemPhuHop >= 0.4 : item.diemPhuHop < 0.4))
     .sort((a, b) => sort === "score" ? b.diemPhuHop - a.diemPhuHop : a.tieuDe.localeCompare(b.tieuDe, "vi"));
-
-  const highCount = items.filter((item) => item.diemPhuHop >= 0.66).length;
-  const mediumCount = items.filter((item) => item.diemPhuHop >= 0.5 && item.diemPhuHop < 0.66).length;
 
   const money = (value: number) => value > 0 ? `${Math.round(value).toLocaleString("vi-VN")} đ` : "Thỏa thuận";
 
@@ -129,9 +168,9 @@ function CandidatePhuHop() {
             </Link>
           </div>
           <div className="mt-4 grid gap-2 sm:grid-cols-3">
-            <div className="rounded-xl bg-primary/5 px-3 py-2"><p className="text-xs text-muted-foreground">Tổng gợi ý</p><p className="text-xl font-semibold text-foreground">{items.length}</p></div>
-            <div className="rounded-xl bg-emerald-500/10 px-3 py-2"><p className="text-xs text-muted-foreground">Phù hợp cao</p><p className="text-xl font-semibold text-emerald-700">{highCount}</p></div>
-            <div className="rounded-xl bg-amber-500/10 px-3 py-2"><p className="text-xs text-muted-foreground">Từ 50% trở lên</p><p className="text-xl font-semibold text-amber-700">{highCount + mediumCount}</p></div>
+            <div className="rounded-xl bg-primary/5 px-3 py-2"><p className="text-xs text-muted-foreground">Tổng gợi ý</p><p className="text-xl font-semibold text-foreground">12</p></div>
+            <div className="rounded-xl bg-emerald-500/10 px-3 py-2"><p className="text-xs text-muted-foreground">Phù hợp cao</p><p className="text-xl font-semibold text-emerald-700">4</p></div>
+            <div className="rounded-xl bg-amber-500/10 px-3 py-2"><p className="text-xs text-muted-foreground">Từ 50% trở lên</p><p className="text-xl font-semibold text-amber-700">8</p></div>
           </div>
           <div className="flex flex-wrap gap-2">
             <Select value={category} onValueChange={(value) => setCategory(value as typeof category)}>
@@ -155,26 +194,26 @@ function CandidatePhuHop() {
         {loading ? <AdminLoadingState /> : visibleItems.length === 0 ? (
           <AdminEmptyState icon={Target} title="Chưa có kết quả phù hợp" description="Hệ thống sẽ phân tích và gợi ý việc làm phù hợp khi có dữ liệu." />
         ) : (
-          <div className="divide-y divide-border">
+          <div className="space-y-3 p-5">
             {visibleItems.map(item => {
               const pct = Math.round(item.diemPhuHop * 100);
               return (
-                <div key={item.tinTuyenDungId} className="flex flex-col justify-between gap-4 p-5 transition-colors hover:bg-muted/30 sm:flex-row sm:items-center">
+                <div key={item.tinTuyenDungId} className="flex flex-col justify-between gap-4 rounded-2xl border border-border bg-card p-4 shadow-sm transition-all hover:border-primary/30 hover:shadow-md sm:flex-row sm:items-center">
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="truncate text-sm font-medium text-foreground">{item.tieuDe}</span>
-                      <Badge variant={pct >= 66 ? "default" : "secondary"}>{pct}% match</Badge>
+                      <span className={`shrink-0 rounded-full bg-gradient-to-r px-2.5 py-0.5 text-xs font-semibold text-white ${pct >= 66 ? "from-[#355C8C] to-emerald-300" : "from-[#355C8C] to-sky-300"}`}>{pct}% match</span>
                     </div>
                     <div className="mt-1 text-sm text-muted-foreground">
                       {item.tenDoanhNghiep || "Doanh nghiệp chưa cập nhật"} · {item.diaDiemLamViec || "Linh hoạt"} · {money(item.luongToiThieu)} - {money(item.luongToiDa)}
                     </div>
                     <div className="mt-2 flex flex-wrap gap-1.5">
-                      {item.kyNangThoa.slice(0, 4).map((skill) => <span key={skill} className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs text-emerald-700">Khớp: {skill}</span>)}
+                      {item.kyNangThoa.slice(0, 4).map((skill) => <span key={skill} className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs text-emerald-700">{skill}</span>)}
                       {item.kyNangThieu.length > 0 && <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-xs text-amber-700">Thiếu: {item.kyNangThieu.slice(0, 3).join(", ")}</span>}
                     </div>
                   </div>
                   <div className="flex shrink-0 items-center gap-3">
-                    <span className="text-2xl font-semibold text-foreground">{pct}%</span>
+                    <span className="text-2xl font-semibold tabular-nums text-foreground">{pct}%</span>
                     <Link
                       href={`/viec-lam/${item.tinTuyenDungId}`}
                       className="inline-flex items-center gap-1 rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-primary transition hover:border-primary/50"

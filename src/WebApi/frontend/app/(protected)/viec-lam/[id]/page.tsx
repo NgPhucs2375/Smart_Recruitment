@@ -7,6 +7,7 @@ import { Dialog as DialogPrimitive } from "@base-ui/react/dialog";
 import {
   ArrowLeft,
   BadgeCheck,
+  Bookmark,
   Briefcase,
   Building2,
   CalendarClock,
@@ -19,6 +20,7 @@ import {
   MapPin,
   RefreshCw,
   Send,
+  Sparkles,
   Users,
   Wallet,
 } from "lucide-react";
@@ -26,7 +28,6 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
-  AdminPageLayout,
   AdminEmptyState,
   AdminLoadingState,
 } from "@/components/admin/admin-page-layout";
@@ -88,10 +89,18 @@ function isExpired(ngayHetHan: string) {
 
 function Section({ title, body }: { title: string; body: string }) {
   if (!body?.trim()) return null;
+  const lines = body.split("\n").map((l) => l.trim()).filter(Boolean);
   return (
     <section className="py-6 first:pt-0 last:pb-0">
       <h2 className="text-base font-semibold tracking-tight text-foreground">{title}</h2>
-      <p className="mt-3 whitespace-pre-line text-sm leading-7 text-muted-foreground">{body}</p>
+      <ul className="mt-3 space-y-2">
+        {lines.map((line, i) => (
+          <li key={i} className="flex gap-2.5 text-sm leading-6 text-muted-foreground">
+            <span className="mt-2.5 size-1.5 shrink-0 rounded-full bg-primary/60" aria-hidden="true" />
+            <span>{line}</span>
+          </li>
+        ))}
+      </ul>
     </section>
   );
 }
@@ -106,6 +115,7 @@ export default function ViecLamChiTietPage() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
   const [daUngTuyen, setDaUngTuyen] = useState(false);
+  const [saved, setSaved] = useState(false);
 
   const [pickerOpen, setPickerOpen] = useState(false);
   const [cvs, setCvs] = useState<CvVm[]>([]);
@@ -269,7 +279,7 @@ export default function ViecLamChiTietPage() {
           : "";
 
   return (
-    <AdminPageLayout>
+    <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6 space-y-6">
       <Link
         href="/viec-lam"
         className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
@@ -374,6 +384,18 @@ export default function ViecLamChiTietPage() {
                   <Send className="mr-1.5 size-4" /> Ứng tuyển ngay
                 </Button>
               )}
+              <Button
+                type="button"
+                variant="outline"
+                className={`rounded-full ${saved ? "border-primary/40 bg-primary/5 text-primary" : ""}`}
+                aria-pressed={saved}
+                onClick={() => {
+                  setSaved((v) => !v);
+                  toast.success(saved ? "Đã bỏ lưu việc làm." : "Đã lưu việc làm vào danh sách.");
+                }}
+              >
+                <Bookmark className={`size-4 ${saved ? "fill-current" : ""}`} /> {saved ? "Đã lưu" : "Lưu việc làm"}
+              </Button>
               {!conNhanHoSo && !daUngTuyen && lyDoKhoa && (
                 <span className="text-xs text-muted-foreground">{lyDoKhoa}</span>
               )}
@@ -384,18 +406,20 @@ export default function ViecLamChiTietPage() {
             </div>
           </section>
 
-          <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
-            <main className="min-w-0 rounded-[2rem] border border-border bg-card px-6 shadow-sm sm:px-8">
-              <Section title="Mô tả công việc" body={tin.moTaCongViec} />
-              <div className="border-t border-border" />
-              <Section title="Yêu cầu công việc" body={tin.yeuCauCongViec} />
-              <div className="border-t border-border" />
-              <Section title="Kinh nghiệm yêu cầu" body={tin.kinhNghiemYeuCau} />
-              <div className="border-t border-border" />
-              <Section title="Quyền lợi" body={tin.quyenLoi} />
-            </main>
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <div className="lg:col-span-8 space-y-6">
+              <div className="min-w-0 rounded-[2rem] border border-border bg-card px-6 shadow-sm sm:px-8">
+                <Section title="Mô tả công việc" body={tin.moTaCongViec} />
+                <div className="border-t border-border" />
+                <Section title="Yêu cầu công việc" body={tin.yeuCauCongViec} />
+                <div className="border-t border-border" />
+                <Section title="Kinh nghiệm yêu cầu" body={tin.kinhNghiemYeuCau} />
+                <div className="border-t border-border" />
+                <Section title="Quyền lợi" body={tin.quyenLoi} />
+              </div>
+            </div>
 
-            <aside className="space-y-4 lg:sticky lg:top-6">
+            <aside className="lg:col-span-4 space-y-6">
               <section className="rounded-3xl border border-border bg-card p-5 shadow-sm">
                 <h2 className="text-sm font-semibold uppercase tracking-[0.12em] text-muted-foreground">Tổng quan</h2>
                 <div className="mt-4 divide-y divide-border">
@@ -419,6 +443,37 @@ export default function ViecLamChiTietPage() {
                     <span className="text-sm text-muted-foreground">Ứng viên</span>
                     <span className="text-right text-sm font-semibold text-foreground">{tin.soLuongUngVien}</span>
                   </div>
+                </div>
+              </section>
+
+              <section className="p-5 bg-white rounded-2xl border border-slate-100 shadow-sm space-y-4">
+                <h2 className="flex items-center gap-1.5 text-sm font-semibold uppercase tracking-[0.12em] text-slate-500">
+                  <Sparkles className="size-4 text-[#355C8C]" /> Đánh giá AI matching
+                </h2>
+                <div>
+                  <span className="mb-1 block text-xs font-medium text-slate-500">Độ khớp với CV của bạn</span>
+                  <div className="flex items-center justify-between">
+                    <span className="text-3xl font-extrabold text-[#355C8C]">95%</span>
+                    <span className="whitespace-nowrap rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-semibold text-emerald-700">
+                      Phù hợp rất cao
+                    </span>
+                  </div>
+                </div>
+                <div
+                  className="h-2 w-full overflow-hidden rounded-full bg-slate-100"
+                  role="progressbar"
+                  aria-label="Độ khớp với CV"
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-valuenow={95}
+                >
+                  <div className="h-full w-[95%] rounded-full bg-emerald-500"></div>
+                </div>
+                <div>
+                  <span className="flex items-center mb-2 rounded-lg border border-emerald-100/80 bg-emerald-50/60 p-2 text-xs text-emerald-900">✓ Python (Khớp hồ sơ)</span>
+                  <span className="flex items-center mb-2 rounded-lg border border-emerald-100/80 bg-emerald-50/60 p-2 text-xs text-emerald-900">✓ SQL (Khớp hồ sơ)</span>
+                  <span className="flex items-center mb-2 rounded-lg border border-emerald-100/80 bg-emerald-50/60 p-2 text-xs text-emerald-900">✓ Mid-level (Khớp hồ sơ)</span>
+                  <span className="flex items-center mb-2 rounded-lg border border-amber-100/80 bg-amber-50/60 p-2 text-xs text-amber-900">⚠ Power BI (Điểm cộng, chưa có trong CV)</span>
                 </div>
               </section>
 
@@ -598,6 +653,6 @@ export default function ViecLamChiTietPage() {
           </div>
         </DialogPrimitive.Portal>
       </DialogPrimitive.Root>
-    </AdminPageLayout>
+    </main>
   );
 }

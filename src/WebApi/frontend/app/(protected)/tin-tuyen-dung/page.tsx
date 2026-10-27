@@ -3,7 +3,7 @@
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useGetIdentity } from "@refinedev/core";
-import { ClipboardList, Plus, Pencil, Trash2, X, Send, Pause, Play, Lock, Users, CheckCircle2, Eye, Copy, Search } from "lucide-react";
+import { ClipboardList, Plus, Pencil, Trash2, X, Send, Pause, Play, Lock, Users, CheckCircle2, Eye, Copy, Search, Briefcase, CalendarDays, FileText } from "lucide-react";
 import { JobPreview, deadlineDate, SKILL_LEVELS, type JobSkill, type JobPreviewData } from "@/features/tin-tuyen-dung/job-preview";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -83,7 +83,7 @@ const EMPTY_FORM = {
   yeuCauCongViec: "",
   quyenLoi: "",
   diaDiemLamViec: "",
-  phuongThucLamViec: 0,
+  phuongThucLamViec: -1, // -1 = chưa chọn (placeholder), 0..3 = Onsite/Remote/Hybrid/Flexible
   luongToiThieu: 0,
   luongToiDa: 0,
   ngayHetHan: "",
@@ -118,6 +118,26 @@ function parseWorkMode(value: unknown): number {
   return Number.isInteger(numeric) && numeric >= 0 && numeric <= 3 ? numeric : 0;
 }
 
+// Hôm nay theo giờ Việt Nam, dạng ISO (yyyy-MM-dd) để so sánh chuỗi.
+function isoToday(): string {
+  return new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Ho_Chi_Minh" });
+}
+// "dd/MM/yyyy" -> ISO "yyyy-MM-dd". null nếu ngày không tồn tại.
+function parseDdMmYyyy(s: string): string | null {
+  const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(s.trim());
+  if (!m) return null;
+  const iso = `${m[3]}-${m[2]}-${m[1]}`;
+  const d = new Date(`${iso}T00:00:00Z`);
+  if (Number.isNaN(d.getTime()) || d.toISOString().slice(0, 10) !== iso) return null;
+  return iso;
+}
+// ISO "yyyy-MM-dd" -> "dd/MM/yyyy"
+function isoToDdMmYyyy(iso: string): string {
+  if (!iso) return "";
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso);
+  return m ? `${m[3]}/${m[2]}/${m[1]}` : "";
+}
+
 export default function TinTuyenDungPage() {
   const { data: identity } = useGetIdentity<{ roles?: string[] }>();
   const isNguoiDaiDien = identity?.roles?.some(role => role.trim().toUpperCase() === "NGUOI_DAI_DIEN") ?? false;
@@ -141,6 +161,9 @@ export default function TinTuyenDungPage() {
 
   const [form, setForm] = useState({ ...EMPTY_FORM });
   const [errField, setErrField] = useState<string | null>(null);
+  const [skillQuery, setSkillQuery] = useState("");
+  const [skillOpen, setSkillOpen] = useState(false);
+  const [skillError, setSkillError] = useState("");
   const { confirm, prompt } = useConfirmDialog();
 
   const apiFetch = useCallback(async (url: string, opts?: RequestInit) => {
@@ -241,11 +264,14 @@ export default function TinTuyenDungPage() {
     setForm({ ...EMPTY_FORM });
     setErrField(null);
     setShowForm(false);
+    setSkillQuery("");
+    setSkillOpen(false);
+    setSkillError("");
   }
 
-  function openCreate() { setSuccessMsg(""); setErr(""); setErrField(null); setEditing(null); setForm({ ...EMPTY_FORM }); setShowForm(true); }
+  function openCreate() { setSuccessMsg(""); setErr(""); setErrField(null); setEditing(null); setForm({ ...EMPTY_FORM }); setSkillQuery(""); setSkillOpen(false); setSkillError(""); setShowForm(true); }
   function openEdit(item: TinTuyenDung) {
-    setSuccessMsg(""); setErr(""); setErrField(null); setEditing(item);
+    setSuccessMsg(""); setErr(""); setErrField(null); setSkillQuery(""); setSkillOpen(false); setSkillError(""); setEditing(item);
     setForm({
       danhMucNgheId: item.danhMucNgheId,
       tieuDe: item.tieuDe,
@@ -257,7 +283,7 @@ export default function TinTuyenDungPage() {
       phuongThucLamViec: item.phuongThucLamViec,
       luongToiThieu: item.luongToiThieu,
       luongToiDa: item.luongToiDa,
-      ngayHetHan: deadlineDate(item.ngayHetHan),
+      ngayHetHan: isoToDdMmYyyy(deadlineDate(item.ngayHetHan)),
       kyNangs: item.kyNangs,
     });
     setShowForm(true);
@@ -266,15 +292,57 @@ export default function TinTuyenDungPage() {
   function validate(submit = false): { field: string | null; message: string } {
     if (!form.tieuDe.trim()) return { field: "tieuDe", message: "Tiêu đề không được để trống" };
     if (!form.danhMucNgheId || form.danhMucNgheId <= 0) return { field: "danhMucNgheId", message: "Vui lòng chọn danh mục nghề" };
+    if (form.phuongThucLamViec < 0) return { field: "phuongThucLamViec", message: "Vui lòng chọn phương thức làm việc" };
     if (submit && !form.moTaCongViec.trim()) return { field: "moTaCongViec", message: "Cần mô tả công việc trước khi gửi duyệt" };
     if (submit && !form.yeuCauCongViec.trim()) return { field: "yeuCauCongViec", message: "Cần yêu cầu công việc trước khi gửi duyệt" };
     if (submit && !form.diaDiemLamViec.trim()) return { field: "diaDiemLamViec", message: "Cần địa điểm trước khi gửi duyệt" };
     if (form.tieuDe.length > 255 || form.diaDiemLamViec.length > 255) return { field: "tieuDe", message: "Tiêu đề và địa điểm tối đa 255 ký tự" };
     if (form.kinhNghiemYeuCau.length > 2000 || form.quyenLoi.length > 2000) return { field: "kinhNghiemYeuCau", message: "Kinh nghiệm và quyền lợi tối đa 2000 ký tự" };
-    if (submit && form.ngayHetHan && form.ngayHetHan < new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Ho_Chi_Minh" })) return { field: "ngayHetHan", message: "Ngày hết hạn phải từ hôm nay trở đi" };
+    if (form.moTaCongViec.length > 5000 || form.yeuCauCongViec.length > 5000) return { field: "moTaCongViec", message: "Mô tả và yêu cầu công việc tối đa 5000 ký tự" };
+    // Client-side date guard: chặn ngày quá khứ ngay khi lưu (cả nháp lẫn gửi duyệt).
+    if (form.ngayHetHan) {
+      const iso = parseDdMmYyyy(form.ngayHetHan);
+      if (!iso) return { field: "ngayHetHan", message: "Ngày hết hạn không hợp lệ (định dạng dd/MM/yyyy)" };
+      if (iso < isoToday()) return { field: "ngayHetHan", message: "Ngày hết hạn phải từ hôm nay trở đi" };
+    }
     if (form.luongToiThieu < 0 || form.luongToiDa < 0) return { field: "luong", message: "Lương phải >= 0" };
     if (form.luongToiDa < form.luongToiThieu) return { field: "luong", message: "Lương tối đa phải >= lương tối thiểu" };
     return { field: null, message: "" };
+  }
+
+  function addSkill(skill: { id: number; name: string }) {
+    if (form.kyNangs.some(k => k.kyNangId === skill.id)) return;
+    setForm(f => ({ ...f, kyNangs: [...f.kyNangs, { kyNangId: skill.id, tenKyNang: skill.name, mucDoYeuCau: 2 }] }));
+    setSkillQuery("");
+    setSkillOpen(false);
+    setSkillError("");
+  }
+
+  // Thử tạo kỹ năng mới qua API hiện có; HR/NDD không có quyền create sẽ nhận 403.
+  async function createSkill(name: string) {
+    const existing = skills.find(s => s.name.trim().toLowerCase() === name.toLowerCase());
+    if (existing) { addSkill(existing); return; }
+    if (!name.trim()) return;
+    try {
+      setSkillError("");
+      const res: ApiResponse<number> = await apiFetch("/api/dotnet/kynangs", {
+        method: "POST",
+        body: JSON.stringify({ tenKyNang: name.trim() }),
+      });
+      if (!ok(res)) throw new Error(msg(res) || "Không tạo được kỹ năng mới.");
+      const newId = Number(extractData(res) ?? 0);
+      if (!newId) throw new Error("Máy chủ không trả về ID kỹ năng.");
+      setSkills(prev => (prev.some(s => s.id === newId) ? prev : [...prev, { id: newId, name: name.trim() }]));
+      addSkill({ id: newId, name: name.trim() });
+    } catch (e) {
+      const detail = e instanceof Error ? e.message : "";
+      setSkillError(
+        /403|forbidden|quyền/i.test(detail)
+          ? `Kỹ năng "${name.trim()}" chưa có trong kho và tài khoản của bạn chưa được quyền tạo mới. Hãy chọn kỹ năng gợi ý hoặc báo Admin thêm vào danh mục.`
+          : detail || `Không tạo được kỹ năng "${name.trim()}".`,
+      );
+      setSkillOpen(false);
+    }
   }
 
   async function handleSubmit(e?: FormEvent, submit = false) {
@@ -283,7 +351,7 @@ export default function TinTuyenDungPage() {
     const validation = validate(submit);
     if (validation.field) {
       setErr(validation.message); setErrField(validation.field);
-      const ids: Record<string, string> = { tieuDe: "ttd-tieu-de", danhMucNgheId: "ttd-danh-muc", diaDiemLamViec: "ttd-dia-diem", moTaCongViec: "ttd-mo-ta", yeuCauCongViec: "ttd-yeu-cau", ngayHetHan: "ttd-het-han", kinhNghiemYeuCau: "ttd-kinh-nghiem", luong: "ttd-luong-min" };
+      const ids: Record<string, string> = { tieuDe: "ttd-tieu-de", danhMucNgheId: "ttd-danh-muc", phuongThucLamViec: "ttd-phuong-thuc", diaDiemLamViec: "ttd-dia-diem", moTaCongViec: "ttd-mo-ta", yeuCauCongViec: "ttd-yeu-cau", ngayHetHan: "ttd-het-han", kinhNghiemYeuCau: "ttd-kinh-nghiem", luong: "ttd-luong-min" };
       document.getElementById(ids[validation.field])?.focus(); return;
     }
     try {
@@ -303,7 +371,7 @@ export default function TinTuyenDungPage() {
             phuongThucLamViec: Number(form.phuongThucLamViec),
             luongToiThieu: Number(form.luongToiThieu),
             luongToiDa: Number(form.luongToiDa),
-            ngayHetHan: form.ngayHetHan ? form.ngayHetHan : null,
+            ngayHetHan: form.ngayHetHan ? parseDdMmYyyy(form.ngayHetHan) : null,
           }
         : {
             danhMucNgheId: Number(form.danhMucNgheId),
@@ -316,7 +384,7 @@ export default function TinTuyenDungPage() {
             phuongThucLamViec: Number(form.phuongThucLamViec),
             luongToiThieu: Number(form.luongToiThieu),
             luongToiDa: Number(form.luongToiDa),
-            ngayHetHan: form.ngayHetHan ? form.ngayHetHan : null,
+            ngayHetHan: form.ngayHetHan ? parseDdMmYyyy(form.ngayHetHan) : null,
           };
       const res: ApiResponse<unknown> = await apiFetch(url, { method: isEditing ? "PUT" : "POST", body: JSON.stringify({ ...body, kyNangs: form.kyNangs.map(({ kyNangId, mucDoYeuCau }) => ({ kyNangId, mucDoYeuCau })), expectedLastModified: editing?.lastModified }) });
       if (!ok(res)) throw new Error(msg(res) || "Không thể lưu");
@@ -413,109 +481,193 @@ export default function TinTuyenDungPage() {
       {err && <div role="alert" className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">{err}</div>}
 
       {showForm && (
-        <form noValidate onSubmit={e => void handleSubmit(e)} className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-          <div className="mb-5 flex items-center justify-between">
+        <form noValidate onSubmit={e => void handleSubmit(e)} className="space-y-5">
+          <div className="flex items-center justify-between">
             <div>
               <h2 className="font-medium text-foreground">{editing ? "Chỉnh sửa tin tuyển dụng" : "Tạo tin tuyển dụng mới"}</h2>
               <p className="mt-1 text-sm text-muted-foreground">Tin Nhân sự cần Người đại diện đồng ý trước khi hệ thống lọc. Tin Người đại diện đi thẳng đến bộ lọc. OK thì công khai; vi phạm/nghi vấn thì Admin quyết định.</p>
             </div>
             <Button type="button" variant="ghost" size="icon" onClick={resetForm}><X className="size-4" /></Button>
           </div>
-          {errField && <p id="ttd-field-error" role="alert" className="mb-4 text-sm text-destructive">{err}</p>}
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="ttd-tieu-de">Tiêu đề *</Label>
-              <Input id="ttd-tieu-de" aria-invalid={errField === "tieuDe"} value={form.tieuDe} onChange={e => setForm(f => ({ ...f, tieuDe: e.target.value }))} required placeholder="VD: Senior Frontend Developer" />
+          {errField && <p id="ttd-field-error" role="alert" className="text-sm text-destructive">{err}</p>}
+
+          {/* Card 1: Thông tin vị trí tuyển dụng */}
+          <section className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm space-y-5">
+            <h3 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-slate-500">
+              <Briefcase className="size-4 text-[#355C8C]" /> Thông tin vị trí tuyển dụng
+            </h3>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor="ttd-tieu-de">Tiêu đề *</Label>
+                <Input id="ttd-tieu-de" aria-invalid={errField === "tieuDe"} value={form.tieuDe} onChange={e => setForm(f => ({ ...f, tieuDe: e.target.value }))} required placeholder="VD: Senior Frontend Developer" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="ttd-danh-muc">Danh mục nghề *</Label>
+                <Select value={form.danhMucNgheId > 0 ? String(form.danhMucNgheId) : ""} onValueChange={value => setForm(f => ({ ...f, danhMucNgheId: Number(value) }))}>
+                  <SelectTrigger id="ttd-danh-muc" aria-invalid={errField === "danhMucNgheId"} className="h-10 w-full"><SelectValue placeholder="-- Chọn danh mục --" /></SelectTrigger>
+                  <SelectContent>
+                    {danhMucs.map(d => <SelectItem key={d.id} value={String(d.id)}>{d.tenNghe}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="ttd-phuong-thuc">Phương thức làm việc *</Label>
+                <Select value={form.phuongThucLamViec >= 0 ? String(form.phuongThucLamViec) : ""} onValueChange={value => setForm(f => ({ ...f, phuongThucLamViec: Number(value) }))}>
+                  <SelectTrigger id="ttd-phuong-thuc" aria-invalid={errField === "phuongThucLamViec"} className="h-10 w-full"><SelectValue placeholder="-- Chọn phương thức --" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="0">Onsite</SelectItem>
+                    <SelectItem value="1">Remote</SelectItem>
+                    <SelectItem value="2">Hybrid</SelectItem>
+                    <SelectItem value="3">Flexible</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor="ttd-dia-diem">Địa điểm *</Label>
+                <Input id="ttd-dia-diem" aria-invalid={errField === "diaDiemLamViec"} value={form.diaDiemLamViec} onChange={e => setForm(f => ({ ...f, diaDiemLamViec: e.target.value }))} required placeholder="VD: Hà Nội, TP. Hồ Chí Minh" />
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="ttd-danh-muc">Danh mục nghề *</Label>
-              <Select value={String(form.danhMucNgheId)} onValueChange={value => setForm(f => ({ ...f, danhMucNgheId: Number(value) }))}>
-                <SelectTrigger id="ttd-danh-muc" aria-invalid={errField === "danhMucNgheId"} className="h-10 w-full"><SelectValue placeholder="-- Chọn danh mục nghề --" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="0">-- Chọn danh mục nghề --</SelectItem>
-                  {danhMucs.map(d => <SelectItem key={d.id} value={String(d.id)}>{d.tenNghe}</SelectItem>)}
-                </SelectContent>
-              </Select>
+          </section>
+
+          {/* Card 2: Thời gian & đãi ngộ */}
+          <section className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm space-y-5">
+            <h3 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-slate-500">
+              <CalendarDays className="size-4 text-[#355C8C]" /> Thời gian &amp; đãi ngộ
+            </h3>
+            <div className="grid gap-4 md:grid-cols-3">
+              <div className="space-y-2">
+                <Label htmlFor="ttd-het-han">Ngày hết hạn</Label>
+                <Input
+                  id="ttd-het-han"
+                  aria-invalid={errField === "ngayHetHan"}
+                  inputMode="numeric"
+                  maxLength={10}
+                  value={form.ngayHetHan}
+                  onChange={e => {
+                    const digits = e.target.value.replace(/\D/g, "").slice(0, 8);
+                    const parts = [digits.slice(0, 2), digits.slice(2, 4), digits.slice(4, 8)].filter(Boolean);
+                    setForm(f => ({ ...f, ngayHetHan: parts.join("/") }));
+                  }}
+                  placeholder="DD/MM/YYYY"
+                />
+                <p className="text-xs text-muted-foreground">Không chọn ngày quá khứ. Nhận hồ sơ đến hết ngày đã chọn theo giờ Việt Nam.</p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="ttd-luong-min">Lương tối thiểu (VND)</Label>
+                <Input
+                  id="ttd-luong-min"
+                  aria-invalid={errField === "luong"}
+                  inputMode="numeric"
+                  value={fmtMoneyInput(form.luongToiThieu)}
+                  onChange={e => setForm(f => ({ ...f, luongToiThieu: parseMoney(e.target.value) }))}
+                  placeholder="VD: 10.000.000"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="ttd-luong-max">Lương tối đa (VND)</Label>
+                <Input
+                  id="ttd-luong-max"
+                  aria-invalid={errField === "luong"}
+                  inputMode="numeric"
+                  value={fmtMoneyInput(form.luongToiDa)}
+                  onChange={e => setForm(f => ({ ...f, luongToiDa: parseMoney(e.target.value) }))}
+                  placeholder="VD: 20.000.000"
+                />
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="ttd-dia-diem">Địa điểm *</Label>
-              <Input id="ttd-dia-diem" aria-invalid={errField === "diaDiemLamViec"} value={form.diaDiemLamViec} onChange={e => setForm(f => ({ ...f, diaDiemLamViec: e.target.value }))} required placeholder="VD: Hà Nội, TP. Hồ Chí Minh" />
+          </section>
+
+          {/* Card 3: Nội dung chi tiết */}
+          <section className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm space-y-5">
+            <h3 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-slate-500">
+              <FileText className="size-4 text-[#355C8C]" /> Nội dung chi tiết
+            </h3>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor="ttd-mo-ta">Mô tả công việc *</Label>
+                <textarea id="ttd-mo-ta" aria-invalid={errField === "moTaCongViec"} value={form.moTaCongViec} onChange={e => setForm(f => ({ ...f, moTaCongViec: e.target.value }))} rows={4} maxLength={5000} className="flex w-full rounded-lg border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" placeholder="Mô tả trách nhiệm, công việc hằng ngày..." />
+                <div className="flex justify-end"><span className="text-xs text-slate-400">{form.moTaCongViec.length}/5000 ký tự</span></div>
+              </div>
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor="ttd-yeu-cau">Yêu cầu công việc *</Label>
+                <textarea id="ttd-yeu-cau" aria-invalid={errField === "yeuCauCongViec"} value={form.yeuCauCongViec} onChange={e => setForm(f => ({ ...f, yeuCauCongViec: e.target.value }))} rows={4} maxLength={5000} className="flex w-full rounded-lg border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" placeholder="Yêu cầu kỹ năng, bằng cấp..." />
+                <div className="flex justify-end"><span className="text-xs text-slate-400">{form.yeuCauCongViec.length}/5000 ký tự</span></div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="ttd-kinh-nghiem">Kinh nghiệm yêu cầu</Label>
+                <textarea id="ttd-kinh-nghiem" value={form.kinhNghiemYeuCau} onChange={e => setForm(f => ({ ...f, kinhNghiemYeuCau: e.target.value }))} rows={2} maxLength={2000} className="flex w-full rounded-lg border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" placeholder="VD: 2+ năm kinh nghiệm React..." />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="ttd-quyen-loi">Quyền lợi</Label>
+                <textarea id="ttd-quyen-loi" value={form.quyenLoi} onChange={e => setForm(f => ({ ...f, quyenLoi: e.target.value }))} rows={2} maxLength={2000} className="flex w-full rounded-lg border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" placeholder="VD: Bảo hiểm, thưởng tháng 13..." />
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="ttd-phuong-thuc">Phương thức làm việc *</Label>
-              <Select value={String(form.phuongThucLamViec)} onValueChange={value => setForm(f => ({ ...f, phuongThucLamViec: Number(value) }))}>
-                <SelectTrigger id="ttd-phuong-thuc" className="h-10 w-full"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="0">Onsite</SelectItem>
-                  <SelectItem value="1">Remote</SelectItem>
-                  <SelectItem value="2">Hybrid</SelectItem>
-                  <SelectItem value="3">Flexible</SelectItem>
-                </SelectContent>
-              </Select>
+
+            <div className="border-t border-slate-100 pt-5">
+              <div className="space-y-2">
+                <Label htmlFor="ttd-ky-nang">Kỹ năng yêu cầu</Label>
+                <div className="relative">
+                  <Input
+                    id="ttd-ky-nang"
+                    value={skillQuery}
+                    placeholder="Gõ hoặc chọn kỹ năng (VD: React, Kubernetes...)"
+                    onChange={e => { setSkillQuery(e.target.value); setSkillOpen(true); setSkillError(""); }}
+                    onFocus={() => setSkillOpen(true)}
+                    onBlur={() => setSkillOpen(false)}
+                    onKeyDown={e => {
+                      if (e.key === "Escape") { setSkillOpen(false); return; }
+                      if (e.key !== "Enter") return;
+                      e.preventDefault();
+                      const q = skillQuery.trim();
+                      if (!q) return;
+                      const exact = skills.find(s => s.name.trim().toLowerCase() === q.toLowerCase());
+                      if (exact) addSkill(exact);
+                      else void createSkill(q);
+                    }}
+                  />
+                  {skillOpen && (() => {
+                    const q = skillQuery.trim().toLowerCase();
+                    const matched = skills.filter(s => !form.kyNangs.some(k => k.kyNangId === s.id) && (!q || s.name.toLowerCase().includes(q)));
+                    const exact = !!q && skills.some(s => s.name.trim().toLowerCase() === q);
+                    return (
+                      <ul className="absolute z-20 mt-1 max-h-56 w-full overflow-auto rounded-xl border border-slate-200 bg-white py-1 shadow-lg">
+                        {matched.length === 0 && !q && (
+                          <li className="px-3 py-2 text-sm text-slate-400">Chưa có kỹ năng nào trong kho.</li>
+                        )}
+                        {matched.slice(0, 50).map(s => (
+                          <li key={s.id}>
+                            <button type="button" onMouseDown={e => e.preventDefault()} onClick={() => addSkill(s)} className="w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50">
+                              {s.name}
+                            </button>
+                          </li>
+                        ))}
+                        {q && !exact && (
+                          <li>
+                            <button type="button" onMouseDown={e => e.preventDefault()} onClick={() => void createSkill(skillQuery.trim())} className="w-full px-3 py-2 text-left text-sm font-medium text-[#355C8C] hover:bg-slate-50">
+                              ＋ Thêm mới "{skillQuery.trim()}"
+                            </button>
+                          </li>
+                        )}
+                      </ul>
+                    );
+                  })()}
+                </div>
+                {skillError && <p role="alert" className="text-xs text-destructive">{skillError}</p>}
+                <div className="space-y-2">
+                  {form.kyNangs.map(skill => <div key={skill.kyNangId} className="flex flex-wrap items-center gap-3 rounded-lg border border-border p-3">
+                    <span className="flex-1 text-sm">{skill.tenKyNang || skills.find(s => s.id === skill.kyNangId)?.name}</span>
+                    <Select value={String(skill.mucDoYeuCau)} onValueChange={value => setForm(f => ({ ...f, kyNangs: f.kyNangs.map(k => k.kyNangId === skill.kyNangId ? { ...k, mucDoYeuCau: Number(value) } : k) }))}>
+                      <SelectTrigger aria-label={`Mức độ yêu cầu ${skill.tenKyNang}`} className="w-44"><SelectValue /></SelectTrigger>
+                      <SelectContent>{SKILL_LEVELS.map((label, i) => <SelectItem key={i} value={String(i)}>{label}</SelectItem>)}</SelectContent>
+                    </Select>
+                    <Button type="button" variant="ghost" aria-label={`Bỏ kỹ năng ${skill.tenKyNang}`} onClick={() => setForm(f => ({ ...f, kyNangs: f.kyNangs.filter(k => k.kyNangId !== skill.kyNangId) }))}><X className="size-4" /></Button>
+                  </div>)}
+                </div>
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="ttd-het-han">Ngày hết hạn</Label>
-              <Input id="ttd-het-han" type="date" value={form.ngayHetHan} onChange={e => setForm(f => ({ ...f, ngayHetHan: e.target.value }))} />
-              <p className="text-xs text-muted-foreground">Nhận hồ sơ đến hết ngày đã chọn theo giờ Việt Nam.</p>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="ttd-luong-min">Lương tối thiểu (VND)</Label>
-              <Input
-                id="ttd-luong-min"
-                aria-invalid={errField === "luong"}
-                inputMode="numeric"
-                value={fmtMoneyInput(form.luongToiThieu)}
-                onChange={e => setForm(f => ({ ...f, luongToiThieu: parseMoney(e.target.value) }))}
-                placeholder="VD: 10.000.000"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="ttd-luong-max">Lương tối đa (VND)</Label>
-              <Input
-                id="ttd-luong-max"
-                aria-invalid={errField === "luong"}
-                inputMode="numeric"
-                value={fmtMoneyInput(form.luongToiDa)}
-                onChange={e => setForm(f => ({ ...f, luongToiDa: parseMoney(e.target.value) }))}
-                placeholder="VD: 20.000.000"
-              />
-            </div>
-            <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="ttd-mo-ta">Mô tả công việc *</Label>
-              <textarea id="ttd-mo-ta" aria-invalid={errField === "moTaCongViec"} value={form.moTaCongViec} onChange={e => setForm(f => ({ ...f, moTaCongViec: e.target.value }))} rows={4} className="flex w-full rounded-lg border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" placeholder="Mô tả trách nhiệm, công việc hằng ngày..." />
-            </div>
-            <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="ttd-yeu-cau">Yêu cầu công việc *</Label>
-              <textarea id="ttd-yeu-cau" aria-invalid={errField === "yeuCauCongViec"} value={form.yeuCauCongViec} onChange={e => setForm(f => ({ ...f, yeuCauCongViec: e.target.value }))} rows={4} className="flex w-full rounded-lg border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" placeholder="Yêu cầu kỹ năng, bằng cấp..." />
-            </div>
-            <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="ttd-kinh-nghiem">Kinh nghiệm yêu cầu</Label>
-              <textarea id="ttd-kinh-nghiem" value={form.kinhNghiemYeuCau} onChange={e => setForm(f => ({ ...f, kinhNghiemYeuCau: e.target.value }))} rows={2} className="flex w-full rounded-lg border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" placeholder="VD: 2+ năm kinh nghiệm React..." />
-            </div>
-            <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="ttd-quyen-loi">Quyền lợi</Label>
-              <textarea id="ttd-quyen-loi" value={form.quyenLoi} onChange={e => setForm(f => ({ ...f, quyenLoi: e.target.value }))} rows={2} className="flex w-full rounded-lg border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" placeholder="VD: Bảo hiểm, thưởng tháng 13..." />
-            </div>
-          </div>
-          <div className="mt-5 space-y-3">
-            <Label>Kỹ năng yêu cầu</Label>
-            <Select value="" onValueChange={value => {
-              const skill = skills.find(s => s.id === Number(value));
-              if (skill) setForm(f => ({ ...f, kyNangs: [...f.kyNangs, { kyNangId: skill.id, tenKyNang: skill.name, mucDoYeuCau: 2 }] }));
-            }}>
-              <SelectTrigger className="w-full" aria-label="Thêm kỹ năng"><SelectValue placeholder="Chọn kỹ năng để thêm" /></SelectTrigger>
-              <SelectContent>{skills.filter(s => !form.kyNangs.some(k => k.kyNangId === s.id)).map(s => <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>)}</SelectContent>
-            </Select>
-            {form.kyNangs.map(skill => <div key={skill.kyNangId} className="flex flex-wrap items-center gap-3 rounded-lg border border-border p-3">
-              <span className="flex-1 text-sm">{skill.tenKyNang || skills.find(s => s.id === skill.kyNangId)?.name}</span>
-              <Select value={String(skill.mucDoYeuCau)} onValueChange={value => setForm(f => ({ ...f, kyNangs: f.kyNangs.map(k => k.kyNangId === skill.kyNangId ? { ...k, mucDoYeuCau: Number(value) } : k) }))}>
-                <SelectTrigger aria-label={`Mức độ yêu cầu ${skill.tenKyNang}`} className="w-44"><SelectValue /></SelectTrigger>
-                <SelectContent>{SKILL_LEVELS.map((label, i) => <SelectItem key={i} value={String(i)}>{label}</SelectItem>)}</SelectContent>
-              </Select>
-              <Button type="button" variant="ghost" aria-label={`Bỏ kỹ năng ${skill.tenKyNang}`} onClick={() => setForm(f => ({ ...f, kyNangs: f.kyNangs.filter(k => k.kyNangId !== skill.kyNangId) }))}><X className="size-4" /></Button>
-            </div>)}
-          </div>
-          <div className="mt-5 flex flex-wrap justify-end gap-2">
+          </section>
+
+          <div className="flex flex-wrap justify-end gap-2">
             <Button type="button" variant="outline" onClick={resetForm} disabled={saving}>Hủy</Button>
             <Button type="button" variant="outline" onClick={() => { setReviewing(null); setPreview(form); }} disabled={saving}><Eye className="size-4" /> Xem trước</Button>
             <Button type="submit" variant="outline" disabled={saving}>{saving ? "Đang xử lý..." : "Lưu nháp"}</Button>
