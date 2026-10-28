@@ -23,6 +23,7 @@ import {
 } from '@/features/auth/components/auth-ui';
 import { validatePassword, validatePasswordConfirmation } from '@/features/auth/validation';
 import { useTheme } from '@/hooks/use-theme';
+import { safeBack } from '@/utils/navigation';
 
 export default function ChangePasswordScreen() {
   const theme = useTheme();
@@ -72,7 +73,7 @@ export default function ChangePasswordScreen() {
           accessibilityLabel="Quay lại"
           disabled={submitting}
           hitSlop={8}
-          onPress={() => router.back()}
+          onPress={() => safeBack('/profile')}
           style={({ pressed }) => [styles.backButton, { opacity: pressed ? 0.6 : 1 }]}>
           <ArrowLeft size={20} color={theme.text} />
         </Pressable>

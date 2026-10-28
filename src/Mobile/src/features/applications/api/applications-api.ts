@@ -281,11 +281,6 @@ export const applicationsApi = {
     return { source: 'api', message };
   },
 
-  /**
-   * Trang đơn ứng tuyển (bản web: /viec-lam/da-ung-tuyen).
-   * Nhận cả 2 kiểu query: { page, pageSize } (màn Applications) và
-   * { offset, limit } (use-applications) — chuẩn hóa về offset/limit.
-   */
   async listPage(params: {
     page?: number;
     pageSize?: number;
@@ -322,7 +317,6 @@ export const applicationsApi = {
       .map((row, index) => normalizeApplication(row, index))
       .filter((application): application is ApplicationSummary => application !== null);
 
-    // Đơn cũ thiếu thông tin tin tuyển → lấy thêm chi tiết (bản web enrich từng jobId).
     const missingIds = [
       ...new Set(
         items

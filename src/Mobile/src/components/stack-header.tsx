@@ -1,12 +1,12 @@
 import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { ArrowLeft } from 'lucide-react-native';
-import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { font } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { safeBack } from '@/utils/navigation';
 
 type StackHeaderProps = {
   title: string;
@@ -23,11 +23,7 @@ export function StackHeader({ title, right, onBack }: StackHeaderProps) {
       onBack();
       return;
     }
-    if (router.canGoBack()) {
-      router.back();
-      return;
-    }
-    router.replace('/profile');
+    safeBack('/profile');
   };
 
   return (

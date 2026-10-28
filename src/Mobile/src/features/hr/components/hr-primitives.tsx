@@ -1,6 +1,5 @@
 import { type ReactNode } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
-import { router } from 'expo-router';
 import { ArrowLeft } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -10,6 +9,7 @@ import { font, Radius } from '@/constants/theme';
 import { getApplicationStatus } from '@/features/applications/constants';
 import { getJobStatus } from '@/features/hr/constants';
 import { useTheme } from '@/hooks/use-theme';
+import { safeBack } from '@/utils/navigation';
 
 /* ------------------------------------------------------------------ */
 /* Top bar cho route ngoài tab (/hr/*) — theo pattern companies/[id]   */
@@ -29,7 +29,7 @@ export function HrTopBar({
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="Quay lại"
-        onPress={() => router.back()}
+        onPress={() => safeBack('/(hr)')}
         hitSlop={8}
         style={({ pressed }) => [styles.topBarSide, { opacity: pressed ? 0.6 : 1 }]}
       >

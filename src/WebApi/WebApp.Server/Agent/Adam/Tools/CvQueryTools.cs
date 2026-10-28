@@ -40,14 +40,14 @@ internal sealed class CvQueryTools
     [Description(
         "Lấy hồ sơ ứng viên - Profile của ứng viên đang đăng nhập hiện tại. " +
         "Gọi trước khi tư vấn hoặc tạo nội dung CV cần dữ liệu hồ sơ thật.")]
-    public Task<ProfileToolResult> GetMyProfileAsync(
+    public Task<Response<GetAllHoSoUngViensViewModel>> GetMyProfileAsync(
         CancellationToken cancellationToken = default)
         => _toolCache.GetOrCreateAsync(
             "get_my_profile", null,
             () => GetMyProfileCoreAsync(cancellationToken),
             cancellationToken);
 
-    private async Task<ProfileToolResult> GetMyProfileCoreAsync(
+    private async Task<Response<GetAllHoSoUngViensViewModel>> GetMyProfileCoreAsync(
         CancellationToken cancellationToken)
     {
         _logger.LogInformation("Adam tool get_my_profile đã bắt đầu.");
@@ -58,31 +58,16 @@ internal sealed class CvQueryTools
             if (!response.Succeeded || response.Data == null)
             {
                 _logger.LogWarning("Adam tool get_my_profile không trả về hồ sơ nào. Succeeded={Succeeded}, Message={Message}", response.Succeeded, response.Message);
-                return new ProfileToolResult
-                {
-                    Succeeded = false,
-                    Message = response.Message ?? "Chưa có hồ sơ ứng viên.",
-                    Profile = new GetAllHoSoUngViensViewModel()
-                };
+                return new Response<GetAllHoSoUngViensViewModel>(response.Message ?? "Chưa có hồ sơ ứng viên.");
             }
 
             _logger.LogInformation("Adam tool get_my_profile hoàn tất. ProfileId={ProfileId}", response.Data.Id);
-            return new ProfileToolResult
-            {
-                Succeeded = true,
-                Message = "Đã lấy hồ sơ ứng viên hiện tại.",
-                Profile = response.Data
-            };
+            return response;
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             _logger.LogError(ex, "Adam tool get_my_profile thất bại.");
-            return new ProfileToolResult
-            {
-                Succeeded = false,
-                Message = "Không thể lấy hồ sơ ứng viên hiện tại.",
-                Profile = new GetAllHoSoUngViensViewModel()
-            };
+            return new Response<GetAllHoSoUngViensViewModel>("Không thể lấy hồ sơ ứng viên hiện tại.");
         }
     }
 
@@ -204,9 +189,4 @@ internal sealed class CvQueryTools
     }
 }
 
-public sealed class ProfileToolResult
-{
-    public bool Succeeded { get; set; }
-    public string Message { get; set; } = string.Empty;
-    public GetAllHoSoUngViensViewModel Profile { get; set; } = new();
-}
+ 

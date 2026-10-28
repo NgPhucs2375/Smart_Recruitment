@@ -114,9 +114,25 @@ internal sealed class AgentToolCache
     private static bool IsFailedResponse(object? result)
     {
         if (result is null) return false;
+
         var type = result.GetType();
-        if (!type.IsGenericType || type.GetGenericTypeDefinition() != typeof(Response<>)) return false;
-        return type.GetProperty(nameof(Response<object>.Succeeded))?.GetValue(result) is false;
+
+        // 1. Truong hop ;a generic Response<T> chuan cua he thong
+        if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Response<>))
+        {
+            return type.GetProperty(nameof(Response<object>.Succeeded))?.GetValue(result) is false;
+        }
+
+        // 2. Truong hop la cac DTO ket qua tuy bien (nhu ProfileToolResult) co thuoc tinh Succeeded
+        var succeededProp = type.GetProperty("Succeeded");
+        if (succeededProp != null &&
+            succeededProp.PropertyType == typeof(bool) &&
+            succeededProp.CanRead)
+        {
+            return succeededProp.GetValue(result) is false;
+        }
+
+        return false;
     }
 
     private static string BuildKey(int userId, string toolName, object? args)

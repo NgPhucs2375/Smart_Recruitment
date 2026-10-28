@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
-import { router, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { Plus, Send, X } from 'lucide-react-native';
 
 import { ThemedText } from '@/components/themed-text';
@@ -22,6 +22,7 @@ import {
 import { JOB_TRIGGER, SKILL_LEVELS, WORK_MODES } from '@/features/hr/constants';
 import type { FilterOption, HrJob, JobFormInput } from '@/features/hr/types';
 import { useTheme } from '@/hooks/use-theme';
+import { safeBack } from '@/utils/navigation';
 
 type FormState = JobFormInput;
 
@@ -216,7 +217,7 @@ export function JobFormScreen() {
         setNotice(message || (submit ? 'Đã gửi duyệt.' : 'Đã lưu nháp.'));
         setSaving(false);
         // Trở về danh sách sau khi lưu (danh sách tự tải lại khi focus).
-        router.back();
+        safeBack('/(hr)');
       } catch (reason) {
         if (!mountedRef.current) return;
         setError(reason instanceof Error ? reason.message : 'Không thể lưu');

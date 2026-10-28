@@ -1,4 +1,4 @@
-import { Redirect, router, type Href } from 'expo-router';
+import { Redirect, router, usePathname, type Href } from 'expo-router';
 import { useMemo, useState } from 'react';
 import {
   FlatList,
@@ -42,6 +42,8 @@ type TypeFilter = 'all' | ChatConversationType;
 export default function ChatListScreen() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
+  const pathname = usePathname();
+  const basePath = pathname.startsWith('/hr/messages') ? '/hr/messages' : '/chat';
   const { user } = useAuth();
   const allowed = canUseInternalChat(user?.roles);
 
@@ -85,7 +87,7 @@ export default function ChatListScreen() {
   const groupCount = conversations.filter((item) => item.type === 1).length;
 
   const openConversation = (item: ChatConversation) => {
-    router.push(`/chat/${item.id}` as Href);
+    router.push(`${basePath}/${item.id}` as Href);
   };
 
   const openSheet = () => {
@@ -98,7 +100,7 @@ export default function ChatListScreen() {
     const conversation = await createConversation(input);
     if (conversation) {
       setSheetOpen(false);
-      router.push(`/chat/${conversation.id}` as Href);
+      router.push(`${basePath}/${conversation.id}` as Href);
     }
     return conversation;
   };

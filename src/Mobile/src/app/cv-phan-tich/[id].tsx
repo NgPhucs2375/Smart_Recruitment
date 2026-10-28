@@ -14,6 +14,7 @@ import {
 } from 'lucide-react-native';
 
 import { ThemedText } from '@/components/themed-text';
+import { safeBack } from '@/utils/navigation';
 import { Button } from '@/components/ui/button';
 import { font, Radius } from '@/constants/theme';
 import { USE_MOCK_JOBS } from '@/features/jobs/api/jobs-api';
@@ -125,7 +126,7 @@ export default function CvPhanTichScreen() {
         <Button
           variant="ghost"
           size="icon"
-          onPress={() => router.back()}
+          onPress={() => safeBack('/tao-cv')}
           accessibilityLabel="Quay lại"
           icon={<ArrowLeft size={18} color={theme.text} />}
         />

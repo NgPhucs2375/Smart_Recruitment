@@ -39,6 +39,7 @@ import {
 import { isoToVnDate, maskDateVn, vnToIsoDate } from '@/features/profile/format-date';
 import type { CandidateProfile } from '@/features/profile/types';
 import { useTheme } from '@/hooks/use-theme';
+import { safeBack } from '@/utils/navigation';
 
 // —— Helpers định dạng (clone từ web lib/format-vnd + tao-cv/cv-data) ——
 
@@ -185,7 +186,7 @@ export default function ProfileEditScreen() {
         Alert.alert(
           'Thành công',
           hasProfile ? 'Cập nhật hồ sơ thành công!' : 'Tạo hồ sơ ứng viên thành công!',
-          [{ text: 'OK', onPress: () => router.back() }],
+          [{ text: 'OK', onPress: () => safeBack('/profile') }],
         );
       } catch (error) {
         setFormError(error instanceof Error ? error.message : 'Có lỗi xảy ra khi lưu hồ sơ.');
@@ -212,7 +213,7 @@ export default function ProfileEditScreen() {
           accessibilityLabel="Quay lại"
           disabled={saving}
           hitSlop={8}
-          onPress={() => router.back()}
+          onPress={() => safeBack('/profile')}
           style={({ pressed }) => [styles.backButton, { opacity: pressed ? 0.6 : 1 }]}>
           <ArrowLeft size={20} color={theme.text} />
         </Pressable>
@@ -507,7 +508,7 @@ export default function ProfileEditScreen() {
               <View style={[styles.actions, { borderTopColor: `${theme.border}80` }]}>
                 <Button
                   disabled={saving}
-                  onPress={() => router.back()}
+                  onPress={() => safeBack('/profile')}
                   style={styles.cancelButton}
                   variant="outline">
                   Hủy bỏ

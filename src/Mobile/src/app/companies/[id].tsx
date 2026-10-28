@@ -20,6 +20,7 @@ import {
 } from 'lucide-react-native';
 
 import { ThemedText } from '@/components/themed-text';
+import { safeBack } from '@/utils/navigation';
 import { Card, Monogram } from '@/components/ui/card';
 import { font, Palette, Radius } from '@/constants/theme';
 import { companyInitials, companiesApi } from '@/features/companies/api/companies-api';
@@ -122,7 +123,7 @@ export default function CompanyDetailScreen() {
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Quay lại"
-          onPress={() => router.back()}
+          onPress={() => safeBack('/companies')}
           hitSlop={8}
           style={({ pressed }) => [styles.backButton, { opacity: pressed ? 0.6 : 1 }]}>
           <ArrowLeft size={20} color={theme.text} />

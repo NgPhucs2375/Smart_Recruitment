@@ -8,16 +8,23 @@ import { MaxContentWidth, Spacing } from '@/constants/theme';
 import { useAuth } from '@/features/auth';
 import { canUseInternalChat } from '@/features/chat/roles';
 import { useTheme } from '@/hooks/use-theme';
+import { useResponsive } from '@/hooks/use-responsive';
 
 export default function AppTabs() {
   const theme = useTheme();
+  const { isCompact } = useResponsive();
   const { user } = useAuth();
   const canChat = canUseInternalChat(user?.roles);
 
   return (
     <Tabs>
       <TabSlot style={styles.content} />
-      <TabList style={[styles.tabList, { borderTopColor: theme.border, backgroundColor: theme.backgroundElement }]}>
+      <TabList
+        style={[
+          styles.tabList,
+          isCompact && styles.compactTabList,
+          { borderTopColor: theme.border, backgroundColor: theme.backgroundElement },
+        ]}>
         <TabTrigger name="index" href="/" asChild>
           <TabButton label="Việc làm" />
         </TabTrigger>
@@ -68,11 +75,12 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     width: '100%',
     maxWidth: MaxContentWidth,
-    paddingHorizontal: Spacing.two,
+    paddingHorizontal: Spacing.four,
     paddingTop: Spacing.two,
     paddingBottom: Spacing.three,
     borderTopWidth: StyleSheet.hairlineWidth,
   },
+  compactTabList: { paddingHorizontal: Spacing.one },
   tabButton: { flex: 1 },
   tabPill: {
     minHeight: 42,
@@ -80,5 +88,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  tabLabel: { fontSize: 12, fontWeight: '600' },
+  tabLabel: { fontSize: 12, fontWeight: '600', flexShrink: 1 },
 });

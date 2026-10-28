@@ -30,8 +30,8 @@ import {
   CvDetailBody,
   CvVersionsSection,
 } from '@/features/cv/components/cv-detail-sections';
-import { formatCvDate, sourceLabel } from '@/features/cv/cv-format';
-import type { CvDetail, CvVersion } from '@/features/cv/types';
+import { formatCvDate, sourceFromMethod, sourceLabel } from '@/features/cv/cv-format';
+import type { CvDetailVm, CvVersionVm } from '@/features/cv/types';
 import { useTheme } from '@/hooks/use-theme';
 
 type Notice = {
@@ -46,10 +46,10 @@ function getParam(value: string | string[] | undefined): string {
   return value ?? '';
 }
 
-function latestVersion(versions: CvVersion[]): CvVersion | null {
+function latestVersion(versions: CvVersionVm[]): CvVersionVm | null {
   if (versions.length === 0) return null;
   return versions.reduce((latest, current) =>
-    current.number > latest.number ? current : latest,
+    current.soPhienBan > latest.soPhienBan ? current : latest,
   );
 }
 
@@ -69,8 +69,8 @@ export default function CvDetailScreen() {
   const params = useLocalSearchParams<{ id?: string | string[] }>();
   const id = getParam(params.id);
 
-  const [detail, setDetail] = useState<CvDetail | null>(null);
-  const [versions, setVersions] = useState<CvVersion[]>([]);
+  const [detail, setDetail] = useState<CvDetailVm | null>(null);
+  const [versions, setVersions] = useState<CvVersionVm[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState<Notice | null>(null);
@@ -88,7 +88,7 @@ export default function CvDetailScreen() {
     setError('');
     try {
       const [detailResult, versionsResult] = await Promise.allSettled([
-        cvApi.getById(id),
+        cvApi.getDetail(id),
         cvApi.getVersions(id),
       ]);
 
@@ -117,9 +117,9 @@ export default function CvDetailScreen() {
     setBusy('default');
     setNotice(null);
     try {
-      const message = await cvApi.setDefault(detail.id);
+      await cvApi.setDefault(String(detail.id));
       setDetail({ ...detail, isDefault: true });
-      setNotice({ kind: 'success', text: message });
+      setNotice({ kind: 'success', text: 'Đã đặt CV làm mặc định.' });
     } catch (reason) {
       setNotice({
         kind: 'error',
@@ -140,11 +140,13 @@ export default function CvDetailScreen() {
 
     try {
       const hasOriginal =
-        detail.method === 2 || versions.some((version) => version.hasOriginal);
-      const target = await cvApi.getDownloadUrl(detail.id, {
-        original: hasOriginal,
-      });
-      const fileName = safeFileName(target.name, detail.id);
+        detail.phuongThucTao === 2 || versions.some((version) => version.hasOriginal);
+      const target = await cvApi.getDownloadUrl(
+        String(detail.id),
+        undefined,
+        hasOriginal,
+      );
+      const fileName = safeFileName(target.tenFile, String(detail.id));
 
       if (Platform.OS === 'web') {
         await Linking.openURL(target.url);
@@ -191,7 +193,7 @@ export default function CvDetailScreen() {
     setBusy('delete');
     setNotice(null);
     try {
-      await cvApi.deleteCv(detail.id);
+      await cvApi.remove(String(detail.id));
       setConfirmDelete(false);
       router.replace('/cvs');
     } catch (reason) {
@@ -210,9 +212,9 @@ export default function CvDetailScreen() {
 
   const latest = latestVersion(versions);
   const updatedAt = latest
-    ? formatCvDate(latest.createdAt)
+    ? formatCvDate(latest.created)
     : detail
-      ? detail.uploadedAt
+      ? formatCvDate(detail.ngayUpload)
       : '';
 
   return (
@@ -251,10 +253,10 @@ export default function CvDetailScreen() {
               </View>
               <View style={styles.heroCopy}>
                 <ThemedText style={[styles.heroName, { color: theme.text }]}>
-                  {detail.name}
+                  {detail.tenFile}
                 </ThemedText>
                 <ThemedText style={[styles.heroRole, { color: theme.textSecondary }]}>
-                  {detail.role || 'Chưa cập nhật vị trí ứng tuyển'}
+                  {detail.viTriUngTuyen || 'Chưa cập nhật vị trí ứng tuyển'}
                 </ThemedText>
                 <View style={styles.heroBadges}>
                   {detail.isDefault ? (
@@ -267,7 +269,7 @@ export default function CvDetailScreen() {
                     </Badge>
                   ) : null}
                   <Badge variant="secondary" textStyle={styles.heroBadgeText}>
-                    {sourceLabel(detail.source)}
+                    {sourceLabel(sourceFromMethod(detail.phuongThucTao))}
                   </Badge>
                 </View>
               </View>
@@ -354,7 +356,7 @@ export default function CvDetailScreen() {
       <ConfirmDialog
         visible={confirmDelete}
         title="Xóa CV?"
-        message={`CV “${detail?.name ?? ''}” sẽ bị xóa khỏi danh sách. Thao tác này không thể hoàn tác.`}
+        message={`CV “${detail?.tenFile ?? ''}” sẽ bị xóa khỏi danh sách. Thao tác này không thể hoàn tác.`}
         confirmLabel="Xóa CV"
         destructive
         busy={busy === 'delete'}

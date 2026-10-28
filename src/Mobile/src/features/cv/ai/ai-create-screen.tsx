@@ -24,6 +24,7 @@ import {
 } from 'lucide-react-native';
 
 import { ThemedText } from '@/components/themed-text';
+import { safeBack } from '@/utils/navigation';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { font, Palette, Radius } from '@/constants/theme';
@@ -194,7 +195,7 @@ export function AiCreateScreen() {
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Quay lại"
-          onPress={() => router.back()}
+          onPress={() => safeBack('/tao-cv')}
           hitSlop={8}
           style={({ pressed }) => [styles.backButton, { opacity: pressed ? 0.6 : 1 }]}>
           <ArrowLeft size={20} color={theme.text} />

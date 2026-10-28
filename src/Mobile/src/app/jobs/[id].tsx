@@ -15,6 +15,7 @@ import {
 } from 'lucide-react-native';
 
 import { ThemedText } from '@/components/themed-text';
+import { safeBack } from '@/utils/navigation';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Monogram } from '@/components/ui/card';
@@ -99,7 +100,7 @@ export default function JobDetailsScreen() {
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Quay lại"
-          onPress={() => router.back()}
+          onPress={() => safeBack('/')}
           hitSlop={8}
           style={({ pressed }) => [styles.backButton, { opacity: pressed ? 0.6 : 1 }]}>
           <ArrowLeft size={20} color={theme.text} />

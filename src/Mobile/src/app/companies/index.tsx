@@ -1,4 +1,4 @@
-import { router } from 'expo-router';
+import { Link, router } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
@@ -104,14 +104,15 @@ export default function CompaniesScreen() {
     <SafeAreaView style={[styles.root, { backgroundColor: theme.background }]} edges={['top']}>
       {/* Top bar — back + tiêu đề (routes ngoài tabs cần header riêng). */}
       <View style={[styles.topBar, { borderBottomColor: theme.border, backgroundColor: theme.backgroundElement }]}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Quay lại"
-          onPress={() => router.back()}
-          hitSlop={8}
-          style={({ pressed }) => [styles.backButton, { opacity: pressed ? 0.6 : 1 }]}>
-          <ArrowLeft size={20} color={theme.text} />
-        </Pressable>
+        <Link href="/" asChild>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Quay lại"
+            hitSlop={8}
+            style={({ pressed }) => [styles.backButton, { opacity: pressed ? 0.6 : 1 }]}>
+            <ArrowLeft size={20} color={theme.text} />
+          </Pressable>
+        </Link>
         <ThemedText style={styles.topBarTitle}>Khám phá công ty</ThemedText>
         <View style={styles.backButton} />
       </View>
@@ -325,6 +326,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 8,
     borderBottomWidth: StyleSheet.hairlineWidth,
+    position: 'relative',
+    zIndex: 10,
+    elevation: 10,
   },
   backButton: {
     width: 44,

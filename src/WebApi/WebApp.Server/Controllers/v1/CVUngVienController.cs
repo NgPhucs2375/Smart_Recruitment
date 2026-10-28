@@ -3,6 +3,7 @@ using Application.Features.CVUngVien.Commands.CreateCVUngVien;
 using Application.Features.CVUngVien.Commands.DeleteCVUngVien;
 using Application.Features.CVUngVien.Commands.ImportCvUngVien;
 using Application.Features.CVUngVien.Commands.ParseCvText;
+using Application.Features.CVUngVien.Commands.ParseCvImport;
 using Application.Features.CVUngVien.Commands.PrepareCvImport;
 using Application.Features.CVUngVien.Commands.SaveCvVersion;
 using Application.Features.CVUngVien.Commands.UpdateCVUngVien;
@@ -138,6 +139,19 @@ namespace WebApp.Server.Controllers.v1
                 {
                     return Ok(await Mediator.Send(command));
                 });
+        }
+
+        [HttpPost("import/{sessionId:guid}/parse")]
+        public async Task<IActionResult> ParseImport(
+            Guid sessionId,
+            CancellationToken cancellationToken)
+        {
+            return await EnforcePermissionAndExecute(
+                "cvungviens",
+                "create",
+                async () => Ok(await Mediator.Send(
+                    new ParseCvImportCommand { SessionId = sessionId },
+                    cancellationToken)));
         }
 
         [HttpPost("{id:int}/set-default")]

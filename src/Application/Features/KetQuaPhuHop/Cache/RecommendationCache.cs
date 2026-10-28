@@ -1,3 +1,5 @@
+#nullable enable
+
 using System.Text.Json;
 using Application.Features.KetQuaPhuHop.Matching;
 using Microsoft.Extensions.Caching.Distributed;
@@ -26,7 +28,17 @@ public static class RecommendationCache
         string key,
         CancellationToken cancellationToken)
     {
-        return await cache.GetStringAsync(key, cancellationToken) ?? "initial";
+        try
+        {
+            return await cache.GetStringAsync(key, cancellationToken) ?? "initial";
+        }
+        catch (Exception)
+        {
+            // Redis chứa key cùng tên nhưng khác kiểu (ví dụ đặt tay bằng
+            // redis-cli SET). Xoá để lần ghi sau tạo lại đúng định dạng hash.
+            await TryRemoveAsync(cache, key, cancellationToken);
+            return "initial";
+        }
     }
 
     public static async Task<T?> GetAsync<T>(
@@ -34,7 +46,17 @@ public static class RecommendationCache
         string key,
         CancellationToken cancellationToken)
     {
-        var value = await cache.GetStringAsync(key, cancellationToken);
+        string? value;
+        try
+        {
+            value = await cache.GetStringAsync(key, cancellationToken);
+        }
+        catch (Exception)
+        {
+            await TryRemoveAsync(cache, key, cancellationToken);
+            return default;
+        }
+
         if (string.IsNullOrWhiteSpace(value))
             return default;
         try
@@ -48,16 +70,31 @@ public static class RecommendationCache
         }
     }
 
-    public static Task SetAsync<T>(
+    public static async Task SetAsync<T>(
         IDistributedCache cache,
         string key,
         T value,
-        CancellationToken cancellationToken) =>
-        cache.SetStringAsync(
-            key,
-            JsonSerializer.Serialize(value),
-            new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = Ttl },
-            cancellationToken);
+        CancellationToken cancellationToken)
+    {
+        var payload = JsonSerializer.Serialize(value);
+        var options = new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = Ttl };
+        try
+        {
+            await cache.SetStringAsync(key, payload, options, cancellationToken);
+        }
+        catch (Exception)
+        {
+            await TryRemoveAsync(cache, key, cancellationToken);
+            try
+            {
+                await cache.SetStringAsync(key, payload, options, cancellationToken);
+            }
+            catch (Exception)
+            {
+                // Cache là best-effort: lỗi Redis không được làm hỏng request.
+            }
+        }
+    }
 
     public static Task InvalidateJobsAsync(
         IDistributedCache cache,
@@ -69,9 +106,42 @@ public static class RecommendationCache
         CancellationToken cancellationToken) =>
         SetVersionAsync(cache, CandidatePoolVersionKey, cancellationToken);
 
-    private static Task SetVersionAsync(
+    private static async Task SetVersionAsync(
         IDistributedCache cache,
         string key,
-        CancellationToken cancellationToken) =>
-        cache.SetStringAsync(key, Guid.NewGuid().ToString("N"), cancellationToken);
+        CancellationToken cancellationToken)
+    {
+        var value = Guid.NewGuid().ToString("N");
+        try
+        {
+            await cache.SetStringAsync(key, value, cancellationToken);
+        }
+        catch (Exception)
+        {
+            await TryRemoveAsync(cache, key, cancellationToken);
+            try
+            {
+                await cache.SetStringAsync(key, value, cancellationToken);
+            }
+            catch (Exception)
+            {
+                // Cache là best-effort: bỏ qua lỗi Redis.
+            }
+        }
+    }
+
+    private static async Task TryRemoveAsync(
+        IDistributedCache cache,
+        string key,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await cache.RemoveAsync(key, cancellationToken);
+        }
+        catch (Exception)
+        {
+            // Không xoá được thì thôi; lần đọc sau vẫn trả cache-miss an toàn.
+        }
+    }
 }

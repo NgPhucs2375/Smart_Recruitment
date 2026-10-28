@@ -13,6 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, FilePlus2, LayoutTemplate, Sparkles, Upload } from 'lucide-react-native';
 
 import { ThemedText } from '@/components/themed-text';
+import { safeBack } from '@/utils/navigation';
 import { Badge, PillBadge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -183,7 +184,7 @@ export default function CvListScreen() {
         <Button
           variant="ghost"
           size="icon"
-          onPress={() => router.back()}
+          onPress={() => safeBack('/')}
           accessibilityLabel="Quay lại"
           icon={<ArrowLeft size={18} color={theme.text} />}
         />

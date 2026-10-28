@@ -2,6 +2,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import { Alert } from 'react-native';
 
 import { cvApi } from '../api/cv-api';
+import { normalizeCvDetail } from '../api/cv-api';
 import {
   fileExtension,
   parseJsonImportText,
@@ -63,21 +64,32 @@ export async function runCvImport(hoSoId: number): Promise<CvImportOutcome | nul
     return null;
   }
 
-  if (fileExtension(asset.name) === '.json') {
-    try {
+  try {
+    if (fileExtension(asset.name) === '.json') {
       const text = await (await fetch(asset.uri)).text();
       const partial = parseJsonImportText(text, asset.name);
       return { kind: 'content', partial, sessionId, fileName: asset.name };
-    } catch {
-      return askManualContinue(sessionId, asset.name, 'Không đọc được nội dung file JSON.');
     }
-  }
 
-  return askManualContinue(
-    sessionId,
-    asset.name,
-    'Ứng dụng chưa trích xuất nội dung PDF/DOC/DOCX trên điện thoại.',
-  );
+    const parsed = normalizeCvDetail(await cvApi.parseImport(sessionId));
+    return {
+      kind: 'content',
+      partial: {
+        ...parsed.noiDung,
+        tenFile: parsed.tenFile || asset.name,
+      },
+      sessionId,
+      fileName: asset.name,
+    };
+  } catch (reason) {
+    return askManualContinue(
+      sessionId,
+      asset.name,
+      reason instanceof Error
+        ? reason.message
+        : 'Không thể phân tích nội dung CV trên máy chủ.',
+    );
+  }
 }
 
 function askManualContinue(

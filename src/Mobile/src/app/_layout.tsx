@@ -5,7 +5,7 @@ import {
   BeVietnamPro_700Bold,
   useFonts,
 } from '@expo-google-fonts/be-vietnam-pro';
-import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
+import { DarkTheme, DefaultTheme, Stack, ThemeProvider, useRouter, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
@@ -52,6 +52,17 @@ export default function RootLayout() {
 function RootNavigator() {
   const colorScheme = useColorScheme();
   const { status, user, signOut } = useAuth();
+  const router = useRouter();
+  const segments = useSegments();
+
+  // Sau khi đăng xuất, luôn đưa về trang đăng nhập. Các màn hình ứng viên
+  // (cvs, applications, ...) nằm ngoài nhóm (auth) nên nếu không chặn,
+  // Stack.Protected sẽ chọn chúng làm "first available screen" thay vì /login.
+  useEffect(() => {
+    if (status === 'signedOut' && segments[0] !== '(auth)') {
+      router.replace('/login');
+    }
+  }, [status, segments, router]);
 
   // Đang khôi phục phiên đăng nhập: giữ màn hình chờ, tránh nháy màn hình đăng nhập.
   if (status === 'loading') {
@@ -108,9 +119,19 @@ function RootNavigator() {
 
         <Stack.Protected guard={isSignedIn && portal === 'candidate'}>
           <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="applications" options={{ headerShown: false }} />
+          <Stack.Screen name="change-password" options={{ headerShown: false }} />
+          <Stack.Screen name="chat/[id]" options={{ headerShown: false }} />
           <Stack.Screen name="jobs/[id]" options={{ headerShown: false }} />
           <Stack.Screen name="companies/index" options={{ headerShown: false }} />
           <Stack.Screen name="companies/[id]" options={{ headerShown: false }} />
+          <Stack.Screen name="cvs" options={{ headerShown: false }} />
+          <Stack.Screen name="cv-agent" options={{ headerShown: false }} />
+          <Stack.Screen name="cv-create" options={{ headerShown: false }} />
+          <Stack.Screen name="cv-detail" options={{ headerShown: false }} />
+          <Stack.Screen name="cv-upload" options={{ headerShown: false }} />
+          <Stack.Screen name="notifications" options={{ headerShown: false }} />
+          <Stack.Screen name="profile-edit" options={{ headerShown: false }} />
           <Stack.Screen name="tao-cv" options={{ headerShown: false }} />
           <Stack.Screen name="tao-cv/[id]" options={{ headerShown: false }} />
           <Stack.Screen name="tao-cv/ai" options={{ headerShown: false }} />

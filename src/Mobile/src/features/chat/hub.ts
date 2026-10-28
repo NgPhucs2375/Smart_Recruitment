@@ -5,17 +5,21 @@ import {
   type HubConnection,
 } from '@microsoft/signalr';
 
-import { getWebOrigin } from '@/features/cv/preview-url';
 import { getAccessToken } from '@/services/api/client';
+import { getSignalRHubUrl } from '@/services/api/signalr';
 
 /**
- * Hub chat nội bộ: `{webOrigin}/api/hubs/chat` (Next proxy route
- * `app/api/hubs/[...path]`). LongPolling như Web — tránh WebSocket upgrade
- * trên Android emulator.
+ * Hub chat nội bộ: `{origin}/api/hubs/chat`, dùng đúng base API hiện tại
+ * (đã bỏ `/api` hoặc `/api/dotnet` trước khi ghép đường dẫn hub).
  */
 export function createChatHub(): HubConnection {
+  const hubUrl = getSignalRHubUrl('chat');
+  if (!hubUrl) {
+    throw new Error('Chưa cấu hình địa chỉ API để kết nối chat.');
+  }
+
   return new HubConnectionBuilder()
-    .withUrl(`${getWebOrigin()}/api/hubs/chat`, {
+    .withUrl(hubUrl, {
       accessTokenFactory: () => getAccessToken().then((token) => token ?? ''),
       transport: HttpTransportType.LongPolling,
     })

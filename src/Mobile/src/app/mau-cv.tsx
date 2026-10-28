@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, Eye, LayoutTemplate, Search, Tag } from 'lucide-react-native';
 
 import { ThemedText } from '@/components/themed-text';
+import { safeBack } from '@/utils/navigation';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -86,7 +87,7 @@ export default function MauCvGalleryScreen() {
         <Button
           variant="ghost"
           size="icon"
-          onPress={() => router.back()}
+          onPress={() => safeBack('/tao-cv')}
           accessibilityLabel="Quay lại"
           icon={<ArrowLeft size={18} color={theme.text} />}
         />

@@ -30,6 +30,7 @@ import {
   type JobFilters,
 } from '@/features/jobs/types';
 import { useTheme } from '@/hooks/use-theme';
+import { useResponsive } from '@/hooks/use-responsive';
 
 type JobsHeaderProps = {
   keyword: string;
@@ -69,6 +70,7 @@ function JobsHeader({
   onOpenSaved,
 }: JobsHeaderProps) {
   const theme = useTheme();
+  const { isCompact } = useResponsive();
 
   // Pill bộ lọc theo Web: hiển thị giá trị hiện tại, bấm mở sheet.
   const categoryLabel = filters.categoryId
@@ -95,7 +97,7 @@ function JobsHeader({
   return (
     <View style={styles.header}>
       {/* Page header — Web: icon box size-11 + Briefcase, h1 "Tìm Việc Làm", pill "Việc đã lưu" */}
-      <View style={styles.pageHeader}>
+      <View style={[styles.pageHeader, isCompact && styles.compactPageHeader]}>
         <View style={styles.pageTitleRow}>
           <View style={[styles.pageIconBox, { backgroundColor: theme.muted }]}>
             <Briefcase size={22} color={theme.primary} />
@@ -120,10 +122,11 @@ function JobsHeader({
           { backgroundColor: theme.backgroundElement, borderColor: theme.border },
           Shadows.filter,
         ]}>
-        <View style={styles.searchRow}>
+        <View style={[styles.searchRow, isCompact && styles.compactSearchRow]}>
           <View
             style={[
-              styles.searchBox,
+                styles.searchBox,
+                isCompact && styles.compactSearchBox,
               { backgroundColor: theme.muted, borderColor: theme.border },
             ]}>
             <Search size={16} color={theme.textSecondary} />
@@ -147,7 +150,11 @@ function JobsHeader({
             accessibilityRole="button"
             accessibilityLabel="Tìm việc làm"
             onPress={onSearch}
-            style={[styles.searchButton, { backgroundColor: theme.primary }]}>
+            style={[
+              styles.searchButton,
+              isCompact && styles.compactSearchButton,
+              { backgroundColor: theme.primary },
+            ]}>
             <Search size={16} color={theme.primaryForeground} />
             <ThemedText style={[styles.searchButtonText, { color: theme.primaryForeground }]}>
               Tìm việc
@@ -385,6 +392,7 @@ function JobsFooter({
 
 export default function JobsScreen() {
   const theme = useTheme();
+  const { isCompact } = useResponsive();
   const listRef = useRef<FlatList<Job>>(null);
   const [keyword, setKeyword] = useState('');
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -460,7 +468,7 @@ export default function JobsScreen() {
         renderItem={({ item }) => <JobCard job={item} />}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
-        contentContainerStyle={styles.listContent}
+        contentContainerStyle={[styles.listContent, isCompact && styles.compactListContent]}
         onEndReached={loadMore}
         onEndReachedThreshold={0.5}
         refreshing={status === 'refreshing'}
@@ -527,9 +535,18 @@ export default function JobsScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  listContent: { paddingHorizontal: 20, paddingBottom: 32, flexGrow: 1 },
+  listContent: {
+    width: '100%',
+    maxWidth: 1120,
+    alignSelf: 'center',
+    paddingHorizontal: 24,
+    paddingBottom: 32,
+    flexGrow: 1,
+  },
+  compactListContent: { paddingHorizontal: 16 },
   header: { paddingTop: 16, paddingBottom: 8 },
   pageHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 18 },
+  compactPageHeader: { alignItems: 'stretch', flexDirection: 'column', gap: 10 },
   pageTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
   pageIconBox: {
     width: 44,
@@ -557,6 +574,7 @@ const styles = StyleSheet.create({
     gap: 14,
   },
   searchRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  compactSearchRow: { alignItems: 'stretch', flexDirection: 'column' },
   searchBox: {
     flex: 1,
     flexDirection: 'row',
@@ -567,6 +585,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     paddingHorizontal: 16,
   },
+  compactSearchBox: { width: '100%', flexBasis: 'auto' },
   searchInput: { flex: 1, fontFamily: font('regular'), fontSize: 14, paddingVertical: 0 },
   searchButton: {
     flexDirection: 'row',
@@ -577,6 +596,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 22,
     borderRadius: Radius.pill,
   },
+  compactSearchButton: { width: '100%' },
   searchButtonText: { fontFamily: font('semibold'), fontSize: 14 },
   pillRow: { gap: 8, paddingRight: 4 },
   filterPill: {

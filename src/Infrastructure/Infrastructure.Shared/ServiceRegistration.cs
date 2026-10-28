@@ -61,6 +61,7 @@ namespace Infrastructure.Shared
                     .Build();
             });
             services.AddScoped<IFileStorageService, MinioFileStorageService>();
+            services.AddScoped<IUploadedCvTextExtractor, UploadedCvTextExtractor>();
             services.AddTransient<IDateTimeService, DateTimeService>();
             services.AddTransient<IEmailService, EmailService>();
             services.AddHttpClient<ICvStructuredParser, GeminiCvStructuredParser>(client =>

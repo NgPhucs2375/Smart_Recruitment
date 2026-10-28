@@ -17,15 +17,12 @@ import { BrandLogo } from '@/components/brand-logo';
 import { ThemedText } from '@/components/themed-text';
 import { Button } from '@/components/ui/button';
 import { font, Radius } from '@/constants/theme';
-import { authApi, useAuth } from '@/features/auth';
-import { AuthFooterLink } from '@/features/auth/components/auth-ui';
-import { SocialLoginButtons } from '@/features/auth/components/social-login';
-import { normalizeEmail, validateEmail } from '@/features/auth/validation';
+import { useAuth } from '@/features/auth';
 import { useTheme } from '@/hooks/use-theme';
 
 export default function LoginScreen() {
   const theme = useTheme();
-  const { signIn, completeSignIn } = useAuth();
+  const { signIn } = useAuth();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -33,49 +30,22 @@ export default function LoginScreen() {
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  const normalizedEmail = normalizeEmail(email);
-  const needsVerification = /xác minh|verify|verified/i.test(error);
-
   const handleSubmit = async () => {
-    const validationError = validateEmail(normalizedEmail);
-    if (validationError) {
-      setError(validationError);
-      return;
-    }
-    if (!password) {
-      setError('Nhập mật khẩu để tiếp tục.');
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail || !password) {
+      setError('Nhập email và mật khẩu để tiếp tục.');
       return;
     }
 
     setSubmitting(true);
     setError('');
     try {
-      await signIn(normalizedEmail, password);
+      await signIn(trimmedEmail, password);
       router.replace('/');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Đăng nhập thất bại. Vui lòng thử lại.');
     } finally {
       setSubmitting(false);
-    }
-  };
-
-  const handleGoogleIdToken = async (idToken: string) => {
-    setError('');
-    try {
-      await completeSignIn(await authApi.googleLogin(idToken));
-      router.replace('/');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Đăng nhập Google thất bại. Vui lòng thử lại.');
-    }
-  };
-
-  const handleGithubCode = async (code: string, redirectUri: string) => {
-    setError('');
-    try {
-      await completeSignIn(await authApi.githubLogin(code, redirectUri));
-      router.replace('/');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Đăng nhập GitHub thất bại. Vui lòng thử lại.');
     }
   };
 
@@ -176,19 +146,6 @@ export default function LoginScreen() {
             <ThemedText style={[styles.error, { color: theme.destructive }]}>{error}</ThemedText>
           ) : null}
 
-          {needsVerification ? (
-            <View style={styles.verifyRow}>
-              <AuthFooterLink
-                prompt="Email chưa được xác minh?"
-                action="Gửi lại liên kết"
-                disabled={submitting}
-                onPress={() =>
-                  router.push({ pathname: '/confirm-email', params: { email: normalizedEmail } })
-                }
-              />
-            </View>
-          ) : null}
-
           <Button
             pill={false}
             size="lg"
@@ -204,22 +161,6 @@ export default function LoginScreen() {
             style={styles.submit}>
             {submitting ? 'Đang xác thực...' : 'Tiếp tục với Email & mật khẩu'}
           </Button>
-
-          <SocialLoginButtons
-            disabled={submitting}
-            onGoogleIdToken={handleGoogleIdToken}
-            onGithubCode={handleGithubCode}
-            onError={setError}
-          />
-
-          <View style={styles.registerRow}>
-            <AuthFooterLink
-              prompt="Chưa có tài khoản?"
-              action="Đăng ký ngay"
-              disabled={submitting}
-              onPress={() => router.push('/register')}
-            />
-          </View>
 
           <View style={[styles.hint, { borderColor: theme.border }]}>
             <ThemedText style={[styles.hintTitle, { color: theme.textSecondary }]}>
@@ -291,9 +232,7 @@ const styles = StyleSheet.create({
   inputWithAction: { paddingRight: 8 },
   eyeButton: { padding: 4 },
   error: { fontFamily: font('medium'), fontSize: 13, lineHeight: 18, marginTop: 10 },
-  verifyRow: { marginTop: 8, alignItems: 'center' },
   submit: { width: '100%', marginTop: 16, borderRadius: Radius.xl },
-  registerRow: { marginTop: 14, alignItems: 'center' },
   hint: { marginTop: 28, borderTopWidth: StyleSheet.hairlineWidth, paddingTop: 14, gap: 2 },
   hintTitle: {
     fontFamily: font('semibold'),

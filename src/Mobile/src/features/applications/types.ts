@@ -26,10 +26,9 @@ export type ApplicationsResult = {
   source: 'api' | 'demo';
 };
 
-export type ApplicationListQuery = {
-  offset?: number;
-  limit?: number;
-  statusCode?: number | null;
+export type ApplyResult = {
+  source: 'api' | 'demo';
+  message: string;
 };
 
 export type WithdrawResult = {
@@ -37,9 +36,12 @@ export type WithdrawResult = {
   message: string;
 };
 
-export type ApplyResult = {
-  source: 'api' | 'demo';
-  message: string;
+export type ApplicationListQuery = {
+  offset?: number;
+  limit?: number;
+  page?: number;
+  pageSize?: number;
+  statusCode?: number | null;
 };
 
 export type ApplyApplicationInput = {

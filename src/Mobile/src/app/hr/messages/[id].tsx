@@ -1,1 +1,1 @@
-export { default } from '@/app/chat/[id]';
+export { default } from '../../chat/[id]';

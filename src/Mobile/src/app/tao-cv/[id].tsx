@@ -22,6 +22,7 @@ import {
 } from 'lucide-react-native';
 
 import { ThemedText } from '@/components/themed-text';
+import { safeBack } from '@/utils/navigation';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Radius } from '@/constants/theme';
@@ -489,7 +490,7 @@ export default function BuilderScreen() {
         <Button
           variant="ghost"
           size="icon"
-          onPress={() => router.back()}
+          onPress={() => safeBack('/tao-cv')}
           accessibilityLabel="Quay lại"
           icon={<ArrowLeft size={18} color={theme.text} />}
         />
