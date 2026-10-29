@@ -19,13 +19,6 @@ export function sourceLabel(source: CvSource): string {
   return SOURCE_LABELS[source];
 }
 
-export function sourceFromMethod(method: number | null | undefined): CvSource {
-  if (method === 2) return 'upload';
-  if (method === 3) return 'ai';
-  if (method === 1) return 'template';
-  return 'unknown';
-}
-
 export function skillLevelLabel(level: number | null): string {
   if (level === null) return 'Chưa xác định';
   return LEVEL_LABELS[level] ?? `Mức ${level}`;

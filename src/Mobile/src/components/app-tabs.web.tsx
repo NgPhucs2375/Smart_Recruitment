@@ -1,20 +1,15 @@
-import type { Href } from 'expo-router';
 import { TabList, TabSlot, TabTrigger, Tabs, type TabTriggerSlotProps } from 'expo-router/ui';
 import { Pressable, StyleSheet } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { MaxContentWidth, Spacing } from '@/constants/theme';
-import { useAuth } from '@/features/auth';
-import { canUseInternalChat } from '@/features/chat/roles';
 import { useTheme } from '@/hooks/use-theme';
 import { useResponsive } from '@/hooks/use-responsive';
 
 export default function AppTabs() {
   const theme = useTheme();
   const { isCompact } = useResponsive();
-  const { user } = useAuth();
-  const canChat = canUseInternalChat(user?.roles);
 
   return (
     <Tabs>
@@ -31,11 +26,6 @@ export default function AppTabs() {
         <TabTrigger name="saved" href="/saved" asChild>
           <TabButton label="Đã lưu" />
         </TabTrigger>
-        {canChat ? (
-          <TabTrigger name="chat" href={'/chat' as Href} asChild>
-            <TabButton label="Tin nhắn" />
-          </TabTrigger>
-        ) : null}
         <TabTrigger name="profile" href="/profile" asChild>
           <TabButton label="Hồ sơ" />
         </TabTrigger>

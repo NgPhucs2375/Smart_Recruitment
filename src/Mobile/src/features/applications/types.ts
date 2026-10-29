@@ -13,6 +13,9 @@ export type ApplicationSummary = {
   statusTone: ApplicationStatusTone;
   appliedAt: string;
   appliedAtValue: number;
+  note?: string;
+  feedback?: string;
+  conclusion?: string;
   /** Kết luận/lý do từ nhà tuyển dụng (nếu có). */
   ketLuan?: string;
 };
@@ -26,6 +29,19 @@ export type ApplicationsResult = {
 export type ApplyResult = {
   source: 'api' | 'demo';
   message: string;
+};
+
+export type WithdrawResult = {
+  source: 'api' | 'demo';
+  message: string;
+};
+
+export type ApplicationListQuery = {
+  offset?: number;
+  limit?: number;
+  page?: number;
+  pageSize?: number;
+  statusCode?: number | null;
 };
 
 export type ApplyApplicationInput = {

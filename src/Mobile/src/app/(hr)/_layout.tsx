@@ -41,6 +41,13 @@ export default function HRLayout() {
         }}
       />
       <Tabs.Screen
+        name="messages"
+        options={{
+          // Ẩn khỏi footer — lối tắt Tin nhắn nằm ở AppHeader (góc phải).
+          href: null,
+        }}
+      />
+      <Tabs.Screen
         name="notifications"
         options={{
           title: 'Thông báo',

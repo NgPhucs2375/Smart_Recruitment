@@ -19,6 +19,7 @@ import {
 } from 'lucide-react-native';
 
 import { AppHeader } from '@/components/app-header';
+import { StackHeader } from '@/components/stack-header';
 import { ThemedText } from '@/components/themed-text';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -36,6 +37,7 @@ import type {
 } from '@/features/chat/types';
 import { USE_MOCK_JOBS } from '@/features/jobs/api/jobs-api';
 import { useTheme } from '@/hooks/use-theme';
+import { safeBack } from '@/utils/navigation';
 
 type TypeFilter = 'all' | ChatConversationType;
 
@@ -43,7 +45,10 @@ export default function ChatListScreen() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const pathname = usePathname();
-  const basePath = pathname.startsWith('/hr/messages') ? '/hr/messages' : '/chat';
+  // HR mở từ tab (hr)/messages → pathname '/messages'; legacy root '/hr/messages'.
+  const isHrMessages =
+    pathname === '/messages' || pathname.startsWith('/messages/') || pathname.startsWith('/hr/messages');
+  const basePath = isHrMessages ? '/hr/messages' : '/chat';
   const { user } = useAuth();
   const allowed = canUseInternalChat(user?.roles);
 
@@ -224,7 +229,11 @@ export default function ChatListScreen() {
 
   return (
     <View style={[styles.root, { backgroundColor: theme.background }]}>
-      <AppHeader />
+      {isHrMessages ? (
+        <StackHeader title="Tin nhắn" onBack={() => safeBack('/(hr)')} />
+      ) : (
+        <AppHeader />
+      )}
 
       <FlatList
         data={visibleConversations}

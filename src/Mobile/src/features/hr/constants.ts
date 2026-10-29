@@ -106,6 +106,7 @@ export const SKILL_LEVELS = ['Không bắt buộc', 'Ưu tiên', 'Bắt buộc']
 /** Bộ lọc trạng thái đơn trong Hộp thư ứng viên (ung-vien/page.tsx). */
 export const APP_STATUS_FILTERS: { value: string; label: string; code?: number }[] = [
   { value: 'all', label: 'Tất cả' },
+  { value: 'suggest', label: 'Gợi ý' },
   { value: '2', label: 'Chờ xử lý', code: 2 },
   { value: '3', label: 'Đã xem', code: 3 },
   { value: '5', label: 'Phù hợp', code: 5 },

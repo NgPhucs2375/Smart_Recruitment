@@ -1,4 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
+import * as WebBrowser from 'expo-web-browser';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -9,7 +10,16 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft, Ellipsis, Eye, Info, Save, Sparkles } from 'lucide-react-native';
+import {
+  ArrowLeft,
+  Download,
+  Ellipsis,
+  Eye,
+  Info,
+  Save,
+  Sparkles,
+  Upload,
+} from 'lucide-react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { safeBack } from '@/utils/navigation';
@@ -43,7 +53,7 @@ import { manualCvDetailToForm } from '@/features/cv/manual/manual-cv-mapper';
 import { validateManualCv } from '@/features/cv/manual/manual-cv-validation';
 import { exportCvPdf } from '@/features/cv/export-pdf';
 import { isKnownTemplateId, resolveTemplateId } from '@/features/cv/template-registry';
-import type { CvFormData } from '@/features/cv/types';
+import type { CvFormData, CvVersionVm } from '@/features/cv/types';
 import { profileApi } from '@/features/profile/api/profile-api';
 import type { CandidateProfile } from '@/features/profile/types';
 import { useTheme } from '@/hooks/use-theme';
@@ -96,6 +106,7 @@ export default function BuilderScreen() {
   );
   const [lastSavedJson, setLastSavedJson] = useState<string | null>(null);
   const [savedAt, setSavedAt] = useState<Date | null>(null);
+  const [versions, setVersions] = useState<CvVersionVm[]>([]);
   const [draftAt, setDraftAt] = useState<Date | null>(null);
   const [pendingDraft, setPendingDraft] = useState<{
     savedAt: number;
@@ -123,6 +134,19 @@ export default function BuilderScreen() {
     () => (cvData ? computeCvQuality(cvData) : null),
     [cvData],
   );
+
+  const loadVersions = useCallback(async (cvId: string | null) => {
+    if (!cvId || cvId === 'new') {
+      if (mountedRef.current) setVersions([]);
+      return;
+    }
+    try {
+      const rows = await cvApi.getVersionsVm(cvId);
+      if (mountedRef.current) setVersions(rows);
+    } catch {
+      if (mountedRef.current) setVersions([]);
+    }
+  }, []);
 
   const loadBuilder = useCallback(async () => {
     setLoadedKey(null);
@@ -171,6 +195,7 @@ export default function BuilderScreen() {
       setCvData(form);
       setLastSavedJson(JSON.stringify(form));
       setSelectedCvId(idParam === 'new' ? null : idParam);
+      void loadVersions(idParam);
       setLoadError(null);
 
       const draft = await readDraft(idParam);
@@ -191,7 +216,7 @@ export default function BuilderScreen() {
       );
       setLoadedKey(loadKey);
     }
-  }, [loadKey, idParam, templateParam, importSessionParam, importFileParam]);
+  }, [loadKey, idParam, templateParam, importSessionParam, importFileParam, loadVersions]);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -247,6 +272,7 @@ export default function BuilderScreen() {
         });
         if (!mountedRef.current) return;
         setSelectedCvId(result.cvId);
+        void loadVersions(result.cvId);
         setImportSessionId(null);
         setLastSavedJson(JSON.stringify(cvData));
         setSavedAt(new Date());
@@ -281,6 +307,23 @@ export default function BuilderScreen() {
       .finally(() => {
         if (mountedRef.current) setExportingPdf(false);
       });
+  };
+
+  /** Tải phiên bản đã lưu / file gốc — mở URL trả về bởi download-url (như Web). */
+  const handleDownloadStoredFile = (versionId?: number, original = false) => {
+    if (!selectedCvId) return;
+    void (async () => {
+      try {
+        const result = await cvApi.getDownloadUrl(selectedCvId, versionId, original);
+        if (!result.url) throw new Error('Không nhận được liên kết tải file.');
+        await WebBrowser.openBrowserAsync(result.url);
+      } catch (reason) {
+        Alert.alert(
+          'Không thể tải file',
+          reason instanceof Error ? reason.message : 'Vui lòng thử lại.',
+        );
+      }
+    })();
   };
 
   const fillFromHoSo = () => {
@@ -545,6 +588,40 @@ export default function BuilderScreen() {
             <QualityCard progress={quality.progress} label={quality.label} />
             <ChecklistCard items={quality.items} doneCount={quality.doneCount} />
 
+            {selectedCvId && versions.length > 0 ? (
+              <View style={[styles.section, { borderColor: theme.border }]}>
+                <View style={styles.historyHead}>
+                  <ThemedText style={{ color: theme.text }} type="smallBold">
+                    Lịch sử phiên bản
+                  </ThemedText>
+                  <ThemedText style={{ color: theme.textSecondary }} type="code">
+                    {`${versions.length} bản đã lưu`}
+                  </ThemedText>
+                </View>
+                <View style={styles.historyRow}>
+                  {versions.map((version) => (
+                    <Button
+                      key={version.id}
+                      icon={<Download size={13} color={theme.text} />}
+                      onPress={() => handleDownloadStoredFile(version.id)}
+                      size="sm"
+                      variant="outline">
+                      {`Bản ${version.soPhienBan}`}
+                    </Button>
+                  ))}
+                  {versions.some((version) => version.hasOriginal) ? (
+                    <Button
+                      icon={<Upload size={13} color={theme.text} />}
+                      onPress={() => handleDownloadStoredFile(undefined, true)}
+                      size="sm"
+                      variant="outline">
+                      File gốc
+                    </Button>
+                  ) : null}
+                </View>
+              </View>
+            ) : null}
+
             <View>
               <ThemedText style={[styles.chipHint, { color: theme.textSecondary }]} type="code">
                 Nhảy tới section:
@@ -698,6 +775,8 @@ const styles = StyleSheet.create({
     padding: 14,
     gap: 12,
   },
+  historyHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+  historyRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   footerNote: {
     flexDirection: 'row',
     gap: 8,

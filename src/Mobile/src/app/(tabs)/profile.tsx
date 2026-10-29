@@ -1,7 +1,7 @@
 import { useFocusEffect, router } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
-import { FilePlus2, LogOut, Pencil, Settings } from 'lucide-react-native';
+import { ArrowRight, FilePlus2, LogOut, Pencil, Settings } from 'lucide-react-native';
 
 import { AppHeader } from '@/components/app-header';
 import { ThemedText } from '@/components/themed-text';
@@ -27,6 +27,7 @@ import { useTheme } from '@/hooks/use-theme';
 
 type ProfileData = {
   profile: CandidateProfile;
+  hasProfile: boolean;
   applications: ApplicationsResult;
   cvs: CvsResult;
   applicationsError: string | null;
@@ -54,6 +55,22 @@ function accountProfile(name: string, email: string): CandidateProfile {
 
 function errorMessage(reason: unknown, fallback: string): string {
   return reason instanceof Error ? reason.message : fallback;
+}
+
+/** % hoàn thiện hồ sơ — clone getProfileCompletion của Web /dashboard. */
+function completionOf(profile: CandidateProfile, hasProfile: boolean): { percent: number; missing: number } {
+  if (!hasProfile) return { percent: 0, missing: 7 };
+  const fields = [
+    profile.fullName,
+    profile.phone,
+    profile.location,
+    profile.title,
+    profile.expectedSalary > 0,
+    profile.bio,
+    profile.avatarUrl,
+  ];
+  const completed = fields.filter((value) => Boolean(value)).length;
+  return { percent: Math.round((completed / fields.length) * 100), missing: fields.length - completed };
 }
 
 export default function ProfileScreen() {
@@ -90,6 +107,7 @@ export default function ProfileScreen() {
 
     return {
       profile,
+      hasProfile: profileResult.status === 'fulfilled' && profileResult.value.profile !== null,
       applications,
       cvs,
       applicationsError:
@@ -137,6 +155,8 @@ export default function ProfileScreen() {
   const cvs = data?.cvs.items ?? [];
   const applicationCount = data?.applications.totalCount ?? 0;
   const loading = data === null;
+  const hasProfile = data?.hasProfile ?? false;
+  const completion = completionOf(profile, hasProfile);
 
   return (
     <View style={[styles.root, { backgroundColor: theme.background }]}>
@@ -161,8 +181,64 @@ export default function ProfileScreen() {
           </View>
         ) : null}
 
-        <SectionHeading title="Hồ sơ ứng viên" />
+        <View
+          style={[
+            styles.completionCard,
+            { borderColor: `${theme.primary}26`, backgroundColor: `${theme.primary}0A` },
+          ]}>
+          <View style={styles.completionHead}>
+            <ThemedText style={[styles.completionLabel, { color: theme.primary }]}>
+              HỒ SƠ HOÀN THIỆN
+            </ThemedText>
+            <ThemedText style={[styles.completionPercent, { color: theme.primary }]}>
+              {loading ? '—' : `${completion.percent}%`}
+            </ThemedText>
+          </View>
+          <View style={[styles.progressTrack, { backgroundColor: `${theme.primary}1F` }]}>
+            <View
+              style={[
+                styles.progressFill,
+                {
+                  backgroundColor: theme.primary,
+                  width: `${loading ? 0 : completion.percent}%`,
+                },
+              ]}
+            />
+          </View>
+          <ThemedText style={[styles.completionNote, { color: theme.textSecondary }]}>
+            {loading
+              ? 'Đang tải hồ sơ...'
+              : !hasProfile
+                ? 'Chưa có hồ sơ ứng viên — tạo ngay để bắt đầu ứng tuyển.'
+                : completion.missing > 0
+                  ? `Thiếu ${completion.missing} mục thông tin — hoàn thiện để nhà tuyển dụng dễ tìm thấy bạn.`
+                  : 'Hồ sơ đã đầy đủ — sẵn sàng nhận cơ hội mới.'}
+          </ThemedText>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => router.push('/profile-edit')}
+            style={({ pressed }) => [
+              styles.completionCta,
+              { borderColor: `${theme.primary}40`, backgroundColor: theme.backgroundElement, opacity: pressed ? 0.7 : 1 },
+            ]}>
+            <ThemedText style={[styles.completionCtaText, { color: theme.primary }]}>
+              {!loading && !hasProfile ? 'Tạo hồ sơ ứng viên' : 'Hoàn thiện hồ sơ'}
+            </ThemedText>
+            <ArrowRight size={14} color={theme.primary} />
+          </Pressable>
+        </View>
+
+        <SectionHeading
+          title="Hồ sơ ứng viên"
+          actionLabel={
+            !loading ? (profile.fullName ? 'Chỉnh sửa' : 'Tạo hồ sơ') : undefined
+          }
+          onAction={
+            !loading ? () => router.push('/profile-edit') : undefined
+          }
+        />
         <ProfileInfoCard profile={profile} />
+
         <View style={styles.quickActions}>
           <Pressable
             accessibilityRole="button"
@@ -188,7 +264,7 @@ export default function ProfileScreen() {
 
         <Pressable
           accessibilityRole="button"
-          onPress={() => router.push('/tao-cv')}
+          onPress={() => router.push('/tao-cv/ai')}
           style={({ pressed }) => [
             styles.createCvButton,
             { backgroundColor: theme.primary, opacity: pressed ? 0.85 : 1 },
@@ -270,7 +346,18 @@ export default function ProfileScreen() {
             />
           ) : (
             cvs.map((cv, index) => (
-              <CvRow key={cv.id} cv={cv} first={index === 0} onChange={handleRefresh} />
+              <CvRow
+                key={cv.id}
+                cv={cv}
+                first={index === 0}
+                onChange={handleRefresh}
+                onPress={() =>
+                  router.push({
+                    pathname: '/cv-detail',
+                    params: { id: cv.id },
+                  })
+                }
+              />
             ))
           )}
         </ListSurface>
@@ -297,9 +384,37 @@ const styles = StyleSheet.create({
   content: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 38 },
   demoRow: { marginBottom: 4 },
   demoBadge: { fontFamily: font('semibold'), fontSize: 10, letterSpacing: 0.5 },
+  completionCard: {
+    borderWidth: 1,
+    borderRadius: Radius['2xl'],
+    padding: 16,
+    gap: 10,
+  },
+  completionHead: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  completionLabel: { fontFamily: font('semibold'), fontSize: 11, letterSpacing: 1.2 },
+  completionPercent: { fontFamily: font('bold'), fontSize: 24, letterSpacing: -0.4 },
+  progressTrack: { height: 8, borderRadius: Radius.pill, overflow: 'hidden' },
+  progressFill: { height: 8, borderRadius: Radius.pill },
+  completionNote: { fontFamily: font('regular'), fontSize: 12, lineHeight: 18 },
+  completionCta: {
+    minHeight: 40,
+    borderRadius: Radius.xl,
+    borderWidth: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 14,
+    marginTop: 2,
+  },
+  completionCtaText: { fontFamily: font('semibold'), fontSize: 13 },
   seeAllRow: { alignItems: 'center', paddingVertical: 6 },
   seeAllText: { fontFamily: font('semibold'), fontSize: 13 },
-  quickActions: { flexDirection: 'row', gap: 8 },
+  quickActions: { flexDirection: 'row', gap: 12, marginTop: 12 },
   quickPill: {
     flex: 1,
     minHeight: 40,
@@ -329,7 +444,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    marginTop: 24,
+    marginTop: 18,
   },
   logoutText: { fontFamily: font('semibold'), fontSize: 14 },
 });

@@ -26,6 +26,8 @@ export type RegisterInput = {
   diaChiDoanhNghiep?: string;
   chucVu?: string;
   maSoThue?: string;
+  linhVucHoatDong?: string;
+  quyMoNhanSu?: string;
 };
 
 export type AuthActionResult = {

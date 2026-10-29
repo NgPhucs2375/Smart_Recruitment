@@ -13,12 +13,11 @@ import { ActivityIndicator, useColorScheme, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BookmarkProvider } from '@/features/bookmarks/bookmark-provider';
-import { AuthProvider, useAuth } from '@/features/auth';
+import { AuthProvider, portalFor, useAuth } from '@/features/auth';
+import { NotificationProvider } from '@/features/notifications/notification-provider';
 import { Colors } from '@/constants/theme';
 import { ThemedText } from '@/components/themed-text';
 import { Button } from '@/components/ui/button';
-import { NotificationProvider } from '@/features/notifications/notification-provider';
-import { portalFor } from '@/features/auth/portal';
 
 // Giữ splash cho đến khi font Be Vietnam Pro load xong, tránh nháy font hệ thống.
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -111,8 +110,11 @@ function RootNavigator() {
           <Stack.Screen name="(auth)" />
         </Stack.Protected>
 
+        {/* Ưu tiên portal trước: nếu đặt block isSignedIn chung lên trước thì màn
+            đầu tiên khả dụng sẽ là notifications thay vì (tabs)/(hr). */}
         <Stack.Protected guard={isSignedIn && portal === 'candidate'}>
           <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="applications" options={{ headerShown: false }} />
           <Stack.Screen name="change-password" options={{ headerShown: false }} />
           <Stack.Screen name="chat/[id]" options={{ headerShown: false }} />
           <Stack.Screen name="jobs/[id]" options={{ headerShown: false }} />
@@ -141,6 +143,13 @@ function RootNavigator() {
           <Stack.Screen name="hr/company" options={{ headerShown: false }} />
           <Stack.Screen name="hr/messages" options={{ headerShown: false }} />
           <Stack.Screen name="hr/messages/[id]" options={{ headerShown: false }} />
+        </Stack.Protected>
+
+        <Stack.Protected guard={isSignedIn}>
+          <Stack.Screen name="notifications" />
+          <Stack.Screen name="change-password" />
+          <Stack.Screen name="profile-edit" />
+          <Stack.Screen name="chat/[id]" options={{ headerShown: false }} />
         </Stack.Protected>
       </Stack>
     </ThemeProvider>

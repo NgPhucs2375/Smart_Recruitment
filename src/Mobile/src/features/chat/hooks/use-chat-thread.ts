@@ -126,6 +126,7 @@ export function useChatThread(
         connection = new signalR.HubConnectionBuilder()
           .withUrl(hubUrl, {
             accessTokenFactory: async () => (await getAccessToken()) ?? '',
+            transport: signalR.HttpTransportType.LongPolling,
           })
           .withAutomaticReconnect()
           .configureLogging(signalR.LogLevel.Warning)

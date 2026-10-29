@@ -571,6 +571,61 @@ export const hrNhanSuApi = {
 };
 
 /* ------------------------------------------------------------------ */
+/* Hồ sơ nhà tuyển dụng (Tab "Cá nhân" — Web RecruiterProfileTab)     */
+/* ------------------------------------------------------------------ */
+
+export type RecruiterProfile = {
+  id: number;
+  nguoiDungId: number;
+  doanhNghiepId: number;
+  hoTen: string;
+  sdt: string;
+  chucVu: string;
+};
+
+export const hrProfileApi = {
+  /** GET hosonhatuyendungs/mine — null khi id = 0 (chưa có hồ sơ). */
+  async getMine(): Promise<RecruiterProfile | null> {
+    try {
+      const payload = await apiRequest<unknown>('hosonhatuyendungs/mine');
+      const raw = asRecord(unwrapData(payload)) ?? {};
+      const id = asNumber(raw.id ?? raw.Id);
+      if (id <= 0) return null;
+      return {
+        id,
+        nguoiDungId: asNumber(raw.nguoiDungId ?? raw.NguoiDungId),
+        doanhNghiepId: asNumber(raw.doanhNghiepId ?? raw.DoanhNghiepId),
+        hoTen: asText(raw.hoTen ?? raw.HoTen),
+        sdt: asText(raw.sdt ?? raw.SDT ?? raw.Sdt),
+        chucVu: asText(raw.chucVu ?? raw.ChucVu),
+      };
+    } catch (error) {
+      // Backend báo "chưa có hồ sơ" bằng Succeeded=false → coi như chưa có.
+      if (error instanceof Error && /chưa có/i.test(error.message)) return null;
+      throw error;
+    }
+  },
+
+  /** POST hosonhatuyendungs/self — tự tạo hồ sơ khi đã có doanh nghiệp. */
+  async createSelf(input: { hoTen: string; sdt: string; chucVu: string }): Promise<string> {
+    const payload = await apiRequest<unknown>('hosonhatuyendungs/self', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    });
+    return messageOf(payload, 'Tạo hồ sơ nhà tuyển dụng thành công.');
+  },
+
+  /** PUT hosonhatuyendungs/mine — cập nhật hồ sơ của chính mình. */
+  async updateMine(input: { hoTen: string; sdt: string; chucVu: string }): Promise<string> {
+    const payload = await apiRequest<unknown>('hosonhatuyendungs/mine', {
+      method: 'PUT',
+      body: JSON.stringify(input),
+    });
+    return messageOf(payload, 'Cập nhật hồ sơ thành công.');
+  },
+};
+
+/* ------------------------------------------------------------------ */
 /* Hồ sơ doanh nghiệp                                                 */
 /* ------------------------------------------------------------------ */
 

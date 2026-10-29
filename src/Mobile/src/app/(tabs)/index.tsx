@@ -9,12 +9,12 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { Briefcase, Search, SlidersHorizontal, X } from 'lucide-react-native';
+import { Briefcase, Search, SlidersHorizontal, Sparkles, Target, X } from 'lucide-react-native';
 
 import { AppHeader } from '@/components/app-header';
 import { ThemedText } from '@/components/themed-text';
 import { Badge } from '@/components/ui/badge';
-import { font, Radius, Shadows } from '@/constants/theme';
+import { font, Palette, Radius, Shadows } from '@/constants/theme';
 import { useBookmarks } from '@/features/bookmarks/bookmark-provider';
 import { USE_MOCK_JOBS } from '@/features/jobs/api/jobs-api';
 import { ActiveFilterChips } from '@/features/jobs/components/active-filter-chips';
@@ -390,6 +390,91 @@ function JobsFooter({
   );
 }
 
+// Mock "AI Match" — minh họa gợi ý cá nhân hóa (không gọi API).
+const MOCK_AI_MATCH_JOBS = [
+  {
+    id: '95',
+    title: 'Kỹ sư Frontend React',
+    company: 'FPT Software · Hà Nội',
+    match: 95,
+    reason: 'Trùng khớp React/TypeScript + 3 năm kinh nghiệm',
+  },
+  {
+    id: '92',
+    title: 'Data Analyst',
+    company: 'Thế giới di động · TP.HCM',
+    match: 92,
+    reason: 'Đúng ngành học và địa điểm mong muốn',
+  },
+  {
+    id: '89',
+    title: 'Backend Developer (.NET)',
+    company: 'Sun* · Đà Nẵng',
+    match: 89,
+    reason: 'Đạt 4/5 yêu cầu kinh nghiệm backend',
+  },
+];
+
+function AiMatchSection() {
+  const theme = useTheme();
+
+  return (
+    <View style={styles.aiMatch}>
+      <View style={styles.aiMatchHeading}>
+        <View style={[styles.aiMatchIcon, { backgroundColor: `${theme.primary}14` }]}>
+          <Sparkles size={15} color={theme.primary} />
+        </View>
+        <ThemedText style={[styles.aiMatchTitle, { color: theme.text }]}>
+          Việc làm gợi ý cho bạn (AI Match cao)
+        </ThemedText>
+      </View>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.aiMatchRow}
+        keyboardShouldPersistTaps="handled">
+        {MOCK_AI_MATCH_JOBS.map((job) => (
+          <Pressable
+            key={job.id}
+            accessibilityRole="button"
+            accessibilityLabel={`Mở việc ${job.title}, độ phù hợp ${job.match} phần trăm`}
+            onPress={() => router.push(`/jobs/${job.id}`)}
+            style={({ pressed }) => [
+              styles.aiMatchCard,
+              {
+                borderColor: theme.border,
+                backgroundColor: theme.backgroundElement,
+                opacity: pressed ? 0.92 : 1,
+              },
+            ]}>
+            <View style={styles.aiMatchCardHead}>
+              <ThemedText
+                style={{ color: theme.text, flex: 1 }}
+                type="smallBold"
+                numberOfLines={2}>
+                {job.title}
+              </ThemedText>
+              <View style={[styles.aiMatchBadge, { backgroundColor: `${Palette.sage}26` }]}>
+                <Target size={11} color={Palette.navy} />
+                <ThemedText style={styles.aiMatchBadgeText}>{`${job.match}% phù hợp`}</ThemedText>
+              </View>
+            </View>
+            <ThemedText style={{ color: theme.textSecondary }} type="code" numberOfLines={1}>
+              {job.company}
+            </ThemedText>
+            <View style={[styles.aiMatchReason, { borderColor: `${Palette.sage}66`, backgroundColor: `${Palette.sage}14` }]}>
+              <Sparkles size={11} color={Palette.navy} />
+              <ThemedText style={[styles.aiMatchReasonText, { color: Palette.navy }]} numberOfLines={2}>
+                {job.reason}
+              </ThemedText>
+            </View>
+          </Pressable>
+        ))}
+      </ScrollView>
+    </View>
+  );
+}
+
 export default function JobsScreen() {
   const theme = useTheme();
   const { isCompact } = useResponsive();
@@ -477,24 +562,27 @@ export default function JobsScreen() {
         maxToRenderPerBatch={8}
         windowSize={7}
         ListHeaderComponent={
-          <JobsHeader
-            keyword={keyword}
-            onChangeKeyword={setKeyword}
-            onSearch={handleSearch}
-            onClearKeyword={handleClearKeyword}
-            onOpenFilters={handleOpenFilters}
-            activeFilterCount={activeFilterCount}
-            filters={query.filters}
-            options={filterOptions.options}
-            onRemoveFilter={handleRemoveFilter}
-            onClearFilters={handleClearFilters}
-            totalCount={totalCount}
-            loading={isInitialLoading}
-            error={items.length > 0 ? error : null}
-            onRetryRefresh={refresh}
-            savedCount={ids.length}
-            onOpenSaved={() => router.push('/saved')}
-          />
+          <>
+            <JobsHeader
+              keyword={keyword}
+              onChangeKeyword={setKeyword}
+              onSearch={handleSearch}
+              onClearKeyword={handleClearKeyword}
+              onOpenFilters={handleOpenFilters}
+              activeFilterCount={activeFilterCount}
+              filters={query.filters}
+              options={filterOptions.options}
+              onRemoveFilter={handleRemoveFilter}
+              onClearFilters={handleClearFilters}
+              totalCount={totalCount}
+              loading={isInitialLoading}
+              error={items.length > 0 ? error : null}
+              onRetryRefresh={refresh}
+              savedCount={ids.length}
+              onOpenSaved={() => router.push('/saved')}
+            />
+            <AiMatchSection />
+          </>
         }
         ListEmptyComponent={
           <JobsEmptyState
@@ -545,6 +633,45 @@ const styles = StyleSheet.create({
   },
   compactListContent: { paddingHorizontal: 16 },
   header: { paddingTop: 16, paddingBottom: 8 },
+  aiMatch: { gap: 10, paddingBottom: 14, borderBottomWidth: StyleSheet.hairlineWidth, marginBottom: 4 },
+  aiMatchHeading: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  aiMatchIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: Radius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  aiMatchTitle: { fontFamily: font('semibold'), fontSize: 15, flexShrink: 1 },
+  aiMatchRow: { gap: 10, paddingRight: 8 },
+  aiMatchCard: {
+    width: 244,
+    borderWidth: 1,
+    borderRadius: Radius.xl,
+    padding: 12,
+    gap: 7,
+    ...Shadows.filter,
+  },
+  aiMatchCardHead: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
+  aiMatchBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    borderRadius: Radius.pill,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  aiMatchBadgeText: { fontFamily: font('bold'), fontSize: 10, color: Palette.navy },
+  aiMatchReason: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 5,
+    borderWidth: 1,
+    borderRadius: Radius.md,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+  },
+  aiMatchReasonText: { fontFamily: font('medium'), fontSize: 11, lineHeight: 15, flex: 1 },
   pageHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 18 },
   compactPageHeader: { alignItems: 'stretch', flexDirection: 'column', gap: 10 },
   pageTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },

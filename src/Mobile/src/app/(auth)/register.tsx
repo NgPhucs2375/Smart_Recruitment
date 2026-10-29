@@ -11,7 +11,19 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft, ArrowRight, Building2, Eye, EyeOff, Lock, Mail, Phone, UserRound } from 'lucide-react-native';
+import {
+  ArrowLeft,
+  ArrowRight,
+  BriefcaseBusiness,
+  Building2,
+  Eye,
+  EyeOff,
+  Lock,
+  Mail,
+  MapPin,
+  Phone,
+  UserRound,
+} from 'lucide-react-native';
 
 import { BrandLogo } from '@/components/brand-logo';
 import { ThemedText } from '@/components/themed-text';
@@ -42,8 +54,6 @@ export default function RegisterScreen() {
   const [tenDoanhNghiep, setTenDoanhNghiep] = useState('');
   const [diaChiDoanhNghiep, setDiaChiDoanhNghiep] = useState('');
   const [maSoThue, setMaSoThue] = useState('');
-  const [linhVucHoatDong, setLinhVucHoatDong] = useState('');
-  const [quyMoNhanSu, setQuyMoNhanSu] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -73,7 +83,7 @@ export default function RegisterScreen() {
     setError('');
     setSuccess('');
     try {
-      const message = await authApi.register({
+      const result = await authApi.register({
         role,
         email: trimmedEmail,
         password,
@@ -84,10 +94,9 @@ export default function RegisterScreen() {
         tenDoanhNghiep: isEmployer ? tenDoanhNghiep.trim() : undefined,
         diaChiDoanhNghiep: isEmployer ? diaChiDoanhNghiep.trim() : undefined,
         maSoThue: isEmployer ? maSoThue.trim() || undefined : undefined,
-        linhVucHoatDong: isEmployer ? linhVucHoatDong.trim() || undefined : undefined,
-        quyMoNhanSu: isEmployer ? quyMoNhanSu.trim() || undefined : undefined,
       });
-      setSuccess(`${message} Kiểm tra email để xác thực, sau đó đăng nhập.`);
+      const messageText = typeof result === 'string' ? result : result.message;
+      setSuccess(`${messageText || 'Đăng ký thành công!'} Kiểm tra email để xác thực, sau đó đăng nhập.`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Đăng ký thất bại. Vui lòng thử lại.');
     } finally {
@@ -232,7 +241,7 @@ export default function RegisterScreen() {
               <ThemedText style={[styles.employerTitle, { color: theme.textSecondary }]}>
                 Thông tin nhà tuyển dụng
               </ThemedText>
-              <Field label="Chức vụ" icon={<UserRound size={16} color="#9ca3af" />}>
+              <Field label="Chức vụ" icon={<BriefcaseBusiness size={16} color="#9ca3af" />}>
                 <TextInput
                   editable={!submitting}
                   onChangeText={setChucVu}
@@ -254,7 +263,7 @@ export default function RegisterScreen() {
                   value={tenDoanhNghiep}
                 />
               </Field>
-              <Field label="Địa chỉ doanh nghiệp" icon={<Building2 size={16} color="#9ca3af" />}>
+              <Field label="Địa chỉ doanh nghiệp" icon={<MapPin size={16} color="#9ca3af" />}>
                 <TextInput
                   editable={!submitting}
                   onChangeText={setDiaChiDoanhNghiep}
@@ -275,28 +284,6 @@ export default function RegisterScreen() {
                   selectionColor={theme.primary}
                   style={[styles.input, { color: theme.text }]}
                   value={maSoThue}
-                />
-              </Field>
-              <Field label="Lĩnh vực (không bắt buộc)">
-                <TextInput
-                  editable={!submitting}
-                  onChangeText={setLinhVucHoatDong}
-                  placeholder="Công nghệ thông tin"
-                  placeholderTextColor={theme.textSecondary}
-                  selectionColor={theme.primary}
-                  style={[styles.input, { color: theme.text }]}
-                  value={linhVucHoatDong}
-                />
-              </Field>
-              <Field label="Quy mô nhân sự (không bắt buộc)">
-                <TextInput
-                  editable={!submitting}
-                  onChangeText={setQuyMoNhanSu}
-                  placeholder="20-50 nhân viên"
-                  placeholderTextColor={theme.textSecondary}
-                  selectionColor={theme.primary}
-                  style={[styles.input, { color: theme.text }]}
-                  value={quyMoNhanSu}
                 />
               </Field>
             </View>

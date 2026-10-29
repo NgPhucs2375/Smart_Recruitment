@@ -9,6 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card";
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { Calendar } from "@/components/ui/calendar";
@@ -276,81 +278,131 @@ function CandidateDashboard() {
   }, []);
 
   return (
-    <AdminPageLayout>
-      <Breadcrumb>
-        <BreadcrumbList>
-          <BreadcrumbItem><BreadcrumbLink href="/dashboard">Không gian làm việc</BreadcrumbLink></BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem><BreadcrumbPage>Tổng quan</BreadcrumbPage></BreadcrumbItem>
-        </BreadcrumbList>
-      </Breadcrumb>
-      <section className="rounded-2xl border border-border/80 bg-card p-5 shadow-sm sm:p-6">
+    <main className="max-w-7xl mx-auto px-6 py-5 space-y-5">
+      <div className="mb-3">
+        <Breadcrumb>
+          <BreadcrumbList>
+            <BreadcrumbItem><BreadcrumbLink href="/dashboard">Không gian làm việc</BreadcrumbLink></BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem><BreadcrumbPage>Tổng quan</BreadcrumbPage></BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
+      </div>
+      <section className="relative overflow-hidden rounded-2xl border border-border/80 bg-card p-6 shadow-sm bg-[radial-gradient(130%_100%_at_0%_0%,color-mix(in_srgb,var(--primary)_8%,transparent)_0%,transparent_55%)]">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-4">
-              <Avatar className="size-14 shrink-0 rounded-2xl sm:size-16">
+              <Avatar className="size-16 shrink-0 rounded-2xl ring-2 ring-primary/15 sm:size-20">
                 {profile?.anhDaiDienUrl && (
-                  <Image src={profile.anhDaiDienUrl} alt={profile.hoTen || "Ảnh hồ sơ"} width={64} height={64} className="size-full object-cover" />
+                  <Image src={profile.anhDaiDienUrl} alt={profile.hoTen || "Ảnh hồ sơ"} width={80} height={80} className="size-full object-cover" />
                 )}
-                <AvatarFallback className="rounded-2xl bg-primary/10 text-base font-semibold text-primary">
-                  {heroInitials || <UserPlus className="size-5" />}
+                <AvatarFallback className="rounded-2xl bg-primary/10 text-xl font-semibold text-primary">
+                  {heroInitials || <UserPlus className="size-6" />}
                 </AvatarFallback>
               </Avatar>
               <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Xin chào, {profileName}!</h1>
+                <div className="flex flex-wrap items-center gap-2.5">
+                  <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Xin chào, {profileName}!</h1>
                   {!loading && !loadError && (
-                    <span className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${statusTone}`}>
+                    <span className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ring-1 ring-inset ${statusTone}`}>
                       <span className={`size-1.5 rounded-full ${statusDot}`} aria-hidden="true" />
                       {statusLabel}
                     </span>
                   )}
                 </div>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  {profile?.viTriUngTuyen || "Hồ sơ ứng viên"} · Quản lý hành trình ứng tuyển của bạn.
+                <p className="mt-1.5 text-sm">
+                  <span className="font-medium text-foreground">{profile?.viTriUngTuyen || "Hồ sơ ứng viên"}</span>
+                  <span className="text-muted-foreground"> · Quản lý hành trình ứng tuyển của bạn.</span>
                 </p>
               </div>
             </div>
-            <div className="mt-5 flex flex-wrap gap-2">
-              <Link href="/viec-lam" className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-colors duration-150 hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
-                <Briefcase className="size-4" /> Khám phá việc làm
+            <div className="mt-6 flex flex-wrap gap-2.5">
+              <Link
+                href="/viec-lam"
+                className={cn(
+                  buttonVariants({ variant: "default" }),
+                  "group/cta min-h-11 rounded-xl px-5 py-2.5 transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-primary-hover active:scale-[0.98] motion-reduce:transition-none",
+                )}
+              >
+                <Briefcase className="size-4 transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover/cta:-translate-y-px" />
+                Khám phá việc làm
               </Link>
-              <Link href="/CV" className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-border bg-background px-4 py-2.5 text-sm font-medium text-foreground transition-colors duration-150 hover:border-primary/40 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
-                <FileText className="size-4" /> Tạo CV mới
+              <Link
+                href="/CV"
+                className={cn(
+                  buttonVariants({ variant: "outline" }),
+                  "group/cta min-h-11 rounded-xl border-border bg-background px-5 py-2.5 transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:border-primary/40 hover:text-primary active:scale-[0.98] motion-reduce:transition-none",
+                )}
+              >
+                <FileText className="size-4 transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover/cta:-translate-y-px" />
+                Tạo CV mới
               </Link>
             </div>
           </div>
 
-          <div className="w-full shrink-0 rounded-2xl border border-primary/15 bg-primary/[0.05] p-4 sm:p-5 lg:w-[340px]">
-            {loading || loadError ? (
-              <>
-                <div className="flex items-center justify-between gap-3">
-                  <Skeleton className="h-3 w-28" />
-                  <Skeleton className="h-6 w-12" />
-                </div>
-                <Skeleton className="mt-4 h-2 w-full" />
-                <Skeleton className="mt-4 h-3 w-44" />
-                <Skeleton className="mt-4 h-11 w-full" />
-              </>
-            ) : (
-              <>
-                <div className="flex items-baseline justify-between gap-3">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-primary">Hồ sơ hoàn thiện</p>
-                  <p className="text-2xl font-semibold tabular-nums text-primary">{profileCompletion.percent}%</p>
-                </div>
-                <Progress value={profileCompletion.percent} className="mt-3 h-2" aria-label={`Hồ sơ hoàn thiện ${profileCompletion.percent}%`} />
-                <p className="mt-2 text-xs leading-5 text-muted-foreground">
-                  {profile
-                    ? profileCompletion.missing > 0
-                      ? `Thiếu ${profileCompletion.missing} mục thông tin — hoàn thiện để nhà tuyển dụng dễ tìm thấy bạn.`
-                      : "Hồ sơ đã đầy đủ — sẵn sàng nhận cơ hội mới."
-                    : "Chưa có hồ sơ ứng viên — tạo ngay để bắt đầu ứng tuyển."}
-                </p>
-                <Link href="/ho-so" className="mt-4 flex min-h-11 items-center justify-between rounded-xl border border-primary/25 bg-card px-3.5 text-sm font-medium text-primary transition-colors duration-150 hover:border-primary/50 hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
-                  {profile ? "Hoàn thiện hồ sơ" : "Tạo hồ sơ ứng viên"} <ArrowRight className="size-4" />
-                </Link>
-              </>
-            )}
+          {/* Double-bezel: shell tinted + core card */}
+          <div className="w-full shrink-0 rounded-2xl border border-primary/15 bg-primary/[0.05] p-1.5 lg:w-[340px]">
+            <div className="rounded-xl bg-card/70 p-4">
+              {loading || loadError ? (
+                <>
+                  <div className="flex items-center gap-4">
+                    <Skeleton className="size-16 shrink-0 rounded-full" />
+                    <div className="flex-1 space-y-2.5">
+                      <Skeleton className="h-3 w-28" />
+                      <Skeleton className="h-3 w-44" />
+                    </div>
+                  </div>
+                  <Skeleton className="mt-4 h-11 w-full" />
+                </>
+              ) : (
+                <>
+                  <div className="flex items-center gap-4">
+                    <svg
+                      className="size-16 shrink-0 -rotate-90"
+                      viewBox="0 0 64 64"
+                      role="img"
+                      aria-label={`Hồ sơ hoàn thiện ${profileCompletion.percent}%`}
+                    >
+                      <circle cx="32" cy="32" r="26" fill="none" strokeWidth="6" className="stroke-muted" />
+                      <circle
+                        cx="32"
+                        cy="32"
+                        r="26"
+                        fill="none"
+                        strokeWidth="6"
+                        strokeLinecap="round"
+                        className="stroke-primary transition-[stroke-dashoffset] duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none"
+                        strokeDasharray={163.36}
+                        strokeDashoffset={163.36 * (1 - profileCompletion.percent / 100)}
+                      />
+                    </svg>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[11px] font-semibold uppercase tracking-wider text-primary">Hồ sơ hoàn thiện</p>
+                      <p className="mt-0.5 text-2xl font-semibold tabular-nums text-foreground">{profileCompletion.percent}%</p>
+                    </div>
+                  </div>
+                  <p className="mt-3 text-xs leading-5 text-muted-foreground">
+                    {profile
+                      ? profileCompletion.missing > 0
+                        ? `Thiếu ${profileCompletion.missing} mục thông tin — hoàn thiện để nhà tuyển dụng dễ tìm thấy bạn.`
+                        : "Hồ sơ đã đầy đủ — sẵn sàng nhận cơ hội mới."
+                      : "Chưa có hồ sơ ứng viên — tạo ngay để bắt đầu ứng tuyển."}
+                  </p>
+                  <Link
+                    href="/ho-so"
+                    className={cn(
+                      buttonVariants({ variant: "outline" }),
+                      "group/cta mt-4 flex w-full min-h-11 items-center justify-between rounded-xl border-primary/25 bg-card px-3.5 text-primary transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] hover:border-primary/50 hover:bg-primary/5 active:scale-[0.98] motion-reduce:transition-none",
+                    )}
+                  >
+                    {profile ? "Hoàn thiện hồ sơ" : "Tạo hồ sơ ứng viên"}
+                    <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover/cta:translate-x-1 motion-reduce:transition-none">
+                      <ArrowRight className="size-4" />
+                    </span>
+                  </Link>
+                </>
+              )}
+            </div>
           </div>
         </div>
       </section>
@@ -362,12 +414,12 @@ function CandidateDashboard() {
         />
       ) : (
         <>
-        <div>
+        <div className="mt-5">
           <h2 className="text-base font-semibold tracking-tight">Thống kê của bạn</h2>
           <div className="mt-3 grid grid-cols-2 gap-3 lg:grid-cols-4">
           {loading
             ? Array.from({ length: 4 }, (_, index) => (
-                <div key={index} className="rounded-2xl border border-border/80 bg-card p-5 shadow-sm">
+                <div key={index} className="rounded-2xl border border-border/80 bg-card p-4 shadow-sm">
                   <Skeleton className="h-3 w-24" />
                   <Skeleton className="mt-4 h-9 w-16" />
                   <Skeleton className="mt-2 h-3 w-28" />
@@ -382,7 +434,7 @@ function CandidateDashboard() {
           <Link
             key={item.label}
             href={item.href}
-            className="group rounded-2xl border border-border/80 bg-card p-5 shadow-sm transition-colors duration-150 hover:border-primary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            className="group rounded-2xl border border-border/80 bg-card p-4 shadow-sm transition-colors duration-150 hover:border-primary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           >
             <div className="flex items-start justify-between gap-2">
               <span className="text-xs font-medium text-muted-foreground">{item.label}</span>
@@ -397,11 +449,11 @@ function CandidateDashboard() {
           </div>
         </div>
 
-      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1.35fr)_minmax(300px,.65fr)]">
-        <div className="space-y-6">
+      <div className="mt-5 grid items-start gap-5 lg:grid-cols-[minmax(0,1.35fr)_minmax(300px,.65fr)]">
+        <div className="space-y-5">
           <RecommendationPreview count={3} />
 
-          <Card className="rounded-2xl border border-border/80 shadow-sm ring-0">
+          <Card className="mt-5 rounded-2xl border border-border/80 shadow-sm ring-0">
             <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0 border-b border-border/70 p-5 sm:p-6">
               <div>
                 <h2 className="text-lg font-semibold tracking-tight">Đơn ứng tuyển gần đây</h2>
@@ -457,7 +509,7 @@ function CandidateDashboard() {
           <MarketingBanner />
         </div>
 
-        <div className="space-y-6">
+        <div className="space-y-5">
           <Card className="rounded-2xl border border-border/80 shadow-sm ring-0">
             <CardHeader className="p-5 pb-3 sm:p-6 sm:pb-3">
               <div>
@@ -484,7 +536,7 @@ function CandidateDashboard() {
       </div>
         </>
       )}
-    </AdminPageLayout>
+    </main>
   );
 }
 

@@ -5,7 +5,6 @@ import { useActiveSection } from "@/components/landing/reveal";
 const LINKS = [
   { label: "Tính năng", href: "#tinh-nang" },
   { label: "Quy trình", href: "#quy-trinh" },
-  { label: "Bảng giá", href: "#lien-he" },
 ] as const;
 
 /** Employer nav section links with subtle active highlight.
