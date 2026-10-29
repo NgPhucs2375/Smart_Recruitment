@@ -164,11 +164,30 @@ export default function LoginScreen() {
 
           <View style={[styles.hint, { borderColor: theme.border }]}>
             <ThemedText style={[styles.hintTitle, { color: theme.textSecondary }]}>
-              Tài khoản demo
+              Tài khoản demo · mật khẩu 123Pa$$word!
             </ThemedText>
             <ThemedText style={[styles.hintText, { color: theme.textSecondary }]}>
-              basicuser@gmail.com · 123Pa$$word!
+              basicuser@gmail.com (ứng viên)
             </ThemedText>
+            <ThemedText style={[styles.hintText, { color: theme.textSecondary }]}>
+              employer@gmail.com (nhà tuyển dụng)
+            </ThemedText>
+          </View>
+
+          <View style={styles.registerRow}>
+            <ThemedText style={[styles.registerText, { color: theme.textSecondary }]}>
+              Chưa có tài khoản HIREAI?
+            </ThemedText>
+            <Pressable
+              accessibilityRole="link"
+              disabled={submitting}
+              hitSlop={8}
+              onPress={() => router.push('/register')}>
+              <ThemedText
+                style={[styles.registerText, { color: theme.primary, fontFamily: font('semibold') }]}>
+                Đăng ký tài khoản mới
+              </ThemedText>
+            </Pressable>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -241,4 +260,12 @@ const styles = StyleSheet.create({
     letterSpacing: 0.6,
   },
   hintText: { fontFamily: font('regular'), fontSize: 13 },
+  registerRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 20,
+  },
+  registerText: { fontFamily: font('regular'), fontSize: 13 },
 });

@@ -89,6 +89,8 @@ export function ApplicantsInbox({ jobId, jobTitle }: ApplicantsInboxProps) {
   const [search, setSearch] = useState('');
   const [reachedCap, setReachedCap] = useState(false);
   const [jobPickerOpen, setJobPickerOpen] = useState(false);
+  // Điểm AI từ ketquaphuhops — key `${hoSoUngVienId}-${tinTuyenDungId}` → DiemPhuHop (0..1).
+  const [suggestScores, setSuggestScores] = useState<Record<string, number>>({});
   // Quyết định trên hồ sơ mock (sống ở cha để không mất khi đổi chip/loading).
   const [mockDecisions, setMockDecisions] = useState<Record<number, 'approve' | 'reject'>>({});
 
@@ -112,7 +114,8 @@ export function ApplicantsInbox({ jobId, jobTitle }: ApplicantsInboxProps) {
       if (!silent) setLoading(true);
       setError('');
       try {
-        const statusValue = statusFilter === 'all' ? null : Number(statusFilter);
+        const statusValue =
+          statusFilter === 'all' || statusFilter === 'suggest' ? null : Number(statusFilter);
         const end = perJob ? JOB_END : GLOBAL_END;
 
         const appPromise = hrAppApi.list({
@@ -122,13 +125,45 @@ export function ApplicantsInbox({ jobId, jobTitle }: ApplicantsInboxProps) {
           jobId: perJob ? jobId : jobFilter !== 'all' ? Number(jobFilter) : null,
         });
 
-        const [appResult, nameMap] = await Promise.all([appPromise, hrAppApi.getProfileNames()]);
+        const suggestPromise =
+          statusFilter === 'suggest'
+            ? apiRequest<unknown>('ketquaphuhops?_start=0&_end=100&_sort=diemphuhop&_order=desc')
+            : Promise.resolve(null);
+
+        const [appResult, nameMap, suggestPayload] = await Promise.all([
+          appPromise,
+          hrAppApi.getProfileNames(),
+          suggestPromise,
+        ]);
 
         if (!mountedRef.current) return;
         setItems(appResult.items);
         setProfiles(nameMap);
         setReachedCap(appResult.reachedCap);
         setDanhGias({});
+
+        // Điểm AI cho bộ lọc Gợi ý (key = hoSoUngVienId-tinTuyenDungId).
+        if (statusFilter === 'suggest') {
+          const map: Record<string, number> = {};
+          try {
+            const rows = Array.isArray(unwrapData(suggestPayload))
+              ? (unwrapData(suggestPayload) as unknown[])
+              : [];
+            for (const row of rows) {
+              const raw = asRecord(row);
+              if (!raw) continue;
+              const hoSo = asNumber(raw.hoSoUngVienId ?? raw.HoSoUngVienId);
+              const tin = asNumber(raw.tinTuyenDungId ?? raw.TinTuyenDungId);
+              const diem = asNumber(raw.diemPhuHop ?? raw.DiemPhuHop);
+              if (hoSo > 0 && tin > 0 && diem > 0) map[`${hoSo}-${tin}`] = diem;
+            }
+          } catch {
+            /* Không có điểm → danh sách Gợi ý rỗng. */
+          }
+          setSuggestScores(map);
+        } else {
+          setSuggestScores({});
+        }
 
         // Theo tin: đánh giá từng đơn + tiêu đề tin (đúng Web).
         if (perJob) {
@@ -223,11 +258,23 @@ export function ApplicantsInbox({ jobId, jobTitle }: ApplicantsInboxProps) {
     (perJob ? jobTitle : undefined) || item.tieuDe || jobTitles[item.tinTuyenDungId] || 'Tin tuyển dụng';
 
   const normalizedSearch = search.trim().toLowerCase();
-  const filtered = normalizedSearch
+  let filtered = normalizedSearch
     ? items.filter((item) =>
         [nameOf(item), titleOf(item)].some((value) => value.toLowerCase().includes(normalizedSearch)),
       )
     : items;
+
+  // Bộ lọc Gợi ý: chỉ giữ đơn có điểm AI >= 80%, sắp giảm dần theo điểm.
+  if (statusFilter === 'suggest') {
+    filtered = filtered
+      .map((item) => ({
+        item,
+        diem: suggestScores[`${item.hoSoUngVienId}-${item.tinTuyenDungId}`] ?? 0,
+      }))
+      .filter((entry) => entry.diem >= 0.8)
+      .sort((a, b) => b.diem - a.diem)
+      .map((entry) => entry.item);
+  }
 
   async function handleViewCv(item: HrApplication) {
     if (actingId !== null) return;
@@ -451,6 +498,9 @@ export function ApplicantsInbox({ jobId, jobTitle }: ApplicantsInboxProps) {
                       {titleOf(item)}
                     </ThemedText>
                     <ThemedText style={{ color: theme.textSecondary }} type="code">
+                      {suggestScores[`${item.hoSoUngVienId}-${item.tinTuyenDungId}`]
+                        ? `Khớp AI ${Math.round(suggestScores[`${item.hoSoUngVienId}-${item.tinTuyenDungId}`] * 100)}% • `
+                        : ''}
                       Đơn #{item.id} • Nộp {formatDate(item.ngayUngTuyen)}
                     </ThemedText>
                     {item.ghiChu ? (
@@ -624,7 +674,12 @@ function MockApplicantsCard({
   const visible = MOCK_APPLICANTS.filter((item) => {
     const decision = decisions[item.id];
     const status = decision === 'approve' ? 5 : decision === 'reject' ? 6 : item.trangThai;
-    const statusOk = statusFilter === 'all' || status === Number(statusFilter);
+    const statusOk =
+      statusFilter === 'all'
+        ? true
+        : statusFilter === 'suggest'
+          ? item.diemPhuHop >= 80
+          : status === Number(statusFilter);
     const searchOk =
       !search ||
       item.hoTen.toLowerCase().includes(search) ||

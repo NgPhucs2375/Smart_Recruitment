@@ -1,14 +1,9 @@
-import { Bell, Bookmark, MessageCircle, Search, User } from 'lucide-react-native';
+import { Bell, Bookmark, Search, User } from 'lucide-react-native';
 import { Tabs } from 'expo-router';
 
 import { font } from '@/constants/theme';
-import { useAuth } from '@/features/auth';
-import { canUseInternalChat } from '@/features/chat/roles';
 
 export default function AppTabs() {
-  const { user } = useAuth();
-  const canChat = canUseInternalChat(user?.roles);
-
   return (
     <Tabs
       screenOptions={{
@@ -42,14 +37,10 @@ export default function AppTabs() {
       />
       <Tabs.Screen
         name="chat"
-        options={
-          canChat
-            ? {
-                title: 'Tin nhắn',
-                tabBarIcon: ({ color, size }) => <MessageCircle size={size} color={color} />,
-              }
-            : { href: null }
-        }
+        options={{
+          // Ẩn khỏi footer — lối tắt Tin nhắn nằm ở AppHeader (góc phải).
+          href: null,
+        }}
       />
       <Tabs.Screen
         name="notifications"

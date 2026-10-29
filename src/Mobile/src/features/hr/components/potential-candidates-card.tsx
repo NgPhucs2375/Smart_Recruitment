@@ -69,7 +69,7 @@ export function PotentialCandidatesCard() {
   };
 
   const messageCandidate = () => {
-    router.push('/hr/messages');
+    router.push('/messages');
   };
 
   return (

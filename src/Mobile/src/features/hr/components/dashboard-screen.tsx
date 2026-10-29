@@ -9,7 +9,6 @@ import {
   Clock,
   LayoutDashboard,
   ListTodo,
-  MessageCircle,
   Plus,
   Send,
   TrendingUp,
@@ -237,13 +236,6 @@ export function DashboardScreen() {
               Mời nhân sự
             </Button>
           ) : null}
-          <Button
-            pill
-            variant="outline"
-            onPress={() => router.push('/hr/messages')}
-            icon={<MessageCircle size={16} color={theme.text} />}>
-            Tin nhắn
-          </Button>
         </View>
 
         {data?.source === 'demo' ? (
