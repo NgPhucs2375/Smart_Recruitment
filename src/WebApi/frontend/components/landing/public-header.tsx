@@ -27,7 +27,7 @@ export function PublicHeader({
   return (
     <nav
       aria-label="Điều hướng chính"
-      className="fixed inset-x-0 top-0 z-50 border-b border-linen/70 bg-white/85 backdrop-blur-md"
+      className="fixed inset-x-0 top-0 z-50 border-b border-linen/70 bg-card/90 backdrop-blur-md"
     >
       <div className="mx-auto flex h-16 max-w-7xl items-center gap-2 px-4 sm:px-10 lg:px-16">
         <BrandLogo href="/" variant="workspace" size="sm" className="shrink-0" />

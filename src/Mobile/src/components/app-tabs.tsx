@@ -2,17 +2,20 @@ import { Bell, Bookmark, Search, User } from 'lucide-react-native';
 import { Tabs } from 'expo-router';
 
 import { font } from '@/constants/theme';
+import { useTheme } from '@/hooks/use-theme';
 
 export default function AppTabs() {
+  const theme = useTheme();
+
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: '#355C8C',
-        tabBarInactiveTintColor: '#6D7480',
+        tabBarActiveTintColor: theme.primary,
+        tabBarInactiveTintColor: theme.textSecondary,
         tabBarStyle: {
-          backgroundColor: '#FFFDF9',
-          borderTopColor: '#DDD4C7',
+          backgroundColor: theme.backgroundElement,
+          borderTopColor: theme.border,
           borderTopWidth: 1,
         },
         tabBarLabelStyle: {

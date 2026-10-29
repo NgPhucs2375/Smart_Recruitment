@@ -454,7 +454,7 @@ export function ApplicantsInbox({ jobId, jobTitle }: ApplicantsInboxProps) {
           />
         ) : (
           <View style={[styles.listCard, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
-            <View style={styles.listHead}>
+            <View style={[styles.listHead, { borderBottomColor: theme.border }]}>
               <ThemedText style={[styles.listHeadTitle, { color: theme.textSecondary }]} type="code">
                 DANH SÁCH ĐƠN ỨNG TUYỂN ({filtered.length})
               </ThemedText>
@@ -698,7 +698,7 @@ function MockApplicantsCard({
 
   return (
     <View style={[styles.listCard, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
-      <View style={styles.listHead}>
+      <View style={[styles.listHead, { borderBottomColor: theme.border }]}>
         <ThemedText style={[styles.listHeadTitle, { color: theme.textSecondary }]} type="code">
           DANH SÁCH ĐƠN ỨNG TUYỂN ({visible.length})
         </ThemedText>
@@ -813,7 +813,7 @@ const styles = StyleSheet.create({
   },
   searchInput: { flex: 1, fontSize: 13, fontFamily: font('regular'), paddingVertical: 8 },
   listCard: { borderRadius: Radius['2xl'], borderWidth: 1, overflow: 'hidden' },
-  listHead: { padding: 14, gap: 4, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#ddd4c7' },
+  listHead: { padding: 14, gap: 4, borderBottomWidth: StyleSheet.hairlineWidth },
   listHeadTitle: { fontSize: 11, letterSpacing: 1 },
   row: { padding: 14, gap: 10 },
   rowBody: { gap: 4 },

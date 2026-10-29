@@ -79,7 +79,7 @@ export default function LoginScreen() {
               styles.inputWrap,
               { backgroundColor: theme.backgroundElement, borderColor: theme.input },
             ]}>
-            <Mail size={16} color="#9ca3af" style={styles.inputIcon} />
+            <Mail size={16} color={theme.textSecondary} style={styles.inputIcon} />
             <TextInput
               autoCapitalize="none"
               autoCorrect={false}
@@ -113,7 +113,7 @@ export default function LoginScreen() {
               styles.inputWrap,
               { backgroundColor: theme.backgroundElement, borderColor: theme.input },
             ]}>
-            <Lock size={16} color="#9ca3af" style={styles.inputIcon} />
+            <Lock size={16} color={theme.textSecondary} style={styles.inputIcon} />
             <TextInput
               autoCapitalize="none"
               editable={!submitting}
@@ -135,9 +135,9 @@ export default function LoginScreen() {
               onPress={() => setShowPassword((value) => !value)}
               style={styles.eyeButton}>
               {showPassword ? (
-                <EyeOff size={16} color="#9ca3af" />
+                <EyeOff size={16} color={theme.textSecondary} />
               ) : (
-                <Eye size={16} color="#9ca3af" />
+                <Eye size={16} color={theme.textSecondary} />
               )}
             </Pressable>
           </View>

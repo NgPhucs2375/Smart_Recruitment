@@ -90,13 +90,13 @@ export function getToneColors(
   if (scheme === 'dark') {
     switch (tone) {
       case 'default':
-        return { background: '#8ea6cf', text: '#23262e', border: 'transparent' };
+        return { background: '#8ea6cf', text: '#16202d', border: 'transparent' };
       case 'secondary':
-        return { background: '#33364a', text: '#d3d9e8', border: 'transparent' };
+        return { background: '#2b3a50', text: '#d9e5f5', border: 'transparent' };
       case 'destructive':
-        return { background: 'rgba(224,122,106,0.15)', text: '#e07a6a', border: 'transparent' };
+        return { background: 'rgba(239,139,126,0.16)', text: '#ef8b7e', border: 'transparent' };
       case 'outline':
-        return { background: 'transparent', text: '#ede6d8', border: '#3e3a34' };
+        return { background: 'transparent', text: '#edf3fb', border: '#334255' };
     }
   }
 

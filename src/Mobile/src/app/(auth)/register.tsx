@@ -155,7 +155,7 @@ export default function RegisterScreen() {
             })}
           </View>
 
-          <Field label="Họ và tên" icon={<UserRound size={16} color="#9ca3af" />}>
+          <Field label="Họ và tên" icon={<UserRound size={16} color={theme.textSecondary} />}>
             <TextInput
               editable={!submitting}
               onChangeText={setHoTen}
@@ -167,7 +167,7 @@ export default function RegisterScreen() {
             />
           </Field>
 
-          <Field label="Số điện thoại" icon={<Phone size={16} color="#9ca3af" />}>
+          <Field label="Số điện thoại" icon={<Phone size={16} color={theme.textSecondary} />}>
             <TextInput
               editable={!submitting}
               keyboardType="phone-pad"
@@ -180,7 +180,7 @@ export default function RegisterScreen() {
             />
           </Field>
 
-          <Field label="Email" icon={<Mail size={16} color="#9ca3af" />}>
+          <Field label="Email" icon={<Mail size={16} color={theme.textSecondary} />}>
             <TextInput
               autoCapitalize="none"
               autoCorrect={false}
@@ -195,7 +195,7 @@ export default function RegisterScreen() {
             />
           </Field>
 
-          <Field label="Mật khẩu" icon={<Lock size={16} color="#9ca3af" />}>
+          <Field label="Mật khẩu" icon={<Lock size={16} color={theme.textSecondary} />}>
             <TextInput
               autoCapitalize="none"
               editable={!submitting}
@@ -214,14 +214,14 @@ export default function RegisterScreen() {
               onPress={() => setShowPassword((value) => !value)}
               style={styles.eyeButton}>
               {showPassword ? (
-                <EyeOff size={16} color="#9ca3af" />
+                <EyeOff size={16} color={theme.textSecondary} />
               ) : (
-                <Eye size={16} color="#9ca3af" />
+                <Eye size={16} color={theme.textSecondary} />
               )}
             </Pressable>
           </Field>
 
-          <Field label="Xác nhận mật khẩu" icon={<Lock size={16} color="#9ca3af" />}>
+          <Field label="Xác nhận mật khẩu" icon={<Lock size={16} color={theme.textSecondary} />}>
             <TextInput
               autoCapitalize="none"
               editable={!submitting}
@@ -241,7 +241,7 @@ export default function RegisterScreen() {
               <ThemedText style={[styles.employerTitle, { color: theme.textSecondary }]}>
                 Thông tin nhà tuyển dụng
               </ThemedText>
-              <Field label="Chức vụ" icon={<BriefcaseBusiness size={16} color="#9ca3af" />}>
+              <Field label="Chức vụ" icon={<BriefcaseBusiness size={16} color={theme.textSecondary} />}>
                 <TextInput
                   editable={!submitting}
                   onChangeText={setChucVu}
@@ -252,7 +252,7 @@ export default function RegisterScreen() {
                   value={chucVu}
                 />
               </Field>
-              <Field label="Tên doanh nghiệp" icon={<Building2 size={16} color="#9ca3af" />}>
+              <Field label="Tên doanh nghiệp" icon={<Building2 size={16} color={theme.textSecondary} />}>
                 <TextInput
                   editable={!submitting}
                   onChangeText={setTenDoanhNghiep}
@@ -263,7 +263,7 @@ export default function RegisterScreen() {
                   value={tenDoanhNghiep}
                 />
               </Field>
-              <Field label="Địa chỉ doanh nghiệp" icon={<MapPin size={16} color="#9ca3af" />}>
+              <Field label="Địa chỉ doanh nghiệp" icon={<MapPin size={16} color={theme.textSecondary} />}>
                 <TextInput
                   editable={!submitting}
                   onChangeText={setDiaChiDoanhNghiep}

@@ -83,6 +83,18 @@ function RootNavigator() {
 
   const isSignedIn = status === 'signedIn';
   const portal = user ? portalFor(user.roles) : null;
+  const colors = Colors[colorScheme === 'dark' ? 'dark' : 'light'];
+  const navigationTheme = {
+    ...(colorScheme === 'dark' ? DarkTheme : DefaultTheme),
+    colors: {
+      ...(colorScheme === 'dark' ? DarkTheme.colors : DefaultTheme.colors),
+      background: colors.background,
+      card: colors.backgroundElement,
+      text: colors.text,
+      border: colors.border,
+      primary: colors.primary,
+    },
+  };
 
   // Admin: mobile không hỗ trợ portal quản trị — chặn + yêu cầu đăng xuất.
   if (isSignedIn && portal === 'admin') {
@@ -103,7 +115,7 @@ function RootNavigator() {
   }
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+    <ThemeProvider value={navigationTheme}>
       <StatusBar style="auto" />
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Protected guard={!isSignedIn}>

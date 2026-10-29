@@ -240,7 +240,13 @@ html {
   --color-workspace-on-secondary: var(--workspace-on-secondary);
   --color-workspace-text: var(--workspace-text);
   --color-workspace-muted: var(--workspace-muted);
-  --color-workspace-border: var(--workspace-border);
+   --color-workspace-border: var(--workspace-border);
+   --color-workspace-ai: var(--workspace-ai);
+   --color-workspace-ai-soft: var(--workspace-ai-soft);
+   --color-workspace-warning: var(--workspace-warning);
+   --color-workspace-warning-soft: var(--workspace-warning-soft);
+   --color-workspace-danger: var(--workspace-danger);
+   --color-workspace-danger-soft: var(--workspace-danger-soft);
   --font-sans: var(--font-sans);
   /* Serif CV (Merriweather subset vietnamese, nạp qua next/font) + Georgia
      fallback khi offline. class font-serif toàn app ăn token này. */
@@ -283,7 +289,11 @@ html {
   /* Soft directional tints (shared, sparing use) */
   --color-frost: #eaf1f7;
   --color-blush: #f7ece3;
-  --color-sandsoft: #f7eddc;
+   --color-sandsoft: #f7eddc;
+   --color-ai: #8e80c7;
+   --color-ai-soft: #f1ecfa;
+   --color-warning: #b7791f;
+   --color-warning-soft: #fdf2d6;
   /* Type — dùng stack Outfit đã load qua next/font (có subset vietnamese).
      KHÔNG trỏ thẳng "Inter": font đó chưa bao giờ được load nên là dead reference. */
   --font-heading: var(--font-sans), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -344,7 +354,13 @@ html {
   --workspace-on-secondary: #2f3440;
   --workspace-text: #2f3440;
   --workspace-muted: #6d7480;
-  --workspace-border: #ddd4c7;
+   --workspace-border: #ddd4c7;
+   --workspace-ai: #8e80c7;
+   --workspace-ai-soft: #f1ecfa;
+   --workspace-warning: #b7791f;
+   --workspace-warning-soft: #fdf2d6;
+   --workspace-danger: #c65d57;
+   --workspace-danger-soft: #fae8e6;
 
   --radius: 0.625rem;
   --radius-sm: calc(var(--radius) - 4px);
@@ -482,54 +498,59 @@ html {
   --workspace-border: #ddd4c7;
 }
 
-/* Dark foundation: warm-tinted charcoal (beige identity transformed,
-   never generic navy, never pure black). Role tones below refine it
-   per workspace via `.dark .tone-*` (higher specificity, so dark mode
-   can never collapse roles back into one theme). */
+/* Dark foundation: cool navy/slate surfaces with a restrained HireAI blue.
+   Role tones below refine it per workspace via `.dark .tone-*` (higher
+   specificity, so dark mode can never collapse roles back into one theme). */
 .dark {
-  --background: #242321;
-  --foreground: #ede6d8;
-  --card: #2d2b28;
-  --card-foreground: #ede6d8;
-  --popover: #2d2b28;
-  --popover-foreground: #ede6d8;
-  --primary: #b0a696;
-  --primary-foreground: #242321;
-  --primary-hover: #c2b8a6;
-  --secondary: #38342e;
-  --secondary-foreground: #d8d2c4;
-  --muted: #34312d;
-  --muted-foreground: #a49d90;
-  --accent: #38342e;
-  --accent-foreground: #d8d2c4;
-  --destructive: #e07a6a;
-  --destructive-foreground: #242321;
-  --border: #3e3a34;
-  --input: #3e3a34;
-  --ring: #b0a696;
-  --sidebar: #2b2925;
-  --sidebar-foreground: #ede6d8;
-  --sidebar-primary: #b0a696;
-  --sidebar-primary-foreground: #242321;
-  --sidebar-accent: #38342e;
-  --sidebar-accent-foreground: #d8d2c4;
-  --sidebar-border: #3e3a34;
-  --sidebar-ring: #b0a696;
-  --workspace-bg: #242321;
-  --workspace-surface: #2d2b28;
-  --workspace-surface-soft: #34312d;
-  --workspace-sidebar: #2b2925;
-  --workspace-topbar: #2b2925;
-  --workspace-primary: #b0a696;
-  --workspace-primary-hover: #bfb5a4;
-  --workspace-primary-soft: #34312d;
-  --workspace-on-primary: #242321;
-  --workspace-secondary: #8e887e;
-  --workspace-secondary-soft: #38342e;
-  --workspace-on-secondary: #ede6d8;
-  --workspace-text: #ede6d8;
-  --workspace-muted: #a49d90;
-  --workspace-border: #3e3a34;
+  --background: #121925;
+  --foreground: #edf3fb;
+  --card: #1c2635;
+  --card-foreground: #edf3fb;
+  --popover: #202d40;
+  --popover-foreground: #edf3fb;
+  --primary: #8ea6cf;
+  --primary-foreground: #16202d;
+  --primary-hover: #a9bce0;
+  --secondary: #2c3b52;
+  --secondary-foreground: #d9e5f5;
+  --muted: #253247;
+  --muted-foreground: #a7b4c4;
+  --accent: #30435d;
+  --accent-foreground: #d9e5f5;
+  --destructive: #ef8b7e;
+  --destructive-foreground: #1a202b;
+  --border: #3a4b63;
+  --input: #40536d;
+  --ring: #8ea6cf;
+  --sidebar: #0f1723;
+  --sidebar-foreground: #edf3fb;
+  --sidebar-primary: #8ea6cf;
+  --sidebar-primary-foreground: #16202d;
+  --sidebar-accent: #26364e;
+  --sidebar-accent-foreground: #d9e5f5;
+  --sidebar-border: #34465f;
+  --sidebar-ring: #8ea6cf;
+  --workspace-bg: #121925;
+  --workspace-surface: #1c2635;
+  --workspace-surface-soft: #253247;
+  --workspace-sidebar: #0f1723;
+  --workspace-topbar: #101a29;
+  --workspace-primary: #8ea6cf;
+  --workspace-primary-hover: #a9bce0;
+  --workspace-primary-soft: #30435d;
+  --workspace-on-primary: #16202d;
+  --workspace-secondary: #75c69d;
+  --workspace-secondary-soft: #234238;
+  --workspace-on-secondary: #e6f3ed;
+  --workspace-text: #edf3fb;
+  --workspace-muted: #a7b4c4;
+  --workspace-border: #3a4b63;
+  --workspace-ai: #b39fe7;
+  --workspace-ai-soft: #382f55;
+  --workspace-warning: #e2b36b;
+  --workspace-warning-soft: #4b3b27;
+  --workspace-danger: #ef8b7e;
+  --workspace-danger-soft: #4a2d32;
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
@@ -546,35 +567,41 @@ html {
   /* Candidate dark: warm charcoal base, navy-tinted chrome.
      Lavender reserved for AI/insight accents only. */
   --primary: #8ea6cf;
-  --primary-foreground: #23262e;
-  --secondary: #33364a;
-  --secondary-foreground: #d3d9e8;
-  --accent: #33364a;
-  --accent-foreground: #d3d9e8;
+  --primary-foreground: #16202d;
+  --secondary: #2b3a50;
+  --secondary-foreground: #d9e5f5;
+  --accent: #2b3a50;
+  --accent-foreground: #d9e5f5;
   --ring: #8ea6cf;
-  --sidebar: #2a2c33;
-  --sidebar-foreground: #ede6da;
+  --sidebar: #111925;
+  --sidebar-foreground: #edf3fb;
   --sidebar-primary: #8ea6cf;
-  --sidebar-primary-foreground: #23262e;
-  --sidebar-accent: #33364a;
-  --sidebar-accent-foreground: #dcd2e8;
-  --sidebar-border: #3a3f4d;
+  --sidebar-primary-foreground: #16202d;
+  --sidebar-accent: #2b3a50;
+  --sidebar-accent-foreground: #d9e5f5;
+  --sidebar-border: #334255;
   --sidebar-ring: #8ea6cf;
-  --workspace-bg: #242321;
-  --workspace-surface: #2d2b28;
-  --workspace-surface-soft: #34312d;
-  --workspace-sidebar: #2a2c33;
-  --workspace-topbar: #2a2c33;
+   --workspace-bg: #121925;
+   --workspace-surface: #1c2635;
+   --workspace-surface-soft: #253247;
+   --workspace-sidebar: #0f1723;
+   --workspace-topbar: #101a29;
   --workspace-primary: #8ea6cf;
   --workspace-primary-hover: #9db4d8;
-  --workspace-primary-soft: #33364a;
-  --workspace-on-primary: #23262e;
-  --workspace-secondary: #8e80c7;
-  --workspace-secondary-soft: #33364a;
-  --workspace-on-secondary: #e6eaf2;
-  --workspace-text: #ede6da;
-  --workspace-muted: #a49d90;
-  --workspace-border: #3e3a34;
+   --workspace-primary-soft: #30435d;
+  --workspace-on-primary: #16202d;
+  --workspace-secondary: #75c69d;
+   --workspace-secondary-soft: #234238;
+  --workspace-on-secondary: #e6f3ed;
+  --workspace-text: #edf3fb;
+  --workspace-muted: #a7b4c4;
+   --workspace-border: #3a4b63;
+   --workspace-ai: #b39fe7;
+   --workspace-ai-soft: #382f55;
+   --workspace-warning: #e2b36b;
+   --workspace-warning-soft: #4b3b27;
+   --workspace-danger: #ef8b7e;
+   --workspace-danger-soft: #4a2d32;
 }
 
 /* ============================================================
@@ -633,109 +660,234 @@ html {
   --workspace-border: #ddd4c7;
 }
 
+/* Auth keeps its accepted light palette, but also participates in the
+   workspace dark theme when the user explicitly selects dark mode. */
+.dark .theme-auth {
+  color-scheme: dark;
+  --background: #151b26;
+  --foreground: #edf3fb;
+  --card: #1c2431;
+  --card-foreground: #edf3fb;
+  --popover: #1c2431;
+  --popover-foreground: #edf3fb;
+  --primary: #8ea6cf;
+  --primary-foreground: #16202d;
+  --primary-hover: #a9bce0;
+  --secondary: #2b3a50;
+  --secondary-foreground: #d9e5f5;
+  --muted: #222d3b;
+  --muted-foreground: #a7b4c4;
+  --accent: #2b3a50;
+  --accent-foreground: #d9e5f5;
+  --destructive: #ef8b7e;
+  --destructive-foreground: #16202d;
+  --border: #334255;
+  --input: #334255;
+  --ring: #8ea6cf;
+  --workspace-bg: #151b26;
+  --workspace-surface: #1c2431;
+  --workspace-surface-soft: #222d3b;
+  --workspace-sidebar: #111925;
+  --workspace-topbar: #111925;
+  --workspace-primary: #8ea6cf;
+  --workspace-primary-hover: #a9bce0;
+  --workspace-primary-soft: #2b3a50;
+  --workspace-on-primary: #16202d;
+  --workspace-secondary: #75c69d;
+  --workspace-secondary-soft: #243b38;
+  --workspace-on-secondary: #e6f3ed;
+  --workspace-text: #edf3fb;
+  --workspace-muted: #a7b4c4;
+  --workspace-border: #334255;
+}
+
+.dark .theme-auth .bg-white {
+  background-color: var(--card) !important;
+}
+.dark .theme-auth .text-gray-900,
+.dark .theme-auth .text-gray-800,
+.dark .theme-auth .text-gray-700 {
+  color: var(--foreground) !important;
+}
+.dark .theme-auth .text-gray-600,
+.dark .theme-auth .text-gray-500,
+.dark .theme-auth .text-gray-400 {
+  color: var(--muted-foreground) !important;
+}
+.dark .theme-auth .border-gray-200,
+.dark .theme-auth .border-gray-300 {
+  border-color: var(--border) !important;
+}
+
 .dark .tone-recruiter {
   /* Recruiter dark: navy-dominant like light mode; sage kept ONLY as
      secondary accent (dots/highlights). Chrome is neutral warm
      charcoal — no green wash, matching the unified brand. */
   --primary: #8ea6cf;
-  --primary-foreground: #23262e;
-  --secondary: #33364a;
-  --secondary-foreground: #d3d9e8;
-  --accent: #33364a;
-  --accent-foreground: #d3d9e8;
+  --primary-foreground: #16202d;
+  --secondary: #2b3a50;
+  --secondary-foreground: #d9e5f5;
+  --accent: #2b3a50;
+  --accent-foreground: #d9e5f5;
   --ring: #8ea6cf;
-  --sidebar: #262b33;
-  --sidebar-foreground: #e8ede9;
+  --sidebar: #111925;
+  --sidebar-foreground: #edf3fb;
   --sidebar-primary: #8ea6cf;
-  --sidebar-primary-foreground: #23262e;
-  --sidebar-accent: #33364a;
-  --sidebar-accent-foreground: #d3d9e8;
-  --sidebar-border: #3a4152;
+  --sidebar-primary-foreground: #16202d;
+  --sidebar-accent: #2b3a50;
+  --sidebar-accent-foreground: #d9e5f5;
+  --sidebar-border: #334255;
   --sidebar-ring: #8ea6cf;
-  --workspace-bg: #242321;
-  --workspace-surface: #2d2b28;
-  --workspace-surface-soft: #34312d;
-  --workspace-sidebar: #262b33;
-  --workspace-topbar: #262b33;
+  --workspace-bg: #151b26;
+  --workspace-surface: #1c2431;
+  --workspace-surface-soft: #222d3b;
+  --workspace-sidebar: #111925;
+  --workspace-topbar: #111925;
   --workspace-primary: #8ea6cf;
   --workspace-primary-hover: #9db4d8;
   --workspace-primary-soft: #33364a;
-  --workspace-on-primary: #23262e;
-  --workspace-secondary: #7fae9b;
-  --workspace-secondary-soft: #323a35;
-  --workspace-on-secondary: #ede6da;
-  --workspace-text: #e8ede9;
-  --workspace-muted: #9aa5a0;
-  --workspace-border: #3a4152;
+  --workspace-on-primary: #16202d;
+  --workspace-secondary: #75c69d;
+  --workspace-secondary-soft: #243b38;
+  --workspace-on-secondary: #e6f3ed;
+  --workspace-text: #edf3fb;
+  --workspace-muted: #a7b4c4;
+  --workspace-border: #334255;
 }
 
 .dark .tone-admin {
   /* Admin dark: shared neutral base, shell tinted slate-navy.
      Coolest of the three, but never saturated full-navy. */
   --primary: #829bc5;
-  --primary-foreground: #23262e;
-  --secondary: #33364a;
-  --secondary-foreground: #d3d9e8;
-  --accent: #33364a;
-  --accent-foreground: #d3d9e8;
+  --primary-foreground: #16202d;
+  --secondary: #2b3a50;
+  --secondary-foreground: #d9e5f5;
+  --accent: #2b3a50;
+  --accent-foreground: #d9e5f5;
   --ring: #829bc5;
-  --sidebar: #28303d;
-  --sidebar-foreground: #e6eaf2;
+  --sidebar: #101a2a;
+  --sidebar-foreground: #edf3fb;
   --sidebar-primary: #829bc5;
-  --sidebar-primary-foreground: #23262e;
-  --sidebar-accent: #33364a;
-  --sidebar-accent-foreground: #d3d9e8;
-  --sidebar-border: #3a4152;
+  --sidebar-primary-foreground: #16202d;
+  --sidebar-accent: #2b3a50;
+  --sidebar-accent-foreground: #d9e5f5;
+  --sidebar-border: #334255;
   --sidebar-ring: #829bc5;
-  --workspace-bg: #242321;
-  --workspace-surface: #2d2b28;
-  --workspace-surface-soft: #34312d;
-  --workspace-sidebar: #28303d;
-  --workspace-topbar: #28303d;
+  --workspace-bg: #151b26;
+  --workspace-surface: #1c2431;
+  --workspace-surface-soft: #222d3b;
+  --workspace-sidebar: #101a2a;
+  --workspace-topbar: #101a2a;
   --workspace-primary: #829bc5;
   --workspace-primary-hover: #8ea7cf;
   --workspace-primary-soft: #33364a;
-  --workspace-on-primary: #23262e;
-  --workspace-secondary: #9a8fc4;
-  --workspace-secondary-soft: #33364a;
-  --workspace-on-secondary: #e6eaf2;
-  --workspace-text: #e6eaf2;
-  --workspace-muted: #9aa0b4;
-  --workspace-border: #3a4152;
+  --workspace-on-primary: #16202d;
+  --workspace-secondary: #8ea6cf;
+  --workspace-secondary-soft: #2b3a50;
+  --workspace-on-secondary: #edf3fb;
+  --workspace-text: #edf3fb;
+  --workspace-muted: #a7b4c4;
+  --workspace-border: #334255;
+}
+
+/* Dark brand aliases keep the older public-page utility classes in the same
+   palette as the semantic workspace tokens. This gives landing and auth pages
+   depth without forcing a light-mode rewrite. */
+.dark {
+  --color-ivory: #121925;
+  --color-parchment: #172234;
+  --color-cream: #202d40;
+  --color-charcoal: #edf3fb;
+  --color-linen: #3a4b63;
+  --color-navy: #d8e5f7;
+  --color-marine: #9db4d8;
+  --color-mist: #6f8eb4;
+  --color-teal: #75c69d;
+  --color-sand: #e2b36b;
+  --color-brand: #9db4d8;
+  --color-brand-hover: #b8cae5;
+  --color-brand-soft: #30435d;
+  --color-sage: #75c69d;
+  --color-soft-sage: #234238;
+  --color-sandgold: #e2b36b;
+  --color-bronze: #e2b36b;
+  --color-soft-gold: #4b3b27;
+  --color-lavender: #b39fe7;
+  --color-soft-lavender: #382f55;
+  --color-frost: #253247;
+  --color-blush: #3e2d38;
+  --color-sandsoft: #4b3b27;
+  --color-ai: #b39fe7;
+  --color-ai-soft: #382f55;
+  --color-warning: #e2b36b;
+  --color-warning-soft: #4b3b27;
+}
+
+.dark .theme-public .bg-white,
+.dark .theme-auth .bg-white\/70,
+.dark .theme-auth .bg-white\/80,
+.dark .theme-auth .bg-white\/90 {
+  background-color: var(--card) !important;
+}
+
+.dark .theme-auth .bg-red-50 {
+  background-color: var(--workspace-danger-soft) !important;
+}
+
+.dark .theme-auth .border-red-200 {
+  border-color: color-mix(in srgb, var(--workspace-danger) 48%, transparent) !important;
+}
+
+.dark .theme-auth .text-red-700,
+.dark .theme-auth .text-red-500 {
+  color: var(--workspace-danger) !important;
+}
+
+.dark .theme-auth .bg-primary.text-white {
+  color: var(--primary-foreground) !important;
+}
+
+.dark .theme-public .shadow-\[0_20px_56px_rgba\(53\,92\,140\,0\.12\)\],
+.dark .theme-public .shadow-\[0_12px_32px_rgba\(53\,92\,140\,0\.12\)\],
+.dark .theme-public .shadow-\[0_12px_32px_rgba\(53\,92\,140\,0\.08\)\],
+.dark .theme-public .shadow-\[0_16px_44px_rgba\(53\,92\,140\,0\.08\)\],
+.dark .theme-public .shadow-\[0_20px_48px_rgba\(53\,92\,140\,0\.12\)\],
+.dark .theme-public .shadow-\[0_20px_48px_rgba\(53\,92\,140\,0\.10\)\] {
+  box-shadow: 0 18px 46px rgb(4 10 20 / 0.28) !important;
 }
 
 /* Dark header: neutral warm overlays only — the background itself is
    driven by --workspace-topbar so each role keeps its identity. */
 .dark header .text-muted-foreground {
-  color: rgba(255, 255, 255, 0.6) !important;
+  color: var(--workspace-muted) !important;
 }
 .dark header .hover\:bg-accent:hover {
-  background-color: rgba(255, 255, 255, 0.1) !important;
+  background-color: var(--workspace-primary-soft) !important;
 }
 .dark header .hover\:text-foreground:hover,
 .dark header .hover\:text-accent-foreground:hover {
-  color: #ffffff !important;
+  color: var(--workspace-text) !important;
 }
 .dark header input {
-  border-color: rgba(255, 255, 255, 0.1) !important;
-  background-color: rgba(255, 255, 255, 0.05) !important;
-  color: #ededed !important;
+  border-color: var(--workspace-border) !important;
+  background-color: var(--workspace-surface-soft) !important;
+  color: var(--workspace-text) !important;
 }
 .dark header input::placeholder {
-  color: rgba(255, 255, 255, 0.3) !important;
+  color: var(--workspace-muted) !important;
 }
 .dark header kbd {
-  color: rgba(255, 255, 255, 0.3) !important;
-  background-color: rgba(255, 255, 255, 0.1) !important;
+  color: var(--workspace-muted) !important;
+  background-color: var(--workspace-primary-soft) !important;
 }
 .dark header .text-foreground {
-  color: #ededed !important;
+  color: var(--workspace-text) !important;
 }
 
 /* Sidebar in dark mode: neutral overlays only — background, active
    item and borders are driven by role tone variables. */
 .dark [data-slot="sidebar-inner"] .hover\:bg-accent:hover {
-  background-color: rgba(255, 255, 255, 0.08) !important;
+  background-color: var(--workspace-primary-soft) !important;
 }
 .dark [data-slot="sidebar-inner"] .hover\:text-foreground:hover,
 .dark [data-slot="sidebar-inner"] .hover\:text-destructive:hover {
@@ -2505,6 +2657,123 @@ html {
 .adam-message--assistant h1,
 .adam-message--assistant h2,
 .adam-message--assistant h3 { color: var(--foreground); letter-spacing: -0.01em; }
+
+/* Final workspace polish: keep the preview canvas distinct from the shell,
+   while the actual CV paper remains the visual focal point. */
+.cv-preview-frame,
+.cv-preview__canvas {
+  background: color-mix(in srgb, var(--workspace-bg) 72%, var(--workspace-surface-soft)) !important;
+}
+
+.cv-preview-frame {
+  border-color: color-mix(in srgb, var(--workspace-border) 82%, transparent);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--foreground) 5%, transparent), 0 18px 42px rgb(15 23 42 / 0.08);
+}
+
+.cv-preview__canvas {
+  padding: clamp(1.25rem, 2.5vw, 2.25rem);
+}
+
+.cv-preview-scroll-surface {
+  background: color-mix(in srgb, var(--workspace-surface-soft) 68%, var(--workspace-bg)) !important;
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--foreground) 4%, transparent);
+}
+
+.dark .cv-preview-scroll-surface {
+  background: #182231 !important;
+}
+
+/* The A4 paper is the white rectangle visible inside the preview. Round it at
+   the screen boundary so it reads as an intentional sheet, while print/PDF
+   keeps the exact paper geometry. */
+@media screen {
+  .cv-preview-frame--docked .cv-paper-a4 {
+    border-radius: 1rem;
+    box-shadow: 0 18px 42px rgb(15 23 42 / 0.18);
+  }
+
+  .cv-preview-frame--docked .cv-pages {
+    padding: 0.15rem;
+  }
+}
+
+.cv-document {
+  position: relative;
+  z-index: 1;
+  border-radius: 0.35rem;
+  box-shadow: 0 22px 48px rgb(15 23 42 / 0.18);
+}
+
+/* CopilotKit's internal input wrapper can paint its own black surface in dark
+   mode. The workspace owns the chrome, so nested wrappers stay transparent. */
+.cv-chat__copilot [data-copilotkit],
+.cv-chat__copilot [data-copilotkit] > *,
+.cv-chat__copilot form,
+.cv-chat__copilot [data-testid="copilot-input-overlay"] {
+  background: transparent !important;
+}
+
+.cv-chat__copilot form {
+  padding: 0.75rem 1rem 0.85rem !important;
+}
+
+.cv-chat__copilot .adam-composer {
+  margin-inline: auto !important;
+  max-width: 42rem !important;
+}
+
+@media (min-width: 901px) {
+  .cv-workspace__body {
+    grid-template-columns: minmax(24rem, 38%) minmax(0, 1fr);
+  }
+
+  .cv-chat__content {
+    background: color-mix(in srgb, var(--workspace-surface-soft) 58%, var(--card));
+  }
+
+  .adam-welcome {
+    padding: clamp(1.5rem, 5vh, 3.25rem) 1.25rem 9.25rem;
+  }
+}
+
+/* Public auth remains the original cream entry surface after logout. The
+   stored theme is intentionally untouched and applies again after login. */
+.dark .theme-auth {
+  color-scheme: light;
+  --background: #f7f3ec;
+  --foreground: #2f3440;
+  --card: #fffdf9;
+  --card-foreground: #2f3440;
+  --popover: #fffdf9;
+  --popover-foreground: #2f3440;
+  --primary: #355c8c;
+  --primary-foreground: #ffffff;
+  --primary-hover: #2d4f79;
+  --secondary: #eaf1f8;
+  --secondary-foreground: #2d4f79;
+  --muted: #f0eee8;
+  --muted-foreground: #6d7480;
+  --accent: #eaf1f8;
+  --accent-foreground: #2d4f79;
+  --border: #ddd4c7;
+  --input: #d8d3c8;
+  --ring: #355c8c;
+  --workspace-bg: #f7f3ec;
+  --workspace-surface: #fffdf9;
+  --workspace-surface-soft: #f1eadf;
+  --workspace-sidebar: #f7f5f1;
+  --workspace-topbar: #f7f3ec;
+  --workspace-primary: #355c8c;
+  --workspace-primary-hover: #2d4f79;
+  --workspace-primary-soft: #eaf1f8;
+  --workspace-on-primary: #ffffff;
+  --workspace-secondary: #9a938a;
+  --workspace-secondary-soft: #efe9df;
+  --workspace-on-secondary: #2f3440;
+  --workspace-text: #2f3440;
+  --workspace-muted: #6d7480;
+  --workspace-border: #ddd4c7;
+}
 .adam-message--assistant li { margin-block: 0.18rem; }
 .adam-message--user > div:first-child { border: 1px solid color-mix(in srgb, var(--border) 78%, transparent); background: var(--muted) !important; color: var(--foreground); }
 

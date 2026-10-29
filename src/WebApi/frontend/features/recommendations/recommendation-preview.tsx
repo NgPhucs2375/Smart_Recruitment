@@ -80,14 +80,14 @@ export function RecommendationPreview({ count = 5 }: { count?: number }) {
   }, [count]);
 
   return (
-    <section className="rounded-3xl border border-primary/20 bg-primary/[0.04] p-5 sm:p-6">
+    <section className="rounded-3xl border border-workspace-ai/30 bg-workspace-ai-soft/35 p-5 sm:p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-primary"><Sparkles className="size-3.5" /> Adam gợi ý cho bạn</p>
+          <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-workspace-ai"><Sparkles className="size-3.5" /> Adam gợi ý cho bạn</p>
           <h2 className="mt-2 text-xl font-semibold tracking-tight">Việc làm phù hợp với cv của bạn</h2>
           {/* <p className="mt-1 text-sm text-muted-foreground">Dựa trên CV mặc định và kỹ năng của bạn.</p> */}
         </div>
-        <Link href="/viec-lam/phu-hop" className="group flex items-center gap-1 text-sm font-medium text-primary transition-colors hover:text-primary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+        <Link href="/viec-lam/phu-hop" className="group flex items-center gap-1 text-sm font-medium text-workspace-ai transition-colors hover:text-workspace-ai/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-workspace-ai">
           Xem thêm việc phù hợp <ArrowUpRight className="size-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
         </Link>
       </div>
@@ -106,16 +106,16 @@ export function RecommendationPreview({ count = 5 }: { count?: number }) {
       ) : (
         <div className="mt-5 grid gap-3 md:grid-cols-2">
           {items.slice(0, count).map((item) => (
-          <Link key={item.tinTuyenDungId} href={`/viec-lam/${item.tinTuyenDungId}`} className="rounded-2xl border border-border bg-card p-4 transition hover:border-primary/40">
+           <Link key={item.tinTuyenDungId} href={`/viec-lam/${item.tinTuyenDungId}`} className="rounded-2xl border border-border bg-card p-4 transition hover:border-workspace-ai/50">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <h3 className="truncate font-medium">{item.tieuDe}</h3>
                 <p className="mt-1 truncate text-xs text-muted-foreground">{item.tenDoanhNghiep} · {item.diaDiemLamViec || "Linh hoạt"}</p>
               </div>
-              <span className="shrink-0 rounded-full bg-primary/10 px-2 py-1 text-xs font-semibold text-primary">{Math.round(item.diemPhuHop)}%</span>
+               <span className="shrink-0 rounded-full bg-workspace-ai-soft px-2 py-1 text-xs font-semibold text-workspace-ai">{Math.round(item.diemPhuHop)}%</span>
             </div>
             <p className="mt-3 text-xs text-muted-foreground">{money(item.luongToiThieu)} - {money(item.luongToiDa)}</p>
-            {item.kyNangThieu?.length > 0 && <p className="mt-2 truncate text-xs text-amber-700">Còn thiếu: {item.kyNangThieu.slice(0, 3).join(", ")}</p>}
+            {item.kyNangThieu?.length > 0 && <p className="mt-2 truncate text-xs text-workspace-warning">Còn thiếu: {item.kyNangThieu.slice(0, 3).join(", ")}</p>}
           </Link>
           ))}
         </div>

@@ -198,7 +198,7 @@ export default function CvPhanTichPage() {
             <div className="md:col-span-7 space-y-6">
               <CardShell icon={<UserCheck className="size-4 text-primary" />} title="Tóm tắt hồ sơ">
                 <p className="text-lg font-bold text-foreground">{MOCK_PROFILE.hoTen}</p>
-                <p className="mt-0.5 text-sm text-slate-500">{MOCK_PROFILE.chucDanh}</p>
+                <p className="mt-0.5 text-sm text-muted-foreground">{MOCK_PROFILE.chucDanh}</p>
                 <p className="mt-3 text-sm leading-6 text-muted-foreground">{MOCK_PROFILE.bio}</p>
               </CardShell>
 
@@ -231,11 +231,11 @@ export default function CvPhanTichPage() {
                 <div className="space-y-3">
                   {MOCK_PROFILE.kyNang.map((nhom) => (
                     <div key={nhom.nhom}>
-                      <p className="mb-1.5 text-xs font-semibold text-slate-500">{nhom.nhom}</p>
+                      <p className="mb-1.5 text-xs font-semibold text-muted-foreground">{nhom.nhom}</p>
                       {nhom.items.map((skill) => (
                         <span
                           key={skill}
-                          className="mr-1.5 mb-1.5 inline-block rounded-md border border-slate-200 bg-slate-100 px-2.5 py-1 text-xs text-slate-800 transition-colors hover:bg-slate-200"
+                          className="mr-1.5 mb-1.5 inline-block rounded-md border border-border bg-muted px-2.5 py-1 text-xs text-foreground transition-colors hover:bg-accent"
                         >
                           {skill}
                         </span>
@@ -249,7 +249,7 @@ export default function CvPhanTichPage() {
                 <div className="space-y-3 text-sm">
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-muted-foreground">Điểm chuẩn ATS</span>
-                    <span className="text-2xl font-extrabold tabular-nums text-[#355C8C]">{MOCK_PROFILE.ats}</span>
+                    <span className="text-2xl font-extrabold tabular-nums text-primary">{MOCK_PROFILE.ats}</span>
                   </div>
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-muted-foreground">Độ chi tiết thông tin</span>
@@ -268,16 +268,16 @@ export default function CvPhanTichPage() {
 
           <div className="flex flex-col items-start justify-between gap-4 rounded-2xl border border-blue-100 bg-gradient-to-r from-blue-50 to-indigo-50 p-5 sm:flex-row sm:items-center">
             <div className="flex items-center gap-3">
-              <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-white shadow-sm">
-                <Compass className="size-5 text-[#355C8C]" />
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-muted shadow-sm">
+                <Compass className="size-5 text-primary" />
               </span>
-              <p className="text-sm leading-6 text-slate-600">
-                Hệ thống đã tìm thấy <span className="font-semibold text-[#355C8C]">{MOCK_PROFILE.viecPhuHop} việc làm</span> phù hợp cao với hồ sơ trích xuất này.
+              <p className="text-sm leading-6 text-muted-foreground">
+                Hệ thống đã tìm thấy <span className="font-semibold text-primary">{MOCK_PROFILE.viecPhuHop} việc làm</span> phù hợp cao với hồ sơ trích xuất này.
               </p>
             </div>
             <Link
               href="/viec-lam/phu-hop"
-              className="shrink-0 rounded-xl bg-[#355C8C] px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#28466c]"
+              className="shrink-0 rounded-xl bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary-hover"
             >
               Xem {MOCK_PROFILE.viecPhuHop} việc phù hợp ➔
             </Link>

@@ -72,7 +72,7 @@ export default function ForgotPasswordScreen() {
 
           <ThemedText style={[styles.label, { color: theme.textSecondary }]}>Email</ThemedText>
           <View style={[styles.inputWrap, { backgroundColor: theme.backgroundElement, borderColor: theme.input }]}>
-            <Mail size={16} color="#9ca3af" style={styles.inputIcon} />
+            <Mail size={16} color={theme.textSecondary} style={styles.inputIcon} />
             <TextInput
               autoCapitalize="none"
               autoCorrect={false}

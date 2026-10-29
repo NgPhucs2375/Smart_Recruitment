@@ -492,8 +492,8 @@ export default function TinTuyenDungPage() {
           {errField && <p id="ttd-field-error" role="alert" className="text-sm text-destructive">{err}</p>}
 
           {/* Card 1: Thông tin vị trí tuyển dụng */}
-          <section className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm space-y-5">
-            <h3 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-slate-500">
+          <section className="rounded-2xl border border-border bg-card p-6 shadow-sm space-y-5">
+            <h3 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
               <Briefcase className="size-4 text-[#355C8C]" /> Thông tin vị trí tuyển dụng
             </h3>
             <div className="grid gap-4 md:grid-cols-2">
@@ -530,8 +530,8 @@ export default function TinTuyenDungPage() {
           </section>
 
           {/* Card 2: Thời gian & đãi ngộ */}
-          <section className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm space-y-5">
-            <h3 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-slate-500">
+          <section className="rounded-2xl border border-border bg-card p-6 shadow-sm space-y-5">
+            <h3 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
               <CalendarDays className="size-4 text-[#355C8C]" /> Thời gian &amp; đãi ngộ
             </h3>
             <div className="grid gap-4 md:grid-cols-3">
@@ -578,20 +578,20 @@ export default function TinTuyenDungPage() {
           </section>
 
           {/* Card 3: Nội dung chi tiết */}
-          <section className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm space-y-5">
-            <h3 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-slate-500">
+          <section className="rounded-2xl border border-border bg-card p-6 shadow-sm space-y-5">
+            <h3 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
               <FileText className="size-4 text-[#355C8C]" /> Nội dung chi tiết
             </h3>
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2 md:col-span-2">
                 <Label htmlFor="ttd-mo-ta">Mô tả công việc *</Label>
                 <textarea id="ttd-mo-ta" aria-invalid={errField === "moTaCongViec"} value={form.moTaCongViec} onChange={e => setForm(f => ({ ...f, moTaCongViec: e.target.value }))} rows={4} maxLength={5000} className="flex w-full rounded-lg border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" placeholder="Mô tả trách nhiệm, công việc hằng ngày..." />
-                <div className="flex justify-end"><span className="text-xs text-slate-400">{form.moTaCongViec.length}/5000 ký tự</span></div>
+                <div className="flex justify-end"><span className="text-xs text-muted-foreground">{form.moTaCongViec.length}/5000 ký tự</span></div>
               </div>
               <div className="space-y-2 md:col-span-2">
                 <Label htmlFor="ttd-yeu-cau">Yêu cầu công việc *</Label>
                 <textarea id="ttd-yeu-cau" aria-invalid={errField === "yeuCauCongViec"} value={form.yeuCauCongViec} onChange={e => setForm(f => ({ ...f, yeuCauCongViec: e.target.value }))} rows={4} maxLength={5000} className="flex w-full rounded-lg border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" placeholder="Yêu cầu kỹ năng, bằng cấp..." />
-                <div className="flex justify-end"><span className="text-xs text-slate-400">{form.yeuCauCongViec.length}/5000 ký tự</span></div>
+                <div className="flex justify-end"><span className="text-xs text-muted-foreground">{form.yeuCauCongViec.length}/5000 ký tự</span></div>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="ttd-kinh-nghiem">Kinh nghiệm yêu cầu</Label>
@@ -603,7 +603,7 @@ export default function TinTuyenDungPage() {
               </div>
             </div>
 
-            <div className="border-t border-slate-100 pt-5">
+            <div className="border-t border-border pt-5">
               <div className="space-y-2">
                 <Label htmlFor="ttd-ky-nang">Kỹ năng yêu cầu</Label>
                 <div className="relative">
@@ -630,20 +630,20 @@ export default function TinTuyenDungPage() {
                     const matched = skills.filter(s => !form.kyNangs.some(k => k.kyNangId === s.id) && (!q || s.name.toLowerCase().includes(q)));
                     const exact = !!q && skills.some(s => s.name.trim().toLowerCase() === q);
                     return (
-                      <ul className="absolute z-20 mt-1 max-h-56 w-full overflow-auto rounded-xl border border-slate-200 bg-white py-1 shadow-lg">
+                      <ul className="absolute z-20 mt-1 max-h-56 w-full overflow-auto rounded-xl border border-border bg-popover py-1 shadow-lg">
                         {matched.length === 0 && !q && (
-                          <li className="px-3 py-2 text-sm text-slate-400">Chưa có kỹ năng nào trong kho.</li>
+                          <li className="px-3 py-2 text-sm text-muted-foreground">Chưa có kỹ năng nào trong kho.</li>
                         )}
                         {matched.slice(0, 50).map(s => (
                           <li key={s.id}>
-                            <button type="button" onMouseDown={e => e.preventDefault()} onClick={() => addSkill(s)} className="w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50">
+                            <button type="button" onMouseDown={e => e.preventDefault()} onClick={() => addSkill(s)} className="w-full px-3 py-2 text-left text-sm text-foreground hover:bg-muted">
                               {s.name}
                             </button>
                           </li>
                         ))}
                         {q && !exact && (
                           <li>
-                            <button type="button" onMouseDown={e => e.preventDefault()} onClick={() => void createSkill(skillQuery.trim())} className="w-full px-3 py-2 text-left text-sm font-medium text-[#355C8C] hover:bg-slate-50">
+                            <button type="button" onMouseDown={e => e.preventDefault()} onClick={() => void createSkill(skillQuery.trim())} className="w-full px-3 py-2 text-left text-sm font-medium text-primary hover:bg-muted">
                               ＋ Thêm mới "{skillQuery.trim()}"
                             </button>
                           </li>
