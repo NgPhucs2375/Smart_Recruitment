@@ -65,8 +65,8 @@ db.HoSoNhaTuyenDungs.AddRange(new HoSoNhaTuyenDung { Id = 101, NguoiDungId = 1, 
 db.HoSoUngViens.AddRange(new HoSoUngVien { Id = 21, NguoiDungId = 1 }, new HoSoUngVien { Id = 22, NguoiDungId = 2 });
 db.CVUngViens.AddRange(new CVUngVien { Id = 11, HoSoUngVienId = 21 }, new CVUngVien { Id = 12, HoSoUngVienId = 22 });
 db.TinTuyenDungs.AddRange(new TinTuyenDung { Id = 41, DoanhNghiepId = 31, NguoiDangTinId = 3 }, new TinTuyenDung { Id = 42, DoanhNghiepId = 31, NguoiDangTinId = 4 });
-db.DonUngTuyens.AddRange(new DonUngTuyen { Id = 51, CVUngVienId = 11, TinTuyenDungId = 41, CvSnapshotJson = JsonSerializer.Serialize(new CvDetailDto { Id = 11, TenFile = "Submitted snapshot" }) },
-    new DonUngTuyen { Id = 52, CVUngVienId = 12, TinTuyenDungId = 42 });
+db.DonUngTuyens.AddRange(new DonUngTuyen { Id = 51, CVUngVienId = 11, TinTuyenDungId = 41, DoanhNghiepId = 31, CvSnapshotJson = JsonSerializer.Serialize(new CvDetailDto { Id = 11, TenFile = "Submitted snapshot" }) },
+    new DonUngTuyen { Id = 52, CVUngVienId = 12, TinTuyenDungId = 42, DoanhNghiepId = 31 });
 db.DanhGias.AddRange(new DanhGia { Id = 61, DonUngTuyenId = 51 }, new DanhGia { Id = 62, DonUngTuyenId = 52 });
 db.KetQuaPhanTichCvs.Add(new KetQuaPhanTichCv { Id = 71, CVUngVienId = 12 });
 await db.SaveChangesAsync(); db.ChangeTracker.Clear();
@@ -117,8 +117,8 @@ var toolCache = Activator.CreateInstance(
     typeof(NullLogger<>).MakeGenericType(toolCacheType).GetField("Instance")!.GetValue(null))!;
 foreach (var spec in new[] {
     ("WebApp.Server.Agent.Adam.Tools.CvQueryTools", "GetCvDetailAsync", 5, 3, 4, new object[] { 11, CancellationToken.None }),
-    ("WebApp.Server.Agent.RecommenAdam.Candidate.CandidateTools", "GetJobDetailsAsync", 4, 2, 3, new object[] { 41, CancellationToken.None }),
-    ("WebApp.Server.Agent.RecommenAdam.Recruiter.Tools.RecruiterTools", "GetApplicationsAsync", 7, 5, 6, new object[] { (int?)41, 20, CancellationToken.None })
+    ("WebApp.Server.Agent.RecommenAdam.Candidate.CandidateTools", "GetJobDetailsAsync", 5, 2, 3, new object[] { 41, CancellationToken.None }),
+    ("WebApp.Server.Agent.RecommenAdam.Recruiter.Tools.RecruiterTools", "GetApplicationsAsync", 5, 3, 4, new object[] { (int?)41, 20, CancellationToken.None })
 })
 {
     var type = webAssembly.GetType(spec.Item1)!;

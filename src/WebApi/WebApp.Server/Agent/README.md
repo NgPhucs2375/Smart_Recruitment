@@ -11,13 +11,10 @@ Agent/
   SharedStateAgent.cs                # AG-UI shared-state decorator
   SharedStateStore.cs                # Request-scoped state store
   Adam/
-    AdamInstructions.cs              # Global candidate assistant prompt
-    AdamAgentFactory.cs              # Global agent composition
-    ScopedAdamAgent.cs               # Scoped global agent resolver
     Tools/
       CvQueryTools.cs                # Read-only CV tool adapters
   Recommen-Adam/
-    ScopedRecommenAdamAgent.cs       # Role-aware agent resolver
+    ScopedRecommenAdamAgent.cs       # Sole role-aware resolver (candidate/recruiter)
     Candidate/                        # Candidate tools, prompt, and factory
     Recruiter/                       # Recruiter tools, prompt, and factory
 ```
@@ -60,6 +57,10 @@ query DB.
 scheme với các controller `[Authorize]`). FE gửi `Authorization: Bearer` qua
 `CopilotProvider`; proxy Next (`frontend/app/api/copilotkit/agent-runtime.ts`)
 chuyển tiếp header này sang AG-UI endpoint bằng AsyncLocalStorage.
+
+`ScopedRecommenAdamAgent.ResolveAgent` là nơi phân quyền duy nhất: `UNG_VIEN`
+→ candidate factory, `NHAN_SU`/`NGUOI_DAI_DIEN` → recruiter factory,
+`QUAN_TRI_VIEN` và mọi vai trò khác → từ chối, không fallback sang recruiter.
 
 ## Dependency direction
 

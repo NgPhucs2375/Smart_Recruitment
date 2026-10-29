@@ -17,6 +17,9 @@ namespace Infrastructure.Persistence.Configurations
             builder.HasIndex(x => new { x.TinTuyenDungId, x.HoSoUngVienId }).IsUnique()
                 .HasFilter("\"HoSoUngVienId\" IS NOT NULL");
 
+            builder.HasIndex(x => new { x.TinTuyenDungId, x.CVUngVienId });
+            builder.HasIndex(x => new { x.DoanhNghiepId, x.TrangThai });
+
             builder.HasOne(x => x.TinTuyenDung)
                    .WithMany(x => x.DonUngTuyens)
                    .HasForeignKey(x => x.TinTuyenDungId)

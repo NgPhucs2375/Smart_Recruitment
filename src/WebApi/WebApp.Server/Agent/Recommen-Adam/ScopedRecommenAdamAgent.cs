@@ -1,9 +1,10 @@
 using System.Runtime.CompilerServices;
-using System.Text;
 using System.Text.Json;
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
+using Microsoft.Extensions.DependencyInjection;
 using Domain.Enums;
+using Application.Interfaces;
 using WebApp.Server.Agent.RecommenAdam.Candidate;
 using WebApp.Server.Agent.RecommenAdam.Recruiter;
 using WebApp.Server.Agent.SharedState;
@@ -13,6 +14,11 @@ namespace WebApp.Server.Agent.RecommenAdam;
 
 internal sealed class ScopedRecommenAdamAgent : AIAgent
 {
+    private const string BlockedRoleMessage =
+        "Xin lỗi, Adam hiện chỉ hỗ trợ tài khoản Ứng viên và Nhà tuyển dụng " +
+        "(Nhân sự/Người đại diện doanh nghiệp). " +
+        "Tài khoản Quản trị viên vui lòng dùng trang quản trị để xem báo cáo và cấu hình hệ thống.";
+
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly ILogger<ScopedRecommenAdamAgent> _logger;
     private readonly TimeSpan _maxStreamingRunTime;
@@ -35,7 +41,15 @@ internal sealed class ScopedRecommenAdamAgent : AIAgent
     {
         try
         {
-            return await (await ResolveAgentAsync()).RunAsync(messages, session, options, cancellationToken);
+            var services = GetRequestServices();
+            var current = await services.GetRequiredService<ICurrentNguoiDungService>().ResolveAsync();
+            if (!IsSupportedRole(current.VaiTro))
+            {
+                LogBlockedRole(current.VaiTro, "non-streaming");
+                return new AgentResponse(new ChatMessage(ChatRole.Assistant, BlockedRoleMessage));
+            }
+
+            return await ResolveAgent(services, current).RunAsync(messages, session, options, cancellationToken);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
@@ -47,27 +61,15 @@ internal sealed class ScopedRecommenAdamAgent : AIAgent
     protected override async IAsyncEnumerable<AgentResponseUpdate> RunCoreStreamingAsync(IEnumerable<ChatMessage> messages, AgentSession? session = null, AgentRunOptions? options = null, [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         var messageList = messages.ToList();
-        var services = _httpContextAccessor.HttpContext?.RequestServices
-            ?? throw new InvalidOperationException("Không có HTTP request scope hiện tại.");
-        var current = await services.GetRequiredService<Application.Interfaces.ICurrentNguoiDungService>().ResolveAsync();
+        var services = GetRequestServices();
+        var current = await services.GetRequiredService<ICurrentNguoiDungService>().ResolveAsync();
 
-        if (current.VaiTro == VaiTroNguoiDung.UNG_VIEN && IsJobRecommendationRequest(messageList))
+        if (!IsSupportedRole(current.VaiTro))
         {
-            var tools = services.GetRequiredService<CandidateTools>();
-            var response = await tools.GetJobRecommendationsAsync(cancellationToken: cancellationToken);
-            var text = response.Succeeded && response.Data is not null
-                ? FormatJobRecommendations(response.Data)
-                : response.Message ?? "Không thể lấy việc làm phù hợp lúc này.";
-
+            LogBlockedRole(current.VaiTro, "streaming");
             yield return new AgentResponseUpdate
             {
-                Contents = [new TextContent(text)]
-            };
-
-            var state = services.GetRequiredService<SharedStateStore>();
-            yield return new AgentResponseUpdate
-            {
-                Contents = [new DataContent(JsonSerializer.SerializeToUtf8Bytes(state.Snapshot()), "application/json")]
+                Contents = [new TextContent(BlockedRoleMessage)]
             };
             yield break;
         }
@@ -166,49 +168,71 @@ internal sealed class ScopedRecommenAdamAgent : AIAgent
 
     private async Task<AIAgent> ResolveAgentAsync()
     {
-        var services = _httpContextAccessor.HttpContext?.RequestServices
-            ?? throw new InvalidOperationException("Không có HTTP request scope hiện tại.");
-        var current = await services.GetRequiredService<Application.Interfaces.ICurrentNguoiDungService>().ResolveAsync();
+        var services = GetRequestServices();
+        var current = await services.GetRequiredService<ICurrentNguoiDungService>().ResolveAsync();
+        return ResolveAgent(services, current);
+    }
+
+    private AIAgent ResolveAgent(IServiceProvider services, CurrentNguoiDungContext current)
+    {
         _logger.LogInformation("Adam agent role routing. Role={Role}", current.VaiTro);
-        var agent = current.VaiTro == VaiTroNguoiDung.UNG_VIEN
-            ? services.GetRequiredService<CandidateAdamAgentFactory>().CreateAgent()
-            : services.GetRequiredService<RecruiterAdamAgentFactory>().CreateAgent();
+
+        AIAgent agent;
+        switch (current.VaiTro)
+        {
+            case VaiTroNguoiDung.UNG_VIEN:
+                agent = services.GetRequiredService<CandidateAdamAgentFactory>().CreateAgent();
+                break;
+
+            case VaiTroNguoiDung.NHAN_SU:
+            case VaiTroNguoiDung.NGUOI_DAI_DIEN:
+                agent = services.GetRequiredService<RecruiterAdamAgentFactory>().CreateAgent();
+                break;
+
+            // Quản trị viên không thuộc phạm vi nghiệp vụ của Adam.
+            // Không fallback sang Recruiter để tránh lộ dữ liệu doanh nghiệp.
+            case VaiTroNguoiDung.QUAN_TRI_VIEN:
+            default:
+                LogBlockedRole(current.VaiTro, "session");
+                return CreateBlockedAgent(services);
+        }
+
         return new SharedStateAgent(
             agent,
             services.GetRequiredService<SharedStateStore>(),
             services.GetRequiredService<ILogger<SharedStateAgent>>());
     }
 
-    private static bool IsJobRecommendationRequest(IEnumerable<ChatMessage> messages)
-    {
-        var text = messages.LastOrDefault(message => message.Role == ChatRole.User)?
-            .Contents.OfType<TextContent>()
-            .Select(content => content.Text)
-            .FirstOrDefault()?
-            .ToLowerInvariant();
+    private static bool IsSupportedRole(VaiTroNguoiDung role) =>
+        role is VaiTroNguoiDung.UNG_VIEN
+            or VaiTroNguoiDung.NHAN_SU
+            or VaiTroNguoiDung.NGUOI_DAI_DIEN;
 
-        return text is not null
-            && !new[] { "mẫu", "mau cv", "template", "theme", "bố cục", "bo cuc" }.Any(text.Contains)
-            && (text.Contains("gợi ý") || text.Contains("goi y"))
-            && (text.Contains("việc") || text.Contains("viec"))
-            && (text.Contains("phù hợp") || text.Contains("phu hop"));
-    }
+    private IServiceProvider GetRequestServices() =>
+        _httpContextAccessor.HttpContext?.RequestServices
+        ?? throw new InvalidOperationException("Không có HTTP request scope hiện tại.");
 
-    private static string FormatJobRecommendations(IEnumerable<Application.Features.KetQuaPhuHop.Queries.SuggestJobsForCv.SuggestedJobViewModel> jobs)
-    {
-        var builder = new StringBuilder("Các việc làm phù hợp nhất:\n");
-        var index = 1;
-        foreach (var job in jobs)
-        {
-            builder.Append(index++)
-                .Append(". ").Append(job.TieuDe)
-                .Append(" - ").Append(job.TenDoanhNghiep)
-                .Append(" (ID: ").Append(job.TinTuyenDungId).Append(")\n")
-                .Append("   ").Append(job.DiaDiemLamViec)
-                .Append(" | ").Append(job.LuongToiThieu.ToString("N0")).Append("đ - ").Append(job.LuongToiDa.ToString("N0")).Append("đ")
-                .Append(" | Phù hợp: ").Append(Math.Round(job.DiemPhuHop * 100)).Append("%\n");
-        }
+    private void LogBlockedRole(VaiTroNguoiDung role, string stage) =>
+        _logger.LogWarning("Adam blocked unsupported role. Role={Role} Stage={Stage}", role, stage);
 
-        return builder.ToString().TrimEnd();
-    }
+    private AIAgent CreateBlockedAgent(IServiceProvider services) =>
+        new ChatClientAgent(
+            services.GetRequiredKeyedService<IChatClient>(CandidateAdamInstructions.ChatClientKey),
+            new ChatClientAgentOptions
+            {
+                Name = "Adam",
+                Description = Description,
+                ChatOptions = new ChatOptions
+                {
+                    Instructions =
+                        "Bạn là Adam của HIREAI. Chỉ hỗ trợ tài khoản Ứng viên và Nhà tuyển dụng. " +
+                        "Với mọi yêu cầu khác, trả lời đúng nguyên văn thông báo từ chối của hệ thống.",
+                    Temperature = 0f,
+                    MaxOutputTokens = 512,
+                    AllowMultipleToolCalls = false,
+                    Tools = []
+                }
+            },
+            loggerFactory: null,
+            services: null);
 }

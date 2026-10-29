@@ -11,6 +11,7 @@ using Application.Features.TinTuyenDung.Queries.GetAllTinTuyenDungs;
 using Application.Features.TinTuyenDung.Queries.GetTinTuyenDungById;
 using Application.Wrappers;
 using MediatR;
+using Microsoft.Extensions.DependencyInjection;
 using WebApp.Server.Agent.Cache;
 using WebApp.Server.Agent.SharedState;
 
@@ -22,13 +23,20 @@ internal sealed class CandidateTools
 	private readonly SharedStateStore _sharedState;
 	private readonly IPermissionService _permissions;
 	private readonly AgentToolCache _toolCache;
+	private readonly IServiceScopeFactory _scopeFactory;
 
-	public CandidateTools(ISender sender, SharedStateStore sharedState, IPermissionService permissions, AgentToolCache toolCache)
+	public CandidateTools(
+		ISender sender,
+		SharedStateStore sharedState,
+		IPermissionService permissions,
+		AgentToolCache toolCache,
+		IServiceScopeFactory scopeFactory)
 	{
 		_sender = sender;
 		_sharedState = sharedState;
 		_permissions = permissions;
 		_toolCache = toolCache;
+		_scopeFactory = scopeFactory;
     }
 
     [Description("Chỉ kiểm tra các trường thông tin cá nhân trong HoSoUngVien của ứng viên hiện tại. Không đọc, không phân tích và không kiểm tra CVUngVien. Dùng khi ứng viên hỏi: hồ sơ của tôi còn thiếu gì.")]
@@ -218,13 +226,24 @@ internal sealed class CandidateTools
         var ids = tinTuyenDungIds.Distinct().Take(3).ToList();
         if (ids.Count < 2) return new Response<List<GetAllTinTuyenDungsViewModel>>("Hãy cung cấp ít nhất hai tin tuyển dụng để so sánh.");
 
-        var jobs = new List<GetAllTinTuyenDungsViewModel>();
-        foreach (var id in ids)
-        {
-            var job = await GetJobDetailsAsync(id, cancellationToken);
-            if (job.Succeeded && job.Data != null) jobs.Add(job.Data);
-        }
+        var results = await Task.WhenAll(ids.Select(id => GetJobDetailsInNewScopeAsync(id, cancellationToken)));
+        var jobs = results
+            .Where(result => result.Succeeded && result.Data != null)
+            .Select(result => result.Data!)
+            .ToList();
         return new Response<List<GetAllTinTuyenDungsViewModel>>(jobs);
+    }
+
+    private async Task<Response<GetAllTinTuyenDungsViewModel>> GetJobDetailsInNewScopeAsync(
+        int tinTuyenDungId,
+        CancellationToken cancellationToken)
+    {
+        // Mỗi job chạy trong scope riêng vì ApplicationDbContext là scoped và
+        // không thread-safe khi các query song song dùng chung một instance.
+        await using var scope = _scopeFactory.CreateAsyncScope();
+        return await scope.ServiceProvider
+            .GetRequiredService<CandidateTools>()
+            .GetJobDetailsAsync(tinTuyenDungId, cancellationToken);
     }
 
     [Description("Xem các đơn ứng tuyển của ứng viên hiện tại.")]

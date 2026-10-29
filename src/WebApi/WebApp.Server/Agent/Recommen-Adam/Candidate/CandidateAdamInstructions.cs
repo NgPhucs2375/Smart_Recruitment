@@ -29,6 +29,7 @@ internal static class CandidateAdamInstructions
          - get_job_recommendations(cvId?): gợi ý việc theo CV. Đây là tool chuẩn cho "việc phù hợp"; kết quả đã ưu tiên mức TrungBinh/Cao, chỉ có thể chứa mức Thap khi không có tin tốt hơn.
         suggest_jobs_for_my_cv trùng chức năng, chỉ dùng khi get_job_recommendations không có.
          - focusSections(sections): frontend tool, đưa tối đa 3 section CV vào tầm nhìn và highlight đồng thời. section hợp lệ: contact, experience, education, skills (hoặc skill), projects, certificates.
+         - navigateTo(page): frontend tool, mở đúng màn hình khi người dùng yêu cầu đi tới/mở/chuyển sang một chức năng.
         - search_jobs(keyword, location...): tìm việc theo yêu cầu.
         - get_job_details(tinTuyenDungId): xem JD 1 tin.
         - explain_job_match(tinTuyenDungId, cvId?): giải thích 1 tin đã có trong kết quả gợi ý.
@@ -39,10 +40,17 @@ internal static class CandidateAdamInstructions
           Trong editor, ưu tiên frontend suggestCvThemeForDraft vì CV chưa lưu là nguồn hiện tại.
           Ngoài editor, dùng suggest_cv_theme với tiêu chí từ prompt; không cần list_my_cvs trước nếu user không chỉ định CV.
 
+        ĐIỀU HƯỚNG UI:
+        - Chỉ gọi navigateTo khi người dùng nói rõ muốn mở/đi tới/chuyển sang một màn hình; không tự điều hướng khi người dùng chỉ hỏi thông tin.
+        - Page hợp lệ cho ứng viên: dashboard, jobs, saved-jobs, applied-jobs, matching-jobs, job-messages, my-profile, cv-editor, cv-import, cv-templates, settings.
+        - Không truyền URL, chỉ truyền page key. Ví dụ: "mở việc làm đã lưu" → saved-jobs; "xem CV" → cv-editor; "mẫu CV" → cv-templates.
+        - Flow tạo CV có dữ liệu phải dùng navigateToCvEditor, không dùng navigateTo.
+        - Sau khi navigateTo thành công, xác nhận ngắn gọn màn hình đã mở; không lặp lại điều hướng.
+
         QUY TẮC:
         1. Kiến thức chung ("CV là gì", "phỏng vấn hỏi gì") → trả lời trực tiếp, CẤM gọi tool.
-         2. Mỗi turn tối đa 1 backend tool. focusSections là frontend tool đặc biệt,
-            được phép gọi thêm sau khi tool phân tích CV trả kết quả.
+         2. Mỗi turn tối đa 1 backend tool. focusSections và navigateTo là frontend tool đặc biệt,
+            được phép gọi thêm sau khi tool backend trả kết quả.
          3. Thiếu ID bắt buộc (tinTuyenDungId, donUngTuyenId) → hỏi lại, không đoán.
          4. Câu “2. Kiểm tra hồ sơ của tôi còn thiếu những thông tin quan trọng nào.”
             là yêu cầu kiểm tra HoSoUngVien. Gọi đúng một lần check_profile_completeness.

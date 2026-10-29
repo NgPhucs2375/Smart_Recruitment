@@ -110,7 +110,7 @@ await db.SaveChangesAsync();
 Check(legacy.TrangThai == TrangThaiTinTuyenDung.ChoNguoiDaiDienDuyet && funnel.Calls == previousCalls, "Queue recovery never filters HR before representative approval");
 
 current.Set(2, VaiTroNguoiDung.NGUOI_DAI_DIEN, 10);
-var application = new DonUngTuyen { TinTuyenDungId = ownerId, CVUngVien = new CVUngVien { HoSoUngVien = new HoSoUngVien { HoTen = "Applicant", NguoiDungId = 3 }, TenFile = "CV" }, TrangThai = TrangThaiDonUngTuyen.ChoXuLy, NgayUngTuyen = DateTime.UtcNow, GhiChu = "" };
+var application = new DonUngTuyen { TinTuyenDungId = ownerId, DoanhNghiepId = 10, CVUngVien = new CVUngVien { HoSoUngVien = new HoSoUngVien { HoTen = "Applicant", NguoiDungId = 3 }, TenFile = "CV" }, TrangThai = TrangThaiDonUngTuyen.ChoXuLy, NgayUngTuyen = DateTime.UtcNow, GhiChu = "" };
 db.DonUngTuyens.Add(application);
 await db.SaveChangesAsync();
 Check(await Trigger(ownerId, TriggerTinTuyenDung.DongTin) && (await db.DonUngTuyens.AsNoTracking().SingleAsync(x => x.Id == application.Id)).TrangThai == TrangThaiDonUngTuyen.TinTuyenDungBiDong, "Closing job persists application cascade");

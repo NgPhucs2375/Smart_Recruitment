@@ -113,7 +113,6 @@ function RootNavigator() {
 
         <Stack.Protected guard={isSignedIn && portal === 'candidate'}>
           <Stack.Screen name="(tabs)" />
-          <Stack.Screen name="applications" options={{ headerShown: false }} />
           <Stack.Screen name="change-password" options={{ headerShown: false }} />
           <Stack.Screen name="chat/[id]" options={{ headerShown: false }} />
           <Stack.Screen name="jobs/[id]" options={{ headerShown: false }} />
@@ -124,8 +123,6 @@ function RootNavigator() {
           <Stack.Screen name="cv-create" options={{ headerShown: false }} />
           <Stack.Screen name="cv-detail" options={{ headerShown: false }} />
           <Stack.Screen name="cv-upload" options={{ headerShown: false }} />
-          <Stack.Screen name="notifications" options={{ headerShown: false }} />
-          <Stack.Screen name="profile-edit" options={{ headerShown: false }} />
           <Stack.Screen name="tao-cv" options={{ headerShown: false }} />
           <Stack.Screen name="tao-cv/[id]" options={{ headerShown: false }} />
           <Stack.Screen name="tao-cv/ai" options={{ headerShown: false }} />

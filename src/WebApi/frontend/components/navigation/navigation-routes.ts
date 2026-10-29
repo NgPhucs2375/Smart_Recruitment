@@ -1,3 +1,5 @@
+import type { AdamRole } from "@/lib/adam-role";
+
 /** Routes that Adam may open through the global navigateTo frontend tool. */
 export const NAVIGABLE_ROUTES = {
   dashboard: { href: "/dashboard", label: "Dashboard" },
@@ -27,6 +29,45 @@ export const NAVIGABLE_ROUTES = {
 
 export type NavigablePage = keyof typeof NAVIGABLE_ROUTES;
 
-export function getNavigableRoute(page: NavigablePage) {
-  return NAVIGABLE_ROUTES[page];
+/** Page keys each Adam role is allowed to open. Admin is intentionally empty. */
+export const ADAM_PAGE_ACCESS: Record<AdamRole, readonly NavigablePage[]> = {
+  candidate: [
+    "dashboard",
+    "jobs",
+    "saved-jobs",
+    "applied-jobs",
+    "matching-jobs",
+    "job-messages",
+    "my-profile",
+    "cv-editor",
+    "cv-import",
+    "cv-templates",
+    "settings",
+  ],
+  recruiter: [
+    "dashboard",
+    "job-messages",
+    "recruiter-profile",
+    "candidates",
+    "employees",
+    "companies",
+    "reports",
+    "settings",
+  ],
+  blocked: [],
+};
+
+export function getAdamPages(role: AdamRole): readonly NavigablePage[] {
+  return ADAM_PAGE_ACCESS[role];
+}
+
+export function isPageAllowedForRole(page: NavigablePage, role: AdamRole): boolean {
+  return ADAM_PAGE_ACCESS[role].includes(page);
+}
+
+export function getNavigableRoute(page: NavigablePage, role?: AdamRole) {
+  const destination = NAVIGABLE_ROUTES[page];
+  if (!destination) return undefined;
+  if (role && !isPageAllowedForRole(page, role)) return undefined;
+  return destination;
 }

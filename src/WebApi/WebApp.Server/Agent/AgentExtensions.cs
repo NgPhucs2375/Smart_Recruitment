@@ -3,7 +3,6 @@ using System.ClientModel;
 using Microsoft.Agents.AI.Hosting.AGUI.AspNetCore;
 using Microsoft.Extensions.AI;
 using OpenAI;
-using WebApp.Server.Agent.Adam;
 using WebApp.Server.Agent.Adam.Tools;
 using WebApp.Server.Agent.RecommenAdam;
 using WebApp.Server.Agent.RecommenAdam.Candidate;
@@ -33,19 +32,7 @@ public static class AgentExtensions
         services.AddScoped<Threads.AgentThreadStore>();
         services.AddScoped<Middlewares.AgentThreadHistoryMiddleware>();
 
-        services.AddKeyedSingleton<IChatClient>(
-            AdamInstructions.ChatClientKey,
-            (serviceProvider, _) =>
-            {
-                var configuration = serviceProvider.GetRequiredService<IConfiguration>();
-                return CreateGeminiChatClient(configuration);
-            });
-
-        // lifetime of that request to complete that request =  Scoped<>();
-        // lifetime at server startup to shutdown = Singleton<>();
         services.AddScoped<CvQueryTools>();
-        services.AddScoped<AdamAgentFactory>();
-        services.AddSingleton<ScopedAdamAgent>();
 
         services.AddKeyedSingleton<IChatClient>(
             CandidateAdamInstructions.ChatClientKey,
@@ -93,18 +80,6 @@ public static class AgentExtensions
     public static IEndpointConventionBuilder MapAdamAgent(
         this IEndpointRouteBuilder endpoints,
         string pattern)
-    {
-        var agent = endpoints.ServiceProvider.GetRequiredService<ScopedAdamAgent>();
-        return endpoints.MapAGUIServer(pattern, agent);
-    }
-
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="endpoints"></param>
-    /// <param name="pattern"></param>
-    /// <returns></returns>
-    public static IEndpointConventionBuilder MapRecommenAdamAgent(this IEndpointRouteBuilder endpoints, string pattern)
     {
         var agent = endpoints.ServiceProvider.GetRequiredService<ScopedRecommenAdamAgent>();
         return endpoints.MapAGUIServer(pattern, agent);

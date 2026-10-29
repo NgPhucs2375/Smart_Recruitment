@@ -20,7 +20,7 @@ export default function HRLayout() {
         },
       }}>
       <Tabs.Screen
-        name="index"
+        name="dashboard"
         options={{
           title: 'Tổng quan',
           tabBarIcon: ({ color, size }) => <LayoutDashboard size={size} color={color} />,

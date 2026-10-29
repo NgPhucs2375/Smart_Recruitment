@@ -1,10 +1,11 @@
 "use client";
 
 import { useRouter, usePathname } from "next/navigation";
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useAgentContext, useFrontendTool } from "@copilotkit/react-core/v2";
 import { z } from "zod";
 import { toast } from "sonner";
+import type { AdamRole } from "@/lib/adam-role";
 import {
   isCvContactField,
   isCvSectionKey,
@@ -12,7 +13,11 @@ import {
   loadPendingCvPatch,
   type PendingSectionPatch,
 } from "@/features/ai-cv/cv-assistant-state";
-import { getNavigableRoute, type NavigablePage } from "@/components/navigation/navigation-routes";
+import {
+  getAdamPages,
+  getNavigableRoute,
+  type NavigablePage,
+} from "@/components/navigation/navigation-routes";
 import { ensureActiveTemplate } from "@/features/ai-cv/theme-recommendations";
 import {
   CV_FOCUS_SECTIONS,
@@ -67,33 +72,16 @@ const navigateSchema = z.object({
     .describe("ID mẫu: minimal-ats hoặc tech-modern. Bỏ trống để giữ mặc định."),
 });
 
-const pageSchema = z.object({
-  page: z.enum([
-    "dashboard",
-    "jobs",
-    "saved-jobs",
-    "applied-jobs",
-    "matching-jobs",
-    "job-messages",
-    "my-profile",
-    "cv-editor",
-    "cv-import",
-    "cv-templates",
-    "candidates",
-    "employees",
-    "recruiter-profile",
-    "companies",
-    "reports",
-    "settings",
-    "admin-users",
-    "admin-companies",
-    "admin-jobs",
-    "admin-rules",
-    "admin-categories",
-    "admin-banners",
-    "admin-permissions",
-  ]).describe("Page key trong danh sách route được phép. Không truyền URL.")
-});
+function buildPageSchema(role: AdamRole) {
+  const pages = getAdamPages(role);
+  // z.enum requires at least one literal; blocked roles never mount the tool.
+  const allowed = (pages.length > 0 ? [...pages] : ["dashboard"]) as [string, ...string[]];
+  return z.object({
+    page: z
+      .enum(allowed)
+      .describe("Page key trong danh sách route được phép theo vai trò. Không truyền URL."),
+  });
+}
 
 const focusSectionsSchema = z.object({
   sections: z
@@ -105,10 +93,19 @@ const focusSectionsSchema = z.object({
     ),
 });
 
-export function useGlobalCvAssistant({ enabled = true }: { enabled?: boolean } = {}) {
+export function useGlobalCvAssistant({
+  enabled = true,
+  role = "candidate",
+}: {
+  enabled?: boolean;
+  role?: AdamRole;
+} = {}) {
   const router = useRouter();
   const pathname = usePathname();
   const isEditor = pathname?.startsWith("/tao-cv") || pathname?.startsWith("/CV") || false;
+  const isCandidate = role === "candidate";
+  const canNavigate = enabled && (isCandidate || role === "recruiter");
+  const pageSchema = useMemo(() => buildPageSchema(role), [role]);
 
   // Cooldown chống loop: navigateTo/navigateToCvEditor gọi router.push →
   // CV page mount → useCvAssistant apply patch → state change → agent
@@ -119,35 +116,55 @@ export function useGlobalCvAssistant({ enabled = true }: { enabled?: boolean } =
   // Warm the editor chunk while the user is still chatting. This removes the
   // compile/fetch gap when navigateToCvEditor is called by a frontend tool.
   useEffect(() => {
-    if (enabled && !isEditor) void router.prefetch("/CV");
-  }, [enabled, isEditor, router]);
+    if (enabled && isCandidate && !isEditor) void router.prefetch("/CV");
+  }, [enabled, isCandidate, isEditor, router]);
 
-  useAgentContext({
-    description:
-      "Vị trí trang hiện tại của user. " +
-      "Nếu isEditor=false thì KHÔNG có form CV trực tiếp để ghi — " +
-      "muốn điền CV phải gọi navigateToCvEditor (tự lưu nháp + nhảy vào /CV). " +
-      "Nếu isEditor=true thì điền trực tiếp bằng updateCvContact/updateCvMeta/upsertCvSectionItem.",
-    value: JSON.parse(JSON.stringify({ pathname: pathname ?? "", isEditor })) as {
-      pathname: string;
-      isEditor: boolean;
-    },
-  });
+  const agentContext = useMemo(() => {
+    if (!enabled || role === "blocked") {
+      return {
+        description: "Tài khoản hiện tại không thuộc phạm vi hỗ trợ của Adam.",
+        value: { role, pathname: pathname ?? "", isEditor: false },
+      };
+    }
+
+    if (isCandidate) {
+      return {
+        description:
+          "Vị trí trang hiện tại của ứng viên. " +
+          "Nếu isEditor=false thì KHÔNG có form CV trực tiếp để ghi — " +
+          "muốn điền CV phải gọi navigateToCvEditor (tự lưu nháp + nhảy vào /CV). " +
+          "Nếu isEditor=true thì điền trực tiếp bằng updateCvContact/updateCvMeta/upsertCvSectionItem.",
+        value: { role, pathname: pathname ?? "", isEditor },
+      };
+    }
+
+    return {
+      description:
+        "Vị trí trang hiện tại của nhà tuyển dụng. " +
+        "Chỉ dùng tool nghiệp vụ tuyển dụng; không có form CV để điền.",
+      value: { role, pathname: pathname ?? "", isEditor: false },
+    };
+  }, [enabled, isCandidate, isEditor, pathname, role]);
+
+  useAgentContext(agentContext);
 
   useFrontendTool(
     {
       name: "navigateTo",
-      description:
-        "Điều hướng user tới đúng page trong ứng dụng. Chỉ dùng khi user yêu cầu mở, đi tới hoặc chuyển sang một chức năng. " +
-        "Không dùng cho flow tạo CV có dữ liệu; flow đó phải gọi navigateToCvEditor. Không truyền URL, chỉ truyền page key. " +
-        "Mapping quan trọng: saved-jobs = việc làm đã lưu, applied-jobs = việc làm đã ứng tuyển, matching-jobs = việc làm phù hợp, " +
-        "cv-editor = soạn CV, cv-templates = mẫu CV, my-profile = hồ sơ cá nhân.",
+      description: isCandidate
+        ? "Điều hướng user tới đúng page trong ứng dụng. Chỉ dùng khi user yêu cầu mở, đi tới hoặc chuyển sang một chức năng. " +
+          "Không dùng cho flow tạo CV có dữ liệu; flow đó phải gọi navigateToCvEditor. Không truyền URL, chỉ truyền page key. " +
+          "Mapping quan trọng: saved-jobs = việc làm đã lưu, applied-jobs = việc làm đã ứng tuyển, matching-jobs = việc làm phù hợp, " +
+          "cv-editor = soạn CV, cv-templates = mẫu CV, my-profile = hồ sơ cá nhân."
+        : "Điều hướng user tới đúng page nghiệp vụ tuyển dụng. Chỉ dùng khi user yêu cầu mở, đi tới hoặc chuyển sang một chức năng. " +
+          "Không truyền URL, chỉ truyền page key. Mapping: recruiter-profile = tài khoản, candidates = ứng viên, employees = nhân sự, " +
+          "companies = doanh nghiệp, reports = báo cáo, job-messages = tin nhắn.",
       agentId: "default",
       parameters: pageSchema,
-      available: enabled,
+      available: canNavigate,
       handler: async ({ page }) => {
-        const destination = getNavigableRoute(page as NavigablePage);
-        if (!destination) return `Không tìm thấy page hợp lệ cho ${page}.`;
+        const destination = getNavigableRoute(page as NavigablePage, role);
+        if (!destination) return `Page ${page} không được phép với vai trò hiện tại.`;
 
         if (pathname === destination.href) {
           return `User đang ở page ${destination.label}.`;
@@ -170,7 +187,7 @@ export function useGlobalCvAssistant({ enabled = true }: { enabled?: boolean } =
         return `Đã xác nhận điều hướng tới ${destination.label}.`;
       },
     },
-    [enabled, pathname, router],
+    [canNavigate, pathname, role, router],
   );
 
   useFrontendTool(
@@ -184,7 +201,7 @@ export function useGlobalCvAssistant({ enabled = true }: { enabled?: boolean } =
         "Không chỉ mô tả bằng text rồi bỏ qua focus; tool này không thay cho câu trả lời nhận xét.",
       agentId: "default",
       parameters: focusSectionsSchema,
-      available: enabled && isEditor,
+      available: enabled && isCandidate && isEditor,
       handler: async ({ sections }) => {
         const normalizedSections = [...new Set(sections.map((section) => section === "skill" ? "skills" : section))] as CvFocusSection[];
         const labels = normalizedSections.map((section) => getCvFocusSectionLabel(section));
@@ -193,7 +210,7 @@ export function useGlobalCvAssistant({ enabled = true }: { enabled?: boolean } =
         return `Đã đưa ${labels.join(", ")} vào tầm nhìn và highlight để user kiểm tra.`;
       },
     },
-    [enabled, isEditor],
+    [enabled, isCandidate, isEditor],
   );
 
   useFrontendTool(
@@ -205,7 +222,7 @@ export function useGlobalCvAssistant({ enabled = true }: { enabled?: boolean } =
         "Sau khi gọi, báo user đang mở trình soạn và liệt kê đã lưu gì.",
       agentId: "default",
       parameters: navigateSchema,
-      available: enabled && !isEditor,
+      available: enabled && isCandidate && !isEditor,
       handler: async ({ tenFile, hoTen, contact, sections, templateId }) => {
         // Cooldown chống loop: nếu vừa navigate trong 30s, chỉ lưu patch
         // không navigate lại — tránh router.push → remount → re-trigger.
@@ -307,6 +324,6 @@ export function useGlobalCvAssistant({ enabled = true }: { enabled?: boolean } =
             : "Đã lưu nháp và điều hướng tới /CV. Workspace sẽ tự đổ patch khi load xong.";
       },
     },
-    [enabled, isEditor, pathname],
+    [enabled, isCandidate, isEditor, pathname],
   );
 }

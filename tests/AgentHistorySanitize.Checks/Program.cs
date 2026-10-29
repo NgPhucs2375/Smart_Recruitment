@@ -122,4 +122,41 @@ h = History(User("a"), Assistant("hello"));
 Run(h);
 Check(h.Count == 2 && Roles(h).SequenceEqual(new[] { "user", "assistant" }), "Plain conversation passes through unchanged");
 
+// 9. Messages without id (client/proxy/streaming) must survive MergeMessages
+//    with a deterministic fallback id, otherwise every run would drop them.
+var storeType = typeof(WebApp.Server.Agent.Threads.AgentThreadStore);
+var merge = storeType.GetMethod("MergeMessages", BindingFlags.NonPublic | BindingFlags.Static)!;
+List<JsonNode> Merge(JsonArray input, JsonArray output, int max = 200) =>
+    (List<JsonNode>)merge.Invoke(null, new object?[]
+    {
+        input.ToList(),
+        output.ToList(),
+        max
+    })!;
+string IdAt(IReadOnlyList<JsonNode> messages, int index) => messages[index]!["id"]!.GetValue<string>();
+
+var noId = User("không id");
+var merged = Merge(new JsonArray(noId), new JsonArray());
+Check(merged.Count == 1 && IdAt(merged, 0).StartsWith("fallback-"), "Message without id gets a fallback id instead of being dropped");
+
+var inputEcho = User("same content");
+var outputEcho = User("same content");
+Check(Merge(new JsonArray(inputEcho), new JsonArray(outputEcho)).Count == 1, "Identical id-less messages across input/output dedupe");
+
+var duplicate1 = User("ok");
+var duplicate2 = User("ok");
+var duplicates = Merge(new JsonArray(duplicate1, duplicate2), new JsonArray());
+Check(duplicates.Count == 2 && IdAt(duplicates, 0) != IdAt(duplicates, 1), "Duplicate id-less messages in one source keep distinct ids");
+
+var stable1 = new JsonArray(User("stable"));
+var stable2 = new JsonArray(User("stable"));
+var stableIds1 = Merge(stable1, new JsonArray()).Select(m => m!["id"]!.GetValue<string>()).ToArray();
+var stableIds2 = Merge(stable2, new JsonArray()).Select(m => m!["id"]!.GetValue<string>()).ToArray();
+Check(stableIds1.SequenceEqual(stableIds2), "Fallback id is stable across runs with identical content");
+
+var explicitId = User("has id");
+explicitId["id"] = "client-id";
+var explicitMerged = Merge(new JsonArray(explicitId), new JsonArray());
+Check(explicitMerged.Count == 1 && IdAt(explicitMerged, 0) == "client-id", "Explicit message id is preserved");
+
 Console.WriteLine($"Completed {checks} AG-UI history sanitize checks.");
