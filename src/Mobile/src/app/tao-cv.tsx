@@ -10,7 +10,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft, FilePlus2, LayoutTemplate, Sparkles, Upload } from 'lucide-react-native';
+import { ArrowLeft, LayoutTemplate, Sparkles, Upload } from 'lucide-react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { safeBack } from '@/utils/navigation';
@@ -208,11 +208,11 @@ export default function CvListScreen() {
         }>
         <View style={styles.actionsRow}>
           <Button
-            onPress={() => router.push({ pathname: '/tao-cv/[id]', params: { id: 'new' } })}
+            onPress={() => router.push('/tao-cv/ai')}
             style={styles.actionGrow}
-            accessibilityLabel="Tạo CV mới">
-            <FilePlus2 size={16} color={theme.primaryForeground} />
-            Tạo CV mới
+            accessibilityLabel="Tạo CV với AI">
+            <Sparkles size={16} color={theme.primaryForeground} />
+            Tạo CV với AI
           </Button>
           <Button
             variant="outline"
@@ -232,14 +232,6 @@ export default function CvListScreen() {
             Kho mẫu
           </Button>
         </View>
-
-        <Button
-          variant="outline"
-          onPress={() => router.push('/tao-cv/ai')}
-          accessibilityLabel="Tạo CV với AI">
-          <Sparkles size={16} color={theme.primary} />
-          Tạo CV với AI — dán nội dung, AI dựng CV
-        </Button>
 
         {source === 'demo' ? (
           <View style={styles.demoRow}>
@@ -263,13 +255,13 @@ export default function CvListScreen() {
               Chưa có CV nào
             </ThemedText>
             <ThemedText style={[styles.emptyText, { color: theme.textSecondary }]}>
-              Tạo CV mới, chọn mẫu trong kho, hoặc nhập file CV sẵn có để bắt đầu.
+              Dán nội dung để AI dựng CV, chọn mẫu trong kho, hoặc nhập file CV sẵn có để bắt đầu.
             </ThemedText>
             <Button
-              onPress={() => router.push({ pathname: '/tao-cv/[id]', params: { id: 'new' } })}
+              onPress={() => router.push('/tao-cv/ai')}
               style={{ marginTop: 8 }}>
-              <FilePlus2 size={16} color={theme.primaryForeground} />
-              Tạo CV mới
+              <Sparkles size={16} color={theme.primaryForeground} />
+              Tạo CV với AI
             </Button>
           </View>
         ) : null}

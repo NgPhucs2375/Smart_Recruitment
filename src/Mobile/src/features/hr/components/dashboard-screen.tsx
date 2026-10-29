@@ -28,6 +28,7 @@ import {
   KpiCard,
 } from '@/features/hr/components/hr-primitives';
 import { useHrRole } from '@/features/hr/hooks/use-hr-role';
+import { PotentialCandidatesCard } from '@/features/hr/components/potential-candidates-card';
 import type { DashboardData, HrJob } from '@/features/hr/types';
 import { useAuth } from '@/features/auth';
 import { useTheme } from '@/hooks/use-theme';
@@ -264,6 +265,9 @@ export function DashboardScreen() {
             />
           ))}
         </View>
+
+        {/* Ứng viên tiềm năng — Đánh giá AI cao (mock). */}
+        <PotentialCandidatesCard />
 
         {/* Application trend (manager) */}
         {isNdd ? (

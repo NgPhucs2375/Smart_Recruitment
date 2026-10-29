@@ -54,8 +54,8 @@ export default function ResetPasswordScreen() {
     setError('');
     setSuccess('');
     try {
-      const message = await authApi.resetPassword(trimmedEmail, trimmedToken, password);
-      setSuccess(typeof message === 'string' ? message : 'Đặt lại mật khẩu thành công!');
+      const result = await authApi.resetPassword(trimmedEmail, password, trimmedToken);
+      setSuccess(result.message || 'Đặt lại mật khẩu thành công!');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Đặt lại mật khẩu thất bại. Vui lòng thử lại.');
     } finally {

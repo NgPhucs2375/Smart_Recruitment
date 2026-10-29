@@ -264,7 +264,7 @@ export default function ProfileScreen() {
 
         <Pressable
           accessibilityRole="button"
-          onPress={() => router.push('/tao-cv')}
+          onPress={() => router.push('/tao-cv/ai')}
           style={({ pressed }) => [
             styles.createCvButton,
             { backgroundColor: theme.primary, opacity: pressed ? 0.85 : 1 },

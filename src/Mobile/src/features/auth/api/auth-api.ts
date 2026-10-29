@@ -83,6 +83,8 @@ export const authApi = {
         diaChiDoanhNghiep: input.diaChiDoanhNghiep,
         chucVu: input.chucVu,
         maSoThue: input.maSoThue,
+        linhVucHoatDong: input.linhVucHoatDong,
+        quyMoNhanSu: input.quyMoNhanSu,
       }),
     });
 

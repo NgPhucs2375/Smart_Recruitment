@@ -110,18 +110,11 @@ function RootNavigator() {
           <Stack.Screen name="(auth)" />
         </Stack.Protected>
 
-        <Stack.Protected guard={isSignedIn}>
-          <Stack.Screen name="notifications" />
-          <Stack.Screen name="change-password" />
-          <Stack.Screen name="profile-edit" />
-          <Stack.Screen name="chat/[id]" options={{ headerShown: false }} />
-        </Stack.Protected>
-
+        {/* Ưu tiên portal trước: nếu đặt block isSignedIn chung lên trước thì màn
+            đầu tiên khả dụng sẽ là notifications thay vì (tabs)/(hr). */}
         <Stack.Protected guard={isSignedIn && portal === 'candidate'}>
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="applications" options={{ headerShown: false }} />
-          <Stack.Screen name="change-password" options={{ headerShown: false }} />
-          <Stack.Screen name="chat/[id]" options={{ headerShown: false }} />
           <Stack.Screen name="jobs/[id]" options={{ headerShown: false }} />
           <Stack.Screen name="companies/index" options={{ headerShown: false }} />
           <Stack.Screen name="companies/[id]" options={{ headerShown: false }} />
@@ -130,19 +123,11 @@ function RootNavigator() {
           <Stack.Screen name="cv-create" options={{ headerShown: false }} />
           <Stack.Screen name="cv-detail" options={{ headerShown: false }} />
           <Stack.Screen name="cv-upload" options={{ headerShown: false }} />
-          <Stack.Screen name="notifications" options={{ headerShown: false }} />
-          <Stack.Screen name="profile-edit" options={{ headerShown: false }} />
           <Stack.Screen name="tao-cv" options={{ headerShown: false }} />
           <Stack.Screen name="tao-cv/[id]" options={{ headerShown: false }} />
           <Stack.Screen name="tao-cv/ai" options={{ headerShown: false }} />
           <Stack.Screen name="mau-cv" options={{ headerShown: false }} />
           <Stack.Screen name="cv-phan-tich/[id]" options={{ headerShown: false }} />
-          <Stack.Screen name="applications" />
-          <Stack.Screen name="cvs" />
-          <Stack.Screen name="cv-create" />
-          <Stack.Screen name="cv-detail" />
-          <Stack.Screen name="cv-upload" />
-          <Stack.Screen name="cv-agent" />
         </Stack.Protected>
 
         <Stack.Protected guard={isSignedIn && portal === 'hr'}>
@@ -156,6 +141,13 @@ function RootNavigator() {
           <Stack.Screen name="hr/company" options={{ headerShown: false }} />
           <Stack.Screen name="hr/messages" options={{ headerShown: false }} />
           <Stack.Screen name="hr/messages/[id]" options={{ headerShown: false }} />
+        </Stack.Protected>
+
+        <Stack.Protected guard={isSignedIn}>
+          <Stack.Screen name="notifications" />
+          <Stack.Screen name="change-password" />
+          <Stack.Screen name="profile-edit" />
+          <Stack.Screen name="chat/[id]" options={{ headerShown: false }} />
         </Stack.Protected>
       </Stack>
     </ThemeProvider>

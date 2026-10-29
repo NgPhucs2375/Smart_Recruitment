@@ -40,8 +40,9 @@ export default function ForgotPasswordScreen() {
     setError('');
     setSuccess('');
     try {
-      const message = await authApi.forgotPassword(trimmedEmail);
-      setSuccess(message);
+      const result = await authApi.forgotPassword(trimmedEmail);
+      const messageText = typeof result === 'string' ? result : result.message;
+      setSuccess(messageText);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Gửi yêu cầu thất bại. Vui lòng thử lại.');
     } finally {

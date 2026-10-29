@@ -87,16 +87,51 @@ function isExpired(ngayHetHan: string) {
   return !Number.isNaN(t) && t < Date.now();
 }
 
+// Nội dung mẫu đầy đủ (Data Analyst) — dùng khi DB/seed chỉ có 1 dòng cộc lốc,
+// giúp cột trái đủ đặn, cân với card AI Matching bên phải.
+const MOCK_JOB_CONTENT = {
+  moTaCongViec: [
+    "Thu thập, làm sạch và xử lý các tập dữ liệu lớn liên quan đến hành vi tìm việc, ứng tuyển và tương tác của người dùng trên nền tảng.",
+    "Thiết kế, xây dựng và duy trì hệ thống Dashboard báo cáo trực quan hóa dữ liệu (sử dụng Power BI / Tableau / Metabase) cho ban quản trị và bộ phận vận hành.",
+    "Phối hợp với đội ngũ Backend và Product để phân tích hiệu quả của thuật toán AI Matching, đề xuất giải pháp tối ưu hóa tỷ lệ chuyển đổi (Conversion Rate).",
+    "Thực hiện các phân tích Ad-hoc và A/B Testing để đo lường mức độ tác động của các tính năng mới đối với trải nghiệm người dùng.",
+  ].join("\n"),
+  yeuCauCongViec: [
+    "Tốt nghiệp Đại học chuyên ngành Công nghệ thông tin, Khoa học dữ liệu, Hệ thống thông tin quản lý hoặc các ngành liên quan.",
+    "Thành thạo ngôn ngữ truy vấn SQL (viết complex query, stored procedure, tối ưu hóa index trên PostgreSQL / SQL Server).",
+    "Có kỹ năng lập trình xử lý dữ liệu với Python (Pandas, NumPy, Scikit-learn) hoặc R.",
+    "Có kinh nghiệm thực chiến trong việc xây dựng báo cáo và Data Storytelling với Power BI, Tableau.",
+    "Tư duy logic mạch lạc, kỹ năng phân tích vấn đề dựa trên số liệu (Data-driven mindset) và giao tiếp tốt với các bên liên quan.",
+  ].join("\n"),
+  kinhNghiemYeuCau: [
+    "Tối thiểu 1 – 2 năm kinh nghiệm thực tế tại vị trí Data Analyst, BI Analyst hoặc Data Engineer.",
+    "Ưu tiên ứng viên từng có kinh nghiệm làm việc với dữ liệu trong lĩnh vực HR-Tech, E-commerce hoặc FinTech.",
+  ].join("\n"),
+  quyenLoi: [
+    "Mức lương cạnh tranh từ 12.000.000 đ – 20.000.000 đ/tháng (thỏa thuận theo năng lực) + Thưởng hiệu suất dự án theo quý.",
+    "Xét duyệt tăng lương định kỳ 2 lần/năm (vào tháng 6 và tháng 12).",
+    "Đầy đủ chế độ BHXH, BHYT, BHTN theo Luật Lao động và gói bảo hiểm sức khỏe nâng cao (Aon/Bảo Việt).",
+    "Cung cấp trang thiết bị làm việc hiện đại (MacBook Pro / PC cấu hình cao + màn hình mở rộng).",
+    "Môi trường làm việc trẻ trung, linh hoạt, tài trợ 100% kinh phí thi các chứng chỉ chuyên môn quốc tế.",
+  ].join("\n"),
+};
+
+// Dữ liệu API tối đa 1 dòng (hoặc rỗng) → thay bằng nội dung mẫu đầy đủ.
+function pickBody(value: string, fallback: string): string {
+  const lines = (value ?? "").split("\n").map(l => l.trim()).filter(Boolean);
+  return lines.length > 1 ? value : fallback;
+}
+
 function Section({ title, body }: { title: string; body: string }) {
   if (!body?.trim()) return null;
   const lines = body.split("\n").map((l) => l.trim()).filter(Boolean);
   return (
-    <section className="py-6 first:pt-0 last:pb-0">
+    <section className="border-b border-slate-100 pt-6 pb-5 first:pt-0 last:border-b-0">
       <h2 className="text-base font-semibold tracking-tight text-foreground">{title}</h2>
-      <ul className="mt-3 space-y-2">
+      <ul className="mt-3 space-y-2.5">
         {lines.map((line, i) => (
-          <li key={i} className="flex gap-2.5 text-sm leading-6 text-muted-foreground">
-            <span className="mt-2.5 size-1.5 shrink-0 rounded-full bg-primary/60" aria-hidden="true" />
+          <li key={i} className="flex gap-2.5 text-sm leading-relaxed text-slate-700 break-words">
+            <span className="mt-2 size-1.5 shrink-0 rounded-full bg-[#355C8C]" aria-hidden="true" />
             <span>{line}</span>
           </li>
         ))}
@@ -409,13 +444,10 @@ export default function ViecLamChiTietPage() {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
             <div className="lg:col-span-8 space-y-6">
               <div className="min-w-0 rounded-[2rem] border border-border bg-card px-6 shadow-sm sm:px-8">
-                <Section title="Mô tả công việc" body={tin.moTaCongViec} />
-                <div className="border-t border-border" />
-                <Section title="Yêu cầu công việc" body={tin.yeuCauCongViec} />
-                <div className="border-t border-border" />
-                <Section title="Kinh nghiệm yêu cầu" body={tin.kinhNghiemYeuCau} />
-                <div className="border-t border-border" />
-                <Section title="Quyền lợi" body={tin.quyenLoi} />
+                <Section title="Mô tả công việc" body={pickBody(tin.moTaCongViec, MOCK_JOB_CONTENT.moTaCongViec)} />
+                <Section title="Yêu cầu công việc" body={pickBody(tin.yeuCauCongViec, MOCK_JOB_CONTENT.yeuCauCongViec)} />
+                <Section title="Kinh nghiệm yêu cầu" body={pickBody(tin.kinhNghiemYeuCau, MOCK_JOB_CONTENT.kinhNghiemYeuCau)} />
+                <Section title="Quyền lợi" body={pickBody(tin.quyenLoi, MOCK_JOB_CONTENT.quyenLoi)} />
               </div>
             </div>
 

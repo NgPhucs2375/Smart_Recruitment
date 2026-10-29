@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
-import { Bot, FileText, Pencil, Plus, Upload } from 'lucide-react-native';
-import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, View } from 'react-native';
+import { FileText, LayoutTemplate, Sparkles, Upload } from 'lucide-react-native';
+import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, View } from 'react-native';
 
 import { StackHeader } from '@/components/stack-header';
 import { ThemedText } from '@/components/themed-text';
@@ -17,24 +17,12 @@ export default function CvListScreen() {
   const { items, loading, refreshing, error, demo, refresh } = useCvList();
 
   const openUpload = () => router.push('/cv-upload');
-  const openManual = () => router.push('/cv-create');
-  const openAgent = () => router.push('/cv-agent');
+  const openAi = () => router.push('/tao-cv/ai');
+  const openGallery = () => router.push('/mau-cv');
 
   return (
     <View style={[styles.root, { backgroundColor: theme.background }]}>
-      <StackHeader
-        title="Quản lý CV"
-        right={
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Tải CV lên"
-            hitSlop={8}
-            onPress={openUpload}
-            style={({ pressed }) => [styles.headerAction, { opacity: pressed ? 0.6 : 1 }]}>
-            <Plus size={22} color={theme.primary} />
-          </Pressable>
-        }
-      />
+      <StackHeader title="Quản lý CV" />
 
       {loading ? (
         <View style={styles.loading}>
@@ -70,14 +58,17 @@ export default function CvListScreen() {
                 CV của bạn
               </ThemedText>
               <ThemedText style={[styles.caption, { color: theme.textSecondary }]}>
-                Tạo CV thủ công, nhờ Agent hỗ trợ hoặc import CV có sẵn.
+                Dán nội dung để AI dựng CV, nhập file có sẵn hoặc chọn mẫu trong kho.
               </ThemedText>
               <View style={styles.creationActions}>
-                <Button icon={<Pencil size={16} color={theme.primaryForeground} />} onPress={openManual}>
-                  Tạo thủ công
+                <Button icon={<Sparkles size={16} color={theme.primaryForeground} />} onPress={openAi}>
+                  Tạo CV với AI
                 </Button>
-                <Button variant="outline" icon={<Bot size={16} color={theme.primary} />} onPress={openAgent}>
-                  Tạo bằng Agent
+                <Button variant="outline" icon={<Upload size={16} color={theme.text} />} onPress={openUpload}>
+                  Nhập CV
+                </Button>
+                <Button variant="outline" icon={<LayoutTemplate size={16} color={theme.text} />} onPress={openGallery}>
+                  Kho mẫu
                 </Button>
               </View>
               {error ? (
@@ -104,11 +95,11 @@ export default function CvListScreen() {
                 Chưa có CV nào
               </ThemedText>
               <ThemedText style={[styles.emptyText, { color: theme.textSecondary }]}>
-                Chọn một cách tạo CV để bắt đầu.
+                Dán nội dung cho AI dựng CV hoặc import file CV sẵn có để bắt đầu.
               </ThemedText>
               <View style={styles.emptyActions}>
-                <Button icon={<Pencil size={16} color={theme.primaryForeground} />} onPress={openManual}>Tạo thủ công</Button>
-                <Button variant="outline" icon={<Upload size={16} color={theme.primary} />} onPress={openUpload}>Import CV</Button>
+                <Button icon={<Sparkles size={16} color={theme.primaryForeground} />} onPress={openAi}>Tạo CV với AI</Button>
+                <Button variant="outline" icon={<Upload size={16} color={theme.text} />} onPress={openUpload}>Nhập CV</Button>
               </View>
             </Card>
           }
@@ -144,12 +135,6 @@ export default function CvListScreen() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-  },
-  headerAction: {
-    width: 36,
-    height: 36,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   loading: {
     flex: 1,

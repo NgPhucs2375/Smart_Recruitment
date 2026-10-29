@@ -1,7 +1,8 @@
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -14,8 +15,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   AlertTriangle,
   ArrowLeft,
+  Check,
   ChevronDown,
   ChevronRight,
+  ClipboardPaste,
   FileText,
   RotateCcw,
   Sparkles,
@@ -38,16 +41,32 @@ import {
 } from '@/features/cv/ai/ai-api';
 import { parsedToCvFormData } from '@/features/cv/ai/mapping';
 import { CvInput } from '@/features/cv/components/fields';
+import { CvTemplateMiniPreview, GALLERY_TEMPLATE_IDS } from '@/features/cv/components/cv-template-mini-preview';
 import { stashImportedContent } from '@/features/cv/components/import-cv';
+import { TEMPLATE_REGISTRY } from '@/features/cv/template-registry';
 import type { CvFormData } from '@/features/cv/types';
 import { useTheme } from '@/hooks/use-theme';
 
 type Step = 'input' | 'parsing' | 'result';
 
+const MAX_CONTENT_LENGTH = 5000;
+
+const QUICK_PROMPTS = [
+  'Tôi là Frontend Developer 3 năm, giỏi React/TypeScript, từng xây dashboard tuyển dụng…',
+  'Mô tả giúp tôi thành CV Backend Java với 4 năm kinh nghiệm Spring Boot, PostgreSQL…',
+  'Dán kinh nghiệm 2 năm Marketing, dựng CV hoàn chỉnh kèm kỹ năng và dự án nổi bật…',
+];
+
 export function AiCreateScreen() {
   const theme = useTheme();
   const mountedRef = useRef(true);
   const cancelRef = useRef(false);
+
+  const params = useLocalSearchParams<{ templateId?: string; templateName?: string }>();
+  const [templateId, setTemplateId] = useState(() => {
+    const incoming = typeof params.templateId === 'string' ? params.templateId : '';
+    return incoming && TEMPLATE_REGISTRY[incoming] ? incoming : 'minimal-ats';
+  });
 
   const [step, setStep] = useState<Step>('input');
   const [rawText, setRawText] = useState('');
@@ -83,6 +102,26 @@ export function AiCreateScreen() {
 
   const trimmed = rawText.trim();
   const busy = step === 'parsing';
+
+  // expo-clipboard chưa có trong dự án (cấm cài thêm) — web đọc trực tiếp,
+  // native nhắc người dùng nhấn giữ ô để dán.
+  const handlePaste = async () => {
+    if (Platform.OS === 'web') {
+      try {
+        const clipboard = (globalThis.navigator as unknown as { clipboard?: { readText: () => Promise<string> } })
+          .clipboard;
+        const text = clipboard ? await clipboard.readText() : '';
+        if (text) {
+          setRawText((prev) => (prev ? `${prev}\n${text}` : text).slice(0, MAX_CONTENT_LENGTH));
+          setParseError(null);
+          return;
+        }
+      } catch {
+        // rơi xuống alert bên dưới
+      }
+    }
+    Alert.alert('Dán nhanh', 'Nhấn giữ ô nội dung và chọn "Dán" để chèn từ bộ nhớ tạm.');
+  };
 
   const handleParse = () => {
     if (!trimmed || busy) return;
@@ -220,19 +259,120 @@ export function AiCreateScreen() {
                   styles.card,
                   { backgroundColor: theme.backgroundElement, borderColor: theme.border },
                 ]}>
+                <View style={styles.rowBetween}>
+                  <ThemedText style={{ color: theme.text }} type="smallBold">
+                    Mẫu CV áp dụng
+                  </ThemedText>
+                  <ThemedText style={{ color: theme.primary }} type="code" numberOfLines={1}>
+                    {TEMPLATE_REGISTRY[templateId]?.label ?? templateId}
+                  </ThemedText>
+                </View>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.templateRow}
+                  keyboardShouldPersistTaps="handled">
+                  {GALLERY_TEMPLATE_IDS.map((id) => {
+                    const active = id === templateId;
+                    return (
+                      <Pressable
+                        key={id}
+                        accessibilityRole="button"
+                        accessibilityState={{ selected: active }}
+                        accessibilityLabel={`Chọn mẫu ${TEMPLATE_REGISTRY[id]?.label ?? id}`}
+                        disabled={busy}
+                        onPress={() => setTemplateId(id)}
+                        style={({ pressed }) => [
+                          styles.templateCard,
+                          {
+                            borderColor: active ? theme.primary : theme.border,
+                            backgroundColor: active ? `${theme.primary}0D` : theme.background,
+                            opacity: pressed ? 0.85 : 1,
+                          },
+                        ]}>
+                        <CvTemplateMiniPreview templateId={id} style={styles.templateThumb} />
+                        <ThemedText
+                          style={{ color: active ? theme.primary : theme.textSecondary, flexShrink: 1 }}
+                          type="code"
+                          numberOfLines={1}>
+                          {TEMPLATE_REGISTRY[id]?.label ?? id}
+                        </ThemedText>
+                        {active ? (
+                          <View style={[styles.templateCheck, { backgroundColor: theme.primary }]}>
+                            <Check size={11} color={theme.primaryForeground} />
+                          </View>
+                        ) : null}
+                      </Pressable>
+                    );
+                  })}
+                </ScrollView>
+              </View>
+
+              <View
+                style={[
+                  styles.card,
+                  { backgroundColor: theme.backgroundElement, borderColor: theme.border },
+                ]}>
                 <ThemedText style={{ color: theme.text }} type="smallBold">
-                  Nội dung CV
+                  Gợi ý nhanh
                 </ThemedText>
+                <View style={styles.promptChips}>
+                  {QUICK_PROMPTS.map((item) => (
+                    <Pressable
+                      key={item}
+                      accessibilityRole="button"
+                      disabled={busy}
+                      onPress={() => {
+                        setRawText(item);
+                        setParseError(null);
+                      }}
+                      style={({ pressed }) => [
+                        styles.promptChip,
+                        {
+                          borderColor: theme.border,
+                          backgroundColor: theme.background,
+                          opacity: pressed ? 0.75 : 1,
+                        },
+                      ]}>
+                      <ThemedText
+                        style={{ color: theme.textSecondary, flexShrink: 1 }}
+                        type="code"
+                        numberOfLines={2}>
+                        {item}
+                      </ThemedText>
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
+
+              <View
+                style={[
+                  styles.card,
+                  { backgroundColor: theme.backgroundElement, borderColor: theme.border },
+                ]}>
+                <View style={styles.rowBetween}>
+                  <ThemedText style={{ color: theme.text }} type="smallBold">
+                    Nội dung CV
+                  </ThemedText>
+                  <ThemedText
+                    style={{
+                      color: rawText.length > MAX_CONTENT_LENGTH ? theme.destructive : theme.textSecondary,
+                    }}
+                    type="code">
+                    {`${rawText.length}/${MAX_CONTENT_LENGTH} ký tự`}
+                  </ThemedText>
+                </View>
                 <TextInput
                   value={rawText}
                   onChangeText={(value) => {
-                    setRawText(value);
+                    setRawText(value.slice(0, MAX_CONTENT_LENGTH));
                     setParseError(null);
                   }}
                   placeholder="Dán nội dung CV (hoặc mô tả bạn muốn AI dựng CV)…"
                   placeholderTextColor={theme.textSecondary}
                   multiline
                   editable={!busy}
+                  maxLength={MAX_CONTENT_LENGTH}
                   textAlignVertical="top"
                   style={[
                     styles.multiline,
@@ -247,7 +387,7 @@ export function AiCreateScreen() {
                   Chép nội dung CV rồi paste vào ô trên — ứng dụng không đọc trực tiếp file
                   PDF/DOCX.
                 </ThemedText>
-                <View style={styles.rowEnd}>
+                <View style={styles.rowActions}>
                   <Button
                     variant="ghost"
                     size="sm"
@@ -259,6 +399,15 @@ export function AiCreateScreen() {
                     icon={<Trash2 size={14} color={theme.textSecondary} />}
                     accessibilityLabel="Xóa nội dung đã dán">
                     Xóa
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={busy}
+                    onPress={() => void handlePaste()}
+                    icon={<ClipboardPaste size={14} color={theme.text} />}
+                    accessibilityLabel="Dán nhanh từ bộ nhớ tạm">
+                    Dán nhanh
                   </Button>
                 </View>
               </View>
@@ -358,8 +507,8 @@ export function AiCreateScreen() {
                   onPress={handleParse}
                   disabled={!trimmed}
                   icon={<Sparkles size={16} color={theme.primaryForeground} />}
-                  accessibilityLabel="Phân tích CV bằng AI">
-                  Phân tích CV
+                  accessibilityLabel="Tạo và phân tích CV bằng AI">
+                  Tạo &amp; Phân tích CV với AI
                 </Button>
               )}
             </>
@@ -421,7 +570,7 @@ export function AiCreateScreen() {
 
               <Button
                 size="lg"
-                onPress={() => openBuilder()}
+                onPress={() => openBuilder(templateId)}
                 icon={<Wand2 size={16} color={theme.primaryForeground} />}
                 accessibilityLabel="Áp dụng và mở trình tạo CV">
                 Áp dụng &amp; mở trình tạo CV
@@ -574,9 +723,36 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: 8,
   },
-  rowEnd: { flexDirection: 'row', justifyContent: 'flex-end' },
+  rowActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 6 },
   badgeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   centered: { alignItems: 'center', justifyContent: 'center', paddingVertical: 18 },
+  templateRow: { gap: 10, paddingRight: 4 },
+  templateCard: {
+    width: 84,
+    borderWidth: 1.5,
+    borderRadius: Radius.lg,
+    padding: 7,
+    gap: 6,
+    alignItems: 'center',
+  },
+  templateThumb: { alignSelf: 'stretch', height: 96 },
+  templateCheck: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  promptChips: { gap: 7 },
+  promptChip: {
+    borderWidth: 1,
+    borderRadius: Radius.lg,
+    paddingHorizontal: 11,
+    paddingVertical: 9,
+  },
   errorBox: {
     borderWidth: 1,
     borderRadius: Radius.xl,

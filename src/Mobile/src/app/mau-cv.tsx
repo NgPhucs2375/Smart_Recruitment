@@ -2,7 +2,7 @@ import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft, Eye, LayoutTemplate, Search, Tag } from 'lucide-react-native';
+import { ArrowLeft, Eye, Search, Tag } from 'lucide-react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { safeBack } from '@/utils/navigation';
@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { font, Radius } from '@/constants/theme';
 import { PreviewModal } from '@/features/cv/components/preview-modal';
+import { CvTemplateMiniPreview, GALLERY_TEMPLATE_IDS } from '@/features/cv/components/cv-template-mini-preview';
 import { sampleCvFormData } from '@/features/cv/sample-cv-data';
 import {
   GALLERY_CHIP_LABELS,
@@ -35,7 +36,11 @@ export default function MauCvGalleryScreen() {
   const [page, setPage] = useState(1);
   const [previewId, setPreviewId] = useState<string | null>(null);
 
-  const templates = useMemo(() => Object.values(TEMPLATE_REGISTRY), []);
+  // Kho chỉ giữ 5 mẫu chủ đạo — lọc allowlist, không sửa registry part dùng chung.
+  const templates = useMemo(
+    () => GALLERY_TEMPLATE_IDS.map((id) => TEMPLATE_REGISTRY[id]).filter(Boolean),
+    [],
+  );
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -78,7 +83,10 @@ export default function MauCvGalleryScreen() {
   };
 
   const goUseTemplate = (templateId: string) => {
-    router.push({ pathname: '/tao-cv/[id]', params: { id: 'new', template: templateId } });
+    router.push({
+      pathname: '/tao-cv/ai',
+      params: { templateId, templateName: TEMPLATE_REGISTRY[templateId]?.label ?? templateId },
+    });
   };
 
   return (
@@ -193,19 +201,16 @@ export default function MauCvGalleryScreen() {
               const columns = template.columns ?? 1;
               return (
                 <Card key={template.id} style={styles.card} elevated>
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel={`Xem thử mẫu ${template.label}`}
-                    onPress={() => setPreviewId(template.id)}
+                  <View
                     style={[
                       styles.thumb,
                       { backgroundColor: theme.backgroundSelected, borderColor: theme.border },
                     ]}>
-                    <LayoutTemplate size={22} color={theme.primary} />
+                    <CvTemplateMiniPreview templateId={template.id} style={styles.thumbPaper} />
                     <ThemedText style={{ color: theme.textSecondary }} type="code">
-                      A4 • {columns} cột
+                      {`A4 • ${columns} cột`}
                     </ThemedText>
-                  </Pressable>
+                  </View>
 
                   <View style={styles.cardBody}>
                     <ThemedText
@@ -352,6 +357,7 @@ const styles = StyleSheet.create({
     gap: 6,
     padding: 8,
   },
+  thumbPaper: { alignSelf: 'stretch', flexGrow: 1 },
   cardBody: { flex: 1, gap: 4, minWidth: 0 },
   tagPill: {
     flexDirection: 'row',
