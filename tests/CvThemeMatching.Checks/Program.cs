@@ -75,8 +75,8 @@ var signature = method.GetParameters().Select(p => p.ParameterType).Append(metho
 var function = AIFunctionFactory.Create(method.CreateDelegate(System.Linq.Expressions.Expression.GetDelegateType(signature), tool));
 var schema = function.JsonSchema.ToString();
 Check(schema.Contains("nganh") && schema.Contains("capBac") && schema.Contains("soCot") && schema.Contains("batBuocATS"), "LLM function schema exposes structured theme criteria");
-var shortcut = assembly.GetType("WebApp.Server.Agent.RecommenAdam.ScopedRecommenAdamAgent")!.GetMethod("IsJobRecommendationRequest", BindingFlags.NonPublic | BindingFlags.Static)!;
-Check(!(bool)shortcut.Invoke(null, new object[] { new[] { new ChatMessage(ChatRole.User, "Gợi ý mẫu CV phù hợp công việc Backend junior") } })!, "Theme prompt cannot be hijacked by job-recommendation shortcut");
+var shortcut = assembly.GetType("WebApp.Server.Agent.RecommenAdam.ScopedRecommenAdamAgent")!.GetMethod("IsJobRecommendationRequest", BindingFlags.NonPublic | BindingFlags.Static);
+Check(shortcut is null, "Job-recommendation regex shortcut is removed; intent is delegated to the LLM");
 Check(CvThemeMatcher.Industry("QA Tester") == "it" && CvThemeMatcher.Industry("Kỹ sư phần mềm") == "it", "QA/tester and Vietnamese role aliases resolve to IT");
 var skillFallback = CvThemeMatcher.Rank(themes, new() { TopN = 3 }, "", ["React", "TypeScript"]);
 Check(skillFallback.Count > 0 && skillFallback.All(r => r.Nganh == "it") && skillFallback.Any(r => r.LyDo.Contains("kỹ năng")), "Industry falls back to skills when position is unknown");

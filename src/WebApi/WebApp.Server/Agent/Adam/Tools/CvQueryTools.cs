@@ -87,9 +87,17 @@ internal sealed class CvQueryTools
         CancellationToken cancellationToken)
     {
         await _permissions.RequireAsync("cvungviens", "show", cancellationToken);
-        return await _sender.Send(
-            new GetCVUngVienByIdQuery { Id = cvId },
-            cancellationToken);
+        try
+        {
+            return await _sender.Send(
+                new GetCVUngVienByIdQuery { Id = cvId },
+                cancellationToken);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogError(ex, "Adam tool get_cv_detail thất bại. CvId={CvId}", cvId);
+            return new Response<CvDetailDto>("Không thể lấy chi tiết CV.");
+        }
     }
 
     [Description(
@@ -107,17 +115,25 @@ internal sealed class CvQueryTools
         CancellationToken cancellationToken)
     {
         await _permissions.RequireAsync("cvungviens", "list", cancellationToken);
-        var response = await _sender.Send(
-            new GetAllCVUngViensQuery { _start = 0, _end = 20 },
-            cancellationToken);
-
-        if (response.Succeeded && response.Data is not null)
+        try
         {
-            _sharedState.Set("myCvs", response.Data);
-            _sharedState.Set("lastAction", "myCvsLoaded");
-        }
+            var response = await _sender.Send(
+                new GetAllCVUngViensQuery { _start = 0, _end = 20 },
+                cancellationToken);
 
-        return response;
+            if (response.Succeeded && response.Data is not null)
+            {
+                _sharedState.Set("myCvs", response.Data);
+                _sharedState.Set("lastAction", "myCvsLoaded");
+            }
+
+            return response;
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogError(ex, "Adam tool list_my_cvs thất bại.");
+            return new Response<List<GetAllCVUngViensViewModel>>("Không thể lấy danh sách CV.");
+        }
     }
 
     [Description(
@@ -137,17 +153,25 @@ internal sealed class CvQueryTools
         CancellationToken cancellationToken)
     {
         await _permissions.RequireAsync("ketquaphuhops", "list", cancellationToken);
-        var response = await _sender.Send(
-            new GetSuggestedJobsForCvQuery { CvUngVienId = cvId, TopN = 10 },
-            cancellationToken);
-
-        if (response.Succeeded && response.Data is not null)
+        try
         {
-            _sharedState.Set("jobRecommendations", response.Data);
-            _sharedState.Set("lastAction", "jobRecommendationsLoaded");
-        }
+            var response = await _sender.Send(
+                new GetSuggestedJobsForCvQuery { CvUngVienId = cvId, TopN = 10 },
+                cancellationToken);
 
-        return response;
+            if (response.Succeeded && response.Data is not null)
+            {
+                _sharedState.Set("jobRecommendations", response.Data);
+                _sharedState.Set("lastAction", "jobRecommendationsLoaded");
+            }
+
+            return response;
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogError(ex, "Adam tool suggest_jobs_for_my_cv thất bại. CvId={CvId}", cvId);
+            return new Response<List<SuggestedJobViewModel>>("Không thể lấy việc làm phù hợp.");
+        }
     }
 
     [Description(
@@ -180,12 +204,20 @@ internal sealed class CvQueryTools
         CancellationToken cancellationToken)
     {
         await _permissions.RequireAsync("cvthemes", "list", cancellationToken);
-        var result = await _sender.Send(
-            new GetSuggestedCvThemesQuery { CvUngVienId = cvId, ViTri = viTri, Nganh = nganh, CapBac = capBac,
-                PhongCach = phongCach, SoCot = soCot, UuTienATS = uuTienATS, BatBuocATS = batBuocATS, NhanManh = nhanManh, TopN = 3 },
-            cancellationToken);
-        _sharedState.Set("cvThemeRecommendations", result.Data ?? []);
-        return result;
+        try
+        {
+            var result = await _sender.Send(
+                new GetSuggestedCvThemesQuery { CvUngVienId = cvId, ViTri = viTri, Nganh = nganh, CapBac = capBac,
+                    PhongCach = phongCach, SoCot = soCot, UuTienATS = uuTienATS, BatBuocATS = batBuocATS, NhanManh = nhanManh, TopN = 3 },
+                cancellationToken);
+            _sharedState.Set("cvThemeRecommendations", result.Data ?? []);
+            return result;
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogError(ex, "Adam tool suggest_cv_theme thất bại. CvId={CvId}", cvId);
+            return new Response<List<SuggestedCvThemeViewModel>>("Không thể gợi ý mẫu CV.");
+        }
     }
 }
 

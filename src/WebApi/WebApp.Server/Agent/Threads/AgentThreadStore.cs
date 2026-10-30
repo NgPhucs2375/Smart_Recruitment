@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
@@ -105,18 +107,28 @@ public sealed class AgentThreadStore
             Events = data.Events.Select(e => e.DeepClone()).ToList()
         };
 
+        var indexLength = await db.SortedSetLengthAsync(indexKey);
+        var alreadyIndexed = await db.SortedSetScoreAsync(indexKey, data.ThreadId);
+        var projectedIndexLength = indexLength + (alreadyIndexed.HasValue ? 0 : 1);
+        var indexTrimCount = Math.Max(0, projectedIndexLength - IndexKeep);
+
         var tran = db.CreateTransaction();
-        var tasks = new Task[]
+        var tasks = new List<Task>
         {
             tran.StringSetAsync(threadKey, JsonSerializer.Serialize(snapshot, Json), Ttl),
             tran.ListRightPushAsync(runsKey, JsonSerializer.Serialize(runRecord, Json)),
             tran.ListTrimAsync(runsKey, -MaxRuns, -1),
             tran.KeyExpireAsync(runsKey, Ttl),
             tran.SortedSetAddAsync(indexKey, data.ThreadId, now.ToUnixTimeSeconds()),
-            // ZSET xếp theo score tăng dần: xóa từ đầu đến -(keep+1) để giữ keep thread mới nhất.
-            tran.SortedSetRemoveRangeByRankAsync(indexKey, 0, -(IndexKeep + 1)),
             tran.KeyExpireAsync(indexKey, Ttl)
         };
+
+        if (indexTrimCount > 0)
+        {
+            // ZSET xếp theo score tăng dần. Chỉ trim khi vượt IndexKeep và dùng
+            // rank dương để tránh biên âm không xác định của ZREMRANGEBYRANK.
+            tasks.Add(tran.SortedSetRemoveRangeByRankAsync(indexKey, 0, indexTrimCount - 1));
+        }
 
         var committed = await tran.ExecuteAsync();
         if (!committed)
@@ -237,6 +249,8 @@ public sealed class AgentThreadStore
     /// <summary>
     /// Client gửi lại TOÀN BỘ history mỗi run nên input đã là base chronology;
     /// output (assistant/tool messages mới) append vào sau, dedupe theo id, cắt còn max messages.
+    /// Message thiếu id (client/proxy/streaming) được gán fallback id deterministic
+    /// từ nội dung để lần lưu sau vẫn nhận diện được và không bị nhân đôi.
     /// </summary>
     private static List<JsonNode> MergeMessages(
         IReadOnlyList<JsonNode>? inputMessages,
@@ -249,11 +263,23 @@ public sealed class AgentThreadStore
         void AddRange(IReadOnlyList<JsonNode>? source)
         {
             if (source == null) return;
+
+            // Đếm theo từng nguồn: bản sao giống hệt ở input/output vẫn dedupe
+            // với nhau, nhưng hai message trùng nội dung trong cùng một nguồn
+            // (VD user gửi "ok" hai lần) vẫn được giữ đủ.
+            var fallbackCounts = new Dictionary<string, int>(StringComparer.Ordinal);
             foreach (var message in source)
             {
                 if (message is not JsonObject obj) continue;
-                var id = obj["id"]?.GetValue<string>();
-                if (string.IsNullOrEmpty(id) || !seen.Add(id)) continue;
+
+                var id = ReadMessageId(obj);
+                if (string.IsNullOrWhiteSpace(id))
+                {
+                    id = CreateFallbackMessageId(obj, fallbackCounts);
+                    obj["id"] = id;
+                }
+
+                if (!seen.Add(id)) continue;
                 merged.Add(obj);
             }
         }
@@ -267,6 +293,44 @@ public sealed class AgentThreadStore
         }
         return merged;
     }
+
+    private static string? ReadMessageId(JsonObject message)
+    {
+        if (!message.TryGetPropertyValue("id", out var node) || node is null) return null;
+        if (node is JsonValue value && value.TryGetValue<string>(out var id)) return id;
+        return node.ToJsonString();
+    }
+
+    private static string CreateFallbackMessageId(
+        JsonObject message,
+        Dictionary<string, int> fallbackCounts)
+    {
+        var fingerprintSource = string.Join(
+            "\u001f",
+            ReadString(message, "role") ?? "",
+            message["content"]?.ToJsonString() ?? "",
+            ReadString(message, "toolCallId") ?? "",
+            message["toolCalls"]?.ToJsonString() ?? "",
+            ReadString(message, "name") ?? "");
+
+        var hash = Convert
+            .ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(fingerprintSource)))
+            .ToLowerInvariant();
+
+        // 128 bit đủ tránh trùng; giữ id ngắn tương đương GUID "N".
+        var fingerprint = hash[..32];
+        var occurrence = fallbackCounts.TryGetValue(fingerprint, out var current) ? current : 0;
+        fallbackCounts[fingerprint] = occurrence + 1;
+
+        return occurrence == 0
+            ? $"fallback-{fingerprint}"
+            : $"fallback-{fingerprint}-{occurrence}";
+    }
+
+    private static string? ReadString(JsonObject obj, string property) =>
+        obj[property] is JsonValue value && value.TryGetValue<string>(out var text)
+            ? text
+            : null;
 
     private static List<string> CollectToolNames(IReadOnlyList<JsonNode> events)
     {

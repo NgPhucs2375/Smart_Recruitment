@@ -27,10 +27,7 @@ internal sealed class SharedStateStore
     }
 
     public JsonElement Snapshot()
-    {
-        using var document = JsonDocument.Parse(_state.ToJsonString());
-        return document.RootElement.Clone();
-    }
+        => JsonSerializer.SerializeToElement(_state.DeepClone(), _serializerOptions);
 
     public string RawText() => _state.ToJsonString();
 

@@ -38,6 +38,7 @@ public class CreateDonUngTuyenCommandHandler(IApplicationDbContext context, ICur
         var application = new Domain.Entities.DonUngTuyen
         {
             TinTuyenDungId = job.Id, CVUngVienId = cv.Id, CVPhienBanId = version, HoSoUngVienId = profileId,
+            DoanhNghiepId = job.DoanhNghiepId,
             CvSnapshotJson = JsonSerializer.Serialize(mapper.Map(cv)), NgayUngTuyen = DateTime.UtcNow,
             TrangThai = TrangThaiDonUngTuyen.KhoiTao, GhiChu = ""
         };

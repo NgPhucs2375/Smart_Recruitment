@@ -2184,6 +2184,9 @@ namespace Infrastructure.Persistence.Migrations
                     b.Property<string>("CvSnapshotJson")
                         .HasColumnType("text");
 
+                    b.Property<int>("DoanhNghiepId")
+                        .HasColumnType("integer");
+
                     b.Property<string>("GhiChu")
                         .HasColumnType("text");
 
@@ -2217,6 +2220,10 @@ namespace Infrastructure.Persistence.Migrations
                     b.HasIndex("CVPhienBanId");
 
                     b.HasIndex("CVUngVienId");
+
+                    b.HasIndex("DoanhNghiepId", "TrangThai");
+
+                    b.HasIndex("TinTuyenDungId", "CVUngVienId");
 
                     b.HasIndex("TinTuyenDungId", "HoSoUngVienId")
                         .IsUnique()

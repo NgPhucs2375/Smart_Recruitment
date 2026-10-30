@@ -18,6 +18,7 @@ import dynamic from "next/dynamic";
 import { parseThemeResult } from "@/features/ai-cv/theme-recommendations";
 import { useGlobalCvAssistant } from "@/hooks/use-global-cv-assistant";
 import { useStoredIdentity } from "@/hooks/use-stored-identity";
+import { resolveAdamRole, type AdamRole } from "@/lib/adam-role";
 import { adamMessageView } from "@/components/ai/adam-markdown";
 import {
   getCvFocusSectionLabel,
@@ -32,12 +33,20 @@ const LazyCopilotPopup = dynamic(
   { ssr: false },
 );
 
-const CHAT_SUGGESTIONS = [
+const CANDIDATE_SUGGESTIONS = [
   { title: "Chọn mẫu CV", message: "Gợi ý mẫu CV phù hợp với ngành và cấp độ công việc mục tiêu của tôi; cho xem trước và giải thích lựa chọn." },
   { title: "Tạo CV từ đầu", message: "Hãy giúp tôi tạo một CV mới. Hỏi tôi các thông tin còn thiếu theo từng bước." },
   { title: "Cải thiện nội dung", message: "Hãy xem nội dung CV hiện tại và đề xuất cách viết chuyên nghiệp hơn mà không bịa thông tin." },
   { title: "Tối ưu theo JD", message: "Tôi muốn tối ưu CV theo một công việc mục tiêu. Hãy yêu cầu tôi cung cấp JD rồi điều chỉnh CV phù hợp." },
   { title: "Kiểm tra ATS", message: "Hãy kiểm tra CV hiện tại và đề xuất các cải thiện giúp CV thân thiện với ATS." },
+];
+
+const RECRUITER_SUGGESTIONS = [
+  { title: "Tin đang tuyển", message: "Liệt kê các tin tuyển dụng đang mở của doanh nghiệp tôi kèm ID và trạng thái." },
+  { title: "Ứng viên phù hợp", message: "Gợi ý ứng viên phù hợp cho tin tuyển dụng hiện tại và giải thích điểm match." },
+  { title: "So sánh ứng viên", message: "So sánh 2-3 ứng viên cho cùng một tin tuyển dụng theo kỹ năng và kinh nghiệm." },
+  { title: "Pipeline tuyển dụng", message: "Tóm tắt pipeline đơn ứng tuyển của doanh nghiệp và các đơn đang bị kẹt." },
+  { title: "Cải thiện JD", message: "Phân tích tin tuyển dụng hiện tại và đề xuất cách viết JD rõ ràng, hấp dẫn hơn." },
 ];
 const CvThemeRecommendations = dynamic(() => import("@/components/ai/cv-theme-recommendations"), { ssr: false });
 
@@ -86,6 +95,18 @@ type JobRecommendation = {
   diemPhuHop: number;
 };
 
+type CandidateRecommendation = {
+  hoSoUngVienId: number;
+  cvUngVienId: number;
+  hoTen: string;
+  viTriUngTuyen: string;
+  diemPhuHop: number;
+  phanLoai: string;
+  kyNangThoa: string[];
+  kyNangThieu: string[];
+  soNamKinhNghiem: number;
+};
+
 function formatSalary(min: number, max: number) {
   if (!min && !max) return "Thỏa thuận";
   const formatter = new Intl.NumberFormat("vi-VN", { maximumFractionDigits: 0 });
@@ -124,6 +145,48 @@ function parseJobRecommendations(result: string | undefined): JobRecommendation[
   }
 }
 
+function asStringArray(value: unknown): string[] {
+  return Array.isArray(value)
+    ? value.map((item) => String(item).trim()).filter(Boolean)
+    : [];
+}
+
+function parseCandidateRecommendations(result: string | undefined): CandidateRecommendation[] {
+  if (!result) return [];
+  try {
+    const parsed = JSON.parse(result) as { data?: unknown; Data?: unknown };
+    const data = parsed.data ?? parsed.Data;
+    if (!Array.isArray(data)) return [];
+
+    const seenIds = new Set<number>();
+    return data.flatMap((value): CandidateRecommendation[] => {
+      if (!value || typeof value !== "object") return [];
+      const item = value as Record<string, unknown>;
+      const hoSoUngVienId = Number(item.hoSoUngVienId ?? item.HoSoUngVienId);
+      if (!Number.isInteger(hoSoUngVienId) || hoSoUngVienId <= 0 || seenIds.has(hoSoUngVienId)) return [];
+
+      seenIds.add(hoSoUngVienId);
+      return [{
+        hoSoUngVienId,
+        cvUngVienId: Number(item.cvUngVienId ?? item.CvUngVienId ?? 0) || 0,
+        hoTen: String(item.hoTen ?? item.HoTen ?? "Ứng viên"),
+        viTriUngTuyen: String(item.viTriUngTuyen ?? item.ViTriUngTuyen ?? "Chưa cập nhật vị trí"),
+        diemPhuHop: Number(item.diemPhuHop ?? item.DiemPhuHop ?? 0) || 0,
+        phanLoai: String(item.phanLoai ?? item.PhanLoai ?? ""),
+        kyNangThoa: asStringArray(item.kyNangThoa ?? item.KyNangThoa),
+        kyNangThieu: asStringArray(item.kyNangThieu ?? item.KyNangThieu),
+        soNamKinhNghiem: Number(item.soNamKinhNghiem ?? item.SoNamKinhNghiem ?? 0) || 0,
+      }];
+    });
+  } catch {
+    return [];
+  }
+}
+
+function scorePercent(score: number) {
+  return Math.round(score <= 1 ? score * 100 : score);
+}
+
 function normalizeRecruitmentJobs(jobs: RecruitmentJobState[]) {
   const seenIds = new Set<number>();
   return jobs.filter((job) => {
@@ -134,10 +197,10 @@ function normalizeRecruitmentJobs(jobs: RecruitmentJobState[]) {
   });
 }
 
-function GlobalCvAssistantMount() {
-  useGlobalCvAssistant({ enabled: true });
+function GlobalCvAssistantMount({ role }: { role: Exclude<AdamRole, "blocked"> }) {
+  useGlobalCvAssistant({ enabled: true, role });
   useConfigureSuggestions({
-    suggestions: CHAT_SUGGESTIONS,
+    suggestions: role === "candidate" ? CANDIDATE_SUGGESTIONS : RECRUITER_SUGGESTIONS,
     available: "before-first-message",
     consumerAgentId: "default",
   });
@@ -172,9 +235,48 @@ function ToolActivityMount() {
         return <CvThemeRecommendations items={themes.items} message={themes.message} />;
       }
       const jobs = complete ? parseJobRecommendations(result) : [];
+      const candidates = complete && name === "get_candidate_recommendations_for_job"
+        ? parseCandidateRecommendations(result)
+        : [];
       const section = cvToolSection(name, parameters);
       const sectionLabel = section ? getCvFocusSectionLabel(section) : undefined;
       const activityLabel = !complete && sectionLabel ? `Đang cập nhật ${sectionLabel}` : label;
+
+      if (candidates.length > 0) {
+        return (
+          <section className="adam-recommendations" aria-label="Ứng viên phù hợp">
+            <div className="adam-recommendations__header">
+              <div>
+                <p className="adam-recommendations__eyebrow">Kết quả phù hợp</p>
+                <h3>{candidates.length} ứng viên cho tin tuyển dụng</h3>
+              </div>
+              <span>Đã xong</span>
+            </div>
+            <ol className="adam-recommendations__list">
+              {candidates.map((candidate, index) => (
+                <li key={candidate.hoSoUngVienId} className="adam-recommendation-card">
+                  <span className="adam-recommendation-card__rank">{index + 1}</span>
+                  <div className="adam-recommendation-card__body">
+                    <strong>{candidate.hoTen}</strong>
+                    <span>{candidate.viTriUngTuyen}</span>
+                    <small>
+                      {candidate.soNamKinhNghiem > 0 ? `${candidate.soNamKinhNghiem} năm KN · ` : ""}
+                      {candidate.phanLoai || "Chưa phân loại"}
+                    </small>
+                    {candidate.kyNangThieu.length > 0 && (
+                      <small title={candidate.kyNangThieu.join(", ")}>
+                        Thiếu: {candidate.kyNangThieu.slice(0, 4).join(", ")}
+                        {candidate.kyNangThieu.length > 4 ? "…" : ""}
+                      </small>
+                    )}
+                  </div>
+                  <span className="adam-recommendation-card__score">{scorePercent(candidate.diemPhuHop)}%</span>
+                </li>
+              ))}
+            </ol>
+          </section>
+        );
+      }
 
       if (jobs.length > 0) {
         return (
@@ -344,7 +446,8 @@ export function CopilotProvider({ children }: { children: React.ReactNode }) {
   const [token, setToken] = useState<string | null>(() => getAuthToken());
   const pathname = usePathname();
   const identity = useStoredIdentity();
-  const adamRoles = identity?.roles?.join(",") ?? "";
+  const adamRole = resolveAdamRole(identity?.roles);
+  const adamEnabled = adamRole !== "blocked";
   const userId = identity?.id ?? null;
 
   // Khôi phục threadId đã lưu (nếu có) để nối lại lịch sử chat sau khi reload.
@@ -385,22 +488,25 @@ export function CopilotProvider({ children }: { children: React.ReactNode }) {
       headers={{
         Authorization: token ? `Bearer ${token}` : "",
         "X-Adam-Route": pathname ?? "",
-        "X-Adam-Roles": adamRoles,
       }}
       onError={(event) => {
         console.error(`[CopilotKit ${event.type}]`, event.error, event.context);
       }}
     >
       {children}
-      <InitialPopupState />
-      <ThreadIdPersistor userId={userId} />
-      <GlobalCvAssistantMount />
-      <ToolActivityMount /> 
-      <SharedStateMount />
-      <NewChatButton userId={userId} />
-      <DeferredCopilotPopup
-        adamMessageView={adamMessageView}
-      />
+      {adamEnabled && (
+        <>
+          <InitialPopupState />
+          <ThreadIdPersistor userId={userId} />
+          <GlobalCvAssistantMount role={adamRole} />
+          <ToolActivityMount />
+          <SharedStateMount />
+          <NewChatButton userId={userId} />
+          <DeferredCopilotPopup
+            adamMessageView={adamMessageView}
+          />
+        </>
+      )}
     </CopilotKit>
   );
 }

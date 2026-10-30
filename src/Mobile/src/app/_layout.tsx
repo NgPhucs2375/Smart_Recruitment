@@ -127,6 +127,8 @@ function RootNavigator() {
         <Stack.Protected guard={isSignedIn && portal === 'candidate'}>
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="applications" options={{ headerShown: false }} />
+          <Stack.Screen name="change-password" options={{ headerShown: false }} />
+          <Stack.Screen name="chat/[id]" options={{ headerShown: false }} />
           <Stack.Screen name="jobs/[id]" options={{ headerShown: false }} />
           <Stack.Screen name="companies/index" options={{ headerShown: false }} />
           <Stack.Screen name="companies/[id]" options={{ headerShown: false }} />
