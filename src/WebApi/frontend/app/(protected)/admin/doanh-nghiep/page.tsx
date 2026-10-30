@@ -98,6 +98,27 @@ export default function AdminDoanhNghiepPage() {
       toast.error("Tên doanh nghiệp không được để trống");
       return;
     }
+    const limits: Array<[keyof typeof form, string, number]> = [
+      ["TenDoanhNghiep", "Tên doanh nghiệp", 255], ["MoTa", "Mô tả", 2000],
+      ["Website", "Website", 255], ["DiaChi", "Địa chỉ", 255], ["LogoUrl", "Logo URL", 500],
+      ["MaSoThue", "Mã số thuế", 50], ["LinhVucHoatDong", "Lĩnh vực hoạt động", 255], ["QuyMoNhanSu", "Quy mô nhân sự", 100],
+    ];
+    const tooLong = limits.find(([key, , max]) => form[key].trim().length > max);
+    if (tooLong) {
+      toast.error(`${tooLong[1]} tối đa ${tooLong[2]} ký tự.`);
+      return;
+    }
+    for (const key of ["Website", "LogoUrl"] as const) {
+      const value = form[key].trim();
+      if (value && !/^https?:\/\/[^\s]+$/i.test(value)) {
+        toast.error(`${key === "Website" ? "Website" : "Logo URL"} phải là URL http(s).`);
+        return;
+      }
+    }
+    if (form.MaSoThue.trim() && !/^\d{10}(\d{3})?$/.test(form.MaSoThue.trim())) {
+      toast.error("Mã số thuế gồm 10 hoặc 13 chữ số.");
+      return;
+    }
     setSaving(true);
     try {
       const payload = {
@@ -199,35 +220,35 @@ export default function AdminDoanhNghiepPage() {
             <CardContent className="grid gap-4 sm:grid-cols-2">
               <div className="grid gap-2 sm:col-span-2">
                 <Label htmlFor="ten">Tên doanh nghiệp *</Label>
-                <Input id="ten" value={form.TenDoanhNghiep} onChange={set("TenDoanhNghiep")} />
+                   <Input id="ten" value={form.TenDoanhNghiep} maxLength={255} onChange={set("TenDoanhNghiep")} />
               </div>
               <div className="grid gap-2 sm:col-span-2">
                 <Label htmlFor="mota">Mô tả</Label>
-                <Textarea id="mota" rows={3} value={form.MoTa} onChange={set("MoTa")} />
+                 <Textarea id="mota" rows={3} maxLength={2000} value={form.MoTa} onChange={set("MoTa")} />
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="website">Website</Label>
-                <Input id="website" value={form.Website} onChange={set("Website")} />
+                 <Input id="website" value={form.Website} maxLength={255} onChange={set("Website")} />
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="diachi">Địa chỉ</Label>
-                <Input id="diachi" value={form.DiaChi} onChange={set("DiaChi")} />
+                 <Input id="diachi" value={form.DiaChi} maxLength={255} onChange={set("DiaChi")} />
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="logo">Liên kết logo</Label>
-                <Input id="logo" value={form.LogoUrl} onChange={set("LogoUrl")} placeholder="https://..." />
+                 <Input id="logo" value={form.LogoUrl} maxLength={500} onChange={set("LogoUrl")} placeholder="https://..." />
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="mst">Mã số thuế</Label>
-                <Input id="mst" value={form.MaSoThue} onChange={set("MaSoThue")} />
+                 <Input id="mst" value={form.MaSoThue} maxLength={50} onChange={set("MaSoThue")} />
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="linhvuc">Lĩnh vực hoạt động</Label>
-                <Input id="linhvuc" value={form.LinhVucHoatDong} onChange={set("LinhVucHoatDong")} />
+                 <Input id="linhvuc" value={form.LinhVucHoatDong} maxLength={255} onChange={set("LinhVucHoatDong")} />
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="quymo">Quy mô nhân sự</Label>
-                <Input id="quymo" value={form.QuyMoNhanSu} onChange={set("QuyMoNhanSu")} />
+                 <Input id="quymo" value={form.QuyMoNhanSu} maxLength={100} onChange={set("QuyMoNhanSu")} />
               </div>
               <div className="flex gap-2 sm:col-span-2">
                 <Button disabled={saving} onClick={handleSave}>{saving ? "Đang lưu..." : "Lưu"}</Button>

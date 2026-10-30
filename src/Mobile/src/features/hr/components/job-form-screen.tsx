@@ -157,12 +157,20 @@ export function JobFormScreen() {
         return { field: 'diaDiemLamViec', message: 'Cần địa điểm trước khi gửi duyệt' };
       if (form.tieuDe.length > 255 || form.diaDiemLamViec.length > 255)
         return { field: 'tieuDe', message: 'Tiêu đề và địa điểm tối đa 255 ký tự' };
+      if (form.moTaCongViec.length > 5000 || form.yeuCauCongViec.length > 5000)
+        return { field: 'moTaCongViec', message: 'Mô tả và yêu cầu công việc tối đa 5000 ký tự' };
       if (form.kinhNghiemYeuCau.length > 2000 || form.quyenLoi.length > 2000)
         return { field: 'kinhNghiemYeuCau', message: 'Kinh nghiệm và quyền lợi tối đa 2000 ký tự' };
       if (
         submit &&
         form.ngayHetHan &&
-        /^\d{4}-\d{2}-\d{2}$/.test(form.ngayHetHan) &&
+        !/^\d{4}-\d{2}-\d{2}$/.test(form.ngayHetHan)
+      ) {
+        return { field: 'ngayHetHan', message: 'Ngày hết hạn phải có định dạng YYYY-MM-DD' };
+      }
+      if (
+        submit &&
+        form.ngayHetHan &&
         form.ngayHetHan < todayIso()
       ) {
         return { field: 'ngayHetHan', message: 'Ngày hết hạn phải từ hôm nay trở đi' };
@@ -258,6 +266,7 @@ export function JobFormScreen() {
               label="Tiêu đề"
               required
               value={form.tieuDe}
+              maxLength={255}
               onChangeText={(value) => patch({ tieuDe: value })}
               placeholder="VD: Senior Frontend Developer"
               invalid={fieldError === 'tieuDe'}
@@ -275,6 +284,7 @@ export function JobFormScreen() {
               label="Địa điểm làm việc"
               required
               value={form.diaDiemLamViec}
+              maxLength={255}
               onChangeText={(value) => patch({ diaDiemLamViec: value })}
               placeholder="VD: Hà Nội, TP. Hồ Chí Minh"
               invalid={fieldError === 'diaDiemLamViec'}
@@ -330,6 +340,7 @@ export function JobFormScreen() {
               required
               multiline
               value={form.moTaCongViec}
+              maxLength={5000}
               onChangeText={(value) => patch({ moTaCongViec: value })}
               placeholder="Mô tả trách nhiệm, công việc hằng ngày..."
               invalid={fieldError === 'moTaCongViec'}
@@ -339,6 +350,7 @@ export function JobFormScreen() {
               required
               multiline
               value={form.yeuCauCongViec}
+              maxLength={5000}
               onChangeText={(value) => patch({ yeuCauCongViec: value })}
               placeholder="Yêu cầu kỹ năng, bằng cấp..."
               invalid={fieldError === 'yeuCauCongViec'}
@@ -347,6 +359,7 @@ export function JobFormScreen() {
               label="Kinh nghiệm yêu cầu"
               multiline
               value={form.kinhNghiemYeuCau}
+              maxLength={2000}
               onChangeText={(value) => patch({ kinhNghiemYeuCau: value })}
               placeholder="VD: 2+ năm kinh nghiệm React..."
               invalid={fieldError === 'kinhNghiemYeuCau'}
@@ -355,6 +368,7 @@ export function JobFormScreen() {
               label="Quyền lợi"
               multiline
               value={form.quyenLoi}
+              maxLength={2000}
               onChangeText={(value) => patch({ quyenLoi: value })}
               placeholder="VD: Bảo hiểm, thưởng tháng 13..."
             />

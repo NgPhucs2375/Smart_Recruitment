@@ -45,6 +45,7 @@ export function FormField({
   keyboardType,
   autoCapitalize,
   multiline,
+  maxLength,
   editable = true,
   errorText,
 }: {
@@ -57,6 +58,7 @@ export function FormField({
   keyboardType?: KeyboardTypeOptions;
   autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
   multiline?: boolean;
+  maxLength?: number;
   editable?: boolean;
   errorText?: string;
 }) {
@@ -72,6 +74,7 @@ export function FormField({
         keyboardType={keyboardType}
         autoCapitalize={autoCapitalize}
         multiline={multiline}
+        maxLength={maxLength}
         editable={editable}
         style={[fieldContainer(theme, invalid), multiline && styles.multiline]}
       />

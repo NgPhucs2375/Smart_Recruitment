@@ -620,6 +620,7 @@ export function ApplicantsInbox({ jobId, jobTitle }: ApplicantsInboxProps) {
               value={evalNoiDung}
               onChangeText={setEvalNoiDung}
               multiline
+              maxLength={4000}
               placeholder="VD: Kỹ năng phù hợp, giao tiếp tốt, có thể đi làm ngay..."
               placeholderTextColor={theme.textSecondary}
               style={[styles.evalInput, { backgroundColor: theme.background, borderColor: theme.input, color: theme.text }]}
@@ -630,6 +631,7 @@ export function ApplicantsInbox({ jobId, jobTitle }: ApplicantsInboxProps) {
             <TextInput
               value={evalKetLuan}
               onChangeText={setEvalKetLuan}
+              maxLength={255}
               placeholder="VD: Đạt — mời nhận việc / Không đạt"
               placeholderTextColor={theme.textSecondary}
               style={[styles.evalInput, styles.evalInputSmall, { backgroundColor: theme.background, borderColor: theme.input, color: theme.text }]}

@@ -19,6 +19,26 @@ import { useHrRole } from '@/features/hr/hooks/use-hr-role';
 import type { CompanyMine } from '@/features/hr/types';
 import { useTheme } from '@/hooks/use-theme';
 
+const MAX = {
+  name: 255,
+  address: 255,
+  website: 255,
+  logoUrl: 500,
+  taxCode: 50,
+  industry: 255,
+  size: 100,
+  description: 2000,
+} as const;
+
+function isHttpUrl(value: string): boolean {
+  try {
+    const url = new URL(value);
+    return url.protocol === 'http:' || url.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
 const EMPTY: CompanyMine = {
   id: 0,
   tenDoanhNghiep: '',
@@ -80,6 +100,33 @@ export function CompanyScreen() {
     if (!company.tenDoanhNghiep.trim()) {
       setFieldError('tenDoanhNghiep');
       setError('Tên doanh nghiệp không được để trống.');
+      return;
+    }
+    const textLimits: Array<[string, string, number]> = [
+      [company.tenDoanhNghiep, 'Tên doanh nghiệp', MAX.name],
+      [company.diaChi, 'Địa chỉ', MAX.address],
+      [company.linhVucHoatDong, 'Lĩnh vực hoạt động', MAX.industry],
+      [company.quyMoNhanSu, 'Quy mô nhân sự', MAX.size],
+      [company.moTa, 'Mô tả', MAX.description],
+    ];
+    const tooLong = textLimits.find(([value, , limit]) => value.trim().length > limit);
+    if (tooLong) {
+      setError(`${tooLong[1]} tối đa ${tooLong[2]} ký tự.`);
+      return;
+    }
+    const website = company.website.trim();
+    if (website && (website.length > MAX.website || !isHttpUrl(website))) {
+      setError('Website phải là URL http(s), tối đa 255 ký tự.');
+      return;
+    }
+    const logoUrl = company.logoUrl.trim();
+    if (logoUrl && (logoUrl.length > MAX.logoUrl || !isHttpUrl(logoUrl))) {
+      setError('Logo URL phải là URL http(s), tối đa 500 ký tự.');
+      return;
+    }
+    const taxCode = company.maSoThue.trim();
+    if (taxCode.length > MAX.taxCode || (taxCode && !/^\d{10}(\d{3})?$/.test(taxCode))) {
+      setError('Mã số thuế gồm 10 hoặc 13 chữ số, tối đa 50 ký tự.');
       return;
     }
     try {
@@ -154,6 +201,7 @@ export function CompanyScreen() {
               required
               value={company.tenDoanhNghiep}
               onChangeText={(value) => patch({ tenDoanhNghiep: value })}
+              maxLength={MAX.name}
               placeholder="Công ty TNHH ABC"
               editable={isNdd}
               invalid={fieldError === 'tenDoanhNghiep'}
@@ -162,6 +210,7 @@ export function CompanyScreen() {
               label="Mã số thuế"
               value={company.maSoThue}
               onChangeText={(value) => patch({ maSoThue: value })}
+              maxLength={MAX.taxCode}
               placeholder="0123456789"
               keyboardType="number-pad"
               editable={isNdd}
@@ -170,6 +219,7 @@ export function CompanyScreen() {
               label="Lĩnh vực hoạt động"
               value={company.linhVucHoatDong}
               onChangeText={(value) => patch({ linhVucHoatDong: value })}
+              maxLength={MAX.industry}
               placeholder="Công nghệ thông tin, Thương mại điện tử..."
               editable={isNdd}
             />
@@ -177,6 +227,7 @@ export function CompanyScreen() {
               label="Quy mô nhân sự"
               value={company.quyMoNhanSu}
               onChangeText={(value) => patch({ quyMoNhanSu: value })}
+              maxLength={MAX.size}
               placeholder="11-50 nhân viên"
               editable={isNdd}
             />
@@ -187,6 +238,7 @@ export function CompanyScreen() {
               label="Website"
               value={company.website}
               onChangeText={(value) => patch({ website: value })}
+              maxLength={MAX.website}
               placeholder="https://congty.vn"
               autoCapitalize="none"
               keyboardType="url"
@@ -197,6 +249,7 @@ export function CompanyScreen() {
               multiline
               value={company.diaChi}
               onChangeText={(value) => patch({ diaChi: value })}
+              maxLength={MAX.address}
               placeholder="Số 1, Đường ABC, Quận 1, TP. Hồ Chí Minh"
               editable={isNdd}
             />
@@ -204,6 +257,7 @@ export function CompanyScreen() {
               label="Logo (URL)"
               value={company.logoUrl}
               onChangeText={(value) => patch({ logoUrl: value })}
+              maxLength={MAX.logoUrl}
               placeholder="https://..."
               autoCapitalize="none"
               editable={isNdd}
@@ -216,6 +270,7 @@ export function CompanyScreen() {
               multiline
               value={company.moTa}
               onChangeText={(value) => patch({ moTa: value })}
+              maxLength={MAX.description}
               placeholder="Giới thiệu về doanh nghiệp, văn hóa, thành tựu..."
               editable={isNdd}
             />

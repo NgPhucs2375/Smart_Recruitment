@@ -24,6 +24,8 @@ type Banner = {
   isActive: boolean;
 };
 
+const MAX_FILE_SIZE = 100 * 1024 * 1024;
+
 async function request(path: string, init?: RequestInit) {
   const token = getAuthToken();
   const response = await fetch(`/api/dotnet/marketingbanners${path}`, {
@@ -83,6 +85,22 @@ function BannerAdminPage() {
     }
     if (!title.trim()) {
       toast.error("Tiêu đề banner không được để trống");
+      return;
+    }
+    if (title.trim().length > 255) {
+      toast.error("Tiêu đề banner tối đa 255 ký tự");
+      return;
+    }
+    if (description.trim().length > 2000) {
+      toast.error("Mô tả banner tối đa 2000 ký tự");
+      return;
+    }
+    if (linkUrl.trim() && !(/^(\/[^/]|https?:\/\/[^\s]+)$/i.test(linkUrl.trim()))) {
+      toast.error("Liên kết phải là đường dẫn nội bộ hoặc URL http(s)");
+      return;
+    }
+    if (file.size > MAX_FILE_SIZE) {
+      toast.error("File banner tối đa 100 MB");
       return;
     }
 
@@ -152,15 +170,15 @@ function BannerAdminPage() {
         <CardContent className="grid gap-4 md:grid-cols-2">
           <div className="grid gap-2">
             <Label htmlFor="banner-title">Tiêu đề *</Label>
-            <Input id="banner-title" value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Ví dụ: Tạo CV nổi bật trong 5 phút" />
+             <Input id="banner-title" value={title} maxLength={255} onChange={(event) => setTitle(event.target.value)} placeholder="Ví dụ: Tạo CV nổi bật trong 5 phút" />
           </div>
           <div className="grid gap-2">
             <Label htmlFor="banner-link">Liên kết khi bấm</Label>
-            <Input id="banner-link" value={linkUrl} onChange={(event) => setLinkUrl(event.target.value)} placeholder="/tao-cv hoặc https://..." />
+             <Input id="banner-link" value={linkUrl} maxLength={500} onChange={(event) => setLinkUrl(event.target.value)} placeholder="/tao-cv hoặc https://..." />
           </div>
           <div className="grid gap-2 md:col-span-2">
             <Label htmlFor="banner-description">Mô tả ngắn</Label>
-            <Textarea id="banner-description" rows={3} value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Thông điệp marketing hiển thị trên banner" />
+             <Textarea id="banner-description" rows={3} maxLength={2000} value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Thông điệp marketing hiển thị trên banner" />
           </div>
           <div className="grid gap-2 md:col-span-2">
             <Label htmlFor="banner-media">Ảnh hoặc video * (tối đa 100 MB)</Label>

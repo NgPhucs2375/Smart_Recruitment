@@ -30,6 +30,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Button } from '@/components/ui/button';
 import { font, Radius } from '@/constants/theme';
 import { authApi, type RegisterRole } from '@/features/auth';
+import { validateEmail, validatePhone, validatePassword, validatePasswordConfirmation, validateTaxCode, validateText } from '@/features/auth/validation';
 import { useTheme } from '@/hooks/use-theme';
 import { safeBack } from '@/utils/navigation';
 
@@ -66,16 +67,14 @@ export default function RegisterScreen() {
       setError('Điền đủ họ tên, số điện thoại, email và mật khẩu.');
       return;
     }
-    if (password.length < 6) {
-      setError('Mật khẩu cần ít nhất 6 ký tự.');
-      return;
-    }
-    if (password !== confirmPassword) {
-      setError('Mật khẩu xác nhận không khớp.');
-      return;
-    }
-    if (isEmployer && (!chucVu.trim() || !tenDoanhNghiep.trim() || !diaChiDoanhNghiep.trim())) {
-      setError('Nhà tuyển dụng cần điền chức vụ, tên và địa chỉ doanh nghiệp.');
+    const validation = validateEmail(trimmedEmail) ?? validatePhone(soDienThoai) ?? validatePassword(password) ??
+      validatePasswordConfirmation(password, confirmPassword) ?? validateText(hoTen, 'Họ tên', 100, true) ??
+      (isEmployer ? validateText(chucVu, 'Chức vụ', 100, true) : null) ??
+      (isEmployer ? validateText(tenDoanhNghiep, 'Tên doanh nghiệp', 255, true) : null) ??
+      (isEmployer ? validateText(diaChiDoanhNghiep, 'Địa chỉ doanh nghiệp', 255, true) : null) ??
+      (isEmployer ? validateTaxCode(maSoThue) : null);
+    if (validation) {
+      setError(validation);
       return;
     }
 
@@ -164,6 +163,7 @@ export default function RegisterScreen() {
               selectionColor={theme.primary}
               style={[styles.input, { color: theme.text }]}
               value={hoTen}
+              maxLength={100}
             />
           </Field>
 
@@ -177,6 +177,7 @@ export default function RegisterScreen() {
               selectionColor={theme.primary}
               style={[styles.input, { color: theme.text }]}
               value={soDienThoai}
+              maxLength={20}
             />
           </Field>
 
@@ -192,6 +193,7 @@ export default function RegisterScreen() {
               selectionColor={theme.primary}
               style={[styles.input, { color: theme.text }]}
               value={email}
+              maxLength={100}
             />
           </Field>
 
@@ -206,6 +208,7 @@ export default function RegisterScreen() {
               selectionColor={theme.primary}
               style={[styles.input, { paddingRight: 36, color: theme.text }]}
               value={password}
+              maxLength={100}
             />
             <Pressable
               accessibilityRole="button"
@@ -233,6 +236,7 @@ export default function RegisterScreen() {
               selectionColor={theme.primary}
               style={[styles.input, { color: theme.text }]}
               value={confirmPassword}
+              maxLength={100}
             />
           </Field>
 
@@ -250,6 +254,7 @@ export default function RegisterScreen() {
                   selectionColor={theme.primary}
                   style={[styles.input, { color: theme.text }]}
                   value={chucVu}
+                  maxLength={100}
                 />
               </Field>
               <Field label="Tên doanh nghiệp" icon={<Building2 size={16} color={theme.textSecondary} />}>
@@ -261,6 +266,7 @@ export default function RegisterScreen() {
                   selectionColor={theme.primary}
                   style={[styles.input, { color: theme.text }]}
                   value={tenDoanhNghiep}
+                  maxLength={255}
                 />
               </Field>
               <Field label="Địa chỉ doanh nghiệp" icon={<MapPin size={16} color={theme.textSecondary} />}>
@@ -272,6 +278,7 @@ export default function RegisterScreen() {
                   selectionColor={theme.primary}
                   style={[styles.input, { color: theme.text }]}
                   value={diaChiDoanhNghiep}
+                  maxLength={255}
                 />
               </Field>
               <Field label="Mã số thuế (không bắt buộc)">
@@ -284,6 +291,7 @@ export default function RegisterScreen() {
                   selectionColor={theme.primary}
                   style={[styles.input, { color: theme.text }]}
                   value={maSoThue}
+                  maxLength={13}
                 />
               </Field>
             </View>

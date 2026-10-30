@@ -17,6 +17,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { font, Radius } from '@/constants/theme';
 import { useAuth } from '@/features/auth';
+import { validateEmail, validatePhone } from '@/features/auth/validation';
 import { cvApi } from '@/features/cv/api/cv-api';
 import type {
   CvCertificate,
@@ -127,7 +128,13 @@ export default function CvCreateScreen() {
 
   const save = async () => {
     if (!profile?.id || !content) return setError('Bạn cần hoàn thiện hồ sơ ứng viên trước.');
-    if (!content.contact.fullName.trim() || !content.contact.email.trim()) return setError('Hãy nhập họ tên và email.');
+    if (!content.contact.fullName.trim() || !content.contact.email.trim() || !content.contact.phone.trim()) return setError('Hãy nhập họ tên, email và số điện thoại.');
+    if (content.contact.fullName.trim().length > 100) return setError('Họ tên tối đa 100 ký tự.');
+    const emailError = validateEmail(content.contact.email);
+    if (emailError) return setError(emailError);
+    const phoneError = validatePhone(content.contact.phone);
+    if (phoneError) return setError(phoneError);
+    if (name.trim().length > 255) return setError('Tên CV tối đa 255 ký tự.');
     setSaving(true);
     setError('');
     try {
@@ -165,7 +172,7 @@ export default function CvCreateScreen() {
           Điền từng phần, thêm nhiều mục và chọn mẫu hiển thị trước khi lưu.
         </ThemedText>
 
-        <Field label="Tên CV" value={name} onChangeText={setName} theme={theme} />
+         <Field label="Tên CV" value={name} onChangeText={setName} maxLength={255} theme={theme} />
         <Card style={styles.templateCard}>
           <ThemedText style={styles.sectionHeading}>Mẫu CV</ThemedText>
           <View style={styles.templateGrid}>
@@ -283,8 +290,8 @@ function Toggle({ label, value, onValueChange, theme }: { label: string; value: 
   return <View style={styles.toggle}><ThemedText style={{ color: theme.textSecondary }}>{label}</ThemedText><Switch value={value} onValueChange={onValueChange} trackColor={{ true: theme.primary }} /></View>;
 }
 
-function Field({ label, theme, multiline, keyboardType, ...props }: { label: string; theme: ReturnType<typeof useTheme>; multiline?: boolean; value: string; onChangeText: (value: string) => void; keyboardType?: 'default' | 'email-address' | 'phone-pad' | 'numeric' }) {
-  return <View style={styles.field}><ThemedText style={{ color: theme.textSecondary }}>{label}</ThemedText><TextInput {...props} keyboardType={keyboardType} multiline={multiline} placeholder={label} placeholderTextColor={theme.textSecondary} style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.backgroundElement }, multiline && styles.multiline]} /></View>;
+function Field({ label, theme, multiline, keyboardType, maxLength, ...props }: { label: string; theme: ReturnType<typeof useTheme>; multiline?: boolean; maxLength?: number; value: string; onChangeText: (value: string) => void; keyboardType?: 'default' | 'email-address' | 'phone-pad' | 'numeric' }) {
+  return <View style={styles.field}><ThemedText style={{ color: theme.textSecondary }}>{label}</ThemedText><TextInput {...props} maxLength={maxLength} keyboardType={keyboardType} multiline={multiline} placeholder={label} placeholderTextColor={theme.textSecondary} style={[styles.input, { color: theme.text, borderColor: theme.border, backgroundColor: theme.backgroundElement }, multiline && styles.multiline]} /></View>;
 }
 
 const styles = StyleSheet.create({

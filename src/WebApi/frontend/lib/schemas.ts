@@ -66,9 +66,10 @@ export const registerSchema = z.object({
   role: z.enum(["UNG_VIEN", "NGUOI_DAI_DIEN"]),
   hoTen: textField("Vui lòng nhập họ tên"),
   soDienThoai: phoneField(),
-  tenDoanhNghiep: z.string().optional(),
-  diaChiDoanhNghiep: z.string().optional(),
-  chucVu: z.string().optional(),
+  tenDoanhNghiep: z.string().trim().max(255, "Tên doanh nghiệp tối đa 255 ký tự.").optional(),
+  diaChiDoanhNghiep: z.string().trim().max(255, "Địa chỉ doanh nghiệp tối đa 255 ký tự.").optional(),
+  chucVu: z.string().trim().max(100, "Chức vụ tối đa 100 ký tự.").optional(),
+  maSoThue: taxCodeField().optional(),
   inviteToken: z.string().optional(),
 }).superRefine((data, ctx) => {
   if (data.password !== data.confirmPassword) {

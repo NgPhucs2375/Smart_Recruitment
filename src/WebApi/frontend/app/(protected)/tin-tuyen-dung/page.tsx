@@ -499,7 +499,7 @@ export default function TinTuyenDungPage() {
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2 md:col-span-2">
                 <Label htmlFor="ttd-tieu-de">Tiêu đề *</Label>
-                <Input id="ttd-tieu-de" aria-invalid={errField === "tieuDe"} value={form.tieuDe} onChange={e => setForm(f => ({ ...f, tieuDe: e.target.value }))} required placeholder="VD: Senior Frontend Developer" />
+                 <Input id="ttd-tieu-de" aria-invalid={errField === "tieuDe"} value={form.tieuDe} maxLength={255} onChange={e => setForm(f => ({ ...f, tieuDe: e.target.value }))} required placeholder="VD: Senior Frontend Developer" />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="ttd-danh-muc">Danh mục nghề *</Label>
@@ -524,7 +524,7 @@ export default function TinTuyenDungPage() {
               </div>
               <div className="space-y-2 md:col-span-2">
                 <Label htmlFor="ttd-dia-diem">Địa điểm *</Label>
-                <Input id="ttd-dia-diem" aria-invalid={errField === "diaDiemLamViec"} value={form.diaDiemLamViec} onChange={e => setForm(f => ({ ...f, diaDiemLamViec: e.target.value }))} required placeholder="VD: Hà Nội, TP. Hồ Chí Minh" />
+                 <Input id="ttd-dia-diem" aria-invalid={errField === "diaDiemLamViec"} value={form.diaDiemLamViec} maxLength={255} onChange={e => setForm(f => ({ ...f, diaDiemLamViec: e.target.value }))} required placeholder="VD: Hà Nội, TP. Hồ Chí Minh" />
               </div>
             </div>
           </section>

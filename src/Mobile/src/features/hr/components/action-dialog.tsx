@@ -13,6 +13,7 @@ export type DialogRequest = {
   placeholder?: string;
   confirmLabel?: string;
   destructive?: boolean;
+  maxLength?: number;
 };
 
 /**
@@ -96,6 +97,7 @@ export function HrActionDialog({
               placeholder={request.placeholder ?? 'Nhập nội dung'}
               placeholderTextColor={theme.textSecondary}
               multiline
+              maxLength={request.maxLength ?? 2000}
               autoFocus
               style={[
                 styles.input,

@@ -18,6 +18,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Button } from '@/components/ui/button';
 import { font, Radius } from '@/constants/theme';
 import { authApi } from '@/features/auth';
+import { validateEmail, validatePassword, validatePasswordConfirmation } from '@/features/auth/validation';
 import { useTheme } from '@/hooks/use-theme';
 import { safeBack } from '@/utils/navigation';
 
@@ -41,12 +42,9 @@ export default function ResetPasswordScreen() {
       setError('Điền đủ email, token và mật khẩu mới.');
       return;
     }
-    if (password.length < 6) {
-      setError('Mật khẩu mới cần ít nhất 6 ký tự.');
-      return;
-    }
-    if (password !== confirmPassword) {
-      setError('Mật khẩu xác nhận không khớp.');
+    const validation = validateEmail(trimmedEmail) ?? validatePassword(password) ?? validatePasswordConfirmation(password, confirmPassword);
+    if (validation) {
+      setError(validation);
       return;
     }
 
@@ -97,6 +95,7 @@ export default function ResetPasswordScreen() {
               selectionColor={theme.primary}
               style={[styles.input, { color: theme.text }]}
               value={email}
+              maxLength={100}
             />
           </View>
 
@@ -113,6 +112,7 @@ export default function ResetPasswordScreen() {
               selectionColor={theme.primary}
               style={[styles.input, { color: theme.text }]}
               value={token}
+              maxLength={512}
             />
           </View>
 
@@ -129,6 +129,7 @@ export default function ResetPasswordScreen() {
               selectionColor={theme.primary}
               style={[styles.input, { paddingRight: 36, color: theme.text }]}
               value={password}
+              maxLength={100}
             />
             <Pressable
               accessibilityRole="button"
@@ -160,6 +161,7 @@ export default function ResetPasswordScreen() {
               selectionColor={theme.primary}
               style={[styles.input, { color: theme.text }]}
               value={confirmPassword}
+              maxLength={100}
             />
           </View>
 

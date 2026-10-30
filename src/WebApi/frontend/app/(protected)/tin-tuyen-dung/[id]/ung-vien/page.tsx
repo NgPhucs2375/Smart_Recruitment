@@ -466,6 +466,7 @@ export default function UngVienTheoTinPage() {
                 value={evalNoiDung}
                 onChange={(e) => setEvalNoiDung(e.target.value)}
                 rows={4}
+                maxLength={4000}
                 placeholder="VD: Kỹ năng phù hợp, giao tiếp tốt, có thể đi làm ngay..."
                 className="mt-1.5 flex w-full rounded-xl border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               />
@@ -475,6 +476,7 @@ export default function UngVienTheoTinPage() {
               <input
                 value={evalKetLuan}
                 onChange={(e) => setEvalKetLuan(e.target.value)}
+                maxLength={255}
                 placeholder="VD: Đạt — mời nhận việc / Không đạt"
                 className="mt-1.5 flex h-10 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               />
