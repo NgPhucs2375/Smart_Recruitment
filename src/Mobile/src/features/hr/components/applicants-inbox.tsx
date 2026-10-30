@@ -442,8 +442,8 @@ export function ApplicantsInbox({ jobId, jobTitle }: ApplicantsInboxProps) {
               setMockDecisions((prev) => ({ ...prev, [id]: kind }));
               setSuccess(
                 kind === 'approve'
-                  ? `Đã duyệt hồ sơ của ${name}.`
-                  : `Đã từ chối hồ sơ của ${name}.`,
+                  ? `Demo: đã duyệt hồ sơ của ${name} (chưa lưu máy chủ).`
+                  : `Demo: đã từ chối hồ sơ của ${name} (chưa lưu máy chủ).`,
               );
             }}
           />
@@ -701,6 +701,9 @@ function MockApplicantsCard({
       <View style={[styles.listHead, { borderBottomColor: theme.border }]}>
         <ThemedText style={[styles.listHeadTitle, { color: theme.textSecondary }]} type="code">
           DANH SÁCH ĐƠN ỨNG TUYỂN ({visible.length})
+        </ThemedText>
+        <ThemedText style={{ color: theme.textSecondary }} type="code">
+          DEMO • thao tác chỉ lưu trên máy
         </ThemedText>
       </View>
 

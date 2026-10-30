@@ -19,6 +19,7 @@ import {
   Mail,
   Pencil,
   Plus,
+  Settings,
   ShieldCheck,
   UserRound,
 } from 'lucide-react-native';
@@ -486,6 +487,28 @@ export default function HRAccountScreen() {
             <ThemedText style={[styles.profileRole, { color: theme.textSecondary }]}>
               Xem và chỉnh sửa thông tin doanh nghiệp
             </ThemedText>
+          </View>
+          <ArrowRight size={16} color={theme.textSecondary} />
+        </Pressable>
+
+        <ThemedText style={[styles.sectionTitle, { color: theme.textSecondary }]}>CÀI ĐẶT</ThemedText>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => router.push('/hr/settings')}
+          style={({ pressed }) => [
+            styles.companyRow,
+            {
+              borderColor: theme.border,
+              backgroundColor: theme.backgroundElement,
+              opacity: pressed ? 0.7 : 1,
+            },
+          ]}>
+          <View style={[styles.companyIcon, { backgroundColor: `${theme.primary}1A` }]}>
+            <Settings size={18} color={theme.primary} />
+          </View>
+          <View style={styles.profileCopy}>
+            <ThemedText style={styles.companyName}>Cài đặt tài khoản</ThemedText>
+            <ThemedText style={[styles.profileRole, { color: theme.textSecondary }]}>Bảo mật, giao diện và đăng xuất</ThemedText>
           </View>
           <ArrowRight size={16} color={theme.textSecondary} />
         </Pressable>

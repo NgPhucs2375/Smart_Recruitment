@@ -35,7 +35,7 @@ const PIPELINE_STATS = [
  *  opacity + gradient wash. */
 function EmployerHeroBackdrop() {
   return (
-    <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden dark:opacity-60">
+    <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
       <svg
         viewBox="0 0 1440 640"
         preserveAspectRatio="xMidYMid slice"

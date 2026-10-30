@@ -1,8 +1,9 @@
-import { router } from 'expo-router';
+import { useState } from 'react';
 import { Alert, Pressable, StyleSheet, View } from 'react-native';
-import { MessageCircle, Sparkles, UserRound } from 'lucide-react-native';
+import { ChevronDown, MessageCircle, Sparkles, UserRound } from 'lucide-react-native';
 
 import { ThemedText } from '@/components/themed-text';
+import { Badge } from '@/components/ui/badge';
 import { font, Palette, Radius } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
@@ -58,8 +59,15 @@ function scoreColor(score: number): string {
  * Khối "🌟 Ứng viên tiềm năng (Đánh giá AI cao)" — hiển thị ở Tổng quan HR
  * và danh sách ứng viên. Dữ liệu mock cố định.
  */
-export function PotentialCandidatesCard() {
+export function PotentialCandidatesCard({
+  collapsible = false,
+  defaultExpanded = true,
+}: {
+  collapsible?: boolean;
+  defaultExpanded?: boolean;
+}) {
   const theme = useTheme();
+  const [expanded, setExpanded] = useState(defaultExpanded);
 
   const viewProfile = (candidate: PotentialCandidate) => {
     Alert.alert(
@@ -69,12 +77,19 @@ export function PotentialCandidatesCard() {
   };
 
   const messageCandidate = () => {
-    router.push('/messages');
+    Alert.alert('Bản demo', 'Nhắn tin ứng viên sẽ được kết nối khi dữ liệu thật được bật.');
   };
 
   return (
     <View style={[styles.card, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
-      <View style={styles.headingRow}>
+      <Pressable
+        accessibilityRole={collapsible ? 'button' : undefined}
+        accessibilityLabel={collapsible ? 'Mở hoặc thu gọn ứng viên tiềm năng' : undefined}
+        accessibilityState={collapsible ? { expanded } : undefined}
+        disabled={!collapsible}
+        onPress={() => setExpanded((value) => !value)}
+        style={({ pressed }) => [styles.headingRow, collapsible && { opacity: pressed ? 0.75 : 1 }]}
+      >
         <View style={[styles.headingIcon, { backgroundColor: `${theme.primary}14` }]}>
           <Sparkles size={15} color={theme.primary} />
         </View>
@@ -86,9 +101,19 @@ export function PotentialCandidatesCard() {
             Gợi ý từ hệ thống đánh giá hồ sơ tự động
           </ThemedText>
         </View>
-      </View>
+        <Badge variant="outline" color={theme.primary}>
+          DEMO
+        </Badge>
+        {collapsible ? (
+          <ChevronDown
+            size={18}
+            color={theme.textSecondary}
+            style={{ transform: [{ rotate: expanded ? '180deg' : '0deg' }] }}
+          />
+        ) : null}
+      </Pressable>
 
-      <View style={styles.list}>
+      {expanded ? <View style={styles.list}>
         {MOCK_CANDIDATES.map((candidate) => (
           <View
             key={candidate.id}
@@ -149,7 +174,7 @@ export function PotentialCandidatesCard() {
             </View>
           </View>
         ))}
-      </View>
+      </View> : null}
     </View>
   );
 }

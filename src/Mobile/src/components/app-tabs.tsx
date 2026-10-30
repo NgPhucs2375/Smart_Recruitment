@@ -4,20 +4,22 @@ import { Tabs } from 'expo-router';
 import { font } from '@/constants/theme';
 import { useAuth } from '@/features/auth';
 import { canUseInternalChat } from '@/features/chat/roles';
+import { useTheme } from '@/hooks/use-theme';
 
 export default function AppTabs() {
   const { user } = useAuth();
+  const theme = useTheme();
   const canChat = canUseInternalChat(user?.roles);
 
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: '#355C8C',
-        tabBarInactiveTintColor: '#6D7480',
+        tabBarActiveTintColor: theme.primary,
+        tabBarInactiveTintColor: theme.textSecondary,
         tabBarStyle: {
-          backgroundColor: '#FFFDF9',
-          borderTopColor: '#DDD4C7',
+          backgroundColor: theme.backgroundElement,
+          borderTopColor: theme.border,
           borderTopWidth: 1,
         },
         tabBarLabelStyle: {

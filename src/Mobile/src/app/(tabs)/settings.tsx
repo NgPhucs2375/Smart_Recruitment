@@ -88,7 +88,7 @@ export default function SettingsScreen() {
         <View style={styles.headingBlock}>
           <ThemedText style={styles.title}>Cài đặt</ThemedText>
           <ThemedText style={[styles.subtitle, { color: theme.textSecondary }]}>
-            Quản lý tài khoản ứng viên của bạn.
+            Quản lý bảo mật và phiên đăng nhập của bạn.
           </ThemedText>
         </View>
 

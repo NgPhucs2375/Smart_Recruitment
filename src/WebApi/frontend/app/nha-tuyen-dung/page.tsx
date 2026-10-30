@@ -66,7 +66,7 @@ const steps = [
 
 export default function RecruiterLandingPage() {
   return (
-    <main className="min-h-dvh bg-ivory text-charcoal">
+    <main className="theme-public min-h-dvh bg-ivory text-charcoal">
       {/* Top nav */}
       <PublicHeader
         nav={<EmployerNavLinks large />}

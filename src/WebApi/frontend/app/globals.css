@@ -2736,8 +2736,77 @@ html {
   }
 }
 
-/* Public auth remains the original cream entry surface after logout. The
-   stored theme is intentionally untouched and applies again after login. */
+/* Public/auth entry surfaces remain light after logout. The stored theme is
+   intentionally untouched and applies again after login. */
+.dark .theme-public {
+  color-scheme: light;
+  --background: #f7f3ec;
+  --foreground: #2f3440;
+  --card: #fffdf9;
+  --card-foreground: #2f3440;
+  --popover: #fffdf9;
+  --popover-foreground: #2f3440;
+  --primary: #355c8c;
+  --primary-foreground: #ffffff;
+  --primary-hover: #2d4f79;
+  --secondary: #eaf1f8;
+  --secondary-foreground: #2d4f79;
+  --muted: #f0eee8;
+  --muted-foreground: #6d7480;
+  --accent: #eaf1f8;
+  --accent-foreground: #2d4f79;
+  --destructive: #b3362b;
+  --destructive-foreground: #ffffff;
+  --border: #ddd4c7;
+  --input: #d8d3c8;
+  --ring: #355c8c;
+  --workspace-bg: #f7f3ec;
+  --workspace-surface: #fffdf9;
+  --workspace-surface-soft: #f1eadf;
+  --workspace-sidebar: #f7f5f1;
+  --workspace-topbar: #faf6ef;
+  --workspace-primary: #355c8c;
+  --workspace-primary-hover: #2d4f79;
+  --workspace-primary-soft: #eaf1f8;
+  --workspace-on-primary: #ffffff;
+  --workspace-secondary: #7fae9b;
+  --workspace-secondary-soft: #eaf4ef;
+  --workspace-on-secondary: #2f3440;
+  --workspace-text: #2f3440;
+  --workspace-muted: #6d7480;
+  --workspace-border: #ddd4c7;
+
+  /* Public utility classes inherit these aliases, so the global dark alias
+     cannot turn bg-ivory/text-charcoal into a navy landing page. */
+  --color-ivory: #faf8f3;
+  --color-parchment: #f7f5f1;
+  --color-cream: #f1eadf;
+  --color-charcoal: #2f3440;
+  --color-linen: #ddd4c7;
+  --color-navy: #355c8c;
+  --color-marine: #35638f;
+  --color-mist: #8fb3cf;
+  --color-teal: #7fae9b;
+  --color-sand: #d7b98e;
+  --color-brand: #355c8c;
+  --color-brand-hover: #2d4f79;
+  --color-brand-soft: #eaf1f8;
+  --color-sage: #7fae9b;
+  --color-soft-sage: #eaf4ef;
+  --color-sandgold: #d7b98e;
+  --color-bronze: #8a6a3b;
+  --color-soft-gold: #f6ebdd;
+  --color-lavender: #8e80c7;
+  --color-soft-lavender: #f1ecfa;
+  --color-frost: #eaf1f7;
+  --color-blush: #f7ece3;
+  --color-sandsoft: #f7eddc;
+  --color-ai: #8e80c7;
+  --color-ai-soft: #f1ecfa;
+  --color-warning: #b7791f;
+  --color-warning-soft: #fdf2d6;
+}
+
 .dark .theme-auth {
   color-scheme: light;
   --background: #f7f3ec;

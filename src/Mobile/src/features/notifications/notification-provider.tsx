@@ -166,6 +166,9 @@ export function NotificationProvider({ children }: PropsWithChildren) {
 
       const options: signalR.IHttpConnectionOptions = {
         accessTokenFactory: async () => (await getAccessToken()) ?? '',
+        // The mobile client reaches this hub through the Next proxy, which
+        // forwards HTTP but does not forward WebSocket upgrade requests.
+        transport: signalR.HttpTransportType.LongPolling,
       };
       connection = new signalR.HubConnectionBuilder()
         .withUrl(hubUrl, options)

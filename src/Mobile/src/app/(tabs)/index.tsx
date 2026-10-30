@@ -427,6 +427,9 @@ function AiMatchSection() {
         <ThemedText style={[styles.aiMatchTitle, { color: theme.text }]}>
           Việc làm gợi ý cho bạn (AI Match cao)
         </ThemedText>
+        <Badge variant="outline" color={theme.primary}>
+          DEMO
+        </Badge>
       </View>
       <ScrollView
         horizontal
@@ -454,17 +457,17 @@ function AiMatchSection() {
                 numberOfLines={2}>
                 {job.title}
               </ThemedText>
-              <View style={[styles.aiMatchBadge, { backgroundColor: `${Palette.sage}26` }]}>
-                <Target size={11} color={Palette.navy} />
-                <ThemedText style={styles.aiMatchBadgeText}>{`${job.match}% phù hợp`}</ThemedText>
+              <View style={[styles.aiMatchBadge, { backgroundColor: `${theme.primary}1F` }]}>
+                <Target size={11} color={theme.primary} />
+                <ThemedText style={[styles.aiMatchBadgeText, { color: theme.primary }]}>{`${job.match}% phù hợp`}</ThemedText>
               </View>
             </View>
             <ThemedText style={{ color: theme.textSecondary }} type="code" numberOfLines={1}>
               {job.company}
             </ThemedText>
-            <View style={[styles.aiMatchReason, { borderColor: `${Palette.sage}66`, backgroundColor: `${Palette.sage}14` }]}>
-              <Sparkles size={11} color={Palette.navy} />
-              <ThemedText style={[styles.aiMatchReasonText, { color: Palette.navy }]} numberOfLines={2}>
+            <View style={[styles.aiMatchReason, { borderColor: `${theme.primary}66`, backgroundColor: `${theme.primary}14` }]}>
+              <Sparkles size={11} color={theme.primary} />
+              <ThemedText style={[styles.aiMatchReasonText, { color: theme.primary }]} numberOfLines={2}>
                 {job.reason}
               </ThemedText>
             </View>
