@@ -30,6 +30,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         ? savedTheme
         : "system";
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setThemeState(initialTheme);
     setResolvedTheme(initialTheme === "system" ? getSystemTheme() : initialTheme);
   }, []);

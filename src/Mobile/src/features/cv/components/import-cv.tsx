@@ -1,8 +1,7 @@
 import * as DocumentPicker from 'expo-document-picker';
 import { Alert } from 'react-native';
 
-import { cvApi } from '../api/cv-api';
-import { normalizeCvDetail } from '../api/cv-api';
+import { cvApi, normalizeCvDetail } from '../api/cv-api';
 import {
   fileExtension,
   parseJsonImportText,

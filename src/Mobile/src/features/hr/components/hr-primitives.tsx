@@ -29,7 +29,7 @@ export function HrTopBar({
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="Quay lại"
-        onPress={() => safeBack('/(hr)')}
+        onPress={() => safeBack('/dashboard')}
         hitSlop={8}
         style={({ pressed }) => [styles.topBarSide, { opacity: pressed ? 0.6 : 1 }]}
       >

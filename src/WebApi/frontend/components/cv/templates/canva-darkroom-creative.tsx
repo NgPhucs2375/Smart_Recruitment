@@ -9,7 +9,6 @@ import { safeHref } from "@/features/tao-cv/resume-data";
 const CHARCOAL = "#1c1917";
 const INK = "#292524";
 const MUTED = "#78716c";
-const HAIRLINE = "#e7e5e4";
 
 function RailTitle({ children }: { children: React.ReactNode }) {
   return (

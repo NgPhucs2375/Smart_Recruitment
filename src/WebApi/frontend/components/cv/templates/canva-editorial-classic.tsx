@@ -4,7 +4,6 @@
 // (whitespace + hairlines). Không khung hộp, không màu mè.
 import type { ResumeTemplateProps } from "./shared";
 import { DateText, EmptyPaper, SectionShell, SplitBlocks, resolveBannerTitle3 } from "./shared";
-import { safeHref } from "@/features/tao-cv/resume-data";
 
 const INK = "#292524";
 const MUTED = "#78716c";

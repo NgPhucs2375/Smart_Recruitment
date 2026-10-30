@@ -93,6 +93,7 @@ export default function ApplicationsScreen() {
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true);
     void reload(1);
   }, [reload]);

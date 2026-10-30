@@ -14,6 +14,7 @@ import type {
   JobSkill,
   LoiMoiPending,
   NhanSu,
+  PotentialCandidate,
 } from '../types';
 
 const JOBS_PATH = 'tintuyendungs';
@@ -869,3 +870,47 @@ export async function getBaoCao(ky: number): Promise<BaoCao> {
 
 type XuHuongFallback = BaoCao['XuHuong'];
 type TopTinFallback = BaoCao['TopTin'];
+
+/* ------------------------------------------------------------------ */
+/* Ứng viên tiềm năng (AI score cao)                                   */
+/* ------------------------------------------------------------------ */
+
+export async function getPotentialCandidates(limit = 5): Promise<PotentialCandidate[]> {
+  const [suggestPayload, profileNames, jobTitles] = await Promise.all([
+    apiRequest<unknown>('ketquaphuhops?_start=0&_end=50&_sort=diemphuhop&_order=desc'),
+    hrAppApi.getProfileNames(),
+    hrAppApi.getJobTitles(),
+  ]);
+
+  const rows = listRows(suggestPayload);
+  const seen = new Set<string>();
+  const result: PotentialCandidate[] = [];
+
+  for (const row of rows) {
+    const raw = asRecord(row);
+    if (!raw) continue;
+    const hoSo = asNumber(raw.hoSoUngVienId ?? raw.HoSoUngVienId);
+    const tin = asNumber(raw.tinTuyenDungId ?? raw.TinTuyenDungId);
+    const diem = asNumber(raw.diemPhuHop ?? raw.DiemPhuHop);
+    if (hoSo <= 0 || tin <= 0 || diem <= 0) continue;
+
+    // Ưu tiên điểm cao; mỗi hồ sơ chỉ hiện 1 lần (tin tốt nhất).
+    const key = String(hoSo);
+    if (seen.has(key)) continue;
+    seen.add(key);
+
+    const scorePercent = diem <= 1 ? Math.round(diem * 100) : Math.round(diem);
+    result.push({
+      id: `${hoSo}-${tin}`,
+      name: profileNames[hoSo] || `Ứng viên #${hoSo}`,
+      jobId: tin,
+      jobTitle: jobTitles[tin] || `Tin #${tin}`,
+      score: scorePercent,
+      hoSoUngVienId: hoSo,
+    });
+
+    if (result.length >= limit) break;
+  }
+
+  return result;
+}

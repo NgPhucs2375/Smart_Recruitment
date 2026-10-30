@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -29,6 +29,8 @@ import {
   type JobFilterOptions,
   type JobFilters,
 } from '@/features/jobs/types';
+import { recommendationsApi } from '@/features/recommendations/api/recommendations-api';
+import type { RecommendedJob } from '@/features/recommendations/types';
 import { useTheme } from '@/hooks/use-theme';
 import { useResponsive } from '@/hooks/use-responsive';
 
@@ -390,33 +392,33 @@ function JobsFooter({
   );
 }
 
-// Mock "AI Match" — minh họa gợi ý cá nhân hóa (không gọi API).
-const MOCK_AI_MATCH_JOBS = [
-  {
-    id: '95',
-    title: 'Kỹ sư Frontend React',
-    company: 'FPT Software · Hà Nội',
-    match: 95,
-    reason: 'Trùng khớp React/TypeScript + 3 năm kinh nghiệm',
-  },
-  {
-    id: '92',
-    title: 'Data Analyst',
-    company: 'Thế giới di động · TP.HCM',
-    match: 92,
-    reason: 'Đúng ngành học và địa điểm mong muốn',
-  },
-  {
-    id: '89',
-    title: 'Backend Developer (.NET)',
-    company: 'Sun* · Đà Nẵng',
-    match: 89,
-    reason: 'Đạt 4/5 yêu cầu kinh nghiệm backend',
-  },
-];
-
 function AiMatchSection() {
   const theme = useTheme();
+  const [items, setItems] = useState<RecommendedJob[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+    void recommendationsApi
+      .getRecommendations(6)
+      .then((next) => {
+        if (active) {
+          setItems(next.slice(0, 6));
+          setLoading(false);
+        }
+      })
+      .catch(() => {
+        if (active) {
+          setItems([]);
+          setLoading(false);
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  if (loading || items.length === 0) return null;
 
   return (
     <View style={styles.aiMatch}>
@@ -433,12 +435,12 @@ function AiMatchSection() {
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.aiMatchRow}
         keyboardShouldPersistTaps="handled">
-        {MOCK_AI_MATCH_JOBS.map((job) => (
+        {items.map((item) => (
           <Pressable
-            key={job.id}
+            key={item.job.id}
             accessibilityRole="button"
-            accessibilityLabel={`Mở việc ${job.title}, độ phù hợp ${job.match} phần trăm`}
-            onPress={() => router.push(`/jobs/${job.id}`)}
+            accessibilityLabel={`Mở việc ${item.job.title}, độ phù hợp ${item.matchPercent} phần trăm`}
+            onPress={() => router.push(`/jobs/${item.job.id}`)}
             style={({ pressed }) => [
               styles.aiMatchCard,
               {
@@ -452,20 +454,22 @@ function AiMatchSection() {
                 style={{ color: theme.text, flex: 1 }}
                 type="smallBold"
                 numberOfLines={2}>
-                {job.title}
+                {item.job.title}
               </ThemedText>
               <View style={[styles.aiMatchBadge, { backgroundColor: `${Palette.sage}26` }]}>
                 <Target size={11} color={Palette.navy} />
-                <ThemedText style={styles.aiMatchBadgeText}>{`${job.match}% phù hợp`}</ThemedText>
+                <ThemedText style={styles.aiMatchBadgeText}>{`${item.matchPercent}% phù hợp`}</ThemedText>
               </View>
             </View>
             <ThemedText style={{ color: theme.textSecondary }} type="code" numberOfLines={1}>
-              {job.company}
+              {`${item.job.company} · ${item.job.location}`}
             </ThemedText>
             <View style={[styles.aiMatchReason, { borderColor: `${Palette.sage}66`, backgroundColor: `${Palette.sage}14` }]}>
               <Sparkles size={11} color={Palette.navy} />
               <ThemedText style={[styles.aiMatchReasonText, { color: Palette.navy }]} numberOfLines={2}>
-                {job.reason}
+                {item.matchedSkills.length > 0
+                  ? `Khớp: ${item.matchedSkills.slice(0, 3).join(', ')}`
+                  : item.phanLoai}
               </ThemedText>
             </View>
           </Pressable>

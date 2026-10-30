@@ -7,6 +7,7 @@
  *
  * CauHinhJson nhúng nguyên văn (verbatim string @"...", quotes nhân đôi).
  */
+/* eslint-disable @typescript-eslint/no-require-imports */
 const fs = require("fs");
 const path = require("path");
 
@@ -25,7 +26,6 @@ function main() {
     console.error(`Thieu file bien dich: ${COMPILED}\nChay truoc: npx tsc -p tsconfig.seedexport.json`);
     process.exit(1);
   }
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { CANVA_SEEDS } = require(COMPILED);
   if (!Array.isArray(CANVA_SEEDS) || CANVA_SEEDS.length !== 7) {
     console.error(`CANVA_SEEDS bat thuong: ${CANVA_SEEDS && CANVA_SEEDS.length}`);

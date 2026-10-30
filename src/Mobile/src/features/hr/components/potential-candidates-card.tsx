@@ -1,43 +1,13 @@
 import { router } from 'expo-router';
-import { Alert, Pressable, StyleSheet, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 import { MessageCircle, Sparkles, UserRound } from 'lucide-react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { font, Palette, Radius } from '@/constants/theme';
+import { getPotentialCandidates } from '@/features/hr/api/hr-api';
+import type { PotentialCandidate } from '@/features/hr/types';
 import { useTheme } from '@/hooks/use-theme';
-
-type PotentialCandidate = {
-  id: string;
-  name: string;
-  role: string;
-  score: number;
-  note: string;
-};
-
-// Mock "Ứng viên tiềm năng — Đánh giá AI cao" (minh họa, không gọi API).
-const MOCK_CANDIDATES: PotentialCandidate[] = [
-  {
-    id: 'ai-94',
-    name: 'Nguyễn Minh Khôi',
-    role: 'Backend Developer',
-    score: 94,
-    note: 'Khớp 8/9 kỹ năng yêu cầu, 4 năm kinh nghiệm Spring Boot',
-  },
-  {
-    id: 'ai-91',
-    name: 'Trần Thảo Vy',
-    role: 'Data Analyst',
-    score: 91,
-    note: 'Đúng ngành học, thành thạo SQL/Python, 3 năm kinh nghiệm',
-  },
-  {
-    id: 'ai-88',
-    name: 'Lê Hoàng Nam',
-    role: 'Frontend Developer',
-    score: 88,
-    note: 'Portfolio React nổi bật, địa điểm thuận tiện',
-  },
-];
 
 function initialsOf(name: string): string {
   return name
@@ -55,21 +25,56 @@ function scoreColor(score: number): string {
 }
 
 /**
- * Khối "🌟 Ứng viên tiềm năng (Đánh giá AI cao)" — hiển thị ở Tổng quan HR
- * và danh sách ứng viên. Dữ liệu mock cố định.
+ * Khối "Ứng viên tiềm năng (Đánh giá AI cao)" — hiển thị ở Tổng quan HR.
+ * Dữ liệu từ ketquaphuhops (điểm AI) + hồ sơ ứng viên.
  */
 export function PotentialCandidatesCard() {
   const theme = useTheme();
+  const [items, setItems] = useState<PotentialCandidate[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    void getPotentialCandidates(5)
+      .then((next) => {
+        if (!active) return;
+        setItems(next);
+        setError(false);
+        setLoading(false);
+      })
+      .catch(() => {
+        if (!active) return;
+        setItems([]);
+        setError(true);
+        setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  if (loading) {
+    return (
+      <View style={[styles.card, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
+        <ActivityIndicator color={theme.primary} />
+        <ThemedText style={{ color: theme.textSecondary, textAlign: 'center' }} type="small">
+          Đang tải ứng viên tiềm năng…
+        </ThemedText>
+      </View>
+    );
+  }
+
+  if (items.length === 0) {
+    return null;
+  }
 
   const viewProfile = (candidate: PotentialCandidate) => {
-    Alert.alert(
-      candidate.name,
-      `Điểm đánh giá AI ${candidate.score}/100 — hồ sơ chi tiết nằm trong danh sách ứng viên của tin tuyển dụng.`,
-    );
+    router.push(`/applicants?jobId=${candidate.jobId}`);
   };
 
   const messageCandidate = () => {
-    router.push('/messages');
+    router.push('/hr/messages');
   };
 
   return (
@@ -88,8 +93,14 @@ export function PotentialCandidatesCard() {
         </View>
       </View>
 
+      {error ? (
+        <ThemedText style={{ color: theme.textSecondary, textAlign: 'center' }} type="small">
+          Không tải được gợi ý. Vuốt màn hình để thử lại.
+        </ThemedText>
+      ) : null}
+
       <View style={styles.list}>
-        {MOCK_CANDIDATES.map((candidate) => (
+        {items.map((candidate) => (
           <View
             key={candidate.id}
             style={[styles.row, { borderColor: theme.border, backgroundColor: theme.background }]}>
@@ -116,10 +127,7 @@ export function PotentialCandidatesCard() {
                 </View>
               </View>
               <ThemedText style={{ color: theme.textSecondary }} type="code" numberOfLines={1}>
-                {candidate.role}
-              </ThemedText>
-              <ThemedText style={{ color: theme.textSecondary }} type="small" numberOfLines={2}>
-                {candidate.note}
+                {candidate.jobTitle}
               </ThemedText>
 
               <View style={styles.actions}>

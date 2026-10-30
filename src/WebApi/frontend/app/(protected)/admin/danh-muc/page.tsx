@@ -87,6 +87,7 @@ function CatalogTable({ config }: { config: CatalogConfig }) {
   }, [config]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void fetchRows();
   }, [fetchRows]);
 

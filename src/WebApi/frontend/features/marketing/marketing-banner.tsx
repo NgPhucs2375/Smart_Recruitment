@@ -57,6 +57,7 @@ export function MarketingBanner() {
           aria-label={banner.title || "Video giới thiệu"}
         />
       ) : (
+        // eslint-disable-next-line @next/next/no-img-element -- mediaUrl từ admin upload, không optimize được
         <img
           className="absolute inset-0 size-full object-cover opacity-80 transition duration-500 group-hover:scale-105"
           src={banner.mediaUrl}

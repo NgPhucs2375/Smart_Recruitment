@@ -79,22 +79,18 @@ function normalizeRecommendation(value: unknown): RecommendedJob | null {
 }
 
 export const recommendationsApi = {
-  /** Trả về danh sách việc làm phù hợp; fallback data demo khi lỗi mạng (mirror jobs/profile api). */
+  /** Trả về danh sách việc làm phù hợp từ backend. */
   async getRecommendations(topN = TOP_N): Promise<RecommendedJob[]> {
     if (USE_MOCK_JOBS) return getDemoRecommendations();
 
-    try {
-      const payload = await apiRequest<unknown>(
-        `${RECOMMENDATIONS_PATH}?topN=${encodeURIComponent(String(topN))}`,
-      );
-      const data = unwrapData(payload);
-      const rows = Array.isArray(data) ? data : [];
-      return rows
-        .map(normalizeRecommendation)
-        .filter((item): item is RecommendedJob => item !== null)
-        .sort((left, right) => right.matchPercent - left.matchPercent);
-    } catch {
-      return getDemoRecommendations();
-    }
+    const payload = await apiRequest<unknown>(
+      `${RECOMMENDATIONS_PATH}?topN=${encodeURIComponent(String(topN))}`,
+    );
+    const data = unwrapData(payload);
+    const rows = Array.isArray(data) ? data : [];
+    return rows
+      .map(normalizeRecommendation)
+      .filter((item): item is RecommendedJob => item !== null)
+      .sort((left, right) => right.matchPercent - left.matchPercent);
   },
 };

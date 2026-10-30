@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ElementRef } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -117,7 +117,7 @@ export default function BuilderScreen() {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [activeSection, setActiveSection] = useState('contact');
   const mountedRef = useRef(true);
-  const scrollRef = useRef<ScrollView>(null);
+  const scrollRef = useRef<ElementRef<typeof ScrollView>>(null);
   const sectionYs = useRef<Record<string, number>>({});
   const stackY = useRef(0);
 

@@ -5,8 +5,8 @@ import { useColorScheme } from 'react-native';
 import { Colors } from '@/constants/theme';
 
 export default function HRLayout() {
-  const scheme = useColorScheme();
-  const colors = Colors[scheme === 'unspecified' ? 'light' : scheme];
+  const scheme = useColorScheme() ?? 'light';
+  const colors = Colors[scheme === 'dark' ? 'dark' : 'light'];
 
   return (
     <Tabs

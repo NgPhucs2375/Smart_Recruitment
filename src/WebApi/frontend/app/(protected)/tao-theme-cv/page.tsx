@@ -227,18 +227,13 @@ function StudioWorkbench() {
 
   const patch = (p: Partial<CvThemeConfig>) =>
     setTheme((t) => ({ ...t, ...p }));
-  const patchColors = (p: Partial<CvThemeConfig["colors"]>) =>
-    setTheme((t) => ({ ...t, colors: { ...t.colors, ...p } }));
-  const patchTypography = (p: Partial<CvThemeConfig["typography"]>) =>
-    setTheme((t) => ({ ...t, typography: { ...t.typography, ...p } }));
-  const patchSpacing = (p: Partial<CvThemeConfig["spacing"]>) =>
-    setTheme((t) => ({ ...t, spacing: { ...t.spacing, ...p } }));
 
   // Chế độ sửa (?slug= / ?id=): nạp config từ DB (source of truth bảng admin).
   useEffect(() => {
     if (!editKey) {
       const draft = newThemeDraft();
       initialRef.current = draft;
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setTheme(draft);
       return;
     }

@@ -228,7 +228,7 @@ function ChatThreadView({
                 </ThemedText>
               )}
             </View>
-          ) : null
+          ) : undefined
         }
         contentContainerStyle={[
           styles.listContent,

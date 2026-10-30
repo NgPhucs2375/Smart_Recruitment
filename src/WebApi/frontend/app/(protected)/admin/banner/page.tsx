@@ -45,6 +45,7 @@ function BannerMedia({ banner }: { banner: Banner }) {
   if (banner.mediaType.startsWith("video/")) {
     return <video src={banner.mediaUrl} controls className="aspect-[16/6] w-full rounded-xl bg-muted object-cover" />;
   }
+  // eslint-disable-next-line @next/next/no-img-element -- mediaUrl từ admin upload, không optimize được
   return <img src={banner.mediaUrl} alt={banner.title} className="aspect-[16/6] w-full rounded-xl bg-muted object-cover" />;
 }
 

@@ -81,6 +81,7 @@ export function UserThemeStudioDialog({
   useEffect(() => {
     let alive = true;
     const local = findPublishedTheme(getPublishedThemes(), templateId);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setPublishedBase(local);
     fetchDbThemes()
       .then((db) => {
