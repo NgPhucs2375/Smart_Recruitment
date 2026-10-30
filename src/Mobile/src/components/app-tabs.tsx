@@ -1,7 +1,7 @@
 import { Bell, Bookmark, MessageCircle, Search, User } from 'lucide-react-native';
 import { Tabs } from 'expo-router';
 
-import { font } from '@/constants/theme';
+import { font, Palette } from '@/constants/theme';
 import { useAuth } from '@/features/auth';
 import { canUseInternalChat } from '@/features/chat/roles';
 import { useTheme } from '@/hooks/use-theme';
@@ -32,14 +32,14 @@ export default function AppTabs() {
         name="index"
         options={{
           title: 'Việc làm',
-          tabBarIcon: ({ color, size }) => <Search size={size} color={color} />,
+          tabBarIcon: ({ color, focused, size }) => <Search size={size} color={focused ? Palette.marine : color} />,
         }}
       />
       <Tabs.Screen
         name="saved"
         options={{
           title: 'Đã lưu',
-          tabBarIcon: ({ color, size }) => <Bookmark size={size} color={color} />,
+          tabBarIcon: ({ color, focused, size }) => <Bookmark size={size} color={focused ? Palette.sand : color} />,
         }}
       />
       <Tabs.Screen
@@ -48,7 +48,7 @@ export default function AppTabs() {
           canChat
             ? {
                 title: 'Tin nhắn',
-                tabBarIcon: ({ color, size }) => <MessageCircle size={size} color={color} />,
+                tabBarIcon: ({ color, focused, size }) => <MessageCircle size={size} color={focused ? Palette.sage : color} />,
               }
             : { href: null }
         }
@@ -57,18 +57,17 @@ export default function AppTabs() {
         name="notifications"
         options={{
           title: 'Thông báo',
-          tabBarIcon: ({ color, size }) => <Bell size={size} color={color} />,
+          tabBarIcon: ({ color, focused, size }) => <Bell size={size} color={focused ? Palette.bronze : color} />,
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
           title: 'Hồ sơ',
-          tabBarIcon: ({ color, size }) => <User size={size} color={color} />,
+          tabBarIcon: ({ color, focused, size }) => <User size={size} color={focused ? Palette.mist : color} />,
         }}
       />
       <Tabs.Screen name="applications" options={{ href: null }} />
-      <Tabs.Screen name="settings" options={{ href: null }} />
       <Tabs.Screen name="profile-edit" options={{ href: null }} />
       <Tabs.Screen name="phu-hop" options={{ href: null }} />
     </Tabs>

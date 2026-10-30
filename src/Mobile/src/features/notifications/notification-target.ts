@@ -39,6 +39,8 @@ export function notificationTarget(
     return null;
   }
 
-  // HR: nối các route /hr/... khi workspace Nhân sự được triển khai.
-  return null;
+  // HR: điều hướng về các tab trong workspace (hr).
+  if (notification.referenceType === 'DonUngTuyen') return '/applicants';
+  if (notification.referenceType === 'TinTuyenDung') return '/jobs';
+  return '/dashboard';
 }

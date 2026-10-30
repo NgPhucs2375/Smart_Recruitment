@@ -12,9 +12,6 @@ import {
   ArrowRight,
   Building2,
   ChevronRight,
-  Eye,
-  EyeOff,
-  Lock,
   LogOut,
   Mail,
   Pencil,
@@ -31,7 +28,6 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { font, Radius } from '@/constants/theme';
 import { useAuth } from '@/features/auth';
-import { authApi } from '@/features/auth/api/auth-api';
 import { hrCompanyApi, hrProfileApi, type RecruiterProfile } from '@/features/hr/api/hr-api';
 import type { CompanyMine } from '@/features/hr/types';
 import { useTheme } from '@/hooks/use-theme';
@@ -65,13 +61,6 @@ export default function HRAccountScreen() {
   const [notice, setNotice] = useState<Notice>(null);
   const [form, setForm] = useState({ hoTen: '', sdt: '', chucVu: '' });
 
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [showPasswords, setShowPasswords] = useState(false);
-  const [changingPassword, setChangingPassword] = useState(false);
-  const [passwordNotice, setPasswordNotice] = useState<Notice>(null);
-  const [passwordOpen, setPasswordOpen] = useState(false);
 
   const load = useCallback(() => {
     return Promise.allSettled([hrProfileApi.getMine(), hrCompanyApi.getMine()]).then(
@@ -154,40 +143,6 @@ export default function HRAccountScreen() {
         setNotice({ type: 'error', message: reasonMessage(reason, 'Không thể lưu hồ sơ.') });
       } finally {
         setSaving(false);
-      }
-    })();
-  };
-
-  const handleChangePassword = () => {
-    if (!currentPassword) {
-      setPasswordNotice({ type: 'error', message: 'Vui lòng nhập mật khẩu hiện tại.' });
-      return;
-    }
-    if (newPassword.length < 6) {
-      setPasswordNotice({ type: 'error', message: 'Mật khẩu mới phải tối thiểu 6 ký tự.' });
-      return;
-    }
-    if (newPassword !== confirmPassword) {
-      setPasswordNotice({ type: 'error', message: 'Mật khẩu mới không khớp.' });
-      return;
-    }
-
-    void (async () => {
-      setChangingPassword(true);
-      setPasswordNotice(null);
-      try {
-        const result = await authApi.changePassword(currentPassword, newPassword);
-        setCurrentPassword('');
-        setNewPassword('');
-        setConfirmPassword('');
-        setPasswordNotice({ type: 'success', message: result.message || 'Đổi mật khẩu thành công.' });
-      } catch (reason) {
-        setPasswordNotice({
-          type: 'error',
-          message: reasonMessage(reason, 'Không thể đổi mật khẩu.'),
-        });
-      } finally {
-        setChangingPassword(false);
       }
     })();
   };
@@ -513,120 +468,6 @@ export default function HRAccountScreen() {
           <ArrowRight size={16} color={theme.textSecondary} />
         </Pressable>
 
-        <ThemedText style={[styles.sectionTitle, { color: theme.textSecondary }]}>
-          BẢO MẬT
-        </ThemedText>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityState={{ expanded: passwordOpen }}
-          onPress={() => setPasswordOpen((value) => !value)}
-          style={({ pressed }) => [
-            styles.companyRow,
-            {
-              borderColor: theme.border,
-              backgroundColor: theme.backgroundElement,
-              opacity: pressed ? 0.7 : 1,
-            },
-          ]}>
-          <View style={[styles.companyIcon, { backgroundColor: `${theme.primary}1A` }]}>
-            <Lock size={18} color={theme.primary} />
-          </View>
-          <View style={styles.profileCopy}>
-            <ThemedText style={styles.companyName}>Đổi mật khẩu</ThemedText>
-            <ThemedText style={[styles.profileRole, { color: theme.textSecondary }]}>
-              Cập nhật mật khẩu bảo vệ tài khoản
-            </ThemedText>
-          </View>
-          <ChevronRight
-            size={16}
-            color={theme.textSecondary}
-            style={passwordOpen ? styles.chevronOpen : undefined}
-          />
-        </Pressable>
-
-        {passwordOpen ? (
-          <Card style={styles.infoCard}>
-            <View style={styles.passwordHeader}>
-              <ThemedText style={[styles.profileRole, { color: theme.textSecondary }]}>
-                Xác nhận mật khẩu hiện tại trước khi tạo mật khẩu mới.
-              </ThemedText>
-            </View>
-
-            {passwordNotice ? (
-              <View
-                style={[
-                  styles.notice,
-                  passwordNotice.type === 'error'
-                    ? { borderColor: `${theme.destructive}4D`, backgroundColor: `${theme.destructive}0D` }
-                    : { borderColor: `${theme.primary}4D`, backgroundColor: `${theme.primary}0D` },
-                ]}>
-                <ThemedText
-                  style={[
-                    styles.noticeText,
-                    { color: passwordNotice.type === 'error' ? theme.destructive : theme.primary },
-                  ]}>
-                  {passwordNotice.message}
-                </ThemedText>
-              </View>
-            ) : null}
-
-            <PasswordInput
-              editable={!changingPassword}
-              onChangeText={setCurrentPassword}
-              placeholder="Mật khẩu hiện tại"
-              secureTextEntry={!showPasswords}
-              value={currentPassword}
-            />
-            <PasswordInput
-              editable={!changingPassword}
-              onChangeText={setNewPassword}
-              placeholder="Mật khẩu mới (tối thiểu 6 ký tự)"
-              secureTextEntry={!showPasswords}
-              value={newPassword}
-            />
-            <PasswordInput
-              editable={!changingPassword}
-              onChangeText={setConfirmPassword}
-              onSubmitEditing={handleChangePassword}
-              placeholder="Xác nhận mật khẩu mới"
-              secureTextEntry={!showPasswords}
-              value={confirmPassword}
-            />
-
-            <View style={styles.passwordActions}>
-              <Pressable
-                accessibilityRole="button"
-                disabled={changingPassword}
-                hitSlop={8}
-                onPress={() => setShowPasswords((value) => !value)}
-                style={styles.showToggle}>
-                {showPasswords ? (
-                  <EyeOff size={14} color={theme.textSecondary} />
-                ) : (
-                  <Eye size={14} color={theme.textSecondary} />
-                )}
-                <ThemedText style={[styles.showToggleText, { color: theme.textSecondary }]}>
-                  {showPasswords ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
-                </ThemedText>
-              </Pressable>
-              <Button
-                disabled={changingPassword}
-                icon={
-                  changingPassword ? (
-                    <ActivityIndicator size="small" color={theme.primaryForeground} />
-                  ) : (
-                    <Lock size={14} color={theme.primaryForeground} />
-                  )
-                }
-                onPress={handleChangePassword}
-                size="sm"
-                style={styles.passwordButton}>
-                {changingPassword ? 'Đang cập nhật...' : 'Cập nhật mật khẩu'}
-              </Button>
-            </View>
-          </Card>
-        ) : null}
-
         <Button
           variant="outline"
           onPress={() => void signOut()}
@@ -684,41 +525,6 @@ function TextInputBox({
         onChangeText={onChangeText}
         placeholder={placeholder}
         placeholderTextColor={theme.textSecondary}
-        selectionColor={theme.primary}
-        style={[styles.input, { color: theme.text }]}
-        value={value}
-      />
-    </View>
-  );
-}
-
-function PasswordInput({
-  value,
-  onChangeText,
-  placeholder,
-  secureTextEntry,
-  editable,
-  onSubmitEditing,
-}: {
-  value: string;
-  onChangeText: (text: string) => void;
-  placeholder: string;
-  secureTextEntry: boolean;
-  editable: boolean;
-  onSubmitEditing?: () => void;
-}) {
-  const theme = useTheme();
-  return (
-    <View style={[styles.inputWrap, { backgroundColor: theme.backgroundElement, borderColor: theme.input }]}>
-      <Lock size={16} color="#9ca3af" style={styles.inputIcon} />
-      <TextInput
-        autoCapitalize="none"
-        editable={editable}
-        onChangeText={onChangeText}
-        onSubmitEditing={onSubmitEditing}
-        placeholder={placeholder}
-        placeholderTextColor={theme.textSecondary}
-        secureTextEntry={secureTextEntry}
         selectionColor={theme.primary}
         style={[styles.input, { color: theme.text }]}
         value={value}
@@ -807,18 +613,6 @@ const styles = StyleSheet.create({
   inputReadonly: { flex: 1, fontFamily: font('regular'), fontSize: 14, paddingVertical: 10 },
   formActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 10 },
   formButton: { borderRadius: Radius.xl },
-  passwordHeader: { gap: 2 },
-  chevronOpen: { transform: [{ rotate: '90deg' }] },
-  passwordActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  showToggle: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  showToggleText: { fontFamily: font('medium'), fontSize: 12 },
-  passwordButton: { borderRadius: Radius.lg },
   logoutButton: { marginTop: 8, borderRadius: Radius.xl, alignSelf: 'flex-start' },
   logoutText: { fontFamily: font('semibold'), fontSize: 14 },
 });

@@ -230,7 +230,7 @@ export function CompanyScreen() {
                 icon={saving ? undefined : <Save size={15} color={theme.primaryForeground} />}>
                 {saving ? 'Đang lưu...' : 'Lưu thay đổi'}
               </Button>
-              <Button variant="outline" pill onPress={() => router.push('/(hr)')}>
+              <Button variant="outline" pill onPress={() => router.push('/dashboard')}>
                 Về tổng quan
               </Button>
             </View>

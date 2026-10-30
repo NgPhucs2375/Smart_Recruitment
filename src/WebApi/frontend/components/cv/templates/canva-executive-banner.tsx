@@ -2,7 +2,6 @@
 
 // Executive Banner — khối banner ngang xanh sẫm tràn viền trên đỉnh,
 // bên dưới chia 2 cột trắng thoáng đãng. Avatar tròn viền trắng.
-import { Mail, Phone, MapPin, Globe } from "lucide-react";
 import type { ResumeTemplateProps } from "./shared";
 import { DateText, EmptyPaper, SectionShell, SplitBlocks } from "./shared";
 import { safeHref } from "@/features/tao-cv/resume-data";
@@ -12,25 +11,6 @@ const BLUE = "#1d4ed8";
 const INK = "#0f172a";
 const MUTED = "#475569";
 const HAIRLINE = "#cbd5e1";
-
-function ContactIcon({ label, light }: { label: string; light?: boolean }) {
-  const l = label.toLowerCase();
-  const Icon =
-    l.includes("mail") || l.includes("email")
-      ? Mail
-      : l.includes("điện") || l.includes("phone") || l.includes("sđt")
-        ? Phone
-        : l.includes("địa chỉ") || l.includes("address")
-          ? MapPin
-          : Globe;
-  return (
-    <Icon
-      className="size-3.5 shrink-0"
-      style={{ color: light ? "#fff" : BLUE }}
-      strokeWidth={2}
-    />
-  );
-}
 
 function MainTitle({ children }: { children: React.ReactNode }) {
   return (

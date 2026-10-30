@@ -92,6 +92,7 @@ export default function EmployerRegisterPage() {
     },
   });
 
+  // eslint-disable-next-line react-hooks/incompatible-library -- RHF watch chuẩn React Hook Form
   const linhVuc = watch("linhVucHoatDong") ?? "";
   const quyMo = watch("quyMoNhanSu") ?? "";
 

@@ -217,7 +217,7 @@ export function JobFormScreen() {
         setNotice(message || (submit ? 'Đã gửi duyệt.' : 'Đã lưu nháp.'));
         setSaving(false);
         // Trở về danh sách sau khi lưu (danh sách tự tải lại khi focus).
-        safeBack('/(hr)');
+        safeBack('/dashboard');
       } catch (reason) {
         if (!mountedRef.current) return;
         setError(reason instanceof Error ? reason.message : 'Không thể lưu');

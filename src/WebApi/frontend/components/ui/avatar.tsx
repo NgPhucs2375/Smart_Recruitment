@@ -11,6 +11,7 @@ export function AvatarImage({ className, alt = "", src, onError, ...props }: Rea
   // AvatarFallback initials bên dưới hiện ra, thay vì ô trắng che lấp.
   if (!src || failed) return null;
   return (
+    // eslint-disable-next-line @next/next/no-img-element -- cần onError fallback, dynamic src từ API
     <img
       alt={alt}
       src={src}

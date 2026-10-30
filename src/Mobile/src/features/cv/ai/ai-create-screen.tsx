@@ -92,6 +92,7 @@ export function AiCreateScreen() {
 
   useEffect(() => {
     if (step !== 'parsing') return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setElapsed(0);
     const startedAt = Date.now();
     const timer = setInterval(() => {

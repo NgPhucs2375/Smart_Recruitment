@@ -106,6 +106,7 @@ export function usePasswordLogin(portal?: PortalKind, next?: string | null) {
   // Đếm ngược cooldown khi email hiện tại đang bị chờ (đổi email reset).
   const [cooldownLeft, setCooldownLeft] = useState(0);
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setCooldownLeft(remainingCooldown(email ?? ""));
     if (!email) return;
     const timer = window.setInterval(() => {

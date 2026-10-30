@@ -644,7 +644,7 @@ export default function TinTuyenDungPage() {
                         {q && !exact && (
                           <li>
                             <button type="button" onMouseDown={e => e.preventDefault()} onClick={() => void createSkill(skillQuery.trim())} className="w-full px-3 py-2 text-left text-sm font-medium text-primary hover:bg-muted">
-                              ＋ Thêm mới "{skillQuery.trim()}"
+                              ＋ Thêm mới &quot;{skillQuery.trim()}&quot;
                             </button>
                           </li>
                         )}

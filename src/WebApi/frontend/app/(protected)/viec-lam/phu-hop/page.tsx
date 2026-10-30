@@ -44,48 +44,6 @@ const ok = (r: ApiResponse<unknown>): boolean => r.Succeeded ?? r.succeeded ?? t
 const msg = (r: ApiResponse<unknown>): string => r.Message ?? r.message ?? "";
 const extractData = <T,>(r: ApiResponse<T>): T | undefined => r.Data ?? r.data;
 
-const MOCK_RECOMMENDATIONS: Recommendation[] = [
-  {
-    tinTuyenDungId: 101,
-    tieuDe: "Data Analyst",
-    tenDoanhNghiep: "Cty TNHH Công nghệ Smart Recruitment",
-    diaDiemLamViec: "TP. Hồ Chí Minh",
-    luongToiThieu: 12000000,
-    luongToiDa: 20000000,
-    diemPhuHop: 0.95,
-    phanLoai: "Cao",
-    kyNangThoa: ["Python", "SQL", "Mid", "Onsite"],
-    kyNangThieu: [],
-    ngayHetHan: "2026-11-22",
-  },
-  {
-    tinTuyenDungId: 102,
-    tieuDe: "Business Intelligence Analyst",
-    tenDoanhNghiep: "TNHH Seed",
-    diaDiemLamViec: "Hybrid",
-    luongToiThieu: 15000000,
-    luongToiDa: 25000000,
-    diemPhuHop: 0.87,
-    phanLoai: "Cao",
-    kyNangThoa: ["Power BI", "SQL", "Hybrid"],
-    kyNangThieu: ["Looker"],
-    ngayHetHan: "2026-12-05",
-  },
-  {
-    tinTuyenDungId: 103,
-    tieuDe: "Data Engineer",
-    tenDoanhNghiep: "Công nghệ AI",
-    diaDiemLamViec: "TP.HCM",
-    luongToiThieu: 18000000,
-    luongToiDa: 30000000,
-    diemPhuHop: 0.76,
-    phanLoai: "Cao",
-    kyNangThoa: ["Python", "Spark", "ETL"],
-    kyNangThieu: ["Airflow"],
-    ngayHetHan: "2026-12-15",
-  },
-];
-
 function fmtDate(d: string) {
   if (!d) return "—";
   try { return new Date(d).toLocaleDateString("vi-VN"); } catch { return d; }
@@ -147,11 +105,14 @@ function CandidatePhuHop() {
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { void load(); }, [load]);
 
-  const visibleItems = [...MOCK_RECOMMENDATIONS, ...items]
+  const visibleItems = items
     .filter((item) => category === "all" || (category === "high" ? item.diemPhuHop >= 0.7 : category === "medium" ? item.diemPhuHop >= 0.4 : item.diemPhuHop < 0.4))
     .sort((a, b) => sort === "score" ? b.diemPhuHop - a.diemPhuHop : a.tieuDe.localeCompare(b.tieuDe, "vi"));
 
   const money = (value: number) => value > 0 ? `${Math.round(value).toLocaleString("vi-VN")} đ` : "Thỏa thuận";
+  const total = items.length;
+  const highCount = items.filter((i) => i.diemPhuHop >= 0.7).length;
+  const midPlusCount = items.filter((i) => i.diemPhuHop >= 0.5).length;
 
   return (
     <AdminPageLayout>
@@ -168,9 +129,9 @@ function CandidatePhuHop() {
             </Link>
           </div>
           <div className="mt-4 grid gap-2 sm:grid-cols-3">
-            <div className="rounded-xl bg-primary/5 px-3 py-2"><p className="text-xs text-muted-foreground">Tổng gợi ý</p><p className="text-xl font-semibold text-foreground">12</p></div>
-            <div className="rounded-xl bg-emerald-500/10 px-3 py-2"><p className="text-xs text-muted-foreground">Phù hợp cao</p><p className="text-xl font-semibold text-emerald-700">4</p></div>
-            <div className="rounded-xl bg-amber-500/10 px-3 py-2"><p className="text-xs text-muted-foreground">Từ 50% trở lên</p><p className="text-xl font-semibold text-amber-700">8</p></div>
+            <div className="rounded-xl bg-primary/5 px-3 py-2"><p className="text-xs text-muted-foreground">Tổng gợi ý</p><p className="text-xl font-semibold text-foreground">{total}</p></div>
+            <div className="rounded-xl bg-emerald-500/10 px-3 py-2"><p className="text-xs text-muted-foreground">Phù hợp cao</p><p className="text-xl font-semibold text-emerald-700">{highCount}</p></div>
+            <div className="rounded-xl bg-amber-500/10 px-3 py-2"><p className="text-xs text-muted-foreground">Từ 50% trở lên</p><p className="text-xl font-semibold text-amber-700">{midPlusCount}</p></div>
           </div>
           <div className="flex flex-wrap gap-2">
             <Select value={category} onValueChange={(value) => setCategory(value as typeof category)}>
@@ -208,7 +169,7 @@ function CandidatePhuHop() {
                       {item.tenDoanhNghiep || "Doanh nghiệp chưa cập nhật"} · {item.diaDiemLamViec || "Linh hoạt"} · {money(item.luongToiThieu)} - {money(item.luongToiDa)}
                     </div>
                     <div className="mt-2 flex flex-wrap gap-1.5">
-                      {item.kyNangThoa.slice(0, 4).map((skill) => <span key={skill} className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs text-emerald-700">{skill}</span>)}
+                      {item.kyNangThoa.slice(0, 4).map((skill: string) => <span key={skill} className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs text-emerald-700">{skill}</span>)}
                       {item.kyNangThieu.length > 0 && <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-xs text-amber-700">Thiếu: {item.kyNangThieu.slice(0, 3).join(", ")}</span>}
                     </div>
                   </div>

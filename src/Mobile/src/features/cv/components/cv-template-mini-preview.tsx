@@ -1,7 +1,5 @@
 import { StyleSheet, View, type ViewStyle } from 'react-native';
 
-import { Radius } from '@/constants/theme';
-
 /** 5 mẫu hiển thị trong kho — khớp allowlist của gallery. */
 export const GALLERY_TEMPLATE_IDS = [
   'minimal-ats',

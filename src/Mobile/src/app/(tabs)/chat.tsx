@@ -230,7 +230,7 @@ export default function ChatListScreen() {
   return (
     <View style={[styles.root, { backgroundColor: theme.background }]}>
       {isHrMessages ? (
-        <StackHeader title="Tin nhắn" onBack={() => safeBack('/(hr)')} />
+        <StackHeader title="Tin nhắn" onBack={() => safeBack('/dashboard')} />
       ) : (
         <AppHeader />
       )}

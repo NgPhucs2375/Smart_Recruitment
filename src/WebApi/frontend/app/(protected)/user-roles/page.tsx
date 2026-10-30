@@ -18,7 +18,6 @@ type ApiResponse<T> = { Succeeded?: boolean; succeeded?: boolean; Message?: stri
 const VAI_TRO: Record<number, string> = { 1: "Quản trị viên", 2: "Đại diện doanh nghiệp", 3: "Nhân sự", 4: "Ứng viên" };
 
 const API_ND = "/api/dotnet/nguoidungs";
-const API_USERS = "/api/dotnet/users";
 const ok = (r: ApiResponse<unknown>) => r.Succeeded ?? r.succeeded ?? true;
 const msg = (r: ApiResponse<unknown>) => r.Message ?? r.message ?? "";
 const extractData = <T,>(r: ApiResponse<T>): T | undefined => r.Data ?? r.data;

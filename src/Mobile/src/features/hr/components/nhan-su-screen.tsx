@@ -173,7 +173,7 @@ export function NhanSuScreen() {
           title="Chỉ Người đại diện quản lý nhân sự"
           description="Tài khoản Nhân sự chỉ xem danh sách thành viên; mời/xóa thuộc vai trò Người đại diện."
           action={
-            <Button variant="outline" pill onPress={() => router.push('/(hr)')} style={styles.emptyAction}>
+            <Button variant="outline" pill onPress={() => router.push('/dashboard')} style={styles.emptyAction}>
               Về tổng quan
             </Button>
           }

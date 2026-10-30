@@ -5,13 +5,12 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import {
   ArrowLeft,
-  BarChart3,
+  BookOpen,
+  Briefcase,
   CircleAlert,
   Compass,
   FileText,
-  GraduationCap,
   Sparkles,
-  UserCheck,
   Wrench,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -44,28 +43,6 @@ const ok = (r: ApiResponse<unknown>): boolean => r.Succeeded ?? r.succeeded ?? t
 const msg = (r: ApiResponse<unknown>): string => r.Message ?? r.message ?? "";
 const extractData = <T,>(r: ApiResponse<T>): T | undefined => r.Data ?? r.data;
 
-const MOCK_PROFILE = {
-  hoTen: "Vũ Thiên Trường",
-  chucDanh: "Software Engineer / Backend Developer",
-  bio: "Kỹ sư phần mềm định hướng phát triển Backend với nền tảng vững chắc về Java Spring Boot, C# .NET và kiến trúc hệ thống phân tán. Có kinh nghiệm xây dựng các dịch vụ RESTful API, tối ưu hóa cơ sở dữ liệu và tích hợp giải pháp AI Agent.",
-  hocVan: {
-    truong: "Trường Đại học Công Thương TP.HCM (HUIT)",
-    chuyenNganh: "Công nghệ phần mềm / Công nghệ thông tin",
-    nienKhoa: "2022 – 2026",
-    trangThai: "Sinh viên năm 4 (Tốt nghiệp loại Khá - Giỏi)",
-  },
-  kyNang: [
-    { nhom: "Backend & Ngôn ngữ", items: ["Java", "Spring Boot", "C#", ".NET WebApi", "Python"] },
-    { nhom: "Hệ thống & Database", items: ["Docker", "SQL Server", "PostgreSQL", "Redis"] },
-    { nhom: "Frontend & Mobile", items: ["Next.js", "React Native", "Tailwind CSS"] },
-    { nhom: "Khác", items: ["RESTful API", "Git", "AI Integration"] },
-  ],
-  ats: "92/100",
-  doChiTiet: "Rất tốt",
-  khuyenNghi: "Hồ sơ có cấu trúc công nghệ rõ ràng, từ khóa kỹ thuật khớp tốt với các vị trí Backend / Software Engineer.",
-  viecPhuHop: 12,
-};
-
 function CardShell({ icon, title, children }: { icon: React.ReactNode; title: string; children: React.ReactNode }) {
   return (
     <section className="rounded-2xl border border-border bg-card p-5 shadow-sm">
@@ -74,6 +51,23 @@ function CardShell({ icon, title, children }: { icon: React.ReactNode; title: st
       </h2>
       <div className="mt-3">{children}</div>
     </section>
+  );
+}
+
+function Paragraph({ text }: { text: string }) {
+  if (!text.trim()) {
+    return (
+      <p className="text-sm leading-6 text-muted-foreground">
+        Chưa trích xuất nội dung này — hãy lưu lại CV để làm mới kết quả.
+      </p>
+    );
+  }
+  return (
+    <div className="space-y-2 text-sm leading-6 text-muted-foreground">
+      {text.split(/\n+/).filter((line) => line.trim()).map((line) => (
+        <p key={line}>{line}</p>
+      ))}
+    </div>
   );
 }
 
@@ -136,7 +130,7 @@ export default function CvPhanTichPage() {
     result != null && (result.phanTich === "HoanThanh" || result.phanTich === "1");
 
   return (
-    <main className="max-w-5xl mx-auto px-4 sm:px-6 py-8 space-y-6">
+    <main className="mx-auto max-w-5xl space-y-6 px-4 py-8 sm:px-6">
       <Link
         href="/ho-so"
         className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
@@ -158,8 +152,14 @@ export default function CvPhanTichPage() {
               kỹ năng, kinh nghiệm và học vấn trước khi ứng tuyển.
             </p>
           </div>
-          <span className="shrink-0 rounded-full bg-teal-50 px-3 py-1 text-xs font-medium text-teal-700">
-            ✨ Phân tích hoàn tất • AI Model v2
+          <span
+            className={
+              hoanThanh
+                ? "shrink-0 rounded-full bg-teal-50 px-3 py-1 text-xs font-medium text-teal-700"
+                : "shrink-0 rounded-full bg-amber-50 px-3 py-1 text-xs font-medium text-amber-700"
+            }
+          >
+            {hoanThanh ? "✨ Phân tích hoàn tất • AI Model v2" : "⏳ Đang chờ phân tích"}
           </span>
         </div>
       </div>
@@ -194,92 +194,42 @@ export default function CvPhanTichPage() {
             </p>
           )}
 
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-            <div className="md:col-span-7 space-y-6">
-              <CardShell icon={<UserCheck className="size-4 text-primary" />} title="Tóm tắt hồ sơ">
-                <p className="text-lg font-bold text-foreground">{MOCK_PROFILE.hoTen}</p>
-                <p className="mt-0.5 text-sm text-muted-foreground">{MOCK_PROFILE.chucDanh}</p>
-                <p className="mt-3 text-sm leading-6 text-muted-foreground">{MOCK_PROFILE.bio}</p>
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+            <div className="space-y-6">
+              <CardShell icon={<FileText className="size-4 text-primary" />} title="Tóm tắt hồ sơ">
+                <Paragraph text={result.noiDungTrichXuat} />
               </CardShell>
 
-              <CardShell icon={<GraduationCap className="size-4 text-primary" />} title="Học vấn & trình độ">
-                <div className="space-y-2 text-sm">
-                  <div className="flex flex-wrap justify-between gap-2">
-                    <span className="text-muted-foreground">Cơ sở đào tạo</span>
-                    <span className="font-medium text-foreground">{MOCK_PROFILE.hocVan.truong}</span>
-                  </div>
-                  <div className="flex flex-wrap justify-between gap-2">
-                    <span className="text-muted-foreground">Chuyên ngành</span>
-                    <span className="font-medium text-foreground">{MOCK_PROFILE.hocVan.chuyenNganh}</span>
-                  </div>
-                  <div className="flex flex-wrap justify-between gap-2">
-                    <span className="text-muted-foreground">Niên khóa</span>
-                    <span className="font-medium text-foreground">{MOCK_PROFILE.hocVan.nienKhoa}</span>
-                  </div>
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <span className="text-muted-foreground">Trạng thái</span>
-                    <span className="rounded-full bg-teal-50 px-2.5 py-0.5 text-xs font-medium text-teal-700">
-                      {MOCK_PROFILE.hocVan.trangThai}
-                    </span>
-                  </div>
-                </div>
+              <CardShell icon={<BookOpen className="size-4 text-primary" />} title="Học vấn trích xuất">
+                <Paragraph text={result.hocVanTrichXuat} />
               </CardShell>
             </div>
 
-            <div className="md:col-span-5 space-y-6">
+            <div className="space-y-6">
               <CardShell icon={<Wrench className="size-4 text-primary" />} title="Kỹ năng trích xuất">
-                <div className="space-y-3">
-                  {MOCK_PROFILE.kyNang.map((nhom) => (
-                    <div key={nhom.nhom}>
-                      <p className="mb-1.5 text-xs font-semibold text-muted-foreground">{nhom.nhom}</p>
-                      {nhom.items.map((skill) => (
-                        <span
-                          key={skill}
-                          className="mr-1.5 mb-1.5 inline-block rounded-md border border-border bg-muted px-2.5 py-1 text-xs text-foreground transition-colors hover:bg-accent"
-                        >
-                          {skill}
-                        </span>
-                      ))}
-                    </div>
-                  ))}
-                </div>
+                <Paragraph text={result.kyNangTrichXuat} />
               </CardShell>
 
-              <CardShell icon={<BarChart3 className="size-4 text-primary" />} title="Chỉ số đánh giá CV">
-                <div className="space-y-3 text-sm">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-muted-foreground">Điểm chuẩn ATS</span>
-                    <span className="text-2xl font-extrabold tabular-nums text-primary">{MOCK_PROFILE.ats}</span>
-                  </div>
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-muted-foreground">Độ chi tiết thông tin</span>
-                    <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-semibold text-emerald-700">
-                      {MOCK_PROFILE.doChiTiet}
-                    </span>
-                  </div>
-                  <div className="rounded-xl bg-muted/50 p-3">
-                    <p className="text-xs font-semibold uppercase tracking-wider text-primary">Khuyến nghị AI</p>
-                    <p className="mt-1.5 text-xs leading-5 text-muted-foreground">{MOCK_PROFILE.khuyenNghi}</p>
-                  </div>
-                </div>
+              <CardShell icon={<Briefcase className="size-4 text-primary" />} title="Kinh nghiệm trích xuất">
+                <Paragraph text={result.kinhNghiemTrichXuat} />
               </CardShell>
             </div>
           </div>
 
           <div className="flex flex-col items-start justify-between gap-4 rounded-2xl border border-blue-100 bg-gradient-to-r from-blue-50 to-indigo-50 p-5 sm:flex-row sm:items-center">
             <div className="flex items-center gap-3">
-              <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-muted shadow-sm">
-                <Compass className="size-5 text-primary" />
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-white shadow-sm">
+                <Compass className="size-5 text-[#355C8C]" />
               </span>
-              <p className="text-sm leading-6 text-muted-foreground">
-                Hệ thống đã tìm thấy <span className="font-semibold text-primary">{MOCK_PROFILE.viecPhuHop} việc làm</span> phù hợp cao với hồ sơ trích xuất này.
+              <p className="text-sm leading-6 text-slate-600">
+                Dùng bản tóm tắt này để đối chiếu với yêu cầu tin tuyển dụng trước khi nộp đơn.
               </p>
             </div>
             <Link
               href="/viec-lam/phu-hop"
-              className="shrink-0 rounded-xl bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary-hover"
+              className="shrink-0 rounded-xl bg-[#355C8C] px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#28466c]"
             >
-              Xem {MOCK_PROFILE.viecPhuHop} việc phù hợp ➔
+              Xem việc phù hợp ➔
             </Link>
           </div>
         </div>

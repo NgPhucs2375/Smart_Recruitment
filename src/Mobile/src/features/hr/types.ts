@@ -129,6 +129,16 @@ export type DonLite = {
   tieuDe: string;
 };
 
+/** Ứng viên tiềm năng (điểm AI cao) — từ ketquaphuhops + hồ sơ. */
+export type PotentialCandidate = {
+  id: string;
+  name: string;
+  jobId: number;
+  jobTitle: string;
+  score: number;
+  hoSoUngVienId: number;
+};
+
 export type DashboardData = {
   jobs: HrJob[];
   dons: DonLite[];

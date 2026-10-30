@@ -230,7 +230,7 @@ export default function CompaniesScreen() {
             <ThemedText style={[styles.footerMessage, { color: theme.textSecondary }]}>
               {`Đã hiển thị tất cả ${visible.length} công ty.`}
             </ThemedText>
-          ) : null
+          ) : undefined
         }
         renderItem={({ item }) => (
           <CompanyRow

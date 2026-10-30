@@ -333,6 +333,7 @@ function LibraryCard({
   const { Component } = meta ?? {};
   // Theme Studio (có CauHinhJson) render đúng thiết kế đã lưu — phản ánh
   // màu/layout mới ngay sau khi Lưu ở Studio. Theme seed dùng Component tĩnh.
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- chỉ re-parse khi CauHinhJson đổi
   const studioTheme = useMemo(() => parseDbTheme(row), [row.CauHinhJson]);
   const { ref: frameRef, scale } = useFitScale();
   const canPreview = studioTheme !== null || !!Component;

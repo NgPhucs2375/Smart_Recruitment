@@ -12,7 +12,6 @@ import { DateText, EmptyPaper, SectionShell, SplitBlocks, resolveBannerTitle } f
 
 const CREAM = "#fffbeb";
 const WINE = "#881337";
-const WINE_SOFT = "#fbe9e7";
 const GOLD = "#a16207";
 const INK = "#40260f";
 const MUTED = "#7a5c3e";

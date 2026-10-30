@@ -7,7 +7,6 @@ import type { ResumeTemplateProps } from "./shared";
 import { DateText, EmptyPaper, SectionShell, SplitBlocks } from "./shared";
 
 const BLUE = "#1d4ed8";
-const BLUE_DEEP = "#1e3a8a";
 const LIME_DEEP = "#65a30d";
 const GREEN = "#15803d";
 const INK = "#1e293b";

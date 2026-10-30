@@ -1,4 +1,3 @@
-import { router } from 'expo-router';
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import {
   ActivityIndicator,

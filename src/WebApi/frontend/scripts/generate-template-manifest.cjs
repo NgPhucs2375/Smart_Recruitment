@@ -8,6 +8,7 @@
  * CvThemeMatcher biết slug nào có renderer + layout/version nào. Sửa registry
  * (thêm/xóa template) rồi chạy lại script này, KHÔNG sửa tay JSON.
  */
+/* eslint-disable @typescript-eslint/no-require-imports */
 const fs = require("node:fs");
 const path = require("node:path");
 const Module = require("node:module");

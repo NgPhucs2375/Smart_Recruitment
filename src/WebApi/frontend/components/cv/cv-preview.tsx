@@ -49,6 +49,7 @@ export function CvPreview({ data, onPageCount, themeOverride }: CvPreviewProps) 
   useEffect(() => {
     let alive = true;
     const local = findPublishedTheme(getPublishedThemes(), deferredData.templateId);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setCustomTheme(local);
     fetchDbThemes()
       .then((db) => {

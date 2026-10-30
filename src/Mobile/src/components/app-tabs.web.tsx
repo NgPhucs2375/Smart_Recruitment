@@ -38,7 +38,10 @@ function TabButton({ label, isFocused, ...props }: TabTriggerSlotProps & { label
   const theme = useTheme();
 
   return (
-    <Pressable {...props} accessibilityRole="tab" style={styles.tabButton}>
+    <Pressable
+      {...(props as Record<string, unknown>)}
+      accessibilityRole="tab"
+      style={styles.tabButton}>
       <ThemedView
         style={[
           styles.tabPill,
