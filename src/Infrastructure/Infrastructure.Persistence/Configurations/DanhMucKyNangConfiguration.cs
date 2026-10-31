@@ -4,10 +4,11 @@ using Domain.Entities;
 
 namespace Infrastructure.Persistence.Configurations
 {
-    public class KyNangConfiguration : IEntityTypeConfiguration<KyNang>
+    public class DanhMucKyNangConfiguration : IEntityTypeConfiguration<DanhMucKyNang>
     {
-        public void Configure(EntityTypeBuilder<KyNang> builder)
+        public void Configure(EntityTypeBuilder<DanhMucKyNang> builder)
         {
+            // Table/ cột giữ tên cũ trong DB; chỉ entity C# mang tên danh mục.
             builder.ToTable("KyNang");
             builder.HasKey(x => x.Id);
 

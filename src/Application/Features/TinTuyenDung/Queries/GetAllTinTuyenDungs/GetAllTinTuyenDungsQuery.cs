@@ -56,7 +56,7 @@ public class GetAllTinTuyenDungsQueryHandler(IApplicationDbContext context, ICur
         if (!string.IsNullOrEmpty(keyword)) query = query.Where(t =>
             t.TieuDe.ToLower().Contains(keyword) || t.MoTaCongViec.ToLower().Contains(keyword) ||
             t.YeuCauCongViec.ToLower().Contains(keyword) || t.DoanhNghiep.TenDoanhNghiep.ToLower().Contains(keyword) ||
-            t.KyNangTinTuyenDungs.Any(k => k.KyNang.TenKyNang.ToLower().Contains(keyword)));
+            t.KyNangTinTuyenDungs.Any(k => k.DanhMucKyNang.TenKyNang.ToLower().Contains(keyword)));
         var location = request.Location?.Trim().ToLowerInvariant();
         if (!string.IsNullOrEmpty(location)) query = query.Where(t => t.DiaDiemLamViec.ToLower().Contains(location));
         if (request.SalaryMin.HasValue) query = query.Where(t => t.LuongToiDa >= request.SalaryMin.Value);
@@ -102,11 +102,11 @@ public class GetAllTinTuyenDungsQueryHandler(IApplicationDbContext context, ICur
             DiaDiemLamViec = t.DiaDiemLamViec, PhuongThucLamViec = t.PhuongThucLamViec.ToString(),
             LuongToiThieu = t.LuongToiThieu, LuongToiDa = t.LuongToiDa, TrangThai = t.TrangThai.ToString(), NgayHetHan = t.NgayHetHan,
             NguoiDangTinId = t.NguoiDangTinId, DoanhNghiepId = t.DoanhNghiepId, TenDoanhNghiep = t.DoanhNghiep.TenDoanhNghiep,
-            KyNangs = t.KyNangTinTuyenDungs.Select(k => k.KyNang.TenKyNang).ToList(), SoLuongUngVien = t.DonUngTuyens.Count,
+            KyNangs = t.KyNangTinTuyenDungs.Select(k => k.DanhMucKyNang.TenKyNang).ToList(), SoLuongUngVien = t.DonUngTuyens.Count,
             Created = t.Created, LastModified = t.LastModified ?? t.Created, NguoiDaiDienDaDuyet = t.NguoiDaiDienDaDuyet,
             VaiTroNguoiDang = t.NguoiDangTin.VaiTro.ToString(), KetQuaSangLoc = user.VaiTro == VaiTroNguoiDung.UNG_VIEN ? "" : t.KetQuaSangLoc,
             GhiChuKiemDuyet = user.VaiTro == VaiTroNguoiDung.UNG_VIEN ? "" : context.Notifications.Where(n => n.ReferenceType == "TinTuyenDung" && n.ReferenceId == t.Id).OrderByDescending(n => n.Id).Select(n => n.NoiDung).FirstOrDefault() ?? "",
-            KyNangYeuCaus = t.KyNangTinTuyenDungs.Select(k => new JobSkillViewModel { KyNangId = k.KyNangId, TenKyNang = k.KyNang.TenKyNang, MucDoYeuCau = (int)k.MucDoYeuCau }).ToList(),
+            KyNangYeuCaus = t.KyNangTinTuyenDungs.Select(k => new JobSkillViewModel { KyNangId = k.KyNangId, TenKyNang = k.DanhMucKyNang.TenKyNang, MucDoYeuCau = (int)k.MucDoYeuCau }).ToList(),
             WorkMode = t.PhuongThucLamViec.ToString(), Level = InferLevel(t.TieuDe, t.KinhNghiemYeuCau), EmploymentType = InferEmploymentType(t.YeuCauCongViec, t.MoTaCongViec)
         }).ToListAsync(ct);
         return new PagedResponse<List<GetAllTinTuyenDungsViewModel>>(rows, start / size + 1, size, total, (int)Math.Ceiling(total / (double)size));

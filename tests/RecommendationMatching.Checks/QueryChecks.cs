@@ -24,8 +24,8 @@ public static class QueryChecks
         var cache = new MemoryDistributedCache(Options.Create(new MemoryDistributedCacheOptions()));
         var current = new MatchingUser();
         var company = new DoanhNghiep { Id = 10, TenDoanhNghiep = "Matching check" };
-        var javascript = new KyNang { Id = 10, TenKyNang = "JavaScript" };
-        var docker = new KyNang { Id = 11, TenKyNang = "Docker" };
+        var javascript = new DanhMucKyNang { Id = 10, TenKyNang = "JavaScript" };
+        var docker = new DanhMucKyNang { Id = 11, TenKyNang = "Docker" };
         CVUngVien Cv(int id, int userId, bool looking = true, bool deleted = false) => new()
         {
             Id = id, TenFile = $"CV-{id}", IsDefault = true, IsDaXoa = deleted,
@@ -42,8 +42,8 @@ public static class QueryChecks
             Id = id, TieuDe = "Frontend Developer", DoanhNghiep = company,
             TrangThai = state, NgayHetHan = deadline,
             KyNangTinTuyenDungs = [
-                new() { KyNang = javascript, MucDoYeuCau = MucDoYC.BatBuc },
-                new() { KyNang = docker, MucDoYeuCau = MucDoYC.BatBuc }]
+                new() { DanhMucKyNang = javascript, MucDoYeuCau = MucDoYC.BatBuc },
+                new() { DanhMucKyNang = docker, MucDoYeuCau = MucDoYC.BatBuc }]
         };
         db.CVUngViens.AddRange(Cv(1, 1), Cv(2, 2, looking: false), Cv(3, 3, deleted: true));
         db.TinTuyenDungs.AddRange(Job(1, TrangThaiTinTuyenDung.DangTuyen),

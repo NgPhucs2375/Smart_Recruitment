@@ -46,7 +46,7 @@ public class GetSuggestedCandidatesForJobQueryHandler(
 
         var job = await context.TinTuyenDungs.AsNoTracking()
             .Include(x => x.KyNangTinTuyenDungs)
-                .ThenInclude(x => x.KyNang)
+                .ThenInclude(x => x.DanhMucKyNang)
             .FirstOrDefaultAsync(x => x.Id == request.TinTuyenDungId &&
                                       x.DoanhNghiepId == current.DoanhNghiepId.Value,
                 cancellationToken);
@@ -81,8 +81,8 @@ public class GetSuggestedCandidatesForJobQueryHandler(
         }
 
         var requirements = job.KyNangTinTuyenDungs
-            .Where(x => x.KyNang != null && !string.IsNullOrWhiteSpace(x.KyNang.TenKyNang))
-            .Select(x => new MatchRequirement(x.KyNangId, x.KyNang.TenKyNang, x.MucDoYeuCau))
+            .Where(x => x.DanhMucKyNang != null && !string.IsNullOrWhiteSpace(x.DanhMucKyNang.TenKyNang))
+            .Select(x => new MatchRequirement(x.KyNangId, x.DanhMucKyNang.TenKyNang, x.MucDoYeuCau))
             .ToList();
         var jobInput = new JobMatchInput(requirements, job.TieuDe,
             job.LuongToiThieu, job.LuongToiDa, job.DiaDiemLamViec);

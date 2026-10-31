@@ -57,14 +57,14 @@ namespace Application.Features.KyNangUngVien.Queries.GetAllKyNangUngViens
 
             if (!string.IsNullOrWhiteSpace(filter))
             {
-                query = query.Where(x => x.KyNang.TenKyNang.Contains(filter));
+                query = query.Where(x => x.DanhMucKyNang.TenKyNang.Contains(filter));
             }
 
             query = request._sort?.ToLower() switch
             {
                 "tenkynang" => request._order?.ToLower() == "desc"
-                    ? query.OrderByDescending(x => x.KyNang.TenKyNang)
-                    : query.OrderBy(x => x.KyNang.TenKyNang),
+                    ? query.OrderByDescending(x => x.DanhMucKyNang.TenKyNang)
+                    : query.OrderBy(x => x.DanhMucKyNang.TenKyNang),
                 _ => query.OrderBy(x => x.Id)
             };
 
@@ -87,7 +87,7 @@ namespace Application.Features.KyNangUngVien.Queries.GetAllKyNangUngViens
                     Id = x.Id,
                     HoSoUngVienId = x.HoSoUngVienId,
                     KyNangId = x.KyNangId,
-                    TenKyNang = x.KyNang.TenKyNang,
+                    TenKyNang = x.DanhMucKyNang.TenKyNang,
                     SoNamKinhNghiem = x.SoNamKinhNghiem
                 })
                 .ToListAsync(cancellationToken);

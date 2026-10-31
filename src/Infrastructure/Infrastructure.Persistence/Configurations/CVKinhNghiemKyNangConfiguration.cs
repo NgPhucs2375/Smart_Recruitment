@@ -16,7 +16,7 @@ public class CVKinhNghiemKyNangConfiguration : IEntityTypeConfiguration<CVKinhNg
             .WithMany(x => x.KyNangs)
             .HasForeignKey(x => x.CVKinhNghiemLamViecId)
             .OnDelete(DeleteBehavior.Cascade);
-        builder.HasOne(x => x.KyNang)
+        builder.HasOne(x => x.DanhMucKyNang)
             .WithMany(x => x.CVKinhNghiemKyNangs)
             .HasForeignKey(x => x.KyNangId)
             .OnDelete(DeleteBehavior.SetNull);

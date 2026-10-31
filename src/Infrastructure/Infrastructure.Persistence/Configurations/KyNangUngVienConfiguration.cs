@@ -19,7 +19,7 @@ public class KyNangUngVienConfiguration : IEntityTypeConfiguration<KyNangUngVien
             .WithMany(x => x.KyNangUngViens)
             .HasForeignKey(x => x.HoSoUngVienId)
             .OnDelete(DeleteBehavior.Cascade);
-        builder.HasOne(x => x.KyNang)
+        builder.HasOne(x => x.DanhMucKyNang)
             .WithMany(x => x.KyNangUngViens)
             .HasForeignKey(x => x.KyNangId)
             .OnDelete(DeleteBehavior.Restrict);

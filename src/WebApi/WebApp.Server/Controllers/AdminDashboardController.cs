@@ -87,7 +87,7 @@ public sealed class AdminDashboardController(
             .ToListAsync(cancellationToken);
         var jobSkills = await db.KyNangTinTuyenDungs.AsNoTracking()
             .Where(x => x.TinTuyenDung.TrangThai == TrangThaiTinTuyenDung.DangTuyen)
-            .Select(x => new { x.KyNangId, x.KyNang.TenKyNang })
+            .Select(x => new { x.KyNangId, x.DanhMucKyNang.TenKyNang })
             .ToListAsync(cancellationToken);
         var candidateSkills = await db.KyNangUngViens.AsNoTracking()
             .GroupBy(x => x.KyNangId)

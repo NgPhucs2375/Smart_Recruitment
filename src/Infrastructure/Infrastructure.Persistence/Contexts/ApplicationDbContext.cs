@@ -55,7 +55,7 @@ namespace Infrastructure.Persistence.Contexts
         public DbSet<Notification> Notifications { get; set; }
         public DbSet<NotificationRecipient> NotificationRecipients { get; set; }
         public DbSet<TinTuyenDung> TinTuyenDungs { get; set; }
-        public DbSet<KyNang> KyNangs { get; set; }
+        public DbSet<DanhMucKyNang> KyNangs { get; set; }
         public DbSet<KyNangTinTuyenDung> KyNangTinTuyenDungs { get; set; }
         public DbSet<KetQuaPhanTichCv> KetQuaPhanTichCvs { get; set; }
         public DbSet<KetQuaPhuHop> KetQuaPhuHops { get; set; }

@@ -78,8 +78,8 @@ namespace Application.Mappings
             CreateMap<TaoHoSoNhaTuyenDungDto, CreateHoSoNhaTuyenDungCommand>();
             CreateMap<CapNhatHoSoNhaTuyenDungDto, UpdateHoSoNhaTuyenDungCommand>();
 
-            // KyNang
-            CreateMap<KyNang,GetAllKyNangsViewModel>().ReverseMap();
+            // DanhMucKyNang
+            CreateMap<DanhMucKyNang,GetAllKyNangsViewModel>().ReverseMap();
             CreateMap<TaoKyNangDto, CreateKyNangCommand>();
             CreateMap<CapNhatKyNangDto, UpdateKyNangCommand>();
 

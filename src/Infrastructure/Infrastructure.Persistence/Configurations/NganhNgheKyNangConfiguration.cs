@@ -15,7 +15,7 @@ public class NganhNgheKyNangConfiguration : IEntityTypeConfiguration<NganhNgheKy
             .WithMany()
             .HasForeignKey(x => x.DanhMucNgheId)
             .OnDelete(DeleteBehavior.Cascade);
-        builder.HasOne(x => x.KyNang)
+        builder.HasOne(x => x.DanhMucKyNang)
             .WithMany()
             .HasForeignKey(x => x.KyNangId)
             .OnDelete(DeleteBehavior.Restrict);

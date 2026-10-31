@@ -18,7 +18,7 @@ var options = new DbContextOptionsBuilder<ApplicationDbContext>().UseInMemoryDat
 await using var db = new CheckContext(options);
 db.NguoiDungs.AddRange(new NguoiDung { Id = 1, ApplicationUserId = "candidate", VaiTro = VaiTroNguoiDung.UNG_VIEN }, new NguoiDung { Id = 2, ApplicationUserId = "hr", VaiTro = VaiTroNguoiDung.NHAN_SU });
 db.DanhMucNghes.AddRange(new DanhMucNghe { Id = 1, TenNghe = "IT" }, new DanhMucNghe { Id = 2, TenNghe = "Finance" });
-db.KyNangs.AddRange(new KyNang { Id = 1, TenKyNang = "C#" }, new KyNang { Id = 2, TenKyNang = "SQL" });
+db.KyNangs.AddRange(new DanhMucKyNang { Id = 1, TenKyNang = "C#" }, new DanhMucKyNang { Id = 2, TenKyNang = "SQL" });
 db.DoanhNghieps.Add(new DoanhNghiep { Id = 1, TenDoanhNghiep = "Example", DiaChi = "Ha Noi" });
 var a = MakeJob(1, 1, "Senior Backend Developer", 10_000_000, 20_000_000);
 a.KyNangTinTuyenDungs = new List<KyNangTinTuyenDung> { new() { KyNangId = 1 }, new() { KyNangId = 2 } };

@@ -18,5 +18,5 @@ public class CVKyNang : AuditableBaseEntity
 
     public CVUngVien CVUngVien { get; set; }
 
-    public KyNang? KyNang { get; set; }
+    public DanhMucKyNang? DanhMucKyNang { get; set; }
 }

@@ -138,11 +138,11 @@ public class GetSuggestedJobsForCvQueryHandler(
                 LuongToiDa = t.LuongToiDa,
                 NgayHetHan = t.NgayHetHan,
                 Skills = t.KyNangTinTuyenDungs
-                    .Where(k => k.KyNang != null)
+                    .Where(k => k.DanhMucKyNang != null)
                     .Select(k => new JobMatchSkill
                     {
                         KyNangId = k.KyNangId,
-                        TenKyNang = k.KyNang!.TenKyNang,
+                        TenKyNang = k.DanhMucKyNang!.TenKyNang,
                         MucDoYeuCau = k.MucDoYeuCau,
                     })
                     .ToList(),

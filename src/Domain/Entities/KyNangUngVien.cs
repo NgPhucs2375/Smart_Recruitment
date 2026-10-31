@@ -14,5 +14,5 @@ public class KyNangUngVien : AuditableBaseEntity
 
     public HoSoUngVien HoSoUngVien { get; set; }
 
-    public KyNang KyNang { get; set; }
+    public DanhMucKyNang DanhMucKyNang { get; set; }
 }

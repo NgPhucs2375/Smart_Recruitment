@@ -16,6 +16,6 @@ namespace Domain.Entities
 
         // ===   === //
         public DanhMucNghe DanhMucNghe { get; set; }
-        public KyNang KyNang { get; set; }
+        public DanhMucKyNang DanhMucKyNang { get; set; }
     }
 }
