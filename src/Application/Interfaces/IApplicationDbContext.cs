@@ -14,6 +14,7 @@ namespace Application.Interfaces
         DbSet<DanhMucKyNang> KyNangs { get; set; }
         DbSet<KyNangTinTuyenDung> KyNangTinTuyenDungs { get; set; }
         DbSet<global::KyNangUngVien> KyNangUngViens { get; set; }
+        DbSet<global::KinhNghiemLamViec> KinhNghiemLamViecs { get; set; }
         DbSet<KetQuaPhanTichCv> KetQuaPhanTichCvs { get; set; }
         DbSet<KetQuaPhuHop> KetQuaPhuHops { get; set; }
         DbSet<HoSoUngVien> HoSoUngViens { get; set; }

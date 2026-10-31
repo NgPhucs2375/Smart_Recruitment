@@ -34,6 +34,9 @@ using Application.Features.KyNangTinTuyenDung.Commands.CreateKyNangTinTuyenDung;
 using Application.DTOs.KyNangUngVien;
 using Application.Features.KyNangUngVien.Commands.UpdateKyNangUngVien;
 using Application.Features.KyNangUngVien.Commands.CreateKyNangUngVien;
+using Application.DTOs.KinhNghiemLamViec;
+using Application.Features.KinhNghiemLamViec.Commands.CreateKinhNghiemLamViec;
+using Application.Features.KinhNghiemLamViec.Commands.UpdateKinhNghiemLamViec;
 using Application.DTOs.KetQuaPhuHop;
 using Application.Features.KetQuaPhuHop.Commands.UpdateKetQuaPhuHop;
 using Application.Features.KetQuaPhuHop.Commands.CreateKetQuaPhuHop;
@@ -116,6 +119,9 @@ namespace Application.Mappings
 
             CreateMap<TaoKyNangUngVienDto, CreateKyNangUngVienCommand>();
             CreateMap<CapNhatKyNangUngVienDto, UpdateKyNangUngVienCommand>();
+
+            CreateMap<TaoKinhNghiemLamViecDto, CreateKinhNghiemLamViecCommand>();
+            CreateMap<CapNhatKinhNghiemLamViecDto, UpdateKinhNghiemLamViecCommand>();
 
             // KetQuaPhanTichCv
             CreateMap<KetQuaPhanTichCv, GetAllKetQuaPhanTichCvsViewModel>();

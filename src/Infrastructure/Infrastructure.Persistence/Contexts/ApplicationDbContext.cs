@@ -72,6 +72,7 @@ namespace Infrastructure.Persistence.Contexts
 	        public DbSet<CVPhienBan> CVPhienBans { get; set; }
         public DbSet<DanhGia> DanhGias {get; set;}
         public DbSet<global::KyNangUngVien> KyNangUngViens { get; set; }
+        public DbSet<global::KinhNghiemLamViec> KinhNghiemLamViecs { get; set; }
         public DbSet<CvTheme> CvThemes { get; set; }
         public DbSet<Conversation> Conversations { get; set; }
         public DbSet<Message> Messages { get; set; }
