@@ -642,6 +642,18 @@ export async function requestMagicLink(payload: {
 
 type AccountActionResult = { success: boolean; message?: string };
 
+// Chỉ dùng khi backend không gửi Message (429 của rate limiter có thân rỗng,
+// lỗi gateway). Message nghiệp vụ từ BE không được đi qua normalizeAuthError:
+// nhánh /khóa|lockout/i sẽ viết lại thông báo "khóa bởi quản trị viên" thành
+// "tạm khóa do nhập sai nhiều lần" — sai bản chất.
+const HTTP_ERROR_MESSAGES: Record<number, string> = {
+  400: "Yêu cầu không hợp lệ. Vui lòng kiểm tra lại thông tin.",
+  401: "Phiên đăng nhập không hợp lệ. Vui lòng đăng nhập lại.",
+  403: "Bạn không có quyền thực hiện thao tác này.",
+  429: "Thao tác quá nhanh, vui lòng chậm lại một chút rồi thử lại.",
+  500: "Đã xảy ra lỗi hệ thống. Vui lòng thử lại sau.",
+};
+
 async function accountAction(
   endpoint: string,
   body: Record<string, string>,
@@ -662,6 +674,7 @@ async function accountAction(
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
       body: JSON.stringify(body),
+      signal: AbortSignal.timeout(AUTH_REQUEST_TIMEOUT_MS),
     });
 
     // Đọc response Body trước
@@ -682,7 +695,7 @@ async function accountAction(
     if(!res.ok || succeeded !== true){
       return {
         success: false,
-        message: message ?? "Thao tác không thành công.",
+        message: message ?? HTTP_ERROR_MESSAGES[res.status] ?? "Thao tác không thành công.",
       };
     }
     return {
@@ -691,6 +704,8 @@ async function accountAction(
     }
   } 
   catch (err) {
+    if (err instanceof Error && (err.name === "TimeoutError" || err.name === "AbortError"))
+      return { success: false, message: "Máy chủ phản hồi chậm, vui lòng thử lại." };
     return { 
       success: false,
       message: err instanceof Error 

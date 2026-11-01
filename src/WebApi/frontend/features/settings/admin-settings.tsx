@@ -11,6 +11,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PasswordChangeForm } from "./password-change-form";
 
 /** System settings — QUAN_TRI_VIEN only. Never shown to candidate/recruiter. */
 export function AdminSettings() {
@@ -90,28 +91,31 @@ export function AdminSettings() {
         </TabsContent>
 
         <TabsContent value="security">
-          <AdminCard>
-            <AdminCardHeader
-              title="Cài đặt bảo mật"
-              description="Quản lý chính sách bảo mật và xác thực"
-            />
-            <div className="space-y-6 p-5">
-              <div className="flex items-center justify-between rounded-xl border border-border p-4">
-                <div>
-                  <p className="text-sm font-medium text-foreground">Xác thực hai yếu tố (2FA)</p>
-                  <p className="text-sm text-muted-foreground">Bắt buộc 2FA cho tài khoản quản trị</p>
+          <div className="space-y-6">
+            <AdminCard>
+              <AdminCardHeader
+                title="Cài đặt bảo mật"
+                description="Quản lý chính sách bảo mật và xác thực"
+              />
+              <div className="space-y-6 p-5">
+                <div className="flex items-center justify-between rounded-xl border border-border p-4">
+                  <div>
+                    <p className="text-sm font-medium text-foreground">Xác thực hai yếu tố (2FA)</p>
+                    <p className="text-sm text-muted-foreground">Bắt buộc 2FA cho tài khoản quản trị</p>
+                  </div>
+                  <Button variant="outline" size="sm" disabled>Sắp ra mắt</Button>
                 </div>
-                <Button variant="outline" size="sm" disabled>Sắp ra mắt</Button>
-              </div>
-              <div className="flex items-center justify-between rounded-xl border border-border p-4">
-                <div>
-                  <p className="text-sm font-medium text-foreground">Phiên đăng nhập</p>
-                  <p className="text-sm text-muted-foreground">Quản lý phiên đăng nhập đang hoạt động</p>
+                <div className="flex items-center justify-between rounded-xl border border-border p-4">
+                  <div>
+                    <p className="text-sm font-medium text-foreground">Phiên đăng nhập</p>
+                    <p className="text-sm text-muted-foreground">Quản lý phiên đăng nhập đang hoạt động</p>
+                  </div>
+                  <Button variant="outline" size="sm" disabled>Sắp ra mắt</Button>
                 </div>
-                <Button variant="outline" size="sm" disabled>Sắp ra mắt</Button>
               </div>
-            </div>
-          </AdminCard>
+            </AdminCard>
+            <PasswordChangeForm />
+          </div>
         </TabsContent>
 
         <TabsContent value="integrations">
