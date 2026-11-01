@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using StackExchange.Redis;
@@ -26,6 +27,13 @@ public static class RedisServiceExtensions
             options.ConnectionMultiplexerFactory = () =>
                 Task.FromResult<IConnectionMultiplexer>(redis);
         });
+
+        // Link đặt lại mật khẩu / xác minh email là token DataProtection: mất key ring là
+        // mất toàn bộ link đang chờ trong mailbox người dùng. Key ring mặc định lưu trong
+        // container (ephemeral) => mọi lần restart backend đều vô hiệu hóa chúng.
+        services.AddDataProtection()
+            .SetApplicationName("RecruitmentSmart")
+            .PersistKeysToStackExchangeRedis(redis, "recruitmentsmart:dataprotection-keys");
 
         services
             .AddHealthChecks()
