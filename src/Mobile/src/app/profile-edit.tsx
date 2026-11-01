@@ -34,6 +34,10 @@ import { useAuth } from '@/features/auth';
 import { profileApi } from '@/features/profile/api/profile-api';
 import { ProfileAvatarPicker } from '@/features/profile/components/profile-avatar-picker';
 import {
+  ExperienceSection,
+  SkillsSection,
+} from '@/features/profile/components/profile-crud-sections';
+import {
   ProfileChoiceChips,
   ProfileField,
   ProfileSwitchRow,
@@ -558,6 +562,9 @@ export default function ProfileEditScreen() {
               title="Đang tìm việc"
               value={form.openToWork}
             />
+
+            <ExperienceSection />
+            <SkillsSection />
 
             {submitError ? (
               <View
