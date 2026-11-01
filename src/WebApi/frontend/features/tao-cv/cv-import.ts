@@ -19,11 +19,7 @@ export const SUPPORTED_IMPORT_EXTENSIONS = [".pdf", ".docx", ".json"] as const;
 export const MAX_IMPORT_BYTES = 10 * 1024 * 1024;
 
 export type CvImportErrorCode =
-  | "unsupported-type"
-  | "too-large"
-  | "empty"
-  | "parse-failed"
-  | "invalid-shape";
+  "unsupported-type" | "too-large" | "empty" | "parse-failed" | "invalid-shape";
 
 export class CvImportError extends Error {
   code: CvImportErrorCode;
@@ -45,13 +41,35 @@ function isRecord(v: unknown): v is Record<string, unknown> {
   return !!v && typeof v === "object" && !Array.isArray(v);
 }
 
+function unwrapResume(value: unknown): unknown {
+  let current = value;
+  for (let depth = 0; depth < 2; depth += 1) {
+    if (!isRecord(current)) return current;
+    const record = current;
+    const wrapper = ["cv", "resume", "data"].find((key) =>
+      isRecord(record[key]),
+    );
+    if (!wrapper) return current;
+    current = record[wrapper];
+  }
+  return current;
+}
+
+function parseJsonDocument(text: string): unknown {
+  let source = text.replace(/^\uFEFF/, "").trim();
+  const fenced = source.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
+  if (fenced) source = fenced[1].trim();
+  return unwrapResume(JSON.parse(source));
+}
+
 function camelize(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(camelize);
   if (!isRecord(value)) return value;
 
   return Object.fromEntries(
     Object.entries(value).map(([key, item]) => {
-      const mappedKey = key === "SDT" ? "sdt" : `${key.charAt(0).toLowerCase()}${key.slice(1)}`;
+      const mappedKey =
+        key === "SDT" ? "sdt" : `${key.charAt(0).toLowerCase()}${key.slice(1)}`;
       return [mappedKey, camelize(item)];
     }),
   );
@@ -64,12 +82,23 @@ const skillNames = (value: unknown): string[] =>
           if (typeof item === "string") return item;
           if (!isRecord(item)) return "";
           // VN/AI-flat: tenKyNang | ten | name, categories: gom items con.
-          const direct = pickString(item, ["tenKyNang", "ten", "name", "label"]);
+          const direct = pickString(item, [
+            "tenKyNang",
+            "ten",
+            "name",
+            "label",
+          ]);
           if (direct) return direct;
           const nested = item.items ?? item.keywords;
           if (Array.isArray(nested))
             return nested
-              .map((n) => (typeof n === "string" ? n : isRecord(n) ? pickString(n, ["tenKyNang", "ten", "name"]) : ""))
+              .map((n) =>
+                typeof n === "string"
+                  ? n
+                  : isRecord(n)
+                    ? pickString(n, ["tenKyNang", "ten", "name"])
+                    : "",
+              )
               .filter(Boolean)
               .join(", ");
           return "";
@@ -85,7 +114,8 @@ function withFreshIds<T extends object>(arr: T[]): (T & { id: string })[] {
 
 const isCurrentFlag = (v: unknown): boolean => v === true;
 
-const pickDate = (obj: Record<string, unknown>, keys: string[]): string => pickString(obj, keys);
+const pickDate = (obj: Record<string, unknown>, keys: string[]): string =>
+  pickString(obj, keys);
 
 /**
  * Chuẩn hóa 2 chiều mọi JSON dán/upload về form VN của app.
@@ -96,10 +126,16 @@ const pickDate = (obj: Record<string, unknown>, keys: string[]): string => pickS
 export function normalizeResumeData(raw: unknown): Partial<CvFormData> | null {
   if (!isRecord(raw)) return null;
 
-  const isJsonResume = isRecord(raw.basics) || Array.isArray(raw.work) || Array.isArray(raw.education);
+  const isJsonResume =
+    isRecord(raw.basics) ||
+    Array.isArray(raw.work) ||
+    Array.isArray(raw.education);
   if (isJsonResume) {
     try {
-      const mapped = jsonResumeToCvData(raw as unknown as JsonResume, defaultCvData);
+      const mapped = jsonResumeToCvData(
+        raw as unknown as JsonResume,
+        defaultCvData,
+      );
       return mapped;
     } catch {
       return null;
@@ -108,26 +144,36 @@ export function normalizeResumeData(raw: unknown): Partial<CvFormData> | null {
 
   const personal = isRecord(raw.personalInfo) ? raw.personalInfo : {};
   const info = isRecord(raw.thongTinLienHe) ? raw.thongTinLienHe : {};
-  const str = (obj: Record<string, unknown>, keys: string[]): string => pickString(obj, keys);
+  const str = (obj: Record<string, unknown>, keys: string[]): string =>
+    pickString(obj, keys);
 
   const thongTinLienHe = {
-    hoTen: str(info, ["hoTen"]) || str(personal, ["fullName"]) || str(raw, ["fullName", "hoTen", "name"]),
-    email: str(info, ["email"]) || str(personal, ["email"]) || str(raw, ["email"]),
-    sdt: str(info, ["sdt"]) || str(personal, ["phone", "sdt"]) || str(raw, ["phone", "sdt"]),
+    hoTen:
+      str(info, ["hoTen"]) ||
+      str(personal, ["fullName"]) ||
+      str(raw, ["fullName", "hoTen", "name"]),
+    email:
+      str(info, ["email"]) || str(personal, ["email"]) || str(raw, ["email"]),
+    sdt:
+      str(info, ["sdt"]) ||
+      str(personal, ["phone", "sdt"]) ||
+      str(raw, ["phone", "sdt"]),
     diaChi:
       str(info, ["diaChi"]) ||
       str(personal, ["address", "diaChi"]) ||
       str(raw, ["diaChi", "address", "location"]),
     github: str(info, ["github", "gitHub"]) || str(raw, ["github"]),
     linkedIn: str(info, ["linkedIn"]) || str(raw, ["linkedIn"]),
-    portfolio: str(info, ["portfolio"]) || str(raw, ["portfolio", "website", "url"]),
+    portfolio:
+      str(info, ["portfolio"]) || str(raw, ["portfolio", "website", "url"]),
     gioiTinh: str(info, ["gioiTinh"]) || "",
     ngaySinh: str(info, ["ngaySinh"]) || "",
     viTriUngTuyen:
       str(info, ["viTriUngTuyen"]) ||
       str(personal, ["title"]) ||
       str(raw, ["title", "viTriUngTuyen", "label", "position"]),
-    mucLuongMongMuon: info.mucLuongMongMuon == null ? "" : String(info.mucLuongMongMuon),
+    mucLuongMongMuon:
+      info.mucLuongMongMuon == null ? "" : String(info.mucLuongMongMuon),
     gioiThieuBanThan:
       str(info, ["gioiThieuBanThan"]) ||
       str(personal, ["summary"]) ||
@@ -150,7 +196,10 @@ export function normalizeResumeData(raw: unknown): Partial<CvFormData> | null {
     chucDanh: str(e, ["chucDanh", "role", "viTri", "position", "title"]),
     tuNgay: pickDate(e, ["tuNgay", "startDate", "start", "from"]),
     denNgay: pickDate(e, ["denNgay", "endDate", "end", "to"]),
-    isHienTai: isCurrentFlag(e.isHienTai) || isCurrentFlag(e.isCurrent) || isCurrentFlag(e.current),
+    isHienTai:
+      isCurrentFlag(e.isHienTai) ||
+      isCurrentFlag(e.isCurrent) ||
+      isCurrentFlag(e.current),
     moTa: str(e, ["moTa", "description", "summary"]) || "",
     kyNangSuDung: skillNames(e.kyNangSuDung ?? e.skills ?? e.keywords),
   }));
@@ -165,7 +214,10 @@ export function normalizeResumeData(raw: unknown): Partial<CvFormData> | null {
     chuyenNganh: str(h, ["chuyenNganh", "degree", "area", "major", "field"]),
     tuNgay: pickDate(h, ["tuNgay", "startDate", "start", "from"]),
     denNgay: pickDate(h, ["denNgay", "endDate", "end", "to"]),
-    isHienTai: isCurrentFlag(h.isHienTai) || isCurrentFlag(h.isCurrent) || isCurrentFlag(h.current),
+    isHienTai:
+      isCurrentFlag(h.isHienTai) ||
+      isCurrentFlag(h.isCurrent) ||
+      isCurrentFlag(h.current),
     moTa: str(h, ["moTa", "description", "summary"]) || "",
   }));
 
@@ -182,7 +234,10 @@ export function normalizeResumeData(raw: unknown): Partial<CvFormData> | null {
     moTa: str(d, ["moTa", "description", "summary"]) || "",
     tuNgay: pickDate(d, ["tuNgay", "startDate", "start", "from"]),
     denNgay: pickDate(d, ["denNgay", "endDate", "end", "to"]),
-    isHienTai: isCurrentFlag(d.isHienTai) || isCurrentFlag(d.isCurrent) || isCurrentFlag(d.current),
+    isHienTai:
+      isCurrentFlag(d.isHienTai) ||
+      isCurrentFlag(d.isCurrent) ||
+      isCurrentFlag(d.current),
   }));
 
   const skillSrc: unknown = raw.kyNang ?? raw.skills;
@@ -220,7 +275,9 @@ export function normalizeResumeData(raw: unknown): Partial<CvFormData> | null {
     duAn: withFreshIds(duAn),
     kyNang: withFreshIds(kyNang),
     chungChi: withFreshIds(chungChi),
-    layoutConfig: normalizeLayoutConfig(isRecord(raw) ? (raw as Record<string, unknown>).layoutConfig : undefined),
+    layoutConfig: normalizeLayoutConfig(
+      isRecord(raw) ? (raw as Record<string, unknown>).layoutConfig : undefined,
+    ),
   };
 }
 
@@ -233,13 +290,13 @@ export async function parseCvFile(file: File): Promise<Partial<CvFormData>> {
   if (!(SUPPORTED_IMPORT_EXTENSIONS as readonly string[]).includes(ext)) {
     throw new CvImportError(
       "unsupported-type",
-      `Định dạng "${ext || "không rõ"}" chưa được hỗ trợ. Chỉ hỗ trợ PDF, DOCX hoặc JSON Resume.`
+      `Định dạng "${ext || "không rõ"}" chưa được hỗ trợ. Chỉ hỗ trợ PDF, DOCX hoặc JSON Resume.`,
     );
   }
   if (file.size > MAX_IMPORT_BYTES) {
     throw new CvImportError(
       "too-large",
-      `File quá lớn (${formatBytes(file.size)}). Giới hạn ${formatBytes(MAX_IMPORT_BYTES)}.`
+      `File quá lớn (${formatBytes(file.size)}). Giới hạn ${formatBytes(MAX_IMPORT_BYTES)}.`,
     );
   }
   if (file.size === 0) {
@@ -249,17 +306,29 @@ export async function parseCvFile(file: File): Promise<Partial<CvFormData>> {
   if (ext === ".json") {
     let parsed: unknown;
     try {
-      parsed = JSON.parse(await file.text());
-    } catch {
-      throw new CvImportError("invalid-shape", "Không đọc được JSON Resume.");
+      parsed = parseJsonDocument(await file.text());
+    } catch (error) {
+      throw new CvImportError(
+        "invalid-shape",
+        error instanceof SyntaxError
+          ? "File JSON sai cú pháp. Hãy kiểm tra dấu ngoặc, dấu phẩy và bỏ dòng ```json nếu có."
+          : "Không đọc được nội dung JSON.",
+      );
     }
     if (!parsed || typeof parsed !== "object") {
-      throw new CvImportError("invalid-shape", "File JSON không chứa dữ liệu CV hợp lệ.");
+      throw new CvImportError(
+        "invalid-shape",
+        "File JSON không chứa dữ liệu CV hợp lệ.",
+      );
     }
     // Chuẩn JSON Resume đi đường cũ; mọi chuẩn khác (VN-form, EN-flat AI)
     // qua normalizer khoan dung thay vì ném lỗi.
     const rec = parsed as Record<string, unknown>;
-    if (rec.basics || rec.work || rec.education) {
+    if (
+      isRecord(rec.basics) ||
+      Array.isArray(rec.work) ||
+      Array.isArray(rec.education)
+    ) {
       try {
         return {
           ...jsonResumeToCvData(parsed as JsonResume, defaultCvData),
@@ -268,13 +337,18 @@ export async function parseCvFile(file: File): Promise<Partial<CvFormData>> {
       } catch (error) {
         throw new CvImportError(
           "invalid-shape",
-          error instanceof Error ? error.message : "Không đọc được JSON Resume.",
+          error instanceof Error
+            ? error.message
+            : "Không đọc được JSON Resume.",
         );
       }
     }
     const normalized = normalizeResumeData(parsed);
     if (!normalized) {
-      throw new CvImportError("invalid-shape", "File JSON không chứa dữ liệu CV hợp lệ.");
+      throw new CvImportError(
+        "invalid-shape",
+        "File JSON không chứa dữ liệu CV hợp lệ.",
+      );
     }
     return { ...normalized, tenFile: file.name.replace(/\.json$/i, "") };
   }
@@ -291,18 +365,25 @@ export async function parseCvFile(file: File): Promise<Partial<CvFormData>> {
         rawText,
       }),
     );
-    raw = isRecord(result) && isRecord(result.noiDung) ? result.noiDung : result;
+    raw =
+      isRecord(result) && isRecord(result.noiDung) ? result.noiDung : result;
   } catch (error) {
     throw new CvImportError(
       "parse-failed",
-      error instanceof Error ? error.message : "Không thể phân tích nội dung CV.",
+      error instanceof Error
+        ? error.message
+        : "Không thể phân tích nội dung CV.",
     );
   }
   if (!isRecord(raw)) {
-    throw new CvImportError("invalid-shape", "File JSON không chứa dữ liệu CV hợp lệ.");
+    throw new CvImportError(
+      "invalid-shape",
+      "File JSON không chứa dữ liệu CV hợp lệ.",
+    );
   }
-  const src: Record<string, unknown> =
-    isRecord(raw.noiDung) ? (raw.noiDung as Record<string, unknown>) : raw;
+  const src: Record<string, unknown> = isRecord(raw.noiDung)
+    ? (raw.noiDung as Record<string, unknown>)
+    : raw;
 
   const lh = isRecord(src.thongTinLienHe) ? src.thongTinLienHe : {};
   const thongTinLienHe = {
@@ -316,7 +397,8 @@ export async function parseCvFile(file: File): Promise<Partial<CvFormData>> {
     gioiTinh: pickString(lh, ["gioiTinh"]),
     ngaySinh: pickString(lh, ["ngaySinh"]),
     viTriUngTuyen: pickString(lh, ["viTriUngTuyen"]),
-    mucLuongMongMuon: lh.mucLuongMongMuon == null ? "" : String(lh.mucLuongMongMuon),
+    mucLuongMongMuon:
+      lh.mucLuongMongMuon == null ? "" : String(lh.mucLuongMongMuon),
     gioiThieuBanThan: pickString(lh, ["gioiThieuBanThan"]),
   };
 
@@ -331,7 +413,9 @@ export async function parseCvFile(file: File): Promise<Partial<CvFormData>> {
       moTa: pickString(h, ["moTa"]),
     }));
 
-  const kinhNghiemLamViec = (Array.isArray(src.kinhNghiemLamViec) ? src.kinhNghiemLamViec : [])
+  const kinhNghiemLamViec = (
+    Array.isArray(src.kinhNghiemLamViec) ? src.kinhNghiemLamViec : []
+  )
     .filter(isRecord)
     .map((k) => ({
       congTy: pickString(k, ["congTy", "tenCongTy"]),
@@ -361,7 +445,8 @@ export async function parseCvFile(file: File): Promise<Partial<CvFormData>> {
     .map((k) => ({
       tenKyNang: pickString(k, ["tenKyNang"]),
       mucDoThanhThao: k.mucDoThanhThao == null ? "" : String(k.mucDoThanhThao),
-      soNamKinhNghiem: k.soNamKinhNghiem == null ? "" : String(k.soNamKinhNghiem),
+      soNamKinhNghiem:
+        k.soNamKinhNghiem == null ? "" : String(k.soNamKinhNghiem),
     }));
 
   const chungChi = (Array.isArray(src.chungChi) ? src.chungChi : [])
@@ -381,7 +466,10 @@ export async function parseCvFile(file: File): Promise<Partial<CvFormData>> {
     kyNang.length > 0 ||
     chungChi.length > 0;
   if (!hasAny) {
-    throw new CvImportError("invalid-shape", "File JSON không chứa dữ liệu CV hợp lệ.");
+    throw new CvImportError(
+      "invalid-shape",
+      "File JSON không chứa dữ liệu CV hợp lệ.",
+    );
   }
 
   return {
@@ -400,4 +488,3 @@ export function formatBytes(bytes: number): string {
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
-

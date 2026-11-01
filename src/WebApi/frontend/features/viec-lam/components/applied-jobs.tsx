@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/select";
 import { jobsApi } from "@/lib/api/jobs-api";
 import { formatSalaryFull } from "@/features/viec-lam/salary";
+import { getValidToken, refreshSession } from "@/lib/auth-provider";
 
 type DonUngTuyen = {
   id: number;
@@ -42,7 +43,13 @@ const API = "/api/dotnet/donungtuyens";
 const FETCH_MAX = 50;
 const WITHDRAWN_STATUS = 4;
 
-const TRANG_THAI: Record<number, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
+const TRANG_THAI: Record<
+  number,
+  {
+    label: string;
+    variant: "default" | "secondary" | "destructive" | "outline";
+  }
+> = {
   0: { label: "Khởi tạo", variant: "secondary" },
   1: { label: "Lỗi xử lý", variant: "destructive" },
   2: { label: "Chờ xử lý", variant: "default" },
@@ -68,7 +75,8 @@ const STATUS_BY_NAME: Record<string, number> = {
   vohieuhoa: 9,
 };
 
-const ok = (r: ApiResponse<unknown>): boolean => r.Succeeded ?? r.succeeded ?? true;
+const ok = (r: ApiResponse<unknown>): boolean =>
+  r.Succeeded ?? r.succeeded ?? true;
 const msg = (r: ApiResponse<unknown>): string => r.Message ?? r.message ?? "";
 const extractData = <T,>(r: ApiResponse<T>): T | undefined => r.Data ?? r.data;
 
@@ -98,18 +106,25 @@ export function AppliedJobsPanel({ onExplore }: { onExplore: () => void }) {
   const [withdrawingId, setWithdrawingId] = useState<number | null>(null);
 
   const apiFetch = useCallback(async (url: string, opts?: RequestInit) => {
-    const token = localStorage.getItem("access_token");
-    const res = await fetch(url, {
-      ...opts,
-      cache: "no-store",
-      headers: {
-        "Content-Type": "application/json",
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        ...opts?.headers,
-      },
-    });
+    let token = await getValidToken();
+    const send = () =>
+      fetch(url, {
+        ...opts,
+        cache: "no-store",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          ...opts?.headers,
+        },
+      });
+    let res = await send();
+    if (res.status === 401 && (await refreshSession())) {
+      token = await getValidToken();
+      res = await send();
+    }
     const body = await res.json().catch(() => null);
-    if (!res.ok) throw new Error(body?.Message ?? body?.message ?? `HTTP ${res.status}`);
+    if (!res.ok)
+      throw new Error(body?.Message ?? body?.message ?? `HTTP ${res.status}`);
     return body;
   }, []);
 
@@ -123,7 +138,9 @@ export function AppliedJobsPanel({ onExplore }: { onExplore: () => void }) {
       params.set("_sort", "ngayungtuyen");
       params.set("_order", "desc");
       if (statusFilter !== "all") params.set("TrangThai", statusFilter);
-      const res: ApiResponse<unknown> = await apiFetch(`${API}?${params.toString()}`);
+      const res: ApiResponse<unknown> = await apiFetch(
+        `${API}?${params.toString()}`,
+      );
       if (!ok(res)) throw new Error(msg(res) || "Không thể tải danh sách");
       const d = extractData(res);
       const rawItems: unknown[] = Array.isArray(d) ? d : [];
@@ -137,19 +154,41 @@ export function AppliedJobsPanel({ onExplore }: { onExplore: () => void }) {
           trangThai: parseTrangThai(r.trangThai ?? r.TrangThai),
           ngayUngTuyen: `${r.ngayUngTuyen ?? r.NgayUngTuyen ?? ""}`,
           tieuDe: `${r.tieuDe ?? r.TieuDe ?? ""}` || undefined,
-          tenDoanhNghiep: `${r.tenDoanhNghiep ?? r.TenDoanhNghiep ?? ""}` || undefined,
-          diaDiemLamViec: `${r.diaDiemLamViec ?? r.DiaDiemLamViec ?? ""}` || undefined,
-          luongToiThieu: luongThieu !== undefined ? Number(luongThieu) : undefined,
+          tenDoanhNghiep:
+            `${r.tenDoanhNghiep ?? r.TenDoanhNghiep ?? ""}` || undefined,
+          diaDiemLamViec:
+            `${r.diaDiemLamViec ?? r.DiaDiemLamViec ?? ""}` || undefined,
+          luongToiThieu:
+            luongThieu !== undefined ? Number(luongThieu) : undefined,
           luongToiDa: luongDa !== undefined ? Number(luongDa) : undefined,
         };
       });
-      setTotalCount(Number(res.TotalCount ?? res.totalCount ?? rawItems.length));
+      setTotalCount(
+        Number(res.TotalCount ?? res.totalCount ?? rawItems.length),
+      );
 
       // Enrich tiêu đề còn thiếu từ jobs API (gom nhóm để tránh N+1).
-      const missingIds = [...new Set(parsed.filter((p) => !p.tieuDe && p.tinTuyenDungId > 0).map((p) => p.tinTuyenDungId))];
+      const missingIds = [
+        ...new Set(
+          parsed
+            .filter((p) => !p.tieuDe && p.tinTuyenDungId > 0)
+            .map((p) => p.tinTuyenDungId),
+        ),
+      ];
       if (missingIds.length > 0) {
-        const fetched = await Promise.allSettled(missingIds.map((id) => jobsApi.getJobById(String(id))));
-        const map = new Map<number, { title: string; company: string; location: string; salaryMin: number; salaryMax: number }>();
+        const fetched = await Promise.allSettled(
+          missingIds.map((id) => jobsApi.getJobById(String(id))),
+        );
+        const map = new Map<
+          number,
+          {
+            title: string;
+            company: string;
+            location: string;
+            salaryMin: number;
+            salaryMax: number;
+          }
+        >();
         missingIds.forEach((id, i) => {
           const r = fetched[i];
           if (r.status === "fulfilled" && r.value) {
@@ -190,16 +229,31 @@ export function AppliedJobsPanel({ onExplore }: { onExplore: () => void }) {
   const canRutDon = (s: number) => s === 0 || s === 2 || s === 3 || s === 5;
 
   async function handleRutDon(item: DonUngTuyen) {
-    if (!window.confirm(`Rút đơn #${item.id}? Bạn sẽ không tác động được đơn này nữa.`)) return;
+    if (
+      !window.confirm(
+        `Rút đơn #${item.id}? Bạn sẽ không tác động được đơn này nữa.`,
+      )
+    )
+      return;
     try {
       setWithdrawingId(item.id);
       setErr("");
       const res: ApiResponse<unknown> = await apiFetch(`${API}/${item.id}`, {
         method: "PUT",
-        body: JSON.stringify({ id: item.id, trigger: 8, ghiChu: "Ứng viên rút đơn" }),
+        body: JSON.stringify({
+          id: item.id,
+          trigger: 8,
+          ghiChu: "Ứng viên rút đơn",
+        }),
       });
       if (!ok(res)) throw new Error(msg(res) || "Không thể rút đơn");
-      setItems((current) => current.map((entry) => (entry.id === item.id ? { ...entry, trangThai: WITHDRAWN_STATUS } : entry)));
+      setItems((current) =>
+        current.map((entry) =>
+          entry.id === item.id
+            ? { ...entry, trangThai: WITHDRAWN_STATUS }
+            : entry,
+        ),
+      );
       await load();
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Không thể rút đơn");
@@ -217,8 +271,14 @@ export function AppliedJobsPanel({ onExplore }: { onExplore: () => void }) {
             ({loading ? "…" : totalCount})
           </span>
         </h2>
-        <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v ?? "all")}>
-          <SelectTrigger aria-label="Lọc theo trạng thái đơn" className="h-10 w-auto min-w-[180px] rounded-full border-border bg-muted px-4 text-[13px] shadow-none">
+        <Select
+          value={statusFilter}
+          onValueChange={(v) => setStatusFilter(v ?? "all")}
+        >
+          <SelectTrigger
+            aria-label="Lọc theo trạng thái đơn"
+            className="h-10 w-auto min-w-[180px] rounded-full border-border bg-muted px-4 text-[13px] shadow-none"
+          >
             <SelectValue placeholder="Tất cả trạng thái" />
           </SelectTrigger>
           <SelectContent>
@@ -233,7 +293,10 @@ export function AppliedJobsPanel({ onExplore }: { onExplore: () => void }) {
       </div>
 
       {err && (
-        <div role="alert" className="rounded-2xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+        <div
+          role="alert"
+          className="rounded-2xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive"
+        >
           {err}
         </div>
       )}
@@ -252,11 +315,19 @@ export function AppliedJobsPanel({ onExplore }: { onExplore: () => void }) {
           <div className="flex size-14 items-center justify-center rounded-2xl bg-primary/10">
             <Send className="size-6 text-primary" />
           </div>
-          <h3 className="mt-4 text-base font-semibold text-foreground sm:text-lg">Chưa có đơn ứng tuyển</h3>
+          <h3 className="mt-4 text-base font-semibold text-foreground sm:text-lg">
+            Chưa có đơn ứng tuyển
+          </h3>
           <p className="mt-2 max-w-md text-sm leading-6 text-muted-foreground">
-            Bạn chưa gửi hồ sơ vào vị trí nào. Hãy khám phá các cơ hội việc làm phù hợp ngay hôm nay!
+            Bạn chưa gửi hồ sơ vào vị trí nào. Hãy khám phá các cơ hội việc làm
+            phù hợp ngay hôm nay!
           </p>
-          <Button variant="outline" size="sm" className="mt-5 rounded-full" onClick={onExplore}>
+          <Button
+            variant="outline"
+            size="sm"
+            className="mt-5 rounded-full"
+            onClick={onExplore}
+          >
             Tìm việc ngay
           </Button>
         </div>
@@ -264,12 +335,20 @@ export function AppliedJobsPanel({ onExplore }: { onExplore: () => void }) {
         <>
           <div className="divide-y divide-border/70 rounded-2xl border border-border bg-card shadow-sm">
             {items.map((item) => {
-              const st = TRANG_THAI[item.trangThai] ?? { label: `#${item.trangThai}`, variant: "secondary" as const };
+              const st = TRANG_THAI[item.trangThai] ?? {
+                label: `#${item.trangThai}`,
+                variant: "secondary" as const,
+              };
               return (
-                <div key={item.id} className="flex flex-col gap-3 p-4 sm:flex-row sm:items-start sm:justify-between sm:p-5">
+                <div
+                  key={item.id}
+                  className="flex flex-col gap-3 p-4 sm:flex-row sm:items-start sm:justify-between sm:p-5"
+                >
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-xs text-muted-foreground">Đơn #{item.id}</span>
+                      <span className="text-xs text-muted-foreground">
+                        Đơn #{item.id}
+                      </span>
                       <Badge variant={st.variant}>{st.label}</Badge>
                     </div>
                     <Link
@@ -287,7 +366,10 @@ export function AppliedJobsPanel({ onExplore }: { onExplore: () => void }) {
                     {(item.luongToiThieu || item.luongToiDa) && (
                       <span className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-teal/15 px-2.5 py-1 text-xs font-bold text-primary">
                         <Wallet className="size-3" />
-                        {formatSalaryFull(item.luongToiThieu ?? 0, item.luongToiDa ?? 0)}
+                        {formatSalaryFull(
+                          item.luongToiThieu ?? 0,
+                          item.luongToiDa ?? 0,
+                        )}
                       </span>
                     )}
                   </div>

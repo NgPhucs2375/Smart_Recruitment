@@ -1,5 +1,6 @@
 using Application.DTOs.CV;
 using Application.Features.CVUngVien.Cache;
+using Application.Features.KetQuaPhuHop.Queries.SuggestCandidatesForJob;
 using Application.Interfaces;
 using Application.Interfaces.Repositories;
 using Application.Wrappers;
@@ -15,13 +16,15 @@ public class GetCVUngVienByIdQuery
     : IRequest<Response<CvDetailDto>>
 {
     public int Id { get; set; }
+    public int? TinTuyenDungId { get; set; }
 }
 
 public class GetCVUngVienByIdQueryHandler(
     IApplicationDbContext context,
     ICurrentNguoiDungService currentNguoiDungService,
     ICvReadMapper cvReadMapper,
-    IDistributedCache cache)
+    IDistributedCache cache,
+    ISender sender)
     : IRequestHandler<
         GetCVUngVienByIdQuery,
         Response<CvDetailDto>>
@@ -32,6 +35,7 @@ public class GetCVUngVienByIdQueryHandler(
     {
         var currentUser =
             await currentNguoiDungService.ResolveAsync();
+        var recruiterCanReadSuggestedCv = false;
         // Authorize against live relationships BEFORE returning cached content.
         var ownsCv = await context.CVUngViens.AsNoTracking().AnyAsync(x => x.Id == request.Id && !x.IsDaXoa &&
             (currentUser.VaiTro == VaiTroNguoiDung.QUAN_TRI_VIEN || x.HoSoUngVien.NguoiDungId == currentUser.Id), cancellationToken);
@@ -39,18 +43,39 @@ public class GetCVUngVienByIdQueryHandler(
         {
             if (currentUser.VaiTro is not (VaiTroNguoiDung.NHAN_SU or VaiTroNguoiDung.NGUOI_DAI_DIEN))
                 return new Response<CvDetailDto>("Không tìm thấy CV.");
-            var submitted = await context.DonUngTuyens.AsNoTracking().Where(d => d.CVUngVienId == request.Id &&
+            var submittedQuery = context.DonUngTuyens.AsNoTracking().Where(d => d.CVUngVienId == request.Id &&
                 (currentUser.VaiTro == VaiTroNguoiDung.NHAN_SU ? d.TinTuyenDung.NguoiDangTinId == currentUser.Id
-                    : d.TinTuyenDung.DoanhNghiepId == currentUser.DoanhNghiepId))
+                    : d.TinTuyenDung.DoanhNghiepId == currentUser.DoanhNghiepId));
+            if (request.TinTuyenDungId.HasValue)
+                submittedQuery = submittedQuery.Where(d => d.TinTuyenDungId == request.TinTuyenDungId.Value);
+            var submitted = await submittedQuery
                 .OrderByDescending(d => d.NgayUngTuyen ?? d.Created).ThenByDescending(d => d.Id)
                 .Select(d => d.CvSnapshotJson).FirstOrDefaultAsync(cancellationToken);
-            if (string.IsNullOrWhiteSpace(submitted)) return new Response<CvDetailDto>("Không tìm thấy bản CV đã nộp trong phạm vi của bạn.");
-            try
+            if (!string.IsNullOrWhiteSpace(submitted))
             {
-                var snapshot = JsonSerializer.Deserialize<CvDetailDto>(submitted);
-                return snapshot == null ? new Response<CvDetailDto>("Không tìm thấy bản CV đã nộp.") : new Response<CvDetailDto>(snapshot);
+                try
+                {
+                    var snapshot = JsonSerializer.Deserialize<CvDetailDto>(submitted);
+                    return snapshot == null ? new Response<CvDetailDto>("Không tìm thấy bản CV đã nộp.") : new Response<CvDetailDto>(snapshot);
+                }
+                catch (JsonException) { return new Response<CvDetailDto>("Bản CV đã nộp không hợp lệ."); }
             }
-            catch (JsonException) { return new Response<CvDetailDto>("Bản CV đã nộp không hợp lệ."); }
+
+            // A suggested-only candidate has no application snapshot. Reuse the
+            // matching query so CV access is limited to this managed job and
+            // cannot be granted by supplying an arbitrary CV id.
+            if (!request.TinTuyenDungId.HasValue || request.TinTuyenDungId <= 0)
+                return new Response<CvDetailDto>("Không tìm thấy CV trong phạm vi của bạn.");
+
+            var recommendations = await sender.Send(new GetSuggestedCandidatesForJobQuery
+            {
+                TinTuyenDungId = request.TinTuyenDungId.Value,
+                TopN = 20,
+            }, cancellationToken);
+            recruiterCanReadSuggestedCv = recommendations.Succeeded
+                && recommendations.Data?.Any(x => x.CvUngVienId == request.Id) == true;
+            if (!recruiterCanReadSuggestedCv)
+                return new Response<CvDetailDto>("CV không thuộc nhóm ứng viên được gợi ý cho tin tuyển dụng này.");
         }
         var detailVersion = await cache.GetStringAsync(
             CVUngVienListCache.DetailVersionKey(request.Id),
@@ -95,7 +120,7 @@ public class GetCVUngVienByIdQueryHandler(
                 x =>
                     x.Id == request.Id &&
                     !x.IsDaXoa &&
-                    (currentUser.VaiTro == VaiTroNguoiDung.QUAN_TRI_VIEN || x.HoSoUngVien.NguoiDungId == currentUser.Id),
+                    (currentUser.VaiTro == VaiTroNguoiDung.QUAN_TRI_VIEN || ownsCv || recruiterCanReadSuggestedCv),
                 cancellationToken);
 
 

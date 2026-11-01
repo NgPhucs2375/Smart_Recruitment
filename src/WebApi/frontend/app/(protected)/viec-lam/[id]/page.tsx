@@ -33,6 +33,7 @@ import {
 import { cvApi } from "@/lib/api/cv-api";
 import type { CvDetailVm, CvVm } from "@/lib/types";
 import { useBookmarks } from "@/hooks/use-bookmarks";
+import { getValidToken, refreshSession } from "@/lib/auth-provider";
 
 type TinChiTiet = {
   id: number;
@@ -128,8 +129,8 @@ export default function ViecLamChiTietPage() {
   const [loadingPreview, setLoadingPreview] = useState(false);
 
   const apiFetch = useCallback(async (url: string, opts?: RequestInit) => {
-    const token = localStorage.getItem("access_token");
-    const res = await fetch(url, {
+    let token = await getValidToken();
+    const send = () => fetch(url, {
       ...opts,
       headers: {
         "Content-Type": "application/json",
@@ -137,6 +138,11 @@ export default function ViecLamChiTietPage() {
         ...opts?.headers,
       },
     });
+    let res = await send();
+    if (res.status === 401 && await refreshSession()) {
+      token = await getValidToken();
+      res = await send();
+    }
     const body = (await res.json().catch(() => null)) as ApiResponse<unknown> | null;
     if (!res.ok) throw new Error(body ? msg(body) : `HTTP ${res.status}`);
     return body;
@@ -269,15 +275,16 @@ export default function ViecLamChiTietPage() {
 
   const hetHan = tin ? isExpired(tin.ngayHetHan) : false;
   const conNhanHoSo = !!tin && (tin.trangThai === "DangTuyen" || tin.trangThai === "3") && !hetHan;
-  const lyDoKhoa = !tin
-    ? ""
-    : daUngTuyen
-      ? "Bạn đã nộp đơn cho tin này."
-      : tin.trangThai !== "DangTuyen" && tin.trangThai !== "3"
-        ? "Tin hiện không ở trạng thái đang tuyển."
-        : hetHan
-          ? "Tin đã hết hạn nhận hồ sơ."
-          : "";
+  const daDong = tin?.trangThai === "DaDong" || tin?.trangThai === "6";
+  const trangThaiHetHan = tin?.trangThai === "HetHan" || tin?.trangThai === "5";
+  const lyDoKhoa = (() => {
+    if (!tin) return "";
+    if (daUngTuyen) return "Bạn đã nộp đơn cho tin này.";
+    if (hetHan || trangThaiHetHan) return "Tin đã hết hạn nhận hồ sơ.";
+    if (daDong) return "Tin tuyển dụng đã đóng.";
+    if (tin.trangThai !== "DangTuyen" && tin.trangThai !== "3") return "Tin hiện không ở trạng thái đang tuyển.";
+    return "";
+  })();
 
   return (
     <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6 space-y-6">
@@ -303,6 +310,12 @@ export default function ViecLamChiTietPage() {
         />
       ) : (
         <div className="space-y-6">
+          {!conNhanHoSo && !daUngTuyen && (trangThaiHetHan || hetHan || daDong) && (
+            <div className="rounded-2xl border border-amber-300/60 bg-amber-50 px-4 py-3 text-sm text-amber-900" role="status">
+              <p className="font-semibold">{daDong ? "Tin tuyển dụng đã đóng" : "Tin đã hết hạn nhận hồ sơ"}</p>
+              <p className="mt-1">Tin này chỉ được xem lại, hiện không còn nhận hồ sơ ứng tuyển.</p>
+            </div>
+          )}
           <section className="overflow-hidden rounded-[2rem] border border-border bg-card shadow-sm">
             <div className="p-6 sm:p-8">
               <div className="flex items-start gap-4">

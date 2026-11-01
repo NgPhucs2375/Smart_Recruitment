@@ -53,7 +53,7 @@ namespace WebApp.Server.Controllers.v1
 
         // GET: api/cvungviens/show/5
         [HttpGet("show/{id}")]
-        public async Task<IActionResult> Show(int id)
+        public async Task<IActionResult> Show(int id, [FromQuery] int? tinTuyenDungId = null)
         {
             return await EnforcePermissionAndExecute(
                 "cvungviens",
@@ -63,7 +63,8 @@ namespace WebApp.Server.Controllers.v1
                     return Ok(await Mediator.Send(
                         new GetCVUngVienByIdQuery
                         {
-                            Id = id
+                            Id = id,
+                            TinTuyenDungId = tinTuyenDungId,
                         }));
                 });
         }

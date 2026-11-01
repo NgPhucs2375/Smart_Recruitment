@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { ArrowUpRight, Sparkles } from "lucide-react";
 import { useEffect, useState } from "react";
+import { getValidToken, refreshSession } from "@/lib/auth-provider";
 
 type Recommendation = {
   tinTuyenDungId: number;
@@ -56,10 +57,20 @@ export function RecommendationPreview({ count = 5 }: { count?: number }) {
 
   useEffect(() => {
     let cancelled = false;
-    const token = localStorage.getItem("access_token");
-    fetch(`/api/dotnet/ketquaphuhops/recommendations?topN=${count}`, {
-      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-    })
+    const request = async () => {
+      let token = await getValidToken();
+      const send = () => fetch(`/api/dotnet/ketquaphuhops/recommendations?topN=${count}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      });
+      let response = await send();
+      if (response.status === 401 && await refreshSession()) {
+        token = await getValidToken();
+        response = await send();
+      }
+      return response;
+    };
+
+    request()
       .then(async (response) => {
         if (!response.ok) throw new Error("Không tải được gợi ý việc làm.");
         return response.json();

@@ -40,7 +40,9 @@ namespace Application.Features.TinTuyenDung.Queries.GetTinTuyenDungById
             var ctx = await current.ResolveAsync();
 
             var accessible = ctx.VaiTro == VaiTroNguoiDung.QUAN_TRI_VIEN || (ctx.VaiTro == VaiTroNguoiDung.UNG_VIEN
-                ? entity.TrangThai == TrangThaiTinTuyenDung.DangTuyen && Domain.Common.RecruitmentDeadline.IsOpen(entity.NgayHetHan)
+                ? entity.TrangThai == TrangThaiTinTuyenDung.DangTuyen
+                    || entity.TrangThai == TrangThaiTinTuyenDung.HetHan
+                    || entity.TrangThai == TrangThaiTinTuyenDung.DaDong
                 : ctx.VaiTro == VaiTroNguoiDung.NGUOI_DAI_DIEN
                     ? entity.DoanhNghiepId == ctx.DoanhNghiepId
                     : ctx.VaiTro == VaiTroNguoiDung.NHAN_SU &&

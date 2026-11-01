@@ -8,7 +8,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useConfirmDialog } from "@/components/ui/confirm-dialog";
+import { SuggestedCandidatesPanel } from "@/components/employer/suggested-candidates-panel";
 import {
   AdminPageLayout,
   AdminCard,
@@ -116,6 +118,27 @@ export default function UngVienPage() {
   const statusFilter = searchParams.get("status") ?? "all";
   const jobFilter = searchParams.get("jobId") ?? "all";
   const statusValue = statusFilter === "all" ? null : parseStatus(statusFilter);
+  const viewMode = searchParams.get("view") === "suggested" ? "suggested" : "applications";
+  const suggestedJobId = searchParams.get("suggestedJobId") ?? "";
+
+  const changeViewMode = useCallback((value: string) => {
+    const next = new URLSearchParams(searchParams.toString());
+    if (value === "suggested") next.set("view", "suggested");
+    else {
+      next.delete("view");
+      next.delete("suggestedJobId");
+    }
+    const query = next.toString();
+    router.replace(query ? `/ung-vien?${query}` : "/ung-vien", { scroll: false });
+  }, [router, searchParams]);
+
+  const changeSuggestedJob = useCallback((jobId: string) => {
+    const next = new URLSearchParams(searchParams.toString());
+    next.set("view", "suggested");
+    if (jobId) next.set("suggestedJobId", jobId);
+    else next.delete("suggestedJobId");
+    router.replace(`/ung-vien?${next.toString()}`, { scroll: false });
+  }, [router, searchParams]);
 
   const apiFetch = useCallback(async (url: string, options?: RequestInit) => {
     const token = localStorage.getItem("access_token");
@@ -269,85 +292,98 @@ export default function UngVienPage() {
   return (
     <AdminPageLayout>
       <h1 className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Hộp thư ứng viên</h1>
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="text-sm text-muted-foreground">Lọc theo:</span>
-        <Select value={statusFilter} onValueChange={(value) => { if (value !== null) setStatusFilter(value); }}>
-          <SelectTrigger aria-label="Lọc trạng thái" className="h-9 w-auto rounded-full px-4 text-sm"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Tất cả trạng thái ({items.length})</SelectItem>
-            <SelectItem value="2">Chờ xử lý</SelectItem>
-            <SelectItem value="3">Đã xem</SelectItem>
-            <SelectItem value="6">Từ chối</SelectItem>
-            <SelectItem value="5">Phù hợp</SelectItem>
-          </SelectContent>
-        </Select>
-        <div className="relative ml-auto w-full sm:w-64">
-          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input aria-label="Tìm ứng viên hoặc tin" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Tìm ứng viên hoặc tin..." className="h-9 rounded-xl pl-9" />
-        </div>
-      </div>
+      <Tabs defaultValue="applications" value={viewMode} onValueChange={changeViewMode}>
+        <TabsList className="w-full justify-start overflow-x-auto rounded-xl sm:w-auto">
+          <TabsTrigger value="applications">Ứng viên đã ứng tuyển</TabsTrigger>
+          <TabsTrigger value="suggested">Ứng viên gợi ý</TabsTrigger>
+        </TabsList>
 
-      {err && <Alert variant="destructive"><AlertDescription>{err}</AlertDescription></Alert>}
-      {successMsg && <Alert><AlertDescription>{successMsg}</AlertDescription></Alert>}
-
-      <AdminCard>
-        {!loading && !err && filtered.length > 0 && (
-          <div className="border-b border-border p-5">
-            <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Danh sách đơn ứng tuyển ({filtered.length})</h2>
-            {reachedCap && <p className="mt-1 text-xs text-muted-foreground">Hiển thị 100 đơn đầu tiên — dùng bộ lọc để thu hẹp danh sách.</p>}
+        <TabsContent value="applications" className="space-y-6">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-sm text-muted-foreground">Lọc theo:</span>
+            <Select value={statusFilter} onValueChange={(value) => { if (value !== null) setStatusFilter(value); }}>
+              <SelectTrigger aria-label="Lọc trạng thái" className="h-9 w-auto rounded-full px-4 text-sm"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tất cả trạng thái ({items.length})</SelectItem>
+                <SelectItem value="2">Chờ xử lý</SelectItem>
+                <SelectItem value="3">Đã xem</SelectItem>
+                <SelectItem value="6">Từ chối</SelectItem>
+                <SelectItem value="5">Phù hợp</SelectItem>
+              </SelectContent>
+            </Select>
+            <div className="relative ml-auto w-full sm:w-64">
+              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+              <Input aria-label="Tìm ứng viên hoặc tin" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Tìm ứng viên hoặc tin..." className="h-9 rounded-xl pl-9" />
+            </div>
           </div>
-        )}
 
-        {loading ? <AdminLoadingState /> : filtered.length === 0 ? (
-          <AdminEmptyState
-            icon={Inbox}
-            title={search || statusFilter !== "all" ? "Không tìm thấy đơn phù hợp" : "Chưa có hồ sơ ứng tuyển"}
-            description={search || statusFilter !== "all" ? "Thử thay đổi bộ lọc hoặc từ khóa." : "Hồ sơ của ứng viên nộp vào các vị trí bạn phụ trách sẽ hiển thị tại đây."}
-          />
-        ) : (
-          <div className="divide-y divide-border">
-            {filtered.map((item) => {
-              const profile = profiles[item.hoSoUngVienId];
-              const state = STATUS[item.trangThai] ?? { label: `Trạng thái #${item.trangThai}`, variant: "outline" as const };
-              const busy = actingId === item.id;
-              return (
-                <div key={item.id} className="flex flex-col gap-4 p-5 lg:flex-row lg:items-center lg:justify-between">
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="flex size-9 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
-                        {(profile?.hoTen || "UV").slice(0, 2).toUpperCase()}
-                      </span>
-                      <span className="font-medium text-foreground">{profile?.hoTen || `Hồ sơ #${item.hoSoUngVienId}`}</span>
-                      <Badge variant={state.variant}>{state.label}</Badge>
+          {err && <Alert variant="destructive"><AlertDescription>{err}</AlertDescription></Alert>}
+          {successMsg && <Alert><AlertDescription>{successMsg}</AlertDescription></Alert>}
+
+          <AdminCard>
+            {!loading && !err && filtered.length > 0 && (
+              <div className="border-b border-border p-5">
+                <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Danh sách đơn ứng tuyển ({filtered.length})</h2>
+                {reachedCap && <p className="mt-1 text-xs text-muted-foreground">Hiển thị 100 đơn đầu tiên — dùng bộ lọc để thu hẹp danh sách.</p>}
+              </div>
+            )}
+
+            {loading ? <AdminLoadingState /> : filtered.length === 0 ? (
+              <AdminEmptyState
+                icon={Inbox}
+                title={search || statusFilter !== "all" ? "Không tìm thấy đơn phù hợp" : "Chưa có hồ sơ ứng tuyển"}
+                description={search || statusFilter !== "all" ? "Thử thay đổi bộ lọc hoặc từ khóa." : "Hồ sơ của ứng viên nộp vào các vị trí bạn phụ trách sẽ hiển thị tại đây."}
+              />
+            ) : (
+              <div className="divide-y divide-border">
+                {filtered.map((item) => {
+                  const profile = profiles[item.hoSoUngVienId];
+                  const state = STATUS[item.trangThai] ?? { label: `Trạng thái #${item.trangThai}`, variant: "outline" as const };
+                  const busy = actingId === item.id;
+                  return (
+                    <div key={item.id} className="flex flex-col gap-4 p-5 lg:flex-row lg:items-center lg:justify-between">
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="flex size-9 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
+                            {(profile?.hoTen || "UV").slice(0, 2).toUpperCase()}
+                          </span>
+                          <span className="font-medium text-foreground">{profile?.hoTen || `Hồ sơ #${item.hoSoUngVienId}`}</span>
+                          <Badge variant={state.variant}>{state.label}</Badge>
+                        </div>
+                        <p className="mt-2 text-sm text-foreground">{item.tieuDe}</p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {profile?.viTriUngTuyen && `${profile.viTriUngTuyen} • `}
+                          Đơn #{item.id} • Nộp {formatDate(item.ngayUngTuyen)}
+                        </p>
+                        {item.ghiChu && <p className="mt-1 text-xs text-muted-foreground">Ghi chú: {item.ghiChu}</p>}
+                      </div>
+                      <div className="flex shrink-0 flex-wrap gap-2">
+                        <Button variant="outline" size="sm" disabled={busy} onClick={() => void handleViewCv(item)}>
+                          <Eye className="size-4" /> Xem CV
+                        </Button>
+                        {(item.trangThai === 2 || item.trangThai === 3) && (
+                          <Button size="sm" disabled={busy} onClick={() => void handleAction(item, TRIGGER.DanhGiaPhuHop, "duyệt phù hợp")}>
+                            <CheckCheck className="size-4" /> Duyệt phù hợp
+                          </Button>
+                        )}
+                        {(item.trangThai === 2 || item.trangThai === 3) && (
+                          <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" disabled={busy} onClick={() => void handleAction(item, TRIGGER.TuChoi, "từ chối")}>
+                            <UserX className="size-4" /> Từ chối
+                          </Button>
+                        )}
+                      </div>
                     </div>
-                    <p className="mt-2 text-sm text-foreground">{item.tieuDe}</p>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      {profile?.viTriUngTuyen && `${profile.viTriUngTuyen} • `}
-                      Đơn #{item.id} • Nộp {formatDate(item.ngayUngTuyen)}
-                    </p>
-                    {item.ghiChu && <p className="mt-1 text-xs text-muted-foreground">Ghi chú: {item.ghiChu}</p>}
-                  </div>
-                  <div className="flex shrink-0 flex-wrap gap-2">
-                    <Button variant="outline" size="sm" disabled={busy} onClick={() => void handleViewCv(item)}>
-                      <Eye className="size-4" /> Xem CV
-                    </Button>
-                    {(item.trangThai === 2 || item.trangThai === 3) && (
-                      <Button size="sm" disabled={busy} onClick={() => void handleAction(item, TRIGGER.DanhGiaPhuHop, "duyệt phù hợp")}>
-                        <CheckCheck className="size-4" /> Duyệt phù hợp
-                      </Button>
-                    )}
-                    {(item.trangThai === 2 || item.trangThai === 3) && (
-                      <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" disabled={busy} onClick={() => void handleAction(item, TRIGGER.TuChoi, "từ chối")}>
-                        <UserX className="size-4" /> Từ chối
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </AdminCard>
+                  );
+                })}
+              </div>
+            )}
+          </AdminCard>
+        </TabsContent>
+
+        <TabsContent value="suggested">
+          <SuggestedCandidatesPanel initialJobId={suggestedJobId} onJobChange={changeSuggestedJob} />
+        </TabsContent>
+      </Tabs>
     </AdminPageLayout>
   );
 }

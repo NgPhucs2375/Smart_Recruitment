@@ -262,8 +262,8 @@ export const cvApi = {
     const res = await request<unknown[]>(`cvungviens?_start=0&_end=100&HoSoUngVienId=${hoSoUngVienId}`);
     return Array.isArray(res) ? res.map(normalizeCv) : [];
   },
-  getById: async (id: number): Promise<CvDetailVm> =>
-    normalizeCvDetail(await request<unknown>(`cvungviens/show/${id}`)),
+  getById: async (id: number, tinTuyenDungId?: number): Promise<CvDetailVm> =>
+    normalizeCvDetail(await request<unknown>(`cvungviens/show/${id}${tinTuyenDungId ? `?tinTuyenDungId=${encodeURIComponent(tinTuyenDungId)}` : ""}`)),
   createCv: (payload: object) =>
     request<number>("cvungviens", { method: "POST", body: JSON.stringify(payload) }),
   updateCv: (id: number, payload: object) =>
