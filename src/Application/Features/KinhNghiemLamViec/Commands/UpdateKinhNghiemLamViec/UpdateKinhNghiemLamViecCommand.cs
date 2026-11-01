@@ -67,6 +67,10 @@ public class UpdateKinhNghiemLamViecCommandHandler(
                 "Không tìm thấy kinh nghiệm làm việc.");
         }
 
+        // DbContext NoTracking toàn cục: Find/FirstOrDefault trả về entity
+        // không track — Attach cùng reference (không throw duplicate-track).
+        context.KinhNghiemLamViecs.Attach(entity);
+
         var ctx = await current.ResolveAsync();
 
         if (ctx.VaiTro != VaiTroNguoiDung.QUAN_TRI_VIEN)

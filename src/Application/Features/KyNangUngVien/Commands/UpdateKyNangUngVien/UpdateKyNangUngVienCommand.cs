@@ -33,6 +33,10 @@ public class UpdateKyNangUngVienCommandHandler(
                 "Không tìm thấy kỹ năng ứng viên.");
         }
 
+        // DbContext NoTracking toàn cục: Find/FirstOrDefault trả về entity
+        // không track — Attach cùng reference (không throw duplicate-track).
+        context.KyNangUngViens.Attach(entity);
+
         var ctx = await current.ResolveAsync();
 
         if (ctx.VaiTro != VaiTroNguoiDung.QUAN_TRI_VIEN)

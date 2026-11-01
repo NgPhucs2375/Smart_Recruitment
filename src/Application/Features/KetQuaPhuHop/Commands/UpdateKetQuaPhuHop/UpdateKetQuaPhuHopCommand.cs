@@ -36,6 +36,10 @@ public class UpdateKetQuaPhuHopCommandHandler(
                 "Không tìm thấy kết quả phù hợp.");
         }
 
+        // DbContext NoTracking toàn cục: Find/FirstOrDefault trả về entity
+        // không track — Attach cùng reference (không throw duplicate-track).
+        context.KetQuaPhuHops.Attach(entity);
+
         var hoSoTonTai = await context.HoSoUngViens
             .AsNoTracking()
             .AnyAsync(

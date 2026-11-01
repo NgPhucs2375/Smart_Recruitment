@@ -34,6 +34,10 @@ public class UpdateKyNangCommandHandler(
                 "Không tìm thấy kỹ năng.");
         }
 
+        // DbContext NoTracking toàn cục: Find/FirstOrDefault trả về entity
+        // không track — Attach cùng reference (không throw duplicate-track).
+        context.KyNangs.Attach(entity);
+
         var tenKyNang = request.TenKyNang?.Trim();
 
         var trungLap = await context.KyNangs
