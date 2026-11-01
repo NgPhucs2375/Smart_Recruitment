@@ -83,7 +83,40 @@ namespace Infrastructure.Identity
             if (string.IsNullOrWhiteSpace(jwtIssuer) || string.IsNullOrWhiteSpace(jwtAudience))
                 throw new InvalidOperationException("JWTSettings:Issuer and JWTSettings:Audience are required.");
 
-            services.AddIdentity<ApplicationUser, IdentityRole>().AddEntityFrameworkStores<IdentityContext>().AddDefaultTokenProviders();
+            // Provider riêng cho link đặt lại mật khẩu để thời hạn của nó không kéo theo
+            // thời hạn link xác minh email (mặc định dùng chung provider "Default").
+            const string passwordResetTokenProvider = "password-reset";
+
+            services.AddIdentity<ApplicationUser, IdentityRole>()
+                .AddEntityFrameworkStores<IdentityContext>()
+                .AddDefaultTokenProviders()
+                .AddTokenProvider<DataProtectorTokenProvider<ApplicationUser>>(passwordResetTokenProvider);
+
+            // Trước đây không khai báo gì => mọi ngưỡng dưới đây là mặc định của framework.
+            // Giữ nguyên giá trị hiện hành, chỉ làm cho chúng thành quyết định chủ động.
+            services.Configure<IdentityOptions>(options =>
+            {
+                options.Password.RequiredLength = 6;
+                options.Password.RequireDigit = true;
+                options.Password.RequireLowercase = true;
+                options.Password.RequireUppercase = true;
+                // AccountService.MagicLoginAsync nối "!Aa1" vào mật khẩu ngẫu nhiên
+                // chính là để thỏa rule này; tắt nó sẽ làm luồng đó mất ý nghĩa.
+                options.Password.RequireNonAlphanumeric = true;
+                options.Password.RequiredUniqueChars = 1;
+
+                options.Lockout.AllowedForNewUsers = true;
+                options.Lockout.MaxFailedAccessAttempts = 5;
+                options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(5);
+
+                options.Tokens.EmailConfirmationTokenProvider = TokenOptions.DefaultProvider;
+                options.Tokens.PasswordResetTokenProvider = passwordResetTokenProvider;
+            });
+
+            services.Configure<DataProtectionTokenProviderOptions>(
+                options => options.TokenLifespan = TimeSpan.FromHours(24));
+            services.Configure<DataProtectionTokenProviderOptions>(
+                passwordResetTokenProvider, options => options.TokenLifespan = TimeSpan.FromMinutes(30));
             #region Services
             services.AddScoped<IAccountService, AccountService>();
             services.AddScoped<IUserRoleService, UserRoleService>();

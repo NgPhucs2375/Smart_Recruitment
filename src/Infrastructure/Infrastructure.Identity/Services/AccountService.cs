@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.WebUtilities;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Newtonsoft.Json;
@@ -42,6 +43,8 @@ namespace Infrastructure.Identity.Services
         private readonly IAuthenticatedUserService _authenticatedUserService;
         private readonly IOptions<GoogleSettings> _googleSettings;
         private readonly IOptions<GitHubSettings> _gitHubSettings;
+        private readonly IOptions<IdentityOptions> _identityOptions;
+        private readonly bool _echoResetLinkToLogs;
         private readonly ILogger<AccountService> _logger;
         private readonly IHttpClientFactory _httpClientFactory;
         public AccountService(
@@ -56,6 +59,8 @@ namespace Infrastructure.Identity.Services
             IAuthenticatedUserService authenticatedUserService,
             IOptions<GoogleSettings> googleSettings,
             IOptions<GitHubSettings> gitHubSettings,
+            IOptions<IdentityOptions> identityOptions,
+            IConfiguration configuration,
             ILogger<AccountService> logger,
             IHttpClientFactory httpClientFactory)
         {
@@ -70,6 +75,9 @@ namespace Infrastructure.Identity.Services
             _authenticatedUserService = authenticatedUserService;
             _googleSettings = googleSettings;
             _gitHubSettings = gitHubSettings;
+            _identityOptions = identityOptions;
+            _echoResetLinkToLogs = string.Equals(
+                configuration["Auth:EchoResetLinkToLogs"], "true", StringComparison.OrdinalIgnoreCase);
             _logger = logger;
             _httpClientFactory = httpClientFactory;
         }
@@ -231,10 +239,8 @@ namespace Infrastructure.Identity.Services
 
             var result = await _userManager.CreateAsync(user, request.Password).ConfigureAwait(false);
             if (!result.Succeeded)
-            {
-                var errors = string.Join(", ", result.Errors.Select(e => e.Description));
-                throw new ApiException($"Đăng ký không thành công: {errors}");
-            }
+                throw new ApiException(IdentityErrorMessages.Map(
+                    result.Errors, "Đăng ký không thành công.", _identityOptions));
 
             // Compensate Identity creation if domain provisioning fails.
             try
@@ -674,9 +680,15 @@ namespace Infrastructure.Identity.Services
                 ["email"] = model.Email,
                 ["token"] = code
             });
+            // Dev/test only: repo không có SMTP catcher nên smoke test cần đọc link từ log.
+            // Khóa bật tường minh qua Auth:EchoResetLinkToLogs (mặc định false) chứ không dựa
+            // vào environment, tránh lộ password-reset token nếu ASPNETCORE_ENVIRONMENT bị set sai.
+            if (_echoResetLinkToLogs)
+                _logger.LogWarning("DEV_AUTH_RESET_LINK {Email} {Link}", account.Email, resetUri);
+
             var emailRequest = new EmailRequest()
             {
-                Body = $"<p>Bạn vừa yêu cầu đặt lại mật khẩu HIREAI.</p><p><a href=\"{resetUri}\">Đặt lại mật khẩu</a></p><p>Liên kết có thể hết hạn. Nếu bạn không yêu cầu, hãy bỏ qua email này.</p>",
+                Body = $"<p>Bạn vừa yêu cầu đặt lại mật khẩu HIREAI.</p><p><a href=\"{resetUri}\">Đặt lại mật khẩu</a></p><p>Liên kết có hiệu lực trong 30 phút. Nếu bạn không yêu cầu, hãy bỏ qua email này.</p>",
                 To = model.Email,
                 Subject = "Đặt lại Mật khẩu",
             };
@@ -684,23 +696,54 @@ namespace Infrastructure.Identity.Services
             catch (Exception ex) { _logger.LogWarning(ex, "Không gửi được email đặt lại mật khẩu cho {UserId}", account.Id); }
         }
 
+        // Purpose string mà UserManager.ResetPasswordAsync dùng khi verify/clear token.
+        private const string ResetPasswordTokenPurpose = "ResetPassword";
+        private static readonly TimeSpan AdminLockThreshold = TimeSpan.FromDays(1);
+
         public async Task<Response<string>> ResetPassword(YeuCauGuiLaiXacMinh model)
         {
             var account = await _userManager.FindByEmailAsync(model.Email);
-            // Không tiết lộ email có tồn tại hay không: mọi trường hợp lỗi
-            // đều trả về cùng một thông báo như khi token không hợp lệ
+            // Endpoint nặc danh: "email không tồn tại", "token sai" và "token hết hạn"
+            // phải trả về cùng một thông báo, nên trạng thái tài khoản chỉ được tiết lộ
+            // SAU khi token đã chứng minh người gọi sở hữu mailbox (cùng nguyên tắc với
+            // AuthenticateAsync).
             if (account == null)
-                throw new ApiException("Mã đặt lại mật khẩu không hợp lệ hoặc đã hết hạn.");
+                throw new ApiException(IdentityErrorMessages.GenericResetToken);
+
+            var provider = _identityOptions.Value.Tokens.PasswordResetTokenProvider;
+            if (!await _userManager.VerifyUserTokenAsync(account, provider, ResetPasswordTokenPurpose, model.Token))
+                throw new ApiException(IdentityErrorMessages.GenericResetToken);
+
+            await EnsureAccountUsableForResetAsync(account);
+
+            // ResetPasswordAsync verify lại token rồi mới chạy password validator,
+            // nên lỗi policy chỉ hiện ra với chủ sở hữu link.
             var result = await _userManager.ResetPasswordAsync(account, model.Token, model.Password);
-            if (result.Succeeded)
+            if (!result.Succeeded)
+                throw new ApiException(IdentityErrorMessages.Map(
+                    result.Errors, IdentityErrorMessages.GenericResetToken, _identityOptions));
+
+            await RevokeSessionsAsync(account);
+            return new Response<string>(model.Email, "Mật khẩu đã được đặt lại. Vui lòng đăng nhập lại.");
+        }
+
+        /// <summary>
+        /// Lockout do nhập sai mật khẩu là tình thế bí: nếu từ chối reset ở đây, người dùng
+        /// bị kẹt giữa "link hợp lệ" và "đăng nhập luôn ăn 401". Admin-lock thì vẫn phải chặn.
+        /// </summary>
+        private async Task EnsureAccountUsableForResetAsync(ApplicationUser account)
+        {
+            if (account.LockoutEnd.HasValue && account.LockoutEnd.Value > DateTimeOffset.UtcNow)
             {
-                await RevokeSessionsAsync(account);
-                return new Response<string>(model.Email, "Mật khẩu đã được đặt lại. Vui lòng đăng nhập lại.");
+                // LockUserCommand set LockoutEnd = DateTimeOffset.MaxValue để khóa bởi quản trị.
+                if (account.LockoutEnd.Value - DateTimeOffset.UtcNow > AdminLockThreshold)
+                    throw new ApiException("Tài khoản đang bị khóa bởi quản trị viên.", 403);
+
+                await _userManager.SetLockoutEndDateAsync(account, null);
+                await _userManager.ResetAccessFailedCountAsync(account);
             }
-            else
-            {
-                throw new ApiException("Mã đặt lại mật khẩu không hợp lệ hoặc đã hết hạn.");
-            }
+
+            await EnsureAccountEnabledAsync(account, requireVerified: true);
         }
 
         public async Task<Response<string>> ChangePasswordAsync(YeuCauDoiMatKhau model)
@@ -715,12 +758,8 @@ namespace Infrastructure.Identity.Services
 
             var result = await _userManager.ChangePasswordAsync(account, model.MatKhauHienTai, model.MatKhauMoi);
             if (!result.Succeeded)
-            {
-                var error = result.Errors.FirstOrDefault();
-                throw new ApiException(error?.Code == "PasswordMismatch"
-                    ? "Mật khẩu hiện tại không đúng."
-                    : error?.Description ?? "Không thể đổi mật khẩu.");
-            }
+                throw new ApiException(IdentityErrorMessages.Map(
+                    result.Errors, "Không thể đổi mật khẩu.", _identityOptions));
 
             await RevokeSessionsAsync(account);
             return new Response<string>(account.Email, "Đổi mật khẩu thành công. Vui lòng đăng nhập lại.");
