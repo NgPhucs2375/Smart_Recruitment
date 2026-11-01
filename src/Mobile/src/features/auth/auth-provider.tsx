@@ -97,6 +97,9 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
   const changePassword = useCallback(async (currentPassword: string, newPassword: string) => {
     const result = await authApi.changePassword(currentPassword, newPassword);
+    // Backend đã xoay SecurityStamp nên session này chết thật; thu hồi refresh token
+    // phía server trước rồi mới xoá local, cùng thứ tự với signOut.
+    await revokeRefreshToken();
     await clearTokens();
     setUser(null);
     setStatus('signedOut');

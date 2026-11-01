@@ -1,5 +1,6 @@
+import * as Linking from 'expo-linking';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -17,22 +18,58 @@ import { BrandLogo } from '@/components/brand-logo';
 import { ThemedText } from '@/components/themed-text';
 import { Button } from '@/components/ui/button';
 import { font, Radius } from '@/constants/theme';
-import { authApi } from '@/features/auth';
+import { authApi, useAuth } from '@/features/auth';
+import { parseResetLink } from '@/features/auth/deep-link';
 import { useTheme } from '@/hooks/use-theme';
 import { safeBack } from '@/utils/navigation';
 
 export default function ResetPasswordScreen() {
   const theme = useTheme();
-  const params = useLocalSearchParams<{ email?: string }>();
+  const { signOut } = useAuth();
+  const params = useLocalSearchParams<{ email?: string; token?: string }>();
+  const paramEmail = typeof params.email === 'string' ? params.email : '';
+  const paramToken = typeof params.token === 'string' ? params.token : '';
 
-  const [email, setEmail] = useState(typeof params.email === 'string' ? params.email : '');
-  const [token, setToken] = useState('');
+  const [email, setEmail] = useState(paramEmail);
+  const [token, setToken] = useState(paramToken);
+  const [tokenFromLink, setTokenFromLink] = useState(Boolean(paramToken));
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [submitting, setSubmitting] = useState(false);
+
+  // Link bấm lúc app đang chạy (hot start) hoặc lúc app chưa mở (cold start) có thể
+  // không rơi vào params của screen → đọc URL launch làm nguồn dự phòng.
+  useEffect(() => {
+    if (paramToken) return;
+    let active = true;
+    void (async () => {
+      try {
+        const parsed = parseResetLink(await Linking.getLinkingURL());
+        if (!active || !parsed.token) return;
+        setToken(parsed.token);
+        setTokenFromLink(true);
+        const linkedEmail = parsed.email;
+        if (linkedEmail) setEmail((current) => current || linkedEmail);
+      } catch {
+        // Không có URL launch (Expo Go, web): giữ luồng dán token thủ công.
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, [paramToken]);
+
+  // User dán cả đường link vào ô token: tách email + token, không gửi nguyên link làm token.
+  const handleTokenBlur = () => {
+    const parsed = parseResetLink(token);
+    if (!parsed.token) return;
+    setToken(parsed.token);
+    const linkedEmail = parsed.email;
+    if (linkedEmail) setEmail((current) => current || linkedEmail);
+  };
 
   const handleSubmit = async () => {
     const trimmedEmail = email.trim();
@@ -55,7 +92,10 @@ export default function ResetPasswordScreen() {
     setSuccess('');
     try {
       const result = await authApi.resetPassword(trimmedEmail, password, trimmedToken);
-      setSuccess(result.message || 'Đặt lại mật khẩu thành công!');
+      // Backend xoay SecurityStamp khi đặt lại mật khẩu: phiên hiện tại chết thật.
+      // Giữ token trong app chỉ tạo 401 im lặng ở màn kế tiếp.
+      await signOut();
+      setSuccess(result.message || 'Mật khẩu đã được đặt lại. Mọi phiên đăng nhập cũ đều bị đăng xuất.');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Đặt lại mật khẩu thất bại. Vui lòng thử lại.');
     } finally {
@@ -80,7 +120,9 @@ export default function ResetPasswordScreen() {
 
           <ThemedText style={styles.title}>Đặt lại mật khẩu</ThemedText>
           <ThemedText style={[styles.subtitle, { color: theme.textSecondary }]}>
-            Dán token từ email đặt lại mật khẩu
+            {tokenFromLink
+              ? 'Liên kết đặt lại mật khẩu đã hợp lệ. Chọn mật khẩu mới cho tài khoản của bạn.'
+              : 'Dán token từ email đặt lại mật khẩu'}
           </ThemedText>
 
           <ThemedText style={[styles.label, { color: theme.textSecondary }]}>Email</ThemedText>
@@ -100,21 +142,30 @@ export default function ResetPasswordScreen() {
             />
           </View>
 
-          <ThemedText style={[styles.label, { color: theme.textSecondary }]}>Token từ email</ThemedText>
-          <View style={[styles.inputWrap, { backgroundColor: theme.backgroundElement, borderColor: theme.input }]}>
-            <KeyRound size={16} color="#9ca3af" style={styles.inputIcon} />
-            <TextInput
-              autoCapitalize="none"
-              autoCorrect={false}
-              editable={!submitting}
-              onChangeText={setToken}
-              placeholder="Dán token hoặc đường link đặt lại"
-              placeholderTextColor={theme.textSecondary}
-              selectionColor={theme.primary}
-              style={[styles.input, { color: theme.text }]}
-              value={token}
-            />
-          </View>
+          {tokenFromLink ? (
+            <ThemedText style={[styles.help, { color: theme.textSecondary }]}>
+              Đã nhận token từ liên kết đặt lại mật khẩu.
+            </ThemedText>
+          ) : (
+            <>
+              <ThemedText style={[styles.label, { color: theme.textSecondary }]}>Token từ email</ThemedText>
+              <View style={[styles.inputWrap, { backgroundColor: theme.backgroundElement, borderColor: theme.input }]}>
+                <KeyRound size={16} color="#9ca3af" style={styles.inputIcon} />
+                <TextInput
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  editable={!submitting}
+                  onBlur={handleTokenBlur}
+                  onChangeText={setToken}
+                  placeholder="Dán token hoặc đường link đặt lại"
+                  placeholderTextColor={theme.textSecondary}
+                  selectionColor={theme.primary}
+                  style={[styles.input, { color: theme.text }]}
+                  value={token}
+                />
+              </View>
+            </>
+          )}
 
           <ThemedText style={[styles.label, { color: theme.textSecondary }]}>Mật khẩu mới</ThemedText>
           <View style={[styles.inputWrap, { backgroundColor: theme.backgroundElement, borderColor: theme.input }]}>
@@ -207,6 +258,7 @@ const styles = StyleSheet.create({
   topSpacer: { width: 20 },
   title: { fontFamily: font('semibold'), fontSize: 24, letterSpacing: -0.4 },
   subtitle: { fontFamily: font('regular'), fontSize: 14, marginBottom: 12 },
+  help: { fontFamily: font('regular'), fontSize: 12, lineHeight: 18, marginTop: 6 },
   label: {
     fontFamily: font('medium'),
     fontSize: 11,

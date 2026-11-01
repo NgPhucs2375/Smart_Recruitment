@@ -22,6 +22,9 @@ import { Button } from '@/components/ui/button';
 // Giữ splash cho đến khi font Be Vietnam Pro load xong, tránh nháy font hệ thống.
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
+// Màn hình tiếp cận được khi chưa đăng nhập (deep link từ email rơi vào đây).
+const PUBLIC_AUTH_ROUTES = ['login', 'register', 'forgot-password', 'reset-password', 'confirm-email'];
+
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
     BeVietnamPro_400Regular,
@@ -58,10 +61,13 @@ function RootNavigator() {
   // Sau khi đăng xuất, luôn đưa về trang đăng nhập. Các màn hình ứng viên
   // (cvs, applications, ...) nằm ngoài nhóm (auth) nên nếu không chặn,
   // Stack.Protected sẽ chọn chúng làm "first available screen" thay vì /login.
+  // Ngoại lệ: màn hình xác thực công khai — user đã ký-out phải mở được deep link
+  // reset-password/confirm-email gửi tới email, nếu không luồng quên mật khẩu tê liệt.
   useEffect(() => {
-    if (status === 'signedOut' && segments[0] !== '(auth)') {
-      router.replace('/login');
-    }
+    if (status !== 'signedOut') return;
+    const route = segments[segments.length - 1];
+    if (route && PUBLIC_AUTH_ROUTES.includes(route)) return;
+    router.replace('/login');
   }, [status, segments, router]);
 
   // Đang khôi phục phiên đăng nhập: giữ màn hình chờ, tránh nháy màn hình đăng nhập.
@@ -149,6 +155,11 @@ function RootNavigator() {
           <Stack.Screen name="profile-edit" />
           <Stack.Screen name="chat/[id]" options={{ headerShown: false }} />
         </Stack.Protected>
+
+        {/* Đăng ký cuối: "first available screen" theo thứ tự JSX, để mở link đặt lại
+            mật khẩu cho cả user đang đăng nhập mà không đổi màn hình khởi động. */}
+        <Stack.Screen name="reset-password" />
+        <Stack.Screen name="confirm-email" />
       </Stack>
     </ThemeProvider>
   );
