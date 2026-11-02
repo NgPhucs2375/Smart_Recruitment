@@ -33,6 +33,9 @@ export function notificationTarget(
   if (audience === 'candidate') {
     if (notification.referenceType === 'RecommendationDigest') return '/';
     if (notification.referenceType === 'DonUngTuyen') return '/applications';
+    if (notification.referenceType === 'GoiYViecLamPhuHop' && notification.referenceId) {
+      return `/jobs/${notification.referenceId}`;
+    }
     if (notification.referenceType === 'TinTuyenDung' && notification.referenceId) {
       return `/jobs/${notification.referenceId}`;
     }
@@ -41,6 +44,7 @@ export function notificationTarget(
 
   // HR: điều hướng về các tab trong workspace (hr).
   if (notification.referenceType === 'DonUngTuyen') return '/applicants';
+  if (notification.referenceType === 'UngVienPhuHop') return '/applicants';
   if (notification.referenceType === 'TinTuyenDung') return '/jobs';
   return '/dashboard';
 }

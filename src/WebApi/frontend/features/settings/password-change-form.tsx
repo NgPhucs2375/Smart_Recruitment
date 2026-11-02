@@ -45,7 +45,7 @@ export function PasswordChangeForm() {
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 rounded-xl border border-border bg-card p-4">
       <div>
         <h4 className="text-sm font-medium text-foreground">Đổi mật khẩu</h4>
-        <p className="mt-0.5 text-xs text-muted-foreground">Xác nhận mật khẩu hiện tại trước khi tạo mật khẩu mới.</p>
+        <p className="mt-0.5 text-xs text-muted-foreground">Xác nhận mật khẩu hiện tại trước khi tạo mật khẩu mới. Sau khi đổi, mọi phiên đăng nhập khác sẽ bị đăng xuất.</p>
       </div>
       {result && (
         <Alert variant={result.type === "error" ? "destructive" : "default"} role={result.type === "error" ? "alert" : "status"}>

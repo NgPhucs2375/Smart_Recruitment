@@ -11,9 +11,10 @@ namespace Application.Interfaces
         DbSet<Notification> Notifications { get; set; }
         DbSet<NotificationRecipient> NotificationRecipients { get; set; }
         DbSet<TinTuyenDung> TinTuyenDungs { get; set; }
-        DbSet<KyNang> KyNangs { get; set; }
+        DbSet<DanhMucKyNang> KyNangs { get; set; }
         DbSet<KyNangTinTuyenDung> KyNangTinTuyenDungs { get; set; }
         DbSet<global::KyNangUngVien> KyNangUngViens { get; set; }
+        DbSet<global::KinhNghiemLamViec> KinhNghiemLamViecs { get; set; }
         DbSet<KetQuaPhanTichCv> KetQuaPhanTichCvs { get; set; }
         DbSet<KetQuaPhuHop> KetQuaPhuHops { get; set; }
         DbSet<HoSoUngVien> HoSoUngViens { get; set; }

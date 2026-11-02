@@ -11,5 +11,7 @@ namespace Application.Features.KetQuaPhuHop.Queries.GetAllKetQuaPhuHops
         public float DiemPhuHop { get; set; }
         public PhanLoaiKetQua PhanLoai { get; set; }
         public DateTime Created { get; set; }
+        public string HoTenUngVien { get; set; }
+        public string TieuDeTinTuyenDung { get; set; }
     }
 }

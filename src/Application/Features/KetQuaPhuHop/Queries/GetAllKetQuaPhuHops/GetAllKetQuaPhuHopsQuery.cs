@@ -23,7 +23,6 @@ namespace Application.Features.KetQuaPhuHop.Queries.GetAllKetQuaPhuHops
 
     public class GetAllKetQuaPhuHopsQueryHandler(
         IApplicationDbContext context,
-        IMapper mapper,
         ICurrentNguoiDungService current)
         : IRequestHandler<GetAllKetQuaPhuHopsQuery, Response<List<GetAllKetQuaPhuHopsViewModel>>>
     {
@@ -94,12 +93,22 @@ namespace Application.Features.KetQuaPhuHop.Queries.GetAllKetQuaPhuHops
                 query = query.Take(take);
             }
 
-            var items = await query.ToListAsync(
-                cancellationToken);
+            var items = await query
+                // Chiếu thẳng để EF chỉ lấy hai cột tên, không kéo theo nguyên hàng hồ sơ/tin.
+                .Select(x => new GetAllKetQuaPhuHopsViewModel
+                {
+                    Id = x.Id,
+                    HoSoUngVienId = x.HoSoUngVienId,
+                    TinTuyenDungId = x.TinTuyenDungId,
+                    DiemPhuHop = x.DiemPhuHop,
+                    PhanLoai = x.PhanLoai,
+                    Created = x.Created,
+                    HoTenUngVien = x.HoSoUngVien.HoTen,
+                    TieuDeTinTuyenDung = x.TinTuyenDung.TieuDe,
+                })
+                .ToListAsync(cancellationToken);
 
-            var result = mapper.Map<List<GetAllKetQuaPhuHopsViewModel>>(items);
-
-            return new Response<List<GetAllKetQuaPhuHopsViewModel>>(result);
+            return new Response<List<GetAllKetQuaPhuHopsViewModel>>(items);
         }
     }
 }

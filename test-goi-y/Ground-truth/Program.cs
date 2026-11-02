@@ -75,7 +75,7 @@ static async Task<Dictionary<string, int>> EnsureSkillsAsync(ApplicationDbContex
     var requested = names.Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
     var existing = await db.KyNangs.AsTracking().ToListAsync();
     foreach (var name in requested.Where(name => existing.All(x => !string.Equals(x.TenKyNang, name, StringComparison.OrdinalIgnoreCase))))
-        db.KyNangs.Add(new KyNang { TenKyNang = name, MoTa = $"Kỹ năng dùng cho benchmark {Marker}" });
+        db.KyNangs.Add(new DanhMucKyNang { TenKyNang = name, MoTa = $"Kỹ năng dùng cho benchmark {Marker}" });
     await db.SaveChangesAsync();
 
     return (await db.KyNangs.AsNoTracking().ToListAsync())

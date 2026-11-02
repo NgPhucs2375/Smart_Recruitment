@@ -27,6 +27,8 @@ namespace Domain.Entities
         public DateTime? NgayHetHan { get; set; }
         public bool NguoiDaiDienDaDuyet { get; set; }
         public string KetQuaSangLoc { get; set; } = "";
+        /// <summary>Lần gần nhất hệ thống quét pool ứng viên và ghi điểm phù hợp cho tin này. null = chưa bao giờ.</summary>
+        public DateTime? QuatUngVienLucCuoi { get; set; }
         // ===   === //
         public DoanhNghiep DoanhNghiep { get; set; }
         public DanhMucNghe DanhMucNghe { get; set; }

@@ -118,7 +118,9 @@ _services.AddWebAppServices();
 _services.AddAdamAgents();
 _services.AddHostedService<WebApp.Server.Jobs.TinTuyenDungHetHanJob>();
 _services.AddHostedService<WebApp.Server.Jobs.TinTuyenDungSangLocJob>();
+_services.AddHostedService<WebApp.Server.Jobs.JobCandidateFanoutJob>();
 _services.AddHostedService<WebApp.Server.Jobs.CvImportSessionCleanupJob>();
+_services.AddHostedService<WebApp.Server.Jobs.LoiMoiHetHanJob>();
 _services.AddEndpointsApiExplorer();
 
 // trước Build() dùng Add sau dùng Use

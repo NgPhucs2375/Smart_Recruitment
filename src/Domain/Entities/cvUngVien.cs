@@ -29,6 +29,7 @@ namespace Domain.Entities
         public bool IsDefault { get; set; } = true;
 
         public bool IsDaXoa { get; set; } = false;
+
         public string StorageKey { get; set; }
 
         public string FileMimeType { get; set; }

@@ -163,6 +163,14 @@ namespace WebApp.Server.Controllers
             var current = await _current.ResolveAsync();
             if (current.VaiTro == VaiTroNguoiDung.UNG_VIEN)
             {
+                // Quét pool ứng viên đã báo từng tin khớp nhất trong hôm nay thì
+                // không xếp thêm bản tin ngày trùng nội dung.
+                var daDuocBanTinHomNay = await _context.Notifications
+                    .AnyAsync(n => n.ReferenceType == "GoiYViecLamPhuHop"
+                        && n.Created >= today
+                        && n.Recipients.Any(r => r.NguoiDungId == userId));
+                if (daDuocBanTinHomNay) return;
+
                 var response = await _sender.Send(new GetSuggestedJobsForCvQuery
                 {
                     TopN = 10,

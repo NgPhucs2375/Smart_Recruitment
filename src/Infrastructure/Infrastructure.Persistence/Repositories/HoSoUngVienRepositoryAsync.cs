@@ -24,7 +24,7 @@
 //             return await _dbContext.HoSoUngViens
 //                 .Include(h => h.KinhNghiemLamViecs)    // Navigation property
 //                 .Include(h => h.KyNangUngViens)        // Navigation property
-//                     .ThenInclude(k => k.KyNang)        // Include thêm KyNang
+//                     .ThenInclude(k => k.DanhMucKyNang)        // Include thêm DanhMucKyNang
 //                 .FirstOrDefaultAsync(h => h.Id == id);
 //         }
 

@@ -10,7 +10,7 @@ public static class PermissionPolicy
 {
     public static readonly string[] Resources = ["baocao", "chat", "cvthemes", "cvungviens", "danhgias", "danhmucnghes", "dashboard",
         "doanhnghieps", "donungtuyens", "hosonhatuyendungs", "hosoungviens", "ketquaphantichcvs",
-        "ketquaphuhops", "kynangs", "kynangtintuyendungs", "kynangungviens", "loimoinhansus",
+        "ketquaphuhops", "kinhnghiemlamviec", "kynangs", "kynangtintuyendungs", "kynangungviens", "loimoinhansus",
         "nguoidungs", "nhansus", "quytackiemduyettins", "roleclaims", "roles", "tintuyendungs", "users"];
     private static readonly string[] AdminOnly = ["users", "roles", "roleclaims", "nguoidungs", "dashboard", "quytackiemduyettins"];
     private static readonly string[] Actions = ["list", "show", "create", "edit", "delete"];

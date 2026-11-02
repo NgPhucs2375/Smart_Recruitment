@@ -47,8 +47,8 @@ public sealed class GetRecruiterJobDetailQueryHandler(
                 TrangThai = x.TrangThai.ToString(),
                 NgayHetHan = x.NgayHetHan,
                 KyNang = x.KyNangTinTuyenDungs
-                    .Where(k => k.KyNang != null)
-                    .Select(k => k.KyNang!.TenKyNang)
+                    .Where(k => k.DanhMucKyNang != null)
+                    .Select(k => k.DanhMucKyNang!.TenKyNang)
                     .ToList()
             })
             .FirstOrDefaultAsync(cancellationToken);

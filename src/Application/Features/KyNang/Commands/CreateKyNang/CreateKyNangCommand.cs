@@ -4,7 +4,7 @@ using Application.Features.KyNang.Cache;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Distributed;
-using KyNangEntity = global::Domain.Entities.KyNang;
+using KyNangEntity = global::Domain.Entities.DanhMucKyNang;
 
 namespace Application.Features.KyNang.Commands.CreateKyNang;
 

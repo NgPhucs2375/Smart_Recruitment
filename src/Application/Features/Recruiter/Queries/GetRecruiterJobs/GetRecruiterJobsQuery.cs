@@ -68,8 +68,8 @@ public sealed class GetRecruiterJobsQueryHandler(
                     LuongToiThieu = x.LuongToiThieu,
                     LuongToiDa = x.LuongToiDa,
                     KyNang = x.KyNangTinTuyenDungs
-                        .Where(k => k.KyNang != null)
-                        .Select(k => k.KyNang!.TenKyNang)
+                        .Where(k => k.DanhMucKyNang != null)
+                        .Select(k => k.DanhMucKyNang!.TenKyNang)
                         .ToList()
                 })
                 .ToListAsync(cancellationToken);

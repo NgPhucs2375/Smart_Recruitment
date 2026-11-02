@@ -16,7 +16,7 @@ namespace Infrastructure.Persistence.Configurations
                    .HasForeignKey(x => x.TinTuyenDungId)
                    .OnDelete(DeleteBehavior.Cascade);
 
-            builder.HasOne(x => x.KyNang)
+            builder.HasOne(x => x.DanhMucKyNang)
                    .WithMany(x => x.KyNangTinTuyenDungs)
                    .HasForeignKey(x => x.KyNangId)
                    .OnDelete(DeleteBehavior.Restrict);

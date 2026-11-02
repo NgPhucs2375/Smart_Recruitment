@@ -11,5 +11,5 @@ public class CVDuAnCongNghe : AuditableBaseEntity
 
     public CVDuAn CVDuAn { get; set; }
 
-    public KyNang? KyNang { get; set; }
+    public DanhMucKyNang? DanhMucKyNang { get; set; }
 }

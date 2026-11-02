@@ -7,6 +7,10 @@ export function notificationTarget(notification: { referenceType?: string | null
     return candidate ? "/viec-lam/da-ung-tuyen" : notification.jobId ? `/tin-tuyen-dung/${notification.jobId}/ung-vien` : "/ung-vien";
   if (notification.referenceType === "TinTuyenDung" && notification.referenceId)
     return candidate ? `/viec-lam/${notification.referenceId}` : admin ? "/admin/tin-tuyen-dung" : "/tin-tuyen-dung";
+  if (notification.referenceType === "GoiYViecLamPhuHop" && notification.referenceId)
+    return candidate ? `/viec-lam/${notification.referenceId}` : null;
+  if (notification.referenceType === "UngVienPhuHop" && notification.referenceId)
+    return candidate ? null : `/tin-tuyen-dung/${notification.referenceId}/ung-vien`;
   if (notification.referenceType === "LoiMoiNhanSu") return candidate
     ? notification.inviteToken ? `/accept-invite?token=${encodeURIComponent(notification.inviteToken)}` : null
     : "/nhan-su";

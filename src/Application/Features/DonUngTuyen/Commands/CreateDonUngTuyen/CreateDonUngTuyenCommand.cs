@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Application.Features.CVUngVien;
 using Application.Interfaces;
 using Application.Interfaces.Repositories;
 using Application.Services.StateMachineDonUngTuyen;
@@ -28,6 +29,8 @@ public class CreateDonUngTuyenCommandHandler(IApplicationDbContext context, ICur
             .Include(x => x.DuAns).ThenInclude(x => x.CongNghes)
             .FirstOrDefaultAsync(x => x.Id == request.CVUngVienId && !x.IsDaXoa && x.HoSoUngVien.NguoiDungId == user.Id, ct);
         if (cv == null) return new Response<int>("Không tìm thấy CV thuộc về bạn.");
+        if (!CvEntityMapper.DaSanSang(cv))
+            return new Response<int>("CV chưa hoàn tất (thiếu tên file hoặc họ tên liên hệ). Hãy hoàn thiện CV trước khi nộp.");
         var job = await context.TinTuyenDungs.AsNoTracking().FirstOrDefaultAsync(x => x.Id == request.TinTuyenDungId, ct);
         if (job == null || job.TrangThai != TrangThaiTinTuyenDung.DangTuyen || !Domain.Common.RecruitmentDeadline.IsOpen(job.NgayHetHan))
             return new Response<int>("Tin tuyển dụng không còn nhận hồ sơ.");

@@ -61,7 +61,6 @@ export default function HRAccountScreen() {
   const [notice, setNotice] = useState<Notice>(null);
   const [form, setForm] = useState({ hoTen: '', sdt: '', chucVu: '' });
 
-
   const load = useCallback(() => {
     return Promise.allSettled([hrProfileApi.getMine(), hrCompanyApi.getMine()]).then(
       ([profileResult, companyResult]) => {
@@ -608,7 +607,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     paddingHorizontal: 14,
   },
-  inputIcon: { marginRight: 10 },
   input: { flex: 1, fontFamily: font('regular'), fontSize: 14, paddingVertical: 10 },
   inputReadonly: { flex: 1, fontFamily: font('regular'), fontSize: 14, paddingVertical: 10 },
   formActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 10 },

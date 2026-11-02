@@ -26,7 +26,7 @@ public sealed class ParseCvImportCommandHandler(
     {
         var currentUser = await currentNguoiDungService.ResolveAsync();
         var session = await context.CVImportSessions
-            .AsNoTracking()
+            .AsTracking()
             .FirstOrDefaultAsync(x => x.Id == request.SessionId, cancellationToken);
 
         if (session == null ||
@@ -42,31 +42,64 @@ public sealed class ParseCvImportCommandHandler(
             return new Response<ParsedCvResultDto>("Phiên import đã hết hạn.");
         }
 
-        await using var fileStream = await fileStorageService.DownloadAsync(
-            session.OriginalObjectKey,
-            cancellationToken);
-        var rawText = await textExtractor.ExtractAsync(
-            fileStream,
-            session.OriginalFileName,
-            cancellationToken);
-
-        if (string.IsNullOrWhiteSpace(rawText))
+        try
         {
+            await using var fileStream = await fileStorageService.DownloadAsync(
+                session.OriginalObjectKey,
+                cancellationToken);
+            var rawText = await textExtractor.ExtractAsync(
+                fileStream,
+                session.OriginalFileName,
+                cancellationToken);
+
+            if (string.IsNullOrWhiteSpace(rawText))
+            {
+                await DanhDauThatBai(cancellationToken);
+                return new Response<ParsedCvResultDto>(
+                    "Không trích xuất được nội dung từ file CV.");
+            }
+
+            var parsed = await parser.ParseAsync(rawText, cancellationToken);
+            // Phiên đã Confirmed thì giữ nguyên: parse lại chỉ là xem lại kết quả,
+            // không được kéo phiên đã dùng về trạng thái trung gian.
+            if (session.TrangThai != TrangThaiCvImport.Confirmed)
+            {
+                session.TrangThai = TrangThaiCvImport.Parsed;
+                await context.SaveChangesAsync(cancellationToken);
+            }
+
             return new Response<ParsedCvResultDto>(
-                "Không trích xuất được nội dung từ file CV.");
+                new ParsedCvResultDto
+                {
+                    TenFile = session.OriginalFileName,
+                    LoaiFile = session.OriginalContentType,
+                    KichThuocFile = session.OriginalFileSize,
+                    NoiDung = parsed,
+                    CanhBao = new(),
+                    CanXacNhanThuCong = true,
+                },
+                "Phân tích CV thành công.");
+        }
+        catch (Exception) when (session.TrangThai != TrangThaiCvImport.Confirmed)
+        {
+            // Trạng thái ThatBai phải xuống DB trước khi exception lan ra,
+            // nếu không phiên hỏng sẽ nằm lại mãi ở Uploaded rồi bị job dọn
+            // dẹp đánh dấu Expired (gây hiểu nhầm "hết hạn" thay vì "lỗi").
+            await DanhDauThatBai(CancellationToken.None);
+            throw;
         }
 
-        var parsed = await parser.ParseAsync(rawText, cancellationToken);
-        return new Response<ParsedCvResultDto>(
-            new ParsedCvResultDto
+        async Task DanhDauThatBai(CancellationToken ct)
+        {
+            session.TrangThai = TrangThaiCvImport.Failed;
+            try
             {
-                TenFile = session.OriginalFileName,
-                LoaiFile = session.OriginalContentType,
-                KichThuocFile = session.OriginalFileSize,
-                NoiDung = parsed,
-                CanhBao = new(),
-                CanXacNhanThuCong = true,
-            },
-            "Phân tích CV thành công.");
+                await context.SaveChangesAsync(ct);
+            }
+            catch (DbUpdateException)
+            {
+                // Không được che lỗi phân tích bằng lỗi ghi trạng thái.
+            }
+        }
     }
 }

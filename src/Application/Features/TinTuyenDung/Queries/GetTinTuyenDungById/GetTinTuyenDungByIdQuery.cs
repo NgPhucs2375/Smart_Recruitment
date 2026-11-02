@@ -27,7 +27,7 @@ namespace Application.Features.TinTuyenDung.Queries.GetTinTuyenDungById
                 .Include(t => t.DoanhNghiep)
                 .Include(t => t.NguoiDangTin)
                 .Include(t => t.KyNangTinTuyenDungs)
-                    .ThenInclude(k => k.KyNang)
+                    .ThenInclude(k => k.DanhMucKyNang)
                 .AsNoTracking()
                 .FirstOrDefaultAsync(t => t.Id == request.Id, cancellationToken);
 
@@ -77,7 +77,7 @@ namespace Application.Features.TinTuyenDung.Queries.GetTinTuyenDungById
                 DoanhNghiepId = entity.DoanhNghiepId,
                 TenDoanhNghiep = entity.DoanhNghiep?.TenDoanhNghiep,
                 KyNangs = entity.KyNangTinTuyenDungs
-                    .Select(k => k.KyNang.TenKyNang)
+                    .Select(k => k.DanhMucKyNang.TenKyNang)
                     .ToList(),
                 SoLuongUngVien = soLuongUngVien,
                 Created = entity.Created,
@@ -90,7 +90,7 @@ namespace Application.Features.TinTuyenDung.Queries.GetTinTuyenDungById
                     .OrderByDescending(n => n.Id).Select(n => n.NoiDung).FirstOrDefaultAsync(cancellationToken) ?? "",
                 KyNangYeuCaus = entity.KyNangTinTuyenDungs.Select(k => new GetAllTinTuyenDungs.JobSkillViewModel
                 {
-                    KyNangId = k.KyNangId, TenKyNang = k.KyNang.TenKyNang, MucDoYeuCau = (int)k.MucDoYeuCau
+                    KyNangId = k.KyNangId, TenKyNang = k.DanhMucKyNang.TenKyNang, MucDoYeuCau = (int)k.MucDoYeuCau
                 }).ToList(),
                 WorkMode = entity.PhuongThucLamViec.ToString(),
                 Level = InferLevel(entity.TieuDe, entity.KinhNghiemYeuCau),

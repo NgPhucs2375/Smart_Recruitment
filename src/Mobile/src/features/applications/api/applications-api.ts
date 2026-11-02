@@ -381,14 +381,21 @@ export const applicationsApi = {
         method: 'POST',
         body: JSON.stringify({ TinTuyenDungId: jobId, CVUngVienId: cvId }),
       });
+      const envelope = asRecord(payload);
       const data = asRecord(unwrapData(payload));
       const message = asText(
         data?.message ??
           data?.Message ??
-          asRecord(payload)?.Message ??
-          asRecord(payload)?.message,
+          envelope?.Message ??
+          envelope?.message,
         'Đã nộp hồ sơ thành công.',
       );
+      // Backend trả HTTP 200 kèm succeeded:false cho mọi nghiệp vụ từ chối
+      // (CV chưa hoàn tất, đã nộp rồi, tin đã đóng...). Không chặn ở đây thì
+      // sheet báo là đã nộp đơn.
+      if (envelope?.Succeeded === false || envelope?.succeeded === false) {
+        throw new Error(message || 'Không thể nộp hồ sơ. Vui lòng thử lại.');
+      }
       return { source: 'api', message };
     } catch (error) {
       if (!isNetworkFailure(error)) throw error;

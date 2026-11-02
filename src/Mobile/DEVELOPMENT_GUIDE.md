@@ -383,7 +383,9 @@ src/app/
 ├── cv-detail.tsx               # /cv-detail?id=... — chi tiết CV
 ├── cv-upload.tsx               # /cv-upload — upload PDF/DOCX
 ├── profile-edit.tsx            # /profile-edit — tạo/chỉnh sửa hồ sơ
-├── (auth)/                     # /login, /register, /confirm-email, /forgot-password, /reset-password
+├── reset-password.tsx          # /reset-password — public, mở được deep link khi chưa đăng nhập
+├── confirm-email.tsx           # /confirm-email — public, mở được deep link khi chưa đăng nhập
+├── (auth)/                     # /login, /register, /forgot-password (chỉ dành cho khách)
 └── jobs/
     └── [id].tsx                # /jobs/:id — chi tiết việc làm
 ```

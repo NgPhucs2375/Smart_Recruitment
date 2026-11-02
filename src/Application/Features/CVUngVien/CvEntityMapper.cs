@@ -126,6 +126,14 @@ internal static class CvEntityMapper
         }
     }
 
+    /// <summary>
+    /// Tiêu chí "CV nộp được": có tên file và có họ tên trên khối liên hệ.
+    /// Định nghĩa duy nhất cho mọi chỗ cần chặn nộp đơn.
+    /// </summary>
+    public static bool DaSanSang(Domain.Entities.CVUngVien entity) =>
+        !string.IsNullOrWhiteSpace(entity.TenFile)
+        && !string.IsNullOrWhiteSpace(entity.ThongTinLienHe?.HoTen);
+
     public static ParsedCvDto ToDto(Domain.Entities.CVUngVien entity) => new()
     {
         GiaoDien = DeserializeGiaoDien(entity.CauHinhJson),

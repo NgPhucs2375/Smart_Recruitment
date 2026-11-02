@@ -2058,6 +2058,43 @@ namespace Infrastructure.Persistence.Migrations
                     b.ToTable("DanhGia", (string)null);
                 });
 
+            modelBuilder.Entity("Domain.Entities.DanhMucKyNang", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("Created")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("LastModified")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("LastModifiedBy")
+                        .HasColumnType("text");
+
+                    b.Property<string>("MoTa")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("TenKyNang")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenKyNang")
+                        .IsUnique();
+
+                    b.ToTable("KyNang", (string)null);
+                });
+
             modelBuilder.Entity("Domain.Entities.DanhMucNghe", b =>
                 {
                     b.Property<int>("Id")
@@ -2451,48 +2488,15 @@ namespace Infrastructure.Persistence.Migrations
 
                     b.HasIndex("CVUngVienId");
 
-                    b.HasIndex("HoSoUngVienId");
+                    b.HasIndex("TinTuyenDungId", "DiemPhuHop")
+                        .IsDescending(false, true)
+                        .HasDatabaseName("IX_KetQuaPhuHop_Tin_Diem");
 
-                    b.HasIndex("TinTuyenDungId");
+                    b.HasIndex("HoSoUngVienId", "CVUngVienId", "TinTuyenDungId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_KetQuaPhuHop_HoSoUngVien_CV_Tin");
 
                     b.ToTable("KetQuaPhuHop", (string)null);
-                });
-
-            modelBuilder.Entity("Domain.Entities.KyNang", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("Created")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("text");
-
-                    b.Property<DateTime?>("LastModified")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("LastModifiedBy")
-                        .HasColumnType("text");
-
-                    b.Property<string>("MoTa")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<string>("TenKyNang")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("TenKyNang")
-                        .IsUnique();
-
-                    b.ToTable("KyNang", (string)null);
                 });
 
             modelBuilder.Entity("Domain.Entities.KyNangTinTuyenDung", b =>
@@ -3252,6 +3256,9 @@ namespace Infrastructure.Persistence.Migrations
                         .HasMaxLength(30)
                         .HasColumnType("character varying(30)");
 
+                    b.Property<DateTime?>("QuatUngVienLucCuoi")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("QuyenLoi")
                         .HasColumnType("text");
 
@@ -3406,14 +3413,14 @@ namespace Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Domain.Entities.KyNang", "KyNang")
+                    b.HasOne("Domain.Entities.DanhMucKyNang", "DanhMucKyNang")
                         .WithMany("CVDuAnCongNghes")
                         .HasForeignKey("KyNangId")
                         .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("CVDuAn");
 
-                    b.Navigation("KyNang");
+                    b.Navigation("DanhMucKyNang");
                 });
 
             modelBuilder.Entity("CVHocVan", b =>
@@ -3435,14 +3442,14 @@ namespace Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Domain.Entities.KyNang", "KyNang")
+                    b.HasOne("Domain.Entities.DanhMucKyNang", "DanhMucKyNang")
                         .WithMany("CVKinhNghiemKyNangs")
                         .HasForeignKey("KyNangId")
                         .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("CVKinhNghiemLamViec");
 
-                    b.Navigation("KyNang");
+                    b.Navigation("DanhMucKyNang");
                 });
 
             modelBuilder.Entity("CVKinhNghiemLamViec", b =>
@@ -3464,14 +3471,14 @@ namespace Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Domain.Entities.KyNang", "KyNang")
+                    b.HasOne("Domain.Entities.DanhMucKyNang", "DanhMucKyNang")
                         .WithMany("CVKyNangs")
                         .HasForeignKey("KyNangId")
                         .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("CVUngVien");
 
-                    b.Navigation("KyNang");
+                    b.Navigation("DanhMucKyNang");
                 });
 
             modelBuilder.Entity("Domain.Entities.CVImportSession", b =>
@@ -3666,7 +3673,7 @@ namespace Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("Domain.Entities.KyNangTinTuyenDung", b =>
                 {
-                    b.HasOne("Domain.Entities.KyNang", "KyNang")
+                    b.HasOne("Domain.Entities.DanhMucKyNang", "DanhMucKyNang")
                         .WithMany("KyNangTinTuyenDungs")
                         .HasForeignKey("KyNangId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -3678,7 +3685,7 @@ namespace Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("KyNang");
+                    b.Navigation("DanhMucKyNang");
 
                     b.Navigation("TinTuyenDung");
                 });
@@ -3710,15 +3717,15 @@ namespace Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Domain.Entities.KyNang", "KyNang")
+                    b.HasOne("Domain.Entities.DanhMucKyNang", "DanhMucKyNang")
                         .WithMany()
                         .HasForeignKey("KyNangId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.Navigation("DanhMucNghe");
+                    b.Navigation("DanhMucKyNang");
 
-                    b.Navigation("KyNang");
+                    b.Navigation("DanhMucNghe");
                 });
 
             modelBuilder.Entity("Domain.Entities.NotificationRecipient", b =>
@@ -3786,15 +3793,15 @@ namespace Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Domain.Entities.KyNang", "KyNang")
+                    b.HasOne("Domain.Entities.DanhMucKyNang", "DanhMucKyNang")
                         .WithMany("KyNangUngViens")
                         .HasForeignKey("KyNangId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.Navigation("HoSoUngVien");
+                    b.Navigation("DanhMucKyNang");
 
-                    b.Navigation("KyNang");
+                    b.Navigation("HoSoUngVien");
                 });
 
             modelBuilder.Entity("CVDuAn", b =>
@@ -3833,6 +3840,19 @@ namespace Infrastructure.Persistence.Migrations
                     b.Navigation("ThongTinLienHe");
                 });
 
+            modelBuilder.Entity("Domain.Entities.DanhMucKyNang", b =>
+                {
+                    b.Navigation("CVDuAnCongNghes");
+
+                    b.Navigation("CVKinhNghiemKyNangs");
+
+                    b.Navigation("CVKyNangs");
+
+                    b.Navigation("KyNangTinTuyenDungs");
+
+                    b.Navigation("KyNangUngViens");
+                });
+
             modelBuilder.Entity("Domain.Entities.DanhMucNghe", b =>
                 {
                     b.Navigation("TinTuyenDungs");
@@ -3859,19 +3879,6 @@ namespace Infrastructure.Persistence.Migrations
                     b.Navigation("KetQuaPhuHops");
 
                     b.Navigation("KinhNghiemLamViecs");
-
-                    b.Navigation("KyNangUngViens");
-                });
-
-            modelBuilder.Entity("Domain.Entities.KyNang", b =>
-                {
-                    b.Navigation("CVDuAnCongNghes");
-
-                    b.Navigation("CVKinhNghiemKyNangs");
-
-                    b.Navigation("CVKyNangs");
-
-                    b.Navigation("KyNangTinTuyenDungs");
 
                     b.Navigation("KyNangUngViens");
                 });

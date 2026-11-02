@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { router } from 'expo-router';
 import { ArrowLeft, Eye, EyeOff, Lock, Mail, Monitor, UserRound } from 'lucide-react-native';
+import { useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Switch, TextInput, View } from 'react-native';
 
 import { AppHeader } from '@/components/app-header';
@@ -150,7 +151,6 @@ function PasswordInput({ value, onChangeText, placeholder, secureTextEntry, edit
     </View>
   );
 }
-
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   content: { padding: 16, gap: 16, paddingBottom: 32 },

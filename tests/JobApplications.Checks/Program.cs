@@ -18,7 +18,7 @@ var options = new DbContextOptionsBuilder<ApplicationDbContext>().UseInMemoryDat
 await using var db = new CheckContext(options);
 db.NguoiDungs.AddRange(new NguoiDung { Id = 1, ApplicationUserId = "candidate", VaiTro = VaiTroNguoiDung.UNG_VIEN }, new NguoiDung { Id = 2, ApplicationUserId = "hr", VaiTro = VaiTroNguoiDung.NHAN_SU });
 db.DanhMucNghes.AddRange(new DanhMucNghe { Id = 1, TenNghe = "IT" }, new DanhMucNghe { Id = 2, TenNghe = "Finance" });
-db.KyNangs.AddRange(new KyNang { Id = 1, TenKyNang = "C#" }, new KyNang { Id = 2, TenKyNang = "SQL" });
+db.KyNangs.AddRange(new DanhMucKyNang { Id = 1, TenKyNang = "C#" }, new DanhMucKyNang { Id = 2, TenKyNang = "SQL" });
 db.DoanhNghieps.Add(new DoanhNghiep { Id = 1, TenDoanhNghiep = "Example", DiaChi = "Ha Noi" });
 var a = MakeJob(1, 1, "Senior Backend Developer", 10_000_000, 20_000_000);
 a.KyNangTinTuyenDungs = new List<KyNangTinTuyenDung> { new() { KyNangId = 1 }, new() { KyNangId = 2 } };
@@ -57,6 +57,17 @@ user.Role = VaiTroNguoiDung.UNG_VIEN; user.Id = 1;
 await update.Handle(new() { Id = applicationId, Trigger = TriggerDonUngTuyen.RutDon, GhiChu = "Withdraw" }, default);
 var history = await new GetAllDonUngTuyensQueryHandler(db, user).Handle(new(), default);
 Check(history.Data.Single().TrangThai == TrangThaiDonUngTuyen.UngVienRutDon, "Withdrawn applications remain in candidate history");
+
+// Nghiệp vụ "CV nộp được": chưa có họ tên trên khối liên hệ thì không vào funnel ứng tuyển.
+var draft = new CVUngVien { Id = 2, HoSoUngVienId = 1, TenFile = "Draft CV", TemplateId = "minimal-ats", ThongTinLienHe = new CVThongTinLienHe { HoTen = "   " } };
+db.CVUngViens.Add(draft);
+await db.SaveChangesAsync();
+Check(!(await submit.Handle(new() { TinTuyenDungId = 2, CVUngVienId = 2 }, default)).Succeeded, "CV without a contact name cannot be submitted");
+draft.ThongTinLienHe.HoTen = "Applicant";
+await db.SaveChangesAsync();
+Check((await submit.Handle(new() { TinTuyenDungId = 2, CVUngVienId = 2 }, default)).Succeeded, "Completing the CV unblocks submission");
+Check((await db.DonUngTuyens.CountAsync(x => x.CVUngVienId == 2)) == 1, "Unblocking creates exactly one application");
+
 Console.WriteLine("Job search and application checks completed.");
 
 static TinTuyenDung MakeJob(int id, int industry, string title, decimal min, decimal max) => new()
