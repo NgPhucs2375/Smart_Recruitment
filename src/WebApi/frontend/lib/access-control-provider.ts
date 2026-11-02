@@ -1,9 +1,8 @@
 import type { AccessControlProvider } from "@refinedev/core";
 import { hasPermission, type Permission } from "./permissions";
+import { IDENTITY_KEY, readSessionValue, removeSessionValues, saveSessionValue, sessionPersistence } from "./session-storage";
 
 // ─── Storage helpers ──────────────────────────────────────────────────────────
-
-const IDENTITY_KEY = "user_identity";
 
 export interface StoredIdentity {
   id: string;
@@ -13,16 +12,16 @@ export interface StoredIdentity {
   permissions: Permission[];
 }
 
+/** Identity follows the session store, so a tab-only login leaves no profile behind. */
 export function saveIdentity(identity: StoredIdentity): void {
   if (typeof window === "undefined") return;
-  localStorage.setItem(IDENTITY_KEY, JSON.stringify(identity));
+  saveSessionValue(IDENTITY_KEY, JSON.stringify(identity), sessionPersistence());
   window.dispatchEvent(new Event("hireai:identity-changed"));
 }
 
 export function loadIdentity(): StoredIdentity | null {
-  if (typeof window === "undefined") return null;
   try {
-    const raw = localStorage.getItem(IDENTITY_KEY);
+    const raw = readSessionValue(IDENTITY_KEY);
     return raw ? (JSON.parse(raw) as StoredIdentity) : null;
   } catch {
     return null;
@@ -31,7 +30,7 @@ export function loadIdentity(): StoredIdentity | null {
 
 export function clearIdentity(): void {
   if (typeof window === "undefined") return;
-  localStorage.removeItem(IDENTITY_KEY);
+  removeSessionValues([IDENTITY_KEY]);
   window.dispatchEvent(new Event("hireai:identity-changed"));
 }
 

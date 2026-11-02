@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getAuthToken, getValidToken, redirectToLogin, refreshIdentity } from "@/lib/auth-provider";
+import { getValidToken, redirectToLogin, refreshIdentity, hasStoredSession } from "@/lib/auth-provider";
 import { unwrapResponse } from "@/lib/api/response-contract";
 import { loadIdentity } from "@/lib/access-control-provider";
 import { hasPermission } from "@/lib/permissions";
@@ -80,7 +80,7 @@ export default function PermissionMatrixPage() {
   }, [identity]);
 
   useEffect(() => {
-    if (!getAuthToken()) {
+    if (!hasStoredSession()) {
       redirectToLogin();
       return;
     }

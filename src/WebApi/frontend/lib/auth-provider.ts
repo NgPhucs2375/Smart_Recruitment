@@ -1,5 +1,14 @@
 import type { AuthProvider } from "@refinedev/core";
 import { saveIdentity, loadIdentity, clearIdentity, buildIdentity } from "./access-control-provider";
+import {
+  REFRESH_KEY,
+  TOKEN_KEY,
+  readSessionValue,
+  removeSessionValues,
+  saveSessionValue,
+  sessionPersistence,
+  type SessionPersistence,
+} from "./session-storage";
 import { homePortalFor, type PortalKind } from "./portal-roles";
 import { resolvePostLoginTarget } from "@/components/auth/login-handler";
 import { GITHUB_CALLBACK_PATH } from "@/components/auth/github-login-button";
@@ -50,8 +59,6 @@ export function loginRouteForPortal(): "/employer/login" | "/login" {
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const API_URL = "/api/dotnet/account";
-const TOKEN_KEY = "access_token";
-const REFRESH_KEY = "refresh_token";
 const AUTH_REQUEST_TIMEOUT_MS = 15_000;
 // Google external-login can be slow on the first request while the backend
 // fetches Google's signing certificates and creates the local account.
@@ -142,53 +149,34 @@ function identityFromJwt(token: string): MeResponse | null {
 }
 
 // ─── Token storage helpers ────────────────────────────────────────────────────
-// Remember-me semantics: tick → localStorage (survives browser restart,
-// refresh token keeps working for 7 days). No tick → sessionStorage (session
-// dies when the tab/browser closes). Readers check both stores so a session
-// from either mode is found; clearAuth wipes both.
-
-function readStored(keys: readonly string[]): string | null {
-  for (const key of keys) {
-    try {
-      const session = sessionStorage.getItem(key);
-      if (session) return session;
-      const local = localStorage.getItem(key);
-      if (local) return local;
-    } catch {
-      // storage blocked — keep trying the next store
-    }
-  }
-  return null;
-}
+// see ./session-storage for the one-store-per-session rule.
 
 function getToken(): string | null {
-  if (typeof window === "undefined") return null;
-  return readStored([TOKEN_KEY]);
+  return readSessionValue(TOKEN_KEY);
 }
 
 function getRefreshToken(): string | null {
-  if (typeof window === "undefined") return null;
-  return readStored([REFRESH_KEY]);
+  return readSessionValue(REFRESH_KEY);
 }
 
-function saveTokens(jwToken: string, refreshToken: string, remember = true): void {
-  const store = remember ? localStorage : sessionStorage;
-  store.setItem(TOKEN_KEY, jwToken);
+/**
+ * Phiên còn tồn tại hay không. Access token hết hạn KHÔNG đồng nghĩa hết phiên:
+ * refresh token còn hạn 7 ngày, getValidToken() tự xoay lại được.
+ */
+export function hasStoredSession(): boolean {
+  return getToken() !== null || getRefreshToken() !== null;
+}
+
+function saveTokens(jwToken: string, refreshToken: string, persistence: SessionPersistence): void {
+  saveSessionValue(TOKEN_KEY, jwToken, persistence);
   if (refreshToken) {
-    store.setItem(REFRESH_KEY, refreshToken);
+    saveSessionValue(REFRESH_KEY, refreshToken, persistence);
   }
 }
 
 function clearAuth(): void {
   sessionEpoch += 1;
-  for (const key of [TOKEN_KEY, REFRESH_KEY]) {
-    try {
-      localStorage.removeItem(key);
-      sessionStorage.removeItem(key);
-    } catch {
-      // ignore storage errors
-    }
-  }
+  removeSessionValues([TOKEN_KEY, REFRESH_KEY]);
   clearIdentity();
 }
 
@@ -222,7 +210,7 @@ async function fetchAndSaveMe(token: string): Promise<MeResponse | null> {
 let sessionEpoch = 0;
 
 /** Kết quả refresh: ok = xoay thành công; stale = tab khác vừa xoay token
- *  (localStorage đã có token mới, KHÔNG phải lỗi); fail = bị từ chối thật. */
+ *  (khoá phiên đã có token mới, KHÔNG phải lỗi); fail = bị từ chối thật. */
 type RefreshOutcome = "ok" | "stale" | "fail";
 let refreshInFlight: Promise<RefreshOutcome> | null = null;
 
@@ -248,11 +236,11 @@ async function refreshOnce(): Promise<RefreshOutcome> {
     const data = body?.Data ?? body?.data;
     const jwToken = data?.JWToken ?? data?.jwToken;
     const newRefreshToken = data?.RefreshToken ?? data?.refreshToken;
-    // Token trong localStorage đã đổi (tab khác xoay trước) → dùng token mới
+    // Token trong khoá phiên đã đổi (tab persistent xoay trước) → dùng token mới
     // của tab kia, không coi là lỗi và không được xoá phiên.
     if (!jwToken || epoch !== sessionEpoch || getRefreshToken() !== CurrentrefreshToken) return "stale";
 
-    saveTokens(jwToken, newRefreshToken);
+    saveTokens(jwToken, newRefreshToken, sessionPersistence());
     await fetchAndSaveMe(jwToken);
     return "ok";
   } catch {
@@ -311,7 +299,7 @@ export async function getValidToken(): Promise<string | null> {
   if (outcome === "ok") return getToken();
   if (outcome === "stale") {
     // Tab khác vừa xoay token thành công: dùng token mới đã lưu trong
-    // localStorage. Tuyệt đối KHÔNG clearAuth ở nhánh này.
+    // khoá phiên. Tuyệt đối KHÔNG clearAuth ở nhánh này.
     const latest = getToken();
     if (latest) {
       const latestExp = parseJwtExp(latest);
@@ -324,7 +312,7 @@ export async function getValidToken(): Promise<string | null> {
   return null;
 }
 
-/** Re-fetch /me and refresh the cached identity + permissions in localStorage. */
+/** Re-fetch /me and refresh the cached identity + permissions in the session store. */
 export async function refreshIdentity(): Promise<boolean> {
   const token = await getValidToken();
   // khong co access token -> tra false
@@ -344,7 +332,7 @@ export async function refreshSession(): Promise<boolean> {
 
 export const authProvider: AuthProvider = {
   // 1. POST /account/authenticate → tokens
-  // 2. GET  /me    → identity + permissions (stored in localStorage)
+  // 2. GET  /me    → identity + permissions (cached in the session store)
   login: async (payload) => {
     clearAuth();
     try {
@@ -352,6 +340,7 @@ export const authProvider: AuthProvider = {
       // Remember-me: tick → localStorage (persistent), no tick → sessionStorage.
       // External (Google) and magic logins have no checkbox — default to persistent.
       const remember = payload.remember !== false;
+      const persistence: SessionPersistence = remember ? "persistent" : "tab_only";
       // Nhận diện luồng đăng nhập: GitHub (authorization code), Google (ID token) hay Local.
       const isGitHub = payload.providerName === "github" || payload.provider === "GitHub";
       const isGoogle = !isGitHub && (
@@ -430,7 +419,7 @@ export const authProvider: AuthProvider = {
         };
       }
 
-      saveTokens(jwToken, refreshToken, remember);
+      saveTokens(jwToken, refreshToken, persistence);
       // GenerateJWToken embeds roles and permissions. Use them immediately to
       // avoid a second /me round-trip; keep /me as a compatibility fallback.
       const me = identityFromJwt(jwToken) ?? await fetchAndSaveMe(jwToken);
@@ -576,7 +565,7 @@ export const authProvider: AuthProvider = {
     return { error };
   },
 
-  // Read from localStorage — no network call (identity was stored on login)
+  // Read from the session store — no network call (identity was stored on login)
   getIdentity: async () => {
     const token = getToken();
     if (!token) return null;
@@ -762,7 +751,7 @@ export async function magicLogin(payload: {
     const refreshToken = data?.RefreshToken ?? data?.refreshToken;
 
     if (jwToken) {
-      saveTokens(jwToken, refreshToken); // Lưu token vào localStorage[cite: 18]
+      saveTokens(jwToken, refreshToken, "persistent"); // Magic link: không có ô tick → giữ phiên như external login
       await fetchAndSaveMe(jwToken);     // Đồng bộ thông tin định danh và quyền[cite: 18]
       // Same shared-auth model as password/Google login: portal is a hint,
       // roles from /me decide the shell. No rejection on mismatch.

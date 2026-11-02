@@ -2,6 +2,7 @@
 
 import { useSyncExternalStore } from "react";
 import { loadIdentity, type StoredIdentity } from "@/lib/access-control-provider";
+import { IDENTITY_KEY, readSessionValue } from "@/lib/session-storage";
 
 const IDENTITY_EVENT = "hireai:identity-changed";
 let snapshot: StoredIdentity | null = null;
@@ -24,7 +25,7 @@ export function notifyIdentityChanged() {
 }
 
 function getSnapshot() {
-  const raw = localStorage.getItem("user_identity");
+  const raw = readSessionValue(IDENTITY_KEY);
   hydrated = true;
   if (raw === snapshotRaw) return snapshot;
   snapshotRaw = raw;
@@ -36,7 +37,7 @@ function getSnapshot() {
  * Returns the stored identity or null.
  *
  * `null` means one of two things:
- *  1. Identity has not been read from localStorage yet (first render / SSR).
+ *  1. Identity has not been read from the session store yet (first render / SSR).
  *  2. User is genuinely unauthenticated (no identity stored).
  *
  * Use `useIdentityResolved()` to distinguish the two cases.
@@ -46,7 +47,7 @@ export function useStoredIdentity(): StoredIdentity | null {
 }
 
 /**
- * Returns `true` once the identity has been read from localStorage at least once.
+ * Returns `true` once the identity has been read from the session store at least once.
  * Before that, it returns `false` (identity is still resolving).
  *
  * Combine with `useStoredIdentity()`:

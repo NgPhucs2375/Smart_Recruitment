@@ -57,3 +57,53 @@ assert.equal(notificationTarget({ referenceType: "UngVienPhuHop", referenceId: 4
 assert.equal(notificationTarget({ referenceType: "UngVienPhuHop", referenceId: 44 }, ["NGUOI_DAI_DIEN"]), "/tin-tuyen-dung/44/ung-vien");
 assert.equal(notificationTarget({ referenceType: "UngVienPhuHop", referenceId: 44 }, ["UNG_VIEN"]), null);
 console.log("PASS notification navigation matches candidate/recruiter/Admin and invitation contracts");
+
+const memoryStore = () => {
+  const values = new Map();
+  return {
+    getItem: key => (values.has(key) ? values.get(key) : null),
+    setItem: (key, value) => values.set(key, String(value)),
+    removeItem: key => values.delete(key),
+  };
+};
+globalThis.window = globalThis;
+globalThis.localStorage = memoryStore();
+globalThis.sessionStorage = memoryStore();
+const { IDENTITY_KEY, REFRESH_KEY, TOKEN_KEY, readSessionValue, removeSessionValues, saveSessionValue, sessionPersistence } = await load("lib/session-storage.ts");
+
+// Một phiên chỉ được tồn tại ở một store: bản sót ở store kia sẽ khiến lần xoay
+// token kế tiếp gửi lại refresh token đã thu hồi → backend thu hồi cả chuỗi.
+saveSessionValue(TOKEN_KEY, "jwt-tab", "tab_only");
+saveSessionValue(TOKEN_KEY, "jwt-keep", "persistent");
+assert.equal(globalThis.localStorage.getItem(TOKEN_KEY), "jwt-keep");
+assert.equal(globalThis.sessionStorage.getItem(TOKEN_KEY), null);
+saveSessionValue(REFRESH_KEY, "rt-keep", "persistent");
+saveSessionValue(REFRESH_KEY, "rt-tab", "tab_only");
+assert.equal(globalThis.sessionStorage.getItem(REFRESH_KEY), "rt-tab");
+assert.equal(globalThis.localStorage.getItem(REFRESH_KEY), null);
+console.log("PASS saving a session value replaces the copy in the other store");
+
+removeSessionValues([TOKEN_KEY]);
+assert.equal(sessionPersistence(), "persistent", "login without a stored session defaults to persistent");
+saveSessionValue(TOKEN_KEY, "jwt-tab", "tab_only");
+assert.equal(sessionPersistence(), "tab_only");
+saveSessionValue(TOKEN_KEY, "jwt-keep", "persistent");
+assert.equal(sessionPersistence(), "persistent");
+assert.equal(readSessionValue(TOKEN_KEY), "jwt-keep");
+saveSessionValue(TOKEN_KEY, "jwt-tab", "tab_only");
+assert.equal(readSessionValue(TOKEN_KEY), "jwt-tab", "a tab-only session is still readable");
+console.log("PASS the session store reports and follows persistent vs tab-only mode");
+
+saveSessionValue(IDENTITY_KEY, "{}", "persistent");
+saveSessionValue(REFRESH_KEY, "rt", "persistent");
+removeSessionValues([IDENTITY_KEY, REFRESH_KEY, TOKEN_KEY]);
+assert.equal(globalThis.localStorage.getItem(IDENTITY_KEY), null);
+assert.equal(globalThis.sessionStorage.getItem(REFRESH_KEY), null);
+assert.equal(globalThis.localStorage.getItem(TOKEN_KEY), null);
+const browser = globalThis.window;
+globalThis.window = undefined;
+assert.equal(readSessionValue(TOKEN_KEY), null, "server render reads no session");
+saveSessionValue(TOKEN_KEY, "jwt", "persistent");
+assert.equal(globalThis.localStorage.getItem(TOKEN_KEY), null, "server render writes nothing");
+globalThis.window = browser;
+console.log("PASS logout wipes both stores and server render never touches web storage");

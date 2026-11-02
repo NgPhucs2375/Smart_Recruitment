@@ -10,6 +10,7 @@ import {
   AuthLayout,
   GoogleAuthSection,
   GithubLoginButton,
+  RememberSessionField,
 } from "@/components/auth";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -35,7 +36,7 @@ function EmployerLoginContent() {
   const [githubError, setGithubError] = useState<string | null>(null);
   const searchParams = useSearchParams();
   const next = sanitizeNext(searchParams.get("next"));
-  const { register, handleSubmit, errors, isPending, submitError, email, cooling, cooldownLeft } = usePasswordLogin("employer", next);
+  const { register, handleSubmit, setValue, errors, isPending, submitError, remember, email, cooling, cooldownLeft } = usePasswordLogin("employer", next);
   const { handleGoogleLogin, isPending: isGooglePending, error: googleError } = useGoogleAuth("employer", next);
 
   return (
@@ -174,6 +175,12 @@ function EmployerLoginContent() {
           </div>
           {errors.password && <p className="text-xs text-red-500">{errors.password.message}</p>}
         </div>
+
+        <RememberSessionField
+          checked={remember}
+          onChange={(checked) => setValue("remember", checked)}
+          disabled={isPending}
+        />
 
         <Button
           type="submit"
