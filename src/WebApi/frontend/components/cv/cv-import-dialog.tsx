@@ -19,16 +19,28 @@ interface CvImportDialogProps {
 }
 
 function isAiOverloadMessage(message: string): boolean {
-  return /quá tải|thử lại|gemini|503|serviceunavailable|quá thời gian|không phản hồi kịp|overload|timeout/i.test(message);
+  return /quá tải|thử lại|gemini|503|serviceunavailable|quá thời gian|không phản hồi kịp|overload|timeout/i.test(
+    message,
+  );
 }
 
-export function CvImportDialog({ open, onOpenChange, hoSoUngVienId, onImported, onManualImported }: CvImportDialogProps) {
+export function CvImportDialog({
+  open,
+  onOpenChange,
+  hoSoUngVienId,
+  onImported,
+  onManualImported,
+}: CvImportDialogProps) {
   const [file, setFile] = React.useState<File | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const [importing, setImporting] = React.useState(false);
-  const [stage, setStage] = React.useState<"uploading" | "parsing" | null>(null);
+  const [stage, setStage] = React.useState<"uploading" | "parsing" | null>(
+    null,
+  );
   const [elapsed, setElapsed] = React.useState(0);
-  const [savedSessionId, setSavedSessionId] = React.useState<string | null>(null);
+  const [savedSessionId, setSavedSessionId] = React.useState<string | null>(
+    null,
+  );
   const [aiFailed, setAiFailed] = React.useState(false);
   // Dialog đóng giữa chừng thì kết quả về sau bị bỏ (tránh đổ dữ liệu muộn vào form).
   const cancelledRef = React.useRef(false);
@@ -40,7 +52,7 @@ export function CvImportDialog({ open, onOpenChange, hoSoUngVienId, onImported, 
     cancelledRef.current = false;
     void import("pdfjs-dist").catch(() => undefined);
     void import("mammoth").catch(() => undefined);
-  }, [open ]);
+  }, [open]);
 
   // Đồng hồ chờ để user biết tiến độ khi AI phân tích file lớn (30–90s là bình thường).
   React.useEffect(() => {
@@ -78,18 +90,27 @@ export function CvImportDialog({ open, onOpenChange, hoSoUngVienId, onImported, 
     setImporting(true);
     let sessionId: string | null = null;
     try {
-      // Bước 1: tải file gốc lên server một lần duy nhất và giữ session.
-      // Session có hiệu lực 24h nên bước phân tích lại không cần upload lại.
+      // JSON được kiểm tra trước khi upload để file lỗi không tạo import session rác.
+      const isJson = file.name.toLowerCase().endsWith(".json");
+      let partial: Partial<CvFormData> | null = null;
+      if (isJson) {
+        setStage("parsing");
+        partial = await parseCvFile(file);
+      }
+      // File gốc được lưu một lần để có thể tiếp tục nhập thủ công hoặc thử lại.
       setStage("uploading");
       const session = await cvApi.prepareImport(hoSoUngVienId, file);
       if (cancelledRef.current) return;
       sessionId = session.sessionId;
       setSavedSessionId(sessionId);
 
-      // Bước 2: phân tích nội dung bằng AI (bước lâu nhất, thường 30–90s).
-      setStage("parsing");
-      const partial = await parseCvFile(file);
+      if (!isJson) {
+        // PDF/DOCX phân tích sau khi upload vì cần giữ file cho retry/manual fallback.
+        setStage("parsing");
+        partial = await parseCvFile(file);
+      }
       if (cancelledRef.current) return;
+      if (!partial) throw new Error("Không đọc được nội dung CV.");
       onImported(partial, sessionId);
       handleOpenChange(false);
     } catch (e) {
@@ -175,7 +196,8 @@ export function CvImportDialog({ open, onOpenChange, hoSoUngVienId, onImported, 
                   Tải CV hiện có
                 </DialogPrimitive.Title>
                 <DialogPrimitive.Description className="mt-1 text-sm leading-6 text-muted-foreground">
-                  Tải CV của bạn để sử dụng làm dữ liệu khởi đầu. Bạn vẫn có thể chỉnh sửa toàn bộ nội dung sau khi nhập.
+                  Tải CV của bạn để sử dụng làm dữ liệu khởi đầu. Bạn vẫn có thể
+                  chỉnh sửa toàn bộ nội dung sau khi nhập.
                 </DialogPrimitive.Description>
               </div>
               <DialogPrimitive.Close
@@ -203,7 +225,10 @@ export function CvImportDialog({ open, onOpenChange, hoSoUngVienId, onImported, 
             />
 
             {importing && (
-              <p role="status" className="mt-3 flex items-start gap-2 rounded-2xl border border-border bg-muted px-4 py-3 text-xs leading-5 text-muted-foreground">
+              <p
+                role="status"
+                className="mt-3 flex items-start gap-2 rounded-2xl border border-border bg-muted px-4 py-3 text-xs leading-5 text-muted-foreground"
+              >
                 <Loader2 className="mt-0.5 size-3.5 shrink-0 animate-spin" />
                 {stage === "uploading"
                   ? `Đang tải file lên (${elapsed}s)...`
@@ -211,7 +236,10 @@ export function CvImportDialog({ open, onOpenChange, hoSoUngVienId, onImported, 
               </p>
             )}
             {error && (
-              <p role="alert" className="mt-3 flex items-start gap-2 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-xs leading-5 text-red-700">
+              <p
+                role="alert"
+                className="mt-3 flex items-start gap-2 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-xs leading-5 text-red-700"
+              >
                 <AlertCircle className="mt-0.5 size-3.5 shrink-0" />
                 {error}
               </p>
@@ -229,7 +257,12 @@ export function CvImportDialog({ open, onOpenChange, hoSoUngVienId, onImported, 
                   >
                     Thử phân tích lại
                   </Button>
-                  <Button size="sm" className="rounded-full" onClick={handleManualContinue} disabled={importing}>
+                  <Button
+                    size="sm"
+                    className="rounded-full"
+                    onClick={handleManualContinue}
+                    disabled={importing}
+                  >
                     Tiếp tục nhập thủ công
                   </Button>
                 </div>
@@ -246,8 +279,15 @@ export function CvImportDialog({ open, onOpenChange, hoSoUngVienId, onImported, 
                 <DialogPrimitive.Close className="rounded-full px-4 py-2 text-sm font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground">
                   Huỷ
                 </DialogPrimitive.Close>
-                <Button size="sm" className="rounded-full" onClick={handleImport} disabled={!file || !hoSoUngVienId || importing}>
-                  {importing && <Loader2 className="mr-1.5 size-4 animate-spin" />}
+                <Button
+                  size="sm"
+                  className="rounded-full"
+                  onClick={handleImport}
+                  disabled={!file || !hoSoUngVienId || importing}
+                >
+                  {importing && (
+                    <Loader2 className="mr-1.5 size-4 animate-spin" />
+                  )}
                   {importing ? `Đang nhập (${elapsed}s)...` : "Nhập CV"}
                 </Button>
               </div>

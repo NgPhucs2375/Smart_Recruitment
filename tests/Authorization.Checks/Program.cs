@@ -111,7 +111,7 @@ Check((await new GetHoSoUngVienByIdQueryHandler(db, mapper, current).Handle(new(
 
 var cache = new MemoryDistributedCache(Options.Create(new MemoryDistributedCacheOptions()));
 current.Value = new() { Id = 3, VaiTro = VaiTroNguoiDung.NHAN_SU, DoanhNghiepId = 31 };
-var cvHandler = new GetCVUngVienByIdQueryHandler(db, current, null!, cache);
+var cvHandler = new GetCVUngVienByIdQueryHandler(db, current, null!, cache, null!);
 Check((await cvHandler.Handle(new() { Id = 11 }, default)).Data.TenFile == "Submitted snapshot", "Recruiter CV detail reads submitted snapshot, not current editor content");
 Check(!(await cvHandler.Handle(new() { Id = 12 }, default)).Succeeded, "HR cannot read CV submitted to another HR's job");
 await cache.SetStringAsync(CVUngVienListCache.BuildDetailKey(3, 12, "1"), JsonSerializer.Serialize(new Application.Wrappers.Response<CvDetailDto>(new CvDetailDto { Id = 12, TenFile = "Old privileged cache" })));

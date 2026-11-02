@@ -10,7 +10,7 @@ namespace WebApp.Server.Hubs;
 [Authorize]
 public sealed class ChatHub(ApplicationDbContext db, ChatAccessService access, ChatConnectionRegistry registry) : Hub
 {
-    private static string CompanyGroup(int companyId) => $"company-chat:{companyId}";
+    public static string CompanyGroup(int companyId) => $"company-chat:{companyId}";
 
     public override async Task OnConnectedAsync()
     {

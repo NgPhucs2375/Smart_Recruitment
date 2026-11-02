@@ -9,7 +9,7 @@ import { DarkTheme, DefaultTheme, Stack, ThemeProvider, useRouter, useSegments }
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
-import { ActivityIndicator, useColorScheme, View } from 'react-native';
+import { ActivityIndicator, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BookmarkProvider } from '@/features/bookmarks/bookmark-provider';
@@ -18,6 +18,7 @@ import { NotificationProvider } from '@/features/notifications/notification-prov
 import { Colors } from '@/constants/theme';
 import { ThemedText } from '@/components/themed-text';
 import { Button } from '@/components/ui/button';
+import { ThemeModeProvider, useThemeMode } from '@/hooks/use-theme';
 
 // Giữ splash cho đến khi font Be Vietnam Pro load xong, tránh nháy font hệ thống.
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -43,17 +44,19 @@ export default function RootLayout() {
 
   return (
     <BookmarkProvider>
-      <AuthProvider>
-        <NotificationProvider>
-          <RootNavigator />
-        </NotificationProvider>
-      </AuthProvider>
+      <ThemeModeProvider>
+        <AuthProvider>
+          <NotificationProvider>
+            <RootNavigator />
+          </NotificationProvider>
+        </AuthProvider>
+      </ThemeModeProvider>
     </BookmarkProvider>
   );
 }
 
 function RootNavigator() {
-  const colorScheme = useColorScheme();
+  const { mode: colorScheme } = useThemeMode();
   const { status, user, signOut } = useAuth();
   const router = useRouter();
   const segments = useSegments();
@@ -72,7 +75,7 @@ function RootNavigator() {
 
   // Đang khôi phục phiên đăng nhập: giữ màn hình chờ, tránh nháy màn hình đăng nhập.
   if (status === 'loading') {
-    const colors = Colors[colorScheme === 'dark' ? 'dark' : 'light'];
+    const colors = Colors[colorScheme];
     return (
       <View
         style={{
@@ -89,10 +92,21 @@ function RootNavigator() {
 
   const isSignedIn = status === 'signedIn';
   const portal = user ? portalFor(user.roles) : null;
+  const colors = Colors[colorScheme];
+  const navigationTheme = {
+    ...(colorScheme === 'dark' ? DarkTheme : DefaultTheme),
+    colors: {
+      ...(colorScheme === 'dark' ? DarkTheme.colors : DefaultTheme.colors),
+      background: colors.background,
+      card: colors.backgroundElement,
+      text: colors.text,
+      border: colors.border,
+      primary: colors.primary,
+    },
+  };
 
   // Admin: mobile không hỗ trợ portal quản trị — chặn + yêu cầu đăng xuất.
   if (isSignedIn && portal === 'admin') {
-    const colors = Colors[colorScheme === 'dark' ? 'dark' : 'light'];
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: colors.background, justifyContent: 'center', padding: 24, gap: 12 }}>
         <ThemedText style={{ fontWeight: '600', fontSize: 18, textAlign: 'center' }}>
@@ -109,7 +123,7 @@ function RootNavigator() {
   }
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+    <ThemeProvider value={navigationTheme}>
       <StatusBar style="auto" />
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Protected guard={!isSignedIn}>
@@ -120,6 +134,7 @@ function RootNavigator() {
             đầu tiên khả dụng sẽ là notifications thay vì (tabs)/(hr). */}
         <Stack.Protected guard={isSignedIn && portal === 'candidate'}>
           <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="settings" options={{ headerShown: false }} />
           <Stack.Screen name="applications" options={{ headerShown: false }} />
           <Stack.Screen name="jobs/[id]" options={{ headerShown: false }} />
           <Stack.Screen name="companies/index" options={{ headerShown: false }} />
@@ -147,6 +162,7 @@ function RootNavigator() {
           <Stack.Screen name="hr/company" options={{ headerShown: false }} />
           <Stack.Screen name="hr/messages" options={{ headerShown: false }} />
           <Stack.Screen name="hr/messages/[id]" options={{ headerShown: false }} />
+          <Stack.Screen name="hr/settings" options={{ headerShown: false }} />
         </Stack.Protected>
 
         <Stack.Protected guard={isSignedIn}>

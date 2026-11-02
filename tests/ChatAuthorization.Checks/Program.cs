@@ -13,6 +13,7 @@ using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.EntityFrameworkCore;
 using WebApp.Server.Controllers.v1;
 using WebApp.Server.Hubs;
@@ -23,6 +24,10 @@ await using var identity = new IdentityContext(new DbContextOptionsBuilder<Ident
 var access = new ChatAccessService(db, identity);
 var registry = new ChatConnectionRegistry();
 var clients = new RecordingClients();
+// REST controller pushes through IHubContext<ChatHub>; build one from the same DI wiring the app uses.
+var hubServices = new ServiceCollection().AddLogging();
+hubServices.AddSignalR();
+var hubContext = hubServices.BuildServiceProvider().GetRequiredService<IHubContext<ChatHub>>();
 void Check(bool condition, string title) { if (!condition) throw new Exception(title); Console.WriteLine("PASS " + title); }
 async Task Denied(Func<Task> action, int status, string title)
 {
@@ -37,7 +42,7 @@ async Task HubDenied(Func<Task> action, string title)
 ClaimsPrincipal Principal(int id, string? stamp = null, long? expires = null) => new(new ClaimsIdentity(new[] {
     new Claim("uid", "user-" + id), new Claim("sst", stamp ?? "stamp-" + id),
     new Claim("exp", (expires ?? DateTimeOffset.UtcNow.AddHours(1).ToUnixTimeSeconds()).ToString()) }, "test"));
-ChatController Controller(int id) => new(db, access) { ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext { User = Principal(id) } } };
+ChatController Controller(int id) => new(db, access, hubContext) { ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext { User = Principal(id) } } };
 ChatHub Hub(int id, string connection) => new(db, access, registry) { Context = new Caller(connection, Principal(id)), Clients = clients };
 ChatConversation Room(IActionResult result) => ((Response<ChatConversation>)((OkObjectResult)result).Value!).Data;
 Check(PermissionPolicy.AllowedActions("NHAN_SU", "chat").Order().SequenceEqual(new[] { "create", "list", "send", "show" }), "Permission matrix exposes exactly the four chat actions for staff");

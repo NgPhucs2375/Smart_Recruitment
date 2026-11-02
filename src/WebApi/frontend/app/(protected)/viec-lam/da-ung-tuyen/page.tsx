@@ -2,8 +2,22 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Send, Undo2, MapPin, Wallet, ChevronLeft, ChevronRight } from "lucide-react";
-import { AdminPageLayout, AdminPageHeader, AdminCard, AdminCardHeader, AdminEmptyState, AdminLoadingState } from "@/components/admin/admin-page-layout";
+import {
+  Send,
+  Undo2,
+  MapPin,
+  Wallet,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
+import {
+  AdminPageLayout,
+  AdminPageHeader,
+  AdminCard,
+  AdminCardHeader,
+  AdminEmptyState,
+  AdminLoadingState,
+} from "@/components/admin/admin-page-layout";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,6 +29,7 @@ import {
 } from "@/components/ui/select";
 import { jobsApi } from "@/lib/api/jobs-api";
 import { formatSalaryFull } from "@/features/viec-lam/salary";
+import { getValidToken, refreshSession } from "@/lib/auth-provider";
 
 type DonUngTuyen = {
   id: number;
@@ -44,7 +59,13 @@ type ApiResponse<T> = {
 
 const PAGE_SIZE = 10;
 
-const TRANG_THAI: Record<number, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
+const TRANG_THAI: Record<
+  number,
+  {
+    label: string;
+    variant: "default" | "secondary" | "destructive" | "outline";
+  }
+> = {
   0: { label: "Khởi tạo", variant: "secondary" },
   1: { label: "Lỗi xử lý", variant: "destructive" },
   2: { label: "Chờ xử lý", variant: "default" },
@@ -71,7 +92,8 @@ const STATUS_BY_NAME: Record<string, number> = {
   tintuyendungbidong: 8,
   vohieuhoa: 9,
 };
-const ok = (r: ApiResponse<unknown>): boolean => r.Succeeded ?? r.succeeded ?? true;
+const ok = (r: ApiResponse<unknown>): boolean =>
+  r.Succeeded ?? r.succeeded ?? true;
 const msg = (r: ApiResponse<unknown>): string => r.Message ?? r.message ?? "";
 const extractData = <T,>(r: ApiResponse<T>): T | undefined => r.Data ?? r.data;
 
@@ -93,23 +115,41 @@ export default function DaUngTuyenPage() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
 
   const apiFetch = useCallback(async (url: string, opts?: RequestInit) => {
-    const token = localStorage.getItem("access_token");
-    const res = await fetch(url, { ...opts, cache: "no-store", headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}), ...opts?.headers } });
+    let token = await getValidToken();
+    const send = () =>
+      fetch(url, {
+        ...opts,
+        cache: "no-store",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          ...opts?.headers,
+        },
+      });
+    let res = await send();
+    if (res.status === 401 && (await refreshSession())) {
+      token = await getValidToken();
+      res = await send();
+    }
     const body = await res.json().catch(() => null);
-    if (!res.ok) throw new Error(body?.Message ?? body?.message ?? `HTTP ${res.status}`);
+    if (!res.ok)
+      throw new Error(body?.Message ?? body?.message ?? `HTTP ${res.status}`);
     return body;
   }, []);
 
   const load = useCallback(async () => {
     try {
-      setLoading(true); setErr("");
+      setLoading(true);
+      setErr("");
       const params = new URLSearchParams();
       params.set("_start", String((page - 1) * PAGE_SIZE));
       params.set("_end", String(page * PAGE_SIZE));
       params.set("_sort", "ngayungtuyen");
       params.set("_order", "desc");
       if (statusFilter !== "all") params.set("TrangThai", statusFilter);
-      const res: ApiResponse<unknown> = await apiFetch(`${API}?${params.toString()}`);
+      const res: ApiResponse<unknown> = await apiFetch(
+        `${API}?${params.toString()}`,
+      );
       if (!ok(res)) throw new Error(msg(res) || "Không thể tải danh sách");
       const d = extractData(res);
       const rawItems: unknown[] = Array.isArray(d) ? d : [];
@@ -122,21 +162,48 @@ export default function DaUngTuyenPage() {
           ngayUngTuyen: `${r.ngayUngTuyen ?? r.NgayUngTuyen ?? ""}`,
           ghiChu: `${r.ghiChu ?? r.GhiChu ?? ""}`,
           tieuDe: `${r.tieuDe ?? r.TieuDe ?? ""}` || undefined,
-          tenDoanhNghiep: `${r.tenDoanhNghiep ?? r.TenDoanhNghiep ?? ""}` || undefined,
-          diaDiemLamViec: `${r.diaDiemLamViec ?? r.DiaDiemLamViec ?? ""}` || undefined,
-          luongToiThieu: r.luongToiThieu ?? r.LuongToiThieu !== undefined ? Number(r.luongToiThieu ?? r.LuongToiThieu) : undefined,
-          luongToiDa: r.luongToiDa ?? r.LuongToiDa !== undefined ? Number(r.luongToiDa ?? r.LuongToiDa) : undefined,
+          tenDoanhNghiep:
+            `${r.tenDoanhNghiep ?? r.TenDoanhNghiep ?? ""}` || undefined,
+          diaDiemLamViec:
+            `${r.diaDiemLamViec ?? r.DiaDiemLamViec ?? ""}` || undefined,
+          luongToiThieu:
+            (r.luongToiThieu ?? r.LuongToiThieu !== undefined)
+              ? Number(r.luongToiThieu ?? r.LuongToiThieu)
+              : undefined,
+          luongToiDa:
+            (r.luongToiDa ?? r.LuongToiDa !== undefined)
+              ? Number(r.luongToiDa ?? r.LuongToiDa)
+              : undefined,
         };
       });
-      const serverTotal = Number(res.TotalCount ?? res.totalCount ?? rawItems.length);
+      const serverTotal = Number(
+        res.TotalCount ?? res.totalCount ?? rawItems.length,
+      );
       setTotalCount(serverTotal);
       setTotalPages(Number(res.TotalPages ?? res.totalPages ?? 1) || 1);
 
       // Enrich job info cho đơn thiếu (BE cũ / cache): gọi jobsApi theo tinId, gom nhóm để tránh N+1 trùng.
-      const missingIds = [...new Set(parsed.filter((p) => !p.tieuDe && p.tinTuyenDungId > 0).map((p) => p.tinTuyenDungId))];
+      const missingIds = [
+        ...new Set(
+          parsed
+            .filter((p) => !p.tieuDe && p.tinTuyenDungId > 0)
+            .map((p) => p.tinTuyenDungId),
+        ),
+      ];
       if (missingIds.length > 0) {
-        const fetched = await Promise.allSettled(missingIds.map((id) => jobsApi.getJobById(String(id))));
-        const map = new Map<number, { title: string; company: string; location: string; salaryMin: number; salaryMax: number }>();
+        const fetched = await Promise.allSettled(
+          missingIds.map((id) => jobsApi.getJobById(String(id))),
+        );
+        const map = new Map<
+          number,
+          {
+            title: string;
+            company: string;
+            location: string;
+            salaryMin: number;
+            salaryMax: number;
+          }
+        >();
         missingIds.forEach((id, i) => {
           const r = fetched[i];
           if (r.status === "fulfilled" && r.value) {
@@ -162,10 +229,17 @@ export default function DaUngTuyenPage() {
       }
       setItems(parsed);
 
-      setKetLuans(Object.fromEntries(rawItems.map(value => {
-        const r = value as Record<string, unknown>;
-        return [Number(r.id ?? r.Id), String(r.ketLuan ?? r.KetLuan ?? r.phanHoi ?? r.PhanHoi ?? "")];
-      })));
+      setKetLuans(
+        Object.fromEntries(
+          rawItems.map((value) => {
+            const r = value as Record<string, unknown>;
+            return [
+              Number(r.id ?? r.Id),
+              String(r.ketLuan ?? r.KetLuan ?? r.phanHoi ?? r.PhanHoi ?? ""),
+            ];
+          }),
+        ),
+      );
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Lỗi tải dữ liệu");
     } finally {
@@ -174,28 +248,52 @@ export default function DaUngTuyenPage() {
   }, [apiFetch, page, statusFilter]);
 
   // eslint-disable-next-line react-hooks/set-state-in-effect
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => {
+    void load();
+  }, [load]);
 
   useEffect(() => {
-    const refreshFromNotification = () => { void load(); };
-    window.addEventListener("recruitment:notification", refreshFromNotification);
-    return () => window.removeEventListener("recruitment:notification", refreshFromNotification);
+    const refreshFromNotification = () => {
+      void load();
+    };
+    window.addEventListener(
+      "recruitment:notification",
+      refreshFromNotification,
+    );
+    return () =>
+      window.removeEventListener(
+        "recruitment:notification",
+        refreshFromNotification,
+      );
   }, [load]);
 
   const [withdrawingId, setWithdrawingId] = useState<number | null>(null);
 
   // Rút đơn (trigger RutDon=8): chỉ khi đơn còn ở trạng thái đang xử lý.
   async function handleRutDon(item: DonUngTuyen) {
-    if (!window.confirm(`Rút đơn #${item.id}? Bạn sẽ không xét lại được đơn này.`)) return;
+    if (
+      !window.confirm(`Rút đơn #${item.id}? Bạn sẽ không xét lại được đơn này.`)
+    )
+      return;
     try {
       setWithdrawingId(item.id);
       setErr("");
       const res: ApiResponse<unknown> = await apiFetch(`${API}/${item.id}`, {
         method: "PUT",
-        body: JSON.stringify({ id: item.id, trigger: 8, ghiChu: "Ứng viên rút đơn" }),
+        body: JSON.stringify({
+          id: item.id,
+          trigger: 8,
+          ghiChu: "Ứng viên rút đơn",
+        }),
       });
       if (!ok(res)) throw new Error(msg(res) || "Không thể rút đơn");
-      setItems(current => current.map(entry => entry.id === item.id ? { ...entry, trangThai: WITHDRAWN_STATUS } : entry));
+      setItems((current) =>
+        current.map((entry) =>
+          entry.id === item.id
+            ? { ...entry, trangThai: WITHDRAWN_STATUS }
+            : entry,
+        ),
+      );
       await load();
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Không thể rút đơn");
@@ -207,49 +305,92 @@ export default function DaUngTuyenPage() {
   const canRutDon = (s: number) => s === 0 || s === 2 || s === 3 || s === 5;
 
   const statusOptions = useMemo(
-    () => Object.entries(TRANG_THAI).map(([v, s]) => ({ value: v, label: s.label })),
-    []
+    () =>
+      Object.entries(TRANG_THAI).map(([v, s]) => ({
+        value: v,
+        label: s.label,
+      })),
+    [],
   );
 
   function fmtDate(d: string) {
     if (!d) return "—";
-    try { return new Date(d).toLocaleDateString("vi-VN"); } catch { return d; }
+    try {
+      return new Date(d).toLocaleDateString("vi-VN");
+    } catch {
+      return d;
+    }
   }
 
   return (
     <AdminPageLayout>
-      <AdminPageHeader icon={Send} title="Việc đã ứng tuyển" description="Theo dõi các đơn ứng tuyển bạn đã gửi." />
+      <AdminPageHeader
+        icon={Send}
+        title="Việc đã ứng tuyển"
+        description="Theo dõi các đơn ứng tuyển bạn đã gửi."
+      />
 
-      {err && <div className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">{err}</div>}
+      {err && (
+        <div className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+          {err}
+        </div>
+      )}
 
       <div className="flex flex-wrap items-center gap-2">
-        <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v ?? "all"); setPage(1); }}>
+        <Select
+          value={statusFilter}
+          onValueChange={(v) => {
+            setStatusFilter(v ?? "all");
+            setPage(1);
+          }}
+        >
           <SelectTrigger className="h-10 w-auto min-w-[170px] rounded-full border-border bg-card px-4 text-[13px]">
             <SelectValue placeholder="Trạng thái đơn" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Tất cả trạng thái</SelectItem>
             {statusOptions.map((o) => (
-              <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+              <SelectItem key={o.value} value={o.value}>
+                {o.label}
+              </SelectItem>
             ))}
           </SelectContent>
         </Select>
-        <p className="text-xs text-muted-foreground">Trang {page}/{totalPages} • Tổng {totalCount} đơn</p>
+        <p className="text-xs text-muted-foreground">
+          Trang {page}/{totalPages} • Tổng {totalCount} đơn
+        </p>
       </div>
 
       <AdminCard>
-        <AdminCardHeader title="Đơn ứng tuyển" description={`${totalCount || items.length} đơn đã gửi`} />
-        {loading ? <AdminLoadingState /> : items.length === 0 ? (
-          <AdminEmptyState icon={Send} title="Chưa có đơn ứng tuyển" description="Bạn chưa ứng tuyển vào tin tuyển dụng nào. Hãy tìm việc phù hợp!" />
+        <AdminCardHeader
+          title="Đơn ứng tuyển"
+          description={`${totalCount || items.length} đơn đã gửi`}
+        />
+        {loading ? (
+          <AdminLoadingState />
+        ) : items.length === 0 ? (
+          <AdminEmptyState
+            icon={Send}
+            title="Chưa có đơn ứng tuyển"
+            description="Bạn chưa ứng tuyển vào tin tuyển dụng nào. Hãy tìm việc phù hợp!"
+          />
         ) : (
           <div className="divide-y divide-border">
-            {items.map(item => {
-              const st = TRANG_THAI[item.trangThai] ?? { label: `#${item.trangThai}`, variant: "secondary" as const };
+            {items.map((item) => {
+              const st = TRANG_THAI[item.trangThai] ?? {
+                label: `#${item.trangThai}`,
+                variant: "secondary" as const,
+              };
               return (
-                <div key={item.id} className="flex flex-col gap-3 p-5 sm:flex-row sm:items-start sm:justify-between">
+                <div
+                  key={item.id}
+                  className="flex flex-col gap-3 p-5 sm:flex-row sm:items-start sm:justify-between"
+                >
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-sm font-medium text-muted-foreground">Đơn #{item.id}</span>
+                      <span className="text-sm font-medium text-muted-foreground">
+                        Đơn #{item.id}
+                      </span>
                       <Badge variant={st.variant}>{st.label}</Badge>
                     </div>
                     <Link
@@ -267,7 +408,10 @@ export default function DaUngTuyenPage() {
                       <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
                         <span className="inline-flex items-center gap-1.5 rounded-full bg-teal/15 px-2.5 py-1 font-bold text-primary">
                           <Wallet className="size-3" />
-                          {formatSalaryFull(item.luongToiThieu ?? 0, item.luongToiDa ?? 0)}
+                          {formatSalaryFull(
+                            item.luongToiThieu ?? 0,
+                            item.luongToiDa ?? 0,
+                          )}
                         </span>
                         {item.diaDiemLamViec && (
                           <span className="inline-flex items-center gap-1 text-muted-foreground">
@@ -276,11 +420,19 @@ export default function DaUngTuyenPage() {
                         )}
                       </p>
                     )}
-                    {item.ghiChu && <p className="mt-1.5 text-sm text-muted-foreground line-clamp-1">{item.ghiChu}</p>}
+                    {item.ghiChu && (
+                      <p className="mt-1.5 text-sm text-muted-foreground line-clamp-1">
+                        {item.ghiChu}
+                      </p>
+                    )}
                     {ketLuans[item.id] && (
                       <p className="mt-1 text-xs">
-                        <span className="font-semibold text-muted-foreground">Kết quả từ NTD: </span>
-                        <span className="font-semibold text-primary">{ketLuans[item.id]}</span>
+                        <span className="font-semibold text-muted-foreground">
+                          Kết quả từ NTD:{" "}
+                        </span>
+                        <span className="font-semibold text-primary">
+                          {ketLuans[item.id]}
+                        </span>
                       </p>
                     )}
                   </div>
@@ -312,11 +464,25 @@ export default function DaUngTuyenPage() {
 
       {totalPages > 1 && (
         <div className="flex items-center justify-center gap-2">
-          <Button variant="outline" size="sm" className="rounded-full" disabled={page <= 1 || loading} onClick={() => setPage((p) => Math.max(1, p - 1))}>
+          <Button
+            variant="outline"
+            size="sm"
+            className="rounded-full"
+            disabled={page <= 1 || loading}
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+          >
             <ChevronLeft className="size-4" /> Trước
           </Button>
-          <span className="text-xs text-muted-foreground">Trang {page}/{totalPages}</span>
-          <Button variant="outline" size="sm" className="rounded-full" disabled={page >= totalPages || loading} onClick={() => setPage((p) => p + 1)}>
+          <span className="text-xs text-muted-foreground">
+            Trang {page}/{totalPages}
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            className="rounded-full"
+            disabled={page >= totalPages || loading}
+            onClick={() => setPage((p) => p + 1)}
+          >
             Sau <ChevronRight className="size-4" />
           </Button>
         </div>

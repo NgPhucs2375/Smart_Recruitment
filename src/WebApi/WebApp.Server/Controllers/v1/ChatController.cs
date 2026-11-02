@@ -5,7 +5,9 @@ using Domain.Enums;
 using Infrastructure.Persistence.Contexts;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using WebApp.Server.Hubs;
 using WebApp.Server.Services;
 
 namespace WebApp.Server.Controllers.v1;
@@ -13,7 +15,7 @@ namespace WebApp.Server.Controllers.v1;
 [ApiController]
 [Authorize]
 [Route("api/chat")]
-public sealed class ChatController(ApplicationDbContext db, ChatAccessService access) : ControllerBase
+public sealed class ChatController(ApplicationDbContext db, ChatAccessService access, IHubContext<ChatHub> hub) : ControllerBase
 {
     [HttpGet("context")]
     public async Task<IActionResult> GetContext()
@@ -68,6 +70,8 @@ public sealed class ChatController(ApplicationDbContext db, ChatAccessService ac
                 if (existing is null) throw;
                 return ConversationResponse(existing, actor, contact.Name);
             }
+            await hub.Clients.Group(ChatHub.CompanyGroup(actor.CompanyId))
+                .SendAsync("ConversationUpdated", conversation.Id);
             return ConversationResponse(conversation, actor, contact.Name);
         }
         if (request.RecipientId.HasValue) return BadRequest(new Response<object>("Phòng chung không có người nhận riêng."));
@@ -77,6 +81,8 @@ public sealed class ChatController(ApplicationDbContext db, ChatAccessService ac
         conversation.Title = title;
         db.Conversations.Add(conversation);
         await db.SaveChangesAsync();
+        await hub.Clients.Group(ChatHub.CompanyGroup(actor.CompanyId))
+            .SendAsync("ConversationUpdated", conversation.Id);
         return ConversationResponse(conversation, actor, title);
     }
 

@@ -11,12 +11,11 @@ import {
 import {
   ArrowRight,
   Building2,
-  ChevronRight,
-  Lock,
   LogOut,
   Mail,
   Pencil,
   Plus,
+  Settings,
   ShieldCheck,
   UserRound,
 } from 'lucide-react-native';
@@ -445,12 +444,10 @@ export default function HRAccountScreen() {
           <ArrowRight size={16} color={theme.textSecondary} />
         </Pressable>
 
-        <ThemedText style={[styles.sectionTitle, { color: theme.textSecondary }]}>
-          BẢO MẬT
-        </ThemedText>
+        <ThemedText style={[styles.sectionTitle, { color: theme.textSecondary }]}>CÀI ĐẶT</ThemedText>
         <Pressable
           accessibilityRole="button"
-          onPress={() => router.push('/change-password')}
+          onPress={() => router.push('/hr/settings')}
           style={({ pressed }) => [
             styles.companyRow,
             {
@@ -460,15 +457,13 @@ export default function HRAccountScreen() {
             },
           ]}>
           <View style={[styles.companyIcon, { backgroundColor: `${theme.primary}1A` }]}>
-            <Lock size={18} color={theme.primary} />
+            <Settings size={18} color={theme.primary} />
           </View>
           <View style={styles.profileCopy}>
-            <ThemedText style={styles.companyName}>Đổi mật khẩu</ThemedText>
-            <ThemedText style={[styles.profileRole, { color: theme.textSecondary }]}>
-              Sau khi đổi, mọi phiên đăng nhập khác sẽ bị đăng xuất.
-            </ThemedText>
+            <ThemedText style={styles.companyName}>Cài đặt tài khoản</ThemedText>
+            <ThemedText style={[styles.profileRole, { color: theme.textSecondary }]}>Bảo mật, giao diện và đăng xuất</ThemedText>
           </View>
-          <ChevronRight size={16} color={theme.textSecondary} />
+          <ArrowRight size={16} color={theme.textSecondary} />
         </Pressable>
 
         <Button

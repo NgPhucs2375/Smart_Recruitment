@@ -999,7 +999,7 @@ export function TaoCvView() {
           >
             {pageCount} trang
           </span>
-          <span className="flex items-center gap-1.5 rounded-full bg-navy px-2.5 py-1 text-xs font-semibold text-white">
+          <span className="flex items-center gap-1.5 rounded-full bg-primary px-2.5 py-1 text-xs font-semibold text-primary-foreground">
             <Eye className="size-3" aria-hidden="true" />
             Thời gian thực
           </span>
@@ -1026,7 +1026,7 @@ export function TaoCvView() {
           <div
             ref={scrollerRef}
             style={{ scrollbarGutter: "stable" }}
-            className="flex min-h-0 flex-1 flex-col items-center gap-8 overflow-y-auto overflow-x-hidden rounded-xl bg-slate-200/70 p-4 dark:bg-zinc-900 sm:p-6"
+            className="cv-preview-scroll-surface flex min-h-0 flex-1 flex-col items-center gap-8 overflow-y-auto overflow-x-hidden rounded-xl p-4 sm:p-6"
           >
             <div className="w-full max-w-[210mm]">
               <CvPreview data={deferredCvData} onPageCount={setPageCount} />

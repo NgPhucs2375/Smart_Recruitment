@@ -19,6 +19,7 @@ import { Button } from '@/components/ui/button';
 import { font, Radius } from '@/constants/theme';
 import { useAuth } from '@/features/auth';
 import { useTheme } from '@/hooks/use-theme';
+import { validateEmail } from '@/features/auth/validation';
 
 export default function LoginScreen() {
   const theme = useTheme();
@@ -32,8 +33,9 @@ export default function LoginScreen() {
 
   const handleSubmit = async () => {
     const trimmedEmail = email.trim();
-    if (!trimmedEmail || !password) {
-      setError('Nhập email và mật khẩu để tiếp tục.');
+    const emailError = validateEmail(trimmedEmail);
+    if (emailError || !password) {
+      setError(emailError ?? 'Nhập mật khẩu để tiếp tục.');
       return;
     }
 
@@ -79,7 +81,7 @@ export default function LoginScreen() {
               styles.inputWrap,
               { backgroundColor: theme.backgroundElement, borderColor: theme.input },
             ]}>
-            <Mail size={16} color="#9ca3af" style={styles.inputIcon} />
+            <Mail size={16} color={theme.textSecondary} style={styles.inputIcon} />
             <TextInput
               autoCapitalize="none"
               autoCorrect={false}
@@ -91,6 +93,7 @@ export default function LoginScreen() {
               selectionColor={theme.primary}
               style={[styles.input, { color: theme.text }]}
               value={email}
+              maxLength={100}
             />
           </View>
 
@@ -113,7 +116,7 @@ export default function LoginScreen() {
               styles.inputWrap,
               { backgroundColor: theme.backgroundElement, borderColor: theme.input },
             ]}>
-            <Lock size={16} color="#9ca3af" style={styles.inputIcon} />
+            <Lock size={16} color={theme.textSecondary} style={styles.inputIcon} />
             <TextInput
               autoCapitalize="none"
               editable={!submitting}
@@ -125,6 +128,7 @@ export default function LoginScreen() {
               selectionColor={theme.primary}
               style={[styles.input, styles.inputWithAction, { color: theme.text }]}
               value={password}
+              maxLength={100}
             />
             <Pressable
               accessibilityRole="button"
@@ -135,9 +139,9 @@ export default function LoginScreen() {
               onPress={() => setShowPassword((value) => !value)}
               style={styles.eyeButton}>
               {showPassword ? (
-                <EyeOff size={16} color="#9ca3af" />
+                <EyeOff size={16} color={theme.textSecondary} />
               ) : (
-                <Eye size={16} color="#9ca3af" />
+                <Eye size={16} color={theme.textSecondary} />
               )}
             </Pressable>
           </View>

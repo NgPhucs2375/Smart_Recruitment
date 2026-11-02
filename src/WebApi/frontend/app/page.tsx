@@ -270,7 +270,7 @@ export default function LandingPage() {
   }
 
   return (
-    <main className="min-h-dvh overflow-hidden bg-ivory text-charcoal">
+    <main className="theme-public min-h-dvh overflow-hidden bg-ivory text-charcoal">
       {/* ============ Header + Hero — light, airy, growth-oriented ============ */}
       <section className="relative border-b border-linen/70 bg-ivory pt-28 md:pt-16">
         <div className="relative mx-auto max-w-7xl px-4 pb-16 pt-4 sm:px-10 sm:pt-6 lg:px-16">

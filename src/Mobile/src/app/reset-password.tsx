@@ -20,6 +20,7 @@ import { Button } from '@/components/ui/button';
 import { font, Radius } from '@/constants/theme';
 import { authApi, useAuth } from '@/features/auth';
 import { parseResetLink } from '@/features/auth/deep-link';
+import { validateEmail, validatePassword, validatePasswordConfirmation } from '@/features/auth/validation';
 import { useTheme } from '@/hooks/use-theme';
 import { safeBack } from '@/utils/navigation';
 
@@ -78,12 +79,9 @@ export default function ResetPasswordScreen() {
       setError('Điền đủ email, token và mật khẩu mới.');
       return;
     }
-    if (password.length < 6) {
-      setError('Mật khẩu mới cần ít nhất 6 ký tự.');
-      return;
-    }
-    if (password !== confirmPassword) {
-      setError('Mật khẩu xác nhận không khớp.');
+    const validation = validateEmail(trimmedEmail) ?? validatePassword(password) ?? validatePasswordConfirmation(password, confirmPassword);
+    if (validation) {
+      setError(validation);
       return;
     }
 
@@ -127,7 +125,7 @@ export default function ResetPasswordScreen() {
 
           <ThemedText style={[styles.label, { color: theme.textSecondary }]}>Email</ThemedText>
           <View style={[styles.inputWrap, { backgroundColor: theme.backgroundElement, borderColor: theme.input }]}>
-            <Mail size={16} color="#9ca3af" style={styles.inputIcon} />
+            <Mail size={16} color={theme.textSecondary} style={styles.inputIcon} />
             <TextInput
               autoCapitalize="none"
               autoCorrect={false}
@@ -139,6 +137,7 @@ export default function ResetPasswordScreen() {
               selectionColor={theme.primary}
               style={[styles.input, { color: theme.text }]}
               value={email}
+              maxLength={100}
             />
           </View>
 
@@ -150,7 +149,7 @@ export default function ResetPasswordScreen() {
             <>
               <ThemedText style={[styles.label, { color: theme.textSecondary }]}>Token từ email</ThemedText>
               <View style={[styles.inputWrap, { backgroundColor: theme.backgroundElement, borderColor: theme.input }]}>
-                <KeyRound size={16} color="#9ca3af" style={styles.inputIcon} />
+                <KeyRound size={16} color={theme.textSecondary} style={styles.inputIcon} />
                 <TextInput
                   autoCapitalize="none"
                   autoCorrect={false}
@@ -162,6 +161,7 @@ export default function ResetPasswordScreen() {
                   selectionColor={theme.primary}
                   style={[styles.input, { color: theme.text }]}
                   value={token}
+                  maxLength={512}
                 />
               </View>
             </>
@@ -169,7 +169,7 @@ export default function ResetPasswordScreen() {
 
           <ThemedText style={[styles.label, { color: theme.textSecondary }]}>Mật khẩu mới</ThemedText>
           <View style={[styles.inputWrap, { backgroundColor: theme.backgroundElement, borderColor: theme.input }]}>
-            <Lock size={16} color="#9ca3af" style={styles.inputIcon} />
+            <Lock size={16} color={theme.textSecondary} style={styles.inputIcon} />
             <TextInput
               autoCapitalize="none"
               editable={!submitting}
@@ -180,6 +180,7 @@ export default function ResetPasswordScreen() {
               selectionColor={theme.primary}
               style={[styles.input, { paddingRight: 36, color: theme.text }]}
               value={password}
+              maxLength={100}
             />
             <Pressable
               accessibilityRole="button"
@@ -188,9 +189,9 @@ export default function ResetPasswordScreen() {
               onPress={() => setShowPassword((value) => !value)}
               style={styles.eyeButton}>
               {showPassword ? (
-                <EyeOff size={16} color="#9ca3af" />
+                <EyeOff size={16} color={theme.textSecondary} />
               ) : (
-                <Eye size={16} color="#9ca3af" />
+                <Eye size={16} color={theme.textSecondary} />
               )}
             </Pressable>
           </View>
@@ -199,7 +200,7 @@ export default function ResetPasswordScreen() {
             Xác nhận mật khẩu mới
           </ThemedText>
           <View style={[styles.inputWrap, { backgroundColor: theme.backgroundElement, borderColor: theme.input }]}>
-            <Lock size={16} color="#9ca3af" style={styles.inputIcon} />
+            <Lock size={16} color={theme.textSecondary} style={styles.inputIcon} />
             <TextInput
               autoCapitalize="none"
               editable={!submitting}
@@ -211,6 +212,7 @@ export default function ResetPasswordScreen() {
               selectionColor={theme.primary}
               style={[styles.input, { color: theme.text }]}
               value={confirmPassword}
+              maxLength={100}
             />
           </View>
 

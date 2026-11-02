@@ -442,8 +442,8 @@ export function ApplicantsInbox({ jobId, jobTitle }: ApplicantsInboxProps) {
               setMockDecisions((prev) => ({ ...prev, [id]: kind }));
               setSuccess(
                 kind === 'approve'
-                  ? `Đã duyệt hồ sơ của ${name}.`
-                  : `Đã từ chối hồ sơ của ${name}.`,
+                  ? `Demo: đã duyệt hồ sơ của ${name} (chưa lưu máy chủ).`
+                  : `Demo: đã từ chối hồ sơ của ${name} (chưa lưu máy chủ).`,
               );
             }}
           />
@@ -454,7 +454,7 @@ export function ApplicantsInbox({ jobId, jobTitle }: ApplicantsInboxProps) {
           />
         ) : (
           <View style={[styles.listCard, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
-            <View style={styles.listHead}>
+            <View style={[styles.listHead, { borderBottomColor: theme.border }]}>
               <ThemedText style={[styles.listHeadTitle, { color: theme.textSecondary }]} type="code">
                 DANH SÁCH ĐƠN ỨNG TUYỂN ({filtered.length})
               </ThemedText>
@@ -620,6 +620,7 @@ export function ApplicantsInbox({ jobId, jobTitle }: ApplicantsInboxProps) {
               value={evalNoiDung}
               onChangeText={setEvalNoiDung}
               multiline
+              maxLength={4000}
               placeholder="VD: Kỹ năng phù hợp, giao tiếp tốt, có thể đi làm ngay..."
               placeholderTextColor={theme.textSecondary}
               style={[styles.evalInput, { backgroundColor: theme.background, borderColor: theme.input, color: theme.text }]}
@@ -630,6 +631,7 @@ export function ApplicantsInbox({ jobId, jobTitle }: ApplicantsInboxProps) {
             <TextInput
               value={evalKetLuan}
               onChangeText={setEvalKetLuan}
+              maxLength={255}
               placeholder="VD: Đạt — mời nhận việc / Không đạt"
               placeholderTextColor={theme.textSecondary}
               style={[styles.evalInput, styles.evalInputSmall, { backgroundColor: theme.background, borderColor: theme.input, color: theme.text }]}
@@ -698,9 +700,12 @@ function MockApplicantsCard({
 
   return (
     <View style={[styles.listCard, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
-      <View style={styles.listHead}>
+      <View style={[styles.listHead, { borderBottomColor: theme.border }]}>
         <ThemedText style={[styles.listHeadTitle, { color: theme.textSecondary }]} type="code">
           DANH SÁCH ĐƠN ỨNG TUYỂN ({visible.length})
+        </ThemedText>
+        <ThemedText style={{ color: theme.textSecondary }} type="code">
+          DEMO • thao tác chỉ lưu trên máy
         </ThemedText>
       </View>
 
@@ -813,7 +818,7 @@ const styles = StyleSheet.create({
   },
   searchInput: { flex: 1, fontSize: 13, fontFamily: font('regular'), paddingVertical: 8 },
   listCard: { borderRadius: Radius['2xl'], borderWidth: 1, overflow: 'hidden' },
-  listHead: { padding: 14, gap: 4, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#ddd4c7' },
+  listHead: { padding: 14, gap: 4, borderBottomWidth: StyleSheet.hairlineWidth },
   listHeadTitle: { fontSize: 11, letterSpacing: 1 },
   row: { padding: 14, gap: 10 },
   rowBody: { gap: 4 },

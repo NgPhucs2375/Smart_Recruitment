@@ -135,6 +135,9 @@ export function RecruiterProfileTab() {
 
   function validate(): string | null {
     if (!form.hoTen.trim()) return "Họ tên không được để trống.";
+    if (form.hoTen.trim().length > 255) return "Họ tên tối đa 255 ký tự.";
+    if (form.chucVu.trim().length > 100) return "Chức vụ tối đa 100 ký tự.";
+    if (form.sdt.trim().length > 20) return "Số điện thoại tối đa 20 ký tự.";
     if (form.sdt.trim() && !/^\+?[0-9\s.-]{8,20}$/.test(form.sdt.trim()))
       return "Số điện thoại không hợp lệ.";
     return null;
@@ -142,6 +145,9 @@ export function RecruiterProfileTab() {
 
   function validateCreate(): string | null {
     if (!createForm.hoTen.trim()) return "Họ tên không được để trống.";
+    if (createForm.hoTen.trim().length > 255) return "Họ tên tối đa 255 ký tự.";
+    if (createForm.chucVu.trim().length > 100) return "Chức vụ tối đa 100 ký tự.";
+    if (createForm.sdt.trim().length > 20) return "Số điện thoại tối đa 20 ký tự.";
     if (createForm.sdt.trim() && !/^\+?[0-9\s.-]{8,20}$/.test(createForm.sdt.trim()))
       return "Số điện thoại không hợp lệ.";
     return null;
@@ -263,6 +269,7 @@ export function RecruiterProfileTab() {
                     setCreateForm((f) => ({ ...f, hoTen: e.target.value }))
                   }
                   required
+                  maxLength={255}
                   placeholder="VD: Nguyễn Văn A"
                 />
               </div>
@@ -274,6 +281,7 @@ export function RecruiterProfileTab() {
                     setCreateForm((f) => ({ ...f, chucVu: e.target.value }))
                   }
                   placeholder="VD: Giám đốc nhân sự"
+                  maxLength={100}
                 />
               </div>
               <div className="space-y-2">
@@ -284,6 +292,7 @@ export function RecruiterProfileTab() {
                     setCreateForm((f) => ({ ...f, sdt: e.target.value }))
                   }
                   placeholder="VD: 0901234567"
+                  maxLength={20}
                 />
               </div>
             </div>
@@ -320,6 +329,7 @@ export function RecruiterProfileTab() {
                 value={form.hoTen}
                 onChange={(e) => setForm((f) => ({ ...f, hoTen: e.target.value }))}
                 required
+                maxLength={255}
                 placeholder="VD: Nguyễn Văn A"
               />
             </div>
@@ -329,6 +339,7 @@ export function RecruiterProfileTab() {
                 value={form.chucVu}
                 onChange={(e) => setForm((f) => ({ ...f, chucVu: e.target.value }))}
                 placeholder="VD: HR Manager"
+                maxLength={100}
               />
             </div>
             <div className="space-y-2">
@@ -337,6 +348,7 @@ export function RecruiterProfileTab() {
                 value={form.sdt}
                 onChange={(e) => setForm((f) => ({ ...f, sdt: e.target.value }))}
                 placeholder="VD: 0901234567"
+                maxLength={20}
               />
             </div>
             <div className="space-y-2">

@@ -387,7 +387,7 @@ export function DashboardScreen() {
                           {stat.total} ứng viên
                         </ThemedText>
                         {stat.fresh > 0 ? (
-                          <ThemedText style={[styles.freshPill, { backgroundColor: '#f7eddc', color: '#2f3440' }]} type="code">
+                          <ThemedText style={[styles.freshPill, { backgroundColor: theme.muted, color: theme.text }]} type="code">
                             +{stat.fresh} mới
                           </ThemedText>
                         ) : null}
@@ -472,7 +472,7 @@ export function DashboardScreen() {
             <View style={styles.rows}>
               {unviewed.length > 0 ? (
                 <View style={styles.attentionRow}>
-                  <View style={[styles.attentionIcon, { backgroundColor: '#f7eddc' }]}>
+                  <View style={[styles.attentionIcon, { backgroundColor: theme.muted }]}>
                     <Send size={15} color={theme.text} />
                   </View>
                   <ThemedText style={styles.attentionText} type="small" numberOfLines={2}>
@@ -487,7 +487,7 @@ export function DashboardScreen() {
               ) : null}
               {expiringJobs.map((job) => (
                 <View key={job.id} style={styles.attentionRow}>
-                  <View style={[styles.attentionIcon, { backgroundColor: '#f7eddc' }]}>
+                  <View style={[styles.attentionIcon, { backgroundColor: theme.muted }]}>
                     <Clock size={15} color={theme.text} />
                   </View>
                   <ThemedText style={styles.attentionText} type="small" numberOfLines={2}>

@@ -5,6 +5,7 @@ export function normalizeEmail(value: string): string {
 export function validateEmail(value: string): string | null {
   const email = normalizeEmail(value);
   if (!email) return 'Nhập email.';
+  if (email.length > 100) return 'Email tối đa 100 ký tự.';
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) return 'Email không hợp lệ.';
   return null;
 }
@@ -19,6 +20,21 @@ export function validatePhone(value: string): string | null {
 export function validatePassword(value: string): string | null {
   if (!value) return 'Nhập mật khẩu.';
   if (value.length < 6) return 'Mật khẩu phải có ít nhất 6 ký tự.';
+  if (value.length > 100) return 'Mật khẩu tối đa 100 ký tự.';
+  return null;
+}
+
+export function validateText(value: string, label: string, max: number, required = false): string | null {
+  const trimmed = value.trim();
+  if (required && !trimmed) return `${label} không được để trống.`;
+  if (trimmed.length > max) return `${label} tối đa ${max} ký tự.`;
+  return null;
+}
+
+export function validateTaxCode(value: string): string | null {
+  const taxCode = value.trim();
+  if (!taxCode) return null;
+  if (!/^\d{10}(\d{3})?$/.test(taxCode)) return 'Mã số thuế gồm 10 hoặc 13 chữ số.';
   return null;
 }
 

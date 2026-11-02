@@ -1,18 +1,25 @@
-import { Bell, Bookmark, Search, User } from 'lucide-react-native';
+import { Bell, Bookmark, MessageCircle, Search, User } from 'lucide-react-native';
 import { Tabs } from 'expo-router';
 
-import { font } from '@/constants/theme';
+import { font, Palette } from '@/constants/theme';
+import { useAuth } from '@/features/auth';
+import { canUseInternalChat } from '@/features/chat/roles';
+import { useTheme } from '@/hooks/use-theme';
 
 export default function AppTabs() {
+  const { user } = useAuth();
+  const theme = useTheme();
+  const canChat = canUseInternalChat(user?.roles);
+
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: '#355C8C',
-        tabBarInactiveTintColor: '#6D7480',
+        tabBarActiveTintColor: theme.primary,
+        tabBarInactiveTintColor: theme.textSecondary,
         tabBarStyle: {
-          backgroundColor: '#FFFDF9',
-          borderTopColor: '#DDD4C7',
+          backgroundColor: theme.backgroundElement,
+          borderTopColor: theme.border,
           borderTopWidth: 1,
         },
         tabBarLabelStyle: {
@@ -25,39 +32,42 @@ export default function AppTabs() {
         name="index"
         options={{
           title: 'Việc làm',
-          tabBarIcon: ({ color, size }) => <Search size={size} color={color} />,
+          tabBarIcon: ({ color, focused, size }) => <Search size={size} color={focused ? Palette.marine : color} />,
         }}
       />
       <Tabs.Screen
         name="saved"
         options={{
           title: 'Đã lưu',
-          tabBarIcon: ({ color, size }) => <Bookmark size={size} color={color} />,
+          tabBarIcon: ({ color, focused, size }) => <Bookmark size={size} color={focused ? Palette.sand : color} />,
         }}
       />
       <Tabs.Screen
         name="chat"
-        options={{
-          // Ẩn khỏi footer — lối tắt Tin nhắn nằm ở AppHeader (góc phải).
-          href: null,
-        }}
+        options={
+          canChat
+            ? {
+                title: 'Tin nhắn',
+                tabBarIcon: ({ color, focused, size }) => <MessageCircle size={size} color={focused ? Palette.sage : color} />,
+              }
+            : { href: null }
+        }
       />
       <Tabs.Screen
         name="notifications"
         options={{
           title: 'Thông báo',
-          tabBarIcon: ({ color, size }) => <Bell size={size} color={color} />,
+          tabBarIcon: ({ color, focused, size }) => <Bell size={size} color={focused ? Palette.bronze : color} />,
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
           title: 'Hồ sơ',
-          tabBarIcon: ({ color, size }) => <User size={size} color={color} />,
+          tabBarIcon: ({ color, focused, size }) => <User size={size} color={focused ? Palette.mist : color} />,
         }}
       />
       <Tabs.Screen name="applications" options={{ href: null }} />
-      <Tabs.Screen name="settings" options={{ href: null }} />
       <Tabs.Screen name="phu-hop" options={{ href: null }} />
     </Tabs>
   );

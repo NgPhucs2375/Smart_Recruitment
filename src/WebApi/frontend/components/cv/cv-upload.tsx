@@ -3,6 +3,7 @@
 // hiện tại chỉ nhận .pdf, .docx,.json
 // check size <= 10mb
 // return ve cv-import-dialog
+import * as React from "react";
 import { FileText, UploadCloud, X } from "lucide-react";
 import { useDropzone } from "react-dropzone";
 import { cn } from "@/lib/utils";
@@ -27,27 +28,33 @@ export function CvUpload({
   disabled = false,
   className,
 }: CvUploadProps) {
-  const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
-    accept: {
-      "application/pdf": [".pdf"],
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document": [".docx"],
-      "application/json": [".json"],
-    },
-    maxSize: MAX_IMPORT_BYTES,
-    multiple: false,
-    disabled,
-    noClick: true,
-    noKeyboard: true,
-    onDropAccepted: (files) => onFileChange(files[0] ?? null),
-    onDropRejected: (rejections) => {
-      const rejected = rejections[0];
-      if (rejected?.errors.some((item) => item.code === "file-too-large")) {
-        onError(`File quá lớn. Giới hạn ${formatBytes(MAX_IMPORT_BYTES)}.`);
-        return;
-      }
-      onError("Chỉ hỗ trợ file PDF, DOCX hoặc JSON Resume.");
-    },
-  });
+  const { getRootProps, getInputProps, inputRef, isDragActive, open } =
+    useDropzone({
+      accept: {
+        "application/pdf": [".pdf"],
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+          [".docx"],
+        "application/json": [".json"],
+      },
+      maxSize: MAX_IMPORT_BYTES,
+      multiple: false,
+      disabled,
+      noClick: true,
+      noKeyboard: true,
+      onDropAccepted: (files) => onFileChange(files[0] ?? null),
+      onDropRejected: (rejections) => {
+        const rejected = rejections[0];
+        if (rejected?.errors.some((item) => item.code === "file-too-large")) {
+          onError(`File quá lớn. Giới hạn ${formatBytes(MAX_IMPORT_BYTES)}.`);
+          return;
+        }
+        onError("Chỉ hỗ trợ file PDF, DOCX hoặc JSON Resume.");
+      },
+    });
+
+  React.useEffect(() => {
+    if (!file && inputRef.current) inputRef.current.value = "";
+  }, [file, inputRef]);
 
   return (
     <div className={className}>
@@ -76,7 +83,8 @@ export function CvUpload({
           Kéo thả file vào đây hoặc bấm để chọn
         </p>
         <p className="mt-1 text-xs text-muted-foreground">
-          Chỉ hỗ trợ {SUPPORTED_IMPORT_EXTENSIONS.join(", ")} • tối đa {formatBytes(MAX_IMPORT_BYTES)}
+          Chỉ hỗ trợ {SUPPORTED_IMPORT_EXTENSIONS.join(", ")} • tối đa{" "}
+          {formatBytes(MAX_IMPORT_BYTES)}
         </p>
         <input {...getInputProps()} />
       </div>
@@ -85,8 +93,12 @@ export function CvUpload({
         <div className="mt-3 flex items-center gap-3 rounded-2xl border border-border bg-muted px-4 py-3">
           <FileText className="size-4 shrink-0 text-primary" />
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-medium text-foreground">{file.name}</p>
-            <p className="text-xs text-muted-foreground">{formatBytes(file.size)}</p>
+            <p className="truncate text-sm font-medium text-foreground">
+              {file.name}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {formatBytes(file.size)}
+            </p>
           </div>
           <button
             type="button"

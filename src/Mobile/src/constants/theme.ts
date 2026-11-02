@@ -26,18 +26,18 @@ export const Colors = {
     primaryHover: '#2d4f79', // --primary-hover
   },
   dark: {
-    text: '#ede6d8', // --foreground
-    background: '#242321', // --background
-    backgroundElement: '#2d2b28', // --card
-    backgroundSelected: '#33364a', // --secondary (tone-candidate dark)
-    textSecondary: '#a49d90', // --muted-foreground
+    text: '#edf3fb', // Web --foreground
+    background: '#151b26', // Web --background
+    backgroundElement: '#1c2431', // Web --card
+    backgroundSelected: '#2b3a50', // Web --secondary
+    textSecondary: '#a7b4c4', // Web --muted-foreground
     primary: '#8ea6cf', // --primary (tone-candidate dark)
-    border: '#3e3a34', // --border
-    muted: '#34312d', // --muted
-    destructive: '#e07a6a', // --destructive
-    input: '#3e3a34', // --input
-    primaryForeground: '#23262e', // --primary-foreground
-    primaryHover: '#c2b8a6', // --primary-hover
+    border: '#334255', // Web --border
+    muted: '#222d3b', // Web --muted
+    destructive: '#ef8b7e', // Web --destructive
+    input: '#334255', // Web --input
+    primaryForeground: '#16202d', // Web --primary-foreground
+    primaryHover: '#a9bce0', // Web --primary-hover
   },
 } as const;
 

@@ -7,6 +7,7 @@ import { AdminPageLayout, AdminPageHeader, AdminCard, AdminCardHeader, AdminEmpt
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useStoredIdentity } from "@/hooks/use-stored-identity";
+import { getValidToken, refreshSession } from "@/lib/auth-provider";
 
 type KetQuaPhuHop = {
   id: number;
@@ -46,6 +47,27 @@ const ok = (r: ApiResponse<unknown>): boolean => r.Succeeded ?? r.succeeded ?? t
 const msg = (r: ApiResponse<unknown>): string => r.Message ?? r.message ?? "";
 const extractData = <T,>(r: ApiResponse<T>): T | undefined => r.Data ?? r.data;
 
+async function apiFetch(url: string, opts?: RequestInit) {
+  let token = await getValidToken();
+  const send = () => fetch(url, {
+    ...opts,
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...opts?.headers,
+    },
+  });
+
+  let res = await send();
+  if (res.status === 401 && await refreshSession()) {
+    token = await getValidToken();
+    res = await send();
+  }
+  const body = await res.json().catch(() => null);
+  if (!res.ok) throw new Error(body?.Message ?? body?.message ?? `HTTP ${res.status}`);
+  return body;
+}
+
 function fmtDate(d: string) {
   if (!d) return "—";
   try { return new Date(d).toLocaleDateString("vi-VN"); } catch { return d; }
@@ -64,14 +86,6 @@ function CandidatePhuHop() {
   const [err, setErr] = useState("");
   const [sort, setSort] = useState<"score" | "title">("score");
   const [category, setCategory] = useState<"all" | "high" | "medium" | "low">("all");
-
-  const apiFetch = useCallback(async (url: string, opts?: RequestInit) => {
-    const token = localStorage.getItem("access_token");
-    const res = await fetch(url, { ...opts, headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}), ...opts?.headers } });
-    const body = await res.json().catch(() => null);
-    if (!res.ok) throw new Error(body?.Message ?? body?.message ?? `HTTP ${res.status}`);
-    return body;
-  }, []);
 
   const load = useCallback(async () => {
     try {
@@ -102,7 +116,7 @@ function CandidatePhuHop() {
     } finally {
       setLoading(false);
     }
-  }, [apiFetch]);
+  }, []);
 
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { void load(); }, [load]);
@@ -199,14 +213,6 @@ function RecruiterPhuHop() {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
 
-  const apiFetch = useCallback(async (url: string, opts?: RequestInit) => {
-    const token = localStorage.getItem("access_token");
-    const res = await fetch(url, { ...opts, headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}), ...opts?.headers } });
-    const body = await res.json().catch(() => null);
-    if (!res.ok) throw new Error(body?.Message ?? body?.message ?? `HTTP ${res.status}`);
-    return body;
-  }, []);
-
   const load = useCallback(async () => {
     try {
       setLoading(true); setErr("");
@@ -238,7 +244,7 @@ function RecruiterPhuHop() {
     } finally {
       setLoading(false);
     }
-  }, [apiFetch]);
+  }, []);
 
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { void load(); }, [load]);

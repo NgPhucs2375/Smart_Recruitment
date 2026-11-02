@@ -18,6 +18,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Button } from '@/components/ui/button';
 import { font, Radius } from '@/constants/theme';
 import { authApi } from '@/features/auth';
+import { validateEmail } from '@/features/auth/validation';
 import { useTheme } from '@/hooks/use-theme';
 import { safeBack } from '@/utils/navigation';
 
@@ -31,8 +32,9 @@ export default function ForgotPasswordScreen() {
 
   const handleSubmit = async () => {
     const trimmedEmail = email.trim();
-    if (!trimmedEmail) {
-      setError('Nhập email đã đăng ký.');
+    const emailError = validateEmail(trimmedEmail);
+    if (emailError) {
+      setError(emailError);
       return;
     }
 
@@ -72,7 +74,7 @@ export default function ForgotPasswordScreen() {
 
           <ThemedText style={[styles.label, { color: theme.textSecondary }]}>Email</ThemedText>
           <View style={[styles.inputWrap, { backgroundColor: theme.backgroundElement, borderColor: theme.input }]}>
-            <Mail size={16} color="#9ca3af" style={styles.inputIcon} />
+            <Mail size={16} color={theme.textSecondary} style={styles.inputIcon} />
             <TextInput
               autoCapitalize="none"
               autoCorrect={false}
@@ -85,6 +87,7 @@ export default function ForgotPasswordScreen() {
               selectionColor={theme.primary}
               style={[styles.input, { color: theme.text }]}
               value={email}
+              maxLength={100}
             />
           </View>
 

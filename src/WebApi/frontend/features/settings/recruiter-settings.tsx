@@ -23,10 +23,10 @@ const MOCK = {
   },
 };
 
-const CARD = "rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm";
-const CARD_TITLE = "flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-slate-500";
+const CARD = "rounded-2xl border border-border bg-card p-6 shadow-sm";
+const CARD_TITLE = "flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-muted-foreground";
 const GHOST_BTN =
-  "border border-slate-200 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors hover:bg-slate-50";
+  "border border-border px-3 py-1.5 rounded-lg text-xs font-medium transition-colors hover:bg-muted";
 
 function ThemeSegmented() {
   const { theme, setTheme } = useTheme();
@@ -77,20 +77,20 @@ export function RecruiterSettings({
   const triggerClass = (active: boolean) =>
     cn(
       "rounded-xl px-4 py-2 text-sm font-medium transition-colors",
-      active ? "bg-slate-900 text-white" : "text-slate-600 hover:text-slate-900 hover:bg-slate-100",
+      active ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground hover:bg-muted",
     );
 
   return (
     <div className="max-w-4xl mx-auto px-6 py-8 space-y-8">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">Cài đặt không gian làm việc</h1>
-        <p className="mt-1 text-sm text-slate-500">
+        <h1 className="text-2xl font-bold text-foreground">Cài đặt không gian làm việc</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
           Quản lý thông tin định danh cá nhân, quyền hạn và bảo mật tài khoản doanh nghiệp.
         </p>
       </div>
 
       <Tabs defaultValue="account" value={tab} onValueChange={setTab}>
-        <TabsList className="flex h-auto w-full items-center justify-start gap-2 rounded-none border-b border-slate-200 bg-transparent p-0 pb-2">
+        <TabsList className="flex h-auto w-full items-center justify-start gap-2 rounded-none border-b border-border bg-transparent p-0 pb-2">
           <TabsTrigger value="account" className={triggerClass(tab === "account")}>
             Tài khoản
           </TabsTrigger>
@@ -118,21 +118,21 @@ export function RecruiterSettings({
             </div>
             <div className="flex items-start gap-4">
               <div className="relative shrink-0">
-                <span className="flex h-16 w-16 items-center justify-center rounded-full border-2 border-white bg-blue-100 text-xl font-bold text-blue-700 shadow-sm">
+                <span className="flex h-16 w-16 items-center justify-center rounded-full border-2 border-border bg-primary/10 text-xl font-bold text-primary shadow-sm">
                   SK
                 </span>
                 <button
                   type="button"
-                  className="absolute -bottom-2 left-1/2 -translate-x-1/2 rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[10px] font-medium text-slate-600 shadow-sm transition-colors hover:bg-slate-50"
+                  className="absolute -bottom-2 left-1/2 -translate-x-1/2 rounded-full border border-border bg-card px-2 py-0.5 text-[10px] font-medium text-muted-foreground shadow-sm transition-colors hover:bg-muted"
                 >
                   Đổi ảnh
                 </button>
               </div>
               <div className="min-w-0 pt-1">
-                <p className="font-semibold text-slate-900">{MOCK.hoTen}</p>
-                <p className="mt-0.5 text-sm text-slate-500">{identity?.email || MOCK.emailFallback}</p>
+                <p className="font-semibold text-foreground">{MOCK.hoTen}</p>
+                <p className="mt-0.5 text-sm text-muted-foreground">{identity?.email || MOCK.emailFallback}</p>
                 <div className="mt-2 flex flex-wrap items-center gap-2">
-                  <span className="rounded-full bg-indigo-50 px-2.5 py-0.5 text-xs font-medium text-indigo-600">
+                  <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">
                     {MOCK.vaiTro}
                   </span>
                   <span className="text-xs font-medium text-emerald-600">● Doanh nghiệp đã xác thực</span>
@@ -154,14 +154,14 @@ export function RecruiterSettings({
                 ["Quyền hạn truy cập", MOCK.congTy.quyenHan],
               ].map(([label, value]) => (
                 <div key={label} className="flex flex-wrap items-start justify-between gap-2">
-                  <span className="text-slate-500">{label}</span>
-                  <span className="max-w-[70%] text-right font-medium text-slate-900">{value}</span>
+                   <span className="text-muted-foreground">{label}</span>
+                   <span className="max-w-[70%] text-right font-medium text-foreground">{value}</span>
                 </div>
               ))}
             </div>
             <Link
               href="/tai-khoan?tab=cong-ty"
-              className="inline-flex items-center rounded-xl bg-[#355C8C] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#28466c]"
+              className="inline-flex items-center rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary-hover"
             >
               Mở hồ sơ doanh nghiệp ➔
             </Link>
@@ -172,11 +172,11 @@ export function RecruiterSettings({
             <h3 className={CARD_TITLE}>
               <ShieldCheck className="size-4 text-[#355C8C]" /> Bảo mật tài khoản
             </h3>
-            <div className="divide-y divide-slate-100">
+            <div className="divide-y divide-border">
               <div className="flex items-center justify-between gap-3 py-3 first:pt-0">
                 <div className="min-w-0">
-                  <p className="text-sm font-medium text-slate-900">Đổi mật khẩu</p>
-                  <p className="mt-0.5 text-xs text-slate-500">Cập nhật lần cuối: 15 ngày trước</p>
+                  <p className="text-sm font-medium text-foreground">Đổi mật khẩu</p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">Cập nhật lần cuối: 15 ngày trước</p>
                 </div>
                 <button type="button" onClick={() => setTab("security")} className={`${GHOST_BTN} shrink-0`}>
                   Đổi mật khẩu
@@ -184,8 +184,8 @@ export function RecruiterSettings({
               </div>
               <div className="flex items-center justify-between gap-3 py-3 last:pb-0">
                 <div className="min-w-0">
-                  <p className="text-sm font-medium text-slate-900">Xác thực 2 yếu tố (2FA)</p>
-                  <p className="mt-0.5 text-xs text-slate-500">Yêu cầu mã xác thực khi đăng nhập</p>
+                  <p className="text-sm font-medium text-foreground">Xác thực 2 yếu tố (2FA)</p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">Yêu cầu mã xác thực khi đăng nhập</p>
                 </div>
                 <span className="shrink-0 rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-700">
                   Đang kích hoạt

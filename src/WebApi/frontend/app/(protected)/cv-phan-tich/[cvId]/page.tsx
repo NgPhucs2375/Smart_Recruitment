@@ -130,7 +130,7 @@ export default function CvPhanTichPage() {
     result != null && (result.phanTich === "HoanThanh" || result.phanTich === "1");
 
   return (
-    <main className="max-w-5xl mx-auto px-4 sm:px-6 py-8 space-y-6">
+    <main className="mx-auto max-w-5xl space-y-6 px-4 py-8 sm:px-6">
       <Link
         href="/ho-so"
         className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
@@ -194,7 +194,7 @@ export default function CvPhanTichPage() {
             </p>
           )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
             <div className="space-y-6">
               <CardShell icon={<FileText className="size-4 text-primary" />} title="Tóm tắt hồ sơ">
                 <Paragraph text={result.noiDungTrichXuat} />
