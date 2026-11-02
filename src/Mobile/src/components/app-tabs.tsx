@@ -67,7 +67,6 @@ export default function AppTabs() {
           tabBarIcon: ({ color, focused, size }) => <User size={size} color={focused ? Palette.mist : color} />,
         }}
       />
-      <Tabs.Screen name="applications" options={{ href: null }} />
       <Tabs.Screen name="profile-edit" options={{ href: null }} />
       <Tabs.Screen name="settings" options={{ href: null }} />
       <Tabs.Screen name="phu-hop" options={{ href: null }} />

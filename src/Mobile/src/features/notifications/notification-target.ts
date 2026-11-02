@@ -32,7 +32,9 @@ export function notificationTarget(
 
   if (audience === 'candidate') {
     if (notification.referenceType === 'RecommendationDigest') return '/';
-    if (notification.referenceType === 'DonUngTuyen') return '/applications';
+    if (notification.referenceType === 'DonUngTuyen') {
+      return notification.jobId ? `/jobs/${notification.jobId}` : '/applications';
+    }
     if (notification.referenceType === 'GoiYViecLamPhuHop' && notification.referenceId) {
       return `/jobs/${notification.referenceId}`;
     }
