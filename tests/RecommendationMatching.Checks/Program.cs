@@ -75,6 +75,7 @@ try { RankingMetrics.AtK(["unknown"], labels, 2); throw new Exception("Unjudged 
 catch (ArgumentException) { Check(true, "Unjudged items cannot silently become negative labels"); }
 
 await QueryChecks.RunAsync(Check);
+await FanoutChecks.RunAsync(Check);
 
 var fixturePath = args.Length > 0 ? args[0] : Path.Combine(AppContext.BaseDirectory, "fixtures.json");
 var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };

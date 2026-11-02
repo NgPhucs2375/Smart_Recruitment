@@ -57,6 +57,17 @@ user.Role = VaiTroNguoiDung.UNG_VIEN; user.Id = 1;
 await update.Handle(new() { Id = applicationId, Trigger = TriggerDonUngTuyen.RutDon, GhiChu = "Withdraw" }, default);
 var history = await new GetAllDonUngTuyensQueryHandler(db, user).Handle(new(), default);
 Check(history.Data.Single().TrangThai == TrangThaiDonUngTuyen.UngVienRutDon, "Withdrawn applications remain in candidate history");
+
+// Nghiệp vụ "CV nộp được": chưa có họ tên trên khối liên hệ thì không vào funnel ứng tuyển.
+var draft = new CVUngVien { Id = 2, HoSoUngVienId = 1, TenFile = "Draft CV", TemplateId = "minimal-ats", ThongTinLienHe = new CVThongTinLienHe { HoTen = "   " } };
+db.CVUngViens.Add(draft);
+await db.SaveChangesAsync();
+Check(!(await submit.Handle(new() { TinTuyenDungId = 2, CVUngVienId = 2 }, default)).Succeeded, "CV without a contact name cannot be submitted");
+draft.ThongTinLienHe.HoTen = "Applicant";
+await db.SaveChangesAsync();
+Check((await submit.Handle(new() { TinTuyenDungId = 2, CVUngVienId = 2 }, default)).Succeeded, "Completing the CV unblocks submission");
+Check((await db.DonUngTuyens.CountAsync(x => x.CVUngVienId == 2)) == 1, "Unblocking creates exactly one application");
+
 Console.WriteLine("Job search and application checks completed.");
 
 static TinTuyenDung MakeJob(int id, int industry, string title, decimal min, decimal max) => new()

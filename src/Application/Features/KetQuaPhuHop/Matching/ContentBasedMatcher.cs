@@ -80,4 +80,10 @@ public static class ContentBasedMatcher
     {
         MucDoYC.BatBuc => 3, MucDoYC.UuTien => 2, _ => 1
     };
+
+    /// <summary>Ngưỡng phân loại dùng chung cho mọi nơi hiển thị điểm match.</summary>
+    public static PhanLoaiKetQua PhanLoaiCua(float diem) =>
+        diem >= 0.66f ? PhanLoaiKetQua.Cao
+        : diem >= 0.33f ? PhanLoaiKetQua.TrungBinh
+        : PhanLoaiKetQua.Thap;
 }

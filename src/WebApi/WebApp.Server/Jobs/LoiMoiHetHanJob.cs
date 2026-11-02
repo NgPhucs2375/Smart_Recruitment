@@ -1,7 +1,5 @@
 using Application.Interfaces;
 using Application.Services.StateMachineLoiMoi;
-using Domain.Enums;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -51,31 +49,11 @@ namespace WebApp.Server.Jobs
         private async Task QuetHetHanAsync(CancellationToken ct)
         {
             using var scope = _scopes.CreateScope();
-            var context = scope.ServiceProvider.GetRequiredService<IApplicationDbContext>();
-            var workflow = scope.ServiceProvider.GetRequiredService<ILoiMoiNhanSuWorkflowService>();
-            var current = scope.ServiceProvider.GetRequiredService<ICurrentNguoiDungService>();
-
-            var now = DateTime.UtcNow;
-            var quaHan = await context.LoiMoiNhanSus
-                .Include(l => l.DoanhNghiep)
-                .Where(l => l.LoiMoi == TrangThaiLoiMoi.ChoXacNhan && l.NgayHetHan < now)
-                .ToListAsync(ct);
-
-            foreach (var loiMoi in quaHan)
-            {
-                try
-                {
-                    var machine = new LoiMoiNhanSuStateMachine(workflow, current, loiMoi);
-                    await machine.FireSystemAsync(TriggerLoiMoi.DanhDauHetHan, "Lời mời hết hạn (job tự động).", ct);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "Không thể đánh dấu hết hạn lời mời #{LoiMoiId}.", loiMoi.Id);
-                }
-            }
-
-            if (quaHan.Count > 0)
-                await context.SaveChangesAsync(ct);
+            await LoiMoiHetHanSweeper.QuetAsync(
+                scope.ServiceProvider.GetRequiredService<IApplicationDbContext>(),
+                scope.ServiceProvider.GetRequiredService<ILoiMoiNhanSuWorkflowService>(),
+                scope.ServiceProvider.GetRequiredService<ICurrentNguoiDungService>(),
+                _logger, ct);
         }
     }
 }

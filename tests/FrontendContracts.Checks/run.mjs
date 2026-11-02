@@ -52,4 +52,8 @@ assert.equal(notificationTarget({ referenceType: "RecommendationDigest" }, ["NHA
 assert.equal(notificationTarget({ referenceType: "LoiMoiNhanSu", inviteToken: "a+b /" }, ["UNG_VIEN"]), "/accept-invite?token=a%2Bb%20%2F");
 assert.equal(notificationTarget({ referenceType: "LoiMoiNhanSu" }, ["UNG_VIEN"]), null);
 assert.equal(notificationTarget({ referenceType: "Unknown" }, ["UNG_VIEN"]), null);
+assert.equal(notificationTarget({ referenceType: "GoiYViecLamPhuHop", referenceId: 44 }, ["UNG_VIEN"]), "/viec-lam/44");
+assert.equal(notificationTarget({ referenceType: "UngVienPhuHop", referenceId: 44 }, ["NHAN_SU"]), "/tin-tuyen-dung/44/ung-vien");
+assert.equal(notificationTarget({ referenceType: "UngVienPhuHop", referenceId: 44 }, ["NGUOI_DAI_DIEN"]), "/tin-tuyen-dung/44/ung-vien");
+assert.equal(notificationTarget({ referenceType: "UngVienPhuHop", referenceId: 44 }, ["UNG_VIEN"]), null);
 console.log("PASS notification navigation matches candidate/recruiter/Admin and invitation contracts");

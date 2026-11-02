@@ -6,6 +6,7 @@ using Application.Features.TinTuyenDung.Commands.UpdateTinTuyenDung;
 using Application.Features.TinTuyenDung.Commands.FireTinTuyenDungTrigger;
 using Application.Features.TinTuyenDung.Commands.DeleteTinTuyenDung;
 using Application.Interfaces;
+using Application.Services.StateMachineLoiMoi;
 using Application.Services.StateMachineTinTuyenDung;
 using Domain.Common;
 using Domain.Entities;
@@ -14,6 +15,7 @@ using Infrastructure.Persistence.Contexts;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 
 var options = new DbContextOptionsBuilder<ApplicationDbContext>().UseInMemoryDatabase(Guid.NewGuid().ToString()).Options;
@@ -133,6 +135,25 @@ var staleDelivered = false;
 right.EnqueueAfterSave(_ => { staleDelivered = true; return Task.CompletedTask; });
 try { await right.SaveChangesAsync(); throw new Exception("Expected concurrency conflict"); }
 catch (ApiException) { Check(!staleDelivered && (await Job(id)).TieuDe == "Winner", "Stale write cannot overwrite data or emit events"); }
+var inviteDelivery = new Delivery(db);
+var inviteWorkflow = new LoiMoiNhanSuWorkflowService(db, inviteDelivery, inviteDelivery, inviteDelivery,
+    NullLogger<LoiMoiNhanSuWorkflowService>.Instance);
+db.DoanhNghieps.Add(new DoanhNghiep { Id = 77, TenDoanhNghiep = "ACME" });
+db.LoiMoiNhanSus.Add(new LoiMoiNhanSu
+{
+    Id = 901, DoanhNghiepId = 77, NguoiDaiDienId = 2, Email = "hr@acme.test", HoTen = "HR moi",
+    ChucVu = "Dev", Token = "token-901", LoiMoi = TrangThaiLoiMoi.ChoXacNhan,
+    NgayHetHan = DateTime.UtcNow.AddDays(-1)
+});
+await db.SaveChangesAsync();
+async Task<int> NotifyCount() => await db.Notifications.CountAsync(x => x.ReferenceType == nameof(LoiMoiNhanSu) && x.ReferenceId == 901);
+Check(await LoiMoiHetHanSweeper.QuetAsync(db, inviteWorkflow, current, NullLogger.Instance) == 1
+    && (await db.LoiMoiNhanSus.AsNoTracking().SingleAsync(x => x.Id == 901)).LoiMoi == TrangThaiLoiMoi.HetHan,
+    "Expired invitation sweeper persists HetHan (guards against global NoTracking)");
+Check(await NotifyCount() == 1 && inviteDelivery.PushCount == 1, "Invitation expiry notifies the representative once");
+Check(await LoiMoiHetHanSweeper.QuetAsync(db, inviteWorkflow, current, NullLogger.Instance) == 0
+    && await NotifyCount() == 1 && inviteDelivery.PushCount == 1,
+    "Re-running the sweep neither re-transitions nor duplicates the notification");
 Console.WriteLine("Recruitment lifecycle checks completed.");
 
 sealed class CountingFilter(ITinTuyenDungFunnelService inner) : ITinTuyenDungFunnelService

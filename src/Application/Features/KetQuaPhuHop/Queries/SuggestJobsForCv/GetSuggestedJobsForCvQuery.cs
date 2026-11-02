@@ -152,7 +152,7 @@ public class GetSuggestedJobsForCvQueryHandler(
         logger.LogInformation("Job recommendation query loaded {PostingCount} postings in {ElapsedMs} ms.",
             postings.Count, timer.ElapsedMilliseconds);
 
-        var results = new List<(SuggestedJobViewModel Vm, float Diem, string Thoa, string Thieu)>();
+        var results = new List<(SuggestedJobViewModel Vm, ContentMatchResult Match)>();
         foreach (var t in postings)
         {
             var match = ContentBasedMatcher.Evaluate(candidate, new JobMatchInput(
@@ -163,13 +163,12 @@ public class GetSuggestedJobsForCvQueryHandler(
             var vm = ToVm(t, match.Score);
             vm.KyNangThoa = match.MatchedSkills.ToList();
             vm.KyNangThieu = match.MissingSkills.ToList();
-            results.Add((vm, match.Score,
-                string.Join(", ", match.MatchedSkills), string.Join(", ", match.MissingSkills)));
+            results.Add((vm, match));
         }
 
         var top = results
-            .Where(r => r.Diem >= minimumScore)
-            .OrderByDescending(r => r.Diem)
+            .Where(r => r.Match.Score >= minimumScore)
+            .OrderByDescending(r => r.Match.Score)
             .ThenByDescending(r => r.Vm.TinTuyenDungId)
             .Take(requestedTopN)
             .ToList();
@@ -177,28 +176,10 @@ public class GetSuggestedJobsForCvQueryHandler(
         // Persist only the first page used by /viec-lam/phu-hop.
         if (pageNumber == 1)
         {
-            var oldRows = await context.KetQuaPhuHops
-                .Where(k => k.HoSoUngVienId == hoSo.Id && k.CVUngVienId == cv.Id)
-                .ToListAsync(cancellationToken);
-            context.KetQuaPhuHops.RemoveRange(oldRows);
             foreach (var r in top)
-            {
-                context.KetQuaPhuHops.Add(new Domain.Entities.KetQuaPhuHop
-                {
-                    HoSoUngVienId = hoSo.Id,
-                    CVUngVienId = cv.Id,
-                    TinTuyenDungId = r.Vm.TinTuyenDungId,
-                    DiemPhuHop = r.Diem,
-                    KyNangThoa = r.Thoa,
-                    KyNangThieu = r.Thieu,
-                    PhanLoai = PhanLoaiOf(r.Diem),
-                    GhiChu = "Gợi ý content-based: kỹ năng chuẩn hóa + vị trí/lương/địa điểm.",
-                    MatchingVersion = ContentBasedMatcher.Version,
-                    ExplanationModel = "skill-overlap-weighted-normalized",
-                    EvaluateAt = DateTime.UtcNow,
-                    Created = DateTime.UtcNow,
-                });
-            }
+                await KetQuaPhuHopStore.UpsertAsync(context, hoSo.Id, cv.Id, r.Vm.TinTuyenDungId,
+                    r.Match, "Gợi ý content-based: kỹ năng chuẩn hóa + vị trí/lương/địa điểm.",
+                    "skill-overlap-weighted-normalized", cancellationToken);
             await context.SaveChangesAsync(cancellationToken);
         }
 
@@ -225,7 +206,7 @@ public class GetSuggestedJobsForCvQueryHandler(
         LuongToiThieu = t.LuongToiThieu,
         LuongToiDa = t.LuongToiDa,
         DiemPhuHop = diem,
-        PhanLoai = PhanLoaiOf(diem).ToString(),
+        PhanLoai = ContentBasedMatcher.PhanLoaiCua(diem).ToString(),
         NgayHetHan = t.NgayHetHan,
     };
 
@@ -247,9 +228,4 @@ public class GetSuggestedJobsForCvQueryHandler(
         public string? TenKyNang { get; set; }
         public MucDoYC MucDoYeuCau { get; set; }
     }
-
-    private static PhanLoaiKetQua PhanLoaiOf(float diem) =>
-        diem >= 0.66f ? PhanLoaiKetQua.Cao
-        : diem >= 0.33f ? PhanLoaiKetQua.TrungBinh
-        : PhanLoaiKetQua.Thap;
 }

@@ -15,6 +15,8 @@ type KetQuaPhuHop = {
   diemPhuHop: number;
   phanLoai: number;
   created: string;
+  hoTenUngVien?: string;
+  tieuDeTinTuyenDung?: string;
 };
 
 type Recommendation = {
@@ -227,6 +229,8 @@ function RecruiterPhuHop() {
           diemPhuHop: Number(r.diemPhuHop ?? r.DiemPhuHop ?? 0),
           phanLoai: Number(r.phanLoai ?? r.PhanLoai ?? 1),
           created: `${r.created ?? r.Created ?? ""}`,
+          hoTenUngVien: String(r.hoTenUngVien ?? r.HoTenUngVien ?? ""),
+          tieuDeTinTuyenDung: String(r.tieuDeTinTuyenDung ?? r.TieuDeTinTuyenDung ?? ""),
         };
       }));
     } catch (e) {
@@ -258,10 +262,14 @@ function RecruiterPhuHop() {
                 <div key={item.id} className="flex items-center justify-between gap-4 p-5">
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium text-foreground">Hồ sơ #{item.hoSoUngVienId} — Tin #{item.tinTuyenDungId}</span>
+                      <span className="text-sm font-medium text-foreground">{item.hoTenUngVien || `Hồ sơ #${item.hoSoUngVienId}`}</span>
                       <Badge variant={pl.variant}>{pl.label}</Badge>
                     </div>
                     <div className="mt-1 flex items-center gap-3 text-sm text-muted-foreground">
+                      <Link href={`/tin-tuyen-dung/${item.tinTuyenDungId}/ung-vien`} className="flex items-center gap-1 hover:text-foreground">
+                        {item.tieuDeTinTuyenDung || `Tin #${item.tinTuyenDungId}`}
+                        <ArrowRight className="size-3.5" />
+                      </Link>
                       <span className="flex items-center gap-1"><TrendingUp className="size-3.5" /> Điểm phù hợp: {pct}%</span>
                       {item.created && <span>{fmtDate(item.created)}</span>}
                     </div>

@@ -17,6 +17,14 @@ public static class ResourceAccess
         _ => query.Where(_ => false)
     };
 
+    public static IQueryable<Domain.Entities.KyNangTinTuyenDung> ScopeJobSkills(IQueryable<Domain.Entities.KyNangTinTuyenDung> query, CurrentNguoiDungContext user) => user.VaiTro switch
+    {
+        VaiTroNguoiDung.QUAN_TRI_VIEN => query,
+        VaiTroNguoiDung.NHAN_SU => query.Where(s => s.TinTuyenDung.NguoiDangTinId == user.Id),
+        VaiTroNguoiDung.NGUOI_DAI_DIEN => query.Where(s => s.TinTuyenDung.DoanhNghiepId == user.DoanhNghiepId),
+        _ => query.Where(_ => false)
+    };
+
     public static async Task EnsureCvOwnerAsync(IApplicationDbContext db, CurrentNguoiDungContext user, int cvId, CancellationToken ct)
     {
         if (user.VaiTro == VaiTroNguoiDung.QUAN_TRI_VIEN) return;

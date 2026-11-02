@@ -5,6 +5,8 @@ using Application.Features.DanhGia.Queries.GetAllDanhGias;
 using Application.Features.DanhGia.Queries.GetDanhGiaById;
 using Application.Features.HoSoUngVien.Queries.GetHoSoUngVienById;
 using Application.Features.HoSoUngVien.Queries.GetAllHoSoUngViens;
+using Application.Features.KyNangTinTuyenDung.Queries.GetAllKyNangTinTuyenDungs;
+using Application.Features.KyNangTinTuyenDung.Queries.GetKyNangTinTuyenDungById;
 using Application.Features.KetQuaPhanTichCv.Commands.CreateKetQuaPhanTichCv;
 using Application.Features.KetQuaPhanTichCv.Commands.UpdateKetQuaPhanTichCv;
 using Application.Features.KetQuaPhanTichCv.Commands.DeleteKetQuaPhanTichCv;
@@ -69,11 +71,16 @@ db.DonUngTuyens.AddRange(new DonUngTuyen { Id = 51, CVUngVienId = 11, TinTuyenDu
     new DonUngTuyen { Id = 52, CVUngVienId = 12, TinTuyenDungId = 42, DoanhNghiepId = 31 });
 db.DanhGias.AddRange(new DanhGia { Id = 61, DonUngTuyenId = 51 }, new DanhGia { Id = 62, DonUngTuyenId = 52 });
 db.KetQuaPhanTichCvs.Add(new KetQuaPhanTichCv { Id = 71, CVUngVienId = 12 });
+db.TinTuyenDungs.Add(new TinTuyenDung { Id = 44, DoanhNghiepId = 32, NguoiDangTinId = 4 });
+db.KyNangTinTuyenDungs.AddRange(new KyNangTinTuyenDung { Id = 81, TinTuyenDungId = 41, KyNangId = 1 },
+    new KyNangTinTuyenDung { Id = 82, TinTuyenDungId = 42, KyNangId = 1 },
+    new KyNangTinTuyenDung { Id = 83, TinTuyenDungId = 44, KyNangId = 1 });
 await db.SaveChangesAsync(); db.ChangeTracker.Clear();
 var current = new Current { Value = new() { Id = 1, VaiTro = VaiTroNguoiDung.UNG_VIEN } };
 var mapper = new MapperConfiguration(c => {
     c.CreateMap<DanhGia, GetAllDanhGiasViewModel>();
     c.CreateMap<HoSoUngVien, GetAllHoSoUngViensViewModel>();
+    c.CreateMap<KyNangTinTuyenDung, GetAllKyNangTinTuyenDungsViewModel>();
 }, NullLoggerFactory.Instance).CreateMapper();
 Check((await new GetAllDanhGiasQueryHandler(db, mapper, current).Handle(new(), default)).Data.Select(x => x.Id).SequenceEqual([61]), "Candidate review list contains only their own application");
 Check(!(await new GetDanhGiaByIdQueryHandler(db, mapper, current).Handle(new() { Id = 62 }, default)).Succeeded, "Candidate cannot guess another review ID");
@@ -92,6 +99,13 @@ Check((await ResourceAccess.ScopeReviews(db.DanhGias, current.Value).Select(x =>
 await Denied(() => ResourceAccess.EnsureApplicationReviewerAsync(db, current.Value, 52, default), "HR cannot change another HR's review");
 current.Value = new() { Id = 5, VaiTro = VaiTroNguoiDung.NGUOI_DAI_DIEN, DoanhNghiepId = 31 };
 Check(await ResourceAccess.ScopeReviews(db.DanhGias, current.Value).CountAsync() == 2, "Representative can read company reviews");
+var jobSkills = new GetAllKyNangTinTuyenDungsQueryHandler(db, current, mapper);
+Check((await jobSkills.Handle(new() { _end = 20 }, default)).Data.Select(x => x.Id).SequenceEqual([81, 82]), "Representative reads job skill config across own company only");
+current.Value = new() { Id = 3, VaiTro = VaiTroNguoiDung.NHAN_SU, DoanhNghiepId = 31 };
+Check((await jobSkills.Handle(new() { _end = 20 }, default)).Data.Select(x => x.Id).SequenceEqual([81]), "HR reads skill config only for jobs they posted");
+Check(!(await new GetKyNangTinTuyenDungByIdQueryHandler(db, current, mapper).Handle(new() { Id = 83 }, default)).Succeeded, "Job skill from another company cannot be guessed by ID");
+current.Value = new() { Id = 1, VaiTro = VaiTroNguoiDung.UNG_VIEN };
+Check((await jobSkills.Handle(new() { _end = 20 }, default)).Data.Count == 0, "Candidate reads no job skill config");
 current.Value = new() { Id = 6, VaiTro = VaiTroNguoiDung.QUAN_TRI_VIEN };
 Check((await new GetHoSoUngVienByIdQueryHandler(db, mapper, current).Handle(new() { Id = 22 }, default)).Succeeded, "Admin is not incorrectly scoped as HR for candidate detail");
 

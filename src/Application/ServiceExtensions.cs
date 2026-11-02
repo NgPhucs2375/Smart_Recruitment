@@ -34,6 +34,8 @@ namespace Application
             #region State Machine LoiMoiNhanSu
             services.AddScoped<ILoiMoiNhanSuWorkflowService, LoiMoiNhanSuWorkflowService>();
             #endregion
+
+            services.AddScoped<Application.Features.KetQuaPhuHop.Fanout.JobCandidateFanoutService>();
             services.AddScoped<ICvReadMapper, CvReadMapper>();
         }
     }

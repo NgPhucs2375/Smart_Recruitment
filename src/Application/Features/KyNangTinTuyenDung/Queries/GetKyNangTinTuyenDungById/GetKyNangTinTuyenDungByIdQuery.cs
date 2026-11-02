@@ -1,7 +1,10 @@
 using Application.Interfaces;
+using Application.Security;
 using Application.Wrappers;
 using AutoMapper;
 using MediatR;
+using Microsoft.EntityFrameworkCore;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -14,6 +17,7 @@ namespace Application.Features.KyNangTinTuyenDung.Queries.GetKyNangTinTuyenDungB
 
     public class GetKyNangTinTuyenDungByIdQueryHandler(
         IApplicationDbContext context,
+        ICurrentNguoiDungService current,
         IMapper mapper)
         : IRequestHandler<GetKyNangTinTuyenDungByIdQuery, Response<GetAllKyNangTinTuyenDungs.GetAllKyNangTinTuyenDungsViewModel>>
     {
@@ -21,8 +25,10 @@ namespace Application.Features.KyNangTinTuyenDung.Queries.GetKyNangTinTuyenDungB
             GetKyNangTinTuyenDungByIdQuery request,
             CancellationToken cancellationToken)
         {
-            var entity = await context.KyNangTinTuyenDungs
-                .FindAsync([request.Id], cancellationToken);
+            var actor = await current.ResolveAsync();
+            var entity = await ResourceAccess
+                .ScopeJobSkills(context.KyNangTinTuyenDungs.AsNoTracking(), actor)
+                .FirstOrDefaultAsync(x => x.Id == request.Id, cancellationToken);
 
             if (entity == null)
             {

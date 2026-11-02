@@ -1,4 +1,5 @@
 using Application.Interfaces;
+using Application.Security;
 using Application.Wrappers;
 using AutoMapper;
 using Domain.Enums;
@@ -23,6 +24,7 @@ namespace Application.Features.KyNangTinTuyenDung.Queries.GetAllKyNangTinTuyenDu
 
     public class GetAllKyNangTinTuyenDungsQueryHandler(
         IApplicationDbContext context,
+        ICurrentNguoiDungService current,
         IMapper mapper)
         : IRequestHandler<GetAllKyNangTinTuyenDungsQuery, Response<List<GetAllKyNangTinTuyenDungsViewModel>>>
     {
@@ -30,7 +32,8 @@ namespace Application.Features.KyNangTinTuyenDung.Queries.GetAllKyNangTinTuyenDu
             GetAllKyNangTinTuyenDungsQuery request,
             CancellationToken cancellationToken)
         {
-            var query = context.KyNangTinTuyenDungs.AsNoTracking();
+            var actor = await current.ResolveAsync();
+            var query = ResourceAccess.ScopeJobSkills(context.KyNangTinTuyenDungs.AsNoTracking(), actor);
 
             var filter = request._filter?.Trim();
 

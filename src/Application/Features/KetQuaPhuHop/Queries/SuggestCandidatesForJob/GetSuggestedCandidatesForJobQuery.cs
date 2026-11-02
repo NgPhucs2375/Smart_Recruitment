@@ -117,7 +117,7 @@ public class GetSuggestedCandidatesForJobQueryHandler(
                 HoTen = cv.ThongTinLienHe?.HoTen ?? cv.HoSoUngVien.HoTen ?? string.Empty,
                 ViTriUngTuyen = cv.ThongTinLienHe?.ViTriUngTuyen ?? cv.HoSoUngVien.ViTriUngTuyen ?? string.Empty,
                 DiemPhuHop = match.Score,
-                PhanLoai = match.Score >= 0.66f ? "Cao" : match.Score >= 0.33f ? "TrungBinh" : "Thap",
+                PhanLoai = ContentBasedMatcher.PhanLoaiCua(match.Score).ToString(),
                 KyNangThoa = match.MatchedSkills.ToList(),
                 KyNangThieu = match.MissingSkills.ToList(),
                 SoNamKinhNghiem = (int)Math.Floor(cv.HoSoUngVien.KinhNghiemLamViecs
