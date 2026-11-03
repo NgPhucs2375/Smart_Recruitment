@@ -5,12 +5,17 @@ using Application.Features.NguoiDung.Commands.CreateNguoiDung;
 using Application.Features.NguoiDung.Commands.UpdateNguoiDung;
 using Application.Features.NguoiDung.Commands.DeleteNguoiDung;
 using Application.Wrappers;
+using Application.Interfaces;
+using Domain.Enums;
 using Infrastructure.Identity.Contexts;
+using Infrastructure.Identity.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Infrastructure.Identity;
+using System.Text.RegularExpressions;
 
 namespace WebApp.Server.Controllers.v1
 {
@@ -19,9 +24,20 @@ namespace WebApp.Server.Controllers.v1
     [Route("api/nguoidungs")]
     public class NguoiDungController : BaseApiController
     {
+        private const string AdminTestPassword = "Test@123";
+        private readonly UserManager<ApplicationUser> _userManager;
+        private readonly RoleManager<IdentityRole> _roleManager;
+        private readonly IApplicationDbContext _applicationContext;
+
         public NguoiDungController(
-            IWebHostEnvironment hostingEnvironment) : base(hostingEnvironment)
+            IWebHostEnvironment hostingEnvironment,
+            UserManager<ApplicationUser> userManager,
+            RoleManager<IdentityRole> roleManager,
+            IApplicationDbContext applicationContext) : base(hostingEnvironment)
         {
+            _userManager = userManager;
+            _roleManager = roleManager;
+            _applicationContext = applicationContext;
         }
 
         // GET: api/nguoidung
@@ -119,6 +135,90 @@ namespace WebApp.Server.Controllers.v1
             });
         }
 
+        // POST: api/nguoidungs/admin-create
+        // Luồng tạo nhanh cho môi trường test: tạo Identity và hồ sơ ứng dụng cùng lúc.
+        [HttpPost("admin-create")]
+        public async Task<IActionResult> AdminCreate([FromBody] AdminCreateNguoiDungRequest request)
+        {
+            return await EnforcePermissionAndExecute("nguoidungs", "create", async () =>
+            {
+                var email = request.Email?.Trim();
+                var userName = request.UserName?.Trim();
+                var fullName = request.HoTen?.Trim();
+
+                if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(userName) || string.IsNullOrWhiteSpace(fullName))
+                    return BadRequest(new Response<object>("Email, tên đăng nhập và họ tên là bắt buộc."));
+                if (fullName.Length < 2 || fullName.Length > 100)
+                    return BadRequest(new Response<object>("Họ tên phải có từ 2 đến 100 ký tự."));
+                if (!Regex.IsMatch(email, @"^[^\s@]+@[^\s@]+\.[^\s@]+$"))
+                    return BadRequest(new Response<object>("Email không đúng định dạng."));
+                if (!Regex.IsMatch(userName, @"^[A-Za-z0-9._-]{3,50}$"))
+                    return BadRequest(new Response<object>("Tên đăng nhập chỉ gồm chữ không dấu, số, dấu chấm, gạch dưới hoặc gạch ngang; dài 3-50 ký tự."));
+                var phoneNumber = request.PhoneNumber?.Trim();
+                if (!string.IsNullOrEmpty(phoneNumber) && !Regex.IsMatch(phoneNumber, @"^0\d{9}$"))
+                    return BadRequest(new Response<object>("Số điện thoại phải gồm 10 chữ số và bắt đầu bằng 0."));
+                if (!Enum.IsDefined(typeof(VaiTroNguoiDung), request.VaiTro))
+                    return BadRequest(new Response<object>("Vai trò không hợp lệ."));
+
+                if (await _userManager.FindByNameAsync(userName) != null)
+                    return Conflict(new Response<object>($"Tên đăng nhập '{userName}' đã tồn tại."));
+                if (await _userManager.FindByEmailAsync(email) != null)
+                    return Conflict(new Response<object>($"Email '{email}' đã được đăng ký."));
+
+                var nameParts = fullName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                var lastName = nameParts.Length > 1 ? nameParts[^1] : fullName;
+                var firstName = nameParts.Length > 1 ? string.Join(' ', nameParts[..^1]) : "Người dùng";
+                var roleName = ((VaiTroNguoiDung)request.VaiTro).ToString();
+                var role = await _roleManager.FindByNameAsync(roleName);
+                if (role == null)
+                    return BadRequest(new Response<object>($"Vai trò Identity '{roleName}' chưa được khởi tạo."));
+
+                var user = new ApplicationUser
+                {
+                    Email = email,
+                    UserName = userName,
+                    FirstName = firstName,
+                    LastName = lastName,
+                    PhoneNumber = phoneNumber,
+                    EmailConfirmed = true,
+                    vaiTro = request.VaiTro
+                };
+
+                var identityResult = await _userManager.CreateAsync(user, AdminTestPassword);
+                if (!identityResult.Succeeded)
+                    return BadRequest(new Response<object>(string.Join("; ", identityResult.Errors.Select(x => x.Description))));
+
+                try
+                {
+                    var roleResult = await _userManager.AddToRoleAsync(user, roleName);
+                    if (!roleResult.Succeeded)
+                        throw new InvalidOperationException(string.Join("; ", roleResult.Errors.Select(x => x.Description)));
+
+                    var profile = new Domain.Entities.NguoiDung
+                    {
+                        ApplicationUserId = user.Id,
+                        VaiTro = (VaiTroNguoiDung)request.VaiTro,
+                        IsActive = request.IsActive
+                    };
+                    await _applicationContext.NguoiDungs.AddAsync(profile);
+                    await _applicationContext.SaveChangesAsync();
+
+                    return Ok(new Response<object>(new
+                    {
+                        ApplicationUserId = user.Id,
+                        NguoiDungId = profile.Id,
+                        UserName = user.UserName,
+                        DefaultPassword = AdminTestPassword
+                    }, "Đã tạo tài khoản và hồ sơ người dùng."));
+                }
+                catch (Exception ex)
+                {
+                    await _userManager.DeleteAsync(user);
+                    return BadRequest(new Response<object>($"Không thể tạo hồ sơ người dùng: {ex.Message}"));
+                }
+            });
+        }
+
         // PUT: api/nguoidung/5
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(int id, UpdateNguoiDungCommand command)
@@ -156,5 +256,15 @@ namespace WebApp.Server.Controllers.v1
                 return Ok(await Mediator.Send(new DeleteNguoiDungCommand { Id = id }));
             });
         }
+    }
+
+    public sealed class AdminCreateNguoiDungRequest
+    {
+        public string HoTen { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public string UserName { get; set; } = string.Empty;
+        public string PhoneNumber { get; set; } = string.Empty;
+        public int VaiTro { get; set; } = (int)VaiTroNguoiDung.UNG_VIEN;
+        public bool IsActive { get; set; } = true;
     }
 }

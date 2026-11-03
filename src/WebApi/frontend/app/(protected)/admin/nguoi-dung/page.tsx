@@ -32,7 +32,21 @@ interface NguoiDungRow {
   IsLocked: boolean;
 }
 
-const emptyForm = { ApplicationUserId: "", VaiTro: "4", IsActive: true };
+const emptyForm = { ApplicationUserId: "", HoTen: "", Email: "", UserName: "", PhoneNumber: "", VaiTro: "4", IsActive: true };
+type FormErrors = Partial<Record<"HoTen" | "Email" | "UserName" | "PhoneNumber", string>>;
+
+function validateCreateForm(form: typeof emptyForm): FormErrors {
+  const errors: FormErrors = {};
+  const hoTen = form.HoTen.trim();
+  const email = form.Email.trim();
+  const userName = form.UserName.trim();
+  const phoneNumber = form.PhoneNumber.trim();
+  if (hoTen.length < 2 || hoTen.length > 100) errors.HoTen = "Họ tên phải có từ 2 đến 100 ký tự";
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errors.Email = "Email không đúng định dạng";
+  if (!/^[A-Za-z0-9._-]{3,50}$/.test(userName)) errors.UserName = "Chỉ dùng chữ không dấu, số, dấu chấm, gạch dưới hoặc gạch ngang (3-50 ký tự)";
+  if (phoneNumber && !/^0\d{9}$/.test(phoneNumber)) errors.PhoneNumber = "Phải gồm 10 chữ số và bắt đầu bằng 0";
+  return errors;
+}
 
 export default function AdminNguoiDungPage() {
   const [rows, setRows] = useState<NguoiDungRow[]>([]);
@@ -44,6 +58,7 @@ export default function AdminNguoiDungPage() {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<NguoiDungRow | null>(null);
   const [form, setForm] = useState(emptyForm);
+  const [formErrors, setFormErrors] = useState<FormErrors>({});
   const [saving, setSaving] = useState(false);
   const { confirm } = useConfirmDialog();
 
@@ -83,6 +98,7 @@ export default function AdminNguoiDungPage() {
   const openCreate = () => {
     setEditing(null);
     setForm(emptyForm);
+    setFormErrors({});
     setShowForm(true);
   };
 
@@ -90,15 +106,32 @@ export default function AdminNguoiDungPage() {
     setEditing(row);
     setForm({
       ApplicationUserId: row.ApplicationUserId,
+      HoTen: row.HoTen ?? "",
+      Email: row.Email ?? "",
+      UserName: row.UserName ?? "",
+      PhoneNumber: row.PhoneNumber ?? "",
       VaiTro: String(row.VaiTro),
       IsActive: row.IsActive,
     });
+    setFormErrors({});
     setShowForm(true);
   };
 
   const handleSave = async () => {
-    if (!form.ApplicationUserId.trim()) {
+    if (editing && !form.ApplicationUserId.trim()) {
       toast.error("Mã người dùng ứng dụng không được để trống");
+      return;
+    }
+    if (!editing) {
+      const errors = validateCreateForm(form);
+      setFormErrors(errors);
+      if (Object.keys(errors).length > 0) {
+        toast.error("Vui lòng kiểm tra lại thông tin tài khoản");
+        return;
+      }
+    }
+    if (!editing && (!form.HoTen.trim() || !form.Email.trim() || !form.UserName.trim())) {
+      toast.error("Họ tên, email và tên đăng nhập không được để trống");
       return;
     }
     setSaving(true);
@@ -112,12 +145,15 @@ export default function AdminNguoiDungPage() {
         });
         toast.success("Đã cập nhật người dùng");
       } else {
-        await adminApi.post("/nguoidungs", {
-          applicationUserId: form.ApplicationUserId.trim(),
+        await adminApi.post("/nguoidungs/admin-create", {
+          hoTen: form.HoTen.trim(),
+          email: form.Email.trim(),
+          userName: form.UserName.trim(),
+          phoneNumber: form.PhoneNumber.trim() || null,
           vaiTro: Number(form.VaiTro),
           isActive: form.IsActive,
         });
-        toast.success("Đã tạo người dùng");
+        toast.success(`Đã tạo tài khoản ${form.UserName.trim()} với mật khẩu mặc định Test@123`);
       }
       setShowForm(false);
       await fetchRows();
@@ -210,18 +246,40 @@ export default function AdminNguoiDungPage() {
                   ? `Sửa ${editing.Email ?? editing.UserName ?? `người dùng #${editing.Id}`}`
                   : "Thêm người dùng"}
               </CardTitle>
-              <CardDescription>Mã người dùng ứng dụng là Id tài khoản đăng nhập (Identity)</CardDescription>
+              <CardDescription>
+                {editing ? "Chỉnh sửa hồ sơ người dùng đã liên kết" : "Tạo nhanh tài khoản test và hồ sơ người dùng cùng lúc. Mật khẩu mặc định: Test@123"}
+              </CardDescription>
             </CardHeader>
             <CardContent className="grid gap-4 sm:grid-cols-3">
-              <div className="grid gap-2">
-                <Label htmlFor="appUserId">Mã người dùng ứng dụng</Label>
-                <Input
-                  id="appUserId"
-                  value={form.ApplicationUserId}
-                  disabled={!!editing}
-                  onChange={(e) => setForm({ ...form, ApplicationUserId: e.target.value })}
-                />
-              </div>
+              {editing ? (
+                <div className="grid gap-2 sm:col-span-2">
+                  <Label htmlFor="appUserId">Mã người dùng ứng dụng</Label>
+                  <Input id="appUserId" value={form.ApplicationUserId} disabled />
+                </div>
+              ) : (
+                <>
+                  <div className="grid gap-2">
+                    <Label htmlFor="hoTen">Họ và tên</Label>
+                    <Input id="hoTen" value={form.HoTen} placeholder="Nguyễn Văn Test" aria-invalid={!!formErrors.HoTen} onChange={(e) => { const next = { ...form, HoTen: e.target.value }; setForm(next); setFormErrors(current => ({ ...current, HoTen: validateCreateForm(next).HoTen })); }} />
+                    {formErrors.HoTen && <p className="text-xs text-destructive">{formErrors.HoTen}</p>}
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="email">Email</Label>
+                    <Input id="email" type="email" value={form.Email} placeholder="test@example.com" aria-invalid={!!formErrors.Email} onChange={(e) => { const next = { ...form, Email: e.target.value }; setForm(next); setFormErrors(current => ({ ...current, Email: validateCreateForm(next).Email })); }} />
+                    {formErrors.Email && <p className="text-xs text-destructive">{formErrors.Email}</p>}
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="userName">Tên đăng nhập</Label>
+                    <Input id="userName" value={form.UserName} placeholder="nguyen.van.test" aria-invalid={!!formErrors.UserName} onChange={(e) => { const next = { ...form, UserName: e.target.value }; setForm(next); setFormErrors(current => ({ ...current, UserName: validateCreateForm(next).UserName })); }} />
+                    {formErrors.UserName && <p className="text-xs text-destructive">{formErrors.UserName}</p>}
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="phoneNumber">Số điện thoại</Label>
+                    <Input id="phoneNumber" inputMode="numeric" maxLength={10} value={form.PhoneNumber} placeholder="0912345678" aria-invalid={!!formErrors.PhoneNumber} onChange={(e) => { const next = { ...form, PhoneNumber: e.target.value }; setForm(next); setFormErrors(current => ({ ...current, PhoneNumber: validateCreateForm(next).PhoneNumber })); }} />
+                    {formErrors.PhoneNumber && <p className="text-xs text-destructive">{formErrors.PhoneNumber}</p>}
+                  </div>
+                </>
+              )}
               <div className="grid gap-2">
                 <Label htmlFor="vai-tro">Vai trò</Label>
                 <Select value={form.VaiTro} onValueChange={(v) => setForm({ ...form, VaiTro: v ?? "4" })}>

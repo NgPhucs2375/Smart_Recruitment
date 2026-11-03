@@ -60,6 +60,8 @@ function RootNavigator() {
   const { status, user, signOut } = useAuth();
   const router = useRouter();
   const segments = useSegments();
+  const isSignedIn = status === 'signedIn';
+  const portal = user ? portalFor(user.roles) : null;
 
   // Sau khi đăng xuất, luôn đưa về trang đăng nhập. Các màn hình ứng viên
   // (cvs, applications, ...) nằm ngoài nhóm (auth) nên nếu không chặn,
@@ -70,6 +72,18 @@ function RootNavigator() {
       router.replace('/login');
     }
   }, [status, segments, router]);
+
+  // Role có thể bị đổi từ Admin hoặc phiên trước có thể giữ route của portal cũ.
+  // Hook phải nằm trước mọi return có điều kiện để không thay đổi thứ tự hook.
+  useEffect(() => {
+    if (!isSignedIn || !portal) return;
+    const group = segments[0];
+    if (portal === 'hr' && group === '(tabs)') {
+      router.replace('/dashboard');
+    } else if (portal === 'candidate' && group === '(hr)') {
+      router.replace('/');
+    }
+  }, [isSignedIn, portal, router, segments]);
 
   // Đang khôi phục phiên đăng nhập: giữ màn hình chờ, tránh nháy màn hình đăng nhập.
   if (status === 'loading') {
@@ -88,8 +102,6 @@ function RootNavigator() {
     );
   }
 
-  const isSignedIn = status === 'signedIn';
-  const portal = user ? portalFor(user.roles) : null;
   const colors = Colors[colorScheme];
   const navigationTheme = {
     ...(colorScheme === 'dark' ? DarkTheme : DefaultTheme),
