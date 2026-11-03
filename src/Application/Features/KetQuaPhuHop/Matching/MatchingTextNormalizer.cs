@@ -49,4 +49,29 @@ public static class MatchingTextNormalizer
         var key = TextKey(value);
         return SkillAliases.GetValueOrDefault(key, key);
     }
+
+    /// <summary>
+    /// Key so địa chỉ: dấu câu không phải tín hiệu phân biệt nên "TP. Hồ Chí Minh"
+    /// và "TP Hồ Chí Minh" phải quy về một. Chỉ dùng cho phần địa điểm — kỹ năng
+    /// vẫn giữ dấu câu vì "C#", ".NET", "Node.js" phân biệt nhau bằng ký hiệu.
+    /// </summary>
+    public static string LocationKey(string? value)
+    {
+        var key = TextKey(value);
+        if (key.Length == 0) return string.Empty;
+        var result = new StringBuilder(key.Length);
+        var pendingSpace = false;
+        foreach (var ch in key)
+        {
+            if (char.IsWhiteSpace(ch) || !char.IsLetterOrDigit(ch))
+            {
+                if (result.Length > 0) pendingSpace = true;
+                continue;
+            }
+            if (pendingSpace) result.Append(' ');
+            result.Append(ch);
+            pendingSpace = false;
+        }
+        return result.ToString();
+    }
 }

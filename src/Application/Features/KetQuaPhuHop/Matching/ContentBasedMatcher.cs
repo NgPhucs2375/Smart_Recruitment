@@ -33,6 +33,7 @@ public static class ContentBasedMatcher
         string TextKey(string? value) => normalized ? MatchingTextNormalizer.TextKey(value)
             : (value ?? string.Empty).Trim().ToLowerInvariant();
         string SkillKey(string? value) => normalized ? MatchingTextNormalizer.SkillKey(value) : TextKey(value);
+        string LocationKey(string? value) => normalized ? MatchingTextNormalizer.LocationKey(value) : TextKey(value);
 
         var ids = candidate.Skills.Where(x => x.Id.HasValue).Select(x => x.Id!.Value).ToHashSet();
         var names = candidate.Skills.Select(x => SkillKey(x.Name)).Where(x => x.Length > 0)
@@ -67,8 +68,8 @@ public static class ContentBasedMatcher
             (title.Contains(position, StringComparison.Ordinal) || position.Contains(title, StringComparison.Ordinal)) ? .10f : 0;
         var salaryBonus = candidate.DesiredSalary > 0 && job.SalaryMax >= candidate.DesiredSalary &&
             (job.SalaryMin <= candidate.DesiredSalary || job.SalaryMin == 0) ? .05f : 0;
-        var address = TextKey(candidate.Address);
-        var location = TextKey(job.Location);
+        var address = LocationKey(candidate.Address);
+        var location = LocationKey(job.Location);
         var locationBonus = address.Length > 0 && location.Length > 0 &&
             (location.Contains(address, StringComparison.Ordinal) || address.Contains(location, StringComparison.Ordinal)) ? .05f : 0;
 
