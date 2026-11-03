@@ -2,7 +2,7 @@
 
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { useSearchParams, usePathname, useRouter } from "next/navigation";
-import { ArrowLeft, FileText, Save, Eye, Pencil, Plus, Trash2, Printer, Check, ListChecks, Sparkles, Upload, UserRound, Download, ZoomIn, ZoomOut, MoreHorizontal, Maximize, LayoutTemplate, Info } from "lucide-react";
+import { ArrowLeft, FileText, Save, Eye, Pencil, Plus, Trash2, RotateCcw, Printer, Check, ListChecks, Sparkles, Upload, UserRound, Download, ZoomIn, ZoomOut, MoreHorizontal, Maximize, LayoutTemplate, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -25,7 +25,7 @@ import { normalizeLayoutConfig } from "@/features/tao-cv/resume-data";
 import { defaultCvData } from "@/features/tao-cv/constants";
 import { resolveTemplateId, isKnownTemplateId } from "@/features/tao-cv/template-registry";
 import { fetchDbThemeBySlugOrId } from "@/features/tao-cv/services/theme-db-sync";
-import type { CvFormData, CvVersionVm, CvVm, HoSoVm } from "@/lib/types";
+import type { CvFormData, CvTrashVm, CvVersionVm, CvVm, HoSoVm } from "@/lib/types";
 import {
   isoToVnDate,
   normalizeCvPartialDate,
@@ -814,6 +814,21 @@ export function TaoCvView() {
     }
   };
 
+  const [trash, setTrash] = useState<CvTrashVm[]>([]);
+  const [restoringId, setRestoringId] = useState<number | null>(null);
+
+  const reloadTrash = useCallback(() => {
+    cvApi
+      .listTrash()
+      .then(setTrash)
+      // Thùng rác đọc hỏng không được chặn việc biên tập CV; giữ danh sách cũ.
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    reloadTrash();
+  }, [reloadTrash]);
+
   const handleDelete = async () => {
     if (!selectedId) return;
     if (!window.confirm("Xóa CV đang chọn?")) return;
@@ -823,11 +838,27 @@ export function TaoCvView() {
       // Còn CV khác -> sang CV mặc định / đầu tiên; hết -> form trắng mới.
       const list = hoSo ? await cvApi.listCvs(hoSo.id) : [];
       setCvList(list);
+      reloadTrash();
       const next = list.find((c) => c.isDefault) ?? list[0];
       if (next) await handleSelect(next.id);
       else handleNew();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Xóa CV thất bại");
+    }
+  };
+
+  const handleRestore = async (id: number) => {
+    if (!window.confirm("Khôi phục CV này về danh sách?")) return;
+    try {
+      setRestoringId(id);
+      await cvApi.restoreCv(id);
+      toast.success("Đã khôi phục CV");
+      setTrash((prev) => prev.filter((c) => c.id !== id));
+      if (hoSo) setCvList(await cvApi.listCvs(hoSo.id));
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Khôi phục CV thất bại");
+    } finally {
+      setRestoringId(null);
     }
   };
 
@@ -1204,6 +1235,37 @@ export function TaoCvView() {
               className="w-50 rounded-full"
             />
           </div>
+        </div>
+      )}
+
+      {/* Thùng rác tách khỏi khối "CV của tôi": người xóa hết CV thì danh sách
+          sống rỗng nhưng vẫn phải còn đường khôi phục. */}
+      {trash.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-border bg-card px-4 py-3 shadow-sm">
+          <span className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground">
+            <Trash2 className="size-3.5" /> Thùng rác ({trash.length}):
+          </span>
+          {trash.map((c) => (
+            <Button
+              key={c.id}
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-8 max-w-56 rounded-full text-xs text-muted-foreground hover:text-primary"
+              disabled={restoringId === c.id}
+              onClick={() => void handleRestore(c.id)}
+              title={
+                c.ngayXoa
+                  ? `Xóa ngày ${new Date(c.ngayXoa).toLocaleString("vi-VN")} — bấm để khôi phục`
+                  : "Bấm để khôi phục CV này"
+              }
+            >
+              <RotateCcw className="size-3.5 shrink-0" />
+              <span className="truncate">
+                {restoringId === c.id ? "Đang khôi phục…" : c.tenFile || `CV #${c.id}`}
+              </span>
+            </Button>
+          ))}
         </div>
       )}
 

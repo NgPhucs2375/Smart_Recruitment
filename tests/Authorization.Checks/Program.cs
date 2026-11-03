@@ -12,6 +12,8 @@ using Application.Features.KetQuaPhanTichCv.Commands.UpdateKetQuaPhanTichCv;
 using Application.Features.KetQuaPhanTichCv.Commands.DeleteKetQuaPhanTichCv;
 using Application.Features.CVUngVien.Queries.GetCVUngVienById;
 using Application.Features.CVUngVien.Queries.GetAllCVUngViens;
+using Application.Features.CVUngVien.Queries.GetThungRacCVUngViens;
+using Application.Features.CVUngVien.Commands.KhoiPhucCVUngVien;
 using Application.Features.CVUngVien.Cache;
 using Application.Security;
 using AutoMapper;
@@ -65,7 +67,9 @@ db.HoSoNhaTuyenDungs.AddRange(new HoSoNhaTuyenDung { Id = 101, NguoiDungId = 1, 
     new HoSoNhaTuyenDung { Id = 103, NguoiDungId = 3, DoanhNghiepId = 31 },
     new HoSoNhaTuyenDung { Id = 105, NguoiDungId = 5, DoanhNghiepId = 99 });
 db.HoSoUngViens.AddRange(new HoSoUngVien { Id = 21, NguoiDungId = 1 }, new HoSoUngVien { Id = 22, NguoiDungId = 2 });
-db.CVUngViens.AddRange(new CVUngVien { Id = 11, HoSoUngVienId = 21 }, new CVUngVien { Id = 12, HoSoUngVienId = 22 });
+db.CVUngViens.AddRange(new CVUngVien { Id = 11, HoSoUngVienId = 21 }, new CVUngVien { Id = 12, HoSoUngVienId = 22 },
+    new CVUngVien { Id = 13, HoSoUngVienId = 21, TenFile = "Deleted draft", IsDaXoa = true, IsDefault = false },
+    new CVUngVien { Id = 14, HoSoUngVienId = 22, TenFile = "Foreign deleted", IsDaXoa = true, IsDefault = false });
 db.TinTuyenDungs.AddRange(new TinTuyenDung { Id = 41, DoanhNghiepId = 31, NguoiDangTinId = 3 }, new TinTuyenDung { Id = 42, DoanhNghiepId = 31, NguoiDangTinId = 4 });
 db.DonUngTuyens.AddRange(new DonUngTuyen { Id = 51, CVUngVienId = 11, TinTuyenDungId = 41, DoanhNghiepId = 31, CvSnapshotJson = JsonSerializer.Serialize(new CvDetailDto { Id = 11, TenFile = "Submitted snapshot" }) },
     new DonUngTuyen { Id = 52, CVUngVienId = 12, TinTuyenDungId = 42, DoanhNghiepId = 31 });
@@ -121,6 +125,26 @@ current.Value = new() { Id = 1, VaiTro = VaiTroNguoiDung.QUAN_TRI_VIEN };
 Check((await cvList.Handle(new() { _end = 20 }, default)).Data.Count == 2, "Admin CV list can inspect all profiles");
 current.Value = new() { Id = 1, VaiTro = VaiTroNguoiDung.UNG_VIEN };
 Check((await cvList.Handle(new() { _end = 20 }, default)).Data.Select(x => x.Id).SequenceEqual([11]), "Admin-to-candidate role change cannot reuse privileged list cache");
+
+// Thùng rác CV + khôi phục: cùng chủ tài sản với luồng xoá, không có suất cho tài khoản khác.
+var trashQuery = new GetThungRacCVUngViensQueryHandler(db, current);
+var restore = new KhoiPhucCVUngVienCommandHandler(db, current, cache);
+Check((await trashQuery.Handle(new(), default)).Data.Select(x => x.Id).SequenceEqual([13]), "Trash lists only the candidate's own deleted CVs");
+Check(!(await cvHandler.Handle(new() { Id = 13 }, default)).Succeeded, "Deleted CV stays closed to its owner until restore");
+Check(!(await restore.Handle(new() { Id = 11 }, default)).Succeeded, "Restore refuses a CV that is not in the trash");
+Check(!(await restore.Handle(new() { Id = 14 }, default)).Succeeded, "Another candidate's deleted CV cannot be restored by ID guessing");
+Check((await restore.Handle(new() { Id = 13 }, default)).Succeeded, "Owner restores own deleted CV");
+Check(await db.CVUngViens.AnyAsync(x => x.Id == 13 && !x.IsDaXoa && !x.IsDefault), "Restored CV rejoins without stealing the profile's live default");
+Check((await trashQuery.Handle(new(), default)).Data.Count == 0, "Restored CV leaves the trash");
+Check((await cvList.Handle(new() { _end = 20 }, default)).Data.Select(x => x.Id).OrderBy(id => id).SequenceEqual([11, 13]), "Live CV list shows the restored CV instead of the stale cached snapshot");
+var liveDefault = await db.CVUngViens.AsTracking().FirstAsync(x => x.Id == 11);
+liveDefault.IsDefault = false;
+var reDeleted = await db.CVUngViens.AsTracking().FirstAsync(x => x.Id == 13);
+reDeleted.IsDaXoa = true;
+reDeleted.IsDefault = false;
+await db.SaveChangesAsync();
+Check((await restore.Handle(new() { Id = 13 }, default)).Succeeded, "A CV can be deleted and restored again");
+Check(await db.CVUngViens.AnyAsync(x => x.Id == 13 && !x.IsDaXoa && x.IsDefault), "Restored CV takes default only when the profile has none");
 var webAssembly = typeof(CurrentNguoiDungService).Assembly;
 var toolCacheType = webAssembly.GetType("WebApp.Server.Agent.Cache.AgentToolCache")!;
 var toolCache = Activator.CreateInstance(

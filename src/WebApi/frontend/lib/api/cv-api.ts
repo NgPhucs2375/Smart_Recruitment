@@ -5,13 +5,14 @@ import type {
   CvVersionVm,
   SaveCvVersionVm,
   CvDetailVm,
+  CvTrashVm,
   CvVm,
   HoSoVm,
   ParseCvTextInput,
   TaoHoSoInput,
 } from "../types";
 
-export type { CvDetailVm, CvVm, HoSoVm } from "../types";
+export type { CvDetailVm, CvTrashVm, CvVm, HoSoVm } from "../types";
 
 /** Wrapper Response<T> của backend .NET (PascalCase). */
 export interface BackendResponse<T> {
@@ -125,6 +126,19 @@ export function normalizeCv(raw: unknown): CvVm {
     phuongThucTao: Number(r.phuongThucTao ?? r.PhuongThucTao ?? 0),
     viTriUngTuyen: (r.viTriUngTuyen ?? r.ViTriUngTuyen ?? null) as string | null,
     hoTen: (r.hoTen ?? r.HoTen ?? null) as string | null,
+  };
+}
+
+export function normalizeCvTrash(raw: unknown): CvTrashVm {
+  const r = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
+  return {
+    id: (r.id ?? r.Id ?? 0) as number,
+    hoSoUngVienId: (r.hoSoUngVienId ?? r.HoSoUngVienId ?? 0) as number,
+    tenFile: (r.tenFile ?? r.TenFile ?? "") as string,
+    phuongThucTao: Number(r.phuongThucTao ?? r.PhuongThucTao ?? 0),
+    viTriUngTuyen: (r.viTriUngTuyen ?? r.ViTriUngTuyen ?? null) as string | null,
+    hoTen: (r.hoTen ?? r.HoTen ?? null) as string | null,
+    ngayXoa: (r.ngayXoa ?? r.NgayXoa ?? null) as string | null,
   };
 }
 
@@ -271,6 +285,12 @@ export const cvApi = {
   setDefault: (id: number) =>
     request<number>(`cvungviens/${id}/set-default`, { method: "POST", body: JSON.stringify({}) }),
   deleteCv: (id: number) => request<number>(`cvungviens/${id}`, { method: "DELETE" }),
+  listTrash: async (): Promise<CvTrashVm[]> => {
+    const res = await request<unknown[]>("cvungviens/thung-rac");
+    return Array.isArray(res) ? res.map(normalizeCvTrash) : [];
+  },
+  restoreCv: (id: number) =>
+    request<number>(`cvungviens/${id}/khoi-phuc`, { method: "POST", body: JSON.stringify({}) }),
   parseCv: (input: ParseCvTextInput) =>
     request<Record<string, unknown>>("cvungviens/parse-text", {
       method: "POST",
