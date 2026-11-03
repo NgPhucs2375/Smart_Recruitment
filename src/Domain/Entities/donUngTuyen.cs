@@ -27,5 +27,6 @@ namespace Domain.Entities
         public CVUngVien CVUngVien { get; set; }
         public CVPhienBan? CVPhienBan { get; set; }
         public ICollection<DanhGia> DanhGias { get; set; }
+        public ICollection<LichSuTrangThaiDonUngTuyen> LichSuTrangThais { get; set; }
     }
 }

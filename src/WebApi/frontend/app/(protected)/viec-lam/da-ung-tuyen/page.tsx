@@ -7,6 +7,7 @@ import {
   Undo2,
   MapPin,
   Wallet,
+  History,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
@@ -29,6 +30,7 @@ import {
 } from "@/components/ui/select";
 import { jobsApi } from "@/lib/api/jobs-api";
 import { formatSalaryFull } from "@/features/viec-lam/salary";
+import StatusHistoryTimeline from "@/features/ung-tuyen/status-history-timeline";
 import { getValidToken, refreshSession } from "@/lib/auth-provider";
 
 type DonUngTuyen = {
@@ -268,6 +270,7 @@ export default function DaUngTuyenPage() {
   }, [load]);
 
   const [withdrawingId, setWithdrawingId] = useState<number | null>(null);
+  const [historyOpenId, setHistoryOpenId] = useState<number | null>(null);
 
   // Rút đơn (trigger RutDon=8): chỉ khi đơn còn ở trạng thái đang xử lý.
   async function handleRutDon(item: DonUngTuyen) {
@@ -435,6 +438,14 @@ export default function DaUngTuyenPage() {
                         </span>
                       </p>
                     )}
+                    {historyOpenId === item.id && (
+                      <div className="mt-3 rounded-2xl border border-border bg-muted/30 p-4">
+                        <p className="mb-3 text-xs font-semibold text-muted-foreground">
+                          Lịch sử xử lý đơn #{item.id}
+                        </p>
+                        <StatusHistoryTimeline donId={item.id} />
+                      </div>
+                    )}
                   </div>
                   <div className="flex shrink-0 flex-wrap gap-2">
                     <Link
@@ -443,6 +454,18 @@ export default function DaUngTuyenPage() {
                     >
                       Xem tin
                     </Link>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      aria-expanded={historyOpenId === item.id}
+                      onClick={() =>
+                        setHistoryOpenId((openId) =>
+                          openId === item.id ? null : item.id,
+                        )
+                      }
+                    >
+                      <History className="size-4" /> Lịch sử
+                    </Button>
                     {canRutDon(item.trangThai) && (
                       <Button
                         variant="ghost"

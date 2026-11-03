@@ -162,8 +162,20 @@ namespace Application.Services.StateMachineTinTuyenDung
 
                 foreach (var don in dons)
                 {
+                    var trangThaiTruocCascade = don.TrangThai;
                     don.TrangThai = TrangThaiDonUngTuyen.TinTuyenDungBiDong;
                     don.GhiChu = $"Tin tuyển dụng đã {LyDoDongTin(trigger)}.";
+
+                    // Cascade cố tình đi đường tắt, không qua DonUngTuyenStateMachine,
+                    // nên phải tự ghi vệt lịch sử; nếu không đơn bị đóng vì tin sẽ không còn dấu vết.
+                    _context.LichSuTrangThaiDonUngTuyens.Add(new LichSuTrangThaiDonUngTuyen
+                    {
+                        DonUngTuyenId = don.Id,
+                        TrangThaiTruoc = trangThaiTruocCascade,
+                        TrangThaiSau = TrangThaiDonUngTuyen.TinTuyenDungBiDong,
+                        Trigger = TriggerDonUngTuyen.DongBoiTinTuyenDung,
+                        GhiChu = don.GhiChu,
+                    });
 
                     int ungVienId = don.CVUngVien?.HoSoUngVien?.NguoiDungId ?? 0;
                     if (ungVienId > 0)

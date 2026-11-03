@@ -24,10 +24,12 @@ namespace Application.Services.StateMachineDonUngTuyen
         private readonly DonUngTuyen _entity;
         private readonly IDonUngTuyenWorkflowService _workflow;
         private readonly ICurrentNguoiDungService _current;
+        private readonly IApplicationDbContext _context;
 
         private string _currentNote;
         private CancellationToken _currentCt;
         private bool _runSideEffects = true;
+        private int? _actorNguoiDungId;
 
         /// <summary>
         /// Các trigger chỉ hệ thống được fire (tiếp nhận hồ sơ, job SLA, cascade đóng tin).
@@ -41,15 +43,23 @@ namespace Application.Services.StateMachineDonUngTuyen
         public DonUngTuyenStateMachine(
             IDonUngTuyenWorkflowService workflow,
             ICurrentNguoiDungService current,
+            IApplicationDbContext context,
             DonUngTuyen entity)
         {
             _entity = entity;
             _workflow = workflow;
             _current = current;
+            _context = context;
 
             _machine = new StateMachine<TrangThaiDonUngTuyen, TriggerDonUngTuyen>(
                 () => _entity.TrangThai,
                 s => _entity.TrangThai = s);
+
+            // Mốc ghi lịch sử đặt ở hook chuyển trạng thái của machine, không đặt
+            // trong HandleSideEffectsAsync: các handler hiện tại fire với
+            // runSideEffects: false rồi tự gọi side effects thủ công, nên hook
+            // OnEntryAsync không chạy — nếu ghi lịch sử ở đó sẽ mất dấu.
+            _machine.OnTransitionedAsync(GhiLichSuAsync);
 
             ConfigureTransitions();
         }
@@ -101,6 +111,7 @@ namespace Application.Services.StateMachineDonUngTuyen
             {
                 _currentNote = null;
                 _runSideEffects = true;
+                _actorNguoiDungId = null;
             }
         }
 
@@ -125,6 +136,9 @@ namespace Application.Services.StateMachineDonUngTuyen
             _currentNote = string.IsNullOrWhiteSpace(note) ? GetDefaultNote(trigger) : note;
             _currentCt = ct;
             _runSideEffects = runSideEffects;
+            // Trigger hệ thống: không quy actor cho tài khoản đang gọi request,
+            // vì cùng code path có thể chạy từ background job (không có user).
+            _actorNguoiDungId = null;
 
             try
             {
@@ -134,6 +148,7 @@ namespace Application.Services.StateMachineDonUngTuyen
             {
                 _currentNote = null;
                 _runSideEffects = true;
+                _actorNguoiDungId = null;
             }
         }
 
@@ -147,6 +162,8 @@ namespace Application.Services.StateMachineDonUngTuyen
                 throw new ApiException("Hành động này chỉ hệ thống được thực hiện.");
 
             var ctx = await _current.ResolveAsync();
+            // Trigger người luôn có tài khoản thật; hệ thống không đi qua đường này.
+            _actorNguoiDungId = ctx.Id;
 
             switch (trigger)
             {
@@ -203,6 +220,27 @@ namespace Application.Services.StateMachineDonUngTuyen
                 trigger,
                 _currentNote ?? GetDefaultNote(trigger),
                 _currentCt);
+        }
+
+        /// <summary>
+        /// Ghi một dòng vệt kiểm toán cho mỗi lần đơn đổi trạng thái. Chạy độc lập
+        /// với <c>runSideEffects</c>: tắt thông báo không được phép tắt luôn lịch sử.
+        /// </summary>
+        private Task GhiLichSuAsync(
+            StateMachine<TrangThaiDonUngTuyen, TriggerDonUngTuyen>.Transition transition)
+        {
+            _context.LichSuTrangThaiDonUngTuyens.Add(new LichSuTrangThaiDonUngTuyen
+            {
+                // Gán navigation, không gán thẳng DonUngTuyenId: lúc nộp đơn thì đơn
+                // vừa được Add nên Id còn bằng 0; EF fixup tự điền khóa ngoại khi SaveChanges.
+                DonUngTuyen = _entity,
+                TrangThaiTruoc = transition.Source,
+                TrangThaiSau = transition.Destination,
+                Trigger = transition.Trigger,
+                NguoiThucHienId = _actorNguoiDungId,
+                GhiChu = _currentNote ?? GetDefaultNote(transition.Trigger),
+            });
+            return Task.CompletedTask;
         }
 
         private void ConfigureTransitions()

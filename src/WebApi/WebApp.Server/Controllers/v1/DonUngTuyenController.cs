@@ -4,6 +4,7 @@ using Application.Features.DonUngTuyen.Commands.DeleteDonUngTuyen;
 using Application.Features.DonUngTuyen.Commands.UpdateDonUngTuyen;
 using Application.Features.DonUngTuyen.Queries.GetAllDonUngTuyens;
 using Application.Features.DonUngTuyen.Queries.GetDonUngTuyenById;
+using Application.Features.DonUngTuyen.Queries.GetLichSuDonUngTuyen;
 using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -65,6 +66,18 @@ namespace WebApp.Server.Controllers.v1
                             Id = id
                         }));
                 });
+        }
+
+        // GET: api/donungtuyens/show/5/lich-su
+        // Vệt kiểm toán trạng thái. Quyền đọc gate bằng đúng quyền xem đơn (403 là 403).
+        [HttpGet("show/{id}/lich-su")]
+        public async Task<IActionResult> LichSu(int id)
+        {
+            return await EnforcePermissionAndExecute(
+                "donungtuyens",
+                "show",
+                async () => Ok(await Mediator.Send(
+                    new GetLichSuDonUngTuyenQuery { Id = id })));
         }
 
         // POST: api/donungtuyens

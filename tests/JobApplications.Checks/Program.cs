@@ -4,6 +4,7 @@ using Application.Features.DonUngTuyen.Commands.CreateDonUngTuyen;
 using Application.Features.DonUngTuyen.Commands.UpdateDonUngTuyen;
 using Application.Features.DonUngTuyen.Queries.GetAllDonUngTuyens;
 using Application.Features.DonUngTuyen.Queries.GetDonUngTuyenById;
+using Application.Features.DonUngTuyen.Queries.GetLichSuDonUngTuyen;
 using Application.Features.TinTuyenDung.Queries.GetAllTinTuyenDungs;
 using Application.Interfaces;
 using Application.Mappings;
@@ -57,6 +58,15 @@ user.Role = VaiTroNguoiDung.UNG_VIEN; user.Id = 1;
 await update.Handle(new() { Id = applicationId, Trigger = TriggerDonUngTuyen.RutDon, GhiChu = "Withdraw" }, default);
 var history = await new GetAllDonUngTuyensQueryHandler(db, user).Handle(new(), default);
 Check(history.Data.Single().TrangThai == TrangThaiDonUngTuyen.UngVienRutDon, "Withdrawn applications remain in candidate history");
+
+var trail = await db.LichSuTrangThaiDonUngTuyens.Where(h => h.DonUngTuyenId == applicationId).OrderBy(h => h.Id).ToListAsync();
+Check(trail.Count == 4, "Every status change writes exactly one history row");
+Check(trail.Select(h => h.TrangThaiSau).SequenceEqual(new[] { TrangThaiDonUngTuyen.ChoXuLy, TrangThaiDonUngTuyen.DaXem, TrangThaiDonUngTuyen.PhuHop, TrangThaiDonUngTuyen.UngVienRutDon }), "History preserves the ordered status chain");
+Check(trail[0].TrangThaiTruoc == TrangThaiDonUngTuyen.KhoiTao && trail[1].TrangThaiTruoc == TrangThaiDonUngTuyen.ChoXuLy, "History records the state each transition started from");
+Check(trail[0].NguoiThucHienId == null && trail[1].NguoiThucHienId == 2 && trail[3].NguoiThucHienId == 1, "History separates system moves from the person who acted");
+Check(trail[3].GhiChu == "Withdraw", "History keeps the note supplied with the action");
+var lichSuUngVien = await new GetLichSuDonUngTuyenQueryHandler(db, user).Handle(new() { Id = applicationId }, default);
+Check(lichSuUngVien.Data.Count == trail.Count && lichSuUngVien.Data[0].TrangThaiSau == TrangThaiDonUngTuyen.ChoXuLy, "Candidate reads the same status trail through the history endpoint");
 
 // Nghiệp vụ "CV nộp được": chưa có họ tên trên khối liên hệ thì không vào funnel ứng tuyển.
 var draft = new CVUngVien { Id = 2, HoSoUngVienId = 1, TenFile = "Draft CV", TemplateId = "minimal-ats", ThongTinLienHe = new CVThongTinLienHe { HoTen = "   " } };
