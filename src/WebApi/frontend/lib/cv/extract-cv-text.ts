@@ -1,5 +1,7 @@
 // trích xuất nội dung file
 
+import { flattenDocxHtml } from "./docx-table-text";
+
 export async function extractCvText(file: File): Promise<string> {
   const extension = file.name.split(".").pop()?.toLowerCase();
 
@@ -38,6 +40,8 @@ async function extractPdfText(file: File): Promise<string> {
 
 async function extractDocxText(file: File): Promise<string> {
   const mammoth = await import("mammoth");
-  const result = await mammoth.extractRawText({ arrayBuffer: await file.arrayBuffer() });
-  return result.value.trim();
+  // convertToHtml giữ được <table>/<tr>/<td>; extractRawText thì rải ô bảng
+  // thành dòng rời nên CV dạng bảng mất quan hệ nhãn - giá trị trước khi vào parser.
+  const result = await mammoth.convertToHtml({ arrayBuffer: await file.arrayBuffer() });
+  return flattenDocxHtml(result.value).trim();
 }

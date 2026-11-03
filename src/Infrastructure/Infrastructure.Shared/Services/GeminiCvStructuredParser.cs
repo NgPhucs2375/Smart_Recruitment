@@ -320,6 +320,8 @@ public sealed class GeminiCvStructuredParser(
 
         Quy tắc:
         - Không suy diễn dữ liệu không xuất hiện trong CV; dùng null hoặc mảng rỗng.
+        - Dòng chứa " | " là một hàng bảng trong file Word: mỗi đoạn giữa hai dấu " | " là một ô.
+          Ô đầu thường là nhãn ("Kinh nghiệm làm việc"), ô sau là nội dung của mục đó.
         - Ngày đầy đủ dùng dd/MM/yyyy, tháng-năm dùng MM/yyyy.
         - ThuTu bắt đầu từ 0 theo thứ tự xuất hiện.
         - Chỉ trả về JSON, không kèm markdown hoặc giải thích.

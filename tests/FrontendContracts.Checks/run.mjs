@@ -107,3 +107,38 @@ saveSessionValue(TOKEN_KEY, "jwt", "persistent");
 assert.equal(globalThis.localStorage.getItem(TOKEN_KEY), null, "server render writes nothing");
 globalThis.window = browser;
 console.log("PASS logout wipes both stores and server render never touches web storage");
+
+// CV .docx kiểu TopCV là bảng hai cột (nhãn | nội dung). mammoth.convertToHtml giữ
+// <table>, phần này chốt rằng mỗi hàng bảng ra đúng một dòng "ô1 | ô2" — cùng giao
+// diện văn bản mà backend UploadedCvTextExtractor và prompt parse CV dựa vào.
+const { flattenDocxHtml } = await load("lib/cv/docx-table-text.ts");
+const cell = (inner) => `<td>${inner}</td>`;
+const para = (text) => `<p>${text}</p>`;
+assert.equal(
+  flattenDocxHtml(`${para("THONG TIN CA NHAN")}<table><tr>${cell(para("Ho ten"))}${cell(para("Nguyen Van A"))}</tr><tr>${cell(para("Email"))}${cell(para("a@example.com"))}</tr></table>${para("HOC VAN")}`),
+  "THONG TIN CA NHAN\nHo ten | Nguyen Van A\nEmail | a@example.com\nHOC VAN",
+);
+console.log("PASS DOCX table rows flatten to one label|value line each, in document order");
+assert.equal(flattenDocxHtml(`${para("Nguyen Van A")}${para("a@example.com")}`), "Nguyen Van A\na@example.com");
+console.log("PASS a CV without tables keeps the same plain lines as before");
+assert.equal(
+  flattenDocxHtml(`<table><tr>${cell(para("Ky nang"))}${cell(`${para("Frontend")}${para("Backend")}`)}</tr></table>`),
+  "Ky nang | Frontend; Backend",
+);
+assert.equal(
+  flattenDocxHtml(`<table><tr>${cell(para("Ky nang"))}${cell(`${para("Frontend")}<table><tr>${cell(para("React"))}${cell(para("2 nam"))}</tr></table>${para("Backend")}`)}</tr></table>`),
+  "Ky nang | Frontend; React | 2 nam; Backend",
+);
+assert.equal(
+  flattenDocxHtml(`<table><tr>${cell("Chung chi")}${cell("")}${cell("IELTS 6.5")}</tr><tr>${cell("")}${cell("")}</tr></table>`),
+  "Chung chi | IELTS 6.5",
+);
+assert.equal(flattenDocxHtml(`<p>Ca truc</p>`), "Ca truc");
+assert.equal(flattenDocxHtml(`<p>backend<br>devops</p><p><img src="a.png">text</p>`), "backend devops\ntext");
+// thẻ tự đóng (dạng mammoth thật sinh ra: <br/>, <img/>) từng làm rơi module vì
+// biến thẻ khai báo const rồi bị gán lại — trình duyệt báo lỗi build.
+assert.equal(flattenDocxHtml(`<table><tr><td><p>Ho ten</p></td><td><p>A<img src="x.png"/>, 2026</p></td></tr></table>`), "Ho ten | A, 2026");
+assert.equal(flattenDocxHtml(`<p>backend<br/>devops</p>`), "backend devops");
+assert.equal(flattenDocxHtml(`<p>Ha &amp; Lim &#233; Nguyen&nbsp;Anh</p>`), "Ha & Lim é Nguyen Anh");
+assert.equal(flattenDocxHtml(`<td>Loose cell text</td>`), "Loose cell text");
+console.log("PASS multi-paragraph cells, nested tables, empty cells, br/img and entities follow the same contract");
