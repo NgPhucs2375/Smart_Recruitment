@@ -3,8 +3,9 @@
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useGetIdentity } from "@refinedev/core";
-import { ClipboardList, Plus, Pencil, Trash2, X, Send, Pause, Play, Lock, Users, CheckCircle2, Eye, Copy, Search, Briefcase, CalendarDays, FileText } from "lucide-react";
+import { ClipboardList, Plus, Pencil, Trash2, X, Send, Pause, Play, Lock, Users, CheckCircle2, Eye, Copy, Search, Briefcase, CalendarDays, FileText, ArrowLeftRight } from "lucide-react";
 import { JobPreview, deadlineDate, SKILL_LEVELS, type JobSkill, type JobPreviewData } from "@/features/tin-tuyen-dung/job-preview";
+import { jobsApi } from "@/lib/api/jobs-api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -33,6 +34,7 @@ type TinTuyenDung = {
   ketQuaSangLoc?: string;
   nguoiDaiDienDaDuyet?: boolean;
   vaiTroNguoiDang?: string;
+  nguoiDangTinId?: number;
 };
 
 type DanhMucNghe = {
@@ -164,6 +166,10 @@ export default function TinTuyenDungPage() {
   const [skillQuery, setSkillQuery] = useState("");
   const [skillOpen, setSkillOpen] = useState(false);
   const [skillError, setSkillError] = useState("");
+  // roster nhân sự cùng doanh nghiệp: nguồn cho hộp "Giao tin" (chỉ Người đại diện tải)
+  const [nhanSu, setNhanSu] = useState<{ nguoiDungId: number; hoTen: string; isActive: boolean }[]>([]);
+  const [giaoTin, setGiaoTin] = useState<TinTuyenDung | null>(null);
+  const [dangGiao, setDangGiao] = useState(false);
   const { confirm, prompt } = useConfirmDialog();
 
   const apiFetch = useCallback(async (url: string, opts?: RequestInit) => {
@@ -212,6 +218,7 @@ export default function TinTuyenDungPage() {
           ketQuaSangLoc: String(r.ketQuaSangLoc ?? r.KetQuaSangLoc ?? ""),
           nguoiDaiDienDaDuyet: Boolean(r.nguoiDaiDienDaDuyet ?? r.NguoiDaiDienDaDuyet),
           vaiTroNguoiDang: String(r.vaiTroNguoiDang ?? r.VaiTroNguoiDang ?? ""),
+          nguoiDangTinId: Number(r.nguoiDangTinId ?? r.NguoiDangTinId ?? 0),
         };
       }));
       setDonCounts(Object.fromEntries(rawItems.map(v => { const r = v as Record<string, unknown>; return [Number(r.id ?? r.Id), Number(r.soLuongUngVien ?? r.SoLuongUngVien ?? 0)]; })));
@@ -238,6 +245,44 @@ export default function TinTuyenDungPage() {
   }, [apiFetch]);
 
   useEffect(() => { const timer = setTimeout(() => void load(), 250); return () => clearTimeout(timer); }, [load]);
+
+  const loadNhanSu = useCallback(async () => {
+    try {
+      const res: ApiResponse<unknown> = await apiFetch("/api/dotnet/nhansus");
+      const d = extractData(res);
+      const arr = Array.isArray(d) ? d : [];
+      setNhanSu(arr.map((v: unknown) => {
+        const r = v as Record<string, unknown>;
+        return {
+          nguoiDungId: Number(r.nguoiDungId ?? r.NguoiDungId ?? 0),
+          hoTen: String(r.hoTen ?? r.HoTen ?? ""),
+          isActive: Boolean(r.isActive ?? r.IsActive ?? true),
+        };
+      }).filter((x) => x.nguoiDungId > 0));
+    } catch {
+      // Không có roster thì chỉ mất nút giao tin, danh sách tin vẫn dùng bình thường.
+      setNhanSu([]);
+    }
+  }, [apiFetch]);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (isNguoiDaiDien) void loadNhanSu();
+  }, [isNguoiDaiDien, loadNhanSu]);
+
+  async function handleGiaoTin(item: TinTuyenDung, nguoiDungId: number, hoTen: string) {
+    setDangGiao(true); setErr(""); setSuccessMsg("");
+    try {
+      const message = await jobsApi.reassignJobOwner(item.id, nguoiDungId);
+      setGiaoTin(null);
+      setSuccessMsg(message || `Đã giao tin cho ${hoTen}.`);
+      await load();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Không giao được tin này.");
+    } finally {
+      setDangGiao(false);
+    }
+  }
   useEffect(() => {
     // Initial lookup data is fetched from the API.
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -703,6 +748,8 @@ export default function TinTuyenDungPage() {
               const isTamDung = item.trangThai === "TamDung" || item.trangThai === "4";
               // Tin nhân sự đăng đã qua funnel, chờ chủ doanh nghiệp duyệt — chỉ NDD thấy nút.
               const choNguoiDaiDienDuyet = isNguoiDaiDien && (item.trangThai === "ChoNguoiDaiDienDuyet" || item.trangThai === "9");
+              const tenNguoiPhuTrach = nhanSu.find(m => m.nguoiDungId === item.nguoiDangTinId)?.hoTen
+                || (item.nguoiDangTinId ? `#${item.nguoiDangTinId}` : "chưa rõ");
               return (
                 <div key={item.id} className="flex flex-col justify-between gap-4 p-5 lg:flex-row lg:items-center">
                   <div className="min-w-0">
@@ -715,6 +762,7 @@ export default function TinTuyenDungPage() {
                       {item.diaDiemLamViec && <span>{item.diaDiemLamViec}</span>}
                       <span>{fmtMoney(item.luongToiThieu)} — {fmtMoney(item.luongToiDa)}</span>
                       {item.ngayHetHan && <span>Hết hạn: {fmtDate(item.ngayHetHan)}</span>}
+                      {isNguoiDaiDien && <span>Phụ trách: {tenNguoiPhuTrach}</span>}
                     </div>
                   </div>
                   <div className="flex shrink-0 flex-wrap justify-end gap-2">
@@ -739,6 +787,7 @@ export default function TinTuyenDungPage() {
                     )}
                     {(canEditDraft || isTamDung) && <Button variant="outline" size="sm" disabled={busy} onClick={() => openEdit(item)}><Pencil className="size-4" /> Sửa</Button>}
                     <Button variant="outline" size="sm" disabled={busy} onClick={() => { openEdit(item); setEditing(null); setForm(f => ({ ...f, tieuDe: `${item.tieuDe} (bản sao)`.slice(0, 255), ngayHetHan: "" })); }}><Copy className="size-4" /> Sao chép</Button>
+                    {isNguoiDaiDien && <Button variant="outline" size="sm" disabled={busy || dangGiao} onClick={() => { setGiaoTin(item); setErr(""); }}><ArrowLeftRight className="size-4" /> Giao tin</Button>}
                     {canEditDraft && (donCounts[item.id] ?? 0) === 0 && <Button variant="ghost" size="sm" disabled={busy} className="text-destructive hover:text-destructive" aria-label={`Xóa nháp: ${item.tieuDe}`} onClick={() => void handleDelete(item)}><Trash2 className="size-4" /></Button>}
                   </div>
                 </div>
@@ -748,6 +797,45 @@ export default function TinTuyenDungPage() {
         )}
       </AdminCard>
       <div className="flex items-center justify-end gap-3"><Button variant="outline" disabled={loading || page <= 1} onClick={() => setPage(p => p - 1)}>Trang trước</Button><span className="text-sm text-muted-foreground">Trang {page} / {Math.max(totalPages, 1)}</span><Button variant="outline" disabled={loading || page >= totalPages} onClick={() => setPage(p => p + 1)}>Trang sau</Button></div>
+      {giaoTin && (() => {
+        const danhsach = nhanSu.filter(m => m.isActive && m.nguoiDungId !== giaoTin.nguoiDangTinId);
+        return (
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label={`Giao tin ${giaoTin.tieuDe}`}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+            onClick={() => setGiaoTin(null)}
+          >
+            <div className="w-full max-w-sm rounded-2xl border border-border bg-card p-5 shadow-lg" onClick={(e) => e.stopPropagation()}>
+              <h3 className="font-medium truncate">Giao tin “{giaoTin.tieuDe}”</h3>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Người nhận sẽ quản lý hồ sơ ứng tuyển, đánh giá và nhận thông báo của tin này.
+                Tin, đơn đã nộp và lịch sử xử lý giữ nguyên — ứng viên không phải ứng tuyển lại.
+              </p>
+              <div className="mt-4 space-y-2">
+                {danhsach.map(m => (
+                  <Button
+                    key={m.nguoiDungId}
+                    variant="outline"
+                    className="w-full justify-start"
+                    disabled={dangGiao}
+                    onClick={() => void handleGiaoTin(giaoTin, m.nguoiDungId, m.hoTen || "nhân sự này")}
+                  >
+                    <ArrowLeftRight className="size-4" /> {dangGiao ? "Đang giao..." : `Giao cho ${m.hoTen || `#${m.nguoiDungId}`}`}
+                  </Button>
+                ))}
+                {danhsach.length === 0 && (
+                  <p className="text-sm text-muted-foreground">
+                    Doanh nghiệp chưa có nhân sự hoạt động nào khác để nhận tin.
+                  </p>
+                )}
+              </div>
+              <Button variant="ghost" className="mt-4" disabled={dangGiao} onClick={() => setGiaoTin(null)}><X className="size-4" /> Đóng</Button>
+            </div>
+          </div>
+        );
+      })()}
       <JobPreview data={preview} onClose={() => { setPreview(null); setReviewing(null); }} actions={reviewing && isNguoiDaiDien ? <>
         <Button variant="outline" onClick={() => { setPreview(null); setReviewing(null); void handleFire(reviewing, TRIGGER.NguoiDaiDienTuChoi, "Từ chối"); }}>Từ chối</Button>
         <Button onClick={() => { setPreview(null); setReviewing(null); void handleFire(reviewing, TRIGGER.NguoiDaiDienDuyet, "Đồng ý và chạy bộ lọc", "Sau khi bạn đồng ý, hệ thống mới lọc: OK thì công khai, vi phạm hoặc nghi vấn thì chuyển Admin duyệt tay."); }}><CheckCircle2 className="size-4" /> Đồng ý và chạy bộ lọc</Button>

@@ -83,6 +83,19 @@ namespace Application.Features.NhanSu.Commands.DeleteNhanSu
                     "Không thể xóa chính tài khoản của bạn.");
             }
 
+            // Nhân sự bị xóa vẫn còn đứng tên NguoiDangTinId trên các tin của họ: xóa là để lại
+            // tin mồ côi chủ (không HR nào mở được) và tiếp tục gửi thông báo/email hồ sơ
+            // ứng viên cho tài khoản đã ra khỏi doanh nghiệp.
+            var conTin = await context.TinTuyenDungs
+                .AsNoTracking()
+                .CountAsync(t => t.NguoiDangTinId == target.NguoiDungId, cancellationToken);
+            if (conTin > 0)
+            {
+                throw new ApiException(
+                    $"{target.HoTen} còn phụ trách {conTin} tin tuyển dụng. " +
+                    "Giao toàn bộ tin cho nhân sự khác trong doanh nghiệp trước khi xóa.", 400);
+            }
+
             context.HoSoNhaTuyenDungs.Remove(target);
 
             string removedAppUserId = null;

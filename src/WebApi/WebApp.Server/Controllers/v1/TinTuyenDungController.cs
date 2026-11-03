@@ -1,6 +1,7 @@
 using Application.Features.TinTuyenDung.Commands.CreateTinTuyenDung;
 using Application.Features.TinTuyenDung.Commands.DeleteTinTuyenDung;
 using Application.Features.TinTuyenDung.Commands.FireTinTuyenDungTrigger;
+using Application.Features.TinTuyenDung.Commands.SangNhuongNguoiDangTin;
 using Application.Features.TinTuyenDung.Commands.UpdateTinTuyenDung;
 using Application.Features.TinTuyenDung.Queries.GetAllTinTuyenDungs;
 using Application.Features.TinTuyenDung.Queries.GetTinTuyenDungById;
@@ -104,6 +105,28 @@ namespace WebApp.Server.Controllers.v1
             return await EnforcePermissionAndExecute("tintuyendungs", "edit", async () =>
             {
                 if (id != command.Id) return BadRequest();
+                return Ok(await Mediator.Send(command));
+            });
+        }
+
+        // Sang nhượng dùng lại grant "edit" thay vì thêm action mới: ma trận quyền đọc từ DB live,
+        // nên một action chưa tồn tại trong RoleClaim của các role đã tạo sẽ chặn luôn tính năng.
+        // Ai được giao thật sự do SangNhuongQuyTac.EnsureActor quyết định (Nhân sự bị từ chối ở đó).
+        [HttpPost("{id}/sang-nhuong")]
+        public async Task<IActionResult> SangNhuongNguoiDangTin(int id, SangNhuongNguoiDangTinCommand command)
+        {
+            return await EnforcePermissionAndExecute("tintuyendungs", "edit", async () =>
+            {
+                if (id != command.Id) return BadRequest();
+                return Ok(await Mediator.Send(command));
+            });
+        }
+
+        [HttpPost("sang-nhuong-hang-loat")]
+        public async Task<IActionResult> SangNhuongToanBoTin(SangNhuongToanBoTinCommand command)
+        {
+            return await EnforcePermissionAndExecute("tintuyendungs", "edit", async () =>
+            {
                 return Ok(await Mediator.Send(command));
             });
         }

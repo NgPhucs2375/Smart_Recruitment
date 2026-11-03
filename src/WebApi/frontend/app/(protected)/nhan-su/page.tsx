@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
-import { Users, UserPlus, Trash2, Mail, Briefcase, X, Copy, Link2, Clock } from "lucide-react";
+import { Users, UserPlus, Trash2, Mail, Briefcase, X, Copy, Link2, Clock, ArrowLeftRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { inviteSchema } from "@/lib/schemas";
 import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { getPendingLoiMoi, cancelLoiMoi, type LoiMoiPending } from "@/lib/api/nhan-su-api";
+import { jobsApi } from "@/lib/api/jobs-api";
 import { getValidToken } from "@/lib/auth-provider";
 import { unwrapResponse } from "@/lib/api/response-contract";
 import { matchesSearch, matchesStatus, peoplePage, PEOPLE_ROLES, roleNumber } from "@/features/people/people-list";
@@ -47,6 +48,9 @@ export default function NhanSuPage() {
   const [inviteLink, setInviteLink] = useState("");
   const [form, setForm] = useState({ email: "", hoTen: "", chucVu: "" });
   const { confirm } = useConfirmDialog();
+  const [soTinCua, setSoTinCua] = useState<Record<number, number>>({});
+  const [giaoTu, setGiaoTu] = useState<NhanSu | null>(null);
+  const [dangGiao, setDangGiao] = useState(false);
 
   const apiFetch = useCallback(async (url: string, opts?: RequestInit) => {
     const token = await getValidToken();
@@ -104,8 +108,41 @@ export default function NhanSuPage() {
     }
   }, []);
 
+  // Đếm tin đang mang tên từng nhân sự: backend chặn xóa khi còn tin, nên con số này
+  // phải hiện ngay cạnh nút xóa kèm lối giao tin, thay vì để người dùng gặp lỗi 400.
+  const loadSoTin = useCallback(async () => {
+    try {
+      const res: ApiResponse<unknown> = await apiFetch("/api/dotnet/tintuyendungs?_start=0&_end=200");
+      const d = (res as Record<string, unknown>).Data ?? (res as Record<string, unknown>).data;
+      const arr = Array.isArray(d) ? d : [];
+      const counts: Record<number, number> = {};
+      for (const v of arr) {
+        const ownerId = Number((v as Record<string, unknown>).nguoiDangTinId ?? (v as Record<string, unknown>).NguoiDangTinId ?? 0);
+        if (ownerId > 0) counts[ownerId] = (counts[ownerId] ?? 0) + 1;
+      }
+      setSoTinCua(counts);
+    } catch {
+      // Không đọc được danh sách tin thì ẩn số đếm, luồng mời/xóa nhân sự vẫn chạy.
+      setSoTinCua({});
+    }
+  }, [apiFetch]);
+
+  async function handleGiaoToanBo(item: NhanSu, den: NhanSu) {
+    setDangGiao(true); setErr(""); setSuccessMsg("");
+    try {
+      const message = await jobsApi.reassignAllJobsOfOwner(item.nguoiDungId, den.nguoiDungId);
+      setGiaoTu(null);
+      setSuccessMsg(message || `Đã giao ${soTinCua[item.nguoiDungId] ?? 0} tin cho ${den.hoTen}.`);
+      await Promise.all([load(), loadSoTin()]);
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Không giao được tin.");
+    } finally {
+      setDangGiao(false);
+    }
+  }
+
   // eslint-disable-next-line react-hooks/set-state-in-effect
-  useEffect(() => { void load(); void loadPending(); }, [load, loadPending]);
+  useEffect(() => { void load(); void loadPending(); void loadSoTin(); }, [load, loadPending, loadSoTin]);
 
   async function handleInvite(e: FormEvent) {
     e.preventDefault();
@@ -290,9 +327,13 @@ export default function NhanSuPage() {
                   </div>
                   <p className="mt-1 text-sm text-muted-foreground">{item.chucVu || "Chưa có chức vụ"}</p>
                   <p className="mt-1 text-sm text-muted-foreground">{[item.email, item.sdt].filter(Boolean).join(" • ")}</p>
+                  {(soTinCua[item.nguoiDungId] ?? 0) > 0 && (
+                    <p className="mt-1 text-sm text-muted-foreground">{soTinCua[item.nguoiDungId]} tin đang mang tên người này</p>
+                  )}
                   {!item.isActive && <Badge variant="outline" className="mt-2">Ngưng hoạt động</Badge>}
                 </div>
                 <div className="flex shrink-0 gap-2">
+                  {(soTinCua[item.nguoiDungId] ?? 0) > 0 && <Button variant="outline" size="sm" disabled={dangGiao} aria-label={`Giao hết tin của ${item.hoTen}`} onClick={() => { setGiaoTu(item); setErr(""); setSuccessMsg(""); }}><ArrowLeftRight className="size-4" /> Giao hết tin</Button>}
                   {roleNumber(item.vaiTro) === 3 && <Button variant="ghost" size="sm" aria-label={`Gỡ Nhân sự ${item.hoTen}`} className="text-destructive hover:text-destructive" onClick={() => void handleDelete(item)}><Trash2 className="size-4" /></Button>}
                 </div>
               </div>
@@ -301,6 +342,44 @@ export default function NhanSuPage() {
         )}
         {!loading && <PeopleListPagination page={paged.page} totalPages={paged.totalPages} count={filtered.length} total={items.length} onPage={setPage} />}
       </AdminCard>
+
+      {giaoTu && (() => {
+        const mucTieu = items.filter(x => x.isActive && x.nguoiDungId !== giaoTu.nguoiDungId);
+        return (
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label={`Giao toàn bộ tin của ${giaoTu.hoTen}`}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+            onClick={() => setGiaoTu(null)}
+          >
+            <div className="w-full max-w-sm rounded-2xl border border-border bg-card p-5 shadow-lg" onClick={(e) => e.stopPropagation()}>
+              <h3 className="font-medium truncate">Giao {soTinCua[giaoTu.nguoiDungId] ?? 0} tin của {giaoTu.hoTen || "nhân sự này"}</h3>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Người nhận quản lý toàn bộ các tin đó cùng hồ sơ, đánh giá và thông báo ứng tuyển.
+                Nội dung tin, đơn đã nộp và lịch sử không thay đổi.
+              </p>
+              <div className="mt-4 space-y-2">
+                {mucTieu.map(x => (
+                  <Button
+                    key={x.nguoiDungId}
+                    variant="outline"
+                    className="w-full justify-start"
+                    disabled={dangGiao}
+                    onClick={() => void handleGiaoToanBo(giaoTu, x)}
+                  >
+                    <ArrowLeftRight className="size-4" /> {dangGiao ? "Đang giao..." : `Giao cho ${x.hoTen || `#${x.nguoiDungId}`}`}
+                  </Button>
+                ))}
+                {mucTieu.length === 0 && (
+                  <p className="text-sm text-muted-foreground">Cần ít nhất một nhân sự khác còn hoạt động để nhận tin.</p>
+                )}
+              </div>
+              <Button variant="ghost" className="mt-4" disabled={dangGiao} onClick={() => setGiaoTu(null)}><X className="size-4" /> Đóng</Button>
+            </div>
+          </div>
+        );
+      })()}
     </AdminPageLayout>
   );
 }
