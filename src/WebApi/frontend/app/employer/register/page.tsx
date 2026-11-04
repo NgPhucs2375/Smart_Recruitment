@@ -39,7 +39,7 @@ import { cn } from "@/lib/utils";
  * register endpoint — it is stored locally and carried to /tin-tuyen-dung.
  */
 
-const employerRegisterSchema = registerSchema.extend({
+const employerRegisterSchema = registerSchema.safeExtend({
   linhVucHoatDong: z.string().optional(),
   quyMoNhanSu: z.string().optional(),
   website: optionalUrlField(),
