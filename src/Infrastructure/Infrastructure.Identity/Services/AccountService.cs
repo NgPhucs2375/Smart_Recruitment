@@ -1192,8 +1192,11 @@ namespace Infrastructure.Identity.Services
         }
 
         /// <summary>
-        /// Lấy id + tên + email từ GitHub: ưu tiên email verified từ /user/emails
-        /// (scope user:email), fallback email công khai trên hồ sơ.
+        /// Lấy id + tên + email từ GitHub. Email BẮT BUỘC đến từ GET /user/emails với
+        /// verified=true (scope user:email); email công khai trên hồ sơ /user bị loại vì
+        /// GitHub không chứng minh người sở hữu token control hộp thư đó, và luồng này
+        /// khớp tài khoản chỉ bằng email (FindByEmailAsync) rồi auto-confirm
+        /// (IssueAuthResponseAsync) — nhận email chưa xác minh = đường chiếm tài khoản.
         /// </summary>
         private async Task<GitHubProfile> FetchGitHubProfileAsync(string accessToken)
         {
@@ -1224,7 +1227,7 @@ namespace Infrastructure.Identity.Services
                 }
             }
 
-            string id = null, login = null, name = null, profileEmail = null;
+            string id = null, login = null, name = null;
             try
             {
                 using var doc = System.Text.Json.JsonDocument.Parse(body);
@@ -1233,7 +1236,6 @@ namespace Infrastructure.Identity.Services
                     id = idEl.ValueKind == System.Text.Json.JsonValueKind.Number ? idEl.GetInt64().ToString() : idEl.GetString();
                 if (root.TryGetProperty("login", out var loginEl)) login = loginEl.GetString();
                 if (root.TryGetProperty("name", out var nameEl)) name = nameEl.GetString();
-                if (root.TryGetProperty("email", out var emailEl)) profileEmail = emailEl.GetString();
             }
             catch (System.Text.Json.JsonException ex)
             {
@@ -1243,14 +1245,14 @@ namespace Infrastructure.Identity.Services
             if (string.IsNullOrWhiteSpace(id))
                 throw new ApiException("Phản hồi từ GitHub không hợp lệ.");
 
-            var email = await FetchVerifiedGitHubEmailAsync(client, accessToken).ConfigureAwait(false) ?? profileEmail;
+            var email = await FetchVerifiedGitHubEmailAsync(client, accessToken).ConfigureAwait(false);
             if (string.IsNullOrWhiteSpace(email))
-                throw new ApiException("Tài khoản GitHub chưa có email xác minh. Vui lòng thêm và xác minh email trên GitHub.");
+                throw new ApiException("Không lấy được email đã xác minh từ GitHub. Hãy thêm và xác minh email trên GitHub rồi thử lại.");
 
-            return new GitHubProfile(id, email.Trim().ToLowerInvariant(), name, login);
+            return new GitHubProfile(id, email, name, login);
         }
 
-        /// <summary>Chọn email verified (ưu tiên primary) từ GET /user/emails; lỗi → null (fallback về email hồ sơ).</summary>
+        /// <summary>Chọn email verified (ưu tiên primary) từ GET /user/emails; lỗi → null → từ chối đăng nhập.</summary>
         private async Task<string> FetchVerifiedGitHubEmailAsync(HttpClient client, string accessToken)
         {
             try
@@ -1261,25 +1263,36 @@ namespace Infrastructure.Identity.Services
                 if (!res.IsSuccessStatusCode) return null;
 
                 var body = await res.Content.ReadAsStringAsync().ConfigureAwait(false);
-                using var doc = System.Text.Json.JsonDocument.Parse(body);
-                string fallback = null;
-                foreach (var item in doc.RootElement.EnumerateArray())
-                {
-                    if (!(item.TryGetProperty("verified", out var v) && v.GetBoolean())) continue;
-                    if (!item.TryGetProperty("email", out var e)) continue;
-                    var mail = e.GetString();
-                    if (string.IsNullOrWhiteSpace(mail)) continue;
-                    if (item.TryGetProperty("primary", out var p) && p.GetBoolean())
-                        return mail.Trim().ToLowerInvariant();
-                    fallback ??= mail.Trim().ToLowerInvariant();
-                }
-                return fallback;
+                return PickVerifiedGitHubEmail(body);
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Không lấy được danh sách email từ GitHub — sẽ fallback email hồ sơ.");
+                _logger.LogWarning(ex, "Không lấy được danh sách email từ GitHub.");
                 return null;
             }
+        }
+
+        /// <summary>
+        /// Tách email an toàn khỏi payload GET /user/emails: bỏ mọi email có verified=false
+        /// (kể cả email công khai), ưu tiên primary, trả chuỗi đã trim + lowercase.
+        /// Không có email verified nào → null. Payload hỏng → JsonException/InvalidOperationException
+        /// để caller biến thành null (khước, không đoán).
+        /// </summary>
+        private static string PickVerifiedGitHubEmail(string json)
+        {
+            using var doc = System.Text.Json.JsonDocument.Parse(json);
+            string fallback = null;
+            foreach (var item in doc.RootElement.EnumerateArray())
+            {
+                if (!(item.TryGetProperty("verified", out var v) && v.GetBoolean())) continue;
+                if (!item.TryGetProperty("email", out var e)) continue;
+                var mail = e.GetString();
+                if (string.IsNullOrWhiteSpace(mail)) continue;
+                if (item.TryGetProperty("primary", out var p) && p.GetBoolean())
+                    return mail.Trim().ToLowerInvariant();
+                fallback ??= mail.Trim().ToLowerInvariant();
+            }
+            return fallback;
         }
 
         /// <summary>Ghi liên kết GitHub → tài khoản Identity (UserLogins). Lỗi → log, không chặn đăng nhập.</summary>
