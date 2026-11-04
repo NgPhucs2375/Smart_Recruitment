@@ -50,7 +50,7 @@ public class CreateDonUngTuyenCommandHandler(IApplicationDbContext context, ICur
             return await context.InTransactionAsync(async () =>
             {
                 context.DonUngTuyens.Add(application);
-                var machine = new DonUngTuyenStateMachine(workflow, current, application);
+                var machine = new DonUngTuyenStateMachine(workflow, current, context, application);
                 await machine.FireSystemAsync(TriggerDonUngTuyen.XuLyHoSoThanhCong, "Hồ sơ hợp lệ, chờ nhà tuyển dụng xử lý.", ct, runSideEffects: false);
                 await context.SaveChangesAsync(ct);
                 await workflow.HandleSideEffectsAsync(application, TriggerDonUngTuyen.XuLyHoSoThanhCong, "Hồ sơ hợp lệ, chờ nhà tuyển dụng xử lý.", ct);

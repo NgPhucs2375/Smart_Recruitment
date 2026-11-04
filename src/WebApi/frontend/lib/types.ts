@@ -203,6 +203,16 @@ export type CvVm = {
   hoTen?: string | null;
 };
 
+export type CvTrashVm = {
+  id: number;
+  hoSoUngVienId: number;
+  tenFile: string;
+  phuongThucTao: number;
+  viTriUngTuyen?: string | null;
+  hoTen?: string | null;
+  ngayXoa?: string | null;
+};
+
 export type CvDetailVm = CvVm & {
   noiDung: Omit<CvFormData, "templateId" | "tenFile">;
 };

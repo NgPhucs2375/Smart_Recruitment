@@ -11,7 +11,6 @@ import {
 import {
   ArrowRight,
   Building2,
-  ChevronRight,
   LogOut,
   Mail,
   Pencil,

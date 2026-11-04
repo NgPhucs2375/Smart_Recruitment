@@ -20,11 +20,11 @@ import { ThemedText } from '@/components/themed-text';
 import { Button } from '@/components/ui/button';
 import { ThemeModeProvider, useThemeMode } from '@/hooks/use-theme';
 
-// Màn hình tiếp cận được khi chưa đăng nhập (deep link từ email).
-const PUBLIC_AUTH_ROUTES = ['login', 'register', 'forgot-password', 'reset-password', 'confirm-email'];
-
 // Giữ splash cho đến khi font Be Vietnam Pro load xong, tránh nháy font hệ thống.
 SplashScreen.preventAutoHideAsync().catch(() => {});
+
+// Màn hình tiếp cận được khi chưa đăng nhập (deep link từ email rơi vào đây).
+const PUBLIC_AUTH_ROUTES = ['login', 'register', 'forgot-password', 'reset-password', 'confirm-email'];
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
@@ -66,7 +66,10 @@ function RootNavigator() {
   // Sau khi đăng xuất, luôn đưa về trang đăng nhập. Các màn hình ứng viên
   // (cvs, applications, ...) nằm ngoài nhóm (auth) nên nếu không chặn,
   // Stack.Protected sẽ chọn chúng làm "first available screen" thay vì /login.
+  // Ngoại lệ: màn hình xác thực công khai — user đã ký-out phải mở được deep link
+  // reset-password/confirm-email gửi tới email, nếu không luồng quên mật khẩu tê liệt.
   useEffect(() => {
+    if (status !== 'signedOut') return;
     const route = segments[segments.length - 1];
     if (status === 'signedOut' && segments[0] !== '(auth)' && !PUBLIC_AUTH_ROUTES.includes(route ?? '')) {
       router.replace('/login');
@@ -175,6 +178,7 @@ function RootNavigator() {
           <Stack.Screen name="hr/messages/[id]" options={{ headerShown: false }} />
           <Stack.Screen name="hr/settings" options={{ headerShown: false }} />
         </Stack.Protected>
+
         <Stack.Protected guard={isSignedIn}>
           <Stack.Screen name="notifications" />
           <Stack.Screen name="change-password" />
@@ -183,7 +187,7 @@ function RootNavigator() {
         </Stack.Protected>
 
         {/* Đăng ký cuối: "first available screen" theo thứ tự JSX, để mở link đặt lại
-             mật khẩu cho cả user đang đăng nhập mà không đổi màn hình khởi động. */}
+            mật khẩu cho cả user đang đăng nhập mà không đổi màn hình khởi động. */}
         <Stack.Screen name="reset-password" />
         <Stack.Screen name="confirm-email" />
       </Stack>

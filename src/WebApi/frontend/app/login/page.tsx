@@ -9,10 +9,10 @@ import {
   TabSwitcher,
   SocialAuthSection,
   MagicLinkForm,
+  RememberSessionField,
 } from "@/components/auth";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Mail, Lock, ArrowRight, Loader2, UserRound, Eye, EyeOff, Briefcase, Sparkles, Users } from "lucide-react";
@@ -195,17 +195,11 @@ function LoginContent() {
             {errors.password && <p id="password-error" role="alert" className="text-xs text-red-500">{errors.password.message}</p>}
           </div>
 
-          <div className="flex items-center gap-2 pt-0.5">
-            <Checkbox
-              id="remember"
-              checked={remember}
-              onCheckedChange={(checked) => setValue("remember", checked === true)}
-              disabled={isPending}
-            />
-            <Label htmlFor="remember" className="cursor-pointer text-xs text-muted-foreground">
-              Lưu thông tin đăng nhập trên thiết bị này
-            </Label>
-          </div>
+          <RememberSessionField
+            checked={remember}
+            onChange={(checked) => setValue("remember", checked)}
+            disabled={isPending}
+          />
 
           <Button
             type="submit"

@@ -63,6 +63,7 @@ namespace Infrastructure.Persistence.Contexts
         public DbSet<HoSoNhaTuyenDung> HoSoNhaTuyenDungs { get; set; }
         public DbSet<LoiMoiNhanSu> LoiMoiNhanSus { get; set; }
         public DbSet<DonUngTuyen> DonUngTuyens { get; set; }
+        public DbSet<LichSuTrangThaiDonUngTuyen> LichSuTrangThaiDonUngTuyens { get; set; }
         public DbSet<DoanhNghiep> DoanhNghieps { get; set; }
         public DbSet<DanhMucNghe> DanhMucNghes { get; set; }
         public DbSet<QuyTacKiemDuyetTin> QuyTacKiemDuyetTins { get; set; }

@@ -1,4 +1,6 @@
 using Application.DTOs.CV;
+using Application.DTOs.Account;
+using Application.Wrappers;
 using Application.Exceptions;
 using Application.Interfaces;
 using Application.Features.DanhGia.Queries.GetAllDanhGias;
@@ -12,7 +14,12 @@ using Application.Features.KetQuaPhanTichCv.Commands.UpdateKetQuaPhanTichCv;
 using Application.Features.KetQuaPhanTichCv.Commands.DeleteKetQuaPhanTichCv;
 using Application.Features.CVUngVien.Queries.GetCVUngVienById;
 using Application.Features.CVUngVien.Queries.GetAllCVUngViens;
+using Application.Features.CVUngVien.Queries.GetThungRacCVUngViens;
+using Application.Features.CVUngVien.Commands.KhoiPhucCVUngVien;
 using Application.Features.CVUngVien.Cache;
+using Application.Features.TinTuyenDung.Commands.SangNhuongNguoiDangTin;
+using Application.Features.NhanSu.Commands.DeleteNhanSu;
+using Application.Interfaces.Repositories;
 using Application.Security;
 using AutoMapper;
 using Domain.Entities;
@@ -57,21 +64,28 @@ var users = new[] {
     new NguoiDung { Id = 2, ApplicationUserId = "candidate-b", VaiTro = VaiTroNguoiDung.UNG_VIEN, IsActive = true },
     new NguoiDung { Id = 3, ApplicationUserId = "hr-a", VaiTro = VaiTroNguoiDung.NHAN_SU, IsActive = true },
     new NguoiDung { Id = 4, ApplicationUserId = "hr-b", VaiTro = VaiTroNguoiDung.NHAN_SU, IsActive = true },
-    new NguoiDung { Id = 5, ApplicationUserId = "owner", VaiTro = VaiTroNguoiDung.NGUOI_DAI_DIEN, IsActive = true }
+    new NguoiDung { Id = 5, ApplicationUserId = "owner", VaiTro = VaiTroNguoiDung.NGUOI_DAI_DIEN, IsActive = true },
+    new NguoiDung { Id = 7, ApplicationUserId = "hr-c", VaiTro = VaiTroNguoiDung.NHAN_SU, IsActive = true },
+    new NguoiDung { Id = 8, ApplicationUserId = "hr-d", VaiTro = VaiTroNguoiDung.NHAN_SU, IsActive = false }
 };
 db.NguoiDungs.AddRange(users);
 db.DoanhNghieps.Add(new DoanhNghiep { Id = 31, NguoiDaiDienId = 5 });
 db.HoSoNhaTuyenDungs.AddRange(new HoSoNhaTuyenDung { Id = 101, NguoiDungId = 1, DoanhNghiepId = 99 },
     new HoSoNhaTuyenDung { Id = 103, NguoiDungId = 3, DoanhNghiepId = 31 },
-    new HoSoNhaTuyenDung { Id = 105, NguoiDungId = 5, DoanhNghiepId = 99 });
+    new HoSoNhaTuyenDung { Id = 105, NguoiDungId = 5, DoanhNghiepId = 99 },
+    new HoSoNhaTuyenDung { Id = 107, NguoiDungId = 7, DoanhNghiepId = 31, HoTen = "Nhan su C" },
+    new HoSoNhaTuyenDung { Id = 108, NguoiDungId = 8, DoanhNghiepId = 31, HoTen = "Nhan su D Nghi" });
 db.HoSoUngViens.AddRange(new HoSoUngVien { Id = 21, NguoiDungId = 1 }, new HoSoUngVien { Id = 22, NguoiDungId = 2 });
-db.CVUngViens.AddRange(new CVUngVien { Id = 11, HoSoUngVienId = 21 }, new CVUngVien { Id = 12, HoSoUngVienId = 22 });
+db.CVUngViens.AddRange(new CVUngVien { Id = 11, HoSoUngVienId = 21 }, new CVUngVien { Id = 12, HoSoUngVienId = 22 },
+    new CVUngVien { Id = 13, HoSoUngVienId = 21, TenFile = "Deleted draft", IsDaXoa = true, IsDefault = false },
+    new CVUngVien { Id = 14, HoSoUngVienId = 22, TenFile = "Foreign deleted", IsDaXoa = true, IsDefault = false });
 db.TinTuyenDungs.AddRange(new TinTuyenDung { Id = 41, DoanhNghiepId = 31, NguoiDangTinId = 3 }, new TinTuyenDung { Id = 42, DoanhNghiepId = 31, NguoiDangTinId = 4 });
 db.DonUngTuyens.AddRange(new DonUngTuyen { Id = 51, CVUngVienId = 11, TinTuyenDungId = 41, DoanhNghiepId = 31, CvSnapshotJson = JsonSerializer.Serialize(new CvDetailDto { Id = 11, TenFile = "Submitted snapshot" }) },
     new DonUngTuyen { Id = 52, CVUngVienId = 12, TinTuyenDungId = 42, DoanhNghiepId = 31 });
 db.DanhGias.AddRange(new DanhGia { Id = 61, DonUngTuyenId = 51 }, new DanhGia { Id = 62, DonUngTuyenId = 52 });
 db.KetQuaPhanTichCvs.Add(new KetQuaPhanTichCv { Id = 71, CVUngVienId = 12 });
 db.TinTuyenDungs.Add(new TinTuyenDung { Id = 44, DoanhNghiepId = 32, NguoiDangTinId = 4 });
+db.TinTuyenDungs.Add(new TinTuyenDung { Id = 45, DoanhNghiepId = 99, NguoiDangTinId = 1 });
 db.KyNangTinTuyenDungs.AddRange(new KyNangTinTuyenDung { Id = 81, TinTuyenDungId = 41, KyNangId = 1 },
     new KyNangTinTuyenDung { Id = 82, TinTuyenDungId = 42, KyNangId = 1 },
     new KyNangTinTuyenDung { Id = 83, TinTuyenDungId = 44, KyNangId = 1 });
@@ -111,7 +125,7 @@ Check((await new GetHoSoUngVienByIdQueryHandler(db, mapper, current).Handle(new(
 
 var cache = new MemoryDistributedCache(Options.Create(new MemoryDistributedCacheOptions()));
 current.Value = new() { Id = 3, VaiTro = VaiTroNguoiDung.NHAN_SU, DoanhNghiepId = 31 };
-var cvHandler = new GetCVUngVienByIdQueryHandler(db, current, null!, cache);
+var cvHandler = new GetCVUngVienByIdQueryHandler(db, current, null!, cache, null!);
 Check((await cvHandler.Handle(new() { Id = 11 }, default)).Data.TenFile == "Submitted snapshot", "Recruiter CV detail reads submitted snapshot, not current editor content");
 Check(!(await cvHandler.Handle(new() { Id = 12 }, default)).Succeeded, "HR cannot read CV submitted to another HR's job");
 await cache.SetStringAsync(CVUngVienListCache.BuildDetailKey(3, 12, "1"), JsonSerializer.Serialize(new Application.Wrappers.Response<CvDetailDto>(new CvDetailDto { Id = 12, TenFile = "Old privileged cache" })));
@@ -121,6 +135,66 @@ current.Value = new() { Id = 1, VaiTro = VaiTroNguoiDung.QUAN_TRI_VIEN };
 Check((await cvList.Handle(new() { _end = 20 }, default)).Data.Count == 2, "Admin CV list can inspect all profiles");
 current.Value = new() { Id = 1, VaiTro = VaiTroNguoiDung.UNG_VIEN };
 Check((await cvList.Handle(new() { _end = 20 }, default)).Data.Select(x => x.Id).SequenceEqual([11]), "Admin-to-candidate role change cannot reuse privileged list cache");
+
+// Thùng rác CV + khôi phục: cùng chủ tài sản với luồng xoá, không có suất cho tài khoản khác.
+var trashQuery = new GetThungRacCVUngViensQueryHandler(db, current);
+var restore = new KhoiPhucCVUngVienCommandHandler(db, current, cache);
+Check((await trashQuery.Handle(new(), default)).Data.Select(x => x.Id).SequenceEqual([13]), "Trash lists only the candidate's own deleted CVs");
+Check(!(await cvHandler.Handle(new() { Id = 13 }, default)).Succeeded, "Deleted CV stays closed to its owner until restore");
+Check(!(await restore.Handle(new() { Id = 11 }, default)).Succeeded, "Restore refuses a CV that is not in the trash");
+Check(!(await restore.Handle(new() { Id = 14 }, default)).Succeeded, "Another candidate's deleted CV cannot be restored by ID guessing");
+Check((await restore.Handle(new() { Id = 13 }, default)).Succeeded, "Owner restores own deleted CV");
+Check(await db.CVUngViens.AnyAsync(x => x.Id == 13 && !x.IsDaXoa && !x.IsDefault), "Restored CV rejoins without stealing the profile's live default");
+Check((await trashQuery.Handle(new(), default)).Data.Count == 0, "Restored CV leaves the trash");
+Check((await cvList.Handle(new() { _end = 20 }, default)).Data.Select(x => x.Id).OrderBy(id => id).SequenceEqual([11, 13]), "Live CV list shows the restored CV instead of the stale cached snapshot");
+var liveDefault = await db.CVUngViens.AsTracking().FirstAsync(x => x.Id == 11);
+liveDefault.IsDefault = false;
+var reDeleted = await db.CVUngViens.AsTracking().FirstAsync(x => x.Id == 13);
+reDeleted.IsDaXoa = true;
+reDeleted.IsDefault = false;
+await db.SaveChangesAsync();
+Check((await restore.Handle(new() { Id = 13 }, default)).Succeeded, "A CV can be deleted and restored again");
+Check(await db.CVUngViens.AnyAsync(x => x.Id == 13 && !x.IsDaXoa && x.IsDefault), "Restored CV takes default only when the profile has none");
+// Sang nhượng người đăng tin: quyền thuộc Người đại diện cùng doanh nghiệp hoặc Admin,
+// và người nhận phải còn hoạt động + có hồ sơ tại đúng doanh nghiệp của tin.
+var notifications = new ThongBaoGia();
+var transfer = new SangNhuongNguoiDangTinCommandHandler(db, current, notifications);
+var transferAll = new SangNhuongToanBoTinCommandHandler(db, current, notifications);
+current.Value = new() { Id = 3, VaiTro = VaiTroNguoiDung.NHAN_SU, DoanhNghiepId = 31 };
+await Denied(() => transfer.Handle(new() { Id = 41, NguoiDangTinMoiId = 7 }, default), "HR cannot hand off their own job to a colleague");
+current.Value = new() { Id = 5, VaiTro = VaiTroNguoiDung.NGUOI_DAI_DIEN, DoanhNghiepId = 31 };
+await Denied(() => transfer.Handle(new() { Id = 44, NguoiDangTinMoiId = 7 }, default), "Representative cannot touch another company's job");
+await Denied(() => transfer.Handle(new() { Id = 41, NguoiDangTinMoiId = 4 }, default), "Job cannot be handed to staff without a profile in the job's company");
+await Denied(() => transfer.Handle(new() { Id = 41, NguoiDangTinMoiId = 8 }, default), "Suspended staff cannot take over a job");
+current.Value = new() { Id = 6, VaiTro = VaiTroNguoiDung.QUAN_TRI_VIEN };
+await Denied(() => transfer.Handle(new() { Id = 44, NguoiDangTinMoiId = 3 }, default), "Admin cannot move a job to an HR of a different company");
+current.Value = new() { Id = 5, VaiTro = VaiTroNguoiDung.NGUOI_DAI_DIEN, DoanhNghiepId = 31 };
+Check((await transfer.Handle(new() { Id = 41, NguoiDangTinMoiId = 7 }, default)).Succeeded, "Representative hands a company job to another active HR");
+Check(await db.TinTuyenDungs.AnyAsync(x => x.Id == 41 && x.NguoiDangTinId == 7), "Transfer moves only the owner, keeping the job row");
+Check(notifications.Sent.Any(s => s.NguoiDungId == 7 && s.ReferenceType == SangNhuongQuyTac.ReferenceLoai) &&
+    notifications.Sent.Any(s => s.NguoiDungId == 3 && s.ReferenceType == SangNhuongQuyTac.ReferenceLoai),
+    "Both the old and the new owner are notified of the handover");
+Check(notifications.Sent.All(s => s.ReferenceType != nameof(TinTuyenDung)),
+    "Handover notifications stay out of the moderation-note stream");
+Check((await transfer.Handle(new() { Id = 41, NguoiDangTinMoiId = 7 }, default)).Succeeded && notifications.Sent.Count == 2,
+    "Reassigning to the current owner repeats no work and sends nothing new");
+current.Value = new() { Id = 7, VaiTro = VaiTroNguoiDung.NHAN_SU, DoanhNghiepId = 31 };
+Check((await jobSkills.Handle(new() { _end = 20 }, default)).Data.Select(x => x.Id).SequenceEqual([81]), "New owner gains the transferred job's skill config");
+current.Value = new() { Id = 3, VaiTro = VaiTroNguoiDung.NHAN_SU, DoanhNghiepId = 31 };
+Check((await jobSkills.Handle(new() { _end = 20 }, default)).Data.Count == 0, "Old owner loses management rights on the transferred job");
+await Denied(() => transferAll.Handle(new() { TuNguoiDangTinId = 7, NguoiDangTinMoiId = 7 }, default), "Bulk handover rejects handing a job to its own holder", 400);
+current.Value = new() { Id = 5, VaiTro = VaiTroNguoiDung.NGUOI_DAI_DIEN, DoanhNghiepId = 31 };
+Check((await transferAll.Handle(new() { TuNguoiDangTinId = 7, NguoiDangTinMoiId = 3 }, default)).Data == 1, "Bulk handover moves every job the source holds in the company");
+Check(await db.TinTuyenDungs.AnyAsync(x => x.Id == 41 && x.NguoiDangTinId == 3) &&
+    await db.TinTuyenDungs.AnyAsync(x => x.Id == 44 && x.NguoiDangTinId == 4), "Bulk handover stays inside the company and leaves other jobs alone");
+// Xóa nhân sự đang giữ tin sẽ bỏ lại tin mồ côi chủ và tiếp tục báo ứng viên cho
+// người đã rời doanh nghiệp, nên luồng xóa phải chặn trước khi chạm vào hồ sơ.
+var taiKhoan = new TaiKhoanGia();
+var deleteNhanSu = new DeleteNhanSuCommandHandler(
+    db, new Auth { UserId = "owner" }, taiKhoan);
+await Denied(() => deleteNhanSu.Handle(new() { Id = 101 }, default), "Cannot remove staff who still owns job postings", 400);
+Check(await db.HoSoNhaTuyenDungs.AnyAsync(x => x.Id == 101), "Blocked removal leaves the roster intact");
+Check(!taiKhoan.RoleRemoved, "Blocked removal never touches Identity roles");
 var webAssembly = typeof(CurrentNguoiDungService).Assembly;
 var toolCacheType = webAssembly.GetType("WebApp.Server.Agent.Cache.AgentToolCache")!;
 var toolCache = Activator.CreateInstance(
@@ -180,6 +254,37 @@ sealed class Auth : IAuthenticatedUserService { public string UserId { get; set;
 sealed class Clock : IDateTimeService { public DateTime NowUtc => DateTime.UtcNow; public DateTime Now => DateTime.UtcNow; }
 sealed class Current : ICurrentNguoiDungService { public CurrentNguoiDungContext Value { get; set; } = new(); public Task<CurrentNguoiDungContext> ResolveAsync() => Task.FromResult(Value); }
 sealed class DenyPermissions : IPermissionService { public Task RequireAsync(string resource, string action, CancellationToken cancellationToken = default) => throw new ApiException("Revoked", 403); }
+sealed class ThongBaoGia : INotificationService
+{
+    public List<(int NguoiDungId, string? ReferenceType)> Sent { get; } = new();
+    public Task SendToUserAsync(int userId, Application.DTOs.ThongBao.ThongBaoDTO notification)
+    { Sent.Add((userId, notification.ReferenceType)); return Task.CompletedTask; }
+    public Task SendToCompanyAsync(int companyId, Application.DTOs.ThongBao.ThongBaoDTO notification) => Task.CompletedTask;
+    public Task SendToRoleAsync(string role, Application.DTOs.ThongBao.ThongBaoDTO notification) => Task.CompletedTask;
+}
+
+/// <summary>Chỉ cần biết RemoveNhanSuRoleAsync có được gọi hay không; các đường khác không thuộc luồng đang kiểm.</summary>
+sealed class TaiKhoanGia : IAccountService
+{
+    public bool RoleRemoved { get; private set; }
+    public Task<Response<string>> RemoveNhanSuRoleAsync(string applicationUserId)
+    { RoleRemoved = true; return Task.FromResult(new Response<string>(applicationUserId)); }
+    private static InvalidOperationException NotReached() => new("Unexpected account call");
+    public Task<Response<AuthenticationResponse>> AuthenticateAsync(AuthenticationRequest request, string ipAddress) => throw NotReached();
+    public Task<Response<string>> RegisterAsync(YeuCauDangKy request, string origin) => throw NotReached();
+    public Task<Response<string>> ConfirmEmailAsync(string userId, string code) => throw NotReached();
+    public Task<Response<string>> AcceptInviteAsync(string token) => throw NotReached();
+    public Task ForgotPassword(YeuCauQuenMatKhau model, string origin) => throw NotReached();
+    public Task<Response<string>> ResetPassword(YeuCauGuiLaiXacMinh model) => throw NotReached();
+    public Task<Response<string>> ChangePasswordAsync(YeuCauDoiMatKhau model) => throw NotReached();
+    public Task ResendVerificationEmailAsync(string email, string origin) => throw NotReached();
+    public Task<Response<string>> RevokeRefreshTokenAsync(string token, string ipAddress) => throw NotReached();
+    public Task<Response<AuthenticationResponse>> RefreshTokenAsync(string token, string ipAddress) => throw NotReached();
+    public Task<Response<AuthenticationResponse>> ExternalLoginAsync(ExternalAuthRequest request, string ipAddress) => throw NotReached();
+    public Task<Response<string>> RequestMagicLinkAsync(YeuCauMagicLink request, string origin) => throw NotReached();
+    public Task<Response<AuthenticationResponse>> MagicLoginAsync(DoiMagicLink request, string ipAddress) => throw NotReached();
+    public Task<Response<AuthenticationResponse>> GitHubLoginAsync(GitHubLoginRequest request, string ipAddress) => throw NotReached();
+}
 sealed class CheckContext(DbContextOptions<ApplicationDbContext> options, IAuthenticatedUserService auth) : ApplicationDbContext(options, new Clock(), auth)
 {
     public bool FailSave { get; set; }

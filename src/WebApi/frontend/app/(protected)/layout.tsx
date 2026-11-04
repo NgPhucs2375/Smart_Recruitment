@@ -3,7 +3,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { AppLayout } from "@/components/layout/layout";
-import { getAuthToken, redirectToLogin, refreshIdentity } from "@/lib/auth-provider";
+import { redirectToLogin, refreshIdentity, hasStoredSession } from "@/lib/auth-provider";
 import { loadIdentity } from "@/lib/access-control-provider";
 
  const CopilotProvider = dynamic(
@@ -32,8 +32,9 @@ export default function ProtectedLayout({
     }
 
     async function validateSession() {
-      // Avoid waiting for /me or refresh-token when the browser has no session.
-      if (!getAuthToken()) {
+      // Không có khoá phiên nào trong hai store → mới thật sự là chưa đăng nhập.
+      // JWT hết hạn mà còn refresh token thì ở dưới tự xoay, không được đá về login.
+      if (!hasStoredSession()) {
         forceLoginRedirect();
         return;
       }
@@ -60,7 +61,7 @@ export default function ProtectedLayout({
     void validateSession();
 
     const handleSessionChange = () => {
-      if (!getAuthToken()) forceLoginRedirect();
+      if (!hasStoredSession()) forceLoginRedirect();
     };
     window.addEventListener("storage", handleSessionChange);
     window.addEventListener("hireai:identity-changed", handleSessionChange);

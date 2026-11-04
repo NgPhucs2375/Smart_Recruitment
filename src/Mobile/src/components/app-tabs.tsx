@@ -69,6 +69,7 @@ export default function AppTabs() {
       />
       <Tabs.Screen name="profile-edit" options={{ href: null }} />
       <Tabs.Screen name="settings" options={{ href: null }} />
+      <Tabs.Screen name="applications" options={{ href: null }} />
       <Tabs.Screen name="phu-hop" options={{ href: null }} />
     </Tabs>
   );

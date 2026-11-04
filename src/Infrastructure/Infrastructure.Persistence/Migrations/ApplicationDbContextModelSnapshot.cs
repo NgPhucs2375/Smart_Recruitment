@@ -2537,6 +2537,58 @@ namespace Infrastructure.Persistence.Migrations
                     b.ToTable("KyNangTinTuyenDung", (string)null);
                 });
 
+            modelBuilder.Entity("Domain.Entities.LichSuTrangThaiDonUngTuyen", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("Created")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<int>("DonUngTuyenId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("GhiChu")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("LastModified")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("LastModifiedBy")
+                        .HasColumnType("text");
+
+                    b.Property<int?>("NguoiThucHienId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("TrangThaiSau")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("TrangThaiTruoc")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("Trigger")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("NguoiThucHienId");
+
+                    b.HasIndex("DonUngTuyenId", "Created");
+
+                    b.ToTable("LichSuTrangThaiDonUngTuyen", (string)null);
+                });
+
             modelBuilder.Entity("Domain.Entities.LoiMoiNhanSu", b =>
                 {
                     b.Property<int>("Id")
@@ -3690,6 +3742,24 @@ namespace Infrastructure.Persistence.Migrations
                     b.Navigation("TinTuyenDung");
                 });
 
+            modelBuilder.Entity("Domain.Entities.LichSuTrangThaiDonUngTuyen", b =>
+                {
+                    b.HasOne("Domain.Entities.DonUngTuyen", "DonUngTuyen")
+                        .WithMany("LichSuTrangThais")
+                        .HasForeignKey("DonUngTuyenId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Entities.NguoiDung", "NguoiThucHien")
+                        .WithMany()
+                        .HasForeignKey("NguoiThucHienId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("DonUngTuyen");
+
+                    b.Navigation("NguoiThucHien");
+                });
+
             modelBuilder.Entity("Domain.Entities.LoiMoiNhanSu", b =>
                 {
                     b.HasOne("Domain.Entities.DoanhNghiep", "DoanhNghiep")
@@ -3870,6 +3940,8 @@ namespace Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Domain.Entities.DonUngTuyen", b =>
                 {
                     b.Navigation("DanhGias");
+
+                    b.Navigation("LichSuTrangThais");
                 });
 
             modelBuilder.Entity("Domain.Entities.HoSoUngVien", b =>

@@ -54,6 +54,11 @@ export function RecommendationPreview({ count = 5 }: { count?: number }) {
   const [items, setItems] = useState<Recommendation[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  // Backend phân biệt hai trạng thái trống bằng Succeeded: false = chưa có hồ sơ/CV
+  // để phân tích, true + data rỗng = có CV nhưng chưa tin nào đủ điểm. Gộp lại một
+  // câu sẽ nói sai (báo "chọn CV mặc định" khi người dùng đã có CV mặc định).
+  const [notice, setNotice] = useState("");
+  const [needsCv, setNeedsCv] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -76,8 +81,12 @@ export function RecommendationPreview({ count = 5 }: { count?: number }) {
         return response.json();
       })
       .then((body) => {
+        if (cancelled) return;
+        const succeeded = body?.Succeeded ?? body?.succeeded ?? true;
+        setNotice(body?.Message ?? body?.message ?? "");
+        setNeedsCv(!succeeded);
         const data = body?.data ?? body?.Data;
-        if (!cancelled && Array.isArray(data)) setItems(data.map(normalizeRecommendation));
+        if (succeeded && Array.isArray(data)) setItems(data.map(normalizeRecommendation));
       })
       .catch((reason: unknown) => {
         if (cancelled) return;
@@ -110,9 +119,13 @@ export function RecommendationPreview({ count = 5 }: { count?: number }) {
         <p className="mt-5 rounded-2xl border border-destructive/20 bg-card px-4 py-4 text-sm text-muted-foreground">{error}</p>
       ) : items.length === 0 ? (
         <div className="mt-5 rounded-2xl border border-border bg-card px-4 py-5">
-          <p className="text-sm font-medium">Adam chưa tìm thấy việc phù hợp cho bạn.</p>
-          <p className="mt-1 text-sm text-muted-foreground">Hoàn thiện hoặc chọn CV mặc định để Adam phân tích và đề xuất những cơ hội phù hợp hơn.</p>
-          <Link href="/CV" className="mt-3 inline-flex text-sm font-medium text-primary underline underline-offset-4">Hoàn thiện CV</Link>
+          <p className="text-sm font-medium">{needsCv ? "Adam cần CV để bắt đầu gợi ý việc làm." : "Adam chưa tìm thấy việc phù hợp cho bạn."}</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {notice || (needsCv
+              ? "Hoàn thiện hoặc chọn CV mặc định để Adam phân tích và đề xuất những cơ hội phù hợp hơn."
+              : "Chưa có tin tuyển dụng nào đủ điểm khớp với kỹ năng trong CV của bạn.")}
+          </p>
+          {needsCv && <Link href="/CV" className="mt-3 inline-flex text-sm font-medium text-primary underline underline-offset-4">Hoàn thiện CV</Link>}
         </div>
       ) : (
         <div className="mt-5 grid gap-3 md:grid-cols-2">

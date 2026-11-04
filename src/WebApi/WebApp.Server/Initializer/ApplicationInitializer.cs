@@ -45,6 +45,13 @@ namespace WebApp.Server.Initializer
                 await Infrastructure.Identity.Seeds.DefaultDemoData.SeedAsync(userManager, appContext);
                 await Infrastructure.Identity.Seeds.DefaultBulkTestAccounts.SeedAsync(userManager, appContext);
                 await Infrastructure.Identity.Seeds.DefaultCanvaThemeSeeds.SeedAsync(appContext);
+                await Infrastructure.Identity.Seeds.DefaultDanhMucKyNang.SeedAsync(
+                    appContext,
+                    _serviceProvider.GetRequiredService<Microsoft.Extensions.Caching.Distributed.IDistributedCache>());
+                await Infrastructure.Identity.Seeds.DefaultGoiYDemoData.SeedAsync(
+                    userManager,
+                    appContext,
+                    _serviceProvider.GetRequiredService<Microsoft.Extensions.Caching.Distributed.IDistributedCache>());
 
                 if (env.IsDevelopment())
                 {

@@ -8,10 +8,12 @@ using Application.Features.CVUngVien.Commands.PrepareCvImport;
 using Application.Features.CVUngVien.Commands.SaveCvVersion;
 using Application.Features.CVUngVien.Commands.UpdateCVUngVien;
 using Application.Features.CVUngVien.Commands.SetDefaultCVUngVien;
+using Application.Features.CVUngVien.Commands.KhoiPhucCVUngVien;
 using Application.Features.CVUngVien.Queries.GetAllCVUngViens;
 using Application.Features.CVUngVien.Queries.GetCVDownloadUrl;
 using Application.Features.CVUngVien.Queries.GetCVUngVienById;
 using Application.Features.CVUngVien.Queries.GetCvVersions;
+using Application.Features.CVUngVien.Queries.GetThungRacCVUngViens;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Text.Json;
@@ -127,6 +129,29 @@ namespace WebApp.Server.Controllers.v1
                             Id = id
                         }));
                 });
+        }
+
+        // GET: api/cvungviens/thung-rac
+        // Danh sách CV bị xóa mềm của chính người dùng — cửa vào cho khôi phục.
+        [HttpGet("thung-rac")]
+        public async Task<IActionResult> ThungRac()
+        {
+            return await EnforcePermissionAndExecute(
+                "cvungviens",
+                "list",
+                async () => Ok(await Mediator.Send(
+                    new GetThungRacCVUngViensQuery())));
+        }
+
+        // POST: api/cvungviens/5/khoi-phuc
+        [HttpPost("{id}/khoi-phuc")]
+        public async Task<IActionResult> KhoiPhuc(int id)
+        {
+            return await EnforcePermissionAndExecute(
+                "cvungviens",
+                "edit",
+                async () => Ok(await Mediator.Send(
+                    new KhoiPhucCVUngVienCommand { Id = id })));
         }
 
         [HttpPost("parse-text")]

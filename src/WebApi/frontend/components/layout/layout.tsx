@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
 import { Toaster } from "sonner";
 import { useStoredIdentity, useIdentityResolved } from "@/hooks/use-stored-identity";
 import { resolveWorkspace } from "@/components/navigation/navigation-config";
-import { getAuthToken, loginRouteForPortal } from "@/lib/auth-provider";
+import { hasStoredSession, loginRouteForPortal } from "@/lib/auth-provider";
 
 function NeutralShell() {
   return (
@@ -44,10 +44,10 @@ export function AppLayout({ children }: PropsWithChildren) {
     return <NeutralShell />;
   }
 
-  // Token present but identity missing/unreadable (e.g. /me failed to
-  // normalize after login, corrupted storage): the session is unusable.
-  // Send back to the portal login flow instead of defaulting to Admin.
-  if (!getAuthToken() || !identity) {
+  // Token hết hạn nhưng còn refresh token thì phiên vẫn còn: đừng đá về login,
+  // getValidToken() sẽ xoay JWT ở các request kế tiếp.
+  // Chỉ khi identity mất/không đọc được (/me fail sau login, storage hỏng) mới là phiên unusable.
+  if (!hasStoredSession() || !identity) {
     return <RedirectShell to={loginRouteForPortal()} />;
   }
 

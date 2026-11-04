@@ -154,4 +154,21 @@ export const jobsApi = {
     const body = await fetchRaw(`tintuyendungs/show/${id}`);
     return normalizeJob(body?.Data ?? body?.data);
   },
+
+  // đổi chủ sở hữu nghiệp vụ của tin; backend từ chối nếu người nhận khác doanh nghiệp
+  async reassignJobOwner(jobId: number, newOwnerUserId: number): Promise<string> {
+    const body = await fetchRaw(`tintuyendungs/${jobId}/sang-nhuong`, {
+      method: "POST",
+      body: JSON.stringify({ Id: jobId, NguoiDangTinMoiId: newOwnerUserId }),
+    });
+    return errorMessage(body, "Đã giao tin.");
+  },
+
+  async reassignAllJobsOfOwner(fromOwnerUserId: number, newOwnerUserId: number): Promise<string> {
+    const body = await fetchRaw("tintuyendungs/sang-nhuong-hang-loat", {
+      method: "POST",
+      body: JSON.stringify({ TuNguoiDangTinId: fromOwnerUserId, NguoiDangTinMoiId: newOwnerUserId }),
+    });
+    return errorMessage(body, "Đã giao toàn bộ tin.");
+  },
 };

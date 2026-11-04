@@ -56,7 +56,7 @@ namespace Application.Features.DonUngTuyen.Commands.UpdateDonUngTuyen
         // không track — Attach cùng reference (không throw duplicate-track).
         context.DonUngTuyens.Attach(entity);
 
-            var sm = new DonUngTuyenStateMachine(workflow, current, entity);
+            var sm = new DonUngTuyenStateMachine(workflow, current, context, entity);
 
             try
             {

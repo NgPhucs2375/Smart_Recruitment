@@ -52,6 +52,17 @@ Check(Near(ContentBasedMatcher.Evaluate(new([], "Backend"), new([], "")).Score, 
 Check(Near(ContentBasedMatcher.Evaluate(new([new(null, "Docker")], "Backend", 20, "Hà Nội"),
     new([new(null, "Docker", MucDoYC.BatBuc)], "Backend", 15, 25, "Hà Nội")).Score, 1), "Final score capped at one");
 Check(Near(ContentBasedMatcher.Evaluate(new([], DesiredSalary: 20), new([], SalaryMax: 0)).Score, 0), "Unknown salary does not earn salary bonus");
+Check(MatchingTextNormalizer.LocationKey("TP. Hồ Chí Minh") == "tp hồ chí minh", "Location key drops punctuation");
+Check(MatchingTextNormalizer.LocationKey(null) == "", "Null location is empty");
+Check(MatchingTextNormalizer.SkillKey("C#") != MatchingTextNormalizer.SkillKey("C"), "Skill key keeps punctuation that names the language");
+var dottedAddress = ContentBasedMatcher.Evaluate(new([], "", 0, "766/5 Lạc Long Quân, Tân Hòa, TP Hồ Chí Minh"),
+    new([], "Senior .NET Developer", 25, 45, "TP. Hồ Chí Minh"));
+Check(Near(dottedAddress.LocationBonus, .05) && Near(dottedAddress.Score, .05), "City matches whether or not it carries a dot");
+var baselineDottedAddress = ContentBasedMatcher.EvaluateBaseline(new([], "", 0, "766/5 Lạc Long Quân, Tân Hòa, TP Hồ Chí Minh"),
+    new([], "Senior .NET Developer", 25, 45, "TP. Hồ Chí Minh"));
+Check(Near(baselineDottedAddress.LocationBonus, 0), "Baseline keeps the original punctuation miss");
+Check(Near(ContentBasedMatcher.Evaluate(new([], "", 0, "Cầu Giấy, Hà Nội"),
+    new([], "Data Analyst", 12, 20, "TP. Hồ Chí Minh")).LocationBonus, 0), "Different city earns no location bonus");
 var originalCulture = CultureInfo.CurrentCulture;
 try
 {

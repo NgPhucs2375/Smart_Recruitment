@@ -25,34 +25,12 @@ namespace Application.Features.DonUngTuyen.Queries.GetDonUngTuyenById
             GetDonUngTuyenByIdQuery request,
             CancellationToken cancellationToken)
         {
-            var entity = await context.DonUngTuyens
-                .Include(d => d.TinTuyenDung)
-                .Include(d => d.CVUngVien).ThenInclude(cv => cv.HoSoUngVien)
-                .FirstOrDefaultAsync(
-                    d => d.Id == request.Id,
-                    cancellationToken);
+            var entity = await DonUngTuyenAccess.LoadReadableAsync(context, current, request.Id, cancellationToken);
 
             if (entity == null)
             {
                 return new Response<GetAllDonUngTuyens.GetAllDonUngTuyensViewModel>(
                     "Không tìm thấy đơn ứng tuyển.");
-            }
-
-            var ctx = await current.ResolveAsync();
-
-            var accessible = ctx.VaiTro == VaiTroNguoiDung.QUAN_TRI_VIEN || (ctx.VaiTro == VaiTroNguoiDung.UNG_VIEN
-                ? entity.CVUngVien != null &&
-                  entity.CVUngVien.HoSoUngVien != null &&
-                  entity.CVUngVien.HoSoUngVien.NguoiDungId == ctx.Id
-                : ctx.VaiTro == VaiTroNguoiDung.NGUOI_DAI_DIEN
-                    ? entity.TinTuyenDung.DoanhNghiepId == ctx.DoanhNghiepId
-                    : ctx.VaiTro == VaiTroNguoiDung.NHAN_SU &&
-                      entity.TinTuyenDung.DoanhNghiepId == ctx.DoanhNghiepId);
-
-            if (!accessible)
-            {
-                throw new ApiException(
-                    "Bạn không có quyền xem đơn ứng tuyển này.", 403);
             }
 
             var vm = new GetAllDonUngTuyens.GetAllDonUngTuyensViewModel

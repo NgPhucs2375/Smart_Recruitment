@@ -8,6 +8,7 @@ import {
   CheckCheck,
   CircleAlert,
   FileText,
+  History,
   Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -17,9 +18,11 @@ import {
   AdminLoadingState,
 } from "@/components/admin/admin-page-layout";
 import { CvPreview } from "@/components/cv/cv-preview";
+import StatusHistoryTimeline from "@/features/ung-tuyen/status-history-timeline";
 import { defaultCvData } from "@/features/tao-cv/constants";
 import { manualCvDetailToForm } from "@/features/tao-cv/manual";
 import { cvApi, normalizeCvDetail } from "@/lib/api/cv-api";
+import { getValidToken } from "@/lib/auth-provider";
 import { sanitizeNext } from "@/lib/portal-roles";
 import type { CvFormData } from "@/lib/types";
 
@@ -76,7 +79,7 @@ export default function HrXemCvPage() {
   > => {
     if (!Number.isFinite(donId) || donId <= 0) return null;
 
-    const token = localStorage.getItem("access_token");
+    const token = await getValidToken();
     const headers = {
       "Content-Type": "application/json",
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -134,7 +137,7 @@ export default function HrXemCvPage() {
   async function approveApplication() {
     if (!Number.isFinite(donId) || donId <= 0 || approving) return;
 
-    const token = localStorage.getItem("access_token");
+    const token = await getValidToken();
     try {
       setApproving(true);
       setActionError("");
@@ -187,7 +190,7 @@ export default function HrXemCvPage() {
       setApplicationStatus(status);
       let submitted: unknown;
       if (donId > 0) {
-        const token = localStorage.getItem("access_token");
+        const token = await getValidToken();
         const response = await fetch(`/api/dotnet/donungtuyens/show/${donId}`, {
           headers: { Authorization: `Bearer ${token ?? ""}` },
           cache: "no-store",
@@ -288,6 +291,20 @@ export default function HrXemCvPage() {
               <p className="mt-3 text-sm text-destructive">{actionError}</p>
             )}
           </div>
+          {Number.isFinite(donId) && donId > 0 && (
+            <div className="rounded-[2rem] border border-border bg-card p-6 shadow-sm sm:p-8">
+              <p className="inline-flex items-center gap-2 text-xs text-muted-foreground">
+                <History className="size-3.5 text-primary" /> Lịch sử xử lý đơn #
+                {donId}
+              </p>
+              <div className="mt-4">
+                <StatusHistoryTimeline
+                  key={`${donId}-${applicationStatus ?? "na"}`}
+                  donId={donId}
+                />
+              </div>
+            </div>
+          )}
           <div className="cv-preview-frame">
             <CvPreview data={data} />
           </div>

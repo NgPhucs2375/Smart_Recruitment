@@ -149,7 +149,7 @@ export default function ResetPasswordScreen() {
             <>
               <ThemedText style={[styles.label, { color: theme.textSecondary }]}>Token từ email</ThemedText>
               <View style={[styles.inputWrap, { backgroundColor: theme.backgroundElement, borderColor: theme.input }]}>
-                <KeyRound size={16} color="#9ca3af" style={styles.inputIcon} />
+                <KeyRound size={16} color={theme.textSecondary} style={styles.inputIcon} />
                 <TextInput
                   autoCapitalize="none"
                   autoCorrect={false}
@@ -161,6 +161,7 @@ export default function ResetPasswordScreen() {
                   selectionColor={theme.primary}
                   style={[styles.input, { color: theme.text }]}
                   value={token}
+                  maxLength={512}
                 />
               </View>
             </>
