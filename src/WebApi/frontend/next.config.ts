@@ -3,6 +3,9 @@ const nextConfig: NextConfig = {
   output: "standalone", // yeu cau Next.js build version Production toi gian tai: .next/standalone
   typescript: { ignoreBuildErrors: true },
   serverExternalPackages: ["@copilotkit/runtime"],
+  // streamdown loads shiki (ESM-only); transpile both so Webpack does not
+  // leave a CommonJS require for an ESM package in the server bundle.
+  transpilePackages: ["streamdown", "shiki"],
   allowedDevOrigins: ["localhost", "127.0.0.1"],
   turbopack: {
     // The frontend runs independently; ignore the repository-level lockfile.

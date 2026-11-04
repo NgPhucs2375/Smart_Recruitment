@@ -62,7 +62,11 @@ function RootNavigator() {
   const segments = useSegments();
   const isSignedIn = status === 'signedIn';
   const portal = user ? portalFor(user.roles) : null;
-
+  // Sau khi đăng xuất, luôn đưa về trang đăng nhập. Các màn hình ứng viên
+  // (cvs, applications, ...) nằm ngoài nhóm (auth) nên nếu không chặn,
+  // Stack.Protected sẽ chọn chúng làm "first available screen" thay vì /login.
+  // Ngoại lệ: màn hình xác thực công khai — user đã ký-out phải mở được deep link
+  // reset-password/confirm-email gửi tới email, nếu không luồng quên mật khẩu tê liệt.
   // Sau khi đăng xuất, luôn đưa về trang đăng nhập. Các màn hình ứng viên
   // (cvs, applications, ...) nằm ngoài nhóm (auth) nên nếu không chặn,
   // Stack.Protected sẽ chọn chúng làm "first available screen" thay vì /login.
