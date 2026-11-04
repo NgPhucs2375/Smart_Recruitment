@@ -49,15 +49,24 @@ export function useMagicLoginVerify(
         if (res.success) {
           setStatus("success");
           setMessage("Đăng nhập thành công. Đang chuyển hướng vào hệ thống...");
+          let intent: string | null = null;
+          try {
+            intent = sessionStorage.getItem("hireai.magic.intent");
+          } catch {
+            // ignore storage errors
+          }
           const target =
             sanitizeNext(opts?.next) ??
             (typeof window !== "undefined"
               ? sanitizeNext(sessionStorage.getItem("hireai.magic.next"))
               : null) ??
-            "/dashboard";
+            // Tài khoản vừa được liên kết này tạo ra chưa có gì: đưa vào trang Hồ sơ
+            // để tự khai họ tên/SĐT, vì MagicLinkToken không mang các field đó.
+            (intent === "register" ? "/ho-so" : "/dashboard");
           try {
             sessionStorage.removeItem("hireai.magic.portal");
             sessionStorage.removeItem("hireai.magic.next");
+            sessionStorage.removeItem("hireai.magic.intent");
           } catch {
             // ignore
           }

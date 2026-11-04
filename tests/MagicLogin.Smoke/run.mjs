@@ -29,10 +29,13 @@ async function ok(path, method = "GET", body, token) {
 const check = (value, message) => { assert(value, message); console.log(`PASS ${message}`); };
 
 // Policy "auth-mail" giới hạn 5 request/phút/IP cho register + request-magic-link.
-// Suite này cần đúng 5 lượt nên phải chờ sang cửa sổ mới trước lượt thứ năm.
+// Giữ 4 lượt mỗi cửa sổ rồi chờ sang cửa sổ mới để các suite chạy sát nhau không bị 429.
 let mailRequests = 0;
 async function mailCall(path, body) {
-  if (++mailRequests === 5) await new Promise(resolve => setTimeout(resolve, 61_000));
+  if (++mailRequests > 4) {
+    await new Promise(resolve => setTimeout(resolve, 61_000));
+    mailRequests = 1;
+  }
   return call(path, "POST", body);
 }
 
@@ -46,6 +49,19 @@ const tokenOf = email => sql(`SELECT "Token" FROM "Identity"."MagicLinkToken" WH
 const roleOfToken = email => sql(`SELECT "Role" FROM "Identity"."MagicLinkToken" WHERE "Email"='${email}' ORDER BY "ExpiresAt" DESC LIMIT 1`);
 
 try {
+  // 0. Đăng ký hoàn toàn bằng magic link: payload tab "Magic Link" ở /register gửi
+  //    sau khi bỏ HoTen/SoDienThoai (MagicLinkToken không có cột nào cho chúng).
+  const freshEmail = `${marker}-fresh@seed.local`;
+  accounts.push(freshEmail); probeEmails.push(freshEmail);
+  const freshSent = await mailCall("/account/request-magic-link", { Email: freshEmail, Purpose: "Register", Role: "UNG_VIEN" });
+  check(freshSent.ok && freshSent.status !== 429, "Register-tab payload (email + role only) is accepted");
+  check(roleOfToken(freshEmail) === "UNG_VIEN", "Registration token carries the requested candidate role");
+  const fresh = await ok("/account/magic-login", "POST", { Email: freshEmail, Token: tokenOf(freshEmail) });
+  const freshId = data(fresh, "id");
+  check(Boolean(freshId) && data(fresh, "roles").includes("UNG_VIEN"), "Clicking the link provisions the candidate account");
+  check(sql(`SELECT count(*) FROM "NguoiDung" WHERE "ApplicationUserId"='${freshId}'`) === "1", "Provisioned account gets its domain user row");
+  check(sql(`SELECT count(*) FROM "HoSoUngVien" h JOIN "NguoiDung" n ON n."Id"=h."NguoiDungId" WHERE n."ApplicationUserId"='${freshId}'`) === "0", "Provisioned account has no profile yet, so /ho-so is the right next step");
+
   // 1. Ứng viên đăng ký (email chưa xác minh) rồi đăng nhập bằng magic link.
   const uvEmail = `${marker}-uv@seed.local`;
   accounts.push(uvEmail); probeEmails.push(uvEmail);

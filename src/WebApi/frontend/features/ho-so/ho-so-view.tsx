@@ -212,7 +212,8 @@ export function HoSoView() {
       if (isNoProfile) {
         setHoSo(null);
         setIsEditing(true);
-        if (identity?.name) setHoTen(identity.name);
+        // Không prefill họ tên từ identity: identity.name là UserName (dạng
+        // "email_ab12cd" hoặc đúng email), chưa bao giờ là tên hiển thị.
       } else {
         setLoadError(e instanceof Error ? e.message : "Không tải được hồ sơ.");
       }

@@ -142,3 +142,26 @@ assert.equal(flattenDocxHtml(`<p>backend<br/>devops</p>`), "backend devops");
 assert.equal(flattenDocxHtml(`<p>Ha &amp; Lim &#233; Nguyen&nbsp;Anh</p>`), "Ha & Lim é Nguyen Anh");
 assert.equal(flattenDocxHtml(`<td>Loose cell text</td>`), "Loose cell text");
 console.log("PASS multi-paragraph cells, nested tables, empty cells, br/img and entities follow the same contract");
+
+// UC03 magic link: bảng MagicLinkToken chỉ lưu email/role/token, nên liên kết không
+// thể mang họ tên/SĐT. Form không được hỏi những gì hệ thống không giữ, và mỗi portal
+// phải có đường xin liên kết.
+const fe = relative => readFile(new URL(`../../src/WebApi/frontend/${relative}`, import.meta.url), "utf8");
+const [magicRegisterPage, employerLoginPage, registerMagicHook, verifyHook, authProvider, magicSchema] = await Promise.all([
+  fe("app/register/page.tsx"),
+  fe("app/employer/login/page.tsx"),
+  fe("hooks/use-magic-link-register.ts"),
+  fe("hooks/use-magic-login-verify.ts"),
+  fe("lib/auth-provider.ts"),
+  fe("lib/schemas.ts"),
+]);
+assert(!/registerMagic\("(hoTen|soDienThoai)"\)/.test(magicRegisterPage), "Magic-link register form asks only for the email");
+assert(/registerMagic\("email"\)/.test(magicRegisterPage), "Magic-link register form still collects the email");
+assert(!/hoTen|soDienThoai/.test(magicSchema.match(/magicLinkSchema[\s\S]*?\}\);/)[0]), "magicLinkSchema carries no profile fields");
+assert(!/HoTen:/.test(authProvider.match(/export async function requestMagicLink[\s\S]*?\n}/)[0]), "requestMagicLink sends no HoTen");
+assert(/purpose: "Register"/.test(registerMagicHook) && /role: data\.role/.test(registerMagicHook), "Register intent still sends email + role");
+assert(/sessionStorage\.setItem\("hireai\.magic\.intent", "register"\)/.test(registerMagicHook), "Register tab records the intent for the post-login redirect");
+assert(/intent === "register" \? "\/ho-so"/.test(verifyHook), "Freshly registered magic-link users land on the profile page");
+assert(/sessionStorage\.removeItem\("hireai\.magic\.intent"\)/.test(verifyHook), "The register intent is cleared once it has been used");
+assert(/useMagicLink\("Login", \{ portal: "employer"/.test(employerLoginPage) && /<MagicLinkForm/.test(employerLoginPage), "Employer login offers the magic-link tab");
+console.log("PASS magic-link forms ask only what MagicLinkToken can carry, and both portals can request a link");

@@ -107,19 +107,11 @@ export const registerSchema = z.object({
   }
 });
 
+/** Liên kết kích hoạt tài khoản: chỉ cần email. MagicLinkToken chỉ lưu danh tính
+ *  (email/role/token), họ tên và SĐT thuộc về trang Hồ sơ sau khi đăng nhập. */
 export const magicLinkSchema = z.object({
   email: emailField(),
   role: z.enum(["UNG_VIEN", "NGUOI_DAI_DIEN"]).optional(),
-  hoTen: z.string().optional(),
-  soDienThoai: z.string().optional(),
-}).superRefine((data, ctx) => {
-  if (data.role === "NGUOI_DAI_DIEN" && (!data.hoTen || data.hoTen.trim() === "")) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "Vui lòng nhập họ tên.",
-      path: ["hoTen"],
-    });
-  }
 });
 
 /** Lời mời nhân sự (form tay nhan-su): email chuẩn + tên/chức vụ gọn. */

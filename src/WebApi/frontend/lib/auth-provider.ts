@@ -596,7 +596,6 @@ export async function requestMagicLink(payload: {
   email: string;
   purpose?: string;
   role?: string;
-  hoTen?: string;
 }): Promise<{ success: boolean; message?: string }> {
   try {
     const res = await fetch(`${API_URL}/request-magic-link`, {
@@ -606,7 +605,6 @@ export async function requestMagicLink(payload: {
         Email: payload.email,
         Purpose: payload.purpose,
         Role: payload.role,
-        HoTen: payload.hoTen, // Hỗ trợ tương thích với MagicLinkFormData[cite: 19]
       }),
     });
 
