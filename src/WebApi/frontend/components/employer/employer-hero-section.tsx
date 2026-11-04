@@ -18,9 +18,9 @@ import {
  */
 
 const PIPELINE_ROWS = [
-  { name: "Nguyễn Văn A", match: "96% khớp", stage: "Phỏng vấn vòng 2", width: "w-[96%]", bar: "bg-teal" },
-  { name: "Trần Thị B", match: "89% khớp", stage: "Phỏng vấn vòng 1", width: "w-[89%]", bar: "bg-marine" },
-  { name: "Lê Văn C", match: "84% khớp", stage: "Chờ phản hồi", width: "w-[84%]", bar: "bg-mist" },
+  { name: "Ứng viên mẫu A", match: "96% khớp", stage: "Phỏng vấn vòng 2", width: "w-[96%]", bar: "bg-teal" },
+  { name: "Ứng viên mẫu B", match: "89% khớp", stage: "Phỏng vấn vòng 1", width: "w-[89%]", bar: "bg-marine" },
+  { name: "Ứng viên mẫu C", match: "84% khớp", stage: "Chờ phản hồi", width: "w-[84%]", bar: "bg-mist" },
 ] as const;
 
 const PIPELINE_STATS = [
@@ -142,15 +142,15 @@ export function EmployerHeroVisual() {
         <span className="size-1.5 rounded-full bg-teal" /> Chờ offer • 4
       </div>
 
-      <div className="relative rounded-[2rem] border border-linen bg-white p-8 shadow-[0_28px_72px_rgba(53,92,140,0.14)] ring-1 ring-white lg:p-10">
-        <div className="flex items-center justify-between gap-2">
-          <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-navy/70">
-            <KanbanSquare className="size-4 text-marine" /> Pipeline tuyển dụng
-          </span>
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-teal/10 px-2.5 py-1 text-[11px] font-medium text-navy">
-            <span className="size-1.5 rounded-full bg-teal" /> Senior Frontend • 24 hồ sơ
-          </span>
-        </div>
+        <div className="relative rounded-[2rem] border border-linen bg-white p-8 shadow-[0_28px_72px_rgba(53,92,140,0.14)] ring-1 ring-white lg:p-10">
+          <div className="flex items-center justify-between gap-2">
+            <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-navy/70">
+              <KanbanSquare className="size-4 text-marine" /> Pipeline tuyển dụng
+            </span>
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-sand/20 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-charcoal">
+              Dữ liệu minh họa
+            </span>
+          </div>
         <div className="mt-5 space-y-3">
           {PIPELINE_ROWS.map((row) => (
             <div key={row.name} className="rounded-2xl border border-linen bg-ivory px-4 py-3.5">
@@ -203,8 +203,8 @@ export function EmployerHeroSection() {
               Đặt lịch demo
             </Link>
           </div>
-          <p className="mt-5 flex items-center gap-2 text-xs text-charcoal/55">
-            <Shield className="size-3.5 text-teal" /> Tin tuyển dụng được kiểm duyệt • Dữ liệu mã hóa TLS 1.3
+           <p className="mt-5 flex items-center gap-2 text-xs text-charcoal/55">
+             <Shield className="size-3.5 text-teal" /> Bản demo minh họa quy trình tuyển dụng và quản lý pipeline
           </p>
         </div>
 

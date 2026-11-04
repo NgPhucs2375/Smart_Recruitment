@@ -8,6 +8,7 @@ import {
   Banknote,
   Bookmark,
   Building2,
+  CheckCircle2,
   Home,
   Laptop,
   MapPin,
@@ -172,8 +173,11 @@ function JobDetailContent({
     <>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {notice ? (
-          <View style={[styles.notice, { backgroundColor: `${theme.destructive}14` }]}>
-            <ThemedText style={[styles.noticeText, { color: theme.text }]}>✓ {notice}</ThemedText>
+          <View
+            style={[styles.notice, { backgroundColor: `${Palette.sage}26` }]}
+          >
+            <CheckCircle2 size={17} color={Palette.sage} />
+            <ThemedText style={[styles.noticeText, { color: theme.text }]}>{notice}</ThemedText>
           </View>
         ) : null}
 
@@ -366,7 +370,7 @@ const styles = StyleSheet.create({
   errorTitle: { fontFamily: font('semibold'), fontSize: 17, textAlign: 'center' },
   errorBody: { fontFamily: font('regular'), fontSize: 13, textAlign: 'center' },
   content: { padding: 20, paddingBottom: 24, gap: 16 },
-  notice: { borderRadius: Radius.lg, paddingHorizontal: 13, paddingVertical: 10 },
+  notice: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, borderRadius: Radius.lg, paddingHorizontal: 13, paddingVertical: 10 },
   noticeText: { fontFamily: font('semibold'), fontSize: 12, lineHeight: 17 },
   hero: { borderRadius: CARD_RADIUS, borderWidth: 1, padding: 24, gap: 20 },
   heroRow: { flexDirection: 'row', gap: 16 },

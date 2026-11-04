@@ -60,18 +60,36 @@ function RootNavigator() {
   const { status, user, signOut } = useAuth();
   const router = useRouter();
   const segments = useSegments();
+  const isSignedIn = status === 'signedIn';
+  const portal = user ? portalFor(user.roles) : null;
 
   // Sau khi đăng xuất, luôn đưa về trang đăng nhập. Các màn hình ứng viên
   // (cvs, applications, ...) nằm ngoài nhóm (auth) nên nếu không chặn,
   // Stack.Protected sẽ chọn chúng làm "first available screen" thay vì /login.
   // Ngoại lệ: màn hình xác thực công khai — user đã ký-out phải mở được deep link
   // reset-password/confirm-email gửi tới email, nếu không luồng quên mật khẩu tê liệt.
+  // Sau khi đăng xuất, luôn đưa về trang đăng nhập. Các màn hình ứng viên
+  // (cvs, applications, ...) nằm ngoài nhóm (auth) nên nếu không chặn,
+  // Stack.Protected sẽ chọn chúng làm "first available screen" thay vì /login.
   useEffect(() => {
     if (status !== 'signedOut') return;
     const route = segments[segments.length - 1];
-    if (route && PUBLIC_AUTH_ROUTES.includes(route)) return;
-    router.replace('/login');
+    if (status === 'signedOut' && segments[0] !== '(auth)' && !PUBLIC_AUTH_ROUTES.includes(route ?? '')) {
+      router.replace('/login');
+    }
   }, [status, segments, router]);
+
+  // Role có thể bị đổi từ Admin hoặc phiên trước có thể giữ route của portal cũ.
+  // Hook phải nằm trước mọi return có điều kiện để không thay đổi thứ tự hook.
+  useEffect(() => {
+    if (!isSignedIn || !portal) return;
+    const group = segments[0];
+    if (portal === 'hr' && group === '(tabs)') {
+      router.replace('/dashboard');
+    } else if (portal === 'candidate' && group === '(hr)') {
+      router.replace('/');
+    }
+  }, [isSignedIn, portal, router, segments]);
 
   // Đang khôi phục phiên đăng nhập: giữ màn hình chờ, tránh nháy màn hình đăng nhập.
   if (status === 'loading') {
@@ -90,8 +108,6 @@ function RootNavigator() {
     );
   }
 
-  const isSignedIn = status === 'signedIn';
-  const portal = user ? portalFor(user.roles) : null;
   const colors = Colors[colorScheme];
   const navigationTheme = {
     ...(colorScheme === 'dark' ? DarkTheme : DefaultTheme),
@@ -107,6 +123,7 @@ function RootNavigator() {
 
   // Admin: mobile không hỗ trợ portal quản trị — chặn + yêu cầu đăng xuất.
   if (isSignedIn && portal === 'admin') {
+    const colors = Colors[colorScheme];
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: colors.background, justifyContent: 'center', padding: 24, gap: 12 }}>
         <ThemedText style={{ fontWeight: '600', fontSize: 18, textAlign: 'center' }}>

@@ -17,7 +17,7 @@ import { BrandLogo } from '@/components/brand-logo';
 import { ThemedText } from '@/components/themed-text';
 import { Button } from '@/components/ui/button';
 import { font, Radius } from '@/constants/theme';
-import { useAuth } from '@/features/auth';
+import { portalFor, useAuth } from '@/features/auth';
 import { useTheme } from '@/hooks/use-theme';
 import { validateEmail } from '@/features/auth/validation';
 
@@ -42,8 +42,8 @@ export default function LoginScreen() {
     setSubmitting(true);
     setError('');
     try {
-      await signIn(trimmedEmail, password);
-      router.replace('/');
+      const signedInUser = await signIn(trimmedEmail, password);
+      router.replace(portalFor(signedInUser.roles) === 'hr' ? '/dashboard' : '/');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Đăng nhập thất bại. Vui lòng thử lại.');
     } finally {

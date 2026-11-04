@@ -13,7 +13,7 @@ export default function BaoMatPage() {
       <div className="mx-auto max-w-4xl px-6 py-12 sm:px-10">
         <div className="inline-flex items-center gap-2 rounded-full border border-border/15 bg-white px-3 py-1 text-xs font-medium"><Lock className="size-3.5" /> Chính sách bảo mật • Nghị định 13/2023/NĐ-CP</div>
         <h1 className="mt-6 text-4xl font-medium tracking-[-0.05em]">Chính sách bảo mật &amp; Dữ liệu cá nhân</h1>
-        <p className="mt-4 max-w-2xl text-sm leading-6 text-muted-foreground">HIREAI tuân thủ Luật Bảo vệ Dữ liệu cá nhân, lưu trữ tại Việt Nam, mã hóa TLS 1.3, và cho phép người dùng kiểm soát toàn bộ dữ liệu.</p>
+        <p className="mt-4 max-w-2xl text-sm leading-6 text-muted-foreground">Trang này mô tả định hướng bảo mật cho sản phẩm demo khóa luận. Không dùng nội dung này như cam kết chứng nhận, địa điểm lưu trữ hoặc tuyên bố pháp lý của một doanh nghiệp thực tế.</p>
 
         <div className="mt-4 flex flex-wrap gap-2 text-xs">
           <a href="#du-lieu-ca-nhan" className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 font-medium text-emerald-800">Bảo vệ dữ liệu cá nhân</a>
@@ -36,7 +36,7 @@ export default function BaoMatPage() {
 
           <section>
             <h2 className="text-lg font-semibold">Bảo mật kỹ thuật</h2>
-            <p className="mt-2 text-sm leading-6 text-muted-foreground">TLS 1.3, HSTS, mã hóa mật khẩu Argon2, token JWT ngắn hạn + refresh rotation, audit log, SOC 2 Type II. Báo lỗ hổng: security@hireai.vn.</p>
+            <p className="mt-2 text-sm leading-6 text-muted-foreground">Các biện pháp như kiểm soát phiên, phân quyền và audit log được trình bày ở mức minh họa. Báo lỗi kỹ thuật: security@hireai.vn.</p>
           </section>
 
           <section id="cookies" className="scroll-mt-8">

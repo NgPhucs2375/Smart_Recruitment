@@ -43,7 +43,7 @@ export default function LienHePage() {
               <div className="rounded-2xl border border-border/10 bg-white p-5">
                 <MapPin className="size-5 text-foreground" />
                 <p className="mt-3 text-sm font-semibold">Văn phòng</p>
-                <p className="mt-1 text-xs leading-5 text-muted-foreground">Tầng 8, 123 Nguyễn Huệ, Q.1, TP.HCM<br />MST 0312345678</p>
+                 <p className="mt-1 text-xs leading-5 text-muted-foreground">Thông tin địa chỉ và mã số trên bản demo không đại diện cho doanh nghiệp có thật.</p>
               </div>
             </div>
 
