@@ -20,11 +20,11 @@ import { ThemedText } from '@/components/themed-text';
 import { Button } from '@/components/ui/button';
 import { ThemeModeProvider, useThemeMode } from '@/hooks/use-theme';
 
+// Màn hình tiếp cận được khi chưa đăng nhập (deep link từ email).
+const PUBLIC_AUTH_ROUTES = ['login', 'register', 'forgot-password', 'reset-password', 'confirm-email'];
+
 // Giữ splash cho đến khi font Be Vietnam Pro load xong, tránh nháy font hệ thống.
 SplashScreen.preventAutoHideAsync().catch(() => {});
-
-// Màn hình tiếp cận được khi chưa đăng nhập (deep link từ email rơi vào đây).
-const PUBLIC_AUTH_ROUTES = ['login', 'register', 'forgot-password', 'reset-password', 'confirm-email'];
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
@@ -60,6 +60,8 @@ function RootNavigator() {
   const { status, user, signOut } = useAuth();
   const router = useRouter();
   const segments = useSegments();
+  const isSignedIn = status === 'signedIn';
+  const portal = user ? portalFor(user.roles) : null;
 
   // Sau khi đăng xuất, luôn đưa về trang đăng nhập. Các màn hình ứng viên
   // (cvs, applications, ...) nằm ngoài nhóm (auth) nên nếu không chặn,
@@ -67,11 +69,23 @@ function RootNavigator() {
   // Ngoại lệ: màn hình xác thực công khai — user đã ký-out phải mở được deep link
   // reset-password/confirm-email gửi tới email, nếu không luồng quên mật khẩu tê liệt.
   useEffect(() => {
-    if (status !== 'signedOut') return;
     const route = segments[segments.length - 1];
-    if (route && PUBLIC_AUTH_ROUTES.includes(route)) return;
-    router.replace('/login');
+    if (status === 'signedOut' && segments[0] !== '(auth)' && !PUBLIC_AUTH_ROUTES.includes(route ?? '')) {
+      router.replace('/login');
+    }
   }, [status, segments, router]);
+
+  // Role có thể bị đổi từ Admin hoặc phiên trước có thể giữ route của portal cũ.
+  // Hook phải nằm trước mọi return có điều kiện để không thay đổi thứ tự hook.
+  useEffect(() => {
+    if (!isSignedIn || !portal) return;
+    const group = segments[0];
+    if (portal === 'hr' && group === '(tabs)') {
+      router.replace('/dashboard');
+    } else if (portal === 'candidate' && group === '(hr)') {
+      router.replace('/');
+    }
+  }, [isSignedIn, portal, router, segments]);
 
   // Đang khôi phục phiên đăng nhập: giữ màn hình chờ, tránh nháy màn hình đăng nhập.
   if (status === 'loading') {
@@ -90,8 +104,6 @@ function RootNavigator() {
     );
   }
 
-  const isSignedIn = status === 'signedIn';
-  const portal = user ? portalFor(user.roles) : null;
   const colors = Colors[colorScheme];
   const navigationTheme = {
     ...(colorScheme === 'dark' ? DarkTheme : DefaultTheme),
@@ -107,6 +119,7 @@ function RootNavigator() {
 
   // Admin: mobile không hỗ trợ portal quản trị — chặn + yêu cầu đăng xuất.
   if (isSignedIn && portal === 'admin') {
+    const colors = Colors[colorScheme];
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: colors.background, justifyContent: 'center', padding: 24, gap: 12 }}>
         <ThemedText style={{ fontWeight: '600', fontSize: 18, textAlign: 'center' }}>
@@ -164,7 +177,6 @@ function RootNavigator() {
           <Stack.Screen name="hr/messages/[id]" options={{ headerShown: false }} />
           <Stack.Screen name="hr/settings" options={{ headerShown: false }} />
         </Stack.Protected>
-
         <Stack.Protected guard={isSignedIn}>
           <Stack.Screen name="notifications" />
           <Stack.Screen name="change-password" />
@@ -173,7 +185,7 @@ function RootNavigator() {
         </Stack.Protected>
 
         {/* Đăng ký cuối: "first available screen" theo thứ tự JSX, để mở link đặt lại
-            mật khẩu cho cả user đang đăng nhập mà không đổi màn hình khởi động. */}
+             mật khẩu cho cả user đang đăng nhập mà không đổi màn hình khởi động. */}
         <Stack.Screen name="reset-password" />
         <Stack.Screen name="confirm-email" />
       </Stack>

@@ -473,7 +473,12 @@ export function webOrigin(): string {
   return base.replace(/\/api\/dotnet\/?$/, '');
 }
 
-export type CvRenderInfo = { url: string; tenFile: string; hoTen: string };
+export type CvRenderInfo = {
+  url: string;
+  tenFile: string;
+  hoTen: string;
+  applicationStatus: number | null;
+};
 
 export const hrCvApi = {
   /**
@@ -482,19 +487,26 @@ export const hrCvApi = {
    */
   async getCvRenderInfo(cvId: number, donId?: number): Promise<CvRenderInfo> {
     let detail: unknown = null;
+    let applicationStatus: number | null = null;
+    let applicationJobId: number | null = null;
 
     if (donId && donId > 0) {
       const donPayload = await apiRequest<unknown>(`${APPS_PATH}/show/${donId}`);
       const application = asRecord(unwrapData(donPayload)) ?? {};
       const appCvId = asNumber(application.cvUngVienId ?? application.CVUngVienId);
       if (appCvId !== cvId) throw new Error('CV không khớp với đơn ứng tuyển.');
-      const status = asNumber(application.trangThai ?? application.TrangThai);
-      if (status === 2) await hrAppApi.fire(donId, 5, '');
+      applicationStatus = asNumber(application.trangThai ?? application.TrangThai);
+      applicationJobId = asNumber(application.tinTuyenDungId ?? application.TinTuyenDungId);
+      if (applicationStatus === 2) {
+        await hrAppApi.fire(donId, 5, '');
+        applicationStatus = 3;
+      }
       detail = application.cvDaNop ?? application.CvDaNop ?? null;
     }
 
     if (!detail) {
-      const payload = await apiRequest<unknown>(`cvungviens/show/${cvId}`);
+      const query = applicationJobId ? `?tinTuyenDungId=${applicationJobId}` : '';
+      const payload = await apiRequest<unknown>(`cvungviens/show/${cvId}${query}`);
       detail = unwrapData(payload);
     }
 
@@ -503,7 +515,12 @@ export const hrCvApi = {
     const data = normalizeCvPayload(raw);
     const templateId = data.templateId ?? 'modern';
     const url = `${webOrigin()}/cv-render?d=${encodeURIComponent(JSON.stringify(data))}&t=${encodeURIComponent(templateId)}`;
-    return { url, tenFile: data.tenFile ?? `CV #${cvId}`, hoTen: data.thongTinLienHe?.hoTen ?? '' };
+    return {
+      url,
+      tenFile: data.tenFile ?? `CV #${cvId}`,
+      hoTen: data.thongTinLienHe?.hoTen ?? '',
+      applicationStatus,
+    };
   },
 
   /** Duyệt "Phù hợp" từ màn CV: xác nhận đã xem rồi fire trigger 6. */

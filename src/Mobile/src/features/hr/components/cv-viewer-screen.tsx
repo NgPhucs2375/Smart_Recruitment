@@ -31,6 +31,7 @@ export function CvViewerScreen() {
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [acting, setActing] = useState(false);
+  const [applicationStatus, setApplicationStatus] = useState<number | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
   const mountedRef = useRef(true);
 
@@ -53,7 +54,8 @@ export function CvViewerScreen() {
     try {
       const result = await hrCvApi.getCvRenderInfo(cvId, donId > 0 ? donId : undefined);
       if (!mountedRef.current) return;
-      setInfo(result);
+       setInfo(result);
+       setApplicationStatus(result.applicationStatus);
     } catch (reason) {
       if (!mountedRef.current) return;
       setError(reason instanceof Error ? reason.message : 'Không tải được CV.');
@@ -137,7 +139,7 @@ export function CvViewerScreen() {
         <ThemedText style={{ color: theme.textSecondary }} type="code" numberOfLines={1}>
           {donId ? `Đơn ứng tuyển #${donId}` : 'Xem trước CV'}
         </ThemedText>
-        {donId ? (
+        {donId && (applicationStatus === 2 || applicationStatus === 3) ? (
           <View style={styles.decisionRow}>
             <Button
               variant="outline"
@@ -157,6 +159,14 @@ export function CvViewerScreen() {
               Duyệt phù hợp
             </Button>
           </View>
+        ) : donId && applicationStatus === 5 ? (
+          <ThemedText style={{ color: theme.primary }} type="smallBold">
+            Đã duyệt phù hợp
+          </ThemedText>
+        ) : donId && applicationStatus === 6 ? (
+          <ThemedText style={{ color: theme.destructive }} type="smallBold">
+            Đã từ chối
+          </ThemedText>
         ) : null}
       </View>
 

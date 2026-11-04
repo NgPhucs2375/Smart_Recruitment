@@ -12,6 +12,8 @@ import { locations, jobLevels } from "@/features/viec-lam/constants";
 import { useBookmarks } from "@/hooks/use-bookmarks";
 import { toast } from "sonner";
 import { Reveal, useActiveSection } from "@/components/landing/reveal";
+import { getPublicLandingData } from "@/lib/api/public-landing";
+import type { Job } from "@/features/viec-lam/types";
 
 type NavLink = { label: string; href: string };
 
@@ -201,7 +203,25 @@ export default function LandingPage() {
   const [searchKeyword, setSearchKeyword] = useState("");
   const [searchLocation, setSearchLocation] = useState("");
   const [searchLevel, setSearchLevel] = useState("");
+  const [liveJobs, setLiveJobs] = useState<Job[] | null>(null);
+  const [liveStats, setLiveStats] = useState({ totalJobs: 0, totalCompanies: 0 });
   const searchInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    let active = true;
+    getPublicLandingData()
+      .then((data) => {
+        if (!active) return;
+        setLiveJobs(data.jobs);
+        setLiveStats(data.stats);
+      })
+      .catch(() => {
+        if (active) setLiveJobs([]);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
@@ -239,8 +259,17 @@ export default function LandingPage() {
   const hasActiveSearch = searchKeyword.trim() !== "" || searchLocation !== "" || searchLevel !== "";
 
   const { isBookmarked, toggle: toggleBookmark, count: bookmarkCount } = useBookmarks();
+  const featuredJobs = liveJobs && liveJobs.length > 0 ? liveJobs : landingFeaturedJobs;
+  const isDemoJobData = !liveJobs || liveJobs.length === 0;
+  const featuredCompanies = liveJobs && liveJobs.length > 0
+    ? Array.from(new Map(liveJobs.map((job) => [job.company, job])).values()).slice(0, 4).map((job) => [
+        job.company,
+        "Doanh nghiệp đang tuyển",
+        `${liveJobs.filter((item) => item.company === job.company).length} tin mới nhất`,
+      ] as const)
+    : techCompanies;
 
-  function handleToggleBookmark(e: React.MouseEvent, job: (typeof landingFeaturedJobs)[number]) {
+  function handleToggleBookmark(e: React.MouseEvent, job: { id: string; title: string }) {
     e.preventDefault();
     e.stopPropagation();
     const was = isBookmarked(job.id);
@@ -322,11 +351,11 @@ export default function LandingPage() {
                   Dành cho nhà tuyển dụng <ChevronRight className="size-4" />
                 </Link>
               </div>
-              <dl className="animate-hero-scale animate-hero-delay-3 mx-auto mt-8 grid max-w-2xl grid-cols-1 gap-3 sm:mt-10 sm:grid-cols-3">
-                {[
-                  { icon: Building2, tint: "bg-frost", iconColor: "text-marine", value: "1.200+", label: "Việc làm đang mở" },
-                  { icon: Users, tint: "bg-blush", iconColor: "text-bronze", value: "8.500+", label: "Kết nối thành công" },
-                  { icon: Sparkles, tint: "bg-teal/10", iconColor: "text-teal", value: "92%", label: "Độ khớp AI" },
+            <dl className="animate-hero-scale animate-hero-delay-3 mx-auto mt-8 grid max-w-2xl grid-cols-1 gap-3 sm:mt-10 sm:grid-cols-3">
+              {[
+                  { icon: Building2, tint: "bg-frost", iconColor: "text-marine", value: liveStats.totalJobs ? `${liveStats.totalJobs}` : "—", label: "Tin đang tuyển" },
+                  { icon: Users, tint: "bg-blush", iconColor: "text-bronze", value: liveStats.totalCompanies ? `${liveStats.totalCompanies}` : "—", label: "Doanh nghiệp có tin" },
+                  { icon: Sparkles, tint: "bg-teal/10", iconColor: "text-teal", value: "AI", label: "So khớp theo kỹ năng" },
                 ].map((stat) => (
                   <div key={stat.label} className="flex items-center gap-3 rounded-2xl border border-linen bg-ivory px-4 py-3">
                     <span className={`flex size-9 shrink-0 items-center justify-center rounded-full ${stat.tint}`}>
@@ -578,7 +607,7 @@ export default function LandingPage() {
                   <span className="flex size-4 items-center justify-center rounded bg-navy text-[10px] font-bold text-white">/</span> để tìm nhanh
                 </span>
                 <span className="hidden sm:inline text-linen">•</span>
-                <span>{landingFeaturedJobs.length} vị trí nổi bật</span>
+                <span>{isDemoJobData ? `${landingFeaturedJobs.length} vị trí minh họa` : `${featuredJobs.length} vị trí mới nhất`}</span>
               </p>
               {hasActiveSearch && (
                 <div className="flex items-center gap-2">
@@ -628,7 +657,7 @@ export default function LandingPage() {
 
           {/* === Job cards — fewer per view, airier === */}
           <Reveal stagger className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {landingFeaturedJobs.map((job) => {
+             {featuredJobs.map((job) => {
               const bookmarked = isBookmarked(job.id);
               const wm = workModeMeta[job.workMode];
               const WIcon = wm.icon;
@@ -845,7 +874,7 @@ export default function LandingPage() {
             <Link href="/register" className="inline-flex items-center gap-2 self-start rounded-full border border-navy/20 bg-white px-4 py-2 text-sm font-medium text-navy transition hover:border-navy hover:bg-navy hover:text-white md:self-auto">Xem tất cả công ty <ArrowUpRight className="size-4" /></Link>
           </div>
           <Reveal stagger className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-            {techCompanies.map(([name, field, openings], companyIndex) => (
+             {featuredCompanies.map(([name, field, openings], companyIndex) => (
               <Link href="/viec-lam" key={name} className="group rounded-[1.75rem] border border-linen bg-white p-6 transition duration-300 hover:-translate-y-1 hover:border-marine/30 hover:shadow-[0_20px_48px_rgba(53,92,140,0.10)]">
                 <div className={`flex size-12 items-center justify-center rounded-2xl font-mono text-[10px] font-bold text-white ${companyIndex % 2 === 0 ? "bg-navy" : "bg-marine"}`}>{name.slice(0, 2)}</div>
                 <h3 className="mt-8 font-semibold tracking-tight text-charcoal">{name}</h3>
@@ -1068,7 +1097,7 @@ export default function LandingPage() {
                 </ul>
                 <div className="mt-5 rounded-2xl border border-white/10 bg-white/5 p-3">
                   <p className="flex items-center gap-1.5 text-xs font-medium text-white"><Shield className="size-3.5 text-teal" /> Cam kết tuân thủ</p>
-                  <p className="mt-1 text-xs leading-5 text-white/55">Tuân thủ Nghị định 52/2013, 13/2023/NĐ-CP &amp; Thông tư 59/2015 về TMĐT. Dữ liệu mã hóa TLS 1.3, lưu trữ tại Việt Nam.</p>
+                   <p className="mt-1 text-xs leading-5 text-white/55">Các nội dung pháp lý trên giao diện là bản minh họa cho sản phẩm khóa luận, không phải tuyên bố đăng ký hay chứng nhận thực tế.</p>
                 </div>
               </div>
             </div>
@@ -1081,25 +1110,25 @@ export default function LandingPage() {
               <div className="flex gap-3">
                 <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-white/5 text-sand"><MapPin className="size-3.5" /></span>
                 <div>
-                  <p className="font-medium text-white">Công ty TNHH HIREAI Việt Nam</p>
-                  <p>Tầng 8, Tòa Innovation, 123 Nguyễn Huệ, Q.1, TP.HCM</p>
-                  <p>MST: 0312345678 • Cấp ngày 15/03/2024 • Sở KH&ĐT TP.HCM</p>
+                   <p className="font-medium text-white">HIREAI • Sản phẩm demo khóa luận</p>
+                   <p>Thông tin doanh nghiệp trên giao diện chỉ mang tính minh họa.</p>
+                   <p>Không đại diện cho pháp nhân, địa chỉ hoặc mã số thuế có thật.</p>
                 </div>
               </div>
               <div className="flex gap-3">
                 <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-white/5 text-sand"><Phone className="size-3.5" /></span>
                 <div>
-                  <p className="font-medium text-white">Liên hệ</p>
-                  <p><a href="tel:1900636890" className="transition hover:text-white">1900 636 890</a> (8:00–18:00 T2–T6)</p>
-                  <p><a href="mailto:support@hireai.vn" className="transition hover:text-white">support@hireai.vn</a> • <a href="mailto:legal@hireai.vn" className="transition hover:text-white">legal@hireai.vn</a></p>
+                   <p className="font-medium text-white">Kênh hỗ trợ demo</p>
+                   <p>Giao diện liên hệ minh họa cho sản phẩm.</p>
+                   <p><a href="mailto:support@hireai.vn" className="transition hover:text-white">support@hireai.vn</a></p>
                 </div>
               </div>
               <div className="flex gap-3">
                 <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-white/5 text-sand"><FileText className="size-3.5" /></span>
                 <div>
-                  <p className="font-medium text-white">Giấy phép &amp; Chứng nhận</p>
-                  <p>Đã đăng ký Bộ Công Thương • DMCA Protected</p>
-                  <p className="mt-1 inline-flex items-center gap-1.5">Đã thông báo <span className="rounded bg-sand px-1.5 py-0.5 text-[10px] font-bold text-navy">BỘ CÔNG THƯƠNG</span></p>
+                   <p className="font-medium text-white">Thông tin sản phẩm</p>
+                   <p>Dữ liệu và nhãn trong landing có thể là nội dung minh họa.</p>
+                   <p className="mt-1">Không trình bày chứng nhận hoặc đăng ký pháp lý.</p>
                 </div>
               </div>
             </div>
@@ -1111,7 +1140,7 @@ export default function LandingPage() {
             <div className="flex flex-wrap items-center gap-3 text-xs text-white/50">
               <span>© 2026 HIRE//AI. Bảo lưu mọi quyền.</span>
               <span className="hidden sm:inline text-white/20">•</span>
-              <span className="inline-flex items-center gap-1.5">Vận hành bởi <span className="font-medium text-white/75">HIREAI</span> <span className="rounded-full border border-white/15 px-2 py-0.5 font-mono text-[10px] leading-none">v2.4 • SOC 2</span></span>
+               <span className="inline-flex items-center gap-1.5">Vận hành bởi <span className="font-medium text-white/75">HIREAI</span> <span className="rounded-full border border-white/15 px-2 py-0.5 font-mono text-[10px] leading-none">BẢN DEMO</span></span>
             </div>
             <div className="flex flex-wrap items-center gap-4 text-xs">
               <div className="flex items-center gap-2 text-white/50">
@@ -1121,9 +1150,8 @@ export default function LandingPage() {
                 <a href="#" className="transition hover:text-white">English</a>
               </div>
               <div className="flex items-center gap-1.5">
-                <span className="rounded border border-white/10 bg-white/5 px-2 py-1 font-mono text-[10px] tracking-[0.12em] text-white/55">TLS 1.3</span>
-                <span className="rounded border border-white/10 bg-white/5 px-2 py-1 font-mono text-[10px] tracking-[0.12em] text-white/55">ISO 27001</span>
-                <span className="rounded border border-teal/30 bg-teal/15 px-2 py-1 font-mono text-[10px] tracking-[0.12em] text-mist">NĐ 13/2023</span>
+                 <span className="rounded border border-white/10 bg-white/5 px-2 py-1 font-mono text-[10px] tracking-[0.12em] text-white/55">DỮ LIỆU MẪU</span>
+                 <span className="rounded border border-teal/30 bg-teal/15 px-2 py-1 font-mono text-[10px] tracking-[0.12em] text-mist">KHÓA LUẬN</span>
               </div>
             </div>
           </div>

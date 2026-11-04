@@ -83,8 +83,9 @@ export default function RecruiterLandingPage() {
       <EmployerValueCards />
 
       {/* Metrics */}
-      <section className="border-b border-linen/70 bg-white px-4 py-12 sm:px-10 lg:px-16">
-        <Reveal stagger className="mx-auto grid max-w-7xl grid-cols-2 gap-4 md:grid-cols-4 md:gap-6">
+       <section className="border-b border-linen/70 bg-white px-4 py-12 sm:px-10 lg:px-16">
+         <p className="mx-auto mb-5 max-w-7xl text-[10px] font-semibold uppercase tracking-[0.16em] text-charcoal/45">Các chỉ số dưới đây là dữ liệu minh họa cho giao diện</p>
+         <Reveal stagger className="mx-auto grid max-w-7xl grid-cols-2 gap-4 md:grid-cols-4 md:gap-6">
           {metrics.map((m) => (
             <div key={m.label} className="rounded-3xl border border-linen bg-ivory px-5 py-5">
               <p className="font-mono text-3xl font-semibold tracking-tight text-navy">{m.value}</p>

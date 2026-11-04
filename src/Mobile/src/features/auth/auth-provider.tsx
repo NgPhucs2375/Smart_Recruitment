@@ -11,8 +11,8 @@ export type AuthStatus = 'loading' | 'signedOut' | 'signedIn';
 type AuthContextValue = {
   status: AuthStatus;
   user: AuthUser | null;
-  signIn: (email: string, password: string) => Promise<void>;
-  completeSignIn: (session: AuthSession) => Promise<void>;
+  signIn: (email: string, password: string) => Promise<AuthUser>;
+  completeSignIn: (session: AuthSession) => Promise<AuthUser>;
   signOut: () => Promise<void>;
   reloadUser: () => Promise<void>;
   changePassword: (currentPassword: string, newPassword: string) => Promise<string>;
@@ -67,12 +67,13 @@ export function AuthProvider({ children }: PropsWithChildren) {
     };
   }, []);
 
-  const completeSignIn = useCallback(async (session: AuthSession) => {
+  const completeSignIn = useCallback(async (session: AuthSession): Promise<AuthUser> => {
     await saveTokens(session.accessToken, session.refreshToken);
     try {
       const me = await authApi.me();
       setUser(me);
       setStatus('signedIn');
+      return me;
     } catch (error) {
       await clearTokens();
       setUser(null);
@@ -82,9 +83,9 @@ export function AuthProvider({ children }: PropsWithChildren) {
   }, []);
 
   const signIn = useCallback(
-    async (email: string, password: string) => {
+    async (email: string, password: string): Promise<AuthUser> => {
       const session = await authApi.login(email, password);
-      await completeSignIn(session);
+      return completeSignIn(session);
     },
     [completeSignIn],
   );

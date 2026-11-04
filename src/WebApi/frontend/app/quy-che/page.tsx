@@ -13,7 +13,7 @@ export default function QuyChePage() {
       <div className="mx-auto max-w-4xl px-6 py-12 sm:px-10">
         <div className="inline-flex items-center gap-2 rounded-full border border-border/15 bg-white px-3 py-1 text-xs font-medium"><Scale className="size-3.5" /> Quy chế hoạt động sàn TMĐT</div>
         <h1 className="mt-6 text-4xl font-medium tracking-[-0.05em]">Quy chế hoạt động sàn giao dịch việc làm</h1>
-        <p className="mt-4 max-w-2xl text-sm leading-6 text-muted-foreground">Ban hành theo Nghị định 52/2013/NĐ-CP, Thông tư 59/2015/TT-BCT. HIREAI là sàn TMĐT cho phép ứng viên và nhà tuyển dụng giao kết hợp đồng lao động, không phải bên tuyển dụng trực tiếp.</p>
+         <p className="mt-4 max-w-2xl text-sm leading-6 text-muted-foreground">Trang này mô phỏng cấu trúc quy chế cho sản phẩm khóa luận. Nội dung chỉ nhằm minh họa luồng ứng viên và nhà tuyển dụng, không phải văn bản pháp lý hoặc thông báo vận hành sàn thực tế.</p>
 
         <div className="mt-8 space-y-8 rounded-2xl border border-border/10 bg-white p-8 shadow-sm">
           <section>
@@ -54,9 +54,9 @@ export default function QuyChePage() {
             <p className="mt-2 text-sm leading-6 text-muted-foreground">Tùy mức độ: cảnh cáo, gỡ tin, khóa tài khoản 30–180 ngày, chuyển cơ quan chức năng. Người bị hại được bồi thường theo thỏa thuận và pháp luật.</p>
           </section>
 
-          <section className="rounded-xl border border-border/10 bg-charcoal p-4 text-white">
-            <p className="text-sm font-medium">Thông tin sàn giao dịch</p>
-            <p className="mt-2 text-xs leading-5 text-white/60">Công ty TNHH HIREAI VN • Tầng 8, 123 Nguyễn Huệ, Q.1, TP.HCM • MST 0312345678 • Đã thông báo Bộ Công Thương • Liên hệ pháp chế: legal@hireai.vn</p>
+           <section className="rounded-xl border border-border/10 bg-charcoal p-4 text-white">
+             <p className="text-sm font-medium">Thông tin sàn giao dịch</p>
+             <p className="mt-2 text-xs leading-5 text-white/60">HIREAI là tên sản phẩm demo. Tên doanh nghiệp, địa chỉ, mã số và thông tin đăng ký trên giao diện không đại diện cho pháp nhân có thật.</p>
           </section>
         </div>
 

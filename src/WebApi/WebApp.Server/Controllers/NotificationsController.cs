@@ -63,7 +63,10 @@ namespace WebApp.Server.Controllers
                     PageSize = pageSize,
                 });
 
-            await EnsureRecommendationDigestAsync(nd.Id);
+            // HR notifications should not wait for the expensive candidate-matching digest.
+            // The digest is only relevant to candidate accounts.
+            if (nd.VaiTro == VaiTroNguoiDung.UNG_VIEN)
+                await EnsureRecommendationDigestAsync(nd.Id);
 
             var query = _context.NotificationRecipients
                 .Where(r => r.NguoiDungId == nd.Id)

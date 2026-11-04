@@ -5,15 +5,15 @@ function normalizeRoles(roles: readonly string[] | null | undefined): Set<string
 }
 
 /**
- * Mobile hiện chỉ hỗ trợ use case của Ứng viên và Nhân sự.
- * Tài khoản Quản trị viên/Người đại diện không hiển thị trung tâm thông báo.
+ * Mobile hiện hỗ trợ use case của Ứng viên và nhóm nhà tuyển dụng.
+ * Tài khoản Quản trị viên không hiển thị trung tâm thông báo.
  */
 export function resolveNotificationAudience(
   roles: readonly string[] | null | undefined,
 ): NotificationAudience | null {
   const normalized = normalizeRoles(roles);
   if (normalized.has('UNG_VIEN')) return 'candidate';
-  if (normalized.has('NHAN_SU')) return 'hr';
+  if (normalized.has('NHAN_SU') || normalized.has('NGUOI_DAI_DIEN')) return 'hr';
   return null;
 }
 
@@ -32,7 +32,9 @@ export function notificationTarget(
 
   if (audience === 'candidate') {
     if (notification.referenceType === 'RecommendationDigest') return '/';
-    if (notification.referenceType === 'DonUngTuyen') return '/applications';
+    if (notification.referenceType === 'DonUngTuyen') {
+      return notification.jobId ? `/jobs/${notification.jobId}` : '/applications';
+    }
     if (notification.referenceType === 'GoiYViecLamPhuHop' && notification.referenceId) {
       return `/jobs/${notification.referenceId}`;
     }

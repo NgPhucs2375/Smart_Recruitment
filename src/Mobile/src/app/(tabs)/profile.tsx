@@ -85,7 +85,7 @@ export default function ProfileScreen() {
   const fetchProfileData = useCallback(async (): Promise<ProfileData> => {
     const [profileResult, applicationsResult, cvsResult] = await Promise.allSettled([
       profileApi.getMine({ name: fallbackName, email: fallbackEmail }),
-      applicationsApi.listRecent(4),
+      applicationsApi.listRecent(2),
       cvApi.listMine(),
     ]);
 
