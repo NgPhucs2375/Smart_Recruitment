@@ -31,6 +31,7 @@ public sealed class PublicLandingController(IApplicationDbContext context) : Con
                 id = job.Id,
                 title = job.TieuDe,
                 company = job.DoanhNghiep.TenDoanhNghiep,
+                industry = job.DoanhNghiep.LinhVucHoatDong,
                 salaryMin = job.LuongToiThieu,
                 salaryMax = job.LuongToiDa,
                 location = job.DiaDiemLamViec,
@@ -45,9 +46,23 @@ public sealed class PublicLandingController(IApplicationDbContext context) : Con
             })
             .ToListAsync(cancellationToken);
 
+        var companies = jobs
+            .GroupBy(job => new { job.company, job.industry })
+            .Select(group => new
+            {
+                name = group.Key.company,
+                industry = string.IsNullOrWhiteSpace(group.Key.industry) ? "Doanh nghiệp đang tuyển" : group.Key.industry,
+                openings = group.Count(),
+                latestJobCreated = group.Max(job => job.created),
+            })
+            .OrderByDescending(company => company.latestJobCreated)
+            .Take(4)
+            .ToList();
+
         return Ok(new
         {
             jobs,
+            companies,
             stats = new
             {
                 totalJobs,
