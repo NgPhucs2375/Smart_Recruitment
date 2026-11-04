@@ -71,8 +71,8 @@ goto end
 
 
 :infra
-echo Khoi dong PostgreSQL, Redis, RabbitMQ...
-docker compose up -d postgres redis rabbitmq
+echo Khoi dong PostgreSQL, Redis...
+docker compose up -d postgres redis
 goto end
 
 
@@ -155,7 +155,7 @@ echo   make restart           - Restart container
 echo.
 echo   make backend           - Chay Backend + dependency
 echo   make frontend          - Chay Frontend + dependency
-echo   make infra             - Chi chay Postgres, Redis, RabbitMQ
+echo   make infra             - Chi chay Postgres, Redis
 echo.
 echo   make rebuild-backend   - Build lai rieng Backend
 echo   make rebuild-frontend  - Build lai rieng Frontend

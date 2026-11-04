@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { magicLogin } from "@/lib/auth-provider";
 import { sanitizeNext, type PortalKind } from "@/lib/portal-roles";
@@ -20,8 +20,14 @@ export function useMagicLoginVerify(
       : "Đang xác thực thông tin đăng nhập..."
   );
 
+  const attemptedRef = useRef(false);
+
   useEffect(() => {
     if (!token || !email) return;
+    // Magic link chỉ dùng được một lần: StrictMode (dev) invoke effect hai lượt,
+    // lượt thứ hai ăn phải token đã Used và ghi đè trạng thái thành công bằng lỗi.
+    if (attemptedRef.current) return;
+    attemptedRef.current = true;
 
     let isMounted = true;
 

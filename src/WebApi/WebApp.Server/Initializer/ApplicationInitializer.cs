@@ -39,11 +39,15 @@ namespace WebApp.Server.Initializer
                 var appContext = _serviceProvider.GetRequiredService<Application.Interfaces.IApplicationDbContext>();
 
                 await Infrastructure.Identity.Seeds.DefaultRoles.SeedAsync(userManager, roleManager, env.WebRootPath);
-                await Infrastructure.Identity.Seeds.DefaultSuperAdmin.SeedAsync(userManager, roleManager, appContext);
-                await Infrastructure.Identity.Seeds.DefaultNguoiDaiDien.SeedAsync(userManager, roleManager, appContext);
-                await Infrastructure.Identity.Seeds.DefaultBasicUser.SeedAsync(userManager, roleManager, appContext);
+                // restoreSeedCredentials: tài khoản seed đã tồn tại chỉ bị ép về mật khẩu/confirm/
+                // lockout của seed ở Development (dữ liệu demo tự hồi phục). Ngoài Production, UC04
+                // đặt lại mật khẩu sẽ bị ghi đè ngược về 123Pa$$word! ở lần khởi động kế tiếp.
+                var restoreSeedCredentials = env.IsDevelopment();
+                await Infrastructure.Identity.Seeds.DefaultSuperAdmin.SeedAsync(userManager, roleManager, appContext, restoreSeedCredentials);
+                await Infrastructure.Identity.Seeds.DefaultNguoiDaiDien.SeedAsync(userManager, roleManager, appContext, restoreSeedCredentials);
+                await Infrastructure.Identity.Seeds.DefaultBasicUser.SeedAsync(userManager, roleManager, appContext, restoreSeedCredentials);
                 await Infrastructure.Identity.Seeds.DefaultDemoData.SeedAsync(userManager, appContext);
-                await Infrastructure.Identity.Seeds.DefaultBulkTestAccounts.SeedAsync(userManager, appContext);
+                await Infrastructure.Identity.Seeds.DefaultBulkTestAccounts.SeedAsync(userManager, appContext, restoreSeedCredentials);
                 await Infrastructure.Identity.Seeds.DefaultCanvaThemeSeeds.SeedAsync(appContext);
                 await Infrastructure.Identity.Seeds.DefaultDanhMucKyNang.SeedAsync(
                     appContext,

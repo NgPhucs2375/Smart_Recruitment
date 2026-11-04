@@ -210,6 +210,10 @@ export async function apiRequest<T>(path: string, init?: RequestInit): Promise<T
   }
 
   if (!response.ok) {
+    // Rate limiter trả 429 với thân rỗng -> nếu không dịch sẵn, user chỉ thấy "HTTP 429".
+    if (response.status === 429) {
+      throw new Error(messageFromBody(body, 'Thao tác quá nhanh, vui lòng thử lại sau.'));
+    }
     throw new Error(messageFromBody(body, `Yêu cầu thất bại (HTTP ${response.status}).`));
   }
 

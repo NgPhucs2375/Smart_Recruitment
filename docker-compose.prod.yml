@@ -41,18 +41,6 @@ services:
     networks:
       - hireai_network
 
-  rabbitmq:
-    image: rabbitmq:3-management-alpine
-    container_name: hireai-rabbitmq
-    restart: unless-stopped
-    environment:
-      RABBITMQ_DEFAULT_USER: "${RABBITMQ_USER:?RABBITMQ_USER is required}"
-
-      RABBITMQ_DEFAULT_PASS: "${RABBITMQ_PASSWORD:?RABBITMQ_PASSWORD is required}"
-
-    networks:
-      - hireai_network
-
   minio:
     image: quay.io/minio/minio:latest
     container_name: hireai-minio
@@ -124,14 +112,6 @@ services:
       Minio__BucketName: smart-recruitment-files
       Minio__UseSSL: "false"
 
-      RabbitMq__HostName: rabbitmq
-      RabbitMq__UserName: "${RABBITMQ_USER:?RABBITMQ_USER is required}"
-
-      RabbitMq__Password: "${RABBITMQ_PASSWORD:?RABBITMQ_PASSWORD is required}"
-
-      RabbitMq__Port: "5672"
-      RabbitMq__VHost: ""
-
       Frontend__AllowedOrigins: "${FRONTEND_ALLOWED_ORIGINS:?FRONTEND_ALLOWED_ORIGINS is required (vd: http://<IP-VM>)}"
 
     depends_on:
@@ -139,8 +119,6 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-      rabbitmq:
-        condition: service_started
       minio:
         condition: service_started
     networks:

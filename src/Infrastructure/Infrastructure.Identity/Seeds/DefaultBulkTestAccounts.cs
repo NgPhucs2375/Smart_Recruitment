@@ -72,20 +72,20 @@ namespace Infrastructure.Identity.Seeds
             ("ungvien.hoa", "ungvien.hoa@seed.local", "Hoa", "Trịnh Thị", "Trịnh Thị Hoa", "0987000010", "Nữ", "Biên Hòa, Đồng Nai", "Nhân viên kho", 10000000),
         };
 
-        public static async Task SeedAsync(UserManager<ApplicationUser> userManager, IApplicationDbContext appContext)
+        public static async Task SeedAsync(UserManager<ApplicationUser> userManager, IApplicationDbContext appContext, bool restoreSeedCredentials)
         {
-            await SeedNguoiDaiDiensAsync(userManager, appContext);
-            await SeedNhanSusAsync(userManager, appContext);
-            await SeedUngViensAsync(userManager, appContext);
+            await SeedNguoiDaiDiensAsync(userManager, appContext, restoreSeedCredentials);
+            await SeedNhanSusAsync(userManager, appContext, restoreSeedCredentials);
+            await SeedUngViensAsync(userManager, appContext, restoreSeedCredentials);
         }
 
         // 1. 10 NGUOI_DAI_DIEN + DoanhNghiep + HoSoNhaTuyenDung riêng từng người.
-        private static async Task SeedNguoiDaiDiensAsync(UserManager<ApplicationUser> userManager, IApplicationDbContext appContext)
+        private static async Task SeedNguoiDaiDiensAsync(UserManager<ApplicationUser> userManager, IApplicationDbContext appContext, bool restoreSeedCredentials)
         {
             foreach (var d in NguoiDaiDiens)
             {
                 var user = await EnsureIdentityUserAsync(userManager, d.Email, d.UserName, d.FirstName, d.LastName,
-                    VaiTroNguoiDung.NGUOI_DAI_DIEN.ToString());
+                    VaiTroNguoiDung.NGUOI_DAI_DIEN.ToString(), restoreSeedCredentials);
 
                 var nd = await appContext.NguoiDungs.FirstOrDefaultAsync(n => n.ApplicationUserId == user.Id);
                 if (nd == null)
@@ -137,7 +137,7 @@ namespace Infrastructure.Identity.Seeds
         }
 
         // 2. Mỗi DoanhNghiep trong DB thêm đủ 5 NHAN_SU (định danh bằng email ổn định theo DN).
-        private static async Task SeedNhanSusAsync(UserManager<ApplicationUser> userManager, IApplicationDbContext appContext)
+        private static async Task SeedNhanSusAsync(UserManager<ApplicationUser> userManager, IApplicationDbContext appContext, bool restoreSeedCredentials)
         {
             var doanhNghieps = await appContext.DoanhNghieps.AsNoTracking().ToListAsync();
             foreach (var dn in doanhNghieps)
@@ -151,7 +151,7 @@ namespace Infrastructure.Identity.Seeds
                     var hoTen = $"{ho} Văn {ten}";
 
                     var user = await EnsureIdentityUserAsync(userManager, email, userName, ten, ho,
-                        VaiTroNguoiDung.NHAN_SU.ToString());
+                        VaiTroNguoiDung.NHAN_SU.ToString(), restoreSeedCredentials);
 
                     var nd = await appContext.NguoiDungs.FirstOrDefaultAsync(n => n.ApplicationUserId == user.Id);
                     if (nd == null)
@@ -184,13 +184,13 @@ namespace Infrastructure.Identity.Seeds
         }
 
         // 3. 10 UNG_VIEN (NguoiDung + HoSoUngVien để test luồng tạo CV/ứng tuyển ngay).
-        private static async Task SeedUngViensAsync(UserManager<ApplicationUser> userManager, IApplicationDbContext appContext)
+        private static async Task SeedUngViensAsync(UserManager<ApplicationUser> userManager, IApplicationDbContext appContext, bool restoreSeedCredentials)
         {
             var idx = 0;
             foreach (var u in UngViens)
             {
                 var user = await EnsureIdentityUserAsync(userManager, u.Email, u.UserName, u.FirstName, u.LastName,
-                    VaiTroNguoiDung.UNG_VIEN.ToString());
+                    VaiTroNguoiDung.UNG_VIEN.ToString(), restoreSeedCredentials);
 
                 var nd = await appContext.NguoiDungs.FirstOrDefaultAsync(n => n.ApplicationUserId == user.Id);
                 if (nd == null)
@@ -227,10 +227,11 @@ namespace Infrastructure.Identity.Seeds
             }
         }
 
-        // Tạo mới hoặc chuẩn hóa tài khoản Identity đã tồn tại (mật khẩu/confirm/unlock/role).
+        // Tạo mới tài khoản Identity, hoặc (chỉ khi restoreSeedCredentials) chuẩn hóa
+        // mật khẩu/confirm/unlock/role của tài khoản đã tồn tại về đúng giá trị seed.
         private static async Task<ApplicationUser> EnsureIdentityUserAsync(
             UserManager<ApplicationUser> userManager,
-            string email, string userName, string firstName, string lastName, string role)
+            string email, string userName, string firstName, string lastName, string role, bool restoreSeedCredentials)
         {
             var user = await userManager.FindByEmailAsync(email);
             if (user == null)
@@ -251,7 +252,7 @@ namespace Infrastructure.Identity.Seeds
                         $"Không thể tạo tài khoản seed ({email}): {string.Join("; ", createResult.Errors.Select(error => error.Description))}");
                 }
             }
-            else
+            else if (restoreSeedCredentials)
             {
                 if (!await userManager.CheckPasswordAsync(user, Password))
                 {

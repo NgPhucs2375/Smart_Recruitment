@@ -50,7 +50,7 @@ try {
   const uid = await ok("/account/register", "POST", registration);
   check(typeof uid === "string", "Candidate registration succeeds with a response wrapper");
   check(!(await call("/account/authenticate", "POST", { email, password: initial })).ok, "Unverified email cannot login");
-  check(!(await call("/account/request-magic-link", "POST", { Email: email, Role: "QUAN_TRI_VIEN" })).ok, "Magic link cannot provision Admin");
+  check(!(await call("/account/request-magic-link", "POST", { Email: `${marker}-admin@seed.local`, Role: "QUAN_TRI_VIEN" })).ok, "Magic link cannot provision Admin");
   const forgot = await call("/account/forgot-password", "POST", { Email: `${marker}-missing@seed.local` });
   check(forgot.ok && data(forgot.body, "succeeded") === true, "Forgot-password response matches frontend contract");
   const spamStatuses = [];
@@ -58,6 +58,11 @@ try {
   check(spamStatuses[spamStatuses.length - 1] === 429, "Forgot-password is rate limited after repeated requests");
   check((await call(`/account/confirm-email?userId=${uid}&code=***`)).status === 400, "Malformed verification link is a validation error, not 500");
   check((await call("/account/reset-password", "POST", { Email: email, Token: "invalid", Password: "Reset1!Password", ConfirmPassword: "Reset1!Password" })).status === 400, "Invalid reset token is rejected");
+  // reset-password là endpoint nặc danh duy nhất GHI được mật khẩu -> phải có hạn mức riêng
+  // ("auth-reset", 10/phút/IP). Dòng check ngay trên đã tiêu 1 permit nên 11 phát nữa là ngập.
+  const resetSpam = [];
+  for (let i = 0; i < 11; i++) resetSpam.push(await statusOnly("/account/reset-password", "POST", { Email: email, Token: "invalid", Password: "Reset1!Password" }));
+  check(resetSpam[resetSpam.length - 1] === 429, "Reset-password is rate limited by its own auth-reset window");
   const candidateRoleId = sql(`SELECT "Id" FROM "Identity"."Role" WHERE "Name"='UNG_VIEN'`);
   assert(candidateRoleId);
   await ok(`/users/${uid}`, "PUT", { Id: uid, RoleId: candidateRoleId, EmailConfirmed: true }, admin.token);

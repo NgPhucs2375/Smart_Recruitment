@@ -83,8 +83,18 @@ async function waitHealthy(seconds = 420) {
   }
   throw new Error("Backend không healthy sau khi restart.");
 }
-const reset = (email, token, password) => call("/account/reset-password", "POST", { Email: email, Token: token, Password: password });
+// reset-password mang policy "auth-reset" 10 request/phút/IP; suite này bắn hơn 10 lần
+// trong cùng một phút nên phải tự chờ sang cửa sổ kế tiếp thay vì nhận 429 giả.
+async function reset(email, token, password) {
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    const result = await call("/account/reset-password", "POST", { Email: email, Token: token, Password: password });
+    if (result.status === 429) { console.log("  bị 429 tại reset-password, đợi cửa sổ auth-reset kế tiếp"); await sleep(62_000); continue; }
+    return result;
+  }
+  throw new Error("reset-password liên tục trả 429 — kiểm tra lại policy auth-reset");
+}
 const lockoutState = email => sql(`SELECT COALESCE("LockoutEnd"::text,'NULL') || '|' || "AccessFailedCount" FROM "Identity"."User" WHERE "Email"='${email}'`);
+const emailConfirmed = email => sql(`SELECT COALESCE("EmailConfirmed"::text,'MISSING') FROM "Identity"."User" WHERE "Email"='${email}'`);
 const setLockout = (email, days) => sql(days === null
   ? `UPDATE "Identity"."User" SET "LockoutEnd"=NULL, "AccessFailedCount"=0 WHERE "Email"='${email}'`
   : `UPDATE "Identity"."User" SET "LockoutEnd"=now() + interval '${days} days', "AccessFailedCount"=5 WHERE "Email"='${email}'`);
@@ -155,7 +165,24 @@ try {
   check(lockoutState(email).startsWith("NULL|0"), "Reset tự mở khóa tạm và đặt lại bộ đếm đăng nhập sai");
   check(Boolean((await login(email, "Unlocked1!Passw")).token), "Đăng nhập bình thường sau khi reset gỡ khóa tạm");
 
-  // 6. Token phải sống sót qua restart -> chứng minh key ring lưu ngoài ephemeral keys.
+  // 6. Liên kết reset là bằng chứng sở hữu hộp thư: tài khoản CHƯA xác minh email vẫn đặt lại
+  //    được mật khẩu và đăng nhập ngay. Đây là thế bí của UC04 với NS mới được mời và UV
+  //    chưa bấm link xác minh (trước đây ăn 400 "Vui lòng xác minh email..." ở bước cuối).
+  const unverifiedEmail = `${marker}-unverified@seed.local`;
+  emails.push(unverifiedEmail);
+  await mailEndpoint("/account/register", { role: "UNG_VIEN", email: unverifiedEmail, hoTen: "Reset Unverified", soDienThoai: "0901234568", password: "Initial1!Passw", confirmPassword: "Initial1!Passw" });
+  check(emailConfirmed(unverifiedEmail) === "false", "Tài khoản vừa đăng ký chưa được xác minh email");
+  const linkFour = await requestResetLink(unverifiedEmail);
+  const weakUnverified = await reset(unverifiedEmail, linkFour, "short");
+  check(weakUnverified.status === 400 && /^Mật khẩu phải có tối thiểu 6/.test(weakUnverified.message),
+        `Tài khoản chưa xác minh + mật khẩu yếu: vẫn báo đúng lỗi policy: "${weakUnverified.message}"`);
+  check(emailConfirmed(unverifiedEmail) === "false", "Reset bị policy chặn KHÔNG xác minh email hộ");
+  const unverifiedReset = await reset(unverifiedEmail, linkFour, "Verified1!Passw");
+  check(unverifiedReset.ok, `Link reset cho phép tài khoản chưa xác minh đổi mật khẩu: "${unverifiedReset.message}"`);
+  check(emailConfirmed(unverifiedEmail) === "true", "Reset ghi EmailConfirmed=true vì token chứng minh sở hữu mailbox");
+  check(Boolean((await login(unverifiedEmail, "Verified1!Passw")).token), "Sau reset thì đăng nhập được ngay, hết thế bí");
+
+  // 7. Token phải sống sót qua restart -> chứng minh key ring lưu ngoài ephemeral keys.
   if (restartCheck) {
     const linkThree = await requestResetLink(email);
     console.log("  restart backend (dotnet watch có thể mất vài phút để boot lại)...");

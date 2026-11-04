@@ -98,6 +98,18 @@ _services.AddRateLimiter(options =>
                 Window = TimeSpan.FromMinutes(1),
                 QueueLimit = 0
             }));
+    // reset-password là endpoint nặc danh duy nhất GHI được mật khẩu, nhưng một phiên hợp lệ
+    // cần nhiều request (1 link + vài lần mật khẩu chưa đạt policy + 1 lần thành công) nên nó
+    // phải ở window riêng, không ăn 5/phút chung với auth-mail.
+    options.AddPolicy("auth-reset", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 10,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0
+            }));
 });
 _services.Configure<ForwardedHeadersOptions>(options =>
 {

@@ -1,7 +1,10 @@
+using Application.Interfaces;
 using Infrastructure.Identity;
 using Infrastructure.Identity.Helpers;
 using Infrastructure.Identity.Models;
+using Infrastructure.Persistence.Contexts;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -106,4 +109,57 @@ foreach (var password in rejected)
         $"Mật khẩu yếu bị chặn kèm thông báo tiếng Việt: {password} -> {message}");
 }
 
+// --- UC04: seed chỉ được hồi phục mật khẩu demo ở Development ---
+// Mặc định Production khôi phục tài khoản seed, nên nếu để seed ghi đè mật khẩu thì
+// người dùng đặt lại mật khẩu (UC04) sẽ bị kéo về 123Pa$$word! ở lần khởi động sau.
+var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+await Infrastructure.Identity.Seeds.DefaultRoles.SeedAsync(userManager, roleManager);
+await using var appDb = new SeedCheckContext(
+    new DbContextOptionsBuilder<ApplicationDbContext>().UseInMemoryDatabase(Guid.NewGuid().ToString()).Options);
+
+await Infrastructure.Identity.Seeds.DefaultSuperAdmin.SeedAsync(userManager, roleManager, appDb, true);
+var admin = await userManager.FindByEmailAsync("superadmin@gmail.com");
+Check(admin is { EmailConfirmed: true }, "Seed lần đầu tạo superadmin đã xác minh email");
+Check(await userManager.CheckPasswordAsync(admin!, "123Pa$$word!"), "Seed lần đầu dùng mật khẩu seed");
+
+var changed = await userManager.ChangePasswordAsync(admin!, "123Pa$$word!", "Khac@123456");
+Check(changed.Succeeded, "Đổi mật khẩu superadmin ngoài seed thành công (đại diện UC04)");
+
+await Infrastructure.Identity.Seeds.DefaultSuperAdmin.SeedAsync(userManager, roleManager, appDb, restoreSeedCredentials: false);
+Check(!await userManager.CheckPasswordAsync(admin!, "123Pa$$word!"),
+      "restoreSeedCredentials=false (Production): seed KHÔNG ghi đè mật khẩu đã đặt lại");
+Check(await userManager.CheckPasswordAsync(admin!, "Khac@123456"),
+      "restoreSeedCredentials=false: mật khẩu người dùng tự đặt vẫn dùng được");
+
+await Infrastructure.Identity.Seeds.DefaultSuperAdmin.SeedAsync(userManager, roleManager, appDb, restoreSeedCredentials: true);
+Check(await userManager.CheckPasswordAsync(admin!, "123Pa$$word!"),
+      "restoreSeedCredentials=true (Development): dữ liệu demo tự hồi phục về mật khẩu seed");
+
+Check(await userManager.IsInRoleAsync(admin!, Domain.Enums.VaiTroNguoiDung.QUAN_TRI_VIEN.ToString()),
+      "Bất kể flag, seed vẫn bảo đảm tài khoản demo giữ đúng vai trò");
+Check(await appDb.NguoiDungs.CountAsync(n => n.ApplicationUserId == admin!.Id) == 1,
+      "Seed lại nhiều lần không tạo duplicate NguoiDung");
+
 Console.WriteLine($"Password policy checks completed ({checks} assertions).");
+
+sealed class Clock : IDateTimeService
+{
+    public DateTime NowUtc => DateTime.UtcNow;
+    public DateTime Now => NowUtc;
+}
+
+sealed class Auth : IAuthenticatedUserService
+{
+    public string UserId => "password-policy-check";
+}
+
+// InMemory không map được kiểu pgvector của CvTheme.Embedding (như các suite Checks khác).
+sealed class SeedCheckContext(DbContextOptions<ApplicationDbContext> options)
+    : ApplicationDbContext(options, new Clock(), new Auth())
+{
+    protected override void OnModelCreating(ModelBuilder builder)
+    {
+        base.OnModelCreating(builder);
+        builder.Entity<Domain.Entities.CvTheme>().Ignore(x => x.Embedding);
+    }
+}

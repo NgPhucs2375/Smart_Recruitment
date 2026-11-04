@@ -35,19 +35,6 @@ namespace Infrastructure.Shared.Environments
 
         #endregion
 
-        #region RabbitMQ
-        public const string RabbitMqHostName = "RABBITMQ_HOSTNAME";
-        public static bool HasRabbitMqHostName() => !string.IsNullOrEmpty(Environment.GetEnvironmentVariable(RabbitMqHostName));
-        public const string RabbitMqUserName = "RABBITMQ_USERNAME";
-        public static bool HasRabbitMqUserName() => !string.IsNullOrEmpty(Environment.GetEnvironmentVariable(RabbitMqUserName));
-        public const string RabbitMqPassword = "RABBITMQ_PASSWORD";
-        public static bool HasRabbitMqPassword() => !string.IsNullOrEmpty(Environment.GetEnvironmentVariable(RabbitMqPassword));
-        public const string RabbitMqVHost = "RABBITMQ_VHOST";
-        public static bool HasRabbitMqVHost() => !string.IsNullOrEmpty(Environment.GetEnvironmentVariable(RabbitMqVHost));
-        public const string RabbitMqPort = "RABBITMQ_PORT";
-        public static bool HasRabbitMqPort() => !string.IsNullOrEmpty(Environment.GetEnvironmentVariable(RabbitMqPort));
-        #endregion
-
         #region Cloudinary
         public const string CloudinaryCloudUrl = "CLOUDINARY_URL";
         public static bool HasCloudinaryCloudUrl() => !string.IsNullOrEmpty(Environment.GetEnvironmentVariable(CloudinaryCloudUrl));
