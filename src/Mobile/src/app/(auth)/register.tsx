@@ -58,6 +58,8 @@ export default function RegisterScreen() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [resending, setResending] = useState(false);
+  const [resentNote, setResentNote] = useState('');
 
   const isEmployer = role === 'NGUOI_DAI_DIEN';
 
@@ -81,6 +83,7 @@ export default function RegisterScreen() {
     setSubmitting(true);
     setError('');
     setSuccess('');
+    setResentNote('');
     try {
       const result = await authApi.register({
         role,
@@ -100,6 +103,20 @@ export default function RegisterScreen() {
       setError(err instanceof Error ? err.message : 'Đăng ký thất bại. Vui lòng thử lại.');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleResend = async () => {
+    if (resending || submitting) return;
+    setResending(true);
+    setResentNote('');
+    try {
+      const result = await authApi.resendVerificationEmail(email.trim());
+      setResentNote(result.message);
+    } catch (err) {
+      setResentNote(err instanceof Error ? err.message : 'Không gửi lại được. Vui lòng thử lại.');
+    } finally {
+      setResending(false);
     }
   };
 
@@ -301,15 +318,33 @@ export default function RegisterScreen() {
             <ThemedText style={[styles.error, { color: theme.destructive }]}>{error}</ThemedText>
           ) : null}
           {success ? (
-            <ThemedText style={[styles.error, { color: theme.primary }]}>
-              {success}
-              {'  '}
-              <ThemedText
-                onPress={() => router.replace('/login')}
-                style={{ color: theme.primary, fontFamily: font('semibold') }}>
-                Đăng nhập ngay
-              </ThemedText>
-            </ThemedText>
+            <View>
+              <ThemedText style={[styles.error, { color: theme.primary }]}>{success}</ThemedText>
+              <View style={styles.successActions}>
+                <ThemedText
+                  onPress={() => router.replace('/login')}
+                  style={{ color: theme.primary, fontFamily: font('semibold') }}>
+                  Đăng nhập ngay
+                </ThemedText>
+                <Pressable
+                  accessibilityRole="button"
+                  hitSlop={8}
+                  onPress={handleResend}
+                  disabled={resending || submitting}>
+                  <ThemedText
+                    style={{
+                      color: theme.primary,
+                      fontFamily: font('semibold'),
+                      opacity: resending || submitting ? 0.5 : 1,
+                    }}>
+                    {resending ? 'Đang gửi lại...' : 'Gửi lại email xác minh'}
+                  </ThemedText>
+                </Pressable>
+              </View>
+              {resentNote ? (
+                <ThemedText style={[styles.error, { color: theme.textSecondary }]}>{resentNote}</ThemedText>
+              ) : null}
+            </View>
           ) : null}
 
           <Button
@@ -364,6 +399,7 @@ const styles = StyleSheet.create({
   topSpacer: { width: 20 },
   title: { fontFamily: font('semibold'), fontSize: 24, letterSpacing: -0.4 },
   subtitle: { fontFamily: font('regular'), fontSize: 14, marginBottom: 12 },
+  successActions: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 14, marginTop: 6 },
   roleRow: {
     flexDirection: 'row',
     gap: 8,

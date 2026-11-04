@@ -36,7 +36,8 @@ function EmployerLoginContent() {
   const [githubError, setGithubError] = useState<string | null>(null);
   const searchParams = useSearchParams();
   const next = sanitizeNext(searchParams.get("next"));
-  const { register, handleSubmit, setValue, errors, isPending, submitError, remember, email, cooling, cooldownLeft } = usePasswordLogin("employer", next);
+  const pendingVerification = searchParams.get("unverified") === "1";
+  const { register, handleSubmit, setValue, errors, isPending, submitError, remember, email, cooling, cooldownLeft } = usePasswordLogin("employer", next, searchParams.get("email"));
   const { handleGoogleLogin, isPending: isGooglePending, error: googleError } = useGoogleAuth("employer", next);
 
   return (
@@ -121,7 +122,7 @@ function EmployerLoginContent() {
             <AlertDescription className="text-xs text-red-700">{submitError}</AlertDescription>
           </Alert>
         )}
-        <ResendVerification email={email ?? ""} error={submitError} />
+        <ResendVerification email={email ?? ""} error={submitError} visible={pendingVerification} />
 
         <div className="space-y-1.5">
           <Label htmlFor="employer-email" className="text-xs font-medium uppercase tracking-wider text-muted-foreground">

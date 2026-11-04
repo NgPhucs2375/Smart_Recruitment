@@ -47,7 +47,10 @@ export function usePasswordRegister(options?: {
       if (!result.success && result.error) {
         setSubmitError(result.error.message ?? "Đăng ký thất bại");
       } else if (result.success) {
-        router.replace(options?.inviteToken ? "/employer/login" : "/login");
+        // Tài khoản chỉ dùng được sau khi bấm link trong mail, nên đưa thẳng về
+        // màn đăng nhập kèm email vừa ký để khối "gửi lại email xác minh" hiện ra.
+        const target = options?.inviteToken ? "/employer/login" : "/login";
+        router.replace(`${target}?unverified=1&email=${encodeURIComponent(data.email)}`);
       }
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : "Có lỗi xảy ra");

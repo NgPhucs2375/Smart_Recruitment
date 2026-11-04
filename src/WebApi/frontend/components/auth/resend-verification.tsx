@@ -4,10 +4,19 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { resendVerificationEmail } from "@/lib/auth-provider";
 
-export function ResendVerification({ email, error }: { email: string; error: string | null | undefined }) {
+export function ResendVerification({
+  email,
+  error,
+  visible = false,
+}: {
+  email: string;
+  error: string | null | undefined;
+  /** Hiện khối mà không cần chờ một lần đăng nhập thất bại (dùng sau khi đăng ký). */
+  visible?: boolean;
+}) {
   const [pending, setPending] = useState(false);
   const [result, setResult] = useState<{ success: boolean; message?: string } | null>(null);
-  if (!error || !/xác minh|chưa.*xác thực.*email/i.test(error)) return null;
+  if (!visible && (!error || !/xác minh|chưa.*xác thực.*email/i.test(error))) return null;
   return <div className="space-y-2 rounded-xl border border-border bg-muted p-3">
     <p className="text-xs text-muted-foreground">Xác minh email trước khi đăng nhập. Nếu chưa nhận thư, bạn có thể yêu cầu gửi lại.</p>
     <Button type="button" variant="outline" size="sm" disabled={pending || !email.trim()} onClick={async () => {

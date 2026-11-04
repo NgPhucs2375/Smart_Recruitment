@@ -125,8 +125,9 @@ export default function EmployerRegisterPage() {
           // Storage unavailable — continue without intent carry-over.
         }
         // Employer portal: registration does not sign in, so land on the
-        // employer login page (never the candidate /login).
-        router.replace("/employer/login");
+        // employer login page (never the candidate /login). Carry the email so
+        // the "gửi lại email xác minh" panel is visible without a failed login.
+        router.replace(`/employer/login?unverified=1&email=${encodeURIComponent(data.email)}`);
       }
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : "Có lỗi xảy ra");
