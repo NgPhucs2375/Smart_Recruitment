@@ -3,10 +3,17 @@ import { formatSalaryFull } from "@/features/viec-lam/salary";
 
 export type PublicLandingData = {
   jobs: Job[];
+  companies: LandingCompany[];
   stats: {
     totalJobs: number;
     totalCompanies: number;
   };
+};
+
+export type LandingCompany = {
+  name: string;
+  industry: string;
+  openings: number;
 };
 
 function text(value: unknown, fallback = ""): string {
@@ -35,7 +42,7 @@ function initials(value: string): string {
 function normalizeJob(value: unknown): Job | null {
   if (!value || typeof value !== "object") return null;
   const raw = value as Record<string, unknown>;
-  const id = text(raw.id ?? raw.Id);
+  const id = String(raw.id ?? raw.Id ?? "").trim();
   const title = text(raw.title ?? raw.TieuDe);
   const company = text(raw.company ?? raw.TenDoanhNghiep, "Doanh nghiệp tuyển dụng");
   if (!id || !title) return null;
@@ -68,15 +75,29 @@ function normalizeJob(value: unknown): Job | null {
   };
 }
 
+function normalizeCompany(value: unknown): LandingCompany | null {
+  if (!value || typeof value !== "object") return null;
+  const raw = value as Record<string, unknown>;
+  const name = text(raw.name ?? raw.Name);
+  if (!name) return null;
+  return {
+    name,
+    industry: text(raw.industry ?? raw.Industry, "Doanh nghiệp đang tuyển"),
+    openings: number(raw.openings ?? raw.Openings),
+  };
+}
+
 export async function getPublicLandingData(): Promise<PublicLandingData> {
   const response = await fetch("/api/dotnet/public/landing", { cache: "no-store" });
   if (!response.ok) throw new Error(`Landing API failed: ${response.status}`);
   const payload = (await response.json()) as Record<string, unknown>;
   const rawJobs = Array.isArray(payload.jobs) ? payload.jobs : [];
+  const rawCompanies = Array.isArray(payload.companies) ? payload.companies : [];
   const stats = (payload.stats ?? {}) as Record<string, unknown>;
 
   return {
     jobs: rawJobs.map(normalizeJob).filter((job): job is Job => job !== null),
+    companies: rawCompanies.map(normalizeCompany).filter((company): company is LandingCompany => company !== null),
     stats: {
       totalJobs: number(stats.totalJobs),
       totalCompanies: number(stats.totalCompanies),

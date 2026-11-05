@@ -76,13 +76,6 @@ const techTracks = [
   ["04", "Sản phẩm & Chất lượng", "Product Manager · UI/UX · QA Engineer"],
 ];
 
-const techCompanies = [
-  ["NEXORA", "SaaS / Product", "12 vị trí đang tuyển"],
-  ["CLOUDLY", "Cloud Infrastructure", "8 vị trí đang tuyển"],
-  ["DATANEST", "Data & AI", "6 vị trí đang tuyển"],
-  ["PIXELFORGE", "Digital Studio", "10 vị trí đang tuyển"],
-];
-
 const publicNavLinks = [
   { label: "Việc làm", href: "/#jobs" },
   { label: "Công ty", href: "/#companies" },
@@ -106,93 +99,6 @@ const workModeMeta: Record<string, { label: string; icon: typeof Building2 }> = 
   Flexible: { label: "Flexible", icon: Laptop },
 };
 
-const landingFeaturedJobs = [
-  {
-    id: "1",
-    title: "Senior Frontend Engineer",
-    company: "NEXORA Technologies",
-    logo: "NX",
-    salary: "25 - 40 triệu",
-    location: "Hà Nội",
-    workMode: "Hybrid" as const,
-    level: "Senior",
-    skills: ["React", "TypeScript", "Next.js"],
-    postedAt: "2 ngày trước",
-    applicants: 24,
-    isHot: true,
-  },
-  {
-    id: "5",
-    title: "DevOps Engineer",
-    company: "CLOUDLY Infrastructure",
-    logo: "CL",
-    salary: "30 - 50 triệu",
-    location: "Remote",
-    workMode: "Remote" as const,
-    level: "Senior",
-    skills: ["Kubernetes", "Terraform", "Azure"],
-    postedAt: "1 ngày trước",
-    applicants: 12,
-    isHot: true,
-  },
-  {
-    id: "2",
-    title: "Backend Engineer (Node.js)",
-    company: "CLOUDLY Infrastructure",
-    logo: "CL",
-    salary: "20 - 35 triệu",
-    location: "Hồ Chí Minh",
-    workMode: "Onsite" as const,
-    level: "Mid",
-    skills: ["Node.js", "PostgreSQL", "AWS"],
-    postedAt: "1 ngày trước",
-    applicants: 18,
-    isHot: true,
-  },
-  {
-    id: "10",
-    title: "AI/ML Engineer",
-    company: "DATANEST AI",
-    logo: "DN",
-    salary: "35 - 60 triệu",
-    location: "Hà Nội",
-    workMode: "Onsite" as const,
-    level: "Senior",
-    skills: ["Python", "TensorFlow", "MLOps"],
-    postedAt: "1 ngày trước",
-    applicants: 8,
-    isHot: true,
-  },
-  {
-    id: "3",
-    title: "Junior React Developer",
-    company: "PIXELFORGE Studio",
-    logo: "PF",
-    salary: "12 - 18 triệu",
-    location: "Đà Nẵng",
-    workMode: "Hybrid" as const,
-    level: "Junior",
-    skills: ["React", "JavaScript", "CSS"],
-    postedAt: "3 ngày trước",
-    applicants: 42,
-    isHot: false,
-  },
-  {
-    id: "12",
-    title: "Full-stack Developer",
-    company: "PIXELFORGE Studio",
-    logo: "PF",
-    salary: "20 - 35 triệu",
-    location: "Đà Nẵng",
-    workMode: "Hybrid" as const,
-    level: "Mid",
-    skills: ["React", "Node.js", "MongoDB"],
-    postedAt: "2 ngày trước",
-    applicants: 33,
-    isHot: false,
-  },
-];
-
 export default function LandingPage() {
   const router = useRouter();
   const [loginEmail, setLoginEmail] = useState("");
@@ -204,7 +110,9 @@ export default function LandingPage() {
   const [searchLocation, setSearchLocation] = useState("");
   const [searchLevel, setSearchLevel] = useState("");
   const [liveJobs, setLiveJobs] = useState<Job[] | null>(null);
+  const [liveCompanies, setLiveCompanies] = useState<Array<[string, string, string]>>([]);
   const [liveStats, setLiveStats] = useState({ totalJobs: 0, totalCompanies: 0 });
+  const [landingError, setLandingError] = useState<string | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -213,10 +121,14 @@ export default function LandingPage() {
       .then((data) => {
         if (!active) return;
         setLiveJobs(data.jobs);
+        setLiveCompanies(data.companies.map((company) => [company.name, company.industry, `${company.openings} vị trí đang tuyển`]));
         setLiveStats(data.stats);
       })
-      .catch(() => {
-        if (active) setLiveJobs([]);
+      .catch((error: unknown) => {
+        if (active) {
+          setLiveJobs([]);
+          setLandingError(error instanceof Error ? error.message : "Không tải được dữ liệu landing");
+        }
       });
     return () => {
       active = false;
@@ -259,15 +171,8 @@ export default function LandingPage() {
   const hasActiveSearch = searchKeyword.trim() !== "" || searchLocation !== "" || searchLevel !== "";
 
   const { isBookmarked, toggle: toggleBookmark, count: bookmarkCount } = useBookmarks();
-  const featuredJobs = liveJobs && liveJobs.length > 0 ? liveJobs : landingFeaturedJobs;
-  const isDemoJobData = !liveJobs || liveJobs.length === 0;
-  const featuredCompanies = liveJobs && liveJobs.length > 0
-    ? Array.from(new Map(liveJobs.map((job) => [job.company, job])).values()).slice(0, 4).map((job) => [
-        job.company,
-        "Doanh nghiệp đang tuyển",
-        `${liveJobs.filter((item) => item.company === job.company).length} tin mới nhất`,
-      ] as const)
-    : techCompanies;
+  const featuredJobs = liveJobs ?? [];
+  const featuredCompanies = liveCompanies;
 
   function handleToggleBookmark(e: React.MouseEvent, job: { id: string; title: string }) {
     e.preventDefault();
@@ -607,7 +512,7 @@ export default function LandingPage() {
                   <span className="flex size-4 items-center justify-center rounded bg-navy text-[10px] font-bold text-white">/</span> để tìm nhanh
                 </span>
                 <span className="hidden sm:inline text-linen">•</span>
-                <span>{isDemoJobData ? `${landingFeaturedJobs.length} vị trí minh họa` : `${featuredJobs.length} vị trí mới nhất`}</span>
+                 <span>{liveJobs === null ? "Đang tải dữ liệu thật..." : `${featuredJobs.length} vị trí mới nhất`}</span>
               </p>
               {hasActiveSearch && (
                 <div className="flex items-center gap-2">
@@ -656,8 +561,17 @@ export default function LandingPage() {
           </div>
 
           {/* === Job cards — fewer per view, airier === */}
-          <Reveal stagger className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-             {featuredJobs.map((job) => {
+           {landingError ? (
+             <div className="mt-10 rounded-[1.75rem] border border-linen bg-white px-6 py-10 text-center text-sm text-charcoal/65">
+               Không tải được việc làm mới nhất. Vui lòng thử tải lại trang.
+             </div>
+           ) : featuredJobs.length === 0 ? (
+             <div className="mt-10 rounded-[1.75rem] border border-linen bg-white px-6 py-10 text-center text-sm text-charcoal/65">
+               Chưa có tin tuyển dụng đang mở.
+             </div>
+           ) : (
+           <Reveal stagger className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {featuredJobs.map((job) => {
               const bookmarked = isBookmarked(job.id);
               const wm = workModeMeta[job.workMode];
               const WIcon = wm.icon;
@@ -732,10 +646,11 @@ export default function LandingPage() {
                 </article>
               );
             })}
-          </Reveal>
-          <div className="mt-10 flex flex-col items-center justify-between gap-4 sm:flex-row">
-            <p className="text-xs text-charcoal/60">
-              Hiển thị <span className="font-semibold text-navy">6</span> việc nổi bật •{" "}
+           </Reveal>
+           )}
+           <div className="mt-10 flex flex-col items-center justify-between gap-4 sm:flex-row">
+             <p className="text-xs text-charcoal/60">
+               Hiển thị <span className="font-semibold text-navy">{featuredJobs.length}</span> việc mới nhất •{" "}
               {bookmarkCount > 0 ? (
                 <span className="font-medium text-marine">
                   Đã lưu {bookmarkCount} việc <Bookmark className="mb-0.5 inline size-3 fill-marine" />
@@ -759,37 +674,16 @@ export default function LandingPage() {
         <div className="mx-auto max-w-7xl px-4 sm:px-10 lg:px-16">
           <div className="flex flex-col gap-4 border-b border-navy/10 py-6 md:flex-row md:items-center md:justify-between">
             <p className="shrink-0 text-xs font-medium uppercase tracking-[0.18em] text-charcoal/65">
-              Được tin tưởng bởi <span className="font-bold text-navy">500+</span> công ty công nghệ
+              Dữ liệu tuyển dụng <span className="font-bold text-navy">đang cập nhật</span> từ hệ thống
             </p>
             <div className="hidden items-center gap-1.5 text-xs text-charcoal/55 md:flex">
-              <span className="size-1.5 rounded-full bg-teal" /> Dữ liệu thực • Cập nhật 04/09/2026
+               <span className="size-1.5 rounded-full bg-teal" /> Dữ liệu thực • Cập nhật trực tiếp
             </div>
           </div>
 
           <div className="relative overflow-hidden py-6">
             <div className="flex w-max animate-[marquee_28s_linear_infinite] items-center gap-10 whitespace-nowrap will-change-transform hover:[animation-play-state:paused] sm:gap-14">
-              {[
-                "NEXORA",
-                "CLOUDLY",
-                "DATANEST",
-                "PIXELFORGE",
-                "FPT SOFTWARE",
-                "VNG",
-                "TIKI",
-                "BE GROUP",
-                "MOMO",
-                "VNPAY",
-                "NEXORA",
-                "CLOUDLY",
-                "DATANEST",
-                "PIXELFORGE",
-                "FPT SOFTWARE",
-                "VNG",
-                "TIKI",
-                "BE GROUP",
-                "MOMO",
-                "VNPAY",
-              ].map((name, i) => (
+              {[...featuredCompanies, ...featuredCompanies].map(([name], i) => (
                 <span
                   key={`${name}-${i}`}
                   className="font-mono text-sm font-bold tracking-[0.18em] text-navy/40 transition hover:text-navy/75 sm:text-base"
@@ -803,13 +697,11 @@ export default function LandingPage() {
             <div className="pointer-events-none absolute inset-y-0 right-0 w-20 bg-gradient-to-l from-frost to-transparent" />
           </div>
 
-          <div className="grid grid-cols-2 gap-4 py-8 md:grid-cols-4 md:gap-6">
-            {[
-              { value: "1.200+", note: "Việc làm đang mở", sub: "Cập nhật mỗi giờ", tint: "bg-white" },
-              { value: "8.500+", note: "Kết nối thành công", sub: "↑ 18% tháng này", tint: "bg-white" },
-              { value: "<48h", note: "Phản hồi trung bình", sub: "Từ nhà tuyển dụng", tint: "bg-white" },
-              { value: "92%", note: "Độ khớp AI trung bình", sub: "Đo trên 12k CV thực", tint: "bg-white" },
-            ].map((stat) => (
+           <div className="grid grid-cols-2 gap-4 py-8 md:grid-cols-2 md:gap-6">
+             {[
+               { value: liveStats.totalJobs ? String(liveStats.totalJobs) : "—", note: "Tin đang tuyển", sub: "Đang mở trên hệ thống", tint: "bg-white" },
+               { value: liveStats.totalCompanies ? String(liveStats.totalCompanies) : "—", note: "Doanh nghiệp có tin", sub: "Có tin đang tuyển", tint: "bg-white" },
+             ].map((stat) => (
               <div key={stat.note} className={`rounded-3xl border border-linen px-5 py-5 ${stat.tint}`}>
                 <p className="font-mono text-3xl font-semibold tracking-[-0.04em] text-navy">
                   {stat.value}
@@ -873,8 +765,13 @@ export default function LandingPage() {
             </div>
             <Link href="/register" className="inline-flex items-center gap-2 self-start rounded-full border border-navy/20 bg-white px-4 py-2 text-sm font-medium text-navy transition hover:border-navy hover:bg-navy hover:text-white md:self-auto">Xem tất cả công ty <ArrowUpRight className="size-4" /></Link>
           </div>
-          <Reveal stagger className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-             {featuredCompanies.map(([name, field, openings], companyIndex) => (
+           {featuredCompanies.length === 0 ? (
+             <div className="mt-10 rounded-[1.75rem] border border-linen bg-white px-6 py-10 text-center text-sm text-charcoal/65">
+               Chưa có doanh nghiệp nào đang tuyển.
+             </div>
+           ) : (
+           <Reveal stagger className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+              {featuredCompanies.map(([name, field, openings], companyIndex) => (
               <Link href="/viec-lam" key={name} className="group rounded-[1.75rem] border border-linen bg-white p-6 transition duration-300 hover:-translate-y-1 hover:border-marine/30 hover:shadow-[0_20px_48px_rgba(53,92,140,0.10)]">
                 <div className={`flex size-12 items-center justify-center rounded-2xl font-mono text-[10px] font-bold text-white ${companyIndex % 2 === 0 ? "bg-navy" : "bg-marine"}`}>{name.slice(0, 2)}</div>
                 <h3 className="mt-8 font-semibold tracking-tight text-charcoal">{name}</h3>
@@ -885,7 +782,8 @@ export default function LandingPage() {
                 </p>
               </Link>
             ))}
-          </Reveal>
+           </Reveal>
+           )}
         </div>
       </section>
 
