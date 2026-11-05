@@ -15,6 +15,7 @@ namespace Application.DTOs.HoSoUngVien
         public string HoTen { get; set; }
 
         [Phone(ErrorMessage = "Số điện thoại không hợp lệ.")]
+        [RegularExpression(@"^0(3|5|7|8|9)\d{8}$", ErrorMessage = "Số điện thoại di động VN không hợp lệ.")]
         [MaxLength(20)]
         public string SDT { get; set; }
 

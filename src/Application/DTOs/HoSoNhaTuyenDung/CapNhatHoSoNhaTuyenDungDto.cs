@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace Application.DTOs.HoSoNhaTuyenDung
 {
     public class CapNhatHoSoNhaTuyenDungDto
@@ -10,8 +12,11 @@ namespace Application.DTOs.HoSoNhaTuyenDung
 
         public string GioiThieu { get; set; }
 
+        [Phone(ErrorMessage = "Số điện thoại không hợp lệ.")]
+        [RegularExpression(@"^0(3|5|7|8|9)\d{8}$", ErrorMessage = "Số điện thoại di động VN không hợp lệ.")]
         public string SoDienThoai { get; set; }
 
+        [EmailAddress(ErrorMessage = "Email không đúng định dạng.")]
         public string EmailLienHe { get; set; }
     }
 }

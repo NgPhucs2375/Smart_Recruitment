@@ -28,6 +28,7 @@ namespace Application.DTOs.Account
 
         [Required]
         [Phone]
+        [RegularExpression(@"^0(3|5|7|8|9)\d{8}$", ErrorMessage = "Số điện thoại di động VN không hợp lệ.")]
         [JsonPropertyName("soDienThoai")]
         public string SoDienThoai { get; set; }
 

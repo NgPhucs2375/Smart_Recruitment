@@ -28,6 +28,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { StackHeader } from '@/components/stack-header';
 import { ThemedText } from '@/components/themed-text';
 import { Button } from '@/components/ui/button';
+import { normalizePhone, validatePhone } from '@/features/auth/validation';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { font, Radius } from '@/constants/theme';
 import { useAuth } from '@/features/auth';
@@ -108,7 +109,7 @@ function formFromProfile(profile: CandidateProfile, fallbackName: string): FormS
 function toInput(form: FormState): CandidateProfileInput {
   return {
     fullName: form.fullName.trim(),
-    phone: form.phone.trim(),
+    phone: normalizePhone(form.phone),
     birthDate: vnToIsoDate(form.birthDate),
     gender: form.gender,
     location: form.location.trim(),
@@ -145,9 +146,7 @@ function validate(form: FormState): FieldErrors {
   if (!fullName) errors.fullName = 'Vui lòng nhập họ và tên.';
   else if (fullName.length > 200) errors.fullName = 'Họ và tên tối đa 200 ký tự.';
 
-  if (form.phone.trim() && !/^[0-9+().\s-]{8,20}$/.test(form.phone.trim())) {
-    errors.phone = 'Số điện thoại không hợp lệ.';
-  }
+  if (form.phone.trim() && validatePhone(form.phone)) errors.phone = 'Số điện thoại không hợp lệ.';
 
   if (form.birthDate.trim()) {
     const iso = vnToIsoDate(form.birthDate);

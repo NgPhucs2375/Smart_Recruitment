@@ -24,6 +24,8 @@ export function usePasswordRegister(options?: {
     formState: { errors },
   } = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
+    mode: "onChange",
+    reValidateMode: "onChange",
     defaultValues: {
       email: options?.email ?? "",
       password: "",

@@ -6,6 +6,7 @@ import {
   isValidEmail,
   isValidHttpUrl,
   isValidVnPhone,
+  normalizeVnPhone,
 } from "@/features/tao-cv/validation";
 
 export const hexColorRegex = /^#[0-9a-fA-F]{6}$/;
@@ -26,7 +27,8 @@ const phoneField = (requiredMsg = "Vui lòng nhập số điện thoại") =>
     .trim()
     .min(1, requiredMsg)
     .max(20, "Số điện thoại tối đa 20 ký tự.")
-    .refine(isValidVnPhone, { message: MSG_PHONE });
+    .refine(isValidVnPhone, { message: MSG_PHONE })
+    .transform(normalizeVnPhone);
 
 /** Text thường: trim (diệt "   ") + giới hạn độ dài. */
 const textField = (requiredMsg: string, max = 100) =>

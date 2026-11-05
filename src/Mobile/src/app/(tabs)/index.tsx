@@ -422,7 +422,12 @@ function AiMatchSection() {
 
   return (
     <View style={styles.aiMatch}>
-      <View style={styles.aiMatchHeading}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Xem tất cả việc làm gợi ý"
+        onPress={() => router.push('/phu-hop')}
+        style={({ pressed }) => [styles.aiMatchHeading, { opacity: pressed ? 0.75 : 1 }]}
+      >
         <View style={[styles.aiMatchIcon, { backgroundColor: `${theme.primary}14` }]}>
           <Sparkles size={15} color={theme.primary} />
         </View>
@@ -432,7 +437,7 @@ function AiMatchSection() {
         <Badge variant="outline" color={theme.primary}>
           DEMO
         </Badge>
-      </View>
+      </Pressable>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}

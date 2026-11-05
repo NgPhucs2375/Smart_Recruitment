@@ -36,6 +36,7 @@ import { avatarProxyUrl, hoSoApi, cvApi } from "@/lib/api/cv-api";
 import type { HoSoVm, CvVm } from "@/lib/types";
 import { formatVndInput, parseVndInput } from "@/lib/format-vnd";
 import { isoToVnDate, isValidVnDate, maskDateVn, vnToIsoDate } from "@/features/tao-cv/cv-data";
+import { isValidVnPhone, MSG_PHONE, normalizeVnPhone } from "@/features/tao-cv/validation";
 import { MOCK_CVS, MOCK_HO_SO } from "./mock-preview";
 import { useStoredIdentity } from "@/hooks/use-stored-identity";
 import { useFollowedCompanies } from "@/hooks/use-followed-companies";
@@ -319,6 +320,10 @@ export function HoSoView() {
       toast.error("Vui lòng nhập họ tên.");
       return;
     }
+    if (sdt.trim() && !isValidVnPhone(sdt)) {
+      toast.error(MSG_PHONE);
+      return;
+    }
     if (ngaySinh.trim() !== "" && !isValidVnDate(ngaySinh)) {
       toast.error("Ngày sinh không hợp lệ (dd/mm/yyyy).");
       return;
@@ -328,7 +333,7 @@ export function HoSoView() {
       const isoNgaySinh = vnToIsoDate(ngaySinh);
       const payload = {
         hoTen: hoTen.trim(),
-        sdt: sdt.trim(),
+        sdt: normalizeVnPhone(sdt),
         // Date-only string parses as UTC midnight, preserving the calendar day.
         ngaySinh: isoNgaySinh ? new Date(isoNgaySinh).toISOString() : null,
         gioiTinh,
@@ -801,9 +806,16 @@ export function HoSoView() {
                         placeholder="0912345678"
                         value={sdt}
                         onChange={(e) => setSdt(e.target.value)}
+                        type="tel"
+                        inputMode="tel"
+                        maxLength={20}
+                        aria-invalid={sdt.trim() !== "" && !isValidVnPhone(sdt)}
                         className="h-10 rounded-xl border-input bg-card pl-10 text-sm"
                       />
                     </div>
+                    {sdt.trim() !== "" && !isValidVnPhone(sdt) ? (
+                      <p className="text-xs text-destructive" role="alert">{MSG_PHONE}</p>
+                    ) : null}
                   </div>
                 </div>
 

@@ -27,6 +27,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { font, Radius } from '@/constants/theme';
 import { useAuth } from '@/features/auth';
+import { normalizePhone, validatePhone } from '@/features/auth/validation';
 import { hrCompanyApi, hrProfileApi, type RecruiterProfile } from '@/features/hr/api/hr-api';
 import type { CompanyMine } from '@/features/hr/types';
 import { useTheme } from '@/hooks/use-theme';
@@ -35,8 +36,6 @@ const ROLE_LABELS: Record<string, string> = {
   NGUOI_DAI_DIEN: 'Người đại diện',
   NHAN_SU: 'Nhân sự',
 };
-
-const PHONE_PATTERN = /^\+?[0-9\s.-]{8,20}$/;
 
 type Notice = { type: 'success' | 'error'; message: string } | null;
 
@@ -96,7 +95,7 @@ export default function HRAccountScreen() {
 
   const validate = (): string | null => {
     if (!form.hoTen.trim()) return 'Họ tên không được để trống.';
-    if (form.sdt.trim() && !PHONE_PATTERN.test(form.sdt.trim()))
+    if (form.sdt.trim() && validatePhone(form.sdt))
       return 'Số điện thoại không hợp lệ.';
     return null;
   };
@@ -122,7 +121,7 @@ export default function HRAccountScreen() {
     }
     const payload = {
       hoTen: form.hoTen.trim(),
-      sdt: form.sdt.trim(),
+      sdt: normalizePhone(form.sdt),
       chucVu: form.chucVu.trim(),
     };
 
