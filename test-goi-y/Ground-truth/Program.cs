@@ -19,7 +19,7 @@ if (string.IsNullOrWhiteSpace(connectionString))
 }
 
 var applicationOptions = new DbContextOptionsBuilder<ApplicationDbContext>()
-    .UseNpgsql(connectionString)
+    .UseNpgsql(connectionString, b => b.UseVector())
     .Options;
 var identityOptions = new DbContextOptionsBuilder<IdentityContext>()
     .UseNpgsql(connectionString)
