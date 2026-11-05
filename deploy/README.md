@@ -42,8 +42,8 @@ POSTGRES_PASSWORD=<mat-khau-postgres-manh>
 JWT_KEY=<base64-it-nhat-32-bytes>            # vd: openssl rand -base64 48
 MINIO_ROOT_USER=hireai-minio
 MINIO_ROOT_PASSWORD=<mat-khau-minio-16-ky-tu-tro-len>
-MINIO_PUBLIC_ENDPOINT=http://<IP-VM>:9000
-FRONTEND_ALLOWED_ORIGINS=http://<IP-VM>
+MINIO_PUBLIC_ENDPOINT=https://<domain>
+FRONTEND_ALLOWED_ORIGINS=https://<domain>
 
 # --- AI / Mail / Google (để trống = tính năng đó tắt, app vẫn chạy) ---
 GEMINI_API_KEY=<google-ai-studio-api-key>
@@ -87,13 +87,36 @@ curl -fsS http://localhost/ -o /dev/null && echo "WEB OK"   # qua Nginx
 # Rollback bản cũ: git reset --hard <commit-cu> && docker compose --env-file .env.prod -f docker-compose.prod.yml up -d --build
 ```
 
-## 6. Khi có domain (làm sau — checklist)
+## 6. Gắn domain + HTTPS (đã áp dụng cho hireais.dev)
 
-1. Trỏ DNS `A @ -> IP-VM` (và `A minio -> IP-VM` nếu muốn console đẹp, không bắt buộc).
-2. Trên VM: `sudo apt-get install -y certbot && sudo certbot certonly --webroot -w /var/www/certbot -d <domain>`.
-3. Bỏ comment 2 volume certs trong `docker-compose.prod.yml` + block `443` trong `deploy/nginx/nginx.conf` (thay `<DOMAIN>`), tạo `deploy/nginx/certs/` chứa `fullchain.pem` + `privkey.pem`, compose up lại.
-4. Đổi secrets/env: `FRONTEND_ALLOWED_ORIGINS=https://<domain>`, `MINIO_PUBLIC_ENDPOINT` sang `https://...` (lúc này **bắt buộc** MinIO qua TLS — xem lại `Minio__UseSSL=true` + cert cho MinIO, hoặc chuyển sang subdomain `minio.<domain>`).
-5. Cron renew: `0 3 * * * certbot renew --quiet && docker restart hireai-nginx`.
+1. DNS: `A @ -> IP-VM` và `A www -> IP-VM`.
+2. Firewall GCP: chỉ cần rule cho cổng `80` và `443`. **Không** mở `9000` —
+   trình duyệt không còn chạm thẳng MinIO (xem mục 5).
+3. Cert: `sudo mkdir -p /var/www/certbot && sudo apt-get install -y certbot` rồi
+   `sudo certbot certonly --webroot -w /var/www/certbot -d hireais.dev -d www.hireais.dev`.
+   Cert nằm ở `/etc/letsencrypt/live/hireais.dev/`. nginx đã mount sẵn
+   `/etc/letsencrypt` và `/var/www/certbot` (volume trong `docker-compose.prod.yml`);
+   block 443 trong `deploy/nginx/nginx.conf` chỉ thẳng vào `fullchain.pem`/`privkey.pem`
+   nên không cần bỏ comment hay copy cert đi đâu.
+4. `.env.prod`: `FRONTEND_ALLOWED_ORIGINS=https://hireais.dev` — chỉ origin HTTPS apex,
+   vì http:// và www:// đã bị nginx 301 về apex (thêm origin khác vào allow-list là backend
+   từ chối `Địa chỉ frontend không được phép` với request thật).
+   `MINIO_PUBLIC_ENDPOINT=https://hireais.dev` — **có scheme**: scheme quyết định TLS của
+   presigned URL; `Minio__UseSSL` vẫn là `false` vì backend↔MinIO đi http trong docker network.
+5. Presigned URL: `MinioFileStorageService.CreatePresignedUrlAsync` sinh
+   `https://hireais.dev/smart-recruitment-files/<object>?X-Amz-...`. SigV4 ký theo
+   `Host` + path, nên nginx phải forward nguyên URI và giữ `Host: hireais.dev`
+   (`location ^~ /smart-recruitment-files/`). Đổi `Minio__BucketName` thì đổi luôn prefix
+   location. Kiểm chứng route thông:
+   `curl -s -o /dev/null -w '%{http_code}\n' "https://<domain>/smart-recruitment-files/khong-ton-tai.pdf"`
+   → 403/404 kiểu S3 (chữ ký sai/thiếu key), không phải 200 HTML của Next.
+6. OAuth provider: Google Cloud Console → Credentials → OAuth client →
+   **Authorized JavaScript origins** thêm `https://hireais.dev` (consent screen còn ở
+   Testing thì nhớ thêm email test). GitHub OAuth App → callback
+   `https://hireais.dev/auth/github/callback`.
+7. Renew tự động: `sudo crontab -e` thêm
+   `0 3 * * * certbot renew --quiet --deploy-hook "docker restart hireai-nginx"`.
+
 
 ## 7. Lưu ý đã biết
 

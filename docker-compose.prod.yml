@@ -5,9 +5,11 @@
 # Lưu ý kiến trúc:
 # - Backend nghe 8080 nội bộ (Program.cs fallback). Nginx route TẤT CẢ về
 #   frontend:3000; frontend proxy server-side tới http://backend:8080.
-# - MinIO mở 9000 (+console 9001) ra host cho presigned URL trình duyệt.
-#   Chưa TLS (không domain) -> Minio__UseSSL=false. Khi gắn domain + 443,
-#   xem lại MinIO trong deploy/README.md (HTTP trên trang HTTPS bị chặn).
+# - Presigned URL mà trình duyệt mở = https://hireais.dev/<bucket>/<object>?X-Amz-*,
+#   nginx forward path đó vào minio:9000 (xem deploy/nginx/nginx.conf), nên không cần
+#   mở cổng 9000 ra internet. Minio__UseSSL chỉ áp cho client NỘI BỘ backend->MinIO
+#   (vẫn http trong docker network); TLS của URL public lấy từ scheme của
+#   MINIO_PUBLIC_ENDPOINT. Cổng 9001 còn lại cho console admin.
 
 services:
   postgres:
@@ -149,16 +151,18 @@ services:
 
 
       Minio__Endpoint: minio:9000
-      Minio__PublicEndpoint: "${MINIO_PUBLIC_ENDPOINT:?MINIO_PUBLIC_ENDPOINT is required (vd: http://<IP-VM>:9000)}"
+      Minio__PublicEndpoint: "${MINIO_PUBLIC_ENDPOINT:?MINIO_PUBLIC_ENDPOINT is required (vd: https://hireais.dev)}"
 
       Minio__AccessKey: "${MINIO_ROOT_USER:?MINIO_ROOT_USER is required}"
 
       Minio__SecretKey: "${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD is required}"
 
       Minio__BucketName: smart-recruitment-files
+      # Client nội bộ backend->MinIO; presigned URL public bật TLS theo scheme
+      # của MINIO_PUBLIC_ENDPOINT (MinioFileStorageService.CreatePresignedUrlAsync).
       Minio__UseSSL: "false"
 
-      Frontend__AllowedOrigins: "${FRONTEND_ALLOWED_ORIGINS:?FRONTEND_ALLOWED_ORIGINS is required (vd: http://<IP-VM>)}"
+      Frontend__AllowedOrigins: "${FRONTEND_ALLOWED_ORIGINS:?FRONTEND_ALLOWED_ORIGINS is required (vd: https://hireais.dev)}"
 
     depends_on:
       postgres:
@@ -201,9 +205,9 @@ services:
       - "443:443"
     volumes:
       - ./deploy/nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
-      # Khi có certs (Certbot webroot): bỏ comment 2 dòng dưới.
-      # - ./deploy/nginx/certs:/etc/nginx/certs:ro
-      # - certbot-www:/var/www/certbot:ro
+      # Certbot chạy trên host; mount cả /etc/letsencrypt vì live/ là symlink sang archive/.
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+      - /var/www/certbot:/var/www/certbot:ro
     depends_on:
       - frontend
     networks:
@@ -212,7 +216,6 @@ services:
 volumes:
   postgres_data:
   minio_data:
-  # certbot-www:
 
 networks:
   hireai_network:
