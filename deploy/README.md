@@ -56,6 +56,8 @@ MAIL_PASS=
 MAIL_FROM=
 MAIL_DISPLAY_NAME=HireAI
 GOOGLE_CLIENT_ID=
+GITHUB_CLIENT_ID=
+GITHUB_CLIENT_SECRET=
 COPILOTKIT_THREADS_ENABLED=
 JWT_ISSUER=Identity
 JWT_AUDIENCE=IdentityUser
@@ -113,7 +115,12 @@ curl -fsS http://localhost/ -o /dev/null && echo "WEB OK"   # qua Nginx
 6. OAuth provider: Google Cloud Console → Credentials → OAuth client →
    **Authorized JavaScript origins** thêm `https://hireais.dev` (consent screen còn ở
    Testing thì nhớ thêm email test). GitHub OAuth App → callback
-   `https://hireais.dev/auth/github/callback`.
+   `https://hireais.dev/auth/github/callback`, rồi khai báo vào `.env.prod`:
+   `GITHUB_CLIENT_ID` (dùng cho cả backend `GitHubSettings__ClientId` và build arg
+   `NEXT_PUBLIC_GITHUB_CLIENT_ID`) + `GITHUB_CLIENT_SECRET` (chỉ server đọc, không bao
+   giờ vào repo/chat). Thiếu 2 biến này thì nút GitHub báo "chưa được cấu hình" — chủ ý,
+   app vẫn chạy. Vì client id bake vào bundle lúc build, đổi nó phải
+   `up -d --build frontend`.
 7. Renew tự động: `sudo crontab -e` thêm
    `0 3 * * * certbot renew --quiet --deploy-hook "docker restart hireai-nginx"`.
 
