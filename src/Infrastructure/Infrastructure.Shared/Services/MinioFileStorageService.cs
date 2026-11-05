@@ -106,10 +106,22 @@ public class MinioFileStorageService : IFileStorageService
             return await _minioClient.PresignedGetObjectAsync(args);
         }
 
+        // MinIO SDK chi nhân host[:port]: endpoint cong khai duoc ghi ca scheme
+        // (https://ten-mien) thi scheme quyet TLS cho URL trinh duyet mo, con
+        // UseSSL dung cho client noi bo (van la http trong docker network).
+        var publicEndpoint = _settings.PublicEndpoint.Trim();
+        var publicUseSsl = _settings.UseSSL;
+        if (Uri.TryCreate(publicEndpoint, UriKind.Absolute, out var publicUri)
+            && (publicUri.Scheme == "http" || publicUri.Scheme == "https"))
+        {
+            publicUseSsl = publicUri.Scheme == "https";
+            publicEndpoint = publicUri.Authority;
+        }
+
         var publicClient = new MinioClient()
-            .WithEndpoint(_settings.PublicEndpoint)
+            .WithEndpoint(publicEndpoint)
             .WithCredentials(_settings.AccessKey, _settings.SecretKey)
-            .WithSSL(_settings.UseSSL)
+            .WithSSL(publicUseSsl)
             .Build();
         return await publicClient.PresignedGetObjectAsync(args);
     }
