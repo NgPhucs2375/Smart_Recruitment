@@ -86,3 +86,6 @@ archify-artifacts/
 
 # Script may dev rieng (chua duong dan SDK/AVD ca nhan) — khong commit
 src/Mobile/start-android.bat
+
+# Ban copy cert tren VM (co chua private key) - khong duoc commit.
+deploy/nginx/certs/
