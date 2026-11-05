@@ -11,7 +11,12 @@ namespace Infrastructure.Identity.Seeds
 {
     public static class DefaultSuperAdmin
     {
-        public static async Task SeedAsync(UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager, IApplicationDbContext appContext)
+        /// <param name="restoreSeedCredentials">
+        /// Chỉ Development: ép mật khẩu/EmailConfirmed/lockout của tài khoản seed đã tồn tại
+        /// về đúng giá trị seed, để dữ liệu demo tự hồi phục. Ở Production phải để false, nếu
+        /// không UC04 đặt lại mật khẩu sẽ bị ghi đè ngược về mật khẩu seed ở lần khởi động sau.
+        /// </param>
+        public static async Task SeedAsync(UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager, IApplicationDbContext appContext, bool restoreSeedCredentials)
         {
             // Seed Default User
             var defaultUser = new ApplicationUser
@@ -34,7 +39,7 @@ namespace Infrastructure.Identity.Seeds
                 }
                 user = defaultUser;
             }
-            else
+            else if (restoreSeedCredentials)
             {
                 // Đảm bảo mật khẩu luôn đúng với seed nếu tài khoản đã tồn tại từ trước
                 if (!await userManager.CheckPasswordAsync(user, "123Pa$$word!"))

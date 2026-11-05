@@ -74,7 +74,11 @@ function clearFails(email: string): void {
  * Password form concerns (RHF + zod + remember-me email).
  * Submission itself delegates to the shared `useAuthLogin` engine.
  */
-export function usePasswordLogin(portal?: PortalKind, next?: string | null) {
+export function usePasswordLogin(
+  portal?: PortalKind,
+  next?: string | null,
+  initialEmail?: string | null,
+) {
   const auth = useAuthLogin(portal, next);
 
   const {
@@ -90,6 +94,12 @@ export function usePasswordLogin(portal?: PortalKind, next?: string | null) {
   });
 
   useEffect(() => {
+    // Email vừa đăng ký (từ ?email=) thắng email đã lưu: người dùng cần thấy đúng
+    // địa chỉ mình phải xác minh, không phải địa chỉ của phiên trước.
+    if (initialEmail) {
+      reset({ email: initialEmail, password: "", remember: false });
+      return;
+    }
     try {
       const savedEmail = localStorage.getItem(SAVED_EMAIL_KEY);
       if (savedEmail) {
@@ -98,7 +108,7 @@ export function usePasswordLogin(portal?: PortalKind, next?: string | null) {
     } catch {
       // Ignore storage errors
     }
-  }, [reset]);
+  }, [reset, initialEmail]);
 
   const remember = useWatch({ control, name: "remember" });
   const email = useWatch({ control, name: "email" });

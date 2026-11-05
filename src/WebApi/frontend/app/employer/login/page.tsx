@@ -4,13 +4,15 @@ import { ResendVerification } from "@/components/auth/resend-verification";
 import { Suspense, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { usePasswordLogin, useGoogleAuth } from "@/hooks";
+import { usePasswordLogin, useGoogleAuth, useMagicLink } from "@/hooks";
 import { sanitizeNext } from "@/lib/portal-roles";
 import {
   AuthLayout,
   GoogleAuthSection,
   GithubLoginButton,
+  MagicLinkForm,
   RememberSessionField,
+  TabSwitcher,
 } from "@/components/auth";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -32,12 +34,23 @@ export default function EmployerLoginPage() {
 }
 
 function EmployerLoginContent() {
+  const [tab, setTab] = useState<"password" | "magic">("password");
   const [showPassword, setShowPassword] = useState(false);
   const [githubError, setGithubError] = useState<string | null>(null);
   const searchParams = useSearchParams();
   const next = sanitizeNext(searchParams.get("next"));
-  const { register, handleSubmit, setValue, errors, isPending, submitError, remember, email, cooling, cooldownLeft } = usePasswordLogin("employer", next);
+  const pendingVerification = searchParams.get("unverified") === "1";
+  const { register, handleSubmit, setValue, errors, isPending, submitError, remember, email, cooling, cooldownLeft } = usePasswordLogin("employer", next, searchParams.get("email"));
   const { handleGoogleLogin, isPending: isGooglePending, error: googleError } = useGoogleAuth("employer", next);
+  const {
+    email: magicEmail,
+    setEmail: setMagicEmail,
+    sent: magicSent,
+    loading: magicLoading,
+    error: magicError,
+    handleSubmit: handleMagicSubmit,
+    reset: resetMagic,
+  } = useMagicLink("Login", { portal: "employer", next });
 
   return (
     <AuthLayout
@@ -115,13 +128,23 @@ function EmployerLoginContent() {
         <p className="mt-1.5 text-sm text-muted-foreground">Dùng chung hệ thống xác thực HIREAI</p>
       </div>
 
+      <TabSwitcher
+        tabs={[
+          { id: "password", label: "Email & mật khẩu" },
+          { id: "magic", label: "Magic Link" },
+        ]}
+        active={tab}
+        onChange={(id) => setTab(id as "password" | "magic")}
+      />
+
+      {tab === "password" && (
       <form onSubmit={handleSubmit} noValidate className="space-y-3">
         {submitError && (
           <Alert variant="destructive" className="border-red-200 bg-red-50 py-2.5">
             <AlertDescription className="text-xs text-red-700">{submitError}</AlertDescription>
           </Alert>
         )}
-        <ResendVerification email={email ?? ""} error={submitError} />
+        <ResendVerification email={email ?? ""} error={submitError} visible={pendingVerification} />
 
         <div className="space-y-1.5">
           <Label htmlFor="employer-email" className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
@@ -211,6 +234,21 @@ function EmployerLoginContent() {
         />
         {githubError && <p className="text-xs text-red-500">{githubError}</p>}
       </form>
+      )}
+
+      {tab === "magic" && (
+        <MagicLinkForm
+          email={magicEmail}
+          setEmail={setMagicEmail}
+          sent={magicSent}
+          loading={magicLoading}
+          error={magicError}
+          onSubmit={handleMagicSubmit}
+          onReset={resetMagic}
+          buttonText="Gửi Magic Link qua Email"
+          label="Email nhận mã truy cập"
+        />
+      )}
 
       <div className="mt-6 border-t border-border/60 pt-4 text-center">
         <p className="text-xs text-muted-foreground">

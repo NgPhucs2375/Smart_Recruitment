@@ -253,7 +253,6 @@ public sealed class AdminDashboardController(
                 new HealthDto("API", "healthy", true),
                 new HealthDto("PostgreSQL", "healthy", true),
                 new HealthDto("Redis", redisHealthy && redis.IsConnected ? "healthy" : "degraded", true),
-                new HealthDto("RabbitMQ", "not-tracked", false),
                 new HealthDto("Object Storage", minioHealthy ? "healthy" : "degraded", true),
                 new HealthDto("AI Provider", aiTracked && aiHealth.Status == HealthStatus.Healthy ? "healthy" : "degraded", aiTracked)
             ],

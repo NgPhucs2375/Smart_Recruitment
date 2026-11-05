@@ -19,7 +19,7 @@ export function useMagicLinkRegister() {
     formState: { errors },
   } = useForm<MagicLinkFormData>({
     resolver: zodResolver(magicLinkSchema),
-    defaultValues: { email: "", role: "UNG_VIEN", hoTen: "", soDienThoai: "" },
+    defaultValues: { email: "", role: "UNG_VIEN" },
   });
 
   const selectedRole = useWatch({ control, name: "role" });
@@ -29,11 +29,17 @@ export function useMagicLinkRegister() {
     setLoading(true);
     setError(null);
     try {
+      // /magic-login dùng cờ này để đưa tài khoản vừa tạo vào trang Hồ sơ thay vì
+      // dashboard; mất cờ khi mở link trên thiết bị khác thì vẫn về dashboard như cũ.
+      try {
+        sessionStorage.setItem("hireai.magic.intent", "register");
+      } catch {
+        // ignore storage errors
+      }
       const res = await requestMagicLink({
         email: data.email,
         purpose: "Register",
         role: data.role,
-        hoTen: data.hoTen,
       });
       if (res.success) {
         setSent(true);

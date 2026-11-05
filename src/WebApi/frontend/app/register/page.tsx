@@ -347,25 +347,6 @@ function RegisterContent() {
               )}
 
               <div className="space-y-1">
-                <Label htmlFor="reg-magic-ho-ten" className="text-xs font-medium text-gray-700">Họ và tên</Label>
-                <div className="relative">
-                  <User className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
-                  <Input
-                    id="reg-magic-ho-ten"
-                    type="text"
-                    autoComplete="name"
-                    {...registerMagic("hoTen")}
-                    aria-invalid={!!magicErrors.hoTen}
-                    aria-describedby="reg-magic-ho-ten-error"
-                    disabled={magicLoading}
-                    placeholder="Nguyễn Văn A"
-                    className="h-10 rounded-xl border-input bg-white pl-10 text-sm"
-                  />
-                </div>
-                {magicErrors.hoTen && <p id="reg-magic-ho-ten-error" role="alert" className="text-xs text-red-500">{magicErrors.hoTen.message}</p>}
-              </div>
-
-              <div className="space-y-1">
                 <Label htmlFor="reg-magic-email" className="text-xs font-medium text-gray-700">Email nhận liên kết</Label>
                 <div className="relative">
                   <Mail className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
@@ -384,24 +365,10 @@ function RegisterContent() {
                 {magicErrors.email && <p id="reg-magic-email-error" role="alert" className="text-xs text-red-500">{magicErrors.email.message}</p>}
               </div>
 
-              <div className="space-y-1">
-                <Label htmlFor="reg-magic-so-dien-thoai" className="text-xs font-medium text-gray-700">Số điện thoại</Label>
-                <div className="relative">
-                  <Phone className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
-                  <Input
-                    id="reg-magic-so-dien-thoai"
-                    type="text"
-                    autoComplete="tel"
-                    {...registerMagic("soDienThoai")}
-                    aria-invalid={!!magicErrors.soDienThoai}
-                    aria-describedby="reg-magic-so-dien-thoai-error"
-                    disabled={magicLoading}
-                    placeholder="090 123 4567"
-                    className="h-10 rounded-xl border-input bg-white pl-10 text-sm"
-                  />
-                </div>
-                {magicErrors.soDienThoai && <p id="reg-magic-so-dien-thoai-error" role="alert" className="text-xs text-red-500">{magicErrors.soDienThoai.message}</p>}
-              </div>
+              <p className="text-xs leading-5 text-muted-foreground">
+                Liên kết gửi tới email của bạn là bước xác thực. Sau khi bấm liên kết,
+                bạn sẽ vào trang Hồ sơ để khai họ tên và số điện thoại.
+              </p>
 
               <Button
                 type="submit"

@@ -11,7 +11,7 @@ namespace Infrastructure.Identity.Seeds
 {
     public static class DefaultNguoiDaiDien
     {
-        public static async Task SeedAsync(UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager, IApplicationDbContext appContext)
+        public static async Task SeedAsync(UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager, IApplicationDbContext appContext, bool restoreSeedCredentials)
         {
             //Seed Default User (NGUOI_DAI_DIEN)
             var defaultUser = new ApplicationUser
@@ -34,7 +34,7 @@ namespace Infrastructure.Identity.Seeds
                 }
                 user = defaultUser;
             }
-            else
+            else if (restoreSeedCredentials)
             {
                 // Đảm bảo mật khẩu luôn đúng với seed nếu tài khoản đã tồn tại từ trước
                 if (!await userManager.CheckPasswordAsync(user, "123Pa$$word!"))

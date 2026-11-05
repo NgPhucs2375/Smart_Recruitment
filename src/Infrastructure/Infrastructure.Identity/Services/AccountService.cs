@@ -723,6 +723,11 @@ namespace Infrastructure.Identity.Services
                 throw new ApiException(IdentityErrorMessages.Map(
                     result.Errors, IdentityErrorMessages.GenericResetToken, _identityOptions));
 
+            // Token được gửi đúng vào mailbox của email này, nên nó là bằng chứng sở hữu
+            // mailbox (cùng quy tắc với magic link và Google/GitHub): xác minh luôn để
+            // người dùng chưa bấm link confirm — đặc biệt NS mới được mời — không bị kẹt
+            // giữa "đã đổi được mật khẩu" và "không đăng nhập được".
+            account.EmailConfirmed = true;
             await RevokeSessionsAsync(account);
             return new Response<string>(model.Email, "Mật khẩu đã được đặt lại. Vui lòng đăng nhập lại.");
         }
@@ -730,6 +735,8 @@ namespace Infrastructure.Identity.Services
         /// <summary>
         /// Lockout do nhập sai mật khẩu là tình thế bí: nếu từ chối reset ở đây, người dùng
         /// bị kẹt giữa "link hợp lệ" và "đăng nhập luôn ăn 401". Admin-lock thì vẫn phải chặn.
+        /// requireVerified = false: token reset đã chứng minh sở hữu mailbox nên không chặn
+        /// tài khoản chưa confirm; các gate còn lại (IsActive, có vai trò) vẫn giữ.
         /// </summary>
         private async Task EnsureAccountUsableForResetAsync(ApplicationUser account)
         {
@@ -743,7 +750,7 @@ namespace Infrastructure.Identity.Services
                 await _userManager.ResetAccessFailedCountAsync(account);
             }
 
-            await EnsureAccountEnabledAsync(account, requireVerified: true);
+            await EnsureAccountEnabledAsync(account, requireVerified: false);
         }
 
         public async Task<Response<string>> ChangePasswordAsync(YeuCauDoiMatKhau model)
@@ -1343,10 +1350,32 @@ namespace Infrastructure.Identity.Services
             // 1. Chuẩn hóa Email
             string email = request.Email.Trim().ToLowerInvariant();
             request.Role = request.Role?.Trim().ToUpperInvariant();
-            if (request.Role is not ("UNG_VIEN" or "NGUOI_DAI_DIEN"))
-                throw new ApiException("Magic link chỉ hỗ trợ đăng ký Ứng viên hoặc Người đại diện.");
 
-            // 2. Vô hiệu hóa tất cả token cũ đang kích hoạt
+            // 2. Vai trò chỉ có ý nghĩa khi email CHƯA có tài khoản (luồng đăng ký).
+            // Email đã được tài khoản hóa: liên kết gửi tới đúng hộp thư chính là bằng chứng
+            // sở hữu hộp thư, nên mọi vai trò đều được phép đăng nhập passwordless.
+            var existingUser = await _userManager.FindByEmailAsync(email);
+            string linkRole;
+            if (existingUser != null)
+            {
+                linkRole = (await _userManager.GetRolesAsync(existingUser)).FirstOrDefault();
+            }
+            else if (string.IsNullOrWhiteSpace(request.Role))
+            {
+                // ý định "đăng nhập" cho email chưa đăng ký: không gửi thư, trả lời chung
+                // như mọi nhánh khác để không rò rỉ việc email tồn tại hay không.
+                return new Response<string>(null, "Nếu email tồn tại, liên kết đã được gửi. Vui lòng kiểm tra hộp thư.");
+            }
+            else if (request.Role is not ("UNG_VIEN" or "NGUOI_DAI_DIEN"))
+            {
+                throw new ApiException("Magic link chỉ hỗ trợ đăng ký Ứng viên hoặc Người đại diện.");
+            }
+            else
+            {
+                linkRole = request.Role;
+            }
+
+            // 3. Vô hiệu hóa tất cả token cũ đang kích hoạt
             var oldTokens = await _context.MagicLinkTokens
                 .Where(m => m.Email == email && !m.Used && m.ExpiresAt > DateTime.UtcNow)
                 .ToListAsync();
@@ -1356,25 +1385,25 @@ namespace Infrastructure.Identity.Services
                 oldToken.Used = true;
             }
 
-            // 2b. Dọn token rác (đã dùng/hết hạn) của email này để bảng không phình vô hạn
+            // 4. Dọn token rác (đã dùng/hết hạn) của email này để bảng không phình vô hạn
             var staleTokens = await _context.MagicLinkTokens
                 .Where(m => m.Email == email && (m.Used || m.ExpiresAt <= DateTime.UtcNow))
                 .ToListAsync();
             _context.MagicLinkTokens.RemoveRange(staleTokens);
 
-            // 3. Khởi tạo Token mới
+            // 5. Khởi tạo Token mới
             string token = Guid.NewGuid().ToString("N");
             var magicToken = new MagicLinkToken
             {
                 Email = email,
                 Token = token,
                 Purpose = MagicLinkPurpose.PasswordLessLogin, // Gắn cứng theo nghiệp vụ đăng nhập[cite: 16]
-                Role = request.Role, 
+                Role = linkRole,
                 ExpiresAt = DateTime.UtcNow.AddMinutes(15),
                 Used = false
             };
 
-            // 4. Lưu CSDL
+            // 6. Lưu CSDL
             await _context.MagicLinkTokens.AddAsync(magicToken);
             await _context.SaveChangesAsync();
 
@@ -1411,7 +1440,11 @@ namespace Infrastructure.Identity.Services
             // 4. Khởi tạo User nếu chưa tồn tại
             if (user == null)
             {
-                if (magicToken.Purpose == MagicLinkPurpose.PasswordLessLogin)
+                // Chỉ hai vai trò tự đăng ký được provision qua magic link. Token mang vai trò
+                // khác (vd NHAN_SU) chỉ xảy ra khi tài khoản bị xoá sau khi gửi link — không được
+                // tạo tài khoản mồ côi không vai trò.
+                if (magicToken.Purpose == MagicLinkPurpose.PasswordLessLogin
+                    && magicToken.Role is "UNG_VIEN" or "NGUOI_DAI_DIEN")
                 {
                     string userName = $"{email.Split('@')[0]}_{Guid.NewGuid().ToString("N")[..6]}";
                     

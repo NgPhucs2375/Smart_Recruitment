@@ -40,8 +40,6 @@ Tạo `~/hireai/.env.prod` với nội dung sau (thay giá trị thật, IP-VM =
 # --- Bắt buộc ---
 POSTGRES_PASSWORD=<mat-khau-postgres-manh>
 JWT_KEY=<base64-it-nhat-32-bytes>            # vd: openssl rand -base64 48
-RABBITMQ_USER=hireai
-RABBITMQ_PASSWORD=<mat-khau-rabbitmq>
 MINIO_ROOT_USER=hireai-minio
 MINIO_ROOT_PASSWORD=<mat-khau-minio-16-ky-tu-tro-len>
 MINIO_PUBLIC_ENDPOINT=http://<IP-VM>:9000

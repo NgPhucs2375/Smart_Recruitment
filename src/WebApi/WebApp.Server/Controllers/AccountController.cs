@@ -71,6 +71,7 @@ namespace WebApp.Server.Controllers
         public async Task<IActionResult> RevokeToken([FromBody] RefreshTokenRequest model) =>
             Ok(await _accountService.RevokeRefreshTokenAsync(model.Token, GenerateIPAddress()));
 
+        [EnableRateLimiting("auth-reset")]
         [HttpPost("reset-password")]
         public async Task<IActionResult> ResetPassword([FromBody] YeuCauGuiLaiXacMinh model)
         {

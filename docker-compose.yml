@@ -33,19 +33,6 @@ services:
     networks:
       - kltn_network
 
-  rabbitmq:
-    image: rabbitmq:3-management-alpine
-    container_name: smart-recruitment-rabbitmq
-    restart: unless-stopped
-    environment:
-      RABBITMQ_DEFAULT_USER: guest
-      RABBITMQ_DEFAULT_PASS: guest
-    ports:
-      - "${RABBITMQ_PORT:-5672}:5672"
-      - "${RABBITMQ_MANAGEMENT_PORT:-15672}:15672"
-    networks:
-      - kltn_network
-
   minio:
     # Local S3-compatible storage. The MinIO SDK used by the backend works with RustFS.
     image: rustfs/rustfs:latest
@@ -142,12 +129,6 @@ services:
       JWTSettings__Audience: ${JWT_AUDIENCE:-IdentityUser}
       JWTSettings__DurationInMinutes: ${JWT_DURATION:-60}
 
-      RabbitMq__HostName: rabbitmq
-      RabbitMq__UserName: guest
-      RabbitMq__Password: guest
-      RabbitMq__Port: "5672"
-      RabbitMq__VHost: ""
-
       ConnectionStrings__Redis: redis:6379,abortConnect=false
 
       Gemini__ApiKey: ${GEMINI_API_KEY:-}
@@ -175,8 +156,6 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-      rabbitmq:
-        condition: service_started
       minio-init:
         condition: service_completed_successfully
     networks:

@@ -127,5 +127,8 @@ export async function rejectLoiMoi(token: string): Promise<string> {
   });
   const body = (await response.json().catch(() => null)) as ApiResponse<unknown> | null;
   if (!response.ok || !body) throw new Error(messageOf(body, "Không thể từ chối lời mời."));
+  // BE trả 200 + Succeeded=false khi token không còn ở trạng thái chờ (đã xử lý/hết hạn),
+  // bỏ qua bước này sẽ báo "Bạn đã từ chối lời mời." cho một lời mời không hề thay đổi.
+  unwrap<unknown>(body, "Không thể từ chối lời mời.");
   return messageOf(body, "Bạn đã từ chối lời mời.");
 }

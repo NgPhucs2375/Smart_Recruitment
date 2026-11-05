@@ -20,7 +20,7 @@ Tạo file môi trường local một lần:
 Copy-Item .env.example .env
 ```
 
-Khởi động toàn bộ PostgreSQL, Redis, RabbitMQ, MinIO, backend và frontend:
+Khởi động toàn bộ PostgreSQL, Redis, MinIO, backend và frontend:
 
 ```powershell
 docker compose up --build
@@ -31,7 +31,6 @@ sửa file C# hoặc frontend trên Windows sẽ tự cập nhật container qua
 
 - Backend: `dotnet watch`, API tại `http://localhost:8000`, Swagger tại `http://localhost:8000/swagger`.
 - Frontend: Next.js dev server tại `http://localhost:3001`.
-- RabbitMQ UI: `http://localhost:15672` (`guest` / `guest`).
 - MinIO UI: `http://localhost:9001`.
 
 Xem log riêng:

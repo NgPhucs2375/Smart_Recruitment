@@ -25,6 +25,7 @@ function LoginContent() {
   const [githubError, setGithubError] = useState<string | null>(null);
   const searchParams = useSearchParams();
   const next = sanitizeNext(searchParams.get("next"));
+  const pendingVerification = searchParams.get("unverified") === "1";
   const portal: PortalKind | undefined = next?.startsWith("/accept-invite")
     ? undefined
     : "candidate";
@@ -40,7 +41,7 @@ function LoginContent() {
     email,
     cooling,
     cooldownLeft,
-  } = usePasswordLogin(portal, next);
+  } = usePasswordLogin(portal, next, searchParams.get("email"));
 
   const {
     handleGoogleLogin,
@@ -136,7 +137,7 @@ function LoginContent() {
               <AlertDescription className="text-xs text-red-700">{submitError}</AlertDescription>
             </Alert>
           )}
-          <ResendVerification email={email ?? ""} error={submitError} />
+          <ResendVerification email={email ?? ""} error={submitError} visible={pendingVerification} />
 
           <div className="space-y-1.5">
             <Label htmlFor="email" className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
