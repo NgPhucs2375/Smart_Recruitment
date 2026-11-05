@@ -580,7 +580,7 @@ export function HoSoView() {
             ) : cvs.length === 0 ? (
               <div className="flex flex-col items-center py-8 text-center">
                 <p className="text-sm text-muted-foreground">Chưa có CV nào được lưu.</p>
-                <Link href="/tao-cv" className="mt-4">
+                <Link href="/tao-cv?tu-ho-so=1" className="mt-4">
                   <Button>
                     <Zap className="mr-2 size-4" />
                     Tạo CV nhanh từ Hồ sơ này

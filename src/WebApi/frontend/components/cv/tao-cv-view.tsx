@@ -36,6 +36,7 @@ import {
   validateManualCv,
 } from "@/features/tao-cv/manual";
 import { cvApi } from "@/lib/api/cv-api";
+import { formatVndInput } from "@/lib/format-vnd";
 import { cvDataToJsonResume } from "@/features/tao-cv/json-resume";
 import { useCvAssistant } from "@/hooks/use-cv-assistant";
 
@@ -83,6 +84,32 @@ function isBlankWorkingCopy(d: CvFormData): boolean {
     templateId: "",
   };
   return JSON.stringify(a) === JSON.stringify(b);
+}
+
+/**
+ * Đổ phần "đầu người" của Hồ sơ vào CV: chỉ điền ô đang trống nên gọi lại
+ * nhiều lần vô hại. Hồ sơ (HoSoVm) không chứa kinh nghiệm/học vấn/kỹ năng —
+ * các mục đó sống ở trang riêng và không có API gộp — nên ở đây chỉ map được
+ * 9 field liên hệ + giới thiệu.
+ */
+function applyHoSoToContact(prev: CvFormData, hs: HoSoVm): CvFormData {
+  const lh = prev.thongTinLienHe;
+  return {
+    ...prev,
+    thongTinLienHe: {
+      ...lh,
+      hoTen: lh.hoTen || hs.hoTen || "",
+      sdt: lh.sdt || hs.sdt || "",
+      diaChi: lh.diaChi || hs.diaChi || "",
+      gioiTinh: lh.gioiTinh || hs.gioiTinh || "",
+      ngaySinh: lh.ngaySinh || isoToVnDate(hs.ngaySinh),
+      viTriUngTuyen: lh.viTriUngTuyen || hs.viTriUngTuyen || "",
+      mucLuongMongMuon:
+        lh.mucLuongMongMuon || (hs.mucLuongMongMuon ? formatVndInput(String(hs.mucLuongMongMuon)) : ""),
+      gioiThieuBanThan: lh.gioiThieuBanThan || hs.gioiThieu || "",
+      anhDaiDienUrl: lh.anhDaiDienUrl || hs.anhDaiDienUrl || "",
+    },
+  };
 }
 
 /**
@@ -602,11 +629,16 @@ export function TaoCvView() {
         // hoặc CV đầu tiên; người dùng phải bấm chọn rõ ràng trong danh sách.
         setSelectedId(null);
         setVersions([]);
+        // ?tu-ho-so=1 (nút "Tạo CV nhanh từ Hồ sơ này" ở /ho-so): bản CV mới mở
+        // lên đã có sẵn thông tin liên hệ. offerData vẫn là bản trắng để nháp cũ
+        // (nếu có) được offer và đè lên khi người dùng bấm khôi phục.
+        const prefillFromHoSo = params.get("tu-ho-so") === "1";
         const blank = blankOf(tid ?? (defaultCvData as CvFormData).templateId);
-        setCvData(blank);
+        setCvData(prefillFromHoSo ? applyHoSoToContact(blank, hs) : blank);
         lastSavedRef.current = null;
         offerOwner = null;
         offerData = blank;
+        if (prefillFromHoSo) toast.success("Đã đổ thông tin từ hồ sơ vào CV mới");
       }
       if (stale()) return;
       maybeOfferDraft(offerOwner, offerData);
@@ -909,17 +941,7 @@ export function TaoCvView() {
 
   const fillFromHoSo = () => {
     if (!hoSo) return;
-    setCvData((prev) => ({
-      ...prev,
-      thongTinLienHe: {
-        ...prev.thongTinLienHe,
-        hoTen: prev.thongTinLienHe.hoTen || hoSo.hoTen || "",
-        sdt: prev.thongTinLienHe.sdt || hoSo.sdt || "",
-        diaChi: prev.thongTinLienHe.diaChi || hoSo.diaChi || "",
-        gioiTinh: prev.thongTinLienHe.gioiTinh || hoSo.gioiTinh || "",
-        ngaySinh: prev.thongTinLienHe.ngaySinh || isoToVnDate(hoSo.ngaySinh),
-      },
-    }));
+    setCvData((prev) => applyHoSoToContact(prev, hoSo));
     toast.success("Đã đổ thông tin từ hồ sơ");
   };
 
