@@ -89,3 +89,8 @@ src/Mobile/start-android.bat
 
 # Ban copy cert tren VM (co chua private key) - khong duoc commit.
 deploy/nginx/certs/
+
+# Chua secrets that (postgres/JWT/MinIO/SMTP) - chi ton tai tren VM.
+.env.prod
+# Ban sao luu tay khi deploy.
+*.bak*
