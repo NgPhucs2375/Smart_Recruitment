@@ -53,6 +53,15 @@ user.Role = VaiTroNguoiDung.NHAN_SU; user.Id = 2;
 Check(!(await submit.Handle(new() { TinTuyenDungId = 2, CVUngVienId = 1 }, default)).Succeeded, "Recruiters cannot submit another person's CV");
 var update = new UpdateDonUngTuyenCommandHandler(db, user, workflow);
 await update.Handle(new() { Id = applicationId, Trigger = TriggerDonUngTuyen.XemDon }, default);
+// Nhân sự B cùng doanh nghiệp không được "mò tay" vào đơn thuộc tin của nhân sự A.
+var dongNghiep = new Current { Id = 9, Role = VaiTroNguoiDung.NHAN_SU };
+Check(!(await new UpdateDonUngTuyenCommandHandler(db, dongNghiep, workflow)
+        .Handle(new() { Id = applicationId, Trigger = TriggerDonUngTuyen.DanhGiaPhuHop }, default)).Succeeded,
+    "A colleague HR cannot advance an application on another HR's posting");
+Check((await db.DonUngTuyens.AsNoTracking().SingleAsync(x => x.Id == applicationId)).TrangThai == TrangThaiDonUngTuyen.DaXem,
+    "The blocked attempt leaves the status and the owner's pipeline untouched");
+Check(!(await new GetAllDonUngTuyensQueryHandler(db, dongNghiep).Handle(new(), default)).Data.Any(x => x.Id == applicationId),
+    "The colleague HR pipeline list never shows that application");
 await update.Handle(new() { Id = applicationId, Trigger = TriggerDonUngTuyen.DanhGiaPhuHop }, default);
 Check(transport.Emails == 3 && transport.Persisted, "Recruiter outcome sends committed email and notification");
 user.Role = VaiTroNguoiDung.UNG_VIEN; user.Id = 1;

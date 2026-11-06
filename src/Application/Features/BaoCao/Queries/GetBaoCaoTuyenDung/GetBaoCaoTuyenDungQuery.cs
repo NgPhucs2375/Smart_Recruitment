@@ -8,8 +8,9 @@ namespace Application.Features.BaoCao.Queries.GetBaoCaoTuyenDung;
 
 /// <summary>
 /// Báo cáo tuyển dụng cho trang /reports: QUAN_TRI_VIEN thấy toàn hệ thống,
-/// NGUOI_DAI_DIEN / NHAN_SU chỉ thấy tin và đơn của doanh nghiệp mình
-/// (cùng cách scoping với GetAllDonUngTuyens).
+/// NGUOI_DAI_DIEN / NHAN_SU chỉ thấy tin và đơn của doanh nghiệp mình.
+/// Số liệu tổng hợp vẫn theo doanh nghiệp, rộng hơn danh sách đơn
+/// (GetAllDonUngTuyens đã thu hẹp về tin do chính Nhân sự đăng).
 /// Toàn bộ số liệu được COUNT/GROUP BY trên DB, không tải row chi tiết.
 /// KyNgay: 0 = toàn bộ thời gian, ngược lại = số ngày tính đến hôm nay.
 /// </summary>

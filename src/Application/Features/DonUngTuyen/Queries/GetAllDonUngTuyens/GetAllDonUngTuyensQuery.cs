@@ -34,21 +34,8 @@ namespace Application.Features.DonUngTuyen.Queries.GetAllDonUngTuyens
         {
             var ctx = await current.ResolveAsync();
 
-            var query = context.DonUngTuyens.AsNoTracking();
-
             // QUAN_TRI_VIEN: xem tất cả, không lọc thêm
-            if (ctx.VaiTro == VaiTroNguoiDung.NHAN_SU)
-            {
-                query = query.Where(d => d.TinTuyenDung.DoanhNghiepId == ctx.DoanhNghiepId);
-            }
-            else if (ctx.VaiTro == VaiTroNguoiDung.NGUOI_DAI_DIEN)
-            {
-                query = query.Where(d => d.TinTuyenDung.DoanhNghiepId == ctx.DoanhNghiepId);
-            }
-            else if (ctx.VaiTro == VaiTroNguoiDung.UNG_VIEN)
-            {
-                query = query.Where(d => d.CVUngVien.HoSoUngVien.NguoiDungId == ctx.Id);
-            }
+            var query = DonUngTuyenAccess.ScopeReadable(context.DonUngTuyens.AsNoTracking(), ctx);
 
             if (request.HoSoUngVienId.HasValue)
             {

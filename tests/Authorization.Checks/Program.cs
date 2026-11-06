@@ -5,6 +5,9 @@ using Application.Exceptions;
 using Application.Interfaces;
 using Application.Features.DanhGia.Queries.GetAllDanhGias;
 using Application.Features.DanhGia.Queries.GetDanhGiaById;
+using Application.Features.DonUngTuyen.Queries.GetAllDonUngTuyens;
+using Application.Features.DonUngTuyen.Queries.GetDonUngTuyenById;
+using Application.Features.DonUngTuyen.Queries.GetLichSuDonUngTuyen;
 using Application.Features.HoSoUngVien.Queries.GetHoSoUngVienById;
 using Application.Features.HoSoUngVien.Queries.GetAllHoSoUngViens;
 using Application.Features.KyNangTinTuyenDung.Queries.GetAllKyNangTinTuyenDungs;
@@ -111,6 +114,15 @@ Check((await resolver.ResolveAsync()).DoanhNghiepId == 31, "HR retains current m
 current.Value = new() { Id = 3, VaiTro = VaiTroNguoiDung.NHAN_SU, DoanhNghiepId = 31 };
 Check((await ResourceAccess.ScopeReviews(db.DanhGias, current.Value).Select(x => x.Id).ToListAsync()).SequenceEqual([61]), "HR cannot read reviews of another HR's job in the same company");
 await Denied(() => ResourceAccess.EnsureApplicationReviewerAsync(db, current.Value, 52, default), "HR cannot change another HR's review");
+// Ai đăng người đó xử: đơn chỉ thuộc phạm vi Nhân sự đứng tên tin, đồng nghiệp cùng
+// doanh nghiệp không xem được, kể cả khi nắm trong tay Id của đơn.
+var danhSachDon = new GetAllDonUngTuyensQueryHandler(db, current);
+Check((await danhSachDon.Handle(new(), default)).Data.Select(x => x.Id).SequenceEqual([51]), "HR pipeline list stops at their own postings");
+await Denied(() => new GetDonUngTuyenByIdQueryHandler(db, current).Handle(new() { Id = 52 }, default), "HR cannot open a colleague's application by ID");
+await Denied(() => new GetLichSuDonUngTuyenQueryHandler(db, current).Handle(new() { Id = 52 }, default), "HR cannot read a colleague's application status trail");
+Check((await new GetDonUngTuyenByIdQueryHandler(db, current).Handle(new() { Id = 51 }, default)).Data.CvDaNop?.TenFile == "Submitted snapshot", "The posting owner still reads the submitted CV through the application");
+current.Value = new() { Id = 5, VaiTro = VaiTroNguoiDung.NGUOI_DAI_DIEN, DoanhNghiepId = 31 };
+Check((await danhSachDon.Handle(new(), default)).Data.Select(x => x.Id).OrderBy(id => id).SequenceEqual([51, 52]), "Representative keeps the whole company pipeline");
 current.Value = new() { Id = 5, VaiTro = VaiTroNguoiDung.NGUOI_DAI_DIEN, DoanhNghiepId = 31 };
 Check(await ResourceAccess.ScopeReviews(db.DanhGias, current.Value).CountAsync() == 2, "Representative can read company reviews");
 var jobSkills = new GetAllKyNangTinTuyenDungsQueryHandler(db, current, mapper);
