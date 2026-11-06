@@ -34,6 +34,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { toast } from "sonner";
+import { notifyAdamError } from "@/lib/adam-errors";
 
 import { CvPreview } from "@/components/cv/cv-preview";
 import { defaultCvData } from "@/features/tao-cv/constants";
@@ -197,7 +198,6 @@ const ChatPanel = memo(function ChatPanel({ data }: { data: CvFormData }) {
           autoScroll="pin-to-send"
           input={{
             className: "adam-composer",
-            positioning: "absolute",
             showDisclaimer: true,
             textArea: { className: "adam-composer__textarea", rows: 1 },
             sendButton: { className: "adam-composer__send" },
@@ -209,6 +209,7 @@ const ChatPanel = memo(function ChatPanel({ data }: { data: CvFormData }) {
               { label: "Bổ sung thông tin cá nhân", action: () => addContext("Thông tin cần bổ sung:\n") },
             ],
           }}
+          onError={notifyAdamError}
           labels={{
             welcomeMessageText: "",
             chatInputPlaceholder: hasContent

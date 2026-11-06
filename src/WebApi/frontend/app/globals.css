@@ -145,6 +145,9 @@ html {
   flex-shrink: 0;
   margin-top: auto;
 }
+.cv-chat__copilot [data-copilotkit] {
+  min-height: 0;
+}
 .cv-chat__copilot [data-copilotkit] form { order: 2; }
 .cv-chat__copilot p, .cv-chat__copilot pre, .cv-chat__copilot code, .cv-chat__copilot textarea { max-width: 100%; overflow-wrap: anywhere; word-break: break-word; }
 .cv-chat__copilot textarea[data-testid="copilot-chat-textarea"] { max-height: 8rem !important; overflow-y: auto !important; resize: none; }
@@ -2625,7 +2628,11 @@ html {
 .adam-context-action .adam-suggestion__icon { width: 1.5rem; height: 1.5rem; background: transparent; color: var(--muted-foreground); }
 .adam-context-action .adam-suggestion__copy strong { font-size: 0.7rem; }
 
-.cv-chat__copilot [data-testid="copilot-input-overlay"] { background: transparent; }
+.cv-chat__copilot [data-testid="copilot-input-overlay"] {
+  position: static !important;
+  inset: auto !important;
+  background: transparent;
+}
 .cv-chat__copilot .adam-composer {
   border: 1px solid color-mix(in srgb, var(--border) 90%, transparent) !important;
   border-radius: 1rem !important;
@@ -2710,11 +2717,14 @@ html {
 .cv-chat__copilot [data-copilotkit] > *,
 .cv-chat__copilot form,
 .cv-chat__copilot [data-testid="copilot-input-overlay"] {
+  position: static !important;
+  inset: auto !important;
   background: transparent !important;
 }
 
 .cv-chat__copilot form {
   padding: 0.75rem 1rem 0.85rem !important;
+  position: static !important;
 }
 
 .cv-chat__copilot .adam-composer {

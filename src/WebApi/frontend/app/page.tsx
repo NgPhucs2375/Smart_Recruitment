@@ -988,7 +988,7 @@ export default function LandingPage() {
                 <ul className="mt-4 space-y-2.5 text-sm">
                   <li><Link href="/dieu-khoan" className="inline-flex items-center gap-1.5 text-white/70 transition hover:text-white"><span className="size-1 rounded-full bg-white/40" /> Điều khoản dịch vụ</Link></li>
                   <li><Link href="/bao-mat" className="inline-flex items-center gap-1.5 text-white/70 transition hover:text-white"><span className="size-1 rounded-full bg-white/40" /> Chính sách bảo mật</Link></li>
-                  <li><Link href="/bao-mat#du-lieu-ca-nhan" className="inline-flex items-center gap-1.5 font-medium text-sand transition hover:text-white"><span className="size-1 rounded-full bg-sand" /> Bảo vệ dữ liệu cá nhân (NĐ 13/2023)</Link></li>
+                   <li><Link href="/bao-mat#du-lieu" className="inline-flex items-center gap-1.5 font-medium text-sand transition hover:text-white"><span className="size-1 rounded-full bg-sand" /> Dữ liệu cá nhân</Link></li>
                   <li><Link href="/quy-che" className="inline-flex items-center gap-1.5 text-white/70 transition hover:text-white"><span className="size-1 rounded-full bg-white/40" /> Quy chế hoạt động sàn</Link></li>
                   <li><Link href="/quy-che#co-che-giai-quyet" className="inline-flex items-center gap-1.5 text-white/60 transition hover:text-white">Cơ chế giải quyết tranh chấp</Link></li>
                   <li><Link href="/bao-mat#cookies" className="inline-flex items-center gap-1.5 text-white/60 transition hover:text-white">Chính sách Cookie</Link></li>

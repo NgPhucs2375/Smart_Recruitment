@@ -34,7 +34,7 @@ export default function DieuKhoanPage() {
           </section>
           <section>
             <h2 className="text-lg font-semibold">4. Quyền sở hữu & AI</h2>
-            <p className="mt-2 text-sm leading-6 text-muted-foreground">Thuật toán AI chỉ hỗ trợ đề xuất; quyết định tuyển dụng thuộc về người dùng. Dữ liệu huấn luyện được ẩn danh và tuân thủ <Link href="/bao-mat#du-lieu-ca-nhan" className="underline">Chính sách bảo vệ dữ liệu cá nhân</Link>.</p>
+            <p className="mt-2 text-sm leading-6 text-muted-foreground">Thuật toán AI chỉ hỗ trợ đề xuất; quyết định tuyển dụng thuộc về người dùng. Việc xử lý dữ liệu cho các tính năng AI được mô tả trong <Link href="/bao-mat#ai" className="underline">Chính sách bảo mật</Link>.</p>
           </section>
           <section className="rounded-xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-900/40">
             <p className="flex items-center gap-2 text-sm font-medium text-amber-900"><Shield className="size-4" /> Liên hệ pháp chế: legal@hireai.vn — 1900 636 890</p>

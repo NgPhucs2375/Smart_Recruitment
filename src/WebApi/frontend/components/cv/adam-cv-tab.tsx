@@ -27,6 +27,7 @@ import {
 
 import type { CvFormData } from "@/lib/types";
 import { adamMessageView } from "@/components/ai/adam-markdown";
+import { notifyAdamError } from "@/lib/adam-errors";
 
 const STARTER_META: Record<string, { description: string; icon: LucideIcon }> = {
   "Tạo CV từ đầu": { description: "Adam hướng dẫn và điền CV từng bước", icon: WandSparkles },
@@ -135,7 +136,6 @@ export function AdamCvTab({ data }: { data: CvFormData }) {
           autoScroll="pin-to-send"
           input={{
             className: "adam-composer",
-            positioning: "absolute",
             showDisclaimer: true,
             textArea: { className: "adam-composer__textarea", rows: 1 },
             sendButton: { className: "adam-composer__send" },
@@ -147,6 +147,7 @@ export function AdamCvTab({ data }: { data: CvFormData }) {
               { label: "Bổ sung thông tin cá nhân", action: () => addContext("Thông tin cần bổ sung:\n") },
             ],
           }}
+          onError={notifyAdamError}
           labels={{
             welcomeMessageText: "",
             chatInputPlaceholder: "Nhập yêu cầu cho Adam...",
