@@ -19,7 +19,17 @@ public sealed record ContentMatchResult(
 public static class ContentBasedMatcher
 {
     public const string BaselineVersion = "cbf-v1";
-    public const string Version = "cbf-v2-normalized";
+    public const string Version = "cbf-v3-calibrated";
+
+    /// <summary>
+    /// π = mức phủ kỹ năng kỳ vọng trước khi có bằng chứng, p = trọng số ảo theo thang Weight().
+    /// Cặp (0.4, 5) chỉnh theo dữ liệu đang chạy: 90 tin hiệu lực có tổng trọng số yêu cầu từ 9 đến 22,
+    /// 76 tin trong số đó đúng W=12. Ở W=12, khớp toàn bộ còn 0.82 (vẫn loại Cao), khớp 10/12 trở lên
+    /// mới đạt Cao, khớp 3/12 vẫn 0.29 (loại Thap) — ngưỡng PhanLoai cũ giữ nguyên ý nghĩa,
+    /// chỉ bỏ được trần 1.0 mà một tin ghi ít yêu cầu vẫn đòi được.
+    /// </summary>
+    private const float PriorCoverage = 0.4f;
+    private const float PriorWeight = 5f;
 
     public static ContentMatchResult Evaluate(CandidateMatchInput candidate, JobMatchInput job) =>
         EvaluateCore(candidate, job, normalized: true);
@@ -61,7 +71,18 @@ public static class ContentBasedMatcher
             else missing.Add(requirement.Name!.Trim());
         }
 
-        var skillScore = totalWeight > 0 ? matchedWeight / totalWeight : 0;
+        // Bao phu yeu cau duoc calibration truoc khi cong them uu dai. Ty so thuan
+        // (matched/total) cho tin chi ghi 1 yeu cau bang 1.0 — bang tin ghi 5 yeu cau
+        // va khop ca 2 bat buoc — nen diem khong so sanh duoc giua cac tin.
+        // Cong thuc Bayesian dua ty so ve π theo luong bang chung: it yeu cau thi
+        // diem bi ke ve π, nhieu yeu cau thi gan voi ty so thuc te hon.
+        // Khong match yeu cau nao thi van 0: bo loc "diem > 0" cua API va fan-out
+        // dung gia tri nay de loai tin ran, nen gi nguyen hanh vi cu.
+        var rawCoverage = totalWeight > 0 ? matchedWeight / totalWeight : 0f;
+        var skillScore = !normalized ? rawCoverage
+            : totalWeight > 0 && matchedWeight > 0
+                ? (matchedWeight + PriorWeight * PriorCoverage) / (totalWeight + PriorWeight)
+                : 0f;
         var position = TextKey(candidate.Position);
         var title = TextKey(job.Title);
         var positionBonus = position.Length >= 3 && (!normalized || title.Length > 0) &&

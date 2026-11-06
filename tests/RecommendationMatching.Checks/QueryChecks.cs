@@ -60,7 +60,7 @@ public static class QueryChecks
             "Job query excludes closed/expired postings");
         check(result.Data[0].KyNangThoa.SequenceEqual(["JavaScript"]) &&
             result.Data[0].KyNangThieu.SequenceEqual(["Docker"]), "Job response contains matched and missing skills");
-        check(Math.Abs(result.Data[0].DiemPhuHop - .5f) < .00001f, "Job query uses normalized shared scorer");
+        check(Math.Abs(result.Data[0].DiemPhuHop - .45454545f) < .00001f, "Job query uses normalized shared scorer");
         var stored = await db.KetQuaPhuHops.SingleAsync();
         check(stored.MatchingVersion == ContentBasedMatcher.Version && stored.KyNangThoa == "JavaScript",
             "Persisted recommendation has scorer version and evidence");

@@ -85,7 +85,12 @@ public static class RerankChecks
             "Rerank result reorders the page");
         check(moved.Data[0].LyDoGoiY == "Kỹ năng trùng đúng nhóm backend.",
             "AI reason attached to re-ranked posting");
-        check(moved.Data.All(x => Math.Abs(x.DiemPhuHop - 1f) < 0.00001f),
+        // Muc tiep cua check nay la DiemPhuHop KHONG doi sau rerank, khong phai gia tri
+        // cu the, nen so sanh voi chinh scorer thay vi hard-code diem cua mot phien ban.
+        var ruleScore = ContentBasedMatcher.Evaluate(
+            new CandidateMatchInput([new MatchSkill(null, "JS")]),
+            new JobMatchInput([new MatchRequirement(null, "JavaScript", MucDoYC.BatBuc)])).Score;
+        check(moved.Data.All(x => Math.Abs(x.DiemPhuHop - ruleScore) < 0.00001f),
             "Rerank never changes the rule score");
 
         var bogus = new GetSuggestedJobsForCvQueryHandler(

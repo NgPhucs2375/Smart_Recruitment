@@ -27,30 +27,34 @@ Check(MatchingTextNormalizer.SkillKey("SQL") != MatchingTextNormalizer.SkillKey(
 Check(MatchingTextNormalizer.SkillKey(".NET") != MatchingTextNormalizer.SkillKey("ASP.NET Core"), "Platform does not imply framework experience");
 Check(MatchingTextNormalizer.SkillKey("Research skill") == "research skill", "Unknown skill retained");
 Check(Near(ContentBasedMatcher.EvaluateBaseline(Candidate("JS"), Job("JavaScript")).Score, 0), "Baseline preserves original alias miss");
-Check(Near(ContentBasedMatcher.Evaluate(Candidate("JS"), Job("JavaScript")).Score, 1), "Normalized matcher recognizes exact alias");
+// Full coverage of a one-requirement JD: (3 + 5*0.35) / (3 + 5) rather than 1.0.
+Check(Near(ContentBasedMatcher.Evaluate(Candidate("JS"), Job("JavaScript")).Score, 0.625f), "Normalized matcher recognizes exact alias");
 Check(Near(ContentBasedMatcher.Evaluate(Candidate("Java"), Job("JavaScript")).Score, 0), "No substring skill matching");
 
 var weighted = new JobMatchInput([
     new(null, "JavaScript", MucDoYC.BatBuc), new(null, "Docker", MucDoYC.UuTien),
     new(null, "Kubernetes", MucDoYC.KhongBatBuoc)]);
 var partial = ContentBasedMatcher.Evaluate(Candidate("JS"), weighted);
-Check(Near(partial.SkillScore, .5), "Required/preferred/optional weights are 3/2/1");
+Check(Near(partial.SkillScore, .45454545f), "Required/preferred/optional weights are 3/2/1");
+Check(Near(ContentBasedMatcher.EvaluateBaseline(Candidate("JavaScript"), weighted).SkillScore, .5f), "Baseline ratio of matched weight unchanged");
 Check(partial.MatchedSkills.SequenceEqual(["JavaScript"]) && partial.MissingSkills.SequenceEqual(["Docker", "Kubernetes"]), "Evidence uses original requirement names");
 Check(Near(ContentBasedMatcher.Evaluate(Candidate("JS", "JavaScript", "JS"), weighted).Score, partial.Score), "Duplicate CV skills do not inflate score");
 var duplicateRequirements = new JobMatchInput([
     new(null, "JS", MucDoYC.KhongBatBuoc), new(null, "JavaScript", MucDoYC.BatBuc),
     new(null, "Docker", MucDoYC.BatBuc)]);
 var dedup = ContentBasedMatcher.Evaluate(Candidate("JS"), duplicateRequirements);
-Check(Near(dedup.Score, .5) && dedup.MatchedSkills.SequenceEqual(["JavaScript"]), "Duplicate JD aliases retain strongest requirement");
-Check(Near(ContentBasedMatcher.Evaluate(new([new(7, "")]), new([new(7, "Docker", MucDoYC.BatBuc)])).Score, 1), "Catalog ID can match without CV skill text");
+Check(Near(dedup.Score, .45454545f) && dedup.MatchedSkills.SequenceEqual(["JavaScript"]), "Duplicate JD aliases retain strongest requirement");
+Check(Near(ContentBasedMatcher.Evaluate(new([new(7, "")]), new([new(7, "Docker", MucDoYC.BatBuc)])).Score, 0.625f), "Catalog ID can match without CV skill text");
 Check(Near(ContentBasedMatcher.Evaluate(Candidate(""), Job(" ")).Score, 0), "Blank requirements do not score");
 
 var bonuses = ContentBasedMatcher.Evaluate(new([], "Backend", 20, "Hà Nội"),
     new([], "Backend Developer", 15, 25, "Hà Nội"));
 Check(Near(bonuses.Score, .2) && Near(bonuses.SkillScore, 0), "Bonuses exposed separately from skill score");
 Check(Near(ContentBasedMatcher.Evaluate(new([], "Backend"), new([], "")).Score, 0), "Empty JD title cannot earn position bonus");
-Check(Near(ContentBasedMatcher.Evaluate(new([new(null, "Docker")], "Backend", 20, "Hà Nội"),
+Check(Near(ContentBasedMatcher.EvaluateBaseline(new([new(null, "Docker")], "Backend", 20, "Hà Nội"),
     new([new(null, "Docker", MucDoYC.BatBuc)], "Backend", 15, 25, "Hà Nội")).Score, 1), "Final score capped at one");
+Check(Near(ContentBasedMatcher.Evaluate(new([new(null, "Docker")], "Backend", 20, "Hà Nội"),
+    new([new(null, "Docker", MucDoYC.BatBuc)], "Backend", 15, 25, "Hà Nội")).Score, 0.825f), "Calibrated score plus all bonuses");
 Check(Near(ContentBasedMatcher.Evaluate(new([], DesiredSalary: 20), new([], SalaryMax: 0)).Score, 0), "Unknown salary does not earn salary bonus");
 Check(MatchingTextNormalizer.LocationKey("TP. Hồ Chí Minh") == "tp hồ chí minh", "Location key drops punctuation");
 Check(MatchingTextNormalizer.LocationKey(null) == "", "Null location is empty");
