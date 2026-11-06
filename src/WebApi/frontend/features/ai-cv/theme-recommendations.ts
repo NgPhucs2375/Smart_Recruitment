@@ -1,6 +1,22 @@
 import manifest from "@/features/tao-cv/template-manifest.json";
+import { TEMPLATE_REGISTRY, hydrateTemplateRegistry, type DbThemeOverlay } from "@/features/tao-cv/template-registry";
 import { getValidToken, refreshSession } from "@/lib/auth-provider";
 import { unwrapResponse } from "@/lib/api/response-contract";
+
+type StaticRenderer = { columns: number; version: string };
+
+/**
+ * "DB là truth": row cv_themes có CauHinhJson được registerStudioEntry đăng ký
+ * động vào TEMPLATE_REGISTRY (render ThemeCanvas), nên kiểm theo registry đã
+ * hydrate; manifest tĩnh chỉ là fallback khi registry chưa kịp nạp.
+ * Slug không có ở cả hai = không render được, loại.
+ */
+export function resolveRenderable(slug: string): StaticRenderer | null {
+  const entry = TEMPLATE_REGISTRY[slug];
+  if (entry) return { columns: entry.columns ?? 1, version: entry.version };
+  const staticRenderer = (manifest as Record<string, StaticRenderer>)[slug];
+  return staticRenderer ? { columns: staticRenderer.columns, version: staticRenderer.version } : null;
+}
 
 export type ThemeRecommendation = {
   slug: string; name: string; description: string; score: number; reason: string;
@@ -20,8 +36,8 @@ export function parseThemeResult(raw: unknown): { items: ThemeRecommendation[]; 
       if (!item || typeof item !== "object") return [];
       const r = item as Record<string, unknown>;
       const slug = String(r.Slug ?? r.slug ?? "");
-      if (!Object.prototype.hasOwnProperty.call(manifest, slug)) return [];
-      const render = manifest[slug as keyof typeof manifest];
+      const render = resolveRenderable(slug);
+      if (!render) return [];
       const score = Number(r.Diem ?? r.diem);
       if (!Number.isFinite(score)) return [];
       const warnings = r.CanhBao ?? r.canhBao;
@@ -45,12 +61,30 @@ export async function suggestThemes(criteria: ThemeCriteria): Promise<unknown> {
   unwrapResponse(body);
   return body;
 }
+let hydration: Promise<DbThemeOverlay[]> | null = null;
+
+/** Nạp row DB (kèm Studio config) vào registry — một lần mỗi phiên. */
+export function hydrateThemeRegistry(): Promise<DbThemeOverlay[]> {
+  hydration ??= (async () => {
+    try {
+      const response = await fetch("/api/dotnet/cvthemes/active", { cache: "no-store" });
+      if (!response.ok) return [];
+      const rows = unwrapResponse<unknown[]>(await response.json());
+      if (!Array.isArray(rows)) return [];
+      const themes = rows as DbThemeOverlay[];
+      hydrateTemplateRegistry(themes);
+      return themes;
+    } catch {
+      return [];
+    }
+  })();
+  return hydration;
+}
+
 export async function ensureActiveTemplate(slug: string): Promise<void> {
-  if (!Object.prototype.hasOwnProperty.call(manifest, slug)) throw new Error("Mẫu không có renderer hợp lệ.");
-  const response = await fetch("/api/dotnet/cvthemes/active", { cache: "no-store" });
-  if (!response.ok) throw new Error("Không kiểm tra được trạng thái mẫu. Hãy thử lại.");
-  const data = unwrapResponse<unknown[]>(await response.json());
-  if (!Array.isArray(data) || !data.some(v => { const r = v as Record<string, unknown>; return (r.Slug ?? r.slug) === slug && (r.IsActive ?? r.isActive) !== false; }))
+  const themes = await hydrateThemeRegistry();
+  if (!resolveRenderable(slug)) throw new Error("Mẫu không có renderer hợp lệ.");
+  if (!themes.some(v => { const r = v as Record<string, unknown>; return (r.Slug ?? r.slug) === slug && (r.IsActive ?? r.isActive) !== false; }))
     throw new Error("Mẫu đã bị tắt hoặc xóa. Hãy yêu cầu gợi ý lại.");
 }
 export const CV_APPLY_THEME_EVENT = "hireai:apply-recommended-cv-theme";

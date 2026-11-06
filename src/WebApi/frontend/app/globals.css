@@ -939,70 +939,75 @@ html {
   height: 100%;
 }
 
-/* Give Adam a distinct floating assistant presence without taking workspace space.
-   Single motion contract: CopilotKit unmounts the popup 200ms after close
-   (see CopilotPopupViewInternal) with a 200ms exit, so every Adam-side
-   transition below uses the same 200ms — one duration, no split layers. */
-/* ─── Adam chat: giao diện xanh dương, độc lập với theme app ────────────────
-   Root cause của "2 khung / khung đen đứng sau": CopilotKit v2 tự định nghĩa
-   token scope riêng ([data-copilotkit] light + .dark [data-copilotkit] dark,
-   specificity cao hơn override cũ (0,1,0)) → khung popup bị tô đen thành một
-   slab đen. Fix: re-point TOÀN BỘ token của CopilotKit vào palette xanh
-   dương tường minh với specificity cao hơn mọi scope của CopilotKit, cùng
-   một palette cho cả light + dark → một khung duy nhất, không còn slab đen. */
+/* ─── Adam chat: dùng đúng palette của app ──────────────────────────────────
+   CopilotKit v2 tự khai báo token trên [data-copilotkit] (light + dark) với
+   specificity cao hơn :root, nên popup trước đây tô xanh riêng và lệch theme.
+   Fix: re-point toàn bộ token đó về lớp --workspace-* của app (đã định nghĩa
+   cho cả light + dark). Wrapper full-screen của popup giữ trong suốt nên chỉ
+   còn một khung.
+   Motion: CopilotKit unmount popup 200ms sau khi đóng (exit 200ms) — mọi
+   transition phía Adam dùng đúng 200ms, không split layer. */
 [data-testid="copilot-chat-toggle"].adam-chat-toggle {
   border-radius: 9999px !important;
-  border: 1px solid #1d4ed8 !important;
-  background: linear-gradient(135deg, #3b82f6, #2563eb) !important;
-  box-shadow: 0 12px 28px rgba(37, 99, 235, 0.35), 0 0 0 6px rgba(37, 99, 235, 0.12) !important;
-  transition: transform 200ms ease, box-shadow 200ms ease !important;
-}
-
-[data-testid="copilot-chat-toggle"].adam-chat-toggle::after {
-  position: absolute;
-  right: 1px;
-  bottom: 1px;
-  width: 11px;
-  height: 11px;
-  border: 2px solid #ffffff;
-  border-radius: 9999px;
-  background: #22c55e;
-  content: "";
+  border: 1px solid transparent !important;
+  background: var(--workspace-primary) !important;
+  color: var(--workspace-on-primary) !important;
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--workspace-primary) 30%, transparent) !important;
+  transition: transform 200ms ease, background-color 200ms ease, box-shadow 200ms ease !important;
 }
 
 [data-testid="copilot-chat-toggle"].adam-chat-toggle:hover {
-  transform: translateY(-2px) scale(1.03);
-  box-shadow: 0 16px 34px rgba(37, 99, 235, 0.42), 0 0 0 8px rgba(37, 99, 235, 0.14) !important;
+  transform: translateY(-1px);
+  background: var(--workspace-primary-hover) !important;
+  box-shadow: 0 10px 22px color-mix(in srgb, var(--workspace-primary) 34%, transparent) !important;
 }
 
-/* Nút "Chat mới" — nằm ngay phía trên nút chat Adam, cùng vị trí fixed. */
+/* Nút "Chat mới" sống trong header của popup (header slot ở CopilotProvider),
+   không còn pill lơ lửng ngoài khung chat. */
 .adam-new-chat-btn {
-  position: fixed;
-  bottom: 88px;
-  right: 24px;
-  z-index: 50;
   display: inline-flex;
+  height: 1.7rem;
+  flex: 0 0 auto;
   align-items: center;
-  gap: 6px;
-  padding: 6px 14px;
+  gap: 0.3rem;
+  padding: 0 0.7rem;
+  border: 1px solid var(--border);
   border-radius: 9999px;
-  border: 1px solid #1d4ed8;
-  background: #ffffff;
-  color: #1d4ed8;
-  font-size: 13px;
-  font-weight: 500;
+  background: transparent;
+  color: var(--muted-foreground);
+  font-size: 0.72rem;
+  font-weight: 600;
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.18);
-  transition: transform 150ms ease, box-shadow 150ms ease;
+  transition: color 150ms ease, border-color 150ms ease, background-color 150ms ease;
 }
+
 .adam-new-chat-btn:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.28);
+  border-color: color-mix(in srgb, var(--primary) 45%, var(--border));
+  background: var(--accent);
+  color: var(--primary);
 }
-.dark .adam-new-chat-btn {
-  background: #1e293b;
-  color: #60a5fa;
-  border-color: #2563eb;
+
+.adam-new-chat-btn:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+/* CopilotKit không render phần tử header riêng khi slot nhận children, nên
+   div này mang luôn padding + viền dưới của header. */
+.adam-chat-header__inner {
+  display: flex;
+  width: 100%;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--card);
+}
+
+.adam-chat-header__inner [data-testid="copilot-header-title"] {
+  min-width: 0;
+  flex: 1 1 auto;
 }
 
 /* CopilotPopup v2 đặt panel trong một wrapper fixed inset-0 có data-copilotkit.
@@ -1013,38 +1018,79 @@ html {
   background-color: transparent !important;
 }
 
-/* Popup: (0,2,0)/(0,3,0) — thắng cả scope light lẫn dark của CopilotKit. */
+/* Popup: CopilotKit đặt lại token trên MỖI phần tử mang data-copilotkit
+   (chat, message list, input overlay...) nên chỉ pin panel là chưa đủ — phần
+   tử lồng vẫn ăn palette oklch riêng và hiện thành slab đen trong khung sáng.
+   Selector (0,2,0)/(0,3,0) thắng cả scope light lẫn dark; token trỏ vào lớp
+   --workspace-* (tên khác nhau nên không vòng lặp var()) nên popup theo đúng
+   theme sáng/tối của trang. */
+[data-copilotkit] [data-copilot-popup="true"],
+.dark [data-copilotkit] [data-copilot-popup="true"],
+[data-copilotkit].dark [data-copilot-popup="true"],
+[data-copilot-popup="true"] [data-copilotkit],
+.dark [data-copilot-popup="true"] [data-copilotkit],
+[data-copilot-popup="true"] [data-copilotkit].dark {
+  --background: var(--workspace-bg);
+  --foreground: var(--workspace-text);
+  --card: var(--workspace-surface);
+  --card-foreground: var(--workspace-text);
+  --popover: var(--workspace-surface);
+  --popover-foreground: var(--workspace-text);
+  --primary: var(--workspace-primary);
+  --primary-foreground: var(--workspace-on-primary);
+  --primary-hover: var(--workspace-primary-hover);
+  --secondary: var(--workspace-primary-soft);
+  --secondary-foreground: var(--workspace-primary);
+  --muted: var(--workspace-surface-soft);
+  --muted-foreground: var(--workspace-muted);
+  --accent: var(--workspace-primary-soft);
+  --accent-foreground: var(--workspace-primary);
+  --destructive: var(--workspace-danger);
+  --destructive-foreground: var(--workspace-surface);
+  --border: var(--workspace-border);
+  --input: var(--workspace-border);
+  --ring: var(--workspace-primary);
+}
+
+/* Chrome của panel. */
 [data-copilotkit] [data-copilot-popup="true"],
 .dark [data-copilotkit] [data-copilot-popup="true"],
 [data-copilotkit].dark [data-copilot-popup="true"] {
-  --background: #ffffff;
-  --foreground: #1e293b;
-  --card: #ffffff;
-  --card-foreground: #1e293b;
-  --popover: #ffffff;
-  --popover-foreground: #1e293b;
-  --primary: #2563eb;
-  --primary-foreground: #ffffff;
-  --primary-hover: #1d4ed8;
-  --secondary: #eff6ff;
-  --secondary-foreground: #1d4ed8;
-  --muted: #f1f5f9;
-  --muted-foreground: #64748b;
-  --accent: #eff6ff;
-  --accent-foreground: #1d4ed8;
-  --destructive: #dc2626;
-  --destructive-foreground: #ffffff;
-  --border: #dbeafe;
-  --input: #bfdbfe;
-  --ring: #2563eb;
-  color-scheme: light;
-  border-color: color-mix(in oklab, #2563eb 30%, #dbeafe) !important;
+  border-color: var(--workspace-border) !important;
   border-radius: 22px !important;
   overflow: hidden;
-  background: #ffffff !important;
-  box-shadow: 0 18px 50px rgba(37, 99, 235, 0.16), 0 0 0 1px rgba(37, 99, 235, 0.1) !important;
+  background: var(--workspace-surface) !important;
+  box-shadow: 0 18px 50px rgb(15 23 42 / 0.18) !important;
   max-width: calc(100vw - 2rem) !important;
   max-height: calc(100dvh - 2rem) !important;
+}
+
+/* Composer trong popup: CopilotKit hardcode bg-white / dark:#303030 và nút gửi
+   màu đen nên phải ép lại theo palette của app (!important vì class của hãng
+   có specificity tương đương và nạp sau globals.css). */
+[data-copilot-popup="true"] [data-testid="copilot-chat-input"] {
+  border: 1px solid var(--border) !important;
+  background: var(--card) !important;
+  box-shadow: 0 6px 24px rgb(15 23 42 / 0.1) !important;
+}
+
+[data-copilot-popup="true"] [data-testid="copilot-send-button"] {
+  background: var(--primary) !important;
+  color: var(--primary-foreground) !important;
+}
+
+[data-copilot-popup="true"] [data-testid="copilot-send-button"]:disabled {
+  background: var(--muted) !important;
+  color: var(--muted-foreground) !important;
+}
+
+[data-copilot-popup="true"] [data-testid="copilot-add-menu-button"] {
+  color: var(--muted-foreground) !important;
+}
+
+[data-copilot-popup="true"] [data-testid="copilot-add-menu-button"]:hover {
+  background: var(--muted) !important;
+  color: var(--foreground) !important;
 }
 
 [data-copilotkit] [data-copilot-popup="true"] table {
@@ -1066,13 +1112,13 @@ html {
   max-width: 100%;
   margin: 0.75rem 0;
   overflow-x: auto;
-  border: 1px solid #dbeafe;
+  border: 1px solid var(--border);
   border-radius: 0.65rem;
   overscroll-behavior-inline: contain;
 }
 
 [data-copilotkit] [data-copilot-popup="true"] .adam-markdown-table:focus-visible {
-  outline: 2px solid #2563eb;
+  outline: 2px solid var(--ring);
   outline-offset: 2px;
 }
 
@@ -1085,12 +1131,12 @@ html {
   white-space: normal;
   vertical-align: top;
   text-align: left;
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid var(--border);
 }
 
 [data-copilotkit] [data-copilot-popup="true"] th {
-  background: #eff6ff;
-  color: #1e3a8a;
+  background: var(--muted);
+  color: var(--foreground);
   font-size: 0.72rem;
   font-weight: 700;
   white-space: nowrap;
@@ -1127,7 +1173,7 @@ html {
 [data-copilotkit] [data-copilot-popup="true"] h2,
 [data-copilotkit] [data-copilot-popup="true"] h3 {
   margin: 0.8rem 0 0.35rem;
-  color: #1e3a8a;
+  color: var(--foreground);
   font-weight: 700;
   line-height: 1.25;
 }
@@ -1149,71 +1195,28 @@ html {
 
 [data-copilotkit] [data-copilot-popup="true"] blockquote {
   margin: 0.65rem 0;
-  border-left: 3px solid #93c5fd;
+  border-left: 3px solid color-mix(in srgb, var(--primary) 45%, transparent);
   padding-left: 0.75rem;
-  color: #475569;
+  color: var(--muted-foreground);
 }
 
 [data-copilotkit] [data-copilot-popup="true"] :not(pre) > code {
   border-radius: 0.3rem;
-  background: #eff6ff;
+  background: var(--muted);
   padding: 0.1rem 0.3rem;
-  color: #1d4ed8;
+  color: var(--primary);
   font-size: 0.88em;
 }
 
 [data-copilotkit] [data-copilot-popup="true"] a {
-  color: #1d4ed8;
+  color: var(--primary);
   text-decoration: underline;
   text-underline-offset: 2px;
 }
 
 [data-copilotkit] [data-copilot-popup="true"] strong {
-  color: #172554;
+  color: var(--foreground);
   font-weight: 700;
-}
-
-.dark [data-copilotkit] [data-copilot-popup="true"] .adam-markdown-table,
-[data-copilotkit].dark [data-copilot-popup="true"] .adam-markdown-table {
-  border-color: #1e40af;
-}
-
-.dark [data-copilotkit] [data-copilot-popup="true"] th,
-[data-copilotkit].dark [data-copilot-popup="true"] th {
-  background: #172554;
-  color: #dbeafe;
-  border-color: #1e3a8a;
-}
-
-.dark [data-copilotkit] [data-copilot-popup="true"] td,
-[data-copilotkit].dark [data-copilot-popup="true"] td {
-  border-color: #1e3a8a;
-}
-
-.dark [data-copilotkit] [data-copilot-popup="true"] h1,
-.dark [data-copilotkit] [data-copilot-popup="true"] h2,
-.dark [data-copilotkit] [data-copilot-popup="true"] h3,
-[data-copilotkit].dark [data-copilot-popup="true"] h1,
-[data-copilotkit].dark [data-copilot-popup="true"] h2,
-[data-copilotkit].dark [data-copilot-popup="true"] h3 {
-  color: #bfdbfe;
-}
-
-.dark [data-copilotkit] [data-copilot-popup="true"] blockquote,
-[data-copilotkit].dark [data-copilot-popup="true"] blockquote {
-  color: #cbd5e1;
-  border-color: #60a5fa;
-}
-
-.dark [data-copilotkit] [data-copilot-popup="true"] :not(pre) > code,
-[data-copilotkit].dark [data-copilot-popup="true"] :not(pre) > code {
-  background: #172554;
-  color: #bfdbfe;
-}
-
-.dark [data-copilotkit] [data-copilot-popup="true"] strong,
-[data-copilotkit].dark [data-copilot-popup="true"] strong {
-  color: #dbeafe;
 }
 
 .adam-tool-activity {
@@ -1222,11 +1225,11 @@ html {
   align-items: center;
   gap: 0.6rem;
   margin: 0.35rem 0;
-  border: 1px solid #dbeafe;
+  border: 1px solid var(--border);
   border-radius: 0.8rem;
-  background: #f8fbff;
+  background: var(--muted);
   padding: 0.55rem 0.7rem;
-  color: #1e3a8a;
+  color: var(--foreground);
   font-size: 0.78rem;
 }
 
@@ -1235,8 +1238,8 @@ html {
   height: 0.55rem;
   flex: 0 0 auto;
   border-radius: 9999px;
-  background: #2563eb;
-  box-shadow: 0 0 0 0.25rem rgba(37, 99, 235, 0.12);
+  background: var(--primary);
+  box-shadow: 0 0 0 0.25rem color-mix(in srgb, var(--primary) 14%, transparent);
   animation: adam-pulse 1.4s ease-in-out infinite;
 }
 
@@ -1256,17 +1259,17 @@ html {
 
 .adam-tool-activity__status {
   flex: 0 0 auto;
-  color: #64748b;
+  color: var(--muted-foreground);
   font-size: 0.7rem;
 }
 
 .adam-recommendations {
   margin: 0.45rem 0;
   overflow: hidden;
-  border: 1px solid #dbeafe;
+  border: 1px solid var(--border);
   border-radius: 1rem;
-  background: #ffffff;
-  box-shadow: 0 8px 22px rgba(37, 99, 235, 0.08);
+  background: var(--card);
+  box-shadow: 0 8px 22px color-mix(in srgb, var(--primary) 8%, transparent);
 }
 
 .adam-recommendations__header {
@@ -1274,14 +1277,14 @@ html {
   align-items: start;
   justify-content: space-between;
   gap: 0.75rem;
-  border-bottom: 1px solid #dbeafe;
-  background: linear-gradient(135deg, #eff6ff, #f8fbff);
+  border-bottom: 1px solid var(--border);
+  background: var(--muted);
   padding: 0.8rem 0.9rem;
 }
 
 .adam-recommendations__eyebrow {
   margin: 0;
-  color: #2563eb;
+  color: var(--primary);
   font-size: 0.65rem;
   font-weight: 700;
   letter-spacing: 0.08em;
@@ -1290,13 +1293,13 @@ html {
 
 .adam-recommendations__header h3 {
   margin: 0.18rem 0 0;
-  color: #172554;
+  color: var(--foreground);
   font-size: 0.9rem;
 }
 
 .adam-recommendations__header > span {
   max-width: 10rem;
-  color: #64748b;
+  color: var(--muted-foreground);
   font-size: 0.68rem;
   text-align: right;
 }
@@ -1316,9 +1319,9 @@ html {
   min-width: 0;
   align-items: center;
   gap: 0.6rem;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border);
   border-radius: 0.75rem;
-  background: #fff;
+  background: var(--card);
   padding: 0.55rem;
 }
 
@@ -1336,8 +1339,8 @@ html {
 .adam-recommendation-card__rank {
   width: 1.45rem;
   height: 1.45rem;
-  background: #eff6ff;
-  color: #2563eb;
+  background: var(--muted);
+  color: var(--primary);
 }
 
 .adam-recommendation-card__body {
@@ -1355,9 +1358,9 @@ html {
   white-space: nowrap;
 }
 
-.adam-recommendation-card__body strong { color: #1e293b; font-size: 0.76rem; }
-.adam-recommendation-card__body span { color: #475569; font-size: 0.7rem; }
-.adam-recommendation-card__body small { color: #64748b; font-size: 0.65rem; }
+.adam-recommendation-card__body strong { color: var(--foreground); font-size: 0.76rem; }
+.adam-recommendation-card__body span { color: var(--muted-foreground); font-size: 0.7rem; }
+.adam-recommendation-card__body small { color: var(--muted-foreground); font-size: 0.65rem; }
 
 .adam-recommendation-card__score {
   min-width: 2.25rem;
@@ -1374,17 +1377,7 @@ html {
   .adam-tool-activity__icon { animation: none; }
 }
 
-/* Dark mode của app: popup vẫn giữ theme xanh dương sáng — một khung duy nhất,
-   không để scope dark của CopilotKit tô đen. */
-.dark [data-copilotkit] [data-copilot-popup="true"] {
-  background: #ffffff !important;
-  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(37, 99, 235, 0.12) !important;
-}
-
-[data-testid="copilot-modal-header"].adam-chat-header {
-  background: linear-gradient(135deg, #eff6ff, #ffffff) !important;
-  border-bottom-color: #dbeafe !important;
-}
+/* Tiêu đề popup: chấm --workspace-ai thay cho chấm xanh lá giả 'online'. */
 
 [data-testid="copilot-header-title"] {
   position: relative;
@@ -1398,8 +1391,8 @@ html {
   height: 8px;
   margin-right: 8px;
   border-radius: 9999px;
-  background: #22c55e;
-  box-shadow: 0 0 0 4px color-mix(in oklab, #22c55e 15%, transparent);
+  background: var(--workspace-ai);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--workspace-ai) 16%, transparent);
   content: "";
   vertical-align: 1px;
 }

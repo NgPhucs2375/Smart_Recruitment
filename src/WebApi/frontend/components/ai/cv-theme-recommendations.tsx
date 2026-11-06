@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { Dialog as DialogPrimitive } from "@base-ui/react/dialog";
 import { Button } from "@/components/ui/button";
@@ -8,11 +8,19 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { TEMPLATE_REGISTRY, SAMPLE_RESUME } from "@/features/tao-cv/template-registry";
 import { loadPendingCvPatch, savePendingCvPatch } from "@/features/ai-cv/cv-assistant-state";
-import { ensureActiveTemplate, requestEditorTemplate, type ThemeRecommendation } from "@/features/ai-cv/theme-recommendations";
+import { ensureActiveTemplate, hydrateThemeRegistry, requestEditorTemplate, type ThemeRecommendation } from "@/features/ai-cv/theme-recommendations";
 
 export default function CvThemeRecommendations({ items, message }: { items: ThemeRecommendation[]; message: string }) {
   const [preview, setPreview] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
+  // Mẫu Studio chỉ có trong DB: registry phải nạp xong mới render được,
+  // nếu không bộ lọc bên dưới sẽ bỏ nhầm mẫu hợp lệ.
+  const [registryReady, setRegistryReady] = useState(false);
+  useEffect(() => {
+    let open = true;
+    void hydrateThemeRegistry().then(() => { if (open) setRegistryReady(true); });
+    return () => { open = false; };
+  }, []);
   const router = useRouter(); const pathname = usePathname();
   const template = preview ? TEMPLATE_REGISTRY[preview] : null;
   const apply = async (slug: string) => {
@@ -36,7 +44,7 @@ export default function CvThemeRecommendations({ items, message }: { items: Them
   const supported = items.filter(item => TEMPLATE_REGISTRY[item.slug]);
   return <section className="space-y-3 rounded-xl border border-border bg-card p-3" aria-label="Mẫu CV được đề xuất">
     <h3 className="text-sm font-semibold">{supported.length ? `${supported.length} mẫu theo mục tiêu của bạn` : "Chưa có mẫu khớp yêu cầu"}</h3>
-    {!supported.length && <p role="status" className="text-sm text-muted-foreground">{message || "Thử cung cấp ngành, cấp độ hoặc nới điều kiện bố cục."}</p>}
+    {!supported.length && <p role="status" className="text-sm text-muted-foreground">{message || (registryReady ? "Thử cung cấp ngành, cấp độ hoặc nới điều kiện bố cục." : "Đang nạp danh sách mẫu từ máy chủ…")}</p>}
     {supported.map((item, index) => <article key={item.slug} className="space-y-2 border-t border-border pt-3">
       <div className="flex items-start justify-between gap-2"><strong className="text-sm">{index + 1}. {item.name}</strong><Badge variant="secondary">{Math.round(item.score * 100)} điểm</Badge></div>
       <p className="text-sm">{item.reason || item.description}</p>
