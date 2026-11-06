@@ -19,6 +19,7 @@ import { getValidToken } from "@/lib/auth-provider";
 import { unwrapResponse } from "@/lib/api/response-contract";
 import { matchesSearch, matchesStatus, peoplePage, PEOPLE_ROLES, roleNumber } from "@/features/people/people-list";
 import { PeopleListControls, PeopleListPagination } from "@/features/people/people-list-controls";
+import { isValidEmail, isValidVnPhone } from "@/features/tao-cv/validation";
 
 interface NguoiDungRow {
   Id: number;
@@ -42,9 +43,9 @@ function validateCreateForm(form: typeof emptyForm): FormErrors {
   const userName = form.UserName.trim();
   const phoneNumber = form.PhoneNumber.trim();
   if (hoTen.length < 2 || hoTen.length > 100) errors.HoTen = "Họ tên phải có từ 2 đến 100 ký tự";
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errors.Email = "Email không đúng định dạng";
+  if (!isValidEmail(email)) errors.Email = "Email không đúng định dạng";
   if (!/^[A-Za-z0-9._-]{3,50}$/.test(userName)) errors.UserName = "Chỉ dùng chữ không dấu, số, dấu chấm, gạch dưới hoặc gạch ngang (3-50 ký tự)";
-  if (phoneNumber && !/^0\d{9}$/.test(phoneNumber)) errors.PhoneNumber = "Phải gồm 10 chữ số và bắt đầu bằng 0";
+  if (phoneNumber && !isValidVnPhone(phoneNumber)) errors.PhoneNumber = "Số điện thoại không hợp lệ";
   return errors;
 }
 

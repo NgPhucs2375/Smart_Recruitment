@@ -30,7 +30,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Button } from '@/components/ui/button';
 import { font, Radius } from '@/constants/theme';
 import { authApi, type RegisterRole } from '@/features/auth';
-import { validateEmail, validatePhone, validatePassword, validatePasswordConfirmation, validateTaxCode, validateText } from '@/features/auth/validation';
+import { normalizePhone, validateEmail, validatePhone, validatePassword, validatePasswordConfirmation, validateTaxCode, validateText } from '@/features/auth/validation';
 import { useTheme } from '@/hooks/use-theme';
 import { safeBack } from '@/utils/navigation';
 
@@ -91,7 +91,7 @@ export default function RegisterScreen() {
         password,
         confirmPassword,
         hoTen: hoTen.trim(),
-        soDienThoai: soDienThoai.trim(),
+        soDienThoai: normalizePhone(soDienThoai),
         chucVu: isEmployer ? chucVu.trim() : undefined,
         tenDoanhNghiep: isEmployer ? tenDoanhNghiep.trim() : undefined,
         diaChiDoanhNghiep: isEmployer ? diaChiDoanhNghiep.trim() : undefined,

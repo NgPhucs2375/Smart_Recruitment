@@ -12,6 +12,7 @@ import {
   AdminLoadingState,
 } from "@/components/admin/admin-page-layout";
 import { useStoredIdentity } from "@/hooks/use-stored-identity";
+import { isValidVnPhone, normalizeVnPhone } from "@/features/tao-cv/validation";
 
 type HoSoNhaTuyenDung = {
   id: number;
@@ -138,7 +139,7 @@ export function RecruiterProfileTab() {
     if (form.hoTen.trim().length > 255) return "Họ tên tối đa 255 ký tự.";
     if (form.chucVu.trim().length > 100) return "Chức vụ tối đa 100 ký tự.";
     if (form.sdt.trim().length > 20) return "Số điện thoại tối đa 20 ký tự.";
-    if (form.sdt.trim() && !/^\+?[0-9\s.-]{8,20}$/.test(form.sdt.trim()))
+    if (form.sdt.trim() && !isValidVnPhone(form.sdt))
       return "Số điện thoại không hợp lệ.";
     return null;
   }
@@ -148,7 +149,7 @@ export function RecruiterProfileTab() {
     if (createForm.hoTen.trim().length > 255) return "Họ tên tối đa 255 ký tự.";
     if (createForm.chucVu.trim().length > 100) return "Chức vụ tối đa 100 ký tự.";
     if (createForm.sdt.trim().length > 20) return "Số điện thoại tối đa 20 ký tự.";
-    if (createForm.sdt.trim() && !/^\+?[0-9\s.-]{8,20}$/.test(createForm.sdt.trim()))
+    if (createForm.sdt.trim() && !isValidVnPhone(createForm.sdt))
       return "Số điện thoại không hợp lệ.";
     return null;
   }
@@ -168,7 +169,7 @@ export function RecruiterProfileTab() {
         method: "POST",
         body: JSON.stringify({
           hoTen: createForm.hoTen.trim(),
-          sdt: createForm.sdt.trim(),
+          sdt: normalizeVnPhone(createForm.sdt),
           chucVu: createForm.chucVu.trim(),
         }),
       });
@@ -197,7 +198,7 @@ export function RecruiterProfileTab() {
         method: "PUT",
         body: JSON.stringify({
           hoTen: form.hoTen.trim(),
-          sdt: form.sdt.trim(),
+          sdt: normalizeVnPhone(form.sdt),
           chucVu: form.chucVu.trim(),
         }),
       });

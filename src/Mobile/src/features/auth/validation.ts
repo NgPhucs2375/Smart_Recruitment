@@ -6,15 +6,23 @@ export function validateEmail(value: string): string | null {
   const email = normalizeEmail(value);
   if (!email) return 'Nhập email.';
   if (email.length > 100) return 'Email tối đa 100 ký tự.';
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) return 'Email không hợp lệ.';
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email) || email.includes('..')) return 'Email không hợp lệ.';
+  const [local, domain] = email.split('@');
+  if (!local || !domain || /^[.-]|[.-]$/.test(local) || /^[.-]|[.-]$/.test(domain)) {
+    return 'Email không hợp lệ.';
+  }
   return null;
 }
 
 export function validatePhone(value: string): string | null {
-  const phone = value.replace(/[^\d+]/g, '');
+  const phone = normalizePhone(value);
   if (!phone) return 'Nhập số điện thoại.';
-  if (!/^\+?\d{9,15}$/.test(phone)) return 'Số điện thoại không hợp lệ.';
+  if (!/^0(3|5|7|8|9)\d{8}$/.test(phone)) return 'Số điện thoại không hợp lệ.';
   return null;
+}
+
+export function normalizePhone(value: string): string {
+  return value.trim().replace(/[\s.\-()]/g, '');
 }
 
 export function validatePassword(value: string): string | null {

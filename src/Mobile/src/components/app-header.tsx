@@ -37,7 +37,7 @@ export function AppHeader() {
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Tin nhắn"
-              onPress={() => router.push('/messages' as Href)}
+              onPress={() => router.push('/hr/messages' as Href)}
               hitSlop={6}
               style={({ pressed }) => [
                 styles.messageBtn,

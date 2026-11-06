@@ -138,6 +138,7 @@ services:
       GitHubSettings__ClientSecret: "${GITHUB_CLIENT_SECRET:-}"
 
 
+
       DeepSeek__ApiKey: "${DEEPSEEK_API_KEY:-}"
       DeepSeek__Endpoint: "${DEEPSEEK_ENDPOINT:-https://api.deepseek.com/v1}"
       DeepSeek__Model: "${DEEPSEEK_MODEL:-deepseek-flash}"

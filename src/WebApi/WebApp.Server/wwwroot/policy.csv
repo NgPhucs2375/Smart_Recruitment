@@ -220,6 +220,8 @@ p, UNG_VIEN, ketquaphantichcvs, list
 p, UNG_VIEN, ketquaphantichcvs, show
 p, UNG_VIEN, ketquaphuhops, list
 p, UNG_VIEN, ketquaphuhops, show
+p, UNG_VIEN, kynangs, list
+p, UNG_VIEN, kynangs, show
 p, UNG_VIEN, kynangungviens, create
 p, UNG_VIEN, kynangungviens, delete
 p, UNG_VIEN, kynangungviens, edit

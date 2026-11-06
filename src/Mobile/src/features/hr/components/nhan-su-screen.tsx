@@ -19,6 +19,7 @@ import {
 } from '@/features/hr/components/hr-primitives';
 import { useHrRole } from '@/features/hr/hooks/use-hr-role';
 import type { LoiMoiPending, NhanSu } from '@/features/hr/types';
+import { validateEmail } from '@/features/auth/validation';
 import { useTheme } from '@/hooks/use-theme';
 
 function roleName(vaiTro: string): string {
@@ -94,6 +95,12 @@ export function NhanSuScreen() {
     if (!email.trim() || !hoTen.trim()) {
       setFieldError(!email.trim() ? 'email' : 'hoTen');
       setError('Cần nhập email và họ tên trước khi gửi lời mời.');
+      return;
+    }
+    const emailError = validateEmail(email);
+    if (emailError) {
+      setFieldError('email');
+      setError(emailError);
       return;
     }
     try {
