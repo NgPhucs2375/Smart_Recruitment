@@ -82,10 +82,11 @@ public sealed class JobCandidateFanoutService(
             })
             .ToList();
 
+        var corpus = await SkillCorpusLoader.LoadAsync(context, now, ct);
         var ranked = pool
             .Select(c => (Candidate: c, Match: ContentBasedMatcher.Evaluate(new CandidateMatchInput(
                 c.KyNangs, c.ViTriUngTuyen,
-                c.MucLuongMongMuon ?? 0, c.DiaChi), jobInput)))
+                c.MucLuongMongMuon ?? 0, c.DiaChi), jobInput, corpus)))
             .Where(x => x.Match.Score > 0f)
             .OrderByDescending(x => x.Match.Score)
             .ThenBy(x => x.Candidate.HoTen)

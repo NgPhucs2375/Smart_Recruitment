@@ -184,6 +184,8 @@
     "id": "core-rarity-idf", "k": 3,
     "note": "'Giao tiếp tốt' và 'Làm việc nhóm' có trong gần mọi JD nên khớp chúng không nói lên gì; Kubernetes hiếm hơn và đáng tin hơn.",
     "candidate": { "skills": [{ "name": "Kubernetes" }, { "name": "Giao tiếp tốt" }, { "name": "Làm việc nhóm" }], "position": "DevOps Engineer" },
+    "corpusPostings": 90,
+    "corpus": { "Kubernetes": 5, "Linux": 5, "Giao tiếp tốt": 78, "Làm việc nhóm": 85, "Windows": 45, "Bash": 30 },
     "items": [
       { "id": "k8s", "relevance": 3, "job": { "title": "Kubernetes Engineer", "requirements": [{ "name": "Kubernetes", "level": "BatBuc" }, { "name": "Linux", "level": "UuTien" }] } },
       { "id": "soft", "relevance": 1, "job": { "title": "IT Support", "requirements": [{ "name": "Giao tiếp tốt", "level": "BatBuc" }, { "name": "Làm việc nhóm", "level": "BatBuc" }, { "name": "Windows", "level": "KhongBatBuoc" }] } },
@@ -252,6 +254,38 @@
     "items": [
       { "id": "senior-required", "relevance": 2, "job": { "title": "Senior Data Analyst", "experienceRequired": "5 năm", "requirements": [{ "name": "Python", "level": "BatBuc" }, { "name": "SQL", "level": "BatBuc" }] } },
       { "id": "long-jd", "relevance": 1, "job": { "title": "BI Analyst", "requirements": [{ "name": "Python", "level": "BatBuc" }, { "name": "SQL", "level": "BatBuc" }, { "name": "Power BI", "level": "UuTien" }, { "name": "Excel", "level": "UuTien" }, { "name": "Airflow", "level": "KhongBatBuoc" }, { "name": "Docker", "level": "KhongBatBuoc" }] } }
+    ]
+  },
+  {
+    "id": "live-df-generic-vs-niche", "k": 3,
+    "note": "Ba tin that trong DB (#1 Senior .NET Developer, #2 Data Analyst, #69 Ke toan tong hop) va bang tan suat that cua 93 ky nang tren 90 tin dang tuyen. Ung vien chi co Excel+SQL la khop pho thong nhat corpus (df 32/31), con Clean Architecture+EF Core (df 2/2) moi la bang chung manh cho tin .NET, nhung baseline lai xep tin Data Analyst len dau vi W nho hon.",
+    "candidate": { "skills": [{ "name": "SQL" }, { "name": "Excel" }, { "name": "Entity Framework Core" }, { "name": "Clean Architecture" }] },
+    "corpusPostings": 90,
+    "corpus": {
+      "Excel": 32, "SQL": 31, "Docker": 19, "Communication": 13, "Python": 13,
+      "CRM": 11, "Customer Service": 11, "Figma": 11, "Git": 10, "REST API": 9,
+      "Power BI": 8, "Statistics": 8, "ASP.NET Core": 7, "C#": 7, "Accounting": 6,
+      "CSS": 6, "Design System": 6, "HTML": 6, "Interviewing": 6, "JavaScript": 6,
+      "Manual Testing": 6, "Negotiation": 6, "Prototyping": 6, "React": 6, "Recruitment": 6,
+      "Sales": 6, "SEO": 6, "TypeScript": 6, "UI Design": 6, "UX Research": 6,
+      "Agile": 5, "Analytics": 5, "API Testing": 5, "ATS": 5, "AWS": 5,
+      "Business Analysis": 5, "CI CD": 5, "Content Marketing": 5, "Dart": 5, "Employer Branding": 5,
+      "English": 5, "Facebook Ads": 5, "Financial Reporting": 5, "Firebase": 5, "Flutter": 5,
+      "Google Ads": 5, "Inventory": 5, "Kubernetes": 5, "Linux": 5, "Logistics": 5,
+      "Machine Learning": 5, "MISA": 5, ".NET": 5, "Postman": 5, "SAP": 5,
+      "Selenium": 5, "Supply Chain": 5, "Tax": 5, "TensorFlow": 5, "UML": 5,
+      "Zendesk": 5, "Analytical Problem-Solving": 4, "Problem Solving": 4, "Attention to Detail": 3, "Data Visualization": 3,
+      ".NET Core": 3, "Unit Testing": 3, "Clean Architecture": 2, "Entity Framework Core": 2, "SQL Server": 2,
+      "Adaptability & Continuous Learning": 1, "Auditing": 1, "Bug Reporting": 1, "Content Creation": 1, "Employee Relations": 1,
+      "GitHub": 1, "HR Administration": 1, "Invoice Processing": 1, "Java": 1, "Lead Generation": 1,
+      "Marketing": 1, "Microservices": 1, "Playwright": 1, "PostgreSQL": 1, "Responsive Design": 1,
+      "Spring Boot": 1, "Tailwind CSS": 1, "Tax Regulations": 1, "Teamwork": 1, "Test Automation": 1,
+      "Test Case Design": 1, "Time Management": 1, "Web Accessibility": 1
+    },
+    "items": [
+      { "id": "senior-dotnet", "relevance": 3, "job": { "title": "Senior .NET Developer", "requirements": [{ "name": "ASP.NET Core", "level": "BatBuc" }, { "name": "C#", "level": "BatBuc" }, { "name": ".NET Core", "level": "BatBuc" }, { "name": "Clean Architecture", "level": "UuTien" }, { "name": "Entity Framework Core", "level": "UuTien" }, { "name": "Git", "level": "UuTien" }, { "name": "REST API", "level": "UuTien" }, { "name": "SQL Server", "level": "UuTien" }, { "name": "Docker", "level": "KhongBatBuoc" }, { "name": "Problem Solving", "level": "KhongBatBuoc" }, { "name": "Unit Testing", "level": "KhongBatBuoc" }] } },
+      { "id": "data-analyst", "relevance": 2, "job": { "title": "Data Analyst", "requirements": [{ "name": "Excel", "level": "BatBuc" }, { "name": "SQL", "level": "BatBuc" }, { "name": "Analytical Problem-Solving", "level": "UuTien" }, { "name": "Data Visualization", "level": "UuTien" }, { "name": "Power BI", "level": "UuTien" }, { "name": "Python", "level": "UuTien" }, { "name": "Communication", "level": "KhongBatBuoc" }, { "name": "Statistics", "level": "KhongBatBuoc" }] } },
+      { "id": "accountant", "relevance": 1, "job": { "title": "Kế toán tổng hợp", "requirements": [{ "name": "Accounting", "level": "BatBuc" }, { "name": "Excel", "level": "BatBuc" }, { "name": "Tax Regulations", "level": "BatBuc" }, { "name": "Attention to Detail", "level": "UuTien" }, { "name": "Invoice Processing", "level": "UuTien" }, { "name": "Auditing", "level": "KhongBatBuoc" }] } }
     ]
   }
 ]

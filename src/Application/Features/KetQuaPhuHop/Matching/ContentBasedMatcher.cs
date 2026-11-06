@@ -34,7 +34,7 @@ public sealed record ContentMatchResult(
 public static class ContentBasedMatcher
 {
     public const string BaselineVersion = "cbf-v1";
-    public const string Version = "cbf-v6-utility";
+    public const string Version = "cbf-v7-idf";
 
     /// <summary>
     /// π = mức phủ kỹ năng kỳ vọng trước khi có bằng chứng, p = trọng số ảo theo thang Weight().
@@ -46,27 +46,43 @@ public static class ContentBasedMatcher
     private const float PriorCoverage = 0.4f;
     private const float PriorWeight = 5f;
 
-    public static ContentMatchResult Evaluate(CandidateMatchInput candidate, JobMatchInput job) =>
-        EvaluateCore(candidate, job, normalized: true);
+    public static ContentMatchResult Evaluate(
+        CandidateMatchInput candidate, JobMatchInput job, SkillCorpus? corpus = null) =>
+        EvaluateCore(candidate, job, normalized: true, corpus);
 
     /// <summary>Original trim/lower + overlap formula, retained as a reproducible baseline.</summary>
     public static ContentMatchResult EvaluateBaseline(CandidateMatchInput candidate, JobMatchInput job) =>
-        EvaluateCore(candidate, job, normalized: false);
+        EvaluateCore(candidate, job, normalized: false, corpus: null);
 
-    private static ContentMatchResult EvaluateCore(CandidateMatchInput candidate, JobMatchInput job, bool normalized)
+    private static ContentMatchResult EvaluateCore(
+        CandidateMatchInput candidate, JobMatchInput job, bool normalized, SkillCorpus? corpus)
     {
         string TextKey(string? value) => normalized ? MatchingTextNormalizer.TextKey(value)
             : (value ?? string.Empty).Trim().ToLowerInvariant();
         string SkillKey(string? value) => normalized ? MatchingTextNormalizer.SkillKey(value) : TextKey(value);
         string LocationKey(string? value) => normalized ? MatchingTextNormalizer.LocationKey(value) : TextKey(value);
         float Membership(MatchSkill skill) => !normalized ? 1f : ProficiencyFactor(skill);
+        // Tan suat nguoc (buoc #5) chi nhan vao TU SO. Mot ky nang xuat hien trong
+        // gan het JD (Excel, SQL) la chung cu yeu hon nen duoc tinh it diem hon;
+        // con mau so van gi trong so MucDoYC de tong W cua tin van ~12 va
+        // calibration (pi, p) cua buoc #3 giu dung y nghia. Nhan ca hai ben thi
+        // ty so khong doi: neu moi yeu cau cung mot he so, diem bang het ban cu.
+        float RequirementWeight(MatchRequirement requirement) => Weight(requirement.Level);
+        float EvidenceWeight(MatchRequirement requirement) => normalized
+            ? RequirementWeight(requirement) *
+                (corpus?.WeightOf(MatchingTextNormalizer.SkillKey(requirement.Name)) ?? 1f)
+            : RequirementWeight(requirement);
+        // Alias trung nhau khong duoc phat mau so; giu yeu cau manh nua theo ca
+        // MucDoYC lan do hiem cua no.
+        float DedupWeight(MatchRequirement requirement) => normalized
+            ? EvidenceWeight(requirement) : RequirementWeight(requirement);
 
         var requirements = job.Requirements.Where(x => !string.IsNullOrWhiteSpace(x.Name)).ToList();
         if (normalized)
         {
             // Alias duplicates must not inflate the denominator; keep the strongest requirement.
             requirements = requirements.GroupBy(x => SkillKey(x.Name), StringComparer.Ordinal)
-                .Select(g => g.OrderByDescending(x => Weight(x.Level)).First()).ToList();
+                .Select(g => g.OrderByDescending(DedupWeight).First()).ToList();
         }
 
         var matched = new List<string>();
@@ -75,8 +91,7 @@ public static class ContentBasedMatcher
         float totalWeight = 0, matchedWeight = 0;
         foreach (var requirement in requirements)
         {
-            var weight = Weight(requirement.Level);
-            totalWeight += weight;
+            totalWeight += RequirementWeight(requirement);
             var key = SkillKey(requirement.Name);
             var evidence = candidate.Skills
                 .Where(x => requirement.Id.HasValue && x.Id == requirement.Id.Value ||
@@ -85,7 +100,7 @@ public static class ContentBasedMatcher
                 .FirstOrDefault();
             if (evidence != null)
             {
-                matchedWeight += weight * Membership(evidence);
+                matchedWeight += EvidenceWeight(requirement) * Membership(evidence);
                 matched.Add(requirement.Name!.Trim());
             }
             else
@@ -104,9 +119,12 @@ public static class ContentBasedMatcher
         // Khong match yeu cau nao thi van 0: bo loc "diem > 0" cua API va fan-out
         // dung gia tri nay de loai tin ran, nen gi nguyen hanh vi cu.
         var rawCoverage = totalWeight > 0 ? matchedWeight / totalWeight : 0f;
+        // matchedWeight da nhan IDF nen ty so co the vuot 1 (ung vien khop toan bo
+        // yeu cau hiem cua mot tin): chan o 1 de SkillScore van la [0,1] nhu cam ket
+        // cua PhanLoai va cua cac check "Final score capped at one".
         var skillScore = !normalized ? rawCoverage
             : totalWeight > 0 && matchedWeight > 0
-                ? (matchedWeight + PriorWeight * PriorCoverage) / (totalWeight + PriorWeight)
+                ? Math.Min(1f, (matchedWeight + PriorWeight * PriorCoverage) / (totalWeight + PriorWeight))
                 : 0f;
         var position = TextKey(candidate.Position);
         var title = TextKey(job.Title);

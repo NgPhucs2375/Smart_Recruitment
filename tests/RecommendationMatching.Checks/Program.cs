@@ -26,6 +26,50 @@ Check(MatchingTextNormalizer.SkillKey("Java") != MatchingTextNormalizer.SkillKey
 Check(MatchingTextNormalizer.SkillKey("SQL") != MatchingTextNormalizer.SkillKey("SQL Server"), "Generic and vendor skills stay distinct");
 Check(MatchingTextNormalizer.SkillKey(".NET") != MatchingTextNormalizer.SkillKey("ASP.NET Core"), "Platform does not imply framework experience");
 Check(MatchingTextNormalizer.SkillKey("Research skill") == "research skill", "Unknown skill retained");
+Check(MatchingTextNormalizer.SkillKey("ML") == "machine learning", "CV abbreviation ML resolves");
+Check(MatchingTextNormalizer.SkillKey("Node") == "node.js", "CV abbreviation Node resolves");
+Check(MatchingTextNormalizer.SkillKey("Express") == MatchingTextNormalizer.SkillKey("Express.js"), "Express and Express.js are one skill");
+Check(MatchingTextNormalizer.SkillKey(".NET Core") == MatchingTextNormalizer.SkillKey(".NET"), "NET Core is evidence for NET");
+Check(MatchingTextNormalizer.SkillKey(".NET Framework") != MatchingTextNormalizer.SkillKey(".NET Core"), "Legacy framework stays distinct from modern core");
+Check(MatchingTextNormalizer.SkillKey("CI/CD") == MatchingTextNormalizer.SkillKey("CI CD"), "Slash and space spell the same catalogue row");
+Check(MatchingTextNormalizer.SkillKey("React Native") != MatchingTextNormalizer.SkillKey("React"), "React Native is not a substring match for React");
+
+// IDF. Excel 32 / SQL 31 / Kubernetes 5 la df do duoc tren 90 tin hieu luc; hai ky nang mem
+// 40/38 la gia dinh cua ca toan: trong DB that "Communication" chi co 13/90 va "Teamwork" 1/90
+// dong yeu cau co cau truc, nen tren duong dat IDC chua co tac dung nay (xem README buoc #5).
+var idf = SkillCorpus.BuildFromFrequencies(90, new Dictionary<string, int>
+{
+    ["Excel"] = 32, ["SQL"] = 31, ["Kubernetes"] = 5, ["Giao tiếp tốt"] = 40, ["Làm việc nhóm"] = 38
+});
+Check(idf.WeightOf(MatchingTextNormalizer.SkillKey("Excel")) <
+    idf.WeightOf(MatchingTextNormalizer.SkillKey("Kubernetes")), "A skill in a third of postings weighs less than a rare one");
+Check(idf.WeightOf(MatchingTextNormalizer.SkillKey("excel")) ==
+    idf.WeightOf(MatchingTextNormalizer.SkillKey("Excel")), "Frequency lookup ignores case like the matcher does");
+Check(idf.WeightOf("deep learning") is >= SkillCorpus.MinWeight and <= SkillCorpus.MaxWeight,
+    "Corpus weights are clamped so a tin dien hinh van quanh W=12");
+Check(SkillCorpus.Empty.WeightOf("excel") == 1f, "No corpus means the pre-IDF formula");
+// Chuan hoa phai theo TAN SO, khong theo so ky nang khac nhau. Tren 90 tin dang chay, chia
+// trung binh tho cho he so trung binh 0,836 tren moi don vi trong so yeu cau: IDF khi do tro
+// thanh mot cú tru diem dan loat (70 cap loai Cao roi con 45, khong cap nao tang len).
+var skewed = new Dictionary<string, int>
+{
+    ["Excel"] = 32, ["SQL"] = 31, ["Docker"] = 19, ["Git"] = 10, ["Kubernetes"] = 5, ["NestJS"] = 1
+};
+var demandWeighted = SkillCorpus.BuildFromFrequencies(90, skewed);
+Check(skewed.Sum(x => demandWeighted.WeightOf(MatchingTextNormalizer.SkillKey(x.Key)) * x.Value) /
+    skewed.Values.Sum() is > 0.95f and < 1.05f,
+    "Average credit per unit of live requirement weight stays at one");
+var rarityCandidate = new CandidateMatchInput([
+    new MatchSkill(null, "Kubernetes"), new(null, "Giao tiếp tốt"), new(null, "Làm việc nhóm")]);
+var softJd = new JobMatchInput([
+    new(null, "Giao tiếp tốt", MucDoYC.BatBuc), new(null, "Làm việc nhóm", MucDoYC.BatBuc)]);
+var rareJd = new JobMatchInput([new(null, "Kubernetes", MucDoYC.BatBuc)]);
+Check(ContentBasedMatcher.Evaluate(rarityCandidate, softJd).SkillScore >
+    ContentBasedMatcher.Evaluate(rarityCandidate, rareJd).SkillScore, "Without IDF two soft skills still beat one hard skill");
+Check(ContentBasedMatcher.Evaluate(rarityCandidate, rareJd, idf).SkillScore >
+    ContentBasedMatcher.Evaluate(rarityCandidate, softJd, idf).SkillScore, "IDF flips the ranking the core-rarity-idf case complains about");
+Check(ContentBasedMatcher.Evaluate(Candidate("JS"), Job("JavaScript"), idf).Score > 0,
+    "A skill missing from the frequency table is treated as rare, not as worthless");
 Check(Near(ContentBasedMatcher.EvaluateBaseline(Candidate("JS"), Job("JavaScript")).Score, 0), "Baseline preserves original alias miss");
 // Full coverage of a one-requirement JD: (3 + 5*0.4) / (3 + 5) rather than 1.0.
 Check(Near(ContentBasedMatcher.Evaluate(Candidate("JS"), Job("JavaScript")).Score, 0.625f), "Normalized matcher recognizes exact alias");
@@ -164,9 +208,12 @@ foreach (var model in new[] { ContentBasedMatcher.BaselineVersion, ContentBasedM
     foreach (var fixture in fixtures)
     {
         var relevance = fixture.Items.ToDictionary(x => x.Id, x => x.Relevance, StringComparer.Ordinal);
+        // Fixture nao khai bao Corpus thi moi dung IDF; cac ca con lai chay dung luat buoc #1-#4.
+        var corpus = fixture.Corpus is null ? null : SkillCorpus.BuildFromFrequencies(
+            fixture.CorpusPostings ?? throw new Exception($"{fixture.Id} needs CorpusPostings"), fixture.Corpus);
         var scored = fixture.Items.Select(item => (item.Id, Match: model == ContentBasedMatcher.BaselineVersion
             ? ContentBasedMatcher.EvaluateBaseline(fixture.Candidate, item.Job)
-            : ContentBasedMatcher.Evaluate(fixture.Candidate, item.Job)))
+            : ContentBasedMatcher.Evaluate(fixture.Candidate, item.Job, corpus)))
             .Where(x => x.Match.Score > 0).ToList();
         positive += scored.Count;
         gateFailed += scored.Count(x => !x.Match.MeetsMandatory);
@@ -181,5 +228,6 @@ foreach (var model in new[] { ContentBasedMatcher.BaselineVersion, ContentBasedM
 }
 Console.WriteLine($"Recommendation matching checks completed: {checks} passed. Fixtures are synthetic diagnostics, not real-user effectiveness measurements.");
 
-sealed record EvaluationCase(string Id, CandidateMatchInput Candidate, int K, List<EvaluationItem> Items);
+sealed record EvaluationCase(string Id, CandidateMatchInput Candidate, int K, List<EvaluationItem> Items,
+    Dictionary<string, int>? Corpus = null, int? CorpusPostings = null);
 sealed record EvaluationItem(string Id, JobMatchInput Job, int Relevance);

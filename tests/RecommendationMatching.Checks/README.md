@@ -31,8 +31,8 @@ tăng `Version` và ghi số mới vào phần dưới thay vì sửa số cũ �
 - Xếp điểm giảm dần, hòa điểm theo ID ordinal; điểm 0 không được trả, giống điều kiện lọc score của backend.
 - `MACRO`: trung bình theo query, không gộp tất cả cặp thành một query.
 
-`fixtures.json` hiện có **24 ca có nhãn graded** (4 ca chẩn đoán gốc + 16 ca dựng thêm +
-2 ca trình độ kỹ năng + 2 ca kinh nghiệm).
+`fixtures.json` hiện có **25 ca có nhãn graded** (4 ca chẩn đoán gốc + 16 ca dựng thêm +
+2 ca trình độ kỹ năng + 2 ca kinh nghiệm + 1 ca dựng từ dữ liệu thật).
 Mỗi ca mang trường `note` ghi *lý do gán nhãn* để người sau kiểm tra lại được từng dòng.
 Nhãn do **một người** quyết định theo kinh nghiệm tuyển dụng IT phổ thông, chưa có người
 thứ hai độc lập → **chưa tính được Cohen's κ**, và đó là hạn chế phải nói rõ khi trích số.
@@ -50,7 +50,7 @@ Ca mà `cbf-v2-normalized` còn sai, và mỗi ca chỉ đúng một việc cầ
 
 | Ca | NDCG v2 | Sai ở đâu | Bước sửa |
 |---|---|---|---|
-| `denominator-comparability` | 0.6806 | Tin chỉ ghi 1 yêu cầu đạt 1.0, vượt tin 5 yêu cầu khớp cả 2 bắt buộc | #3 + #5 |
+| `denominator-comparability` | 0.6806 | Tin chỉ ghi 1 yêu cầu đạt 1.0, vượt tin 5 yêu cầu khớp cả 2 bắt buộc | #3 (đã) — IDF bước #5 không sửa được, xem cuối mục Bước #5 |
 | `location-district-vs-city` | 0.6806 | Quận/huyện và thành phố nhận cùng một bonus 0.05, tie-break theo ID đẩy "khác tỉnh" lên đầu | #4 utility |
 | `salary-band-fit` | 0.7592 | Dải lương cao hơn kỳ vọng bị xử như không có tín hiệu | #4 utility |
 | `core-rarity-idf` | 0.6806 | "Giao tiếp tốt/Làm việc nhóm" (có ở gần mọi JD) thắng Kubernetes | #5 IDF + vocabulary |
@@ -223,6 +223,118 @@ Bất biến `score > 0` vẫn giữ: điểm kỹ năng nhỏ nhất có thể 
 = 0,089 (một yêu cầu trọng số 1 khớp ở mức Cơ bản, tin dài nhất W=22), lớn hơn mức phạt tối đa 0,05,
 nên không cặp nào đang được gợi ý bị xoá chỉ vì thiếu kinh nghiệm. Check
 `Maximum experience penalty cannot delete a CV that matches one requirement` khoá lại điều đó.
+
+## Bước #5 — từ vựng kiểm soát + IDF (cbf-v7-idf)
+
+Hai việc đi cùng nhãn "#5" nhưng số đo rất khác nhau, nên tách ra và giữ cả kết quả xấu.
+
+### (a) Từ vựng kiểm soát — có tác dụng thật trên dữ liệu đang chạy
+
+Bảng `SkillAliases` trong `MatchingTextNormalizer` chỉ nối những biến thể chữ **thật sự tồn tại**
+trong DB: danh mục kỹ năng có đúng hai họ trùng nhau — {`.NET`, `.NET Core`} và {`CI CD`, `CI/CD`}.
+Không có alias nào ánh xạ chuỗi con (`React Native` ≠ `React`, `.NET Framework` ≠ `.NET Core`).
+
+Số đo trên dữ liệu thật (90 tin hiệu lực × pool hồ sơ đang tìm việc):
+
+| Phep đo | Kết quả |
+|---|---|
+| Tin có ≥2 dòng yêu cầu cùng một key (mẫu số bị phát) | **0** — phần gộp trùng là chốt chống hồi quy, không phải khoản thắng |
+| Dòng chỉ khác nhau ở hoa/thường | 10 — matcher cũ đã xử lý, bước này không thêm gì |
+| Cặp (hồ sơ, tin) khớp được **chỉ vì** gộp biến thể | **13** |
+| ...trong đó yêu cầu là `BatBuc` (tức nhãn "thiếu bắt buộc" ở bước #2 biến mất) | **13/13** (kiểm lại từng tin: `.NET` và `.NET Core` đều mức BatBuc ở #1, #59, #60, #87–#89) |
+| Kỹ năng vẫn giữ riêng sau khi gộp | `ASP.NET Core` (UuTien ở chính các tin trên) không bị nhập vào `.NET` |
+| Tác dụng phụ lên IDF | gộp biến thể làm df(`.net`) tăng 5 → 8, trọng số 1,15 → 0,98: `.NET` không còn bị coi là hiếm |
+
+13 dòng đó gồm đúng 5 dòng `Cao` mà bước #2 đã đánh dấu là "thiếu `.NET`" (hồ sơ #2 × 5 tin
+`[GT] Backend Developer .NET - bộ ...`, CV ghi `.NET Core`), cộng 5 dòng `Thap` của hồ sơ #11
+và 3 dòng của hồ sơ #14 (CV ghi `.NET`, JD ghi `.NET Core`). Nhãn sai ở bước #2 là triệu chứng,
+bước #5 là chỗ chữa, và chữa đúng: không còn cặp nào bị báo thiếu vì cách viết.
+
+### (b) IDF — cơ chế đúng, đất diễn trên 90 tin còn hẹp
+
+```
+df(k)        = số tin hiệu lực có yêu cầu k (sau khi gộp alias)
+idf(k)       = ln((90 + 1) / (df + 1))
+weight(k)    = clamp(idf(k) / m, 0.5, 2.0),  m = Σ df·idf / Σ df   (chia theo TAN SO)
+matchedWeight += w(MucDoYC) · weight(k) · μ(trình độ)      // chi nhan vao TU SO
+totalWeight   += w(MucDoYC)                                // mau so giu nguyen nhu buoc #3
+```
+
+Hai quyết định định hình đều đã đo trước khi chọn:
+
+**Chặt nào của IDF.** Nhân cả vào mẫu số thì gần như vô nghiệm: nếu mọi yêu cầu của một tin
+cùng tần số, nhân tử và nhân mẫu bằng nhau nên tỉ số không đổi, IDF chỉ kéo điểm về π. Bảng dưới
+là cùng fixtures, cùng bảng df, chỉ đổi chỗ nhân:
+
+| Cách đặt IDF | `core-rarity-idf` | `live-df-generic-vs-niche` | MACRO (25 ca) |
+|---|---|---|---|
+| Không dùng (chỉ alias) | 0.6806 | 0.7592 | 0.9215 |
+| Nhân vào **cả tử và mẫu** | 0.8428 | 0.8428 | 0.9313 |
+| Nhân vào **tử số** (đã chọn) | **1.0000** | **1.0000** | **0.9439** |
+
+**Chuẩn hoá theo cái gì.** Chia cho trung bình *số kỹ năng khác nhau* (cách thông hay bị viết tắt)
+khiến 90 tin đang chạy nhận hệ số trung bình **0,836 trên mỗi đơn vị trọng số yêu cầu** — tức IDF
+biến thành một cú trừ điểm đồng loạt: 70 cặp loại `Cao` rơi xuống 45 và **không cặp nào tăng lên**.
+Chia cho trung bình *theo tần số* (Σ df·idf / Σ df) thì hệ số đó là **1,008**, đúng ý định "giữ
+nguyên hiệu lực của bước #3, chỉ đổi thứ tự tương đối". Check
+`Average credit per unit of live requirement weight stays at one` khoá lại điều này.
+
+Trọng số thật của corpus đang chạy (92 key sau khi gộp alias, dựng từ 90 tin): Excel **0,50**
+và SQL **0,50** (đụng sàn, vì df 32/31 = 1/3 số tin), Docker 0,64, Python 0,80, Git 0,90,
+`.NET` 0,98, Power BI 0,98, ASP.NET Core/C# 1,03, Kubernetes/Linux/CI CD 1,15, các kỹ năng df=1
+khoảng 1,6. Hình phân phối: 23/92 key có df=1, chỉ 3 key có df≥15, đúng 2 key đụng sàn và
+**không key nào đụng trần** — corpus 90 tin quá nhỏ để IDF tạo ra biến động lớn.
+
+Kết quả fixtures (cbf-v1 → cbf-v7-idf, K và dữ liệu như nhau):
+
+```
+MACRO cbf-v1        queries=25 P=0.7800 R=0.8400 NDCG=0.7781
+MACRO cbf-v7-idf    queries=25 P=0.8800 R=0.9400 NDCG=0.9439
+```
+
+| Ca | cbf-v1 | cbf-v7 | Ghi chú |
+|---|---|---|---|
+| `core-rarity-idf` | 0.6806 | 1.0000 | Ca nhân tạo, dựng để kiểm tra cơ chế: hai kỹ năng mềm có df 78/90 và 85/90 |
+| `live-df-generic-vs-niche` | 0.7592 | 1.0000 | **Ca dựng từ dữ liệu thật**: JD #1, #2, #69 nguyên văn + bảng df 93 kỹ năng của 90 tin đang chạy |
+| `denominator-comparability` | 0.6806 | 0.6806 | **Không đổi — IDF không sửa được ca này** |
+
+Vì sao `denominator-comparability` vẫn 0.6806: ca đó so một tin ghi đúng 1 yêu cầu với một tin
+5 yêu cầu. Khớp 1/1 thì tỉ lệ phủ vẫn là 1.0 bất kể trọng số, vì IDF nhân cả tử số lẫn mẫu số
+của *cùng một* yêu cầu đó. Muốn sửa phải đổi cách so mẫu số (λ trộn giữa "độ phủ" và "lượng bằng
+chứng"),
+và thử trên dữ liệu cho thấy λ đủ lớn để lật ca này cũng đủ lớn để đẩy một tin W=12 khớp 9/12
+vượt ngưỡng Cao — mà 76/90 tin đang chạy có W=12, nên cái giá là nhãn `PhanLoai` của toàn bộ
+danh sách. Đó là lý do để nguyên, không chỉnh.
+
+Kết quả mô phỏng trên dữ liệu thật (chỉ phần kỹ năng, chưa cộng bonus; 776 cặp hồ sơ×tin có
+≥1 key trùng nhau, chấm lại bằng đúng công thức mới trong SQL):
+
+| Nhóm | cbf-v6 (không IDF) | cbf-v7-idf |
+|---|---|---|
+| Cặp đạt ngưỡng Cao (≥0,66) | 70 | 65 (8 rơi, 3 tăng) |
+| Cặp rơi từ TrungBinh xuống Thap | — | 28 |
+| Cặp tăng từ Thap lên TrungBinh | — | 1 |
+| Chênh lệch trung bình | — | −0,041 |
+| Chênh lệch lớn nhất | — | ±0,169 |
+
+Hướng dịch có chủ đích: điểm của những cặp khớp toàn kỹ năng phổ thông tụt xuống, và trung bình
+toàn corpus vẫn 1,008 — cặp nào khớp kỹ năng hiếm thì không bị trừ. Vẫn còn một độ trễ trung bình
+−0,041 vì CV khớp các kỹ năng df cao nhiều hơn mức trung bình của chính các JD (Excel/SQL vừa phổ
+thông trong tin vừa phổ thông trong CV), nên phân phối *được khớp* lệch về phía sàn 0,50. Điều kiện
+lọc `score > 0` không đổi: điểm kỹ năng dương nhỏ nhất là `(1·0,5·0,4 + 5·0,4)/(22 + 5)` = **0,0815**
+> 0, nên không cặp nào đang được gợi ý bị loại chỉ vì IDF.
+
+**Giới hạn phải nói thẳng.** Premise của ca `core-rarity-idf` ("giao tiếp tốt/làm việc nhóm có
+trong gần mọi JD") **không tồn tại trong dữ liệu này**: trên 90 tin, `Communication` chỉ xuất hiện
+ở 13 tin, `Teamwork` ở 1 tin, và trong text tự do của JD thì cụm "giao tiếp" chỉ có ở **1/90** tin.
+Tức là trên DB đang chạy, IDF không có đất diễn với kỹ năng mềm — nó chỉ hạ giá Excel/SQL/Docker.
+Cơ chế sẽ có ý nghĩa khi corpus lớn hơn (vài nghìn tin) hoặc khi đọc thẳng mô tả JD, cả hai đều
+chưa làm. `SkillCorpusLoader` hiện query ~490 dòng mỗi lần chấm và không cache; `WeightOf` trả 2,0
+cho key chưa từng thấy (an toàn hơn là coi nó vô giá trị), và đường đó chỉ chạy khi JD dùng tên
+ngoài danh mục. Bảng df trong ca `live-df-generic-vs-niche` lưu theo *từng tên trong danh mục*
+(`".NET"` 5, `".NET Core"` 3) và `BuildFromFrequencies` lấy max khi gộp, còn đường production đếm
+DISTINCT theo từng tin nên cho hợp nhất đúng (8): hai con số lệch nhau ở duy nhất key `.NET`,
+không ảnh hưởng xếp hạng của ca đó vì `.NET` không nằm trong tập kỹ năng khớp.
 
 ## Relation tới benchmark database
 

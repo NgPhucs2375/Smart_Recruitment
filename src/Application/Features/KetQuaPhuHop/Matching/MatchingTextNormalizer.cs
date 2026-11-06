@@ -6,22 +6,33 @@ namespace Application.Features.KetQuaPhuHop.Matching;
 /// <summary>Comparison keys only: original CV/JD text remains available as evidence.</summary>
 public static class MatchingTextNormalizer
 {
+    /// <summary>
+    /// Từ điển alias kiểm soát. Mỗi dòng ở đây tương ứng một biến thể chữ thật đã thấy trong
+    /// dữ liệu đang chạy (CV viết "ML"/"Node"/".NET Core"/"CI/CD", danh mục và JD viết
+    /// "Machine Learning"/"Node.js"/".NET"/"CI CD"), không phải biến thể tưởng tượng ra.
+    /// Không có alias nào ánh xạ "React Native" về "React": chuỗi con không phải bằng chứng.
+    /// </summary>
     private static readonly Dictionary<string, string> SkillAliases = new(StringComparer.Ordinal)
     {
         ["js"] = "javascript", ["ecmascript"] = "javascript",
         ["ts"] = "typescript",
-        ["nodejs"] = "node.js", ["node js"] = "node.js",
+        ["node"] = "node.js", ["nodejs"] = "node.js", ["node js"] = "node.js",
+        ["express"] = "express.js", ["expressjs"] = "express.js", ["express js"] = "express.js",
         ["reactjs"] = "react", ["react.js"] = "react", ["react js"] = "react",
         ["vuejs"] = "vue.js", ["vue js"] = "vue.js",
         ["nextjs"] = "next.js", ["next js"] = "next.js",
+        ["nuxtjs"] = "nuxt.js",
         ["c sharp"] = "c#", ["csharp"] = "c#",
         ["cpp"] = "c++", ["cplusplus"] = "c++",
-        ["dotnet"] = ".net", ["dot net"] = ".net",
+        ["dotnet"] = ".net", ["dot net"] = ".net", [".net core"] = ".net", [".netcore"] = ".net",
         ["aspnet core"] = "asp.net core", ["asp net core"] = "asp.net core",
-        ["postgres"] = "postgresql",
+        ["ci/cd"] = "ci cd", ["cicd"] = "ci cd",
+        ["postgres"] = "postgresql", ["postgre sql"] = "postgresql",
         ["mssql"] = "sql server", ["microsoft sql server"] = "sql server",
         ["k8s"] = "kubernetes",
         ["golang"] = "go",
+        ["ml"] = "machine learning", ["m/l"] = "machine learning",
+        ["dl"] = "deep learning",
         ["html5"] = "html", ["css3"] = "css"
     };
 

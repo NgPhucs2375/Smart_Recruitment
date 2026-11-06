@@ -104,6 +104,7 @@ public class GetSuggestedCandidatesForJobQueryHandler(
             .ToListAsync(cancellationToken);
 
         var results = new List<SuggestedCandidateViewModel>();
+        var corpus = await SkillCorpusLoader.LoadAsync(context, now, cancellationToken);
         foreach (var cv in cvs)
         {
             var match = ContentBasedMatcher.Evaluate(new CandidateMatchInput(
@@ -112,7 +113,7 @@ public class GetSuggestedCandidatesForJobQueryHandler(
                     ? cv.ThongTinLienHe.ViTriUngTuyen : cv.HoSoUngVien.ViTriUngTuyen,
                 cv.ThongTinLienHe?.MucLuongMongMuon ?? (decimal)cv.HoSoUngVien.MucLuongMongMuon,
                 !string.IsNullOrWhiteSpace(cv.ThongTinLienHe?.DiaChi)
-                    ? cv.ThongTinLienHe.DiaChi : cv.HoSoUngVien.DiaChi), jobInput);
+                    ? cv.ThongTinLienHe.DiaChi : cv.HoSoUngVien.DiaChi), jobInput, corpus);
             if (match.Score <= 0f) continue;
 
             results.Add(new SuggestedCandidateViewModel

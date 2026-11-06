@@ -160,11 +160,12 @@ public class GetSuggestedJobsForCvQueryHandler(
             postings.Count, timer.ElapsedMilliseconds);
 
         var results = new List<(SuggestedJobViewModel Vm, ContentMatchResult Match)>();
+        var corpus = await SkillCorpusLoader.LoadAsync(context, now, cancellationToken);
         foreach (var t in postings)
         {
             var match = ContentBasedMatcher.Evaluate(candidate, new JobMatchInput(
                 t.Skills.Select(k => new MatchRequirement(k.KyNangId, k.TenKyNang, k.MucDoYeuCau)).ToList(),
-                t.TieuDe, t.LuongToiThieu, t.LuongToiDa, t.DiaDiemLamViec, t.KinhNghiemYeuCau));
+                t.TieuDe, t.LuongToiThieu, t.LuongToiDa, t.DiaDiemLamViec, t.KinhNghiemYeuCau), corpus);
             if (match.Score <= 0f)
                 continue;
             var vm = ToVm(t, match.Score);
