@@ -20,6 +20,7 @@ import { useGlobalCvAssistant } from "@/hooks/use-global-cv-assistant";
 import { useStoredIdentity } from "@/hooks/use-stored-identity";
 import { resolveAdamRole, type AdamRole } from "@/lib/adam-role";
 import { adamMessageView } from "@/components/ai/adam-markdown";
+import { notifyAdamError } from "@/lib/adam-errors";
 import {
   getCvFocusSectionLabel,
   requestCvSectionsFocus,
@@ -491,6 +492,7 @@ export function CopilotProvider({ children }: { children: React.ReactNode }) {
       }}
       onError={(event) => {
         console.error(`[CopilotKit ${event.type}]`, event.error, event.context);
+        notifyAdamError(event);
       }}
     >
       {children}
