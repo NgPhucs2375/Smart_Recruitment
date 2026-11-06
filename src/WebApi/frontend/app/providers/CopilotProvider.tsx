@@ -394,7 +394,7 @@ function InitialPopupState() {
 
 /**
  * Nút "Chat mới" — xóa threadId đang lưu và reload trang để CopilotKit sinh
- * threadId mới (không còn replay history hỏng kích hoạt lỗi Gemini 400).
+ * threadId mới (không còn replay history hỏng kích hoạt lỗi 400 từ mô hình).
  * Provider chỉ đọc threadId lúc mount nên reload là cách chắc chắn nhất.
  */
 function NewChatButton({ userId }: { userId: string | null }) {

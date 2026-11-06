@@ -13,11 +13,11 @@ public sealed class AiProviderHealthCheck(
         CancellationToken cancellationToken = default)
     {
         var endpoint = (
-            configuration["Gemini:Endpoint"]
-            ?? "https://generativelanguage.googleapis.com/v1beta/openai/")
+            configuration["DeepSeek:Endpoint"]
+            ?? "https://api.deepseek.com/v1")
             .TrimEnd('/');
-        var apiKey = configuration["Gemini:ApiKey"]
-            ?? Environment.GetEnvironmentVariable("GEMINI_API_KEY");
+        var apiKey = configuration["DeepSeek:ApiKey"]
+            ?? Environment.GetEnvironmentVariable("DEEPSEEK_API_KEY");
 
         if (string.IsNullOrWhiteSpace(endpoint))
             return HealthCheckResult.Unhealthy("AI endpoint is not configured.");

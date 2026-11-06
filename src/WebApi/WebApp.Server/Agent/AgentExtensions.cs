@@ -39,7 +39,7 @@ public static class AgentExtensions
             (serviceProvider, _) =>
             {
                 var configuration = serviceProvider.GetRequiredService<IConfiguration>();
-                return CreateGeminiChatClient(configuration);
+                return CreateDeepSeekChatClient(configuration);
             });
         services.AddScoped<RecruiterTools>();
         services.AddScoped<CandidateTools>();
@@ -50,23 +50,24 @@ public static class AgentExtensions
         return services;
     }
 
-    private static IChatClient CreateGeminiChatClient(IConfiguration configuration)
+    private static IChatClient CreateDeepSeekChatClient(IConfiguration configuration)
     {
-        var apiKey = configuration["Gemini:ApiKey"];
+        var apiKey = configuration["DeepSeek:ApiKey"];
         if (string.IsNullOrWhiteSpace(apiKey))
-            apiKey = Environment.GetEnvironmentVariable("GEMINI_API_KEY");
+            apiKey = Environment.GetEnvironmentVariable("DEEPSEEK_API_KEY");
 
         if (string.IsNullOrWhiteSpace(apiKey))
             throw new InvalidOperationException(
-                "Chưa khai báo Gemini API key. Set Gemini__ApiKey (hoặc GEMINI_API_KEY).");
+                "Chưa khai báo DeepSeek API key. Set DeepSeek__ApiKey (hoặc DEEPSEEK_API_KEY).");
 
-        var endpoint = configuration["Gemini:Endpoint"]
-            ?? "https://generativelanguage.googleapis.com/v1beta/openai/";
-        var model = configuration["Gemini:Model"] ?? "gemini-3.6-flash-lite";
+        var endpoint = configuration["DeepSeek:Endpoint"];
+        if (string.IsNullOrWhiteSpace(endpoint))
+            endpoint = "https://api.deepseek.com/v1";
+        var model = configuration["DeepSeek:Model"] ?? "deepseek-flash";
 
         return new OpenAIClient(
                 new ApiKeyCredential(apiKey),
-                new OpenAIClientOptions { Endpoint = new Uri(endpoint) })
+                new OpenAIClientOptions { Endpoint = new Uri(endpoint.TrimEnd('/') + "/") })
             .GetChatClient(model)
             .AsIChatClient();
     }

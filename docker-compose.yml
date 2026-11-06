@@ -131,9 +131,9 @@ services:
 
       ConnectionStrings__Redis: redis:6379,abortConnect=false
 
-      Gemini__ApiKey: ${GEMINI_API_KEY:-}
-      Gemini__Model: ${GEMINI_MODEL:-gemini-3.6-flash-lite}
-      Gemini__Endpoint: ${GEMINI_ENDPOINT:-https://generativelanguage.googleapis.com/v1beta/openai/}
+      DeepSeek__ApiKey: ${DEEPSEEK_API_KEY:-}
+      DeepSeek__Model: ${DEEPSEEK_MODEL:-deepseek-flash}
+      DeepSeek__Endpoint: ${DEEPSEEK_ENDPOINT:-https://api.deepseek.com/v1}
       GoogleSettings__ClientId: ${GOOGLE_CLIENT_ID:-890881920860-udk3l8h4vi2v1l0h9gh74cv85u2vq2ac.apps.googleusercontent.com}
 
       Minio__Endpoint: minio:9000

@@ -161,11 +161,12 @@ if (!string.IsNullOrWhiteSpace(portEnv) &&
     app.Logger.LogWarning("Biến môi trường PORT có giá trị không hợp lệ ('{PortValue}') — đã bỏ qua.", portEnv);
 }
 
-if (string.IsNullOrWhiteSpace(app.Configuration["Gemini:ApiKey"]))
+if (string.IsNullOrWhiteSpace(app.Configuration["DeepSeek:ApiKey"])
+    && string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("DEEPSEEK_API_KEY")))
 {
     app.Logger.LogWarning(
-        "Gemini:ApiKey chưa được khai báo - tính năng parse CV sẽ báo lỗi. "
-        + "Thêm biến môi trường Gemini__ApiKey (local: appsettings.Development.json) rồi restart backend.");
+        "DeepSeek:ApiKey chưa được khai báo - parse CV và chat Adam sẽ báo lỗi, gợi ý chạy ở chế độ không AI. "
+        + "Thêm DeepSeek__ApiKey (local: appsettings.Development.json, Docker: DEEPSEEK_API_KEY trong .env) rồi tạo lại container backend.");
 }
 if (app.Environment.IsProduction())
 {

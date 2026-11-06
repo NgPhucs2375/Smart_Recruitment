@@ -470,9 +470,9 @@ function AiMatchSection() {
             <View style={[styles.aiMatchReason, { borderColor: `${theme.primary}66`, backgroundColor: `${theme.primary}14` }]}>
               <Sparkles size={11} color={theme.primary} />
               <ThemedText style={[styles.aiMatchReasonText, { color: theme.primary }]} numberOfLines={2}>
-                {item.matchedSkills.length > 0
+                {item.reason || (item.matchedSkills.length > 0
                   ? `Khớp: ${item.matchedSkills.slice(0, 3).join(', ')}`
-                  : item.phanLoai}
+                  : item.phanLoai)}
               </ThemedText>
             </View>
           </Pressable>

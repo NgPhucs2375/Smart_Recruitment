@@ -26,7 +26,7 @@ export function saveThreadId(userId: string | null | undefined, threadId: string
 /**
  * Xóa threadId đang lưu — dùng cho nút "Chat mới": provider đọc lại key này
  * lúc mount nên sau khi xóa + reload sẽ bắt đầu thread sạch (không còn
- * history hỏng kích hoạt lỗi Gemini 400 từ các run trước).
+ * history hỏng kích hoạt lỗi 400 từ mô hình ở các run trước).
  */
 export function clearThreadId(userId: string | null | undefined): void {
   if (typeof window === "undefined" || !userId) return;

@@ -131,10 +131,16 @@ services:
 
       GoogleSettings__ClientId: "${GOOGLE_CLIENT_ID:-}"
 
+      # GitHub login (tùy chọn): để trống thì nút báo "chưa được cấu hình" — chủ ý.
+      # Secret chỉ nằm ở server (AccountService.ExchangeGitHubCodeAsync), client
+      # chỉ cần ClientId để làm build arg NEXT_PUBLIC_*.
+      GitHubSettings__ClientId: "${GITHUB_CLIENT_ID:-}"
+      GitHubSettings__ClientSecret: "${GITHUB_CLIENT_SECRET:-}"
 
-      Gemini__ApiKey: "${GEMINI_API_KEY:-}"
-      Gemini__Endpoint: "${GEMINI_ENDPOINT:-https://generativelanguage.googleapis.com/v1beta/openai/}"
-      Gemini__Model: "${GEMINI_MODEL:-gemini-3.6-flash-lite}"
+
+      DeepSeek__ApiKey: "${DEEPSEEK_API_KEY:-}"
+      DeepSeek__Endpoint: "${DEEPSEEK_ENDPOINT:-https://api.deepseek.com/v1}"
+      DeepSeek__Model: "${DEEPSEEK_MODEL:-deepseek-flash}"
 
 
       MailSettings__SmtpHost: "${MAIL_SMTP_HOST:-}"
@@ -180,6 +186,8 @@ services:
       dockerfile: Dockerfile
       args:
         NEXT_PUBLIC_GOOGLE_CLIENT_ID: "${GOOGLE_CLIENT_ID:-}"
+
+        NEXT_PUBLIC_GITHUB_CLIENT_ID: "${GITHUB_CLIENT_ID:-}"
 
         NEXT_PUBLIC_COPILOTKIT_THREADS_ENABLED: "${COPILOTKIT_THREADS_ENABLED:-}"
 

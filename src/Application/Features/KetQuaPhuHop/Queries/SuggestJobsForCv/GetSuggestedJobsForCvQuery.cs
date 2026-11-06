@@ -39,6 +39,8 @@ public class SuggestedJobViewModel
     public decimal LuongToiDa { get; set; }
     public float DiemPhuHop { get; set; }
     public string PhanLoai { get; set; } = string.Empty;
+    /// <summary>Lý do gợi ý do DeepSeek viết; null khi rerank tắt hoặc mô hình lỗi.</summary>
+    public string? LyDoGoiY { get; set; }
     public List<string> KyNangThoa { get; set; } = new();
     public List<string> KyNangThieu { get; set; } = new();
     public DateTime? NgayHetHan { get; set; }
@@ -48,6 +50,7 @@ public class GetSuggestedJobsForCvQueryHandler(
     IApplicationDbContext context,
     ICurrentNguoiDungService currentNguoiDungService,
     ILogger<GetSuggestedJobsForCvQueryHandler> logger,
+    IRecommendationReranker reranker,
     IDistributedCache cache)
     : IRequestHandler<GetSuggestedJobsForCvQuery, Response<List<SuggestedJobViewModel>>>
 {
@@ -183,7 +186,7 @@ public class GetSuggestedJobsForCvQueryHandler(
             await context.SaveChangesAsync(cancellationToken);
         }
 
-        var allData = top.Select(r => r.Vm).ToList();
+        var allData = await RerankAsync(candidate, top.Select(r => r.Vm).ToList(), cancellationToken);
         await RecommendationCache.SetAsync(cache, cacheKey, allData, cancellationToken);
         var responseData = allData.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToList();
 
@@ -209,6 +212,47 @@ public class GetSuggestedJobsForCvQueryHandler(
         PhanLoai = ContentBasedMatcher.PhanLoaiCua(diem).ToString(),
         NgayHetHan = t.NgayHetHan,
     };
+
+    // DeepSeek chỉ sắp lại cửa sổ top-N và ghi lý do hiển thị; điểm DiemPhuHop và
+    // bản ghi KetQuaPhuHop ở trên vẫn nguyên của ContentBasedMatcher.
+    private async Task<List<SuggestedJobViewModel>> RerankAsync(
+        CandidateMatchInput candidate,
+        List<SuggestedJobViewModel> items,
+        CancellationToken cancellationToken)
+    {
+        var candidateContext = "Vị trí ứng tuyển: " + candidate.Position
+            + "; kỹ năng trong CV: " + string.Join(", ", candidate.Skills
+                .Select(x => x.Name)
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Take(25));
+
+        var result = await reranker.RerankAsync(
+            candidateContext,
+            items.Select(x => new RerankItem(
+                x.TinTuyenDungId,
+                $"{x.TieuDe}, địa điểm {x.DiaDiemLamViec}",
+                x.KyNangThoa,
+                x.KyNangThieu,
+                x.DiemPhuHop)).ToList(),
+            cancellationToken);
+        if (result is null)
+            return items;
+
+        var byId = items.ToDictionary(x => x.TinTuyenDungId);
+        var ordered = new List<SuggestedJobViewModel>(items.Count);
+        foreach (var id in result.OrderedIds)
+        {
+            if (!byId.TryGetValue(id, out var vm))
+                continue;
+            vm.LyDoGoiY = result.Reasons.GetValueOrDefault(id);
+            ordered.Add(vm);
+        }
+
+        // Tin ngoài cửa sổ rerank (mô hình không thấy) giữ nguyên thứ tự luật.
+        var ranked = ordered.Select(x => x.TinTuyenDungId).ToHashSet();
+        ordered.AddRange(items.Where(x => !ranked.Contains(x.TinTuyenDungId)));
+        return ordered;
+    }
 
     private sealed class JobMatchPosting
     {

@@ -64,11 +64,26 @@ namespace Infrastructure.Shared
             services.AddScoped<IUploadedCvTextExtractor, UploadedCvTextExtractor>();
             services.AddTransient<IDateTimeService, DateTimeService>();
             services.AddTransient<IEmailService, EmailService>();
-            services.AddHttpClient<ICvStructuredParser, GeminiCvStructuredParser>(client =>
+            services.AddHttpClient<ICvStructuredParser, DeepSeekCvStructuredParser>(client =>
             {
-                client.BaseAddress = new Uri("https://generativelanguage.googleapis.com/");
+                client.BaseAddress = DeepSeekBaseAddress(_config);
                 client.Timeout = TimeSpan.FromSeconds(90);
             });
+            services.AddHttpClient<IRecommendationReranker, DeepSeekRecommendationReranker>(client =>
+            {
+                client.BaseAddress = DeepSeekBaseAddress(_config);
+                client.Timeout = TimeSpan.FromSeconds(30);
+            });
+        }
+
+        // BaseAddress phải kết thúc bằng '/': "https://api.deepseek.com/v1" +
+        // "chat/completions" sẽ mất hẳn /v1 khi giải URI tương đối.
+        private static Uri DeepSeekBaseAddress(IConfiguration configuration)
+        {
+            var endpoint = configuration["DeepSeek:Endpoint"];
+            if (string.IsNullOrWhiteSpace(endpoint))
+                endpoint = "https://api.deepseek.com/v1";
+            return new Uri(endpoint.TrimEnd('/') + "/");
         }
 
         private static bool IsLocalEndpoint(string endpoint)

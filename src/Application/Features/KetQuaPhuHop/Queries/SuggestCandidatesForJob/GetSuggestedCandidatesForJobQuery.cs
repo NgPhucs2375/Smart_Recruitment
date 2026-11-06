@@ -23,6 +23,8 @@ public class SuggestedCandidateViewModel
     public string ViTriUngTuyen { get; set; } = string.Empty;
     public float DiemPhuHop { get; set; }
     public string PhanLoai { get; set; } = string.Empty;
+    /// <summary>Lý do gợi ý do DeepSeek viết; null khi rerank tắt hoặc mô hình lỗi.</summary>
+    public string? LyDoGoiY { get; set; }
     public List<string> KyNangThoa { get; set; } = new();
     public List<string> KyNangThieu { get; set; } = new();
     public int SoNamKinhNghiem { get; set; }
@@ -31,6 +33,7 @@ public class SuggestedCandidateViewModel
 public class GetSuggestedCandidatesForJobQueryHandler(
     IApplicationDbContext context,
     ICurrentNguoiDungService currentNguoiDungService,
+    IRecommendationReranker reranker,
     IDistributedCache cache)
     : IRequestHandler<GetSuggestedCandidatesForJobQuery, Response<List<SuggestedCandidateViewModel>>>
 {
@@ -130,8 +133,49 @@ public class GetSuggestedCandidatesForJobQueryHandler(
             .ThenBy(x => x.HoTen)
             .Take(Math.Clamp(request.TopN, 1, 20))
             .ToList();
+        top = await RerankAsync(job.TieuDe, requirements, top, cancellationToken);
         await RecommendationCache.SetAsync(cache, cacheKey, top, cancellationToken);
         return new Response<List<SuggestedCandidateViewModel>>(top,
             top.Count == 0 ? "Chưa tìm thấy ứng viên phù hợp với tin tuyển dụng này." : $"Tìm thấy {top.Count} ứng viên phù hợp.");
+    }
+
+    // DeepSeek chỉ sắp lại cửa sổ top-N và viết lý do. Tên ứng viên không rời khỏi
+    // hệ thống: mô hình chỉ nhận vị trí ứng tuyển, kỹ năng trùng/thiếu, số năm KN.
+    private async Task<List<SuggestedCandidateViewModel>> RerankAsync(
+        string jobTitle,
+        IReadOnlyList<MatchRequirement> requirements,
+        List<SuggestedCandidateViewModel> items,
+        CancellationToken cancellationToken)
+    {
+        var jobContext = "Tin tuyển dụng: " + jobTitle
+            + "; kỹ năng yêu cầu: " + string.Join(", ",
+                requirements.Select(x => $"{x.Name} ({x.Level})"));
+
+        var result = await reranker.RerankAsync(
+            jobContext,
+            items.Select(x => new RerankItem(
+                x.CvUngVienId,
+                $"{x.ViTriUngTuyen}, khoảng {x.SoNamKinhNghiem} năm kinh nghiệm",
+                x.KyNangThoa,
+                x.KyNangThieu,
+                x.DiemPhuHop)).ToList(),
+            cancellationToken);
+        if (result is null)
+            return items;
+
+        var byId = items.ToDictionary(x => x.CvUngVienId);
+        var ordered = new List<SuggestedCandidateViewModel>(items.Count);
+        foreach (var id in result.OrderedIds)
+        {
+            if (!byId.TryGetValue(id, out var vm))
+                continue;
+            vm.LyDoGoiY = result.Reasons.GetValueOrDefault(id);
+            ordered.Add(vm);
+        }
+
+        // Ứng viên ngoài cửa sổ rerank giữ nguyên thứ tự luật.
+        var ranked = ordered.Select(x => x.CvUngVienId).ToHashSet();
+        ordered.AddRange(items.Where(x => !ranked.Contains(x.CvUngVienId)));
+        return ordered;
     }
 }

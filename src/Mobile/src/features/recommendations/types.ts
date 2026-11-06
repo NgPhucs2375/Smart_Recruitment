@@ -14,4 +14,6 @@ export type RecommendedJob = {
   missingSkills: string[];
   /** Phân loại mức độ phù hợp (phanLoai). */
   phanLoai: string;
+  /** Lý do DeepSeek xếp hạng (lyDoGoiY) — rỗng khi rerank tắt hoặc lỗi. */
+  reason: string;
 };

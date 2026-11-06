@@ -53,7 +53,7 @@ public static class QueryChecks
         db.ChangeTracker.Clear();
 
         var jobs = new GetSuggestedJobsForCvQueryHandler(db, current,
-            NullLogger<GetSuggestedJobsForCvQueryHandler>.Instance, cache);
+            NullLogger<GetSuggestedJobsForCvQueryHandler>.Instance, new StubReranker(null), cache);
         var request = new GetSuggestedJobsForCvQuery { TopN = 10 };
         var result = await jobs.Handle(request, default);
         check(result.Succeeded && result.Data.Count == 1 && result.Data[0].TinTuyenDungId == 1,
@@ -70,7 +70,7 @@ public static class QueryChecks
         check(!unauthorizedCv.Succeeded, "Cannot recommend using another candidate's CV");
 
         current.Set(20, VaiTroNguoiDung.NHAN_SU, 10);
-        var candidates = new GetSuggestedCandidatesForJobQueryHandler(db, current, cache);
+        var candidates = new GetSuggestedCandidatesForJobQueryHandler(db, current, new StubReranker(null), cache);
         var suggested = await candidates.Handle(new GetSuggestedCandidatesForJobQuery { TinTuyenDungId = 1 }, default);
         check(suggested.Succeeded && suggested.Data.Count == 1 && suggested.Data[0].CvUngVienId == 1,
             "Candidate query excludes deleted CVs and profiles not looking for work");

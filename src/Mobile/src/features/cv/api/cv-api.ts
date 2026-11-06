@@ -925,7 +925,7 @@ export const cvApi = {
     return unwrapData(raw);
   },
 
-  /** POST cvungviens/import/{sessionId}/parse — backend đọc file từ MinIO rồi gọi Gemini. */
+  /** POST cvungviens/import/{sessionId}/parse — backend đọc file từ MinIO rồi gọi DeepSeek. */
   async parseImport(sessionId: string): Promise<unknown> {
     if (USE_MOCK_JOBS) {
       throw new Error('Bản demo chưa chạy AI phân tích CV.');

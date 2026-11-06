@@ -87,6 +87,7 @@ catch (ArgumentException) { Check(true, "Unjudged items cannot silently become n
 
 await QueryChecks.RunAsync(Check);
 await FanoutChecks.RunAsync(Check);
+await RerankChecks.RunAsync(Check);
 
 var fixturePath = args.Length > 0 ? args[0] : Path.Combine(AppContext.BaseDirectory, "fixtures.json");
 var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { Target, TrendingUp, ArrowRight } from "lucide-react";
+import { Target, TrendingUp, ArrowRight, Sparkles } from "lucide-react";
 import { AdminPageLayout, AdminPageHeader, AdminCard, AdminCardHeader, AdminEmptyState, AdminLoadingState } from "@/components/admin/admin-page-layout";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -32,6 +32,7 @@ type Recommendation = {
   kyNangThoa: string[];
   kyNangThieu: string[];
   ngayHetHan?: string;
+  lyDoGoiY?: string;
 };
 
 type ApiResponse<T> = { Succeeded?: boolean; succeeded?: boolean; Message?: string; message?: string; Data?: T; data?: T };
@@ -46,6 +47,7 @@ const API = "/api/dotnet/ketquaphuhops";
 const ok = (r: ApiResponse<unknown>): boolean => r.Succeeded ?? r.succeeded ?? true;
 const msg = (r: ApiResponse<unknown>): string => r.Message ?? r.message ?? "";
 const extractData = <T,>(r: ApiResponse<T>): T | undefined => r.Data ?? r.data;
+const asText = (value: unknown): string => `${value ?? ""}`.trim();
 
 async function apiFetch(url: string, opts?: RequestInit) {
   let token = await getValidToken();
@@ -84,7 +86,7 @@ function CandidatePhuHop() {
   const [items, setItems] = useState<Recommendation[]>([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
-  const [sort, setSort] = useState<"score" | "title">("score");
+  const [sort, setSort] = useState<"ai" | "score" | "title">("ai");
   const [category, setCategory] = useState<"all" | "high" | "medium" | "low">("all");
 
   const load = useCallback(async () => {
@@ -109,6 +111,7 @@ function CandidatePhuHop() {
           kyNangThoa: Array.isArray(r.kyNangThoa ?? r.KyNangThoa) ? (r.kyNangThoa ?? r.KyNangThoa) as string[] : [],
           kyNangThieu: Array.isArray(r.kyNangThieu ?? r.KyNangThieu) ? (r.kyNangThieu ?? r.KyNangThieu) as string[] : [],
           ngayHetHan: `${r.ngayHetHan ?? r.NgayHetHan ?? ""}`,
+          lyDoGoiY: asText(r.lyDoGoiY ?? r.LyDoGoiY),
         };
       }));
     } catch (e) {
@@ -122,8 +125,12 @@ function CandidatePhuHop() {
   useEffect(() => { void load(); }, [load]);
 
   const visibleItems = items
-    .filter((item) => category === "all" || (category === "high" ? item.diemPhuHop >= 0.7 : category === "medium" ? item.diemPhuHop >= 0.4 : item.diemPhuHop < 0.4))
-    .sort((a, b) => sort === "score" ? b.diemPhuHop - a.diemPhuHop : a.tieuDe.localeCompare(b.tieuDe, "vi"));
+    .filter((item) => category === "all" || (category === "high" ? item.diemPhuHop >= 0.7 : category === "medium" ? item.diemPhuHop >= 0.4 : item.diemPhuHop < 0.4));
+  // "ai" giữ nguyên thứ tự API trả về vì đó đã là thứ tự DeepSeek sắp xếp lại.
+  if (sort !== "ai") {
+    visibleItems.sort((a, b) => sort === "score" ? b.diemPhuHop - a.diemPhuHop : a.tieuDe.localeCompare(b.tieuDe, "vi"));
+  }
+  const aiReasonCount = visibleItems.filter((item) => item.lyDoGoiY).length;
 
   const money = (value: number) => value > 0 ? `${Math.round(value).toLocaleString("vi-VN")} đ` : "Thỏa thuận";
   const total = items.length;
@@ -139,7 +146,7 @@ function CandidatePhuHop() {
       <AdminCard>
         <div className="border-b border-border p-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <AdminCardHeader title="Dành cho bạn" description={`${visibleItems.length}/${items.length} tin đang hiển thị`} />
+            <AdminCardHeader title="Dành cho bạn" description={aiReasonCount > 0 ? `${visibleItems.length}/${items.length} tin đang hiển thị · ${aiReasonCount} tin có lý do AI` : `${visibleItems.length}/${items.length} tin đang hiển thị`} />
             <Link href="/viec-lam" className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-primary hover:border-primary/50">
               Tìm thêm việc <ArrowRight className="size-3.5" />
             </Link>
@@ -162,6 +169,7 @@ function CandidatePhuHop() {
             <Select value={sort} onValueChange={(value) => setSort(value as typeof sort)}>
               <SelectTrigger className="h-9 w-40 rounded-lg px-3 text-sm"><SelectValue /></SelectTrigger>
               <SelectContent>
+                <SelectItem value="ai">Adam xếp hạng</SelectItem>
                 <SelectItem value="score">Điểm cao nhất</SelectItem>
                 <SelectItem value="title">Tên công việc</SelectItem>
               </SelectContent>
@@ -188,6 +196,11 @@ function CandidatePhuHop() {
                       {item.kyNangThoa.slice(0, 4).map((skill: string) => <span key={skill} className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs text-emerald-700">{skill}</span>)}
                       {item.kyNangThieu.length > 0 && <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-xs text-amber-700">Thiếu: {item.kyNangThieu.slice(0, 3).join(", ")}</span>}
                     </div>
+                    {item.lyDoGoiY && (
+                      <p className="mt-2 flex items-start gap-1.5 text-xs text-muted-foreground">
+                        <Sparkles className="mt-0.5 size-3.5 shrink-0 text-primary" /> {item.lyDoGoiY}
+                      </p>
+                    )}
                   </div>
                   <div className="flex shrink-0 items-center gap-3">
                     <span className="text-2xl font-semibold tabular-nums text-foreground">{pct}%</span>

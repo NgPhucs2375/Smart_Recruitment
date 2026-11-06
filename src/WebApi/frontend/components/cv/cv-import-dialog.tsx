@@ -19,7 +19,7 @@ interface CvImportDialogProps {
 }
 
 function isAiOverloadMessage(message: string): boolean {
-  return /quá tải|thử lại|gemini|503|serviceunavailable|quá thời gian|không phản hồi kịp|overload|timeout/i.test(
+  return /quá tải|thử lại|deepseek|503|serviceunavailable|quá thời gian|không phản hồi kịp|overload|timeout/i.test(
     message,
   );
 }

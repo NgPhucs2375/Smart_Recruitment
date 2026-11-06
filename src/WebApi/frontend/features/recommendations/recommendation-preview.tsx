@@ -15,6 +15,7 @@ type Recommendation = {
   diemPhuHop: number;
   kyNangThoa: string[];
   kyNangThieu: string[];
+  lyDoGoiY: string;
 };
 
 type ApiRecommendation = Record<string, unknown>;
@@ -43,6 +44,7 @@ function normalizeRecommendation(value: ApiRecommendation): Recommendation {
     diemPhuHop: number(value.diemPhuHop ?? value.DiemPhuHop) * 100,
     kyNangThoa: list(value.kyNangThoa ?? value.KyNangThoa),
     kyNangThieu: list(value.kyNangThieu ?? value.KyNangThieu),
+    lyDoGoiY: text(value.lyDoGoiY ?? value.LyDoGoiY).trim(),
   };
 }
 
@@ -140,6 +142,7 @@ export function RecommendationPreview({ count = 5 }: { count?: number }) {
             </div>
             <p className="mt-3 text-xs text-muted-foreground">{money(item.luongToiThieu)} - {money(item.luongToiDa)}</p>
             {item.kyNangThieu?.length > 0 && <p className="mt-2 truncate text-xs text-workspace-warning">Còn thiếu: {item.kyNangThieu.slice(0, 3).join(", ")}</p>}
+            {item.lyDoGoiY && <p className="mt-2 line-clamp-2 text-xs text-workspace-ai">{item.lyDoGoiY}</p>}
           </Link>
           ))}
         </div>

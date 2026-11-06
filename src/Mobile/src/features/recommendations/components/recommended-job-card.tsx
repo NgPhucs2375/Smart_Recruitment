@@ -25,6 +25,11 @@ export function RecommendedJobCard({ item }: { item: RecommendedJob }) {
         ) : null}
       </View>
       <JobCard job={item.job} />
+      {item.reason ? (
+        <ThemedText numberOfLines={2} style={styles.reason}>
+          {item.reason}
+        </ThemedText>
+      ) : null}
     </View>
   );
 }
@@ -47,6 +52,13 @@ const styles = StyleSheet.create({
     flex: 1,
     fontFamily: font('medium'),
     fontSize: 11,
+    color: Palette.sage,
+  },
+  reason: {
+    paddingHorizontal: 4,
+    fontFamily: font('medium'),
+    fontSize: 11,
+    fontStyle: 'italic',
     color: Palette.sage,
   },
 });

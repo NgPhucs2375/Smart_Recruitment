@@ -20,7 +20,13 @@ const DEMO_MATCH_PERCENTS: Record<string, number> = {
   'demo-qa-004': 43,
 };
 
-function toRecommended(job: Job, matchPercent: number, matched: string[], missing: string[]): RecommendedJob {
+function toRecommended(
+  job: Job,
+  matchPercent: number,
+  matched: string[],
+  missing: string[],
+  reason = '',
+): RecommendedJob {
   const matchScore = matchPercent / 100;
   return {
     job,
@@ -29,6 +35,7 @@ function toRecommended(job: Job, matchPercent: number, matched: string[], missin
     matchedSkills: matched,
     missingSkills: missing,
     phanLoai: matchPercent >= 66 ? 'Cao' : matchPercent >= 50 ? 'Trung bình' : 'Thấp',
+    reason,
   };
 }
 
@@ -75,7 +82,13 @@ function normalizeRecommendation(value: unknown): RecommendedJob | null {
     postedAt: '',
   };
 
-  return toRecommended(job, Math.round(matchScore * 100), matched, missing);
+  return toRecommended(
+    job,
+    Math.round(matchScore * 100),
+    matched,
+    missing,
+    asText(raw.lyDoGoiY ?? raw.LyDoGoiY),
+  );
 }
 
 export const recommendationsApi = {
@@ -88,9 +101,10 @@ export const recommendationsApi = {
     );
     const data = unwrapData(payload);
     const rows = Array.isArray(data) ? data : [];
+    // Giữ nguyên thứ tự backend trả về: đó đã là thứ tự xếp hạng (điểm giảm dần,
+    // hoặc thứ tự DeepSeek rerank khi rerank bật). Sắp xếp lại ở đây sẽ xoá mất AI.
     return rows
       .map(normalizeRecommendation)
-      .filter((item): item is RecommendedJob => item !== null)
-      .sort((left, right) => right.matchPercent - left.matchPercent);
+      .filter((item): item is RecommendedJob => item !== null);
   },
 };

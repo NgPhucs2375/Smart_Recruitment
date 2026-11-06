@@ -106,6 +106,7 @@ public static class FanoutChecks
         current.Set(1, VaiTroNguoiDung.UNG_VIEN, null);
         var browse = new GetSuggestedJobsForCvQueryHandler(db, current,
             NullLogger<GetSuggestedJobsForCvQueryHandler>.Instance,
+            new StubReranker(null),
             new MemoryDistributedCache(Options.Create(new MemoryDistributedCacheOptions())));
         var emptyPage = await browse.Handle(
             new GetSuggestedJobsForCvQuery { TopN = 10, MinimumScore = 0.99f }, default);

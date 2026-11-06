@@ -82,8 +82,8 @@ CopilotKit -> Next proxy (forward Authorization) -> AG-UI endpoint (auth)
 ## Deployment
 
 The module uses the same process, authentication, request scope, logging, and
-database as `WebApp.Server`. Deployment only needs the Google Gemini API
-configuration (`Gemini:Endpoint`, `Gemini:Model`, `Gemini:ApiKey`) and the
-existing `/api/copilotkit` endpoint. The agent uses Google's OpenAI-compatible
+database as `WebApp.Server`. Deployment only needs the DeepSeek API
+configuration (`DeepSeek:Endpoint`, `DeepSeek:Model`, `DeepSeek:ApiKey`) and the
+existing `/api/copilotkit` endpoint. The agent uses DeepSeek's OpenAI-compatible
 endpoint directly; no OpenRouter/9router gateway is involved. If scaling independently becomes a real requirement, this directory
 is the extraction boundary for a future agent service.

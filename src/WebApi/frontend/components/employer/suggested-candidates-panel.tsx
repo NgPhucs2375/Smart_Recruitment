@@ -35,6 +35,7 @@ type SuggestedCandidate = {
   kyNangThoa: string[];
   kyNangThieu: string[];
   soNamKinhNghiem: number;
+  lyDoGoiY?: string;
 };
 
 function responseMessage(body: ApiResponse<unknown> | null, fallback: string) {
@@ -143,6 +144,7 @@ function normalizeCandidate(value: unknown): SuggestedCandidate | null {
     kyNangThoa: asStringArray(row.kyNangThoa ?? row.KyNangThoa),
     kyNangThieu: asStringArray(row.kyNangThieu ?? row.KyNangThieu),
     soNamKinhNghiem: asNumber(row.soNamKinhNghiem ?? row.SoNamKinhNghiem),
+    lyDoGoiY: asString(row.lyDoGoiY ?? row.LyDoGoiY),
   };
 }
 
@@ -307,6 +309,11 @@ export function SuggestedCandidatesPanel({
                         {candidate.soNamKinhNghiem > 0 ? `${candidate.soNamKinhNghiem} năm kinh nghiệm` : "Chưa có dữ liệu kinh nghiệm"}
                         {candidate.phanLoai ? ` · ${candidate.phanLoai}` : ""}
                       </p>
+                      {candidate.lyDoGoiY && (
+                        <p className="mt-2 flex items-start gap-1.5 text-xs text-muted-foreground">
+                          <Sparkles className="mt-0.5 size-3.5 shrink-0 text-primary" /> {candidate.lyDoGoiY}
+                        </p>
+                      )}
                     </div>
                   </div>
                   {candidate.kyNangThoa.length > 0 && (
