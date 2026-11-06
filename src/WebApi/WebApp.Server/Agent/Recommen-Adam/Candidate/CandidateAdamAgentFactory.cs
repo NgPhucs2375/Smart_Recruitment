@@ -29,6 +29,8 @@ internal sealed class CandidateAdamAgentFactory
             AIFunctionFactory.Create(_cvQueryTools.GetMyCvsAsync, new AIFunctionFactoryOptions { Name = "list_my_cvs" }),
             AIFunctionFactory.Create(_cvQueryTools.SuggestJobsForMyCvAsync, new AIFunctionFactoryOptions { Name = "suggest_jobs_for_my_cv" }),
             AIFunctionFactory.Create(_cvQueryTools.SuggestCvThemeAsync, new AIFunctionFactoryOptions { Name = "suggest_cv_theme" }),
+            AIFunctionFactory.Create(_cvQueryTools.GetCvThemeWorkspaceAsync, new AIFunctionFactoryOptions { Name = "get_cv_theme_workspace" }),
+            AIFunctionFactory.Create(_cvQueryTools.PickCvThemesAsync, new AIFunctionFactoryOptions { Name = "pick_cv_themes" }),
             AIFunctionFactory.Create(_candidateTools.CheckProfileCompletenessAsync, new AIFunctionFactoryOptions { Name = "check_profile_completeness" }),
             AIFunctionFactory.Create(_candidateTools.AnalyzeCvAsync, new AIFunctionFactoryOptions { Name = "analyze_cv" }),
             AIFunctionFactory.Create(_candidateTools.ReviewDefaultCvAsync, new AIFunctionFactoryOptions { Name = "review_default_cv" }),
@@ -56,10 +58,11 @@ internal sealed class CandidateAdamAgentFactory
                     // cần ~2000-3000 tokens output. 512 tokens khiến model bị cắt
                     // giữa chừng → thiếu section, format hỏng.
                     MaxOutputTokens = 4096,
-                    // The model must receive the tool result and produce a user-facing
-                    // answer in the same run; false ends the stream at TOOL_CALL_RESULT.
-                    // Frontend tool calls must be resumed one at a time by AG-UI.
-                    AllowMultipleToolCalls = false,
+                    // Luồng chọn mẫu CV cần nhiều bước trong cùng một lượt:
+                    // đọc workspace từ DB -> model quyết -> pick_cv_themes kiểm định.
+                    // Các luồng khác vẫn giới hạn 1 backend tool bằng quy tắc trong
+                    // CandidateAdamInstructions.
+                    AllowMultipleToolCalls = true,
                     Reasoning = new ReasoningOptions
                     {
                         Effort = ReasoningEffort.None,

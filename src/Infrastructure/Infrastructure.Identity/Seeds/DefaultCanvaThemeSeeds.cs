@@ -249,6 +249,40 @@ namespace Infrastructure.Identity.Seeds
             {
                 row.IsActive = false;
             }
+            // 16 row metadata đẹp nhưng chưa từng có component render. Thay vì
+            // ẩn như nhóm retired ở trên, cấp cho chúng CauHinhJson ThemeCanvas
+            // -> registerStudioEntry đăng ký động, gallery/editor dùng được thật
+            // và CvThemeMatcher không còn âm thầm loại ở bước ResolveRenderer.
+            // Chỉ điền khi row chưa có config: bản admin sửa trong Studio không bị đè.
+            // ApplicationDbContext.cs:50 đặt NoTracking mặc định, nên phải Update()
+            // tường minh — sửa property trên entity đọc về mà không attach thì mất trắng.
+            var orphanSlugs = CvThemeStudioSeedConfigs.Slugs.ToArray();
+            var orphanRows = appContext.CvThemes
+                .Where(x => orphanSlugs.Contains(x.Slug))
+                .ToList();
+            foreach (var row in orphanRows)
+            {
+                if (!string.IsNullOrWhiteSpace(row.CauHinhJson)) continue;
+                row.CauHinhJson = CvThemeStudioSeedConfigs.BuildJson(row.Slug, row.Ten, row.MoTa, row.ThanThienATS);
+                appContext.CvThemes.Update(row);
+            }
+            // 7 preset Studio + 6 mẫu vẽ tay để trống ngành/vị trí mục tiêu, nên
+            // CvThemeMatcher.cs:150 loại hết mỗi khi suy được ngành từ chức danh.
+            // Chúng vốn là mẫu đa ngành -> khai báo "all" thay vì đoán ngành.
+            var genericSlugs = new[]
+            {
+                "canva-corporate-navy", "canva-minimal-monochrome", "canva-clean-slate",
+                "canva-blue-gold-designer", "canva-executive-banner", "canva-darkroom-creative",
+                "canva-editorial-classic", "mono-portfolio", "kem-minimal", "beige-editorial",
+                "nhan-su-royal", "den-moody", "do-hoa-lime",
+            };
+            foreach (var row in appContext.CvThemes.Where(x => genericSlugs.Contains(x.Slug)).ToList())
+            {
+                var changed = false;
+                if (string.IsNullOrWhiteSpace(row.NganhPhuHop)) { row.NganhPhuHop = "all"; changed = true; }
+                if (string.IsNullOrWhiteSpace(row.ViTriMucTieu)) { row.ViTriMucTieu = "all"; changed = true; }
+                if (changed) appContext.CvThemes.Update(row);
+            }
             await appContext.SaveChangesAsync();
         }
     }
