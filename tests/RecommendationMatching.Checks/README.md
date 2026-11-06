@@ -31,8 +31,8 @@ tăng `Version` và ghi số mới vào phần dưới thay vì sửa số cũ �
 - Xếp điểm giảm dần, hòa điểm theo ID ordinal; điểm 0 không được trả, giống điều kiện lọc score của backend.
 - `MACRO`: trung bình theo query, không gộp tất cả cặp thành một query.
 
-`fixtures.json` hiện có **22 ca có nhãn graded** (4 ca chẩn đoán gốc + 16 ca dựng thêm +
-2 ca trình độ kỹ năng).
+`fixtures.json` hiện có **24 ca có nhãn graded** (4 ca chẩn đoán gốc + 16 ca dựng thêm +
+2 ca trình độ kỹ năng + 2 ca kinh nghiệm).
 Mỗi ca mang trường `note` ghi *lý do gán nhãn* để người sau kiểm tra lại được từng dòng.
 Nhãn do **một người** quyết định theo kinh nghiệm tuyển dụng IT phổ thông, chưa có người
 thứ hai độc lập → **chưa tính được Cohen's κ**, và đó là hạn chế phải nói rõ khi trích số.
@@ -165,6 +165,64 @@ nhãn đều là tin `[GT] Backend Developer .NET - bộ ...` (benchmark ground-
 ghi là `.NET` trong khi CV viết `.NET Core`: **nhãn này đang chỉ đúng bệnh của bước #5**
 (khoảng trống từ vựng kiểm soát), không phải ứng viên thiếu kỹ năng. Đó là lý do bước #2 chỉ
 dùng để *giải thích* và bước #5 mới là chỗ sửa.
+
+## Bước #4 — utility số năm và địa điểm (cbf-v6-utility)
+
+Hai tín hiệu phụ chuyển từ "có/không" sang **utility có dấu**, mỗi tín hiệu bị chặn trong ±0,05
+nên không lật được thứ tự của phần kỹ năng:
+
+```
+experienceBonus = 0,05 · (2·min(1, soNamUngVien / soNamYeuCau) − 1)
+locationBonus   = 0,05 trung ca quan  |  0,025 trung thanh pho  |  0 khac noi
+```
+
+`KinhNghiemYeuCau` là text tự do, nên parser lấy **cận dưới của dải** (số đầu tiên):
+"2 năm" → 2, "Tối thiểu 1-3 năm kinh nghiệm ở vị trí tương đương" → 1,
+"Tối thiểu 3 năm kinh nghiệm phát triển .NET/.NET Core; ..." → 3 (số trong ".NET" không bị tính),
+"Không yêu cầu kinh nghiệm" và "0 - 1 năm (chấp nhận sinh viên năm cuối)" → 0 (trung tính).
+DB đang chạy: 89/90 tin hiệu lực đọc được một số năm; phân bố "2 năm" 25 tin, "4 năm" 20,
+"3 năm" 15, "5/6/7 năm" 5+5+5, 14 tin còn lại là câu dài.
+
+**Số năm của ứng viên lấy từ `CVKyNang.SoNamKinhNghiem`, không phải `KinhNghiemLamViec`.**
+Lý do là số liệu, không phải sở thích: bảng `KinhNghiemLamViec` theo hồ sơ có **0 dòng trên toàn
+bộ 27 hồ sơ đang tìm việc**, tức `SoNamKinhNghiem` mà màn HR đang hiển thị luôn là 0;
+trong khi 16/27 CV có số năm theo kỹ năng (15 CV đạt ≥2 năm, cao nhất 8 năm). Chọn nguồn này
+còn giúp bước #4 không cần thêm query nào — dữ liệu đã nằm trong `MatchSkill.Years` từ bước #1.
+CV không có số năm ở mọi kỹ năng → **trung tính**, không bị coi là chưa đi làm.
+
+```
+MACRO cbf-v1         queries=24 P=0.7708 R=0.8333 NDCG=0.7789
+MACRO cbf-v6-utility queries=24 P=0.8542 R=0.9167 NDCG=0.9194
+```
+
+Hai ca mới/mới sửa, đo riêng từng cái:
+
+| Ca | cbf-v1 | cbf-v6 | Ghi chú |
+|---|---|---|---|
+| `location-district-vs-city` | 0.8428 | 1.0000 | Trước đây "quận trùng" và "thành phố trùng" cùng 0,05, thứ tự do ID quyết định |
+| `experience-required-vs-actual` | 0.6806 | 1.0000 | Ba tin cùng kỹ năng, chỉ khác số năm đòi; ID đã đổi tên để tie-break không cứu được baseline |
+| `experience-data-missing` | 1.0000 | 1.0000 | Ca giữ dáng: nếu code coi "thiếu dữ liệu" thành 0 năm thì tin đòi 5 năm bị tụt xuống dưới tin 6 yêu cầu khớp 4 |
+
+Địa chỉ VN theo quy ước "quận, tỉnh/thành phố" nên **đoạn cuối là tỉnh/thành, đoạn kề trước là
+quận**; 15 giá trị `DiaDiemLamViec` và 15 giá trị `DiaChi` đang chạy đều đúng dạng này
+("Bình Thạnh, TP. Hồ Chí Minh", "Cầu Giấy, Hà Nội"), và `LocationKey` đã gộp "TP. HCM"/"TP HCM".
+Giới hạn ghi rõ: "Thủ Đức, TP. Hồ Chí Minh" và "Quận 1, TP. Hồ Chí Minh" chỉ được tính cùng
+thành phố, vì tách quận theo cấp hành chính thật cần một bảng danh mục — chưa làm.
+
+Tác động trên 1288 dòng `KetQuaPhuHop` đang tồn tại (tính theo đúng hai luật mới):
+
+| Nhóm | Số dòng | Thay đổi |
+|---|---|---|
+| Trùng thành phố, không trùng quận | 219 | −0,025 (từ 0,05 xuống 0,025) |
+| Trong 219 dòng đó, điểm rơi khỏi ngưỡng Cao | 6 | nhãn `PhanLoai` Cao → TrungBinh |
+| Đủ số năm yêu cầu | 604 | +0,05 |
+| Thiếu số năm yêu cầu | 121 | bị trừ theo tỉ lệ, tối đa −0,05 |
+| CV không có số năm | 528 | trung tính, không đổi |
+
+Bất biến `score > 0` vẫn giữ: điểm kỹ năng nhỏ nhất có thể khác 0 là `(1·0,4 + 5·0,4)/(22 + 5)`
+= 0,089 (một yêu cầu trọng số 1 khớp ở mức Cơ bản, tin dài nhất W=22), lớn hơn mức phạt tối đa 0,05,
+nên không cặp nào đang được gợi ý bị xoá chỉ vì thiếu kinh nghiệm. Check
+`Maximum experience penalty cannot delete a CV that matches one requirement` khoá lại điều đó.
 
 ## Relation tới benchmark database
 

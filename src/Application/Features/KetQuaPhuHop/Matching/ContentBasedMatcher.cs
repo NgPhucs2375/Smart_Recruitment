@@ -1,4 +1,5 @@
 #nullable enable
+using System.Globalization;
 using Domain.Enums;
 
 namespace Application.Features.KetQuaPhuHop.Matching;
@@ -10,9 +11,11 @@ public sealed record CandidateMatchInput(
     decimal DesiredSalary = 0, string? Address = null);
 public sealed record JobMatchInput(
     IReadOnlyList<MatchRequirement> Requirements, string? Title = null,
-    decimal SalaryMin = 0, decimal SalaryMax = 0, string? Location = null);
+    decimal SalaryMin = 0, decimal SalaryMax = 0, string? Location = null,
+    string? ExperienceRequired = null);
 public sealed record ContentMatchResult(
     float Score, float SkillScore, float PositionBonus, float SalaryBonus, float LocationBonus,
+    float ExperienceBonus,
     IReadOnlyList<string> MatchedSkills, IReadOnlyList<string> MissingSkills,
     IReadOnlyList<string>? MissingMandatory = null)
 {
@@ -31,7 +34,7 @@ public sealed record ContentMatchResult(
 public static class ContentBasedMatcher
 {
     public const string BaselineVersion = "cbf-v1";
-    public const string Version = "cbf-v5-gated";
+    public const string Version = "cbf-v6-utility";
 
     /// <summary>
     /// π = mức phủ kỹ năng kỳ vọng trước khi có bằng chứng, p = trọng số ảo theo thang Weight().
@@ -113,11 +116,95 @@ public static class ContentBasedMatcher
             (job.SalaryMin <= candidate.DesiredSalary || job.SalaryMin == 0) ? .05f : 0;
         var address = LocationKey(candidate.Address);
         var location = LocationKey(job.Location);
-        var locationBonus = address.Length > 0 && location.Length > 0 &&
-            (location.Contains(address, StringComparison.Ordinal) || address.Contains(location, StringComparison.Ordinal)) ? .05f : 0;
+        // Dia chi Viet Nam theo quy uoc "quan, tinh/thanh pho": trung ca quan moi dang
+        // hon trung mot minh thanh pho, nen bonus chia hai muc thay bang 0.05 cung
+        // cho ca hai (ca location-district-vs-city bi tie-break theo ID quyet dinh).
+        var locationBonus = !normalized
+            ? address.Length > 0 && location.Length > 0 &&
+                (location.Contains(address, StringComparison.Ordinal) || address.Contains(location, StringComparison.Ordinal)) ? .05f : 0
+            : LocationUtility(address, candidate.Address, location, job.Location);
+        // So nam cua ung vien lay tu bang chung ky nang dau tien (MatchSkill.Years) —
+        // du lieu da co san trong CV nen khong can them query nao cho luot cham diem.
+        var experienceBonus = 0f;
+        if (normalized)
+        {
+            var required = RequiredYears(job.ExperienceRequired);
+            var actual = candidate.Skills.Where(x => x.Years.HasValue).Select(x => x.Years).Max();
+            if (required is > 0 && actual.HasValue)
+                experienceBonus = ExperienceUtilityFactor *
+                    (2f * Math.Min(1f, actual.Value / required.Value) - 1f);
+        }
 
-        return new ContentMatchResult(Math.Min(1, skillScore + positionBonus + salaryBonus + locationBonus),
-            skillScore, positionBonus, salaryBonus, locationBonus, matched, missing, missingMandatory);
+        return new ContentMatchResult(
+            Math.Min(1, skillScore + positionBonus + salaryBonus + locationBonus + experienceBonus),
+            skillScore, positionBonus, salaryBonus, locationBonus, experienceBonus,
+            matched, missing, missingMandatory);
+    }
+
+    /// <summary>
+    /// Do lech giua so nam ung vien co va so nam tin doi: du ou tren duoc cong
+    /// ExperienceUtilityFactor, thieu het thi bi tru bang do, du mot nua thi trung tinh.
+    /// Thuoc tinh bi chan trong [-0.05, +0.05] nen khong dao duoc thu tu cua phan ky nang.
+    /// </summary>
+    private const float ExperienceUtilityFactor = .05f;
+
+    private static float LocationUtility(string candidateKey, string? candidateAddress,
+        string jobKey, string? jobAddress)
+    {
+        if (candidateKey.Length == 0 || jobKey.Length == 0) return 0f;
+        var (candidateCity, candidateDistrict) = LocationParts(candidateAddress);
+        var (jobCity, jobDistrict) = LocationParts(jobAddress);
+        if (!SamePlace(candidateCity, jobCity)) return 0f;
+        return candidateDistrict.Length > 0 && jobDistrict.Length > 0 &&
+            SamePlace(candidateDistrict, jobDistrict) ? .05f : .025f;
+    }
+
+    /// <summary>
+    /// Tach "thanh pho/tinh" (doan cuoi) va "quan/huyen" (doan lien truoc) cua dia chi Viet Nam.
+    /// Doan duoc khoa qua MatchingTextNormalizer nen "TP. HCM" va "TP HCM" van quy ve mot.
+    /// </summary>
+    private static (string City, string District) LocationParts(string? address)
+    {
+        var parts = (address ?? string.Empty)
+            .Split([',', ';'], StringSplitOptions.RemoveEmptyEntries)
+            .Select(MatchingTextNormalizer.LocationKey)
+            .Where(x => x.Length > 0)
+            .ToList();
+        return parts.Count == 0 ? (string.Empty, string.Empty)
+            : (parts[^1], parts.Count > 1 ? parts[^2] : string.Empty);
+    }
+
+    private static bool SamePlace(string left, string right) =>
+        left.Length > 0 && right.Length > 0 &&
+        (left.Contains(right, StringComparison.Ordinal) || right.Contains(left, StringComparison.Ordinal));
+
+    /// <summary>
+    /// Doc "KinhNghiemYeuCau" (text tu do): so dau tien la can duoi cua dai yeu cau,
+    /// nen "1-3 nam" doi 1 nam va "Toi thieu 3 nam ... .NET" doi 3 nam.
+    /// "Khong yeu cau" hoac khong co so -> null: thieu du lieu khong bi tinh la 0 nam.
+    /// </summary>
+    private static float? RequiredYears(string? text)
+    {
+        var key = MatchingTextNormalizer.TextKey(text);
+        if (key.Length == 0) return null;
+        if (key.Contains("không yêu cầu", StringComparison.Ordinal) ||
+            key.Contains("chưa có kinh nghiệm", StringComparison.Ordinal) ||
+            key.Contains("sinh viên mới ra trường", StringComparison.Ordinal))
+            return 0;
+        var digits = 0;
+        var start = -1;
+        for (var i = 0; i <= key.Length; i++)
+        {
+            if (i < key.Length && char.IsAsciiDigit(key[i]))
+            {
+                if (start < 0) start = i;
+                digits++;
+                continue;
+            }
+            if (start < 0) continue;
+            return float.Parse(key.AsSpan(start, digits), CultureInfo.InvariantCulture);
+        }
+        return null;
     }
 
     private static float Weight(MucDoYC level) => level switch

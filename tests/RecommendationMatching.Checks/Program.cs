@@ -62,12 +62,12 @@ Check(Near(ContentBasedMatcher.Evaluate(Candidate(""), Job(" ")).Score, 0), "Bla
 
 var bonuses = ContentBasedMatcher.Evaluate(new([], "Backend", 20, "Hà Nội"),
     new([], "Backend Developer", 15, 25, "Hà Nội"));
-Check(Near(bonuses.Score, .2) && Near(bonuses.SkillScore, 0), "Bonuses exposed separately from skill score");
+Check(Near(bonuses.Score, .175) && Near(bonuses.SkillScore, 0), "Bonuses exposed separately from skill score");
 Check(Near(ContentBasedMatcher.Evaluate(new([], "Backend"), new([], "")).Score, 0), "Empty JD title cannot earn position bonus");
 Check(Near(ContentBasedMatcher.EvaluateBaseline(new([new(null, "Docker")], "Backend", 20, "Hà Nội"),
     new([new(null, "Docker", MucDoYC.BatBuc)], "Backend", 15, 25, "Hà Nội")).Score, 1), "Final score capped at one");
 Check(Near(ContentBasedMatcher.Evaluate(new([new(null, "Docker")], "Backend", 20, "Hà Nội"),
-    new([new(null, "Docker", MucDoYC.BatBuc)], "Backend", 15, 25, "Hà Nội")).Score, 0.825f), "Calibrated score plus all bonuses");
+    new([new(null, "Docker", MucDoYC.BatBuc)], "Backend", 15, 25, "Hà Nội")).Score, 0.8f), "Calibrated score plus all bonuses");
 Check(Near(ContentBasedMatcher.Evaluate(new([], DesiredSalary: 20), new([], SalaryMax: 0)).Score, 0), "Unknown salary does not earn salary bonus");
 
 // Cổng bắt buộc là nhãn screening: nó liệt kê thiếu gì nhưng không được sửa Score,
@@ -89,12 +89,38 @@ Check(MatchingTextNormalizer.LocationKey(null) == "", "Null location is empty");
 Check(MatchingTextNormalizer.SkillKey("C#") != MatchingTextNormalizer.SkillKey("C"), "Skill key keeps punctuation that names the language");
 var dottedAddress = ContentBasedMatcher.Evaluate(new([], "", 0, "766/5 Lạc Long Quân, Tân Hòa, TP Hồ Chí Minh"),
     new([], "Senior .NET Developer", 25, 45, "TP. Hồ Chí Minh"));
-Check(Near(dottedAddress.LocationBonus, .05) && Near(dottedAddress.Score, .05), "City matches whether or not it carries a dot");
+Check(Near(dottedAddress.LocationBonus, .025) && Near(dottedAddress.Score, .025), "City match without district earns half the bonus");
+Check(Near(ContentBasedMatcher.Evaluate(new([], "", 0, "Quận 1, TP. Hồ Chí Minh"),
+    new([], "Developer", 0, 0, "Bình Thạnh, TP. Hồ Chí Minh")).LocationBonus, .025), "Different district in the same city is not a full location match");
+Check(Near(ContentBasedMatcher.Evaluate(new([], "", 0, "Quận 1, TP. Hồ Chí Minh"),
+    new([], "Developer", 0, 0, "Quận 1, Hồ Chí Minh")).LocationBonus, .05), "Same district inside the same city earns the full bonus");
 var baselineDottedAddress = ContentBasedMatcher.EvaluateBaseline(new([], "", 0, "766/5 Lạc Long Quân, Tân Hòa, TP Hồ Chí Minh"),
     new([], "Senior .NET Developer", 25, 45, "TP. Hồ Chí Minh"));
 Check(Near(baselineDottedAddress.LocationBonus, 0), "Baseline keeps the original punctuation miss");
 Check(Near(ContentBasedMatcher.Evaluate(new([], "", 0, "Cầu Giấy, Hà Nội"),
     new([], "Data Analyst", 12, 20, "TP. Hồ Chí Minh")).LocationBonus, 0), "Different city earns no location bonus");
+
+// Utility so nam: 0.05*du, -0.05*thieu het, 0 o giua; thieu du lieu hai ben thi trung tinh.
+float Experience(float? years, string required) => ContentBasedMatcher.Evaluate(
+    Graded(Skill(null, "JavaScript", null, years)),
+    new JobMatchInput([new(null, "JavaScript", MucDoYC.BatBuc)], ExperienceRequired: required)).ExperienceBonus;
+Check(Near(Experience(4f, "4 năm"), .05), "Meeting the required years earns the experience bonus");
+Check(Near(Experience(9f, "4 năm"), .05), "More years than required does not overshoot the bonus");
+Check(Near(Experience(2f, "4 năm"), 0), "Half the required years is exactly neutral");
+Check(Near(Experience(.5f, "4 năm"), -.0375f), "Under-experience is penalized proportionally");
+Check(Near(Experience(1f, "Tối thiểu 1-3 năm kinh nghiệm ở vị trí tương đương."), .05), "Requirement range uses its lower bound");
+Check(Near(Experience(3f, "Tối thiểu 3 năm kinh nghiệm phát triển .NET/.NET Core; có kinh nghiệm EF Core, SQL Server."), .05), "Requirement number survives dotted skill names");
+Check(Near(Experience(null, "5 năm"), 0), "CV without any years is not guessed as inexperienced");
+Check(Near(Experience(1f, "Không yêu cầu kinh nghiệm"), 0), "JD without a requirement cannot move the score");
+Check(Near(Experience(1f, "0 - 1 năm (chấp nhận sinh viên năm cuối)"), 0), "Zero lower bound is read as no requirement");
+Check(Near(ContentBasedMatcher.EvaluateBaseline(Graded(Skill(null, "JavaScript", null, 1f)),
+    new JobMatchInput([new(null, "JavaScript", MucDoYC.BatBuc)], ExperienceRequired: "5 năm")).ExperienceBonus, 0),
+    "Baseline ignores the experience requirement");
+// Bonus am khong duoc xoa mot cap co it nhat mot yeu cau khop: bo loc "score > 0"
+// cua API va fan-out dung chinh gia tri nay de quyet tin/ung vien duoc goi.
+Check(ContentBasedMatcher.Evaluate(Graded(Skill(null, "JavaScript", MucDo.CoBan)),
+    new JobMatchInput([new(null, "JavaScript", MucDoYC.KhongBatBuoc)], ExperienceRequired: "20 năm")).Score > 0,
+    "Maximum experience penalty cannot delete a CV that matches one requirement");
 var originalCulture = CultureInfo.CurrentCulture;
 try
 {

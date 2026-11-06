@@ -90,7 +90,7 @@ public class GetSuggestedCandidatesForJobQueryHandler(
             .Select(x => new MatchRequirement(x.KyNangId, x.DanhMucKyNang.TenKyNang, x.MucDoYeuCau))
             .ToList();
         var jobInput = new JobMatchInput(requirements, job.TieuDe,
-            job.LuongToiThieu, job.LuongToiDa, job.DiaDiemLamViec);
+            job.LuongToiThieu, job.LuongToiDa, job.DiaDiemLamViec, job.KinhNghiemYeuCau);
         var now = DateTime.UtcNow;
         // 4 Include trên cùng query sinh cartesian explosion: tách thành
         // nhiều query (cùng kết quả, không đổi semantics scoring).

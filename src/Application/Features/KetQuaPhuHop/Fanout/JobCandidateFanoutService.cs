@@ -56,7 +56,7 @@ public sealed class JobCandidateFanoutService(
             .Select(x => new MatchRequirement(x.KyNangId, x.DanhMucKyNang.TenKyNang, x.MucDoYeuCau))
             .ToList();
         var jobInput = new JobMatchInput(requirements, job.TieuDe,
-            job.LuongToiThieu, job.LuongToiDa, job.DiaDiemLamViec);
+            job.LuongToiThieu, job.LuongToiDa, job.DiaDiemLamViec, job.KinhNghiemYeuCau);
 
         // Cùng định nghĩa pool với truy vấn "ứng viên cho tin": CV mặc định, chưa xoá, hồ sơ đang mở tìm việc.
         var pool = (await context.CVUngViens

@@ -234,5 +234,24 @@
       { "id": "broad-java", "relevance": 1, "job": { "title": "Java Backend Engineer", "requirements": [{ "name": "Java", "level": "BatBuc" }, { "name": "Spring", "level": "BatBuc" }, { "name": "MySQL", "level": "UuTien" }] } },
       { "id": "narrow-web", "relevance": 3, "job": { "title": "Web Engineer", "requirements": [{ "name": "React", "level": "BatBuc" }, { "name": "Node.js", "level": "BatBuc" }, { "name": "Git", "level": "UuTien" }] } }
     ]
+  },
+  {
+    "id": "experience-required-vs-actual", "k": 3,
+    "note": "Ung vien Java 2 nam: ba tin co cung yeu cau ky nang, chi khac so nam doi hoi. Khop dung yeu cau duoi nhat, khong doi thi trung tinh, doi 5 nam thi thieu.",
+    "candidate": { "skills": [{ "name": "Java", "years": 2 }], "position": "Backend Developer" },
+    "items": [
+      { "id": "job-two", "relevance": 3, "job": { "title": "Java Developer", "experienceRequired": "2 năm", "requirements": [{ "name": "Java", "level": "BatBuc" }] } },
+      { "id": "job-none", "relevance": 2, "job": { "title": "Java Developer", "experienceRequired": "Không yêu cầu kinh nghiệm", "requirements": [{ "name": "Java", "level": "BatBuc" }] } },
+      { "id": "job-five", "relevance": 1, "job": { "title": "Senior Java Developer", "experienceRequired": "Tối thiểu 5 năm kinh nghiệm với Spring Boot", "requirements": [{ "name": "Java", "level": "BatBuc" }] } }
+    ]
+  },
+  {
+    "id": "experience-data-missing", "k": 2,
+    "note": "CV khong ghi so nam o bat ky ky nang nao. Tin doi 5 nam khong duoc bi coi la 0 nam: thu tu van do do lech bao phu ky nang quyet dinh (2/2 yeu cau > 4/6 yeu cau).",
+    "candidate": { "skills": [{ "name": "Python" }, { "name": "SQL" }, { "name": "Power BI" }, { "name": "Excel" }], "position": "Data Analyst" },
+    "items": [
+      { "id": "senior-required", "relevance": 2, "job": { "title": "Senior Data Analyst", "experienceRequired": "5 năm", "requirements": [{ "name": "Python", "level": "BatBuc" }, { "name": "SQL", "level": "BatBuc" }] } },
+      { "id": "long-jd", "relevance": 1, "job": { "title": "BI Analyst", "requirements": [{ "name": "Python", "level": "BatBuc" }, { "name": "SQL", "level": "BatBuc" }, { "name": "Power BI", "level": "UuTien" }, { "name": "Excel", "level": "UuTien" }, { "name": "Airflow", "level": "KhongBatBuoc" }, { "name": "Docker", "level": "KhongBatBuoc" }] } }
+    ]
   }
 ]

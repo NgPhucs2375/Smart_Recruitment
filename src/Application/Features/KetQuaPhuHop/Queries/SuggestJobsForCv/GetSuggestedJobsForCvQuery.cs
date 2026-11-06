@@ -142,6 +142,7 @@ public class GetSuggestedJobsForCvQueryHandler(
                 DiaDiemLamViec = t.DiaDiemLamViec,
                 LuongToiThieu = t.LuongToiThieu,
                 LuongToiDa = t.LuongToiDa,
+                KinhNghiemYeuCau = t.KinhNghiemYeuCau,
                 NgayHetHan = t.NgayHetHan,
                 Skills = t.KyNangTinTuyenDungs
                     .Where(k => k.DanhMucKyNang != null)
@@ -163,7 +164,7 @@ public class GetSuggestedJobsForCvQueryHandler(
         {
             var match = ContentBasedMatcher.Evaluate(candidate, new JobMatchInput(
                 t.Skills.Select(k => new MatchRequirement(k.KyNangId, k.TenKyNang, k.MucDoYeuCau)).ToList(),
-                t.TieuDe, t.LuongToiThieu, t.LuongToiDa, t.DiaDiemLamViec));
+                t.TieuDe, t.LuongToiThieu, t.LuongToiDa, t.DiaDiemLamViec, t.KinhNghiemYeuCau));
             if (match.Score <= 0f)
                 continue;
             var vm = ToVm(t, match.Score);
@@ -266,6 +267,7 @@ public class GetSuggestedJobsForCvQueryHandler(
         public string? DiaDiemLamViec { get; set; }
         public decimal LuongToiThieu { get; set; }
         public decimal LuongToiDa { get; set; }
+        public string? KinhNghiemYeuCau { get; set; }
         public DateTime? NgayHetHan { get; set; }
         public List<JobMatchSkill> Skills { get; set; } = [];
     }
