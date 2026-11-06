@@ -17,6 +17,7 @@ import {
   AdminEmptyState,
   AdminLoadingState,
 } from "@/components/admin/admin-page-layout";
+import { getValidToken } from "@/lib/auth-provider";
 
 type Application = {
   id: number;
@@ -141,7 +142,7 @@ export default function UngVienPage() {
   }, [router, searchParams]);
 
   const apiFetch = useCallback(async (url: string, options?: RequestInit) => {
-    const token = localStorage.getItem("access_token");
+    const token = await getValidToken();
     const response = await fetch(url, {
       ...options,
       cache: "no-store",

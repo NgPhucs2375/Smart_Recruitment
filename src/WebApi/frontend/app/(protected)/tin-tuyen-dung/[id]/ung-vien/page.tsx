@@ -15,6 +15,7 @@ import {
   AdminEmptyState,
   AdminLoadingState,
 } from "@/components/admin/admin-page-layout";
+import { getValidToken } from "@/lib/auth-provider";
 
 type DonUngTuyen = {
   id: number;
@@ -117,7 +118,7 @@ export default function UngVienTheoTinPage() {
   const [evalSubmitting, setEvalSubmitting] = useState(false);
 
   const apiFetch = useCallback(async (url: string, opts?: RequestInit) => {
-    const token = localStorage.getItem("access_token");
+    const token = await getValidToken();
     const res = await fetch(url, {
       ...opts,
       cache: "no-store",

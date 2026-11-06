@@ -14,6 +14,7 @@ import {
 import { useStoredIdentity } from "@/hooks/use-stored-identity";
 import { isValidVnPhone, normalizeVnPhone } from "@/features/tao-cv/validation";
 
+import { getValidToken } from "@/lib/auth-provider";
 type HoSoNhaTuyenDung = {
   id: number;
   nguoiDungId: number;
@@ -56,7 +57,7 @@ export function RecruiterProfileTab() {
   const [createForm, setCreateForm] = useState({ hoTen: "", sdt: "", chucVu: "" });
 
   const apiFetch = useCallback(async (url: string, opts?: RequestInit) => {
-    const token = localStorage.getItem("access_token");
+    const token = await getValidToken();
     const res = await fetch(url, {
       ...opts,
       headers: {

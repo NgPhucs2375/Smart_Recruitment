@@ -5,6 +5,7 @@ import { Users, UserPlus, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { AdminPageLayout, AdminPageHeader, AdminCard, AdminCardHeader, AdminEmptyState, AdminLoadingState } from "@/components/admin/admin-page-layout";
 import { Badge } from "@/components/ui/badge";
+import { getValidToken } from "@/lib/auth-provider";
 
 type NguoiDung = {
   id: number;
@@ -29,7 +30,7 @@ export default function UserRolesPage() {
   const [search, setSearch] = useState("");
 
   const apiFetch = useCallback(async (url: string, opts?: RequestInit) => {
-    const token = localStorage.getItem("access_token");
+    const token = await getValidToken();
     const res = await fetch(url, { ...opts, headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}), ...opts?.headers } });
     const body = await res.json().catch(() => null);
     if (!res.ok) throw new Error(body?.Message ?? body?.message ?? `HTTP ${res.status}`);

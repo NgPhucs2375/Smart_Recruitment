@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useLogout } from "@refinedev/core";
 import { Building2, LogOut, ShieldCheck, UserRound } from "lucide-react";
@@ -8,20 +8,28 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useTheme } from "@/components/theme-provider";
 import { cn } from "@/lib/utils";
 import type { StoredIdentity } from "@/lib/access-control-provider";
+import { getValidToken } from "@/lib/auth-provider";
 import { SettingRow, SettingsGroup, SoonBadge } from "./setting-bits";
 import { PasswordChangeForm } from "./password-change-form";
 
-const MOCK = {
-  hoTen: "Đại Diện Tuyển Dụng (Sao Khuê Corp)",
-  emailFallback: "daidien.saokhue@seed.local",
-  vaiTro: "Quản trị viên tuyển dụng (HR Admin)",
-  congTy: {
-    ten: "Công ty TNHH Công nghệ Smart Recruitment (Sao Khuê)",
-    mst: "MST-0318928391",
-    quyMo: "50 - 100 nhân viên",
-    quyenHan: "Toàn quyền quản trị chiến dịch tuyển dụng & ứng viên",
-  },
+const COMPANY_API = "/api/dotnet/doanhnghieps/mine";
+
+const ROLE_LABELS: Record<string, string> = {
+  QUAN_TRI_VIEN: "Quản trị viên",
+  NGUOI_DAI_DIEN: "Người đại diện",
+  NHAN_SU: "Nhân sự tuyển dụng",
+  UNG_VIEN: "Ứng viên",
 };
+
+type CompanyInfo = { ten: string; mst: string; quyMo: string; linhVuc: string };
+
+function initials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "?";
+  const first = parts[0][0] ?? "";
+  const last = parts.length > 1 ? (parts[parts.length - 1][0] ?? "") : "";
+  return (first + last).toUpperCase();
+}
 
 const CARD = "rounded-2xl border border-border bg-card p-6 shadow-sm";
 const CARD_TITLE = "flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-muted-foreground";
@@ -73,6 +81,56 @@ export function RecruiterSettings({
 }) {
   const { mutate: logout, isPending } = useLogout();
   const [tab, setTab] = useState("account");
+  const [company, setCompany] = useState<CompanyInfo | null>(null);
+  const [companyErr, setCompanyErr] = useState("");
+  const [loadingCompany, setLoadingCompany] = useState(true);
+
+  const loadCompany = useCallback(async () => {
+    const token = await getValidToken();
+    if (!token) {
+      setCompanyErr("Chưa có phiên đăng nhập hợp lệ.");
+      setLoadingCompany(false);
+      return;
+    }
+    try {
+      const res = await fetch(COMPANY_API, {
+        cache: "no-store",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      });
+      const body = (await res.json().catch(() => null)) as Record<string, unknown> | null;
+      const data = (body?.Data ?? body?.data) as Record<string, unknown> | null;
+      if (!res.ok || !data) {
+        setCompanyErr(`${body?.Message ?? body?.message ?? "Không tải được thông tin doanh nghiệp."}`);
+        return;
+      }
+      setCompany({
+        ten: `${data.TenDoanhNghiep ?? data.tenDoanhNghiep ?? ""}`,
+        mst: `${data.MaSoThue ?? data.maSoThue ?? ""}`,
+        quyMo: `${data.QuyMoNhanSu ?? data.quyMoNhanSu ?? ""}`,
+        linhVuc: `${data.LinhVucHoatDong ?? data.linhVucHoatDong ?? ""}`,
+      });
+    } catch {
+      setCompanyErr("Không tải được thông tin doanh nghiệp.");
+    } finally {
+      setLoadingCompany(false);
+    }
+  }, []);
+
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => { void loadCompany(); }, [loadCompany]);
+
+  const displayName = identity?.name?.trim() || "—";
+  const roleLabels = (identity?.roles ?? []).map(
+    (role) => ROLE_LABELS[role.trim().toUpperCase()] ?? role,
+  );
+  const companyRows: [string, string][] = company
+    ? ([
+        ["Tên công ty", company.ten],
+        ["Mã số thuế", company.mst],
+        ["Quy mô nhân sự", company.quyMo],
+        ["Lĩnh vực hoạt động", company.linhVuc],
+      ] as [string, string][]).filter(([, value]) => value.trim() !== "")
+    : [];
 
   const triggerClass = (active: boolean) =>
     cn(
@@ -106,53 +164,53 @@ export function RecruiterSettings({
         </TabsList>
 
         <TabsContent value="account" className="mt-6 space-y-6">
-          {/* Card 1: Thông tin đại diện & vai trò */}
+          {/* Card 1: Định danh thật của tài khoản đang đăng nhập */}
           <section className={`${CARD} space-y-6`}>
             <div className="flex items-center justify-between gap-3">
               <h3 className={CARD_TITLE}>
                 <UserRound className="size-4 text-[#355C8C]" /> Thông tin cá nhân
               </h3>
-              <button type="button" className={GHOST_BTN}>
+              <Link href="/tai-khoan?tab=ca-nhan" className={GHOST_BTN}>
                 Chỉnh sửa thông tin
-              </button>
+              </Link>
             </div>
             <div className="flex items-start gap-4">
-              <div className="relative shrink-0">
-                <span className="flex h-16 w-16 items-center justify-center rounded-full border-2 border-border bg-primary/10 text-xl font-bold text-primary shadow-sm">
-                  SK
-                </span>
-                <button
-                  type="button"
-                  className="absolute -bottom-2 left-1/2 -translate-x-1/2 rounded-full border border-border bg-card px-2 py-0.5 text-[10px] font-medium text-muted-foreground shadow-sm transition-colors hover:bg-muted"
-                >
-                  Đổi ảnh
-                </button>
-              </div>
+              <span className="flex size-16 shrink-0 items-center justify-center rounded-full border-2 border-border bg-primary/10 text-xl font-bold text-primary shadow-sm">
+                {initials(displayName)}
+              </span>
               <div className="min-w-0 pt-1">
-                <p className="font-semibold text-foreground">{MOCK.hoTen}</p>
-                <p className="mt-0.5 text-sm text-muted-foreground">{identity?.email || MOCK.emailFallback}</p>
-                <div className="mt-2 flex flex-wrap items-center gap-2">
-                  <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">
-                    {MOCK.vaiTro}
-                  </span>
-                  <span className="text-xs font-medium text-emerald-600">● Doanh nghiệp đã xác thực</span>
-                </div>
+                <p className="font-semibold text-foreground">{displayName}</p>
+                <p className="mt-0.5 text-sm text-muted-foreground">{identity?.email || "—"}</p>
+                {roleLabels.length > 0 && (
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    {roleLabels.map((label) => (
+                      <span
+                        key={label}
+                        className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary"
+                      >
+                        {label}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           </section>
 
-          {/* Card 2: Không gian doanh nghiệp */}
+          {/* Card 2: Doanh nghiệp thật, đọc từ /doanhnghieps/mine */}
           <section className={`${CARD} space-y-4`}>
             <h3 className={CARD_TITLE}>
               <Building2 className="size-4 text-[#355C8C]" /> Tổ chức tuyển dụng liên kết
             </h3>
             <div className="space-y-2.5 text-sm">
-              {[
-                ["Tên công ty", MOCK.congTy.ten],
-                ["Mã định danh / MST", MOCK.congTy.mst],
-                ["Quy mô nhân sự", MOCK.congTy.quyMo],
-                ["Quyền hạn truy cập", MOCK.congTy.quyenHan],
-              ].map(([label, value]) => (
+              {loadingCompany && <p className="text-muted-foreground">Đang tải…</p>}
+              {!loadingCompany && company && companyRows.length === 0 && (
+                <p className="text-muted-foreground">Doanh nghiệp chưa cập nhật thông tin.</p>
+              )}
+              {!loadingCompany && !company && (
+                <p role="alert" className="text-destructive">{companyErr || "Chưa có doanh nghiệp gắn với tài khoản này."}</p>
+              )}
+              {companyRows.map(([label, value]) => (
                 <div key={label} className="flex flex-wrap items-start justify-between gap-2">
                    <span className="text-muted-foreground">{label}</span>
                    <span className="max-w-[70%] text-right font-medium text-foreground">{value}</span>
@@ -167,30 +225,19 @@ export function RecruiterSettings({
             </Link>
           </section>
 
-          {/* Card 3: Bảo mật & phiên làm việc */}
+          {/* Card 3: Bảo mật */}
           <section className={`${CARD} space-y-4`}>
             <h3 className={CARD_TITLE}>
               <ShieldCheck className="size-4 text-[#355C8C]" /> Bảo mật tài khoản
             </h3>
-            <div className="divide-y divide-border">
-              <div className="flex items-center justify-between gap-3 py-3 first:pt-0">
-                <div className="min-w-0">
-                  <p className="text-sm font-medium text-foreground">Đổi mật khẩu</p>
-                  <p className="mt-0.5 text-xs text-muted-foreground">Cập nhật lần cuối: 15 ngày trước</p>
-                </div>
-                <button type="button" onClick={() => setTab("security")} className={`${GHOST_BTN} shrink-0`}>
-                  Đổi mật khẩu
-                </button>
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-foreground">Đổi mật khẩu</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">Cần mật khẩu hiện tại để đặt mật khẩu mới.</p>
               </div>
-              <div className="flex items-center justify-between gap-3 py-3 last:pb-0">
-                <div className="min-w-0">
-                  <p className="text-sm font-medium text-foreground">Xác thực 2 yếu tố (2FA)</p>
-                  <p className="mt-0.5 text-xs text-muted-foreground">Yêu cầu mã xác thực khi đăng nhập</p>
-                </div>
-                <span className="shrink-0 rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-700">
-                  Đang kích hoạt
-                </span>
-              </div>
+              <button type="button" onClick={() => setTab("security")} className={`${GHOST_BTN} shrink-0`}>
+                Đổi mật khẩu
+              </button>
             </div>
           </section>
         </TabsContent>

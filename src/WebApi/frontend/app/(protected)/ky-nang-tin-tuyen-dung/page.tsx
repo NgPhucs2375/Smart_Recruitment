@@ -9,6 +9,7 @@ import { AdminPageLayout, AdminPageHeader, AdminCard, AdminCardHeader, AdminEmpt
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useConfirmDialog } from "@/components/ui/confirm-dialog";
+import { getValidToken } from "@/lib/auth-provider";
 
 type TinTuyenDung = { id: number; tieuDe: string };
 type KyNang = { id: number; tenKyNang: string };
@@ -57,7 +58,7 @@ export default function KyNangTinTuyenDungPage() {
   const { confirm } = useConfirmDialog();
 
   const apiFetch = useCallback(async (url: string, opts?: RequestInit) => {
-    const token = localStorage.getItem("access_token");
+    const token = await getValidToken();
     const res = await fetch(url, { ...opts, headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}), ...opts?.headers } });
     const body = await res.json().catch(() => null);
     if (!res.ok) throw new Error(body?.Message ?? body?.message ?? `HTTP ${res.status}`);

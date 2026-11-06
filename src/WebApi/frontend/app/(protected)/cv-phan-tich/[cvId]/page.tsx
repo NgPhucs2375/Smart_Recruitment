@@ -18,6 +18,7 @@ import {
   AdminEmptyState,
   AdminLoadingState,
 } from "@/components/admin/admin-page-layout";
+import { getValidToken } from "@/lib/auth-provider";
 
 type PhanTichCv = {
   id: number;
@@ -88,7 +89,7 @@ export default function CvPhanTichPage() {
     try {
       setLoading(true);
       setErr("");
-      const token = localStorage.getItem("access_token");
+      const token = await getValidToken();
       const res = await fetch(`${API}?CVUngVienId=${cvId}&_start=0&_end=1`, {
         headers: {
           "Content-Type": "application/json",

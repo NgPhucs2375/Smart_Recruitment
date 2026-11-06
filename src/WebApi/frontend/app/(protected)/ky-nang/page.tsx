@@ -22,6 +22,7 @@ import {
   AdminLoadingState,
 } from "@/components/admin/admin-page-layout";
 import { useConfirmDialog } from "@/components/ui/confirm-dialog";
+import { getValidToken } from "@/lib/auth-provider";
 
 type KyNang = {
   id: number;
@@ -82,7 +83,7 @@ export default function KyNangPage() {
 
   const apiFetch = useCallback(
     async (url: string, options?: RequestInit) => {
-      const token = localStorage.getItem("access_token");
+      const token = await getValidToken();
 
       const response = await fetch(url, {
         ...options,

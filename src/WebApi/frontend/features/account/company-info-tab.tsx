@@ -9,6 +9,7 @@ import {
   AdminLoadingState,
 } from "@/components/admin/admin-page-layout";
 import { useStoredIdentity } from "@/hooks/use-stored-identity";
+import { getValidToken } from "@/lib/auth-provider";
 
 type DoanhNghiep = {
   id: number;
@@ -52,7 +53,7 @@ export function CompanyInfoTab() {
   const [err, setErr] = useState("");
 
   const apiFetch = useCallback(async (url: string, opts?: RequestInit) => {
-    const token = localStorage.getItem("access_token");
+    const token = await getValidToken();
     const res = await fetch(url, {
       ...opts,
       headers: {
