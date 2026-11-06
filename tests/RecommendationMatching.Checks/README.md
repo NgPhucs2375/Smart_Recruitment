@@ -131,6 +131,40 @@ mới), nên phép so sánh đúng của bước này là 0.8825 → 0.9049. Hai
 0.7098 → 1.0000. 20 ca cũ giữ nguyên điểm từng ca vì không ca nào khai trình độ — đó chính là
 kiểm chứng "thiếu dữ liệu thì trung tính", không phải ca tự nhiên tốt lên.
 
+## Bước #2 — cổng bắt buộc (cbf-v5-gated)
+
+Lọc theo yêu cầu `BatBuc` là **hội (conjunctive)**, không cộng bù: thiếu một kỹ năng bắt buộc
+thì không có bonus vị trí/lương/vị trí nào "trả lại" được. Kết quả trả về thêm
+`MissingMandatory` (kèm `MeetsMandatory`) và hai response có `KyNangBatBuocThieu`.
+
+Cố ý **không** đổi `DiemPhuHop`. Lý do đo được, không phải sở thích:
+
+```
+MACRO cbf-v4-graded  queries=22 NDCG=0.9049
+MACRO cbf-v5-gated   queries=22 P=0.8409 R=0.9091 NDCG=0.9049   <- bằng nhau, có kiểm chứng
+GATE cbf-v1          positive=45 thieuBatBuoc=13
+GATE cbf-v5-gated    positive=49 thieuBatBuoc=14
+```
+
+Check `Gate leaves the score untouched` khoá bất biến đó: mọi cổng nhân vào điểm đều làm màn
+ hình đang xếp theo `DiemPhuHop` đổi thứ tự mà không thêm thông tin, và làm điều kiện lọc
+`score > 0` (backend lẫn runner, quyết định số tin được gợi ý/được gửi thông báo) đổi theo.
+
+Trên DB đang chạy, cổng cho thấy nó **không thể** là bộ lọc cứng:
+
+| Số liệu | Giá trị |
+|---|---|
+| Tin còn hiệu lực có ≥1 yêu cầu `BatBuc` | 89/90 (trung bình 1,99 mỗi tin) |
+| Dòng `KetQuaPhuHop` thuộc tin có `BatBuc` | 1273/1288 |
+| Dòng thiếu ≥1 kỹ năng bắt buộc | 1132 (87,9%) |
+| Dòng loại `Cao` (131 dòng) đạt toàn bộ bắt buộc | 125 |
+| Dòng `Cao` bị gắn nhãn "chưa đạt bắt buộc" | 5 (0,4% toàn bộ, 3,8% loại Cao) |
+
+87,9% thì không gọi là "cổng" được — gọi là dán nhãn đỏ lên mọi thẻ. Còn 5 dòng `Cao` bị gắn
+nhãn đều là tin `[GT] Backend Developer .NET - bộ ...` (benchmark ground-truth), lý do thiếu
+ghi là `.NET` trong khi CV viết `.NET Core`: **nhãn này đang chỉ đúng bệnh của bước #5**
+(khoảng trống từ vựng kiểm soát), không phải ứng viên thiếu kỹ năng. Đó là lý do bước #2 chỉ
+dùng để *giải thích* và bước #5 mới là chỗ sửa.
 
 ## Relation tới benchmark database
 

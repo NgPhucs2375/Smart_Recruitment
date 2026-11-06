@@ -43,6 +43,9 @@ public class SuggestedJobViewModel
     public string? LyDoGoiY { get; set; }
     public List<string> KyNangThoa { get; set; } = new();
     public List<string> KyNangThieu { get; set; } = new();
+    /// <summary>Yeu cau BatBuc ma CV chua co bang chung; rong khi ung vien dat het moi thu.
+    /// Diem khong bi no siet — day la nhan screening de nguoi dung tu quyet dinh.</summary>
+    public List<string> KyNangBatBuocThieu { get; set; } = new();
     public DateTime? NgayHetHan { get; set; }
 }
 
@@ -166,6 +169,7 @@ public class GetSuggestedJobsForCvQueryHandler(
             var vm = ToVm(t, match.Score);
             vm.KyNangThoa = match.MatchedSkills.ToList();
             vm.KyNangThieu = match.MissingSkills.ToList();
+            vm.KyNangBatBuocThieu = match.MissingMandatory.ToList();
             results.Add((vm, match));
         }
 

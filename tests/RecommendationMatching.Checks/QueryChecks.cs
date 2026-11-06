@@ -61,11 +61,14 @@ public static class QueryChecks
         check(result.Data[0].KyNangThoa.SequenceEqual(["JavaScript"]) &&
             result.Data[0].KyNangThieu.SequenceEqual(["Docker"]), "Job response contains matched and missing skills");
         check(Math.Abs(result.Data[0].DiemPhuHop - .45454545f) < .00001f, "Job query uses normalized shared scorer");
+        check(result.Data[0].KyNangBatBuocThieu.SequenceEqual(["Docker"]), "Job query names the mandatory skill the CV lacks");
         var stored = await db.KetQuaPhuHops.SingleAsync();
         check(stored.MatchingVersion == ContentBasedMatcher.Version && stored.KyNangThoa == "JavaScript",
             "Persisted recommendation has scorer version and evidence");
         var cached = await jobs.Handle(request, default);
-        check(cached.Data[0].KyNangThieu.SequenceEqual(["Docker"]), "Cached response preserves explanation fields");
+        check(cached.Data[0].KyNangThieu.SequenceEqual(["Docker"]) &&
+            cached.Data[0].KyNangBatBuocThieu.SequenceEqual(["Docker"]),
+            "Cached response preserves explanation fields");
         var unauthorizedCv = await jobs.Handle(new GetSuggestedJobsForCvQuery { CvUngVienId = 2 }, default);
         check(!unauthorizedCv.Succeeded, "Cannot recommend using another candidate's CV");
 
@@ -77,6 +80,8 @@ public static class QueryChecks
         check(suggested.Data[0].KyNangThoa.SequenceEqual(["JavaScript"]) &&
             Math.Abs(suggested.Data[0].DiemPhuHop - result.Data[0].DiemPhuHop) < .00001f,
             "Both recommendation directions produce consistent skill scores");
+        check(suggested.Data[0].KyNangBatBuocThieu.SequenceEqual(["Docker"]),
+            "Recruiter view sees the same mandatory gap as the candidate view");
         current.Set(21, VaiTroNguoiDung.NGUOI_DAI_DIEN, 99);
         check(!(await candidates.Handle(new GetSuggestedCandidatesForJobQuery { TinTuyenDungId = 1 }, default)).Succeeded,
             "Other company cannot access candidate recommendations, including cached results");

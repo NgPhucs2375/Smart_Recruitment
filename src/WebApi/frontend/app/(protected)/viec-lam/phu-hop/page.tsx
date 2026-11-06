@@ -31,6 +31,7 @@ type Recommendation = {
   phanLoai: string;
   kyNangThoa: string[];
   kyNangThieu: string[];
+  kyNangBatBuocThieu: string[];
   ngayHetHan?: string;
   lyDoGoiY?: string;
 };
@@ -110,6 +111,7 @@ function CandidatePhuHop() {
           phanLoai: `${r.phanLoai ?? r.PhanLoai ?? ""}`,
           kyNangThoa: Array.isArray(r.kyNangThoa ?? r.KyNangThoa) ? (r.kyNangThoa ?? r.KyNangThoa) as string[] : [],
           kyNangThieu: Array.isArray(r.kyNangThieu ?? r.KyNangThieu) ? (r.kyNangThieu ?? r.KyNangThieu) as string[] : [],
+          kyNangBatBuocThieu: Array.isArray(r.kyNangBatBuocThieu ?? r.KyNangBatBuocThieu) ? (r.kyNangBatBuocThieu ?? r.KyNangBatBuocThieu) as string[] : [],
           ngayHetHan: `${r.ngayHetHan ?? r.NgayHetHan ?? ""}`,
           lyDoGoiY: asText(r.lyDoGoiY ?? r.LyDoGoiY),
         };
@@ -194,6 +196,7 @@ function CandidatePhuHop() {
                     </div>
                     <div className="mt-2 flex flex-wrap gap-1.5">
                       {item.kyNangThoa.slice(0, 4).map((skill: string) => <span key={skill} className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs text-emerald-700">{skill}</span>)}
+                      {item.kyNangBatBuocThieu.length > 0 && <span className="rounded-full bg-red-500/10 px-2 py-0.5 text-xs font-medium text-red-700" title={`Chưa có: ${item.kyNangBatBuocThieu.join(", ")}`}>Thiếu {item.kyNangBatBuocThieu.length} kỹ năng bắt buộc</span>}
                       {item.kyNangThieu.length > 0 && <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-xs text-amber-700">Thiếu: {item.kyNangThieu.slice(0, 3).join(", ")}</span>}
                     </div>
                     {item.lyDoGoiY && (

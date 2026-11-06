@@ -34,6 +34,7 @@ type SuggestedCandidate = {
   phanLoai: string;
   kyNangThoa: string[];
   kyNangThieu: string[];
+  kyNangBatBuocThieu: string[];
   soNamKinhNghiem: number;
   lyDoGoiY?: string;
 };
@@ -143,6 +144,7 @@ function normalizeCandidate(value: unknown): SuggestedCandidate | null {
     phanLoai: asString(row.phanLoai ?? row.PhanLoai),
     kyNangThoa: asStringArray(row.kyNangThoa ?? row.KyNangThoa),
     kyNangThieu: asStringArray(row.kyNangThieu ?? row.KyNangThieu),
+    kyNangBatBuocThieu: asStringArray(row.kyNangBatBuocThieu ?? row.KyNangBatBuocThieu),
     soNamKinhNghiem: asNumber(row.soNamKinhNghiem ?? row.SoNamKinhNghiem),
     lyDoGoiY: asString(row.lyDoGoiY ?? row.LyDoGoiY),
   };
@@ -326,9 +328,13 @@ export function SuggestedCandidatesPanel({
                   )}
                   {candidate.kyNangThieu.length > 0 && (
                     <div className="mt-3">
-                      <p className="text-xs font-semibold text-foreground">Có thể cần bổ sung</p>
+                      <p className="text-xs font-semibold text-foreground">
+                        {candidate.kyNangBatBuocThieu.length > 0
+                          ? `Chưa đạt ${candidate.kyNangBatBuocThieu.length} kỹ năng bắt buộc`
+                          : "Có thể cần bổ sung"}
+                      </p>
                       <div className="mt-2 flex flex-wrap gap-1.5">
-                        {candidate.kyNangThieu.map((skill) => <Badge key={skill} variant="outline" className="border-amber-500/25 bg-amber-500/5 text-amber-700 dark:text-amber-300">{skill}</Badge>)}
+                        {candidate.kyNangThieu.map((skill) => <Badge key={skill} variant="outline" className={candidate.kyNangBatBuocThieu.includes(skill) ? "border-red-500/30 bg-red-500/5 text-red-700 dark:text-red-300" : "border-amber-500/25 bg-amber-500/5 text-amber-700 dark:text-amber-300"}>{skill}</Badge>)}
                       </div>
                     </div>
                   )}

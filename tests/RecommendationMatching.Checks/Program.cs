@@ -69,6 +69,21 @@ Check(Near(ContentBasedMatcher.EvaluateBaseline(new([new(null, "Docker")], "Back
 Check(Near(ContentBasedMatcher.Evaluate(new([new(null, "Docker")], "Backend", 20, "Hà Nội"),
     new([new(null, "Docker", MucDoYC.BatBuc)], "Backend", 15, 25, "Hà Nội")).Score, 0.825f), "Calibrated score plus all bonuses");
 Check(Near(ContentBasedMatcher.Evaluate(new([], DesiredSalary: 20), new([], SalaryMax: 0)).Score, 0), "Unknown salary does not earn salary bonus");
+
+// Cổng bắt buộc là nhãn screening: nó liệt kê thiếu gì nhưng không được sửa Score,
+// vì màn gợi ý việc làm chấm điểm trên chính Score và đang chạy thật.
+var gated = ContentBasedMatcher.Evaluate(Candidate("JS"), new JobMatchInput([
+    new(null, "JavaScript", MucDoYC.BatBuc), new(null, "Docker", MucDoYC.BatBuc),
+    new(null, "Figma", MucDoYC.UuTien)]));
+Check(gated.MissingMandatory.SequenceEqual(["Docker"]) && !gated.MeetsMandatory, "Gate names only uncovered BatBuc skills");
+Check(Near(gated.Score, .3846154f), "Gate leaves the score untouched");
+Check(ContentBasedMatcher.Evaluate(Candidate("JS", "Docker"), new JobMatchInput([
+    new(null, "JavaScript", MucDoYC.BatBuc), new(null, "Docker", MucDoYC.BatBuc)])).MeetsMandatory, "Covering every mandatory skill passes the gate");
+Check(ContentBasedMatcher.Evaluate(new([], "Backend"), new([], "Backend Developer", 15, 25, "Hà Nội")).MeetsMandatory, "JD without mandatory skills passes");
+Check(ContentBasedMatcher.Evaluate(Graded(Skill(null, "JS", MucDo.CoBan)), Job("JavaScript")).MeetsMandatory, "Beginner proficiency still clears the gate");
+Check(ContentBasedMatcher.EvaluateBaseline(Candidate("JS"), new JobMatchInput([
+    new(null, "JavaScript", MucDoYC.BatBuc), new(null, "Docker", MucDoYC.BatBuc)])).MissingMandatory.SequenceEqual(["JavaScript", "Docker"]),
+    "Baseline gate keeps the original alias miss");
 Check(MatchingTextNormalizer.LocationKey("TP. Hồ Chí Minh") == "tp hồ chí minh", "Location key drops punctuation");
 Check(MatchingTextNormalizer.LocationKey(null) == "", "Null location is empty");
 Check(MatchingTextNormalizer.SkillKey("C#") != MatchingTextNormalizer.SkillKey("C"), "Skill key keeps punctuation that names the language");
@@ -118,22 +133,25 @@ if (fixtures.Count == 0 || fixtures.Any(x => x.K <= 0 || x.Items.Count == 0 || s
 foreach (var model in new[] { ContentBasedMatcher.BaselineVersion, ContentBasedMatcher.Version })
 {
     var metrics = new List<RankingResult>();
+    var positive = 0;
+    var gateFailed = 0;
     foreach (var fixture in fixtures)
     {
         var relevance = fixture.Items.ToDictionary(x => x.Id, x => x.Relevance, StringComparer.Ordinal);
-        var ranking = fixture.Items.Select(item => new
-        {
-            item.Id,
-            Match = model == ContentBasedMatcher.BaselineVersion
-                ? ContentBasedMatcher.EvaluateBaseline(fixture.Candidate, item.Job)
-                : ContentBasedMatcher.Evaluate(fixture.Candidate, item.Job)
-        }).Where(x => x.Match.Score > 0).OrderByDescending(x => x.Match.Score)
+        var scored = fixture.Items.Select(item => (item.Id, Match: model == ContentBasedMatcher.BaselineVersion
+            ? ContentBasedMatcher.EvaluateBaseline(fixture.Candidate, item.Job)
+            : ContentBasedMatcher.Evaluate(fixture.Candidate, item.Job)))
+            .Where(x => x.Match.Score > 0).ToList();
+        positive += scored.Count;
+        gateFailed += scored.Count(x => !x.Match.MeetsMandatory);
+        var ranking = scored.OrderByDescending(x => x.Match.Score)
             .ThenBy(x => x.Id, StringComparer.Ordinal).Take(fixture.K).Select(x => x.Id).ToList();
         var result = RankingMetrics.AtK(ranking, relevance, fixture.K);
         metrics.Add(result);
         Console.WriteLine(FormattableString.Invariant($"EVAL {model} {fixture.Id} K={fixture.K} P={result.Precision:F4} R={result.Recall:F4} NDCG={result.Ndcg:F4} IDs={string.Join(',', ranking)}"));
     }
     Console.WriteLine(FormattableString.Invariant($"MACRO {model} queries={metrics.Count} P={metrics.Average(x => x.Precision):F4} R={metrics.Average(x => x.Recall):F4} NDCG={metrics.Average(x => x.Ndcg):F4}"));
+    Console.WriteLine(FormattableString.Invariant($"GATE {model} positive={positive} thieuBatBuoc={gateFailed}"));
 }
 Console.WriteLine($"Recommendation matching checks completed: {checks} passed. Fixtures are synthetic diagnostics, not real-user effectiveness measurements.");
 

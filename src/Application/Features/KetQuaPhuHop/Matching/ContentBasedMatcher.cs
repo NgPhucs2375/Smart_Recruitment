@@ -13,13 +13,25 @@ public sealed record JobMatchInput(
     decimal SalaryMin = 0, decimal SalaryMax = 0, string? Location = null);
 public sealed record ContentMatchResult(
     float Score, float SkillScore, float PositionBonus, float SalaryBonus, float LocationBonus,
-    IReadOnlyList<string> MatchedSkills, IReadOnlyList<string> MissingSkills);
+    IReadOnlyList<string> MatchedSkills, IReadOnlyList<string> MissingSkills,
+    IReadOnlyList<string>? MissingMandatory = null)
+{
+    /// <summary>
+    /// Kỹ năng bắt buộc chưa có bằng chứng. Điểm <c>Score</c> không đổi vì cổng này: màn hình
+    /// Gợi ý việc làm chấm trên chính nó, nên siết điểm sẽ đổi luôn thứ tự đang chạy thật.
+    /// Nó là nhãn screening — người dùng tự quyết định có ứng tuyển khi thiếu một kỹ năng hay không.
+    /// </summary>
+    public IReadOnlyList<string> MissingMandatory { get; init; } = MissingMandatory ?? [];
+
+    /// <summary>Cổng giao thoa (conjunctive screening): mọi yêu cầu BatBuc phải có bằng chứng, không bù trừ.</summary>
+    public bool MeetsMandatory => MissingMandatory.Count == 0;
+}
 
 /// <summary>Deterministic scorer shared by both recommendation directions and offline evaluation.</summary>
 public static class ContentBasedMatcher
 {
     public const string BaselineVersion = "cbf-v1";
-    public const string Version = "cbf-v4-graded";
+    public const string Version = "cbf-v5-gated";
 
     /// <summary>
     /// π = mức phủ kỹ năng kỳ vọng trước khi có bằng chứng, p = trọng số ảo theo thang Weight().
@@ -56,6 +68,7 @@ public static class ContentBasedMatcher
 
         var matched = new List<string>();
         var missing = new List<string>();
+        var missingMandatory = new List<string>();
         float totalWeight = 0, matchedWeight = 0;
         foreach (var requirement in requirements)
         {
@@ -72,7 +85,12 @@ public static class ContentBasedMatcher
                 matchedWeight += weight * Membership(evidence);
                 matched.Add(requirement.Name!.Trim());
             }
-            else missing.Add(requirement.Name!.Trim());
+            else
+            {
+                missing.Add(requirement.Name!.Trim());
+                if (requirement.Level == MucDoYC.BatBuc)
+                    missingMandatory.Add(requirement.Name!.Trim());
+            }
         }
 
         // Bao phu yeu cau duoc calibration truoc khi cong them uu dai. Ty so thuan
@@ -99,7 +117,7 @@ public static class ContentBasedMatcher
             (location.Contains(address, StringComparison.Ordinal) || address.Contains(location, StringComparison.Ordinal)) ? .05f : 0;
 
         return new ContentMatchResult(Math.Min(1, skillScore + positionBonus + salaryBonus + locationBonus),
-            skillScore, positionBonus, salaryBonus, locationBonus, matched, missing);
+            skillScore, positionBonus, salaryBonus, locationBonus, matched, missing, missingMandatory);
     }
 
     private static float Weight(MucDoYC level) => level switch

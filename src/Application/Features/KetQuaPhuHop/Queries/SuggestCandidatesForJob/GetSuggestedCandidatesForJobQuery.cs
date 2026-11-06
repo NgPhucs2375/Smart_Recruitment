@@ -27,6 +27,8 @@ public class SuggestedCandidateViewModel
     public string? LyDoGoiY { get; set; }
     public List<string> KyNangThoa { get; set; } = new();
     public List<string> KyNangThieu { get; set; } = new();
+    /// <summary>Yeu cau BatBuc cua tin ma ho so chua co bang chung. Khong doi diem — chi la nhan.</summary>
+    public List<string> KyNangBatBuocThieu { get; set; } = new();
     public int SoNamKinhNghiem { get; set; }
 }
 
@@ -123,6 +125,7 @@ public class GetSuggestedCandidatesForJobQueryHandler(
                 PhanLoai = ContentBasedMatcher.PhanLoaiCua(match.Score).ToString(),
                 KyNangThoa = match.MatchedSkills.ToList(),
                 KyNangThieu = match.MissingSkills.ToList(),
+                KyNangBatBuocThieu = match.MissingMandatory.ToList(),
                 SoNamKinhNghiem = (int)Math.Floor(cv.HoSoUngVien.KinhNghiemLamViecs
                     .Where(x => x.TuNgay.HasValue)
                     .Sum(x => ((x.DenNgay ?? now) - x.TuNgay!.Value).TotalDays) / 365d)
