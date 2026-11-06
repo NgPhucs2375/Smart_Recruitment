@@ -120,7 +120,7 @@ public class GetSuggestedJobsForCvQueryHandler(
         }
 
         var candidate = new CandidateMatchInput(
-            cv.KyNangs.Select(k => new MatchSkill(k.KyNangId, k.TenKyNang)).ToList(),
+            cv.KyNangs.Select(k => new MatchSkill(k.KyNangId, k.TenKyNang, k.MucDoThanhThao, k.SoNamKinhNghiem)).ToList(),
             !string.IsNullOrWhiteSpace(cv.ThongTinLienHe?.ViTriUngTuyen)
                 ? cv.ThongTinLienHe.ViTriUngTuyen : hoSo.ViTriUngTuyen,
             cv.ThongTinLienHe?.MucLuongMongMuon ?? (decimal)hoSo.MucLuongMongMuon,

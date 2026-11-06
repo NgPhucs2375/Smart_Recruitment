@@ -3,7 +3,7 @@ using Domain.Enums;
 
 namespace Application.Features.KetQuaPhuHop.Matching;
 
-public sealed record MatchSkill(int? Id, string? Name);
+public sealed record MatchSkill(int? Id, string? Name, MucDo? Level = null, float? Years = null);
 public sealed record MatchRequirement(int? Id, string? Name, MucDoYC Level);
 public sealed record CandidateMatchInput(
     IReadOnlyList<MatchSkill> Skills, string? Position = null,
@@ -19,7 +19,7 @@ public sealed record ContentMatchResult(
 public static class ContentBasedMatcher
 {
     public const string BaselineVersion = "cbf-v1";
-    public const string Version = "cbf-v3-calibrated";
+    public const string Version = "cbf-v4-graded";
 
     /// <summary>
     /// π = mức phủ kỹ năng kỳ vọng trước khi có bằng chứng, p = trọng số ảo theo thang Weight().
@@ -44,10 +44,8 @@ public static class ContentBasedMatcher
             : (value ?? string.Empty).Trim().ToLowerInvariant();
         string SkillKey(string? value) => normalized ? MatchingTextNormalizer.SkillKey(value) : TextKey(value);
         string LocationKey(string? value) => normalized ? MatchingTextNormalizer.LocationKey(value) : TextKey(value);
+        float Membership(MatchSkill skill) => !normalized ? 1f : ProficiencyFactor(skill);
 
-        var ids = candidate.Skills.Where(x => x.Id.HasValue).Select(x => x.Id!.Value).ToHashSet();
-        var names = candidate.Skills.Select(x => SkillKey(x.Name)).Where(x => x.Length > 0)
-            .ToHashSet(StringComparer.Ordinal);
         var requirements = job.Requirements.Where(x => !string.IsNullOrWhiteSpace(x.Name)).ToList();
         if (normalized)
         {
@@ -63,9 +61,15 @@ public static class ContentBasedMatcher
         {
             var weight = Weight(requirement.Level);
             totalWeight += weight;
-            if (requirement.Id.HasValue && ids.Contains(requirement.Id.Value) || names.Contains(SkillKey(requirement.Name)))
+            var key = SkillKey(requirement.Name);
+            var evidence = candidate.Skills
+                .Where(x => requirement.Id.HasValue && x.Id == requirement.Id.Value ||
+                            key.Length > 0 && SkillKey(x.Name) == key)
+                .OrderByDescending(Membership)
+                .FirstOrDefault();
+            if (evidence != null)
             {
-                matchedWeight += weight;
+                matchedWeight += weight * Membership(evidence);
                 matched.Add(requirement.Name!.Trim());
             }
             else missing.Add(requirement.Name!.Trim());
@@ -101,6 +105,23 @@ public static class ContentBasedMatcher
     private static float Weight(MucDoYC level) => level switch
     {
         MucDoYC.BatBuc => 3, MucDoYC.UuTien => 2, _ => 1
+    };
+
+    /// <summary>
+    /// Hạng tử thuộc tính mờ của trình độ ứng viên với một kỹ năng: tự nhận Cơ bản chỉ được tính
+    /// 40% trọng số yêu cầu, Trung bình 70%, Thành thạo và Chuyên gia đủ 100% (chuyên gia không
+    /// được cộng vượt mức yêu cầu). Tin chỉ ghi yêu cầu, không ghi trình độ cần bao nhiêu.
+    /// Thiếu trình độ thì suy ra từ số năm; thiếu cả hai thì trung tính 100% để không phạt
+    /// hồ sơ chưa điền, vì dữ liệu trống không phải bằng chứng ứng viên yếu.
+    /// </summary>
+    private static float ProficiencyFactor(MatchSkill skill) => skill.Level switch
+    {
+        MucDo.CoBan => .4f,
+        MucDo.TrungBinh => .7f,
+        _ when skill.Years >= 3 => 1f,
+        _ when skill.Years >= 1 => .7f,
+        _ when skill.Years > 0 => .4f,
+        _ => 1f
     };
 
     /// <summary>Ngưỡng phân loại dùng chung cho mọi nơi hiển thị điểm match.</summary>

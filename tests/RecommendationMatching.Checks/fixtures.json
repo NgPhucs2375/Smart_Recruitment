@@ -199,5 +199,40 @@
       { "id": "same-partial", "relevance": 2, "job": { "title": "Golang Engineer", "requirements": [{ "name": "Go", "level": "BatBuc" }, { "name": "gRPC", "level": "UuTien" }, { "name": "Kafka", "level": "KhongBatBuoc" }] } },
       { "id": "other-stack", "relevance": 0, "job": { "title": "Ruby Developer", "requirements": [{ "name": "Ruby", "level": "BatBuc" }, { "name": "Rails", "level": "BatBuc" }] } }
     ]
+  },
+  {
+    "id": "proficiency-vs-coverage", "k": 2,
+    "note": "Tin một yêu cầu mà ứng viên chỉ tự nhận Cơ bản không thể đứng trên tin bảy yêu cầu khớp bốn, trong đó hai kỹ năng ở mức Thành thạo. Nhãn dựa trên độ sâu kỹ năng, không dựa trên tỉ lệ phủ.",
+    "candidate": {
+      "skills": [
+        { "name": "Python", "level": "TrungBinh" },
+        { "name": "SQL", "level": "CoBan" },
+        { "name": "Excel", "level": "ThanhThao" },
+        { "name": "Git", "level": "ThanhThao" }
+      ],
+      "position": "Data Analyst"
+    },
+    "items": [
+      { "id": "data-team", "relevance": 2, "job": { "title": "Analytics Engineer", "requirements": [{ "name": "Python", "level": "BatBuc" }, { "name": "SQL", "level": "BatBuc" }, { "name": "Excel", "level": "UuTien" }, { "name": "Git", "level": "UuTien" }, { "name": "Docker", "level": "BatBuc" }, { "name": "Airflow", "level": "UuTien" }, { "name": "English", "level": "KhongBatBuoc" }] } },
+      { "id": "sql-only", "relevance": 1, "job": { "title": "Truy van du lieu", "requirements": [{ "name": "SQL", "level": "BatBuc" }] } }
+    ]
+  },
+  {
+    "id": "broad-beginner-vs-narrow-strong", "k": 2,
+    "note": "Ba kỹ năng tự nhận Cơ bản khớp đủ một tin Java không đáng bằng hai kỹ năng Thành thạo khớp đúng hai yêu cầu bắt buộc của tin React. Đây là ca chặn bệnh khai kỹ năng tràn lan.",
+    "candidate": {
+      "skills": [
+        { "name": "Java", "level": "CoBan" },
+        { "name": "Spring", "level": "CoBan" },
+        { "name": "MySQL", "level": "CoBan" },
+        { "name": "React", "level": "ThanhThao" },
+        { "name": "Node.js", "level": "ThanhThao" }
+      ],
+      "position": "Developer"
+    },
+    "items": [
+      { "id": "broad-java", "relevance": 1, "job": { "title": "Java Backend Engineer", "requirements": [{ "name": "Java", "level": "BatBuc" }, { "name": "Spring", "level": "BatBuc" }, { "name": "MySQL", "level": "UuTien" }] } },
+      { "id": "narrow-web", "relevance": 3, "job": { "title": "Web Engineer", "requirements": [{ "name": "React", "level": "BatBuc" }, { "name": "Node.js", "level": "BatBuc" }, { "name": "Git", "level": "UuTien" }] } }
+    ]
   }
 ]

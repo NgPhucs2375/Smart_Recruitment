@@ -31,7 +31,8 @@ tăng `Version` và ghi số mới vào phần dưới thay vì sửa số cũ �
 - Xếp điểm giảm dần, hòa điểm theo ID ordinal; điểm 0 không được trả, giống điều kiện lọc score của backend.
 - `MACRO`: trung bình theo query, không gộp tất cả cặp thành một query.
 
-`fixtures.json` hiện có **20 ca có nhãn graded** (4 ca chẩn đoán gốc + 16 ca dựng thêm).
+`fixtures.json` hiện có **22 ca có nhãn graded** (4 ca chẩn đoán gốc + 16 ca dựng thêm +
+2 ca trình độ kỹ năng).
 Mỗi ca mang trường `note` ghi *lý do gán nhãn* để người sau kiểm tra lại được từng dòng.
 Nhãn do **một người** quyết định theo kinh nghiệm tuyển dụng IT phổ thông, chưa có người
 thứ hai độc lập → **chưa tính được Cohen's κ**, và đó là hạn chế phải nói rõ khi trích số.
@@ -97,6 +98,38 @@ là giới hạn toán của chính công thức, không phải lỗi cài đặ
 không đủ. Muốn "tin 5 yêu cầu khớp cả 2 bắt buộc" vượt "tin 1 yêu cầu khớp cả 1" thì điểm
 phải kể **lượng bằng chứng tuyệt đối**, tức IDF/bước #5 — không phải thêm một hệ số
 "phủ ngược CV" nhân tạo (hệ số đó phạt CV rộng, là thứ ta không muốn trong gợi ý việc).
+
+## Bước #1 — trình độ kỹ năng (cbf-v4-graded)
+
+Trọng số yêu cầu khớp không còn cộng đủ 100% chỉ vì trùng tên. Mỗi kỹ năng trong CV mang một
+hạng tử thuộc tính mờ `μ ∈ [0,1]` và đóng góp `w_yeucầu · μ`:
+
+| Dữ liệu CV khai | μ | Ý nghĩa |
+|---|---|---|
+| `CoBan` | 0.40 | từng dùng, chưa làm được việc một mình |
+| `TrungBinh` | 0.70 | làm được dưới hướng dẫn |
+| `ThanhThao` / `ChuyenGia` | 1.00 | đủ trọng số; chuyên gia không được cộng vượt mức yêu cầu |
+| không có trình độ, `SoNamKinhNghiem` ≥ 3 / 1–3 / <1 | 1.00 / 0.70 / 0.40 | suy ra từ số năm khi thiếu nhãn |
+| thiếu cả trình độ lẫn số năm | 1.00 | trung tính: dữ liệu trống không phải bằng chứng ứng viên yếu |
+
+Một yêu cầu khớp nhiều dòng CV (trùng tên hoặc cùng `KyNangId`) lấy **bằng chứng mạnh nhất**,
+nên CV ghi JavaScript hai lần mức Cơ bản + Thành thạo vẫn tính 1.00.
+
+DB đang chạy: 145/145 dòng `CVKyNang` có `MucDoThanhThao` (Thang Thao 77, Trung Binh 55,
+Co Ban 12, Chuyen Gia 1) và 81/145 có số năm → μ trung bình của một kỹ năng thật là 0.837,
+tức bước này dịch điểm cả cụm xuống dưới, không đổi thứ tự trong hồ sơ thiếu dữ liệu.
+
+```
+MACRO cbf-v1             queries=22 P=0.7500 R=0.8182 NDCG=0.7733
+MACRO cbf-v3-calibrated  queries=22 NDCG=0.8825   (tắt hệ số μ, chỉ để đo)
+MACRO cbf-v4-graded      queries=22 P=0.8409 R=0.9091 NDCG=0.9049
+```
+
+Số 0.8825 là chính công thức bước #3 chạy trên **22** ca (nhiều hơn bảng 0.8954 ở trên hai ca
+mới), nên phép so sánh đúng của bước này là 0.8825 → 0.9049. Hai ca mới dựng ra chỉ để nó
+đo được: `proficiency-vs-coverage` 0.7967 → 1.0000 và `broad-beginner-vs-narrow-strong`
+0.7098 → 1.0000. 20 ca cũ giữ nguyên điểm từng ca vì không ca nào khai trình độ — đó chính là
+kiểm chứng "thiếu dữ liệu thì trung tính", không phải ca tự nhiên tốt lên.
 
 
 ## Relation tới benchmark database

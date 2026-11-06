@@ -27,9 +27,22 @@ Check(MatchingTextNormalizer.SkillKey("SQL") != MatchingTextNormalizer.SkillKey(
 Check(MatchingTextNormalizer.SkillKey(".NET") != MatchingTextNormalizer.SkillKey("ASP.NET Core"), "Platform does not imply framework experience");
 Check(MatchingTextNormalizer.SkillKey("Research skill") == "research skill", "Unknown skill retained");
 Check(Near(ContentBasedMatcher.EvaluateBaseline(Candidate("JS"), Job("JavaScript")).Score, 0), "Baseline preserves original alias miss");
-// Full coverage of a one-requirement JD: (3 + 5*0.35) / (3 + 5) rather than 1.0.
+// Full coverage of a one-requirement JD: (3 + 5*0.4) / (3 + 5) rather than 1.0.
 Check(Near(ContentBasedMatcher.Evaluate(Candidate("JS"), Job("JavaScript")).Score, 0.625f), "Normalized matcher recognizes exact alias");
 Check(Near(ContentBasedMatcher.Evaluate(Candidate("Java"), Job("JavaScript")).Score, 0), "No substring skill matching");
+
+MatchSkill Skill(int? id, string name, MucDo? level = null, float? years = null) => new(id, name, level, years);
+CandidateMatchInput Graded(params MatchSkill[] skills) => new(skills.ToList());
+Check(Near(ContentBasedMatcher.Evaluate(Graded(Skill(null, "JS", MucDo.CoBan)), Job("JavaScript")).SkillScore, .4f), "Self-rated beginner keeps 40% of requirement weight");
+Check(Near(ContentBasedMatcher.Evaluate(Graded(Skill(null, "JS", MucDo.TrungBinh)), Job("JavaScript")).SkillScore, .5125f), "Self-rated intermediate keeps 70%");
+Check(Near(ContentBasedMatcher.Evaluate(Graded(Skill(null, "JS", MucDo.ThanhThao)), Job("JavaScript")).SkillScore,
+    ContentBasedMatcher.Evaluate(Graded(Skill(null, "JS", MucDo.ChuyenGia)), Job("JavaScript")).SkillScore), "Expert does not overshoot advanced");
+Check(Near(ContentBasedMatcher.Evaluate(Graded(Skill(null, "JS", null, 4f)), Job("JavaScript")).SkillScore, .625f), "Years fall back when proficiency missing");
+Check(Near(ContentBasedMatcher.Evaluate(Graded(Skill(null, "JS", null, 1.5f)), Job("JavaScript")).SkillScore, .5125f), "One to three years counts as intermediate");
+Check(Near(ContentBasedMatcher.Evaluate(Graded(Skill(null, "JS", null, .5f)), Job("JavaScript")).SkillScore, .4f), "Under one year counts as beginner");
+Check(Near(ContentBasedMatcher.Evaluate(Graded(Skill(null, "JS")), Job("JavaScript")).SkillScore, .625f), "Blank proficiency stays neutral");
+Check(Near(ContentBasedMatcher.Evaluate(Graded(Skill(null, "JS", MucDo.CoBan), Skill(null, "JavaScript", MucDo.ThanhThao)), Job("JavaScript")).SkillScore, .625f), "Strongest evidence wins for duplicated skill");
+Check(Near(ContentBasedMatcher.EvaluateBaseline(Graded(Skill(null, "JavaScript", MucDo.CoBan)), Job("JavaScript")).SkillScore, 1), "Baseline ignores proficiency");
 
 var weighted = new JobMatchInput([
     new(null, "JavaScript", MucDoYC.BatBuc), new(null, "Docker", MucDoYC.UuTien),

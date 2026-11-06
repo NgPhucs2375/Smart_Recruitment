@@ -105,7 +105,7 @@ public class GetSuggestedCandidatesForJobQueryHandler(
         foreach (var cv in cvs)
         {
             var match = ContentBasedMatcher.Evaluate(new CandidateMatchInput(
-                cv.KyNangs.Select(x => new MatchSkill(x.KyNangId, x.TenKyNang)).ToList(),
+                cv.KyNangs.Select(x => new MatchSkill(x.KyNangId, x.TenKyNang, x.MucDoThanhThao, x.SoNamKinhNghiem)).ToList(),
                 !string.IsNullOrWhiteSpace(cv.ThongTinLienHe?.ViTriUngTuyen)
                     ? cv.ThongTinLienHe.ViTriUngTuyen : cv.HoSoUngVien.ViTriUngTuyen,
                 cv.ThongTinLienHe?.MucLuongMongMuon ?? (decimal)cv.HoSoUngVien.MucLuongMongMuon,

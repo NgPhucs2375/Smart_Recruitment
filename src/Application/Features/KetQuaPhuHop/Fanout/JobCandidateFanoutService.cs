@@ -78,7 +78,7 @@ public sealed class JobCandidateFanoutService(
                 MucLuongMongMuon = cv.ThongTinLienHe?.MucLuongMongMuon ?? (decimal)cv.HoSoUngVien.MucLuongMongMuon,
                 DiaChi = !string.IsNullOrWhiteSpace(cv.ThongTinLienHe?.DiaChi)
                     ? cv.ThongTinLienHe!.DiaChi : cv.HoSoUngVien.DiaChi,
-                KyNangs = cv.KyNangs.Select(k => new MatchSkill(k.KyNangId, k.TenKyNang)).ToList(),
+                KyNangs = cv.KyNangs.Select(k => new MatchSkill(k.KyNangId, k.TenKyNang, k.MucDoThanhThao, k.SoNamKinhNghiem)).ToList(),
             })
             .ToList();
 
