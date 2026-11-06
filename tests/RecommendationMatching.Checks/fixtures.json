@@ -1,6 +1,7 @@
 [
   {
     "id": "frontend-aliases", "k": 2,
+    "note": "Ca gốc: alias JS/React.js phải được nhận ra.",
     "candidate": { "skills": [{ "name": "JS" }, { "name": "React.js" }] },
     "items": [
       { "id": "frontend", "relevance": 3, "job": { "title": "Frontend Developer", "requirements": [{ "name": "JavaScript", "level": "BatBuc" }, { "name": "React", "level": "BatBuc" }] } },
@@ -10,6 +11,7 @@
   },
   {
     "id": "dotnet-framework-distinction", "k": 2,
+    "note": "Ca gốc: C#/.NET không hàm ý ASP.NET Core, và càng không hàm ý C++.",
     "candidate": { "skills": [{ "name": "CSharp" }, { "name": "dotnet" }] },
     "items": [
       { "id": "dotnet", "relevance": 3, "job": { "title": ".NET Developer", "requirements": [{ "name": "C#", "level": "BatBuc" }, { "name": ".NET", "level": "BatBuc" }] } },
@@ -19,6 +21,7 @@
   },
   {
     "id": "exact-skills-baseline", "k": 2,
+    "note": "Ca gốc: khớp chính xác tên kỹ năng.",
     "candidate": { "skills": [{ "name": "Python" }, { "name": "SQL" }] },
     "items": [
       { "id": "data", "relevance": 3, "job": { "title": "Data Analyst", "requirements": [{ "name": "Python", "level": "BatBuc" }, { "name": "SQL", "level": "BatBuc" }] } },
@@ -28,10 +31,173 @@
   },
   {
     "id": "unknown-candidate-cold-start", "k": 2,
+    "note": "Ca gốc: CV không có kỹ năng nào. Giữ lại để lộ giới hạn của cả hai phiên bản.",
     "candidate": { "skills": [] },
     "items": [
       { "id": "intern", "relevance": 1, "job": { "title": "Intern Developer", "requirements": [] } },
       { "id": "senior", "relevance": 0, "job": { "title": "Senior Developer", "requirements": [{ "name": "Java", "level": "BatBuc" }] } }
+    ]
+  },
+  {
+    "id": "mandatory-gap-react", "k": 3,
+    "note": "Thiếu kỹ năng BẮT BUỘC (Redux) thì dù khớp hết phần còn lại vẫn chỉ đáng xếp dưới tin khớp đủ bắt buộc.",
+    "candidate": { "skills": [{ "name": "React" }, { "name": "TypeScript" }, { "name": "CSS" }], "position": "Frontend Developer" },
+    "items": [
+      { "id": "fe-full", "relevance": 3, "job": { "title": "Frontend Developer", "requirements": [{ "name": "React", "level": "BatBuc" }, { "name": "TypeScript", "level": "BatBuc" }, { "name": "CSS", "level": "UuTien" }] } },
+      { "id": "fe-vue", "relevance": 2, "job": { "title": "Frontend Developer", "requirements": [{ "name": "React", "level": "BatBuc" }, { "name": "Vue.js", "level": "UuTien" }, { "name": "Webpack", "level": "UuTien" }] } },
+      { "id": "react-redux", "relevance": 1, "job": { "title": "React Developer", "requirements": [{ "name": "React", "level": "BatBuc" }, { "name": "Redux", "level": "BatBuc" }] } },
+      { "id": "graphic", "relevance": 0, "job": { "title": "Graphic Designer", "requirements": [{ "name": "Figma", "level": "BatBuc" }, { "name": "Illustrator", "level": "BatBuc" }] } }
+    ]
+  },
+  {
+    "id": "denominator-comparability", "k": 3,
+    "note": "Tin chỉ ghi 1 yêu cầu không thể cùng điểm 1.0 với tin đòi 5 yêu cầu mà ứng viên khớp cả 2 bắt buộc + 2 ưu tiên. Đây là ca chính cho calibration.",
+    "candidate": { "skills": [{ "name": "Python" }, { "name": "SQL" }], "position": "Data Analyst" },
+    "items": [
+      { "id": "thin", "relevance": 1, "job": { "title": "Data Analyst", "requirements": [{ "name": "Python", "level": "BatBuc" }] } },
+      { "id": "bi-full", "relevance": 3, "job": { "title": "BI Analyst", "requirements": [{ "name": "Python", "level": "BatBuc" }, { "name": "SQL", "level": "BatBuc" }, { "name": "Power BI", "level": "UuTien" }, { "name": "Excel", "level": "UuTien" }, { "name": "Data Warehouse", "level": "KhongBatBuoc" }] } },
+      { "id": "etl", "relevance": 2, "job": { "title": "Data Engineer", "requirements": [{ "name": "Python", "level": "BatBuc" }, { "name": "SQL", "level": "UuTien" }, { "name": "Airflow", "level": "UuTien" }, { "name": "Spark", "level": "KhongBatBuoc" }] } }
+    ]
+  },
+  {
+    "id": "alias-ml-abbreviation", "k": 3,
+    "note": "CV viết 'ML', JD viết 'Machine Learning' — cùng một kỹ năng cốt lõi. Hiện matcher chưa có alias này.",
+    "candidate": { "skills": [{ "name": "ML" }, { "name": "Python" }], "position": "Machine Learning Engineer" },
+    "items": [
+      { "id": "mle", "relevance": 3, "job": { "title": "Machine Learning Engineer", "requirements": [{ "name": "Machine Learning", "level": "BatBuc" }, { "name": "Python", "level": "BatBuc" }] } },
+      { "id": "ds", "relevance": 2, "job": { "title": "Data Scientist", "requirements": [{ "name": "Python", "level": "BatBuc" }, { "name": "SQL", "level": "UuTien" }, { "name": "Machine Learning", "level": "KhongBatBuoc" }] } },
+      { "id": "sales", "relevance": 0, "job": { "title": "Sales Executive", "requirements": [{ "name": "Communication", "level": "BatBuc" }, { "name": "Negotiation", "level": "BatBuc" }] } }
+    ]
+  },
+  {
+    "id": "alias-node-abbreviation", "k": 2,
+    "note": "CV viết 'Node' và 'Express', JD viết 'Node.js' và 'Express.js'. Alias một phía cũng là lỗi hệ thống, không phải lỗi ứng viên.",
+    "candidate": { "skills": [{ "name": "Node" }, { "name": "Express" }], "position": "Backend Developer" },
+    "items": [
+      { "id": "nodejs-be", "relevance": 3, "job": { "title": "Node.js Backend Developer", "requirements": [{ "name": "Node.js", "level": "BatBuc" }, { "name": "Express.js", "level": "BatBuc" }] } },
+      { "id": "nest", "relevance": 2, "job": { "title": "NestJS Developer", "requirements": [{ "name": "Node.js", "level": "BatBuc" }, { "name": "NestJS", "level": "UuTien" }] } },
+      { "id": "php", "relevance": 0, "job": { "title": "PHP Developer", "requirements": [{ "name": "PHP", "level": "BatBuc" }, { "name": "Laravel", "level": "BatBuc" }] } }
+    ]
+  },
+  {
+    "id": "react-native-not-react", "k": 3,
+    "note": "React Native KHÔNG phải React: ứng viên mobile không nên được đẩy vào tin web chỉ vì chuỗi 'React' nằm trong 'React Native'.",
+    "candidate": { "skills": [{ "name": "React Native" }, { "name": "JavaScript" }], "position": "Mobile Developer" },
+    "items": [
+      { "id": "rn", "relevance": 3, "job": { "title": "React Native Developer", "requirements": [{ "name": "React Native", "level": "BatBuc" }, { "name": "JavaScript", "level": "UuTien" }] } },
+      { "id": "web-fe", "relevance": 1, "job": { "title": "Frontend Developer", "requirements": [{ "name": "React", "level": "BatBuc" }, { "name": "TypeScript", "level": "UuTien" }] } },
+      { "id": "be-node", "relevance": 0, "job": { "title": "Backend Developer", "requirements": [{ "name": "Node.js", "level": "BatBuc" }] } }
+    ]
+  },
+  {
+    "id": "title-noise-position-bonus", "k": 2,
+    "note": "Hai tin cùng đúng vị trí, một tiêu đề sạch một tiêu đề có hậu tố tuyển dụng; vị trí ứng viên khớp cả hai. Bonus vị trí không được phụ thuộc cách viết tiêu đề.",
+    "candidate": { "skills": [{ "name": "Machine Learning" }, { "name": "Python" }, { "name": "TensorFlow" }], "position": "Machine Learning Engineer" },
+    "items": [
+      { "id": "clean-title", "relevance": 3, "job": { "title": "Machine Learning Engineer", "location": "Hà Nội", "requirements": [{ "name": "Machine Learning", "level": "BatBuc" }, { "name": "Python", "level": "BatBuc" }, { "name": "TensorFlow", "level": "UuTien" }] } },
+      { "id": "noisy-title", "relevance": 3, "job": { "title": "ML Engineer - tuyển gấp lương cứng 30M", "location": "Hà Nội", "requirements": [{ "name": "Machine Learning", "level": "BatBuc" }, { "name": "Python", "level": "BatBuc" }, { "name": "TensorFlow", "level": "UuTien" }] } }
+    ]
+  },
+  {
+    "id": "location-district-vs-city", "k": 3,
+    "note": "Cùng stack, chỉ khác địa điểm: quận trùng khớp > thành phố trùng > khác tỉnh.",
+    "candidate": { "skills": [{ "name": "Java" }], "position": "Backend Developer", "address": "Cầu Giấy, Hà Nội" },
+    "items": [
+      { "id": "same-district", "relevance": 3, "job": { "title": "Java Backend Developer", "location": "Cầu Giấy, Hà Nội", "requirements": [{ "name": "Java", "level": "BatBuc" }] } },
+      { "id": "same-city", "relevance": 2, "job": { "title": "Java Backend Developer", "location": "Hà Nội", "requirements": [{ "name": "Java", "level": "BatBuc" }] } },
+      { "id": "other-city", "relevance": 1, "job": { "title": "Java Backend Developer", "location": "TP. Hồ Chí Minh", "requirements": [{ "name": "Java", "level": "BatBuc" }] } }
+    ]
+  },
+  {
+    "id": "salary-band-fit", "k": 3,
+    "note": "Kỳ vọng 30M: dải [25;35] vừa vặn nhất, dải cao hơn vẫn đáng ứng tuyển, dải thấp hơn thì không.",
+    "candidate": { "skills": [{ "name": "Laravel" }, { "name": "MySQL" }], "position": "Backend Developer", "desiredSalary": 30 },
+    "items": [
+      { "id": "in-band", "relevance": 3, "job": { "title": "Laravel Developer", "salaryMin": 25, "salaryMax": 35, "requirements": [{ "name": "Laravel", "level": "BatBuc" }, { "name": "MySQL", "level": "UuTien" }] } },
+      { "id": "above-band", "relevance": 2, "job": { "title": "Senior Laravel Developer", "salaryMin": 40, "salaryMax": 60, "requirements": [{ "name": "Laravel", "level": "BatBuc" }, { "name": "MySQL", "level": "UuTien" }] } },
+      { "id": "below-band", "relevance": 1, "job": { "title": "Laravel Developer", "salaryMin": 15, "salaryMax": 25, "requirements": [{ "name": "Laravel", "level": "BatBuc" }, { "name": "MySQL", "level": "UuTien" }] } }
+    ]
+  },
+  {
+    "id": "manual-vs-automation-qa", "k": 3,
+    "note": "QA manual khớp đẹp, QA automation thiếu CẢ HAI kỹ năng bắt buộc (Selenium, Java) nhưng lại khớp nhiều kỹ năng phụ.",
+    "candidate": { "skills": [{ "name": "Test Case" }, { "name": "SQL" }, { "name": "Excel" }, { "name": "Agile" }], "position": "QA Tester" },
+    "items": [
+      { "id": "manual-qa", "relevance": 3, "job": { "title": "QA Tester (Manual)", "requirements": [{ "name": "Test Case", "level": "BatBuc" }, { "name": "SQL", "level": "UuTien" }, { "name": "Agile", "level": "KhongBatBuoc" }] } },
+      { "id": "auto-qa", "relevance": 1, "job": { "title": "Automation QA", "requirements": [{ "name": "Selenium", "level": "BatBuc" }, { "name": "Java", "level": "BatBuc" }, { "name": "Test Case", "level": "UuTien" }, { "name": "SQL", "level": "UuTien" }, { "name": "Git", "level": "KhongBatBuoc" }] } },
+      { "id": "pm", "relevance": 0, "job": { "title": "Project Manager", "requirements": [{ "name": "PMP", "level": "BatBuc" }, { "name": "Communication", "level": "BatBuc" }] } }
+    ]
+  },
+  {
+    "id": "seniority-mismatch", "k": 3,
+    "note": "Ứng viên junior C#/SQL/Git: tin mid-level đúng tầm, tin architect thiếu cả microservices lẫn leadership, intern thì dễ hơn năng lực.",
+    "candidate": { "skills": [{ "name": "C#" }, { "name": "SQL" }, { "name": "Git" }], "position": "Backend Developer" },
+    "items": [
+      { "id": "dotnet-mid", "relevance": 3, "job": { "title": ".NET Developer", "requirements": [{ "name": "C#", "level": "BatBuc" }, { "name": "SQL", "level": "UuTien" }, { "name": "Git", "level": "UuTien" }] } },
+      { "id": "intern", "relevance": 2, "job": { "title": ".NET Intern", "requirements": [{ "name": "C#", "level": "UuTien" }, { "name": "Git", "level": "KhongBatBuoc" }] } },
+      { "id": "architect", "relevance": 1, "job": { "title": "Senior .NET Architect", "requirements": [{ "name": "C#", "level": "BatBuc" }, { "name": "Microservices", "level": "BatBuc" }, { "name": "Kubernetes", "level": "UuTien" }, { "name": "Leadership", "level": "KhongBatBuoc" }] } },
+      { "id": "embedded", "relevance": 0, "job": { "title": "Embedded Engineer", "requirements": [{ "name": "C", "level": "BatBuc" }, { "name": "RTOS", "level": "BatBuc" }] } }
+    ]
+  },
+  {
+    "id": "data-analyst-vs-scientist", "k": 3,
+    "note": "Python/SQL/Excel/Statistics: đúng tầm Data Analyst, thiếu ML cho Data Scientist, sai hẳn trọng tâm với DBA.",
+    "candidate": { "skills": [{ "name": "Python" }, { "name": "SQL" }, { "name": "Excel" }, { "name": "Statistics" }], "position": "Data Analyst" },
+    "items": [
+      { "id": "analyst", "relevance": 3, "job": { "title": "Data Analyst", "requirements": [{ "name": "SQL", "level": "BatBuc" }, { "name": "Excel", "level": "BatBuc" }, { "name": "Python", "level": "UuTien" }, { "name": "Statistics", "level": "KhongBatBuoc" }] } },
+      { "id": "scientist", "relevance": 2, "job": { "title": "Data Scientist", "requirements": [{ "name": "Python", "level": "BatBuc" }, { "name": "Statistics", "level": "BatBuc" }, { "name": "Machine Learning", "level": "BatBuc" }, { "name": "SQL", "level": "UuTien" }] } },
+      { "id": "dba", "relevance": 1, "job": { "title": "Database Administrator", "requirements": [{ "name": "SQL", "level": "BatBuc" }, { "name": "Oracle", "level": "BatBuc" }, { "name": "Linux", "level": "UuTien" }] } },
+      { "id": "marketing", "relevance": 0, "job": { "title": "Digital Marketer", "requirements": [{ "name": "SEO", "level": "BatBuc" }, { "name": "Ads", "level": "BatBuc" }] } }
+    ]
+  },
+  {
+    "id": "devops-toolchain-coverage", "k": 3,
+    "note": "DevOps/SRE cùng họ nhưng khác trọng tâm; backend chỉ khớp một kỹ năng phụ thì không đáng gợi ý cho dân hạ tầng.",
+    "candidate": { "skills": [{ "name": "Docker" }, { "name": "Kubernetes" }, { "name": "Linux" }, { "name": "CI/CD" }, { "name": "Terraform" }], "position": "DevOps Engineer" },
+    "items": [
+      { "id": "devops", "relevance": 3, "job": { "title": "DevOps Engineer", "requirements": [{ "name": "Docker", "level": "BatBuc" }, { "name": "Kubernetes", "level": "BatBuc" }, { "name": "CI/CD", "level": "UuTien" }, { "name": "Terraform", "level": "UuTien" }, { "name": "Linux", "level": "KhongBatBuoc" }, { "name": "Monitoring", "level": "KhongBatBuoc" }] } },
+      { "id": "sre", "relevance": 2, "job": { "title": "Site Reliability Engineer", "requirements": [{ "name": "Kubernetes", "level": "BatBuc" }, { "name": "Monitoring", "level": "BatBuc" }, { "name": "Linux", "level": "UuTien" }, { "name": "Go", "level": "UuTien" }] } },
+      { "id": "golang-be", "relevance": 1, "job": { "title": "Golang Backend Developer", "requirements": [{ "name": "Go", "level": "BatBuc" }, { "name": "PostgreSQL", "level": "BatBuc" }, { "name": "Docker", "level": "UuTien" }] } }
+    ]
+  },
+  {
+    "id": "designer-toolset", "k": 3,
+    "note": "Figma/UI cho UI Designer, Photoshop/Illustrator cho Graphic Designer, còn UX Researcher đòi kỹ năng nghiên cứu ứng viên này không có.",
+    "candidate": { "skills": [{ "name": "Figma" }, { "name": "Photoshop" }, { "name": "UI" }], "position": "UI Designer" },
+    "items": [
+      { "id": "ui", "relevance": 3, "job": { "title": "UI Designer", "requirements": [{ "name": "Figma", "level": "BatBuc" }, { "name": "UI", "level": "BatBuc" }] } },
+      { "id": "graphic", "relevance": 2, "job": { "title": "Graphic Designer", "requirements": [{ "name": "Photoshop", "level": "BatBuc" }, { "name": "Illustrator", "level": "BatBuc" }] } },
+      { "id": "ux-research", "relevance": 1, "job": { "title": "UX Researcher", "requirements": [{ "name": "User Research", "level": "BatBuc" }, { "name": "Figma", "level": "UuTien" }] } }
+    ]
+  },
+  {
+    "id": "mobile-native-vs-cross", "k": 3,
+    "note": "Kotlin/Android/Java: đúng Android Developer; Flutter/Dart là ngành khác; Java backend chỉ cùng ngôn ngữ nên xếp thấp.",
+    "candidate": { "skills": [{ "name": "Kotlin" }, { "name": "Android" }, { "name": "Java" }], "position": "Android Developer" },
+    "items": [
+      { "id": "android", "relevance": 3, "job": { "title": "Android Developer", "requirements": [{ "name": "Kotlin", "level": "BatBuc" }, { "name": "Android", "level": "BatBuc" }] } },
+      { "id": "java-be", "relevance": 1, "job": { "title": "Java Backend Developer", "requirements": [{ "name": "Java", "level": "BatBuc" }, { "name": "Spring", "level": "BatBuc" }] } },
+      { "id": "flutter", "relevance": 0, "job": { "title": "Flutter Developer", "requirements": [{ "name": "Flutter", "level": "BatBuc" }, { "name": "Dart", "level": "BatBuc" }] } }
+    ]
+  },
+  {
+    "id": "core-rarity-idf", "k": 3,
+    "note": "'Giao tiếp tốt' và 'Làm việc nhóm' có trong gần mọi JD nên khớp chúng không nói lên gì; Kubernetes hiếm hơn và đáng tin hơn.",
+    "candidate": { "skills": [{ "name": "Kubernetes" }, { "name": "Giao tiếp tốt" }, { "name": "Làm việc nhóm" }], "position": "DevOps Engineer" },
+    "items": [
+      { "id": "k8s", "relevance": 3, "job": { "title": "Kubernetes Engineer", "requirements": [{ "name": "Kubernetes", "level": "BatBuc" }, { "name": "Linux", "level": "UuTien" }] } },
+      { "id": "soft", "relevance": 1, "job": { "title": "IT Support", "requirements": [{ "name": "Giao tiếp tốt", "level": "BatBuc" }, { "name": "Làm việc nhóm", "level": "BatBuc" }, { "name": "Windows", "level": "KhongBatBuoc" }] } },
+      { "id": "ops-team", "relevance": 2, "job": { "title": "Operations Engineer", "requirements": [{ "name": "Kubernetes", "level": "UuTien" }, { "name": "Giao tiếp tốt", "level": "UuTien" }, { "name": "Bash", "level": "KhongBatBuoc" }] } }
+    ]
+  },
+  {
+    "id": "missing-data-neutrality", "k": 3,
+    "note": "JD chỉ ghi kỹ năng, không lương không địa điểm, CV không địa chỉ: dữ liệu thiếu không được biến thành thưởng cũng không thành phạt.",
+    "candidate": { "skills": [{ "name": "Go" }, { "name": "PostgreSQL" }], "position": "Backend Developer" },
+    "items": [
+      { "id": "bare-jd", "relevance": 3, "job": { "title": "Go Backend Developer", "requirements": [{ "name": "Go", "level": "BatBuc" }, { "name": "PostgreSQL", "level": "UuTien" }] } },
+      { "id": "same-partial", "relevance": 2, "job": { "title": "Golang Engineer", "requirements": [{ "name": "Go", "level": "BatBuc" }, { "name": "gRPC", "level": "UuTien" }, { "name": "Kafka", "level": "KhongBatBuoc" }] } },
+      { "id": "other-stack", "relevance": 0, "job": { "title": "Ruby Developer", "requirements": [{ "name": "Ruby", "level": "BatBuc" }, { "name": "Rails", "level": "BatBuc" }] } }
     ]
   }
 ]

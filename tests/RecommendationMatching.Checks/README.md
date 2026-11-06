@@ -29,10 +29,41 @@ Sau đó so sánh `cbf-v1` với `cbf-v2-normalized` trên **cùng dữ liệu v
 - Xếp điểm giảm dần, hòa điểm theo ID ordinal; điểm 0 không được trả, giống điều kiện lọc score của backend.
 - `MACRO`: trung bình theo query, không gộp tất cả cặp thành một query.
 
-`fixtures.json` là **4 ca tổng hợp chẩn đoán**, cố ý có alias và cold start.
-Các nhãn chỉ là đáp án fixture thủ công cho kiểm tra kỹ thuật, **không chứng minh
-chất lượng tuyển dụng thực tế**. Cold start được giữ để lộ hạn chế của cả hai phiên bản.
-Các ca này không thay thế benchmark database ở `test-goi-y/Ground-truth`.
+`fixtures.json` hiện có **20 ca có nhãn graded** (4 ca chẩn đoán gốc + 16 ca dựng thêm).
+Mỗi ca mang trường `note` ghi *lý do gán nhãn* để người sau kiểm tra lại được từng dòng.
+Nhãn do **một người** quyết định theo kinh nghiệm tuyển dụng IT phổ thông, chưa có người
+thứ hai độc lập → **chưa tính được Cohen's κ**, và đó là hạn chế phải nói rõ khi trích số.
+Cold start và `react-native-not-react` được giữ nguyên để lộ điều kiện lọc `score > 0`
+của cả runner lẫn backend: item nhãn 1 nhưng điểm 0 thì bị loại khỏi danh sách.
+
+## Số gốc trước khi đổi công thức (cbf-v3)
+
+```
+MACRO cbf-v1           queries=20 P=0.7250 R=0.8000 NDCG=0.7753
+MACRO cbf-v2-normalized queries=20 P=0.8250 R=0.9000 NDCG=0.8753
+```
+
+Ca mà `cbf-v2-normalized` còn sai, và mỗi ca chỉ đúng một việc cần sửa:
+
+| Ca | NDCG | Sai ở đâu | Bước sửa |
+|---|---|---|---|
+| `denominator-comparability` | 0.6806 | Tin chỉ ghi 1 yêu cầu đạt 1.0, vượt tin 5 yêu cầu khớp cả 2 bắt buộc | #3 calibration |
+| `location-district-vs-city` | 0.6806 | Quận/huyện và thành phố nhận cùng một bonus 0.05, tie-break theo ID đẩy "khác tỉnh" lên đầu | #4 utility |
+| `salary-band-fit` | 0.7592 | Dải lương cao hơn kỳ vọng bị xử như không có tín hiệu | #4 utility |
+| `core-rarity-idf` | 0.6806 | "Giao tiếp tốt/Làm việc nhóm" (có ở gần mọi JD) thắng Kubernetes | #5 IDF + vocabulary |
+| `alias-node-abbreviation` | 0.7872 | `Node` ≠ `Node.js`, `Express` ≠ `Express.js` | #5 vocabulary |
+| `alias-ml-abbreviation` | P=0.6667 | `ML` ≠ `Machine Learning` | #5 vocabulary |
+| `unknown-candidate-cold-start` | 0 | CV không có kỹ năng thì mọi tin đều điểm 0 | ngoài phạm vi (cần feature số năm/học vấn) |
+
+## Relation tới benchmark database
+
+`ground-truth.csv` + `test-goi-y/Ground-truth` là benchmark chạy trên DB thật, nhưng
+**cả 45 cặp đều nhãn 1** (tin được *thiết kế* để khớp từng ứng viên). Tập chỉ có dương tính
+đo được **recall của đúng cặp đó**, không đo được **thứ tự**, vì không có negatives để xếp
+nhầm. Vì vậy hai bộ này bổ sung nhau, không thay thế nhau: fixtures ở đây giữ vai trò
+cột so sánh ranking, ground-truth giữ vai trò kiểm chứng trên dữ liệu thật.
+Muốn ground-truth đo được ranking thì phải thêm các tin *cố ý không khớp* cho cùng
+ứng viên và gán nhãn 0/1/2 — việc đó để riêng, không sửa dữ liệu của luồng khác.
 
 Để báo cáo nghiên cứu: thu thập CV/JD đại diện nhiều ngành, gán nhãn độc lập
 trước khi chạy scorer, lưu phiên bản dữ liệu và người gán nhãn, tách tập phát triển
