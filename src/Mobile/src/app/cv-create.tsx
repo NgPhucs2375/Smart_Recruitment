@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 
 import { StackHeader } from '@/components/stack-header';
+import { DatePickerField } from '@/components/ui/date-picker-field';
 import { ThemedText } from '@/components/themed-text';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -19,6 +20,9 @@ import { font, Radius } from '@/constants/theme';
 import { useAuth } from '@/features/auth';
 import { validateEmail, validatePhone } from '@/features/auth/validation';
 import { cvApi } from '@/features/cv/api/cv-api';
+import { PartialDateField } from '@/features/cv/components/fields';
+import { ProvinceAddressFields } from '@/features/location/province-address-fields';
+import { isoToVnDate } from '@/features/location/date-format';
 import type {
   CvCertificate,
   CvContent,
@@ -49,7 +53,7 @@ function emptyContent(profile: CandidateProfile): CvContent {
       linkedIn: '',
       portfolio: '',
       gender: profile.gender,
-      birthDate: profile.birthDate,
+      birthDate: isoToVnDate(profile.birthDate) || profile.birthDate,
       title: profile.title,
       expectedSalary: profile.expectedSalary,
       bio: profile.bio,
@@ -196,10 +200,18 @@ export default function CvCreateScreen() {
         <Section title="Thông tin liên hệ" open={open.contact} onToggle={() => setOpen((value) => ({ ...value, contact: !value.contact }))} theme={theme}>
           <Field label="Họ và tên" value={content.contact.fullName} onChangeText={(value) => updateContact('fullName', value)} theme={theme} />
           <Field label="Email" value={content.contact.email} onChangeText={(value) => updateContact('email', value)} keyboardType="email-address" theme={theme} />
-          <Field label="Số điện thoại" value={content.contact.phone} onChangeText={(value) => updateContact('phone', value)} keyboardType="phone-pad" theme={theme} />
-          <Field label="Địa chỉ" value={content.contact.location} onChangeText={(value) => updateContact('location', value)} theme={theme} />
+          <Field label="Số điện thoại" value={content.contact.phone} onChangeText={(value) => updateContact('phone', value.replace(/\D/g, '').slice(0, 10))} keyboardType="phone-pad" maxLength={10} theme={theme} />
+          <ProvinceAddressFields
+            value={content.contact.location}
+            onChange={(value) => updateContact('location', value)}
+          />
           <Field label="Vị trí ứng tuyển" value={content.contact.title} onChangeText={(value) => updateContact('title', value)} theme={theme} />
-          <Field label="Ngày sinh (dd/mm/yyyy)" value={content.contact.birthDate} onChangeText={(value) => updateContact('birthDate', value)} theme={theme} />
+          <DatePickerField
+            label="Ngày sinh"
+            value={content.contact.birthDate}
+            valueFormat="vn"
+            onChange={(value) => updateContact('birthDate', value)}
+          />
           <Field label="GitHub" value={content.contact.github} onChangeText={(value) => updateContact('github', value)} theme={theme} />
           <Field label="LinkedIn" value={content.contact.linkedIn} onChangeText={(value) => updateContact('linkedIn', value)} theme={theme} />
           <Field label="Portfolio" value={content.contact.portfolio} onChangeText={(value) => updateContact('portfolio', value)} theme={theme} />
@@ -212,7 +224,7 @@ export default function CvCreateScreen() {
             <Field label="Trường" value={item.school} onChangeText={(value) => updateList('education', index, { school: value })} theme={theme} />
             <Field label="Chuyên ngành" value={item.major} onChangeText={(value) => updateList('education', index, { major: value })} theme={theme} />
             <Field label="Bằng cấp" value={item.degree} onChangeText={(value) => updateList('education', index, { degree: value })} theme={theme} />
-            <DatePair item={item} onChange={(value) => updateList('education', index, value)} theme={theme} />
+            <DatePair item={item} onChange={(value) => updateList('education', index, value)} />
             <Field label="Mô tả" value={item.description} onChangeText={(value) => updateList('education', index, { description: value })} multiline theme={theme} />
           </Card>)}
         </ListSection>
@@ -222,8 +234,11 @@ export default function CvCreateScreen() {
             <ItemHeader title={`Kinh nghiệm ${index + 1}`} onRemove={() => removeItem('experience', index)} theme={theme} />
             <Field label="Công ty" value={item.company} onChangeText={(value) => updateList('experience', index, { company: value })} theme={theme} />
             <Field label="Chức danh" value={item.title} onChangeText={(value) => updateList('experience', index, { title: value })} theme={theme} />
-            <Field label="Địa điểm" value={item.location} onChangeText={(value) => updateList('experience', index, { location: value })} theme={theme} />
-            <DatePair item={item} onChange={(value) => updateList('experience', index, value)} theme={theme} />
+            <ProvinceAddressFields
+              value={item.location}
+              onChange={(value) => updateList('experience', index, { location: value })}
+            />
+            <DatePair item={item} onChange={(value) => updateList('experience', index, value)} />
             <Toggle label="Đang làm việc tại đây" value={item.current} onValueChange={(value) => updateList('experience', index, { current: value })} theme={theme} />
             <Field label="Mô tả công việc" value={item.description} onChangeText={(value) => updateList('experience', index, { description: value })} multiline theme={theme} />
             <Field label="Kỹ năng sử dụng (phân cách bằng dấu phẩy)" value={item.skills.join(', ')} onChangeText={(value) => updateList('experience', index, { skills: value.split(',').map((skill) => skill.trim()).filter(Boolean) })} theme={theme} />
@@ -255,7 +270,12 @@ export default function CvCreateScreen() {
             <ItemHeader title={`Chứng chỉ ${index + 1}`} onRemove={() => removeItem('certificates', index)} theme={theme} />
             <Field label="Tên chứng chỉ" value={item.name} onChangeText={(value) => updateList('certificates', index, { name: value })} theme={theme} />
             <Field label="Đơn vị cấp" value={item.issuer} onChangeText={(value) => updateList('certificates', index, { issuer: value })} theme={theme} />
-            <Field label="Ngày cấp" value={item.issuedAt} onChangeText={(value) => updateList('certificates', index, { issuedAt: value })} theme={theme} />
+            <PartialDateField
+              label="Ngày cấp"
+              value={item.issuedAt}
+              precision="month_year"
+              onChange={(value) => updateList('certificates', index, { issuedAt: value })}
+            />
             <Field label="Mã xác minh" value={item.credentialId} onChangeText={(value) => updateList('certificates', index, { credentialId: value })} theme={theme} />
             <Field label="Link chứng chỉ" value={item.credentialUrl} onChangeText={(value) => updateList('certificates', index, { credentialUrl: value })} theme={theme} />
           </Card>)}
@@ -282,8 +302,8 @@ function ItemHeader({ title, onRemove, theme }: { title: string; onRemove: () =>
   return <View style={styles.itemHeader}><ThemedText style={styles.itemTitle}>{title}</ThemedText><Pressable onPress={onRemove} hitSlop={8}><Trash2 size={17} color={theme.destructive} /></Pressable></View>;
 }
 
-function DatePair({ item, onChange, theme }: { item: { startDate: string; endDate: string }; onChange: (value: { startDate: string; endDate: string }) => void; theme: ReturnType<typeof useTheme> }) {
-  return <View style={styles.twoColumns}><View style={styles.column}><Field label="Từ tháng/năm" value={item.startDate} onChangeText={(value) => onChange({ startDate: value, endDate: item.endDate })} theme={theme} /></View><View style={styles.column}><Field label="Đến tháng/năm" value={item.endDate} onChangeText={(value) => onChange({ startDate: item.startDate, endDate: value })} theme={theme} /></View></View>;
+function DatePair({ item, onChange }: { item: { startDate: string; endDate: string }; onChange: (value: { startDate: string; endDate: string }) => void }) {
+  return <View style={styles.twoColumns}><PartialDateField label="Từ tháng/năm" value={item.startDate} precision="month_year" onChange={(value) => onChange({ startDate: value, endDate: item.endDate })} style={styles.column} /><PartialDateField label="Đến tháng/năm" value={item.endDate} precision="month_year" onChange={(value) => onChange({ startDate: item.startDate, endDate: value })} style={styles.column} /></View>;
 }
 
 function Toggle({ label, value, onValueChange, theme }: { label: string; value: boolean; onValueChange: (value: boolean) => void; theme: ReturnType<typeof useTheme> }) {

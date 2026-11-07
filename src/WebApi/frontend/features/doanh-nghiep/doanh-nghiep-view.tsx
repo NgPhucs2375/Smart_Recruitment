@@ -13,6 +13,7 @@ import { CompanyList } from "@/components/company/company-list";
 import { CompanySearch } from "@/components/company/company-search";
 import { useFollowedCompanies } from "@/hooks/use-followed-companies";
 import { doanhNghiepApi, type DoanhNghiepVm } from "./doanh-nghiep-api";
+import { provinceFromAddress } from "@/features/location/vietnam-provinces";
 
 const PAGE_SIZE = 8;
 
@@ -27,8 +28,7 @@ function sectorOf(value: string): string {
 
 /** Rút tỉnh/thành (mảnh cuối sau dấu phẩy) từ địa chỉ tự do. */
 function cityOf(diaChi: string): string {
-  const parts = diaChi.split(",").map((s) => s.trim()).filter(Boolean);
-  return parts.length > 0 ? parts[parts.length - 1] : "";
+  return provinceFromAddress(diaChi) || diaChi.split(",").map((part) => part.trim()).filter(Boolean).at(-1) || "";
 }
 
 export function DoanhNghiepView() {

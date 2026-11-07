@@ -1,4 +1,5 @@
 using FluentValidation;
+using Application.Validation;
 
 namespace Application.Features.HoSoNhaTuyenDung.Commands.CreateHoSoNhaTuyenDung;
 
@@ -22,9 +23,9 @@ public class CreateHoSoNhaTuyenDungCommandValidator
             .WithMessage("Họ tên không được vượt quá 255 ký tự.");
 
         RuleFor(x => x.SDT)
-            .MaximumLength(20)
-            .WithMessage("Số điện thoại không được vượt quá 20 ký tự.")
-            .Matches(@"^[0-9+\-\s]*$")
+            .MaximumLength(10)
+            .WithMessage("Số điện thoại phải gồm đúng 10 chữ số.")
+            .Must(InputValidation.IsVietnameseMobilePhone)
             .When(x => !string.IsNullOrWhiteSpace(x.SDT))
             .WithMessage("Số điện thoại không hợp lệ.");
 

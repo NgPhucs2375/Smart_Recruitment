@@ -5,6 +5,7 @@ import type { Job } from '@/features/jobs/types';
 import type { Company } from '@/features/companies/types';
 import { apiRequest } from '@/services/api/client';
 import { asNumber, asRecord, asText, unwrapData, unwrapList } from '@/services/api/parse';
+import { normalizeAddressProvince } from '@/features/location/vietnam-provinces';
 
 /** Danh sách doanh nghiệp — mirror doanh-nghiep-api.ts của Web. */
 const COMPANIES_PATH = 'doanhnghieps';
@@ -124,7 +125,7 @@ export function normalizeCompany(value: unknown): Company | null {
     name: asText(raw.tenDoanhNghiep ?? raw.TenDoanhNghiep, `Doanh nghiệp #${id}`),
     description: cleanCompanyDescription(asText(raw.moTa ?? raw.MoTa), industry),
     website: asText(raw.website ?? raw.Website),
-    address: asText(raw.diaChi ?? raw.DiaChi),
+    address: normalizeAddressProvince(asText(raw.diaChi ?? raw.DiaChi)),
     logoUrl: asText(raw.logoUrl ?? raw.LogoUrl),
     taxCode: asText(raw.maSoThue ?? raw.MaSoThue),
     industry,

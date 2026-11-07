@@ -4,6 +4,7 @@ import { getValidToken, refreshSession } from "@/lib/auth-provider";
 import { unwrapResponse } from "@/lib/api/response-contract";
 import { normalizeJob } from "@/lib/api/jobs-api";
 import type { Job } from "@/features/viec-lam/types";
+import { normalizeAddressProvince } from "@/features/location/vietnam-provinces";
 
 /** Company record — field names mirror GetAllDoanhNghiepsViewModel (no invented fields). */
 export interface DoanhNghiepVm {
@@ -39,7 +40,7 @@ export function normalizeCompany(raw: unknown): DoanhNghiepVm | null {
     tenDoanhNghiep: str(r.tenDoanhNghiep ?? r.TenDoanhNghiep),
     moTa: cleanCompanyDescription(str(r.moTa ?? r.MoTa), linhVuc),
     website: str(r.website ?? r.Website),
-    diaChi: str(r.diaChi ?? r.DiaChi),
+    diaChi: normalizeAddressProvince(str(r.diaChi ?? r.DiaChi)),
     logoUrl: str(r.logoUrl ?? r.LogoUrl),
     maSoThue: str(r.maSoThue ?? r.MaSoThue),
     linhVucHoatDong: str(r.linhVucHoatDong ?? r.LinhVucHoatDong),

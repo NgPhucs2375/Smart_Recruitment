@@ -4,7 +4,7 @@ import { type LucideIcon } from "lucide-react";
 interface AdminPageHeaderProps {
   icon?: LucideIcon;
   title: string;
-  description: string;
+  description?: string;
   actions?: ReactNode;
 }
 
@@ -26,7 +26,7 @@ function AdminPageHeader({
           <h1 className="text-2xl font-medium tracking-tight text-foreground">
             {title}
           </h1>
-          <p className="mt-1 text-sm text-muted-foreground">{description}</p>
+          {description && <p className="mt-1 text-sm text-muted-foreground">{description}</p>}
         </div>
       </div>
       {actions && <div className="flex items-center gap-2">{actions}</div>}

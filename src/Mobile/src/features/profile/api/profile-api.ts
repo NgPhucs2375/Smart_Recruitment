@@ -1,4 +1,5 @@
 import { USE_MOCK_JOBS } from '@/features/jobs/api/jobs-api';
+import { normalizeAddressProvince } from '@/features/location/vietnam-provinces';
 import { toDateInput } from '@/features/profile/format';
 import { buildDemoProfile } from '@/features/profile/mock-data';
 import type {
@@ -45,7 +46,7 @@ function normalizeProfile(value: unknown): CandidateProfile | null {
     fullName,
     email: asText(raw.email ?? raw.Email),
     phone: asText(raw.sdt ?? raw.SDT ?? raw.Sdt),
-    location: asText(raw.diaChi ?? raw.DiaChi),
+    location: normalizeAddressProvince(asText(raw.diaChi ?? raw.DiaChi)),
     title: asText(raw.viTriUngTuyen ?? raw.ViTriUngTuyen),
     bio: asText(raw.gioiThieu ?? raw.GioiThieu),
     expectedSalary: asNumber(raw.mucLuongMongMuon ?? raw.MucLuongMongMuon),

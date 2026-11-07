@@ -7,6 +7,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AdminPageLayout, AdminPageHeader, AdminCard, AdminCardHeader, AdminEmptyState, AdminLoadingState } from "@/components/admin/admin-page-layout";
 import { getValidToken } from "@/lib/auth-provider";
+import { DatePickerField } from "@/components/ui/date-picker-field";
+import { ProvinceAddressFields } from "@/components/ui/province-address-fields";
+import { isoToVnDate, vnToIsoDate } from "@/features/tao-cv/cv-data";
 
 type KinhNghiem = {
   id: number;
@@ -31,8 +34,8 @@ function normalize(raw: unknown): KinhNghiem {
     id: Number(r.id ?? r.Id),
     tenCongTy: `${r.tenCongTy ?? r.TenCongTy ?? ""}`,
     diaChi: `${r.diaChi ?? r.DiaChi ?? ""}`,
-    tuNgay: `${r.tuNgay ?? r.TuNgay ?? ""}`,
-    denNgay: `${r.denNgay ?? r.DenNgay ?? ""}`,
+    tuNgay: isoToVnDate(`${r.tuNgay ?? r.TuNgay ?? ""}`),
+    denNgay: isoToVnDate(`${r.denNgay ?? r.DenNgay ?? ""}`),
     moTa: `${r.moTa ?? r.MoTa ?? ""}`,
     isHienTai: Boolean(r.isHienTai ?? r.IsHienTai),
   };
@@ -96,7 +99,7 @@ export default function KinhNghiemPage() {
 
   function openEdit(item: KinhNghiem) {
     setSuccessMsg(""); setErr(""); setEditing(item);
-    setForm({ tenCongTy: item.tenCongTy, diaChi: item.diaChi, tuNgay: item.tuNgay ? item.tuNgay.slice(0, 10) : "", denNgay: item.denNgay ? item.denNgay.slice(0, 10) : "", moTa: item.moTa, isHienTai: item.isHienTai });
+    setForm({ tenCongTy: item.tenCongTy, diaChi: item.diaChi, tuNgay: isoToVnDate(item.tuNgay), denNgay: isoToVnDate(item.denNgay), moTa: item.moTa, isHienTai: item.isHienTai });
     setShowForm(true);
   }
 
@@ -107,7 +110,12 @@ export default function KinhNghiemPage() {
       setSaving(true); setErr(""); setSuccessMsg("");
       const isEditing = editing !== null;
       const url = isEditing ? `${API}/${editing.id}` : API;
-      const body = isEditing ? { id: editing.id, ...form } : form;
+      const body = {
+        ...(isEditing ? { id: editing.id } : {}),
+        ...form,
+        tuNgay: vnToIsoDate(form.tuNgay) || null,
+        denNgay: form.isHienTai ? null : vnToIsoDate(form.denNgay) || null,
+      };
       const res: ApiResponse<unknown> = await apiFetch(url, { method: isEditing ? "PUT" : "POST", body: JSON.stringify(body) });
       if (!ok(res)) throw new Error(msg(res) || "Không thể lưu");
       setSuccessMsg(isEditing ? "Cập nhật thành công." : "Thêm kinh nghiệm thành công.");
@@ -144,7 +152,6 @@ export default function KinhNghiemPage() {
       <AdminPageHeader
         icon={Briefcase}
         title="Kinh nghiệm làm việc"
-        description="Quản lý kinh nghiệm làm việc trong hồ sơ của bạn."
         actions={<Button onClick={openCreate}><Plus className="size-4" /> Thêm kinh nghiệm</Button>}
       />
 
@@ -156,7 +163,6 @@ export default function KinhNghiemPage() {
           <div className="mb-5 flex items-center justify-between">
             <div>
               <h2 className="font-medium text-foreground">{editing ? "Chỉnh sửa kinh nghiệm" : "Thêm kinh nghiệm mới"}</h2>
-              <p className="mt-1 text-sm text-muted-foreground">{editing ? "Cập nhật thông tin kinh nghiệm." : "Thêm kinh nghiệm làm việc vào hồ sơ."}</p>
             </div>
             <Button type="button" variant="ghost" size="icon" onClick={resetForm}><X className="size-4" /></Button>
           </div>
@@ -167,15 +173,13 @@ export default function KinhNghiemPage() {
             </div>
             <div className="space-y-2">
               <Label>Địa chỉ</Label>
-              <Input value={form.diaChi} onChange={e => setForm(f => ({ ...f, diaChi: e.target.value }))} placeholder="VD: Hà Nội" />
+              <ProvinceAddressFields id="experience-address" value={form.diaChi} onChange={value => setForm(f => ({ ...f, diaChi: value }))} label="Tỉnh/thành phố" detailLabel="Địa chỉ chi tiết" />
             </div>
             <div className="space-y-2">
-              <Label>Từ ngày</Label>
-              <Input type="date" value={form.tuNgay} onChange={e => setForm(f => ({ ...f, tuNgay: e.target.value }))} />
+              <DatePickerField label="Từ ngày" value={form.tuNgay} onChange={value => setForm(f => ({ ...f, tuNgay: value }))} />
             </div>
             <div className="space-y-2">
-              <Label>Đến ngày</Label>
-              <Input type="date" value={form.denNgay} onChange={e => setForm(f => ({ ...f, denNgay: e.target.value }))} disabled={form.isHienTai} />
+              <DatePickerField label="Đến ngày" value={form.denNgay} onChange={value => setForm(f => ({ ...f, denNgay: value }))} disabled={form.isHienTai} />
             </div>
           </div>
           <div className="mt-4 flex items-center gap-2">

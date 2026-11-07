@@ -1,4 +1,5 @@
 import { getValidToken, refreshSession } from "../auth-provider";
+import { normalizeAddressProvince } from "@/features/location/vietnam-provinces";
 import type {
   CapNhatHoSoInput,
   CvImportSessionVm,
@@ -102,7 +103,7 @@ export function normalizeHoSo(raw: unknown): HoSoVm | null {
     sdt: (r.sdt ?? r.SDT ?? r.Sdt ?? "") as string,
     ngaySinh: (r.ngaySinh ?? r.NgaySinh ?? null) as string | null,
     gioiTinh: (r.gioiTinh ?? r.GioiTinh ?? "Nam") as string,
-    diaChi: (r.diaChi ?? r.DiaChi ?? "") as string,
+    diaChi: normalizeAddressProvince(String(r.diaChi ?? r.DiaChi ?? "")),
     gioiThieu: (r.gioiThieu ?? r.GioiThieu ?? "") as string,
     anhDaiDienUrl: avatarValue.startsWith("avatars/")
       ? `/api/dotnet/hosoungviens/${id}/avatar?key=${encodeURIComponent(avatarValue)}&v=${encodeURIComponent(avatarValue)}`
@@ -169,7 +170,7 @@ function normalizeCvContent(raw: unknown): CvDetailVm["noiDung"] {
       hoTen: text(contact.hoTen ?? contact.HoTen),
       email: text(contact.email ?? contact.Email),
       sdt: text(contact.sdt ?? contact.SDT ?? contact.Sdt),
-      diaChi: text(contact.diaChi ?? contact.DiaChi),
+      diaChi: normalizeAddressProvince(text(contact.diaChi ?? contact.DiaChi)),
       github: text(contact.github ?? contact.gitHub ?? contact.GitHub),
       linkedIn: text(contact.linkedIn ?? contact.LinkedIn),
       portfolio: text(contact.portfolio ?? contact.Portfolio),
@@ -194,7 +195,7 @@ function normalizeCvContent(raw: unknown): CvDetailVm["noiDung"] {
       id: "",
       congTy: text(item.congTy ?? item.tenCongTy ?? item.TenCongTy),
       chucDanh: text(item.chucDanh ?? item.ChucDanh),
-      diaChi: text(item.diaChi ?? item.DiaChi),
+      diaChi: normalizeAddressProvince(text(item.diaChi ?? item.DiaChi)),
       tuNgay: text(item.tuNgay ?? item.TuNgay),
       denNgay: text(item.denNgay ?? item.DenNgay),
       isHienTai: (item.isHienTai ?? item.IsHienTai) === true,

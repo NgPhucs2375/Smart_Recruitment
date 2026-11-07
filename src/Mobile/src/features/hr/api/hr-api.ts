@@ -1,4 +1,5 @@
 import { apiRequest, getApiBaseUrl } from '@/services/api/client';
+import { normalizeAddressProvince } from '@/features/location/vietnam-provinces';
 import { asNumber, asRecord, asText, unwrapData } from '@/services/api/parse';
 import type {
   BaoCao,
@@ -63,7 +64,7 @@ export function normalizeJob(value: unknown): HrJob | null {
     kinhNghiemYeuCau: asText(raw.kinhNghiemYeuCau ?? raw.KinhNghiemYeuCau),
     yeuCauCongViec: asText(raw.yeuCauCongViec ?? raw.YeuCauCongViec),
     quyenLoi: asText(raw.quyenLoi ?? raw.QuyenLoi),
-    diaDiemLamViec: asText(raw.diaDiemLamViec ?? raw.DiaDiemLamViec),
+    diaDiemLamViec: normalizeAddressProvince(asText(raw.diaDiemLamViec ?? raw.DiaDiemLamViec)),
     phuongThucLamViec: asNumber(raw.phuongThucLamViec ?? raw.PhuongThucLamViec ?? raw.workMode ?? raw.WorkMode),
     luongToiThieu: asNumber(raw.luongToiThieu ?? raw.LuongToiThieu),
     luongToiDa: asNumber(raw.luongToiDa ?? raw.LuongToiDa),
@@ -395,7 +396,7 @@ function normalizeCvPayload(detail: Record<string, unknown>): CvRenderData {
       hoTen: text(contact.hoTen ?? contact.HoTen),
       email: text(contact.email ?? contact.Email),
       sdt: text(contact.sdt ?? contact.SDT ?? contact.Sdt),
-      diaChi: text(contact.diaChi ?? contact.DiaChi),
+      diaChi: normalizeAddressProvince(text(contact.diaChi ?? contact.DiaChi)),
       github: text(contact.github ?? contact.gitHub ?? contact.GitHub),
       linkedIn: text(contact.linkedIn ?? contact.LinkedIn),
       portfolio: text(contact.portfolio ?? contact.Portfolio),
@@ -418,7 +419,7 @@ function normalizeCvPayload(detail: Record<string, unknown>): CvRenderData {
     kinhNghiemLamViec: withId(rowsOf('kinhNghiemLamViec'), (row) => ({
       congTy: text(row.congTy ?? row.tenCongTy ?? row.TenCongTy),
       chucDanh: text(row.chucDanh ?? row.ChucDanh),
-      diaChi: text(row.diaChi ?? row.DiaChi),
+      diaChi: normalizeAddressProvince(text(row.diaChi ?? row.DiaChi)),
       tuNgay: toMonthYear(row.tuNgay ?? row.TuNgay),
       denNgay: toMonthYear(row.denNgay ?? row.DenNgay),
       isHienTai: Boolean(row.isHienTai ?? row.IsHienTai),
@@ -657,7 +658,7 @@ function normalizeCompany(value: unknown): CompanyMine | null {
     tenDoanhNghiep: asText(raw.tenDoanhNghiep ?? raw.TenDoanhNghiep),
     moTa: asText(raw.moTa ?? raw.MoTa),
     website: asText(raw.website ?? raw.Website),
-    diaChi: asText(raw.diaChi ?? raw.DiaChi),
+    diaChi: normalizeAddressProvince(asText(raw.diaChi ?? raw.DiaChi)),
     logoUrl: asText(raw.logoUrl ?? raw.LogoUrl),
     maSoThue: asText(raw.maSoThue ?? raw.MaSoThue),
     linhVucHoatDong: asText(raw.linhVucHoatDong ?? raw.LinhVucHoatDong),

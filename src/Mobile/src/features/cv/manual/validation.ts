@@ -41,9 +41,9 @@ export const MSG_EMAIL = "Email không đúng định dạng (vd: ban@example.co
 
 /* ── SĐT Việt Nam ──────────────────────────────────────── */
 
-/** Strip dấu phân tách hiển thị (space, ., -, ngoặc) trước khi check. */
+/** SĐT phải giữ nguyên đúng 10 chữ số, không nhận dấu phân cách. */
 export function normalizeVnPhone(raw: string): string {
-  return cleanInput(raw).replace(/[\s.\-()]/g, "");
+  return cleanInput(raw);
 }
 
 /** Mobile VN: số 0 + đầu số 3/5/7/8/9 + 8 số (0901234567 ✓, 0123456789 ✗). */

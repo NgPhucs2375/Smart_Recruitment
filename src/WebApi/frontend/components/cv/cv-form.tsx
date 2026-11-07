@@ -22,6 +22,7 @@ import { SortableSectionCard } from "./dnd/sortable-section-card";
 import { SortableItem } from "./dnd/sortable-item";
 import { normalizeLayoutConfig, type CvSectionId } from "@/features/tao-cv/resume-data";
 import { Input } from "@/components/ui/input";
+import { ProvinceAddressFields } from "@/components/ui/province-address-fields";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
@@ -180,21 +181,49 @@ function PartialDateField({ label, value, precision, onChange, disabled }: {
   onChange: (v: string) => void;
   disabled?: boolean;
 }) {
+  const pickerRef = useRef<HTMLInputElement>(null);
   const invalid = !isValidCvPartialDate(value, precision);
   const hint = precision === "year_only" ? "YYYY" : "MM/YYYY";
+  const openPicker = () => {
+    const picker = pickerRef.current as (HTMLInputElement & { showPicker?: () => void }) | null;
+    if (!picker || disabled) return;
+    if (picker.showPicker) picker.showPicker();
+    else picker.focus();
+  };
+  const pickerValue = precision === "year_only"
+    ? (/^\d{4}$/.test(value) ? `${value}-01-01` : "")
+    : (/^(0[1-9]|1[0-2])\/\d{4}$/.test(value) ? `${value.slice(3)}-${value.slice(0, 2)}` : "");
   return (
     <div>
       <label style={{ display: "block", marginBottom: "0.5rem" }}>{label}</label>
-      <Input
-        inputMode="numeric"
-        placeholder={hint}
-        value={value}
-        disabled={disabled}
-        onChange={(e) =>
-          onChange(precision === "year_only" ? maskYearOnly(e.target.value) : maskMonthYear(e.target.value))
-        }
-        className={invalid ? "border-destructive" : ""}
-      />
+      <div className="relative">
+        <Input
+          inputMode="numeric"
+          placeholder={hint}
+          value={value}
+          disabled={disabled}
+          onChange={(e) =>
+            onChange(precision === "year_only" ? maskYearOnly(e.target.value) : maskMonthYear(e.target.value))
+          }
+          className={invalid ? "border-destructive pr-10" : "pr-10"}
+        />
+        <input
+          ref={pickerRef}
+          type={precision === "year_only" ? "date" : "month"}
+          tabIndex={-1}
+          aria-hidden="true"
+          className="pointer-events-none absolute bottom-0 right-10 h-0 w-0 opacity-0"
+          value={pickerValue}
+          onChange={(event) => {
+            const next = event.target.value;
+            if (!next) return;
+            onChange(precision === "year_only" ? next.slice(0, 4) : `${next.slice(5, 7)}/${next.slice(0, 4)}`);
+          }}
+        />
+        <button type="button" aria-label={`Chọn ${label}`} disabled={disabled} onClick={openPicker} className="absolute right-2 top-1/2 flex size-7 -translate-y-1/2 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted disabled:opacity-50">
+          <Calendar className="size-4" />
+        </button>
+      </div>
       {invalid && <p className="text-xs text-destructive mt-1">Ngày không hợp lệ ({hint})</p>}
     </div>
   );
@@ -561,12 +590,12 @@ export function CvForm({ data, onChange, onAiRewrite, hoSoId }: CvFormProps) {
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", marginBottom: "1rem" }}>
             <div>
               <label style={{ display: "block", marginBottom: "0.5rem" }}>Email <span className="cv-required">*</span></label>
-              <Input type="email" value={lh.email} onChange={(e) => setLienHe("email", e.target.value)} placeholder="email@example.com" className={emailErr ? "border-destructive" : ""} />
+              <Input type="email" maxLength={100} value={lh.email} onChange={(e) => setLienHe("email", e.target.value)} placeholder="email@example.com" className={emailErr ? "border-destructive" : ""} />
               <FieldError message={emailErr} />
             </div>
             <div>
               <label style={{ display: "block", marginBottom: "0.5rem" }}>Số điện thoại <span className="cv-required">*</span></label>
-              <Input value={lh.sdt} onChange={(e) => setLienHe("sdt", e.target.value)} placeholder="090 123 4567" className={phoneErr ? "border-destructive" : ""} />
+              <Input type="tel" inputMode="numeric" maxLength={10} pattern="[0-9]{10}" value={lh.sdt} onChange={(e) => setLienHe("sdt", e.target.value.replace(/\D/g, "").slice(0, 10))} placeholder="0901234567" className={phoneErr ? "border-destructive" : ""} />
               <FieldError message={phoneErr} />
             </div>
           </div>
@@ -578,8 +607,13 @@ export function CvForm({ data, onChange, onAiRewrite, hoSoId }: CvFormProps) {
             </div>
           </div>
           <div style={{ marginBottom: "1rem" }}>
-            <label style={{ display: "block", marginBottom: "0.5rem" }}>Địa chỉ</label>
-            <Input value={lh.diaChi} onChange={(e) => setLienHe("diaChi", e.target.value)} placeholder="Hà Nội, Việt Nam" />
+            <ProvinceAddressFields
+              id="cv-contact-address"
+              value={lh.diaChi}
+              onChange={(value) => setLienHe("diaChi", value)}
+              label="Tỉnh/thành phố"
+              detailLabel="Địa chỉ chi tiết (không bắt buộc)"
+            />
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", marginBottom: "1rem" }}>
             <div>

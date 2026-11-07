@@ -9,6 +9,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { AuthLayout } from "@/components/auth";
 import { Input } from "@/components/ui/input";
+import { ProvinceAddressFields } from "@/components/ui/province-address-fields";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -20,7 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  Mail, Lock, User, Phone, Building2, MapPin, Briefcase,
+  Mail, Lock, User, Phone, Building2, Briefcase,
   ArrowRight, ArrowLeft, Loader2, Check, Eye, EyeOff,
 } from "lucide-react";
 import { registerSchema, optionalUrlField, taxCodeField } from "@/lib/schemas";
@@ -231,7 +232,7 @@ export default function EmployerRegisterPage() {
                 <Label htmlFor="emp-so-dien-thoai" className="text-xs font-medium text-gray-700">Điện thoại</Label>
                 <div className="relative">
                   <Phone className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
-                  <Input id="emp-so-dien-thoai" autoComplete="tel" {...register("soDienThoai")} aria-invalid={!!errors.soDienThoai} aria-describedby="emp-so-dien-thoai-error" disabled={isPending} placeholder="090 123 4567" className="h-10 rounded-xl border-input bg-white pl-10 text-sm" />
+                  <Input id="emp-so-dien-thoai" type="tel" inputMode="numeric" maxLength={10} pattern="[0-9]{10}" autoComplete="tel" onInput={(e) => { e.currentTarget.value = e.currentTarget.value.replace(/\D/g, "").slice(0, 10); }} {...register("soDienThoai")} aria-invalid={!!errors.soDienThoai} aria-describedby="emp-so-dien-thoai-error" disabled={isPending} placeholder="0901234567" className="h-10 rounded-xl border-input bg-white pl-10 text-sm" />
                 </div>
                 {errors.soDienThoai && <p id="emp-so-dien-thoai-error" role="alert" className="text-xs text-red-500">{errors.soDienThoai.message}</p>}
               </div>
@@ -241,7 +242,7 @@ export default function EmployerRegisterPage() {
               <Label htmlFor="emp-email" className="text-xs font-medium text-gray-700">Email</Label>
               <div className="relative">
                 <Mail className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
-                <Input id="emp-email" type="email" autoComplete="email" {...register("email")} aria-invalid={!!errors.email} aria-describedby="emp-email-error" disabled={isPending} placeholder="hr@company.com" className="h-10 rounded-xl border-input bg-white pl-10 text-sm" />
+                <Input id="emp-email" type="email" maxLength={100} autoComplete="email" {...register("email")} aria-invalid={!!errors.email} aria-describedby="emp-email-error" disabled={isPending} placeholder="hr@company.com" className="h-10 rounded-xl border-input bg-white pl-10 text-sm" />
               </div>
               {errors.email && <p id="emp-email-error" role="alert" className="text-xs text-red-500">{errors.email.message}</p>}
             </div>
@@ -311,11 +312,15 @@ export default function EmployerRegisterPage() {
 
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-1">
-                <Label htmlFor="emp-dia-chi-doanh-nghiep" className="text-xs font-medium text-gray-700">Địa chỉ doanh nghiệp</Label>
-                <div className="relative">
-                  <MapPin className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
-                  <Input id="emp-dia-chi-doanh-nghiep" {...register("diaChiDoanhNghiep")} aria-invalid={!!errors.diaChiDoanhNghiep} aria-describedby="emp-dia-chi-doanh-nghiep-error" disabled={isPending} placeholder="Số nhà, đường, quận..." className="h-10 rounded-xl border-input bg-white pl-10 text-sm" />
-                </div>
+                <ProvinceAddressFields
+                  id="emp-dia-chi-doanh-nghiep"
+                  label="Tỉnh/thành phố doanh nghiệp"
+                  detailLabel="Địa chỉ chi tiết"
+                  value={watch("diaChiDoanhNghiep") ?? ""}
+                  disabled={isPending}
+                  onChange={(value) => setValue("diaChiDoanhNghiep", value, { shouldValidate: true })}
+                  placeholder="Số nhà, đường, phường/xã"
+                />
                 {errors.diaChiDoanhNghiep && <p id="emp-dia-chi-doanh-nghiep-error" role="alert" className="text-xs text-red-500">{errors.diaChiDoanhNghiep.message}</p>}
               </div>
               <div className="space-y-1">

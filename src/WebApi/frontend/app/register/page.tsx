@@ -212,7 +212,8 @@ function RegisterContent() {
                 <Phone className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
                  <Input
                    id="reg-so-dien-thoai"
-                   type="tel" maxLength={20}
+                    type="tel" inputMode="numeric" maxLength={10} pattern="[0-9]{10}"
+                    onInput={(e) => { e.currentTarget.value = e.currentTarget.value.replace(/\D/g, "").slice(0, 10); }}
                    autoComplete="tel"
                   {...registerPwd("soDienThoai")}
                   aria-invalid={!!pwdErrors.soDienThoai}

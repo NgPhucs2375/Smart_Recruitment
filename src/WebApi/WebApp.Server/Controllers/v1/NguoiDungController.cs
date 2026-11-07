@@ -6,6 +6,7 @@ using Application.Features.NguoiDung.Commands.UpdateNguoiDung;
 using Application.Features.NguoiDung.Commands.DeleteNguoiDung;
 using Application.Wrappers;
 using Application.Interfaces;
+using Application.Validation;
 using Domain.Enums;
 using Infrastructure.Identity.Contexts;
 using Infrastructure.Identity.Models;
@@ -150,13 +151,13 @@ namespace WebApp.Server.Controllers.v1
                     return BadRequest(new Response<object>("Email, tên đăng nhập và họ tên là bắt buộc."));
                 if (fullName.Length < 2 || fullName.Length > 100)
                     return BadRequest(new Response<object>("Họ tên phải có từ 2 đến 100 ký tự."));
-                if (!Regex.IsMatch(email, @"^[^\s@]+@[^\s@]+\.[^\s@]+$"))
+                if (!InputValidation.IsEmail(email))
                     return BadRequest(new Response<object>("Email không đúng định dạng."));
                 if (!Regex.IsMatch(userName, @"^[A-Za-z0-9._-]{3,50}$"))
                     return BadRequest(new Response<object>("Tên đăng nhập chỉ gồm chữ không dấu, số, dấu chấm, gạch dưới hoặc gạch ngang; dài 3-50 ký tự."));
                 var phoneNumber = request.PhoneNumber?.Trim();
-                if (!string.IsNullOrEmpty(phoneNumber) && !Regex.IsMatch(phoneNumber, @"^0\d{9}$"))
-                    return BadRequest(new Response<object>("Số điện thoại phải gồm 10 chữ số và bắt đầu bằng 0."));
+                if (!string.IsNullOrEmpty(phoneNumber) && !InputValidation.IsVietnameseMobilePhone(phoneNumber))
+                    return BadRequest(new Response<object>("Số điện thoại phải gồm đúng 10 chữ số, bắt đầu bằng 03/05/07/08/09."));
                 if (!Enum.IsDefined(typeof(VaiTroNguoiDung), request.VaiTro))
                     return BadRequest(new Response<object>("Vai trò không hợp lệ."));
 

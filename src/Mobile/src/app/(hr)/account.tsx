@@ -294,7 +294,8 @@ export default function HRAccountScreen() {
               <TextInputBox
                 editable={!saving}
                 keyboardType="phone-pad"
-                onChangeText={(text) => setForm((prev) => ({ ...prev, sdt: text }))}
+                 onChangeText={(text) => setForm((prev) => ({ ...prev, sdt: text.replace(/\D/g, '').slice(0, 10) }))}
+                 maxLength={10}
                 placeholder="VD: 0901234567"
                 value={form.sdt}
               />
@@ -353,7 +354,8 @@ export default function HRAccountScreen() {
                 <TextInputBox
                   editable={!saving}
                   keyboardType="phone-pad"
-                  onChangeText={(text) => setForm((prev) => ({ ...prev, sdt: text }))}
+                   onChangeText={(text) => setForm((prev) => ({ ...prev, sdt: text.replace(/\D/g, '').slice(0, 10) }))}
+                   maxLength={10}
                   placeholder="VD: 0901234567"
                   value={form.sdt}
                 />
@@ -506,12 +508,14 @@ function TextInputBox({
   placeholder,
   editable = true,
   keyboardType,
+  maxLength,
 }: {
   value: string;
   onChangeText: (text: string) => void;
   placeholder: string;
   editable?: boolean;
   keyboardType?: 'phone-pad' | 'default';
+  maxLength?: number;
 }) {
   const theme = useTheme();
   return (
@@ -519,6 +523,7 @@ function TextInputBox({
       <TextInput
         editable={editable}
         keyboardType={keyboardType}
+        maxLength={maxLength}
         onChangeText={onChangeText}
         placeholder={placeholder}
         placeholderTextColor={theme.textSecondary}

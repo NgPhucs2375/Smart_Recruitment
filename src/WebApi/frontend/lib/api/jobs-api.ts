@@ -1,6 +1,7 @@
 import { getValidToken } from "../auth-provider";
 import type { Job, JobFilters } from "@/features/viec-lam/types";
 import { formatSalaryFull } from "@/features/viec-lam/salary";
+import { normalizeAddressProvince } from "@/features/location/vietnam-provinces";
 
 export interface JobsPage {
   jobs: Job[];
@@ -64,7 +65,8 @@ export function normalizeJob(raw: unknown): Job | null {
   if (!id || !title) return null;
 
   const company = str(r.tenDoanhNghiep ?? r.TenDoanhNghiep) || "Doanh nghiệp tuyển dụng";
-  const location = str(r.diaDiemLamViec ?? r.DiaDiemLamViec) || "Chưa cập nhật";
+  const rawLocation = str(r.diaDiemLamViec ?? r.DiaDiemLamViec);
+  const location = normalizeAddressProvince(rawLocation) || "Chưa cập nhật";
   const description = str(r.moTaCongViec ?? r.MoTaCongViec);
   const salaryMin = num(r.luongToiThieu ?? r.LuongToiThieu);
   const salaryMax = num(r.luongToiDa ?? r.LuongToiDa);

@@ -13,6 +13,7 @@ namespace Application.DTOs.Account
     {
         [Required]
         [EmailAddress]
+        [MaxLength(100)]
         public string Email { get; set; }
     }
 }

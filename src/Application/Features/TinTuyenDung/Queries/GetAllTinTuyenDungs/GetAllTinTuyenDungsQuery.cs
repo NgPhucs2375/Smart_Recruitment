@@ -4,6 +4,10 @@ using Application.Wrappers;
 using Domain.Enums;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using System.Globalization;
+using System.Linq.Expressions;
+using System.Text;
+using TinTuyenDungEntity = Domain.Entities.TinTuyenDung;
 
 namespace Application.Features.TinTuyenDung.Queries.GetAllTinTuyenDungs;
 
@@ -58,7 +62,7 @@ public class GetAllTinTuyenDungsQueryHandler(IApplicationDbContext context, ICur
             t.YeuCauCongViec.ToLower().Contains(keyword) || t.DoanhNghiep.TenDoanhNghiep.ToLower().Contains(keyword) ||
             t.KyNangTinTuyenDungs.Any(k => k.DanhMucKyNang.TenKyNang.ToLower().Contains(keyword)));
         var location = request.Location?.Trim().ToLowerInvariant();
-        if (!string.IsNullOrEmpty(location)) query = query.Where(t => t.DiaDiemLamViec.ToLower().Contains(location));
+        if (!string.IsNullOrEmpty(location)) query = query.Where(BuildLocationFilter(location));
         if (request.SalaryMin.HasValue) query = query.Where(t => t.LuongToiDa >= request.SalaryMin.Value);
         if (request.SalaryMax.HasValue) query = query.Where(t => t.LuongToiThieu <= request.SalaryMax.Value);
         if (!string.IsNullOrWhiteSpace(request.WorkMode))
@@ -129,5 +133,66 @@ public class GetAllTinTuyenDungsQueryHandler(IApplicationDbContext context, ICur
         if (t.Contains("freelance") || t.Contains("tự do")) return "Freelance";
         if (t.Contains("contract") || t.Contains("hợp đồng")) return "Contract";
         return "Full-time";
+    }
+
+    private static Expression<Func<TinTuyenDungEntity, bool>> BuildLocationFilter(string location)
+    {
+        var name = location.Trim().ToLowerInvariant();
+        var baseName = name.StartsWith("thành phố ", StringComparison.Ordinal)
+            ? name["thành phố ".Length..]
+            : name.StartsWith("tỉnh ", StringComparison.Ordinal) ? name["tỉnh ".Length..] : name;
+        var terms = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { name, baseName, ToAscii(name), ToAscii(baseName) };
+        foreach (var alias in baseName switch
+        {
+            "hà nội" => new[] { "ha noi", "hanoi" },
+            "hồ chí minh" => new[] { "hcm", "tp hcm", "tphcm", "tp. hcm", "tp ho chi minh", "tp. hồ chí minh", "ho chi minh city", "sài gòn", "sai gon", "bình dương", "binh duong", "bà rịa", "ba ria", "vũng tàu", "vung tau" },
+            "đà nẵng" => new[] { "da nang", "quảng nam", "quang nam" },
+            "hải phòng" => new[] { "hai phong", "hải dương", "hai duong" },
+            "cần thơ" => new[] { "can tho", "sóc trăng", "soc trang", "hậu giang", "hau giang" },
+            "đồng nai" => new[] { "dong nai", "bình phước", "binh phuoc" },
+            "quảng ninh" => new[] { "quang ninh" },
+            "bắc ninh" => new[] { "bac ninh", "bắc giang", "bac giang" },
+            "huế" => new[] { "hue", "thừa thiên huế", "thua thien hue" },
+            "tuyên quang" => new[] { "tuyen quang", "hà giang", "ha giang" },
+            "lào cai" => new[] { "lao cai", "yên bái", "yen bai" },
+            "thái nguyên" => new[] { "thai nguyen", "bắc kạn", "bac kan", "backan" },
+            "phú thọ" => new[] { "phu tho", "vĩnh phúc", "vinh phuc" },
+            "hưng yên" => new[] { "hung yen", "thái bình", "thai binh" },
+            "ninh bình" => new[] { "ninh binh", "nam định", "nam dinh", "hà nam", "ha nam" },
+            "quảng trị" => new[] { "quang tri", "quảng bình", "quang binh" },
+            "quảng ngãi" => new[] { "quang ngai", "kon tum", "kontum" },
+            "gia lai" => new[] { "gia lai", "bình định", "binh dinh" },
+            "khánh hòa" => new[] { "khanh hoa", "ninh thuận", "ninh thuan" },
+            "đắk lắk" => new[] { "dak lak", "phú yên", "phu yen" },
+            "lâm đồng" => new[] { "lam dong", "đắk nông", "dak nong", "bình thuận", "binh thuan" },
+            "tây ninh" => new[] { "tay ninh", "long an" },
+            "đồng tháp" => new[] { "dong thap", "tiền giang", "tien giang" },
+            "vĩnh long" => new[] { "vinh long", "trà vinh", "tra vinh", "bến tre", "ben tre" },
+            "an giang" => new[] { "an giang", "kiên giang", "kien giang" },
+            "cà mau" => new[] { "ca mau", "bạc liêu", "bac lieu" },
+            _ => Array.Empty<string>()
+        }) terms.Add(alias);
+
+        var parameter = Expression.Parameter(typeof(TinTuyenDungEntity), "job");
+        var locationProperty = Expression.Property(parameter, nameof(TinTuyenDungEntity.DiaDiemLamViec));
+        var loweredLocation = Expression.Call(locationProperty, typeof(string).GetMethod(nameof(string.ToLower), Type.EmptyTypes)!);
+        var contains = typeof(string).GetMethod(nameof(string.Contains), [typeof(string)])!;
+        Expression body = Expression.Constant(false);
+        foreach (var term in terms.Where(term => !string.IsNullOrWhiteSpace(term)))
+        {
+            var match = Expression.Call(loweredLocation, contains, Expression.Constant(term.ToLowerInvariant()));
+            body = Expression.OrElse(body, match);
+        }
+
+        return Expression.Lambda<Func<TinTuyenDungEntity, bool>>(body, parameter);
+    }
+
+    private static string ToAscii(string value)
+    {
+        var decomposed = value.Normalize(NormalizationForm.FormD);
+        return new string(decomposed
+            .Where(character => CharUnicodeInfo.GetUnicodeCategory(character) != UnicodeCategory.NonSpacingMark)
+            .Select(character => character == 'đ' ? 'd' : character == 'Đ' ? 'D' : character)
+            .ToArray()).ToLowerInvariant();
     }
 }

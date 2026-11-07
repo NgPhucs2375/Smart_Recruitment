@@ -225,14 +225,14 @@ const styles = StyleSheet.create({
   decisionRow: { flexDirection: 'row', gap: 8 },
   noticeWrap: { paddingHorizontal: 16, paddingTop: 10 },
   webWrap: { flex: 1 },
-  web: { flex: 1, backgroundColor: 'transparent' },
+  web: { flex: 1, backgroundColor: '#ffffff' },
   webLoading: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: '#ffffffee',
+    backgroundColor: '#ffffff',
     zIndex: 2,
   },
 });

@@ -30,7 +30,7 @@ public sealed class AdminDashboardController(
         await permissions.RequireAsync("dashboard", "show", cancellationToken);
         if (!AllowedPeriods.Contains(days)) days = 30;
 
-        var cacheKey = $"cache:admin-dashboard:v1:days:{days}";
+        var cacheKey = $"cache:admin-dashboard:v2:days:{days}";
         try
         {
             var cached = await cache.GetStringAsync(cacheKey, cancellationToken);
@@ -261,7 +261,6 @@ public sealed class AdminDashboardController(
                 "Hệ thống chưa lưu telemetry hội thoại Adam, token, chi phí hoặc lỗi AI.",
                 "Chưa có sự kiện click/view để tính CTR và conversion của recommendation.",
                 "Chưa có audit log bất biến hoặc lịch sử đăng nhập; số liệu bảo mật là trạng thái hiện tại.",
-                "Địa điểm ứng viên được nhóm từ trường địa chỉ tự do, chưa có mã tỉnh/thành chuẩn hóa."
             ]);
 
         try
@@ -324,10 +323,62 @@ public sealed class AdminDashboardController(
 
     private static string NormalizeLocation(string location)
     {
-        var value = location.Trim();
-        if (value.Length == 0) return string.Empty;
-        var parts = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-        return parts.Length == 0 ? value : parts[^1];
+        var parts = location.Split([',', ';', '|'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        foreach (var part in parts.Reverse())
+        {
+            var key = LocationKey(part);
+            if (key.Length == 0) continue;
+            var canonical = key switch
+            {
+                "hcm" or "tphcm" or "tphochiminh" or "hochiminh" or "hochiminhcity" or "saigon"
+                    or "binhduong" or "bariavungtau" => "Thành phố Hồ Chí Minh",
+                "hanoi" or "thanhphohanoi" => "Thành phố Hà Nội",
+                "danang" or "thanhphodanang" or "quangnam" => "Thành phố Đà Nẵng",
+                "haiphong" or "thanhphohaiphong" or "haiduong" => "Thành phố Hải Phòng",
+                "cantho" or "thanhphocantho" or "soctrang" or "haugiang" => "Thành phố Cần Thơ",
+                "dongnai" or "thanhphodongnai" or "binhphuoc" => "Thành phố Đồng Nai",
+                "quangninh" or "thanhphoquangninh" => "Thành phố Quảng Ninh",
+                "bacninh" or "thanhphobacninh" or "bacgiang" => "Thành phố Bắc Ninh",
+                "hue" or "thanhphohue" or "thuathienhue" => "Thành phố Huế",
+                "tuyenquang" or "hagiang" => "Tỉnh Tuyên Quang",
+                "laocai" or "yenbai" => "Tỉnh Lào Cai",
+                "thainguyen" or "backan" => "Tỉnh Thái Nguyên",
+                "phutho" or "vinhphuc" => "Tỉnh Phú Thọ",
+                "hungyen" or "thaibinh" => "Tỉnh Hưng Yên",
+                "ninhbinh" or "namdinh" or "hanam" => "Tỉnh Ninh Bình",
+                "quangtri" or "quangbinh" => "Tỉnh Quảng Trị",
+                "quangngai" or "kontum" => "Tỉnh Quảng Ngãi",
+                "gialai" or "binhdinh" => "Tỉnh Gia Lai",
+                "khanhhoa" or "ninhthuan" => "Tỉnh Khánh Hòa",
+                "daklak" or "phuyen" => "Tỉnh Đắk Lắk",
+                "lamdong" or "daknong" or "binhthuan" => "Tỉnh Lâm Đồng",
+                "tayninh" or "longan" => "Tỉnh Tây Ninh",
+                "dongthap" or "tiengiang" => "Tỉnh Đồng Tháp",
+                "vinhlong" or "travinh" or "bentre" => "Tỉnh Vĩnh Long",
+                "angiang" or "kiengiang" => "Tỉnh An Giang",
+                "camau" or "baclieu" => "Tỉnh Cà Mau",
+                "caobang" => "Tỉnh Cao Bằng",
+                "dienbien" => "Tỉnh Điện Biên",
+                "laichau" => "Tỉnh Lai Châu",
+                "sonla" => "Tỉnh Sơn La",
+                "langson" => "Tỉnh Lạng Sơn",
+                "thanhhoa" => "Tỉnh Thanh Hóa",
+                "nghean" => "Tỉnh Nghệ An",
+                "hatinh" => "Tỉnh Hà Tĩnh",
+                _ => string.Empty
+            };
+            if (!string.IsNullOrEmpty(canonical)) return canonical;
+        }
+        return parts.LastOrDefault() ?? string.Empty;
+    }
+
+    private static string LocationKey(string value)
+    {
+        var decomposed = value.Normalize(System.Text.NormalizationForm.FormD);
+        var chars = decomposed.Where(c => System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c)
+            != System.Globalization.UnicodeCategory.NonSpacingMark).ToArray();
+        return new string(chars).Replace('đ', 'd').Replace('Đ', 'D')
+            .Where(char.IsLetterOrDigit).Aggregate(new System.Text.StringBuilder(), (builder, c) => builder.Append(char.ToLowerInvariant(c))).ToString();
     }
 
     private static string RoleLabel(VaiTroNguoiDung role) => role switch

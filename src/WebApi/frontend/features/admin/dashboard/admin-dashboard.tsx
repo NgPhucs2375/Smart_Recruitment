@@ -95,7 +95,7 @@ export function AdminDashboard() {
 
       <section className="grid gap-4 xl:grid-cols-12">
         <AdminCard className="xl:col-span-7">
-          <AdminCardHeader title="Địa điểm ứng viên" description="Nhóm theo phần cuối trường địa chỉ tự do" action={<MapPin className="size-5 text-primary" />} />
+          <AdminCardHeader title="Địa điểm ứng viên" description="Đã chuẩn hóa theo danh sách tỉnh/thành sau sáp nhập 2025" action={<MapPin className="size-5 text-primary" />} />
           <div className="p-5"><HorizontalBars data={data.Geography} /></div>
         </AdminCard>
         <AdminCard className="xl:col-span-5">

@@ -20,7 +20,6 @@ import {
   EyeOff,
   Lock,
   Mail,
-  MapPin,
   Phone,
   UserRound,
 } from 'lucide-react-native';
@@ -30,6 +29,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Button } from '@/components/ui/button';
 import { font, Radius } from '@/constants/theme';
 import { authApi, type RegisterRole } from '@/features/auth';
+import { ProvinceAddressFields } from '@/features/location/province-address-fields';
 import { normalizePhone, validateEmail, validatePhone, validatePassword, validatePasswordConfirmation, validateTaxCode, validateText } from '@/features/auth/validation';
 import { useTheme } from '@/hooks/use-theme';
 import { safeBack } from '@/utils/navigation';
@@ -188,13 +188,13 @@ export default function RegisterScreen() {
             <TextInput
               editable={!submitting}
               keyboardType="phone-pad"
-              onChangeText={setSoDienThoai}
+               onChangeText={(value) => setSoDienThoai(value.replace(/\D/g, '').slice(0, 10))}
               placeholder="09xx xxx xxx"
               placeholderTextColor={theme.textSecondary}
               selectionColor={theme.primary}
               style={[styles.input, { color: theme.text }]}
               value={soDienThoai}
-              maxLength={20}
+               maxLength={10}
             />
           </Field>
 
@@ -286,18 +286,11 @@ export default function RegisterScreen() {
                   maxLength={255}
                 />
               </Field>
-              <Field label="Địa chỉ doanh nghiệp" icon={<MapPin size={16} color={theme.textSecondary} />}>
-                <TextInput
-                  editable={!submitting}
-                  onChangeText={setDiaChiDoanhNghiep}
-                  placeholder="Quận 1, TP. Hồ Chí Minh"
-                  placeholderTextColor={theme.textSecondary}
-                  selectionColor={theme.primary}
-                  style={[styles.input, { color: theme.text }]}
-                  value={diaChiDoanhNghiep}
-                  maxLength={255}
-                />
-              </Field>
+              <ProvinceAddressFields
+                value={diaChiDoanhNghiep}
+                onChange={setDiaChiDoanhNghiep}
+                disabled={submitting}
+              />
               <Field label="Mã số thuế (không bắt buộc)">
                 <TextInput
                   editable={!submitting}

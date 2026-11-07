@@ -23,6 +23,8 @@ import { JOB_TRIGGER, SKILL_LEVELS, WORK_MODES } from '@/features/hr/constants';
 import type { FilterOption, HrJob, JobFormInput } from '@/features/hr/types';
 import { useTheme } from '@/hooks/use-theme';
 import { safeBack } from '@/utils/navigation';
+import { DatePickerField } from '@/components/ui/date-picker-field';
+import { canonicalProvince, vietnamProvinces } from '@/features/location/vietnam-provinces';
 
 type FormState = JobFormInput;
 
@@ -117,7 +119,7 @@ export function JobFormScreen() {
           kinhNghiemYeuCau: job.kinhNghiemYeuCau,
           yeuCauCongViec: job.yeuCauCongViec,
           quyenLoi: job.quyenLoi,
-          diaDiemLamViec: job.diaDiemLamViec,
+          diaDiemLamViec: canonicalProvince(job.diaDiemLamViec) || job.diaDiemLamViec,
           phuongThucLamViec: job.phuongThucLamViec,
           luongToiThieu: job.luongToiThieu,
           luongToiDa: job.luongToiDa,
@@ -166,7 +168,7 @@ export function JobFormScreen() {
         form.ngayHetHan &&
         !/^\d{4}-\d{2}-\d{2}$/.test(form.ngayHetHan)
       ) {
-        return { field: 'ngayHetHan', message: 'Ngày hết hạn phải có định dạng YYYY-MM-DD' };
+        return { field: 'ngayHetHan', message: 'Ngày hết hạn không hợp lệ (dd/MM/yyyy)' };
       }
       if (
         submit &&
@@ -280,13 +282,13 @@ export function JobFormScreen() {
               onSelect={(value) => patch({ danhMucNgheId: Number(value) })}
               invalid={fieldError === 'danhMucNgheId'}
             />
-            <FormField
+            <FormSelect
               label="Địa điểm làm việc"
               required
               value={form.diaDiemLamViec}
-              maxLength={255}
-              onChangeText={(value) => patch({ diaDiemLamViec: value })}
-              placeholder="VD: Hà Nội, TP. Hồ Chí Minh"
+              placeholder="Chọn tỉnh/thành phố"
+              options={vietnamProvinces.map((province) => ({ value: province, label: province }))}
+              onSelect={(value) => patch({ diaDiemLamViec: value })}
               invalid={fieldError === 'diaDiemLamViec'}
             />
             <FormSelect
@@ -296,16 +298,12 @@ export function JobFormScreen() {
               options={WORK_MODES.map((mode) => ({ value: String(mode.value), label: mode.label }))}
               onSelect={(value) => patch({ phuongThucLamViec: Number(value) })}
             />
-            <FormField
+            <DatePickerField
               label="Ngày hết hạn"
               value={form.ngayHetHan}
-              onChangeText={(value) => patch({ ngayHetHan: value })}
-              placeholder="YYYY-MM-DD"
-              keyboardType="numbers-and-punctuation"
-              invalid={fieldError === 'ngayHetHan'}
-              errorText={
-                fieldError === 'ngayHetHan' ? 'Ngày hết hạn phải từ hôm nay trở đi' : undefined
-              }
+              onChange={(value) => patch({ ngayHetHan: value })}
+              valueFormat="iso"
+              error={fieldError === 'ngayHetHan' ? 'Ngày hết hạn phải từ hôm nay trở đi' : undefined}
             />
             <View style={styles.moneyRow}>
               <View style={styles.moneyCell}>

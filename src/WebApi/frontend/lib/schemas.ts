@@ -26,7 +26,7 @@ const phoneField = (requiredMsg = "Vui lòng nhập số điện thoại") =>
     .string()
     .trim()
     .min(1, requiredMsg)
-    .max(20, "Số điện thoại tối đa 20 ký tự.")
+    .max(10, "Số điện thoại phải gồm đúng 10 chữ số.")
     .refine(isValidVnPhone, { message: MSG_PHONE })
     .transform(normalizeVnPhone);
 

@@ -227,6 +227,7 @@ export function NhanSuScreen() {
               placeholder="ten@congty.vn"
               keyboardType="email-address"
               autoCapitalize="none"
+              maxLength={100}
               invalid={fieldError === 'email'}
             />
             <FormField

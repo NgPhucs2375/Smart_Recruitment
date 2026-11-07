@@ -1,4 +1,5 @@
 using FluentValidation;
+using Application.Validation;
 
 namespace Application.Features.NhanSu.Commands.InviteNhanSu;
 
@@ -9,10 +10,10 @@ public class InviteNhanSuCommandValidator : AbstractValidator<InviteNhanSuComman
         RuleFor(x => x.Email)
             .NotEmpty()
             .WithMessage("Email không được để trống.")
-            .EmailAddress()
+            .Must(InputValidation.IsEmail)
             .WithMessage("Email không hợp lệ.")
-            .MaximumLength(255)
-            .WithMessage("Email không được vượt quá 255 ký tự.");
+            .MaximumLength(100)
+            .WithMessage("Email không được vượt quá 100 ký tự.");
 
         RuleFor(x => x.HoTen)
             .MaximumLength(255)

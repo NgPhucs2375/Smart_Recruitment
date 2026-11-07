@@ -1,4 +1,5 @@
 import { USE_MOCK_JOBS } from '@/features/jobs/api/jobs-api';
+import { normalizeAddressProvince } from '@/features/location/vietnam-provinces';
 import { formatDate, toTimestamp } from '@/features/jobs/format';
 import { cloneCvData, defaultCvData } from '@/features/cv/manual/default-cv-data';
 import {
@@ -118,7 +119,7 @@ function normalizeContent(value: unknown): CvContent {
   ).map((item) => ({
     company: asText(item.tenCongTy ?? item.TenCongTy ?? item.congTy ?? item.CongTy),
     title: asText(item.chucDanh ?? item.ChucDanh),
-    location: asText(item.diaChi ?? item.DiaChi),
+    location: normalizeAddressProvince(asText(item.diaChi ?? item.DiaChi)),
     startDate: asText(item.tuNgay ?? item.TuNgay),
     endDate: asText(item.denNgay ?? item.DenNgay),
     current: asBoolean(item.isHienTai ?? item.IsHienTai),
@@ -157,7 +158,7 @@ function normalizeContent(value: unknown): CvContent {
       fullName: asText(contact.hoTen ?? contact.HoTen),
       email: asText(contact.email ?? contact.Email),
       phone: asText(contact.sdt ?? contact.SDT ?? contact.Sdt),
-      location: asText(contact.diaChi ?? contact.DiaChi),
+      location: normalizeAddressProvince(asText(contact.diaChi ?? contact.DiaChi)),
       github: asText(contact.github ?? contact.gitHub ?? contact.GitHub),
       linkedIn: asText(contact.linkedIn ?? contact.LinkedIn),
       portfolio: asText(contact.portfolio ?? contact.Portfolio),
