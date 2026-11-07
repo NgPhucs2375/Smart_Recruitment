@@ -219,6 +219,8 @@ function ToolActivityMount() {
         updateCvMeta: "Đang cập nhật thông tin CV",
         setCvTemplate: "Đang đổi mẫu CV",
         suggest_cv_theme: "Đang chọn mẫu CV theo mục tiêu",
+        get_cv_theme_workspace: "Đang đọc danh mục mẫu và CV từ máy chủ",
+        pick_cv_themes: "Đang kiểm định mẫu CV Adam chọn",
         suggestCvThemeForDraft: "Đang chọn mẫu cho CV nháp",
         analyze_cv: "Đang phân tích CV",
         review_default_cv: "Đang phân tích CV",
@@ -231,7 +233,7 @@ function ToolActivityMount() {
       };
       const label = labels[name] ?? "Adam đang xử lý yêu cầu";
       const complete = status === "complete";
-      if (complete && (name === "suggest_cv_theme" || name === "suggestCvThemeForDraft")) {
+      if (complete && (name === "suggest_cv_theme" || name === "suggestCvThemeForDraft" || name === "pick_cv_themes")) {
         const themes = parseThemeResult(result);
         return <CvThemeRecommendations items={themes.items} message={themes.message} />;
       }
@@ -329,6 +331,9 @@ function SharedStateMount() {
   const { agent, isReady } = useAgent({ agentId: "default" });
   const state = (agent.state ?? {}) as SharedAgentState;
   const jobs = normalizeRecruitmentJobs(state.recruitmentJobs ?? []);
+  const jobKey = jobs.map((job) => job.tinTuyenDungId).join(",");
+  // Ẩn chỉ áp dụng cho danh sách đang hiện; Adam trả danh sách khác thì thẻ hiện lại.
+  const [dismissedKey, setDismissedKey] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isReady) return;
@@ -336,6 +341,7 @@ function SharedStateMount() {
   }, [agent, agent.state, isReady]);
 
   if (!isReady || jobs.length === 0) return null;
+  if (dismissedKey === jobKey) return null;
 
   const selectJob = (jobId: number) => {
     agent.setState({
@@ -345,12 +351,24 @@ function SharedStateMount() {
   };
 
   return (
-    <aside className="fixed bottom-24 right-4 z-40 w-[min(92vw,380px)] overflow-hidden rounded-2xl border border-border bg-card/95 shadow-xl backdrop-blur">
-      <div className="border-b border-border px-4 py-3">
-        <p className="text-sm font-semibold text-foreground">Tin tuyển dụng</p>
-        <p className="mt-0.5 text-xs text-muted-foreground">
-          Chọn một tin để Adam dùng ở lượt tiếp theo.
-        </p>
+    <aside className="fixed bottom-24 right-6 z-40 w-[min(92vw,380px)] overflow-hidden rounded-2xl border border-border bg-card/95 shadow-xl backdrop-blur">
+      <div className="flex items-start justify-between gap-3 border-b border-border px-4 py-3">
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-foreground">Tin tuyển dụng</p>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            Chọn một tin để Adam dùng ở lượt tiếp theo.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setDismissedKey(jobKey)}
+          aria-label="Đóng danh sách tin tuyển dụng"
+          className="-mt-1 -mr-1 inline-flex size-7 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition hover:bg-muted hover:text-foreground"
+        >
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <path d="M3 3l10 10M13 3L3 13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+          </svg>
+        </button>
       </div>
       <div className="max-h-72 space-y-2 overflow-y-auto p-3">
         {jobs.map((job) => {
@@ -503,9 +521,9 @@ export function CopilotProvider({ children }: { children: React.ReactNode }) {
           <GlobalCvAssistantMount role={adamRole} />
           <ToolActivityMount />
           <SharedStateMount />
-          <NewChatButton userId={userId} />
           <DeferredCopilotPopup
             adamMessageView={adamMessageView}
+            userId={userId}
           />
         </>
       )}
@@ -520,8 +538,10 @@ export function CopilotProvider({ children }: { children: React.ReactNode }) {
  */
 function DeferredCopilotPopup({
   adamMessageView,
+  userId,
 }: {
   adamMessageView: typeof import("@/components/ai/adam-markdown").adamMessageView;
+  userId: string | null;
 }) {
   // LazyCopilotPopup đã ssr:false — mount sau khi client hydrate xong,
   // không cần setTimeout thêm.
@@ -536,7 +556,13 @@ function DeferredCopilotPopup({
         className: "adam-chat-toggle",
       }}
       header={{
-        className: "adam-chat-header",
+        children: ({ titleContent, closeButton }) => (
+          <div className="adam-chat-header__inner">
+            {titleContent}
+            <NewChatButton userId={userId} />
+            {closeButton}
+          </div>
+        ),
       }}
       labels={{
         modalHeaderTitle: "Adam - Trợ lý thông minh",

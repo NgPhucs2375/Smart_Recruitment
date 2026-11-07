@@ -29,6 +29,7 @@ import {
   cvContactPatchSchema,
   cvSectionCreateSchema,
 } from "@/features/ai-cv/cv-tool-schemas";
+import { saveApplyIntent } from "@/features/ung-tuyen/adam-apply-intent";
 
 /**
  * Global Adam bridge: mount MỘT lần trong CopilotProvider (protected layout).
@@ -91,6 +92,20 @@ const focusSectionsSchema = z.object({
     .describe(
       "Tối đa 3 section cần đưa vào tầm nhìn: contact, experience, education, skills (hoặc skill), projects hoặc certificates. Section quan trọng nhất đặt đầu tiên.",
     ),
+});
+
+const applyToJobSchema = z.object({
+  tinTuyenDungId: z
+    .number()
+    .int()
+    .positive()
+    .describe("ID tin tuyển dụng user muốn nộp đơn. Lấy từ search_jobs/get_job_details/kết quả gợi ý; không đoán."),
+  cvId: z
+    .number()
+    .int()
+    .positive()
+    .optional()
+    .describe("ID CV sẽ nộp. Bỏ trống để user tự chọn trong danh sách CV của mình."),
 });
 
 export function useGlobalCvAssistant({
@@ -211,6 +226,36 @@ export function useGlobalCvAssistant({
       },
     },
     [enabled, isCandidate, isEditor],
+  );
+
+  useFrontendTool(
+    {
+      name: "applyToJob",
+      description:
+        "Mở bảng xác nhận nộp đơn của một tin tuyển dụng để user bấm 'Xác nhận nộp đơn'. " +
+        "BẮT BUỘC chỉ gọi khi user nói rõ muốn nộp/ứng tuyển tin đó; không gọi khi user mới hỏi thông tin. " +
+        "Tool KHÔNG nộp đơn và không ghi DB — user vẫn phải tự xác nhận trên bảng. " +
+        "Sau khi gọi, nói ngắn gọn bảng xác nhận đã mở và nhắc user bấm 'Xác nhận nộp đơn'; đừng nói 'đã nộp'.",
+      agentId: "default",
+      parameters: applyToJobSchema,
+      available: enabled && isCandidate,
+      handler: async ({ tinTuyenDungId, cvId }) => {
+        const target = `/viec-lam/${tinTuyenDungId}`;
+        saveApplyIntent({
+          tinTuyenDungId,
+          ...(typeof cvId === "number" && cvId > 0 ? { cvId } : {}),
+        });
+
+        if (pathname !== target) {
+          await router.prefetch(target);
+          window.setTimeout(() => router.push(target), 0);
+          return `Đã mở trang tin ${tinTuyenDungId} cùng bảng xác nhận nộp đơn. Đơn CHƯA được nộp; chờ user bấm "Xác nhận nộp đơn".`;
+        }
+
+        return `Đã mở bảng xác nhận nộp đơn cho tin ${tinTuyenDungId}. Đơn CHƯA được nộp; chờ user bấm "Xác nhận nộp đơn".`;
+      },
+    },
+    [enabled, isCandidate, pathname, router],
   );
 
   useFrontendTool(

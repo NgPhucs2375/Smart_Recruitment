@@ -94,3 +94,7 @@ deploy/nginx/certs/
 .env.prod
 # Ban sao luu tay khi deploy.
 *.bak*
+
+# Rac cua phien lam viec (script tam, anh kiem tra, do thi trung gian) o goc repo.
+/tmp_*
+/so-do-*

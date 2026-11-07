@@ -34,6 +34,7 @@ import { cvApi } from "@/lib/api/cv-api";
 import type { CvDetailVm, CvVm } from "@/lib/types";
 import { useBookmarks } from "@/hooks/use-bookmarks";
 import { getValidToken, refreshSession } from "@/lib/auth-provider";
+import { ADAM_APPLY_EVENT, takeApplyIntent } from "@/features/ung-tuyen/adam-apply-intent";
 
 type TinChiTiet = {
   id: number;
@@ -216,7 +217,7 @@ export default function ViecLamChiTietPage() {
     void load();
   }, [load]);
 
-  const openPicker = async () => {
+  const openPicker = useCallback(async (preferCvId?: number | null) => {
     setPickerOpen(true);
     setSelectedCvId(null);
     setPreviewCvId(null);
@@ -227,13 +228,14 @@ export default function ViecLamChiTietPage() {
       const hoSo = await cvApi.getMyHoSo();
       const list = await cvApi.listCvs(hoSo.id);
       setCvs(list);
-      if (list.length === 1) setSelectedCvId(list[0].id);
+      if (preferCvId && list.some((cv) => cv.id === preferCvId)) setSelectedCvId(preferCvId);
+      else if (list.length === 1) setSelectedCvId(list[0].id);
     } catch (e) {
       setCvError(e instanceof Error ? e.message : "Không tải được danh sách CV.");
     } finally {
       setLoadingCvs(false);
     }
-  };
+  }, []);
 
   const togglePreview = async (cv: CvVm) => {
     if (previewCvId === cv.id) {
@@ -273,6 +275,18 @@ export default function ViecLamChiTietPage() {
     }
   };
 
+
+  // Adam xin nộp đơn: mở lại đúng bảng xác nhận này, user vẫn phải bấm "Xác nhận nộp đơn".
+  useEffect(() => {
+    if (!tin || daUngTuyen) return;
+    const consume = () => {
+      const intent = takeApplyIntent(tinId);
+      if (intent) void openPicker(intent.cvId ?? null);
+    };
+    consume();
+    window.addEventListener(ADAM_APPLY_EVENT, consume);
+    return () => window.removeEventListener(ADAM_APPLY_EVENT, consume);
+  }, [tin, daUngTuyen, tinId, openPicker]);
   const hetHan = tin ? isExpired(tin.ngayHetHan) : false;
   const conNhanHoSo = !!tin && (tin.trangThai === "DangTuyen" || tin.trangThai === "3") && !hetHan;
   const daDong = tin?.trangThai === "DaDong" || tin?.trangThai === "6";

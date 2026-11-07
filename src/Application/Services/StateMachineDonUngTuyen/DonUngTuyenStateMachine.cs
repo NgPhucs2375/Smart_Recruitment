@@ -1,4 +1,5 @@
 using Application.Exceptions;
+using Application.Features.DonUngTuyen;
 using Application.Interfaces;
 using Domain.Entities;
 using Domain.Enums;
@@ -15,7 +16,7 @@ namespace Application.Services.StateMachineDonUngTuyen
     /// State machine cho đơn ứng tuyển (1 cấp state <see cref="TrangThaiDonUngTuyen"/>).
     /// Luồng: KhoiTao -system-&gt; ChoXuLy -XemDon-&gt; DaXem -DanhGiaPhuHop-&gt; PhuHop,
     /// TuChoi ở mọi bước HR, RutDon của ứng viên, HetHanXuLy/DongBoiTinTuyenDung của hệ thống.
-    /// Tác nhân người: HR (tin mình đăng / cùng công ty) + ứng viên nộp đơn.
+    /// Tác nhân người: Nhân sự (chỉ tin mình đăng) / Người đại diện (cả doanh nghiệp) + ứng viên nộp đơn.
     /// Tác nhân hệ thống: dùng <see cref="FireSystemAsync"/> (bypass auth).
     /// </summary>
     public class DonUngTuyenStateMachine
@@ -174,20 +175,15 @@ namespace Application.Services.StateMachineDonUngTuyen
                     if (_entity.TrangThai == TrangThaiDonUngTuyen.UngVienRutDon)
                         throw new ApiException("Đơn đã được ứng viên rút, không thể tiếp tục xử lý.");
 
-                    if (ctx.VaiTro == VaiTroNguoiDung.NGUOI_DAI_DIEN)
-                    {
-                        if (_entity.TinTuyenDung == null || _entity.TinTuyenDung.DoanhNghiepId != ctx.DoanhNghiepId)
-                            throw new ApiException("Bạn không có quyền xử lý đơn ứng tuyển này.", 403);
-                    }
-                    else if (ctx.VaiTro == VaiTroNguoiDung.NHAN_SU)
-                    {
-                        if (_entity.TinTuyenDung == null || _entity.TinTuyenDung.DoanhNghiepId != ctx.DoanhNghiepId)
-                            throw new ApiException("Bạn chỉ được xử lý đơn thuộc doanh nghiệp của mình.", 403);
-                    }
-                    else
-                    {
+                    if (ctx.VaiTro is not (VaiTroNguoiDung.NHAN_SU or VaiTroNguoiDung.NGUOI_DAI_DIEN))
                         throw new ApiException("Chỉ Nhân sự hoặc Người đại diện được thực hiện hành động này.");
-                    }
+
+                    if (!DonUngTuyenAccess.CanAccess(ctx, _entity))
+                        throw new ApiException(
+                            ctx.VaiTro == VaiTroNguoiDung.NHAN_SU
+                                ? "Bạn chỉ được xử lý đơn thuộc tin tuyển dụng do mình đăng."
+                                : "Bạn không có quyền xử lý đơn ứng tuyển này.",
+                            403);
                     break;
 
                 // Chỉ ứng viên nộp đơn mới được rút / nộp lại hồ sơ

@@ -18,7 +18,9 @@ namespace Application.Features.CvTheme.Queries.SuggestCvThemes;
 ///     - Goals: chỉ gợi ý những mẫu đã thực sự có component render ở frontend , nếu mẫu trong db mà không xuất hiện trong manifest, nó bị out ngay lập tức
 public static class CvThemeMatcher
 {
-    
+    /// <summary>Nhãn thuật toán chấm điểm; đổi khi thay đổi trọng số để test và UI nhận diện được bản đang chạy.</summary>
+    public const string Version = "theme-v2";
+
     public sealed record Renderer(int Columns, string Version);
     public static readonly IReadOnlyDictionary<string, Renderer> Renderers = LoadRenderers();
     private static IReadOnlyDictionary<string, Renderer> LoadRenderers()
@@ -34,7 +36,7 @@ public static class CvThemeMatcher
     /// trong manifest tĩnh nhưng vẫn render được bằng ThemeCanvas — suy bố cục
     /// từ cột SoCot. Không có renderer lẫn config -> loại.
     /// </summary>
-    private static Renderer? ResolveRenderer(Theme theme)
+    public static Renderer? ResolveRenderer(Theme theme)
     {
         if (Renderers.TryGetValue(theme.Slug ?? "", out var renderer)) return renderer;
         if (!string.IsNullOrWhiteSpace(theme.CauHinhJson))
@@ -75,6 +77,8 @@ public static class CvThemeMatcher
         ["fashion"] = ["fashion", "thoi trang"]
     };
     public static string Industry(string? value) => Industries.FirstOrDefault(kv => kv.Value.Any(alias => Phrase(value ?? "", alias))).Key ?? Normalize(value);
+    /// <summary>True nếu kết quả Industry() là một khóa taxonomy thật, không phải chuỗi title đã chuẩn hóa.</summary>
+    public static bool IsKnownIndustry(string value) => Industries.ContainsKey(value);
     private static IEnumerable<string> ThemeIndustries(Theme theme) => Csv(theme.NganhPhuHop).Select(Industry);
 
     public static string Level(string? value, bool strict = false)
@@ -110,7 +114,8 @@ public static class CvThemeMatcher
             Csv(t.Tags).Where(x => x.Length > 2 && x != "ats" && Level(x) == "").Any(x => Phrase(position, x));
     }
 
-    public static List<SuggestedCvThemeViewModel> Rank(IEnumerable<Theme> themes, GetSuggestedCvThemesQuery request, string position, IEnumerable<string> skills)
+    /// <summary>Xếp hạng toàn bộ mẫu đạt điều kiện (không cắt TopN) — bản đầy đủ cho luồng agent.</summary>
+    public static List<SuggestedCvThemeViewModel> RankAll(IEnumerable<Theme> themes, GetSuggestedCvThemesQuery request, string position, IEnumerable<string> skills)
     {
         if (request.SoCot.HasValue && request.SoCot is not (1 or 2)) throw new ApiException("Số cột phải là 1 hoặc 2.", 400);
         var level = string.IsNullOrWhiteSpace(request.CapBac) ? Level(position) : Level(request.CapBac, true);
@@ -176,9 +181,12 @@ public static class CvThemeMatcher
             ranked.Add(new SuggestedCvThemeViewModel { Slug = theme.Slug, Ten = theme.Ten, MoTaNgan = theme.MoTaNgan,
                 Diem = Math.Round(Math.Clamp(score, 0, 1), 2), LyDo = string.Join("; ", reasons), CanhBao = warnings,
                 Nganh = industry, ViTri = position, CapBac = level, SoCot = renderer.Columns, TemplateVersion = renderer.Version,
-                ThanThienATS = theme.ThanThienATS, PhongCach = themeStyle, MatchingVersion = "theme-v2" });
+                ThanThienATS = theme.ThanThienATS, PhongCach = themeStyle, MatchingVersion = Version });
         }
         return ranked.OrderByDescending(t => t.Diem).ThenBy(t => themes.First(x => x.Slug == t.Slug).ThuTu).ThenBy(t => t.Slug, StringComparer.Ordinal)
-            .Take(Math.Clamp(request.TopN, 1, 3)).ToList();
+            .ToList();
     }
+
+    public static List<SuggestedCvThemeViewModel> Rank(IEnumerable<Theme> themes, GetSuggestedCvThemesQuery request, string position, IEnumerable<string> skills)
+        => RankAll(themes, request, position, skills).Take(Math.Clamp(request.TopN, 1, 3)).ToList();
 }
