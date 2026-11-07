@@ -31,9 +31,22 @@ internal sealed class AgentChatDailyLimiter
         _logger = logger;
     }
 
-    public async Task<AgentChatQuotaResult> TryConsumeAsync(CancellationToken cancellationToken = default)
+    public Task<AgentChatQuotaResult> TryConsumeAsync(CancellationToken cancellationToken = default)
+        => TryConsumeCoreAsync("chat",
+            Math.Max(1, _configuration.GetValue("Agent:DailyChatLimit", 15)),
+            cancellationToken);
+
+    /// <summary>Hạn mức riêng cho lượt đánh giá CV bằng agent (mặc định 10/ngày).</summary>
+    public Task<AgentChatQuotaResult> TryConsumeCvReviewAsync(CancellationToken cancellationToken = default)
+        => TryConsumeCoreAsync("cv-review",
+            Math.Max(1, _configuration.GetValue("Agent:DailyCvReviewLimit", 10)),
+            cancellationToken);
+
+    private async Task<AgentChatQuotaResult> TryConsumeCoreAsync(
+        string scope,
+        int limit,
+        CancellationToken cancellationToken)
     {
-        var limit = Math.Max(1, _configuration.GetValue("Agent:DailyChatLimit", 15));
         var resetsAt = NextResetUtc();
 
         int userId;
@@ -49,7 +62,7 @@ internal sealed class AgentChatDailyLimiter
         }
 
         var day = DateTime.UtcNow.AddHours(7).ToString("yyyyMMdd"); // ngày theo giờ VN
-        var key = $"agent:chat:quota:{userId}:{day}";
+        var key = $"agent:{scope}:quota:{userId}:{day}";
 
         try
         {
@@ -65,8 +78,8 @@ internal sealed class AgentChatDailyLimiter
             if (!allowed)
             {
                 _logger.LogWarning(
-                    "User {UserId} đã hết hạn mức chat agent hôm nay ({Used}/{Limit}).",
-                    userId, used, limit);
+                    "User {UserId} đã hết hạn mức {Scope} hôm nay ({Used}/{Limit}).",
+                    userId, scope, used, limit);
             }
 
             return new AgentChatQuotaResult(allowed, limit, (int)used, resetsAt);

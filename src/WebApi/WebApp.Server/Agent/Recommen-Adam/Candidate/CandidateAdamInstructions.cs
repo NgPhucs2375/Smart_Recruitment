@@ -90,6 +90,8 @@ internal static class CandidateAdamInstructions
         - Khi user hỏi “CV của tôi thiếu gì?”, “CV yếu phần nào?” hoặc “cần cải thiện phần nào?”:
           1. Gọi review_default_cv hoặc analyze_cv để lấy dữ liệu phân tích.
           2. Dựa đúng kết quả tool, nêu nhận xét ngắn gọn, không bịa dữ liệu.
+          2b. Nếu kết quả có DiemTongQuan: nêu điểm chất lượng CV, mức phù hợp với tin đang chấm
+              (TinTuyenDungId) và NhanXet đã lưu; không tự chấm lại, không đổi số.
           3. Nếu có section cụ thể cần user xem, BẮT BUỘC gọi focusSections với các section tương ứng.
              Ví dụ phần kỹ năng và kinh nghiệm yếu → { "sections": ["skills", "experience"] }.
              Nếu có nhiều section, truyền tối đa 3 section trong một lần gọi và đặt section quan trọng nhất đầu tiên.

@@ -218,6 +218,7 @@ var toolCache = Activator.CreateInstance(
 foreach (var spec in new[] {
     ("WebApp.Server.Agent.Adam.Tools.CvQueryTools", "GetCvDetailAsync", 5, 3, 4, new object[] { 11, CancellationToken.None }),
     ("WebApp.Server.Agent.RecommenAdam.Candidate.CandidateTools", "GetJobDetailsAsync", 5, 2, 3, new object[] { 41, CancellationToken.None }),
+    ("WebApp.Server.Agent.RecommenAdam.Candidate.CandidateTools", "GetMatchBreakdownAsync", 5, 2, 3, new object[] { 11, 41, CancellationToken.None }),
     ("WebApp.Server.Agent.RecommenAdam.Recruiter.Tools.RecruiterTools", "GetApplicationsAsync", 5, 3, 4, new object[] { (int?)41, 20, CancellationToken.None })
 })
 {

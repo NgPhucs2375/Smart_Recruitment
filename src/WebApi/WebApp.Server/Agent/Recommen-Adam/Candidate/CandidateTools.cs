@@ -6,6 +6,8 @@ using Application.Features.CVUngVien.Queries.GetCVUngVienById;
 using Application.Features.DonUngTuyen.Queries.GetAllDonUngTuyens;
 using Application.Features.DonUngTuyen.Queries.GetDonUngTuyenById;
 using Application.Features.HoSoUngVien.Queries.GetMyHoSoUngVien;
+using Application.Features.KetQuaPhanTichCv.Queries.GetAllKetQuaPhanTichCvs;
+using Application.Features.KetQuaPhuHop.Queries.GetCvJobMatch;
 using Application.Features.KetQuaPhuHop.Queries.SuggestJobsForCv;
 using Application.Features.TinTuyenDung.Queries.GetAllTinTuyenDungs;
 using Application.Features.TinTuyenDung.Queries.GetTinTuyenDungById;
@@ -88,7 +90,47 @@ internal sealed class CandidateTools
         var content = cv.Data.NoiDung;
         if (content == null)
             return new Response<CandidateCvAnalysis>("CV chưa có nội dung để phân tích.");
+
+        // Ưu tiên kết quả agent đã chạy và lưu trên trang cv-phan-tich,
+        // để chat và trang đọc chung một nguồn, không gọi LLM lần hai.
+        await _permissions.RequireAsync("ketquaphantichcvs", "show", cancellationToken);
+        var saved = await _sender.Send(new GetAllKetQuaPhanTichCvsQuery
+        {
+            CVUngVienId = cv.Data.Id,
+            _start = 0,
+            _end = 1,
+        }, cancellationToken);
+        var danhGia = saved.Data?.FirstOrDefault();
+        if (danhGia?.DiemTongQuan is not null)
+        {
+            return new Response<CandidateCvAnalysis>(new CandidateCvAnalysis
+            {
+                CvUngVienId = cv.Data.Id,
+                DiemManh = SplitLines(danhGia.DiemManh),
+                CanCaiThien = SplitLines(danhGia.DiemYeu),
+                DiemTongQuan = danhGia.DiemTongQuan,
+                DiemPhuHop = danhGia.DiemPhuHop,
+                NhanXet = danhGia.NhanXet,
+                TinTuyenDungId = danhGia.TinTuyenDungId,
+                GoiY = SplitLines(danhGia.GoiY).Select(FormatGoiY).ToList(),
+                DanhGiaLuc = danhGia.DanhGiaLuc,
+                DaDanhGiaBangAi = danhGia.DaDanhGiaBangAi,
+            });
+        }
+
         return new Response<CandidateCvAnalysis>(BuildCvAnalysis(cv.Data));
+    }
+
+    private static List<string> SplitLines(string? value) =>
+        string.IsNullOrWhiteSpace(value)
+            ? new List<string>()
+            : value.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
+
+    // GoiY lưu dạng "phan|viec"; chat đọc dạng dễ hiểu hơn.
+    private static string FormatGoiY(string line)
+    {
+        var parts = line.Split('|', 2, StringSplitOptions.TrimEntries);
+        return parts.Length == 2 ? $"{parts[0]}: {parts[1]}" : line;
     }
 
     [Description(
@@ -205,8 +247,39 @@ internal sealed class CandidateTools
         return response;
     }
 
-    [Description("Giải thích vì sao CV phù hợp với một tin tuyển dụng. Chỉ trả dữ liệu match thật của tin đó.")]
-    public async Task<Response<SuggestedJobViewModel>> ExplainJobMatchAsync(
+    [Description(
+        "Chấm mức phù hợp giữa một CV và một tin tuyển dụng bằng scorer tất định: " +
+        "điểm 0..1, kỹ năng khớp, kỹ năng còn thiếu, kỹ năng bắt buộc còn thiếu. " +
+        "Gọi trước khi đánh giá CV theo một tin cụ thể; không tự suy ra điểm.")]
+    public Task<Response<CvJobMatchViewModel>> GetMatchBreakdownAsync(
+        [Description("ID CV của ứng viên đang đăng nhập.")] int cvId,
+        [Description("ID tin tuyển dụng cần so khớp.")] int tinTuyenDungId,
+        CancellationToken cancellationToken = default)
+        => _toolCache.GetOrCreateAsync(
+            "get_cv_job_match", new { cvId, tinTuyenDungId },
+            () => GetMatchBreakdownCoreAsync(cvId, tinTuyenDungId, cancellationToken),
+            cancellationToken);
+
+    private async Task<Response<CvJobMatchViewModel>> GetMatchBreakdownCoreAsync(
+        int cvId, int tinTuyenDungId,
+        CancellationToken cancellationToken)
+    {
+        await _permissions.RequireAsync("ketquaphuhops", "show", cancellationToken);
+        try
+        {
+            return await _sender.Send(new GetCvJobMatchQuery(cvId, tinTuyenDungId), cancellationToken);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception)
+        {
+            return new Response<CvJobMatchViewModel>("Không chấm được mức phù hợp CV với tin.");
+        }
+    }
+
+    [Description("Giải thích vì sao CV phù hợp với một tin tuyển dụng. Chỉ trả dữ liệu match thật của tin đó.")]    public async Task<Response<SuggestedJobViewModel>> ExplainJobMatchAsync(
         [Description("ID tin tuyển dụng cần giải thích mức độ phù hợp.")] int tinTuyenDungId,
         [Description("ID CV cần so khớp, bỏ trống để dùng CV mặc định.")] int? cvId = null,
         CancellationToken cancellationToken = default)
@@ -325,6 +398,15 @@ public sealed class CandidateCvAnalysis
     public int CvUngVienId { get; set; }
     public List<string> DiemManh { get; set; } = new();
     public List<string> CanCaiThien { get; set; } = new();
+
+    // Kết quả agent đã lưu (null khi chưa chạy đánh giá).
+    public int? DiemTongQuan { get; set; }
+    public float? DiemPhuHop { get; set; }
+    public string? NhanXet { get; set; }
+    public int? TinTuyenDungId { get; set; }
+    public List<string> GoiY { get; set; } = new();
+    public DateTime? DanhGiaLuc { get; set; }
+    public bool DaDanhGiaBangAi { get; set; }
 }
 
 public sealed class CandidateCvReview

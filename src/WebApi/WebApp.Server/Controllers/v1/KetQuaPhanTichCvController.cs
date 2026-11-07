@@ -1,5 +1,6 @@
 using Application.DTOs.DanhMucNghe;
 using Application.DTOs.KetQuaPhanTichCv;
+using Application.Exceptions;
 using Application.Features.KetQuaPhanTichCv.Commands.CreateKetQuaPhanTichCv;
 using Application.Features.KetQuaPhanTichCv.Commands.DeleteKetQuaPhanTichCv;
 using Application.Features.KetQuaPhanTichCv.Commands.UpdateKetQuaPhanTichCv;
@@ -8,6 +9,8 @@ using Application.Features.KetQuaPhanTichCv.Queries.GetKetQuaPhanTichCvById;
 using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using WebApp.Server.Agent.CvReview;
+using WebApp.Server.Agent.RateLimit;
 
 namespace WebApp.Server.Controllers.v1
 {
@@ -23,6 +26,34 @@ namespace WebApp.Server.Controllers.v1
             : base(hostingEnvironment)
         {
             _mapper = mapper;
+        }
+
+        [HttpPost("danh-gia")]
+        public async Task<IActionResult> DanhGia([FromBody] DanhGiaCvRequest request)
+        {
+            return await EnforcePermissionAndExecute(
+                "ketquaphantichcvs",
+                "create",
+                async () =>
+                {
+                    if (request.CvUngVienId <= 0 || request.TinTuyenDungId <= 0)
+                        throw new ApiException("CV hoặc tin tuyển dụng không hợp lệ.", 400);
+
+                    var limiter = HttpContext.RequestServices
+                        .GetRequiredService<AgentChatDailyLimiter>();
+                    var quota = await limiter.TryConsumeCvReviewAsync(HttpContext.RequestAborted);
+                    if (!quota.Allowed)
+                        throw new ApiException(
+                            $"Bạn đã dùng hết {quota.Limit} lượt đánh giá CV hôm nay. " +
+                            "Vui lòng thử lại sau hoặc xem kết quả đã lưu.",
+                            429);
+
+                    var runner = HttpContext.RequestServices.GetRequiredService<CvReviewRunner>();
+                    return Ok(await runner.RunAsync(
+                        request.CvUngVienId,
+                        request.TinTuyenDungId,
+                        HttpContext.RequestAborted));
+                });
         }
 
         [HttpGet]

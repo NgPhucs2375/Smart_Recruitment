@@ -47,6 +47,11 @@ public static class AgentExtensions
         services.AddScoped<RecruiterAdamAgentFactory>();
         services.AddSingleton<ScopedRecommenAdamAgent>();
 
+        // Agent đánh giá CV theo 1 tin tuyển dụng (tool-loop read-only),
+        // chạy đồng bộ từ POST /api/ketquaphantichcvs/danh-gia.
+        services.AddScoped<CvReview.CvReviewAgentFactory>();
+        services.AddScoped<CvReview.CvReviewRunner>();
+
         return services;
     }
 
