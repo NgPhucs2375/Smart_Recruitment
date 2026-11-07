@@ -10,7 +10,7 @@ import {
   View,
 } from 'react-native';
 import { CheckCheck, Eye, Search, Star, UserX } from 'lucide-react-native';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 
 import { ThemedText } from '@/components/themed-text';
 import { Button } from '@/components/ui/button';
@@ -240,11 +240,13 @@ export function ApplicantsInbox({ jobId, jobTitle }: ApplicantsInboxProps) {
     [jobFilter, jobId, perJob, statusFilter],
   );
 
-  // Tải ban đầu — hoãn 1 tick, không setState đồng bộ trong effect (react-hooks/set-state-in-effect).
-  useEffect(() => {
-    const timer = setTimeout(() => void load(), 0);
-    return () => clearTimeout(timer);
-  }, [load]);
+  // Làm mới cả khi quay lại từ màn CV để phản ánh quyết định vừa lưu.
+  useFocusEffect(
+    useCallback(() => {
+      const timer = setTimeout(() => void load(), 0);
+      return () => clearTimeout(timer);
+    }, [load]),
+  );
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -469,7 +471,8 @@ export function ApplicantsInbox({ jobId, jobTitle }: ApplicantsInboxProps) {
               const busy = actingId === item.id;
               const name = nameOf(item);
               const evalRow = danhGias[item.id];
-              const canApprove = item.trangThai === 2 || item.trangThai === 3;
+              // Khớp state machine với Web: chỉ được duyệt sau khi hồ sơ đã được mở/xem.
+              const canApprove = item.trangThai === 3;
               const canReject = item.trangThai === 2 || item.trangThai === 3;
               const canEval = perJob && item.trangThai === 5 && !evalRow;
               return (

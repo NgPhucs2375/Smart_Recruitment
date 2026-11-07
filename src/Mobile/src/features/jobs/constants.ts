@@ -1,17 +1,10 @@
 import type { JobSort } from '@/features/jobs/types';
+import { vietnamProvinces } from '@/features/location/vietnam-provinces';
 
 export const PAGE_SIZE = 10;
 export const MAX_SKILLS = 20;
 
-export const LOCATIONS = [
-  'Hà Nội',
-  'Hồ Chí Minh',
-  'Đà Nẵng',
-  'Hải Phòng',
-  'Cần Thơ',
-  'Bình Dương',
-  'Đồng Nai',
-] as const;
+export const LOCATIONS = vietnamProvinces;
 
 export const JOB_LEVELS = ['Intern', 'Fresher', 'Junior', 'Mid', 'Senior', 'Lead', 'Manager'] as const;
 

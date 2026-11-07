@@ -139,7 +139,7 @@ export function RecruiterProfileTab() {
     if (!form.hoTen.trim()) return "Họ tên không được để trống.";
     if (form.hoTen.trim().length > 255) return "Họ tên tối đa 255 ký tự.";
     if (form.chucVu.trim().length > 100) return "Chức vụ tối đa 100 ký tự.";
-    if (form.sdt.trim().length > 20) return "Số điện thoại tối đa 20 ký tự.";
+    if (form.sdt.trim().length > 10) return "Số điện thoại phải gồm đúng 10 chữ số.";
     if (form.sdt.trim() && !isValidVnPhone(form.sdt))
       return "Số điện thoại không hợp lệ.";
     return null;
@@ -149,7 +149,7 @@ export function RecruiterProfileTab() {
     if (!createForm.hoTen.trim()) return "Họ tên không được để trống.";
     if (createForm.hoTen.trim().length > 255) return "Họ tên tối đa 255 ký tự.";
     if (createForm.chucVu.trim().length > 100) return "Chức vụ tối đa 100 ký tự.";
-    if (createForm.sdt.trim().length > 20) return "Số điện thoại tối đa 20 ký tự.";
+    if (createForm.sdt.trim().length > 10) return "Số điện thoại phải gồm đúng 10 chữ số.";
     if (createForm.sdt.trim() && !isValidVnPhone(createForm.sdt))
       return "Số điện thoại không hợp lệ.";
     return null;
@@ -291,10 +291,10 @@ export function RecruiterProfileTab() {
                 <Input
                   value={createForm.sdt}
                   onChange={(e) =>
-                    setCreateForm((f) => ({ ...f, sdt: e.target.value }))
+                    setCreateForm((f) => ({ ...f, sdt: e.target.value.replace(/\D/g, "").slice(0, 10) }))
                   }
                   placeholder="VD: 0901234567"
-                  maxLength={20}
+                  maxLength={10}
                 />
               </div>
             </div>
@@ -348,9 +348,9 @@ export function RecruiterProfileTab() {
               <Label>Số điện thoại</Label>
               <Input
                 value={form.sdt}
-                onChange={(e) => setForm((f) => ({ ...f, sdt: e.target.value }))}
+                  onChange={(e) => setForm((f) => ({ ...f, sdt: e.target.value.replace(/\D/g, "").slice(0, 10) }))}
                 placeholder="VD: 0901234567"
-                maxLength={20}
+                  maxLength={10}
               />
             </div>
             <div className="space-y-2">

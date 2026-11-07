@@ -13,6 +13,7 @@ import { Building2, Pencil, Trash2, Plus, RotateCcw, Search } from "lucide-react
 import { AdminGate } from "@/features/admin/AdminGate";
 import { adminApi } from "@/features/admin/api";
 import { useConfirmDialog } from "@/components/ui/confirm-dialog";
+import { ProvinceAddressFields } from "@/components/ui/province-address-fields";
 
 interface DoanhNghiepRow {
   Id: number;
@@ -231,8 +232,13 @@ export default function AdminDoanhNghiepPage() {
                  <Input id="website" value={form.Website} maxLength={255} onChange={set("Website")} />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="diachi">Địa chỉ</Label>
-                 <Input id="diachi" value={form.DiaChi} maxLength={255} onChange={set("DiaChi")} />
+                <ProvinceAddressFields
+                  id="diachi"
+                  value={form.DiaChi}
+                  onChange={(value) => setForm((current) => ({ ...current, DiaChi: value }))}
+                  label="Tỉnh/thành phố"
+                  detailLabel="Địa chỉ chi tiết"
+                />
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="logo">Liên kết logo</Label>

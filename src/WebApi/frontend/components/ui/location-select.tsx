@@ -9,6 +9,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { locations } from "@/features/viec-lam/constants";
+import { provinceDisplayName } from "@/features/location/vietnam-provinces";
 import { cn } from "@/lib/utils";
 
 interface LocationSelectProps {
@@ -34,7 +35,7 @@ export function LocationSelect({
   // Nhãn tường minh: null/"" / "all" -> placeholder, còn lại giữ nguyên
   // (không bao giờ lọt raw value ra trigger).
   const label = (v: string | null) =>
-    !v || v === "all" ? placeholder : v;
+    !v || v === "all" ? placeholder : provinceDisplayName(v);
   return (
     <div className={cn("min-w-0", className)}>
       <Select value={value} onValueChange={(v) => onValueChange(!v || v === "all" ? "" : v)}>
@@ -53,7 +54,7 @@ export function LocationSelect({
           <SelectItem value="all">Tất cả địa điểm</SelectItem>
           {locations.map((loc) => (
             <SelectItem key={loc} value={loc}>
-              <span className="block max-w-[220px] truncate">{loc}</span>
+              <span className="block max-w-[220px] truncate">{provinceDisplayName(loc)}</span>
             </SelectItem>
           ))}
         </SelectContent>

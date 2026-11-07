@@ -22,7 +22,7 @@ export function validatePhone(value: string): string | null {
 }
 
 export function normalizePhone(value: string): string {
-  return value.trim().replace(/[\s.\-()]/g, '');
+  return value.trim();
 }
 
 export function validatePassword(value: string): string | null {

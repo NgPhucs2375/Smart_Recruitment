@@ -116,7 +116,7 @@ export function useChatThread(
           return;
         }
 
-        const hubUrl = getSignalRHubUrl('chat');
+        const hubUrl = getSignalRHubUrl('chat', process.env.EXPO_PUBLIC_CHAT_SIGNALR_URL);
         if (!hubUrl) {
           await loadHistory();
           if (active) setConnectionState('offline');

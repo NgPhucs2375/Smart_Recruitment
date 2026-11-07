@@ -1,4 +1,8 @@
 import { apiRequest, getApiBaseUrl } from '@/services/api/client';
+import { normalizeAddressProvince } from '@/features/location/vietnam-provinces';
+import { normalizeCvDetail } from '@/features/cv/api/cv-api';
+import { cloneCvData, defaultCvData } from '@/features/cv/manual/default-cv-data';
+import { manualCvDetailToForm } from '@/features/cv/manual/manual-cv-mapper';
 import { asNumber, asRecord, asText, unwrapData } from '@/services/api/parse';
 import type {
   BaoCao,
@@ -63,7 +67,7 @@ export function normalizeJob(value: unknown): HrJob | null {
     kinhNghiemYeuCau: asText(raw.kinhNghiemYeuCau ?? raw.KinhNghiemYeuCau),
     yeuCauCongViec: asText(raw.yeuCauCongViec ?? raw.YeuCauCongViec),
     quyenLoi: asText(raw.quyenLoi ?? raw.QuyenLoi),
-    diaDiemLamViec: asText(raw.diaDiemLamViec ?? raw.DiaDiemLamViec),
+    diaDiemLamViec: normalizeAddressProvince(asText(raw.diaDiemLamViec ?? raw.DiaDiemLamViec)),
     phuongThucLamViec: asNumber(raw.phuongThucLamViec ?? raw.PhuongThucLamViec ?? raw.workMode ?? raw.WorkMode),
     luongToiThieu: asNumber(raw.luongToiThieu ?? raw.LuongToiThieu),
     luongToiDa: asNumber(raw.luongToiDa ?? raw.LuongToiDa),
@@ -336,134 +340,6 @@ export const hrAppApi = {
 /* CV xem trước (WebView sang route /cv-render của Web)               */
 /* ------------------------------------------------------------------ */
 
-const VN_DATE = /^(\d{4})-(\d{2})-(\d{2})/;
-
-function toVnDate(value: unknown): string {
-  const text = asText(value);
-  const match = VN_DATE.exec(text);
-  if (!match) return text;
-  return `${match[2]}/${match[3]}/${match[1]}`;
-}
-
-function toMonthYear(value: unknown): string {
-  const text = asText(value);
-  const match = VN_DATE.exec(text);
-  if (!match) {
-    const partial = /^(\d{4})-(\d{2})$/.exec(text);
-    return partial ? `${partial[2]}/${partial[1]}` : text;
-  }
-  return `${match[2]}/${match[1]}`;
-}
-
-function toVndInput(value: unknown): string {
-  const digits = asText(value).replace(/\D/g, '');
-  if (!digits) return '';
-  return digits.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-}
-
-const SKILL_LEVEL_BY_NAME: Record<string, number> = { coban: 0, trungbinh: 1, thanhthao: 2, chuyengia: 3 };
-
-function toSkillLevel(value: unknown): string {
-  const text = asText(value);
-  const named = SKILL_LEVEL_BY_NAME[text.toLowerCase()];
-  if (named !== undefined) return String(named);
-  const parsed = Number(text);
-  return Number.isInteger(parsed) && parsed >= 0 && parsed <= 3 ? String(parsed) : '0';
-}
-
-function withId<T extends Record<string, unknown>>(rows: Record<string, unknown>[], map: (row: Record<string, unknown>) => T): T[] {
-  return rows.map((row, index) => ({ ...map(row), id: String(index + 1) }));
-}
-
-/** Đọc noiDung (camel/Pascal) của cvungviens/show → payload CvFormData cho /cv-render. */
-function normalizeCvPayload(detail: Record<string, unknown>): CvRenderData {
-  const content = asRecord(detail.noiDung ?? detail.NoiDung) ?? {};
-  const contact = asRecord(content.thongTinLienHe ?? content.ThongTinLienHe) ?? {};
-  const text = (value: unknown) => asText(value);
-
-  const rowsOf = (key: string): Record<string, unknown>[] => {
-    const value = content[key] ?? content[key.charAt(0).toUpperCase() + key.slice(1)];
-    return (Array.isArray(value) ? value : [])
-      .map((row) => asRecord(row) ?? {})
-      .filter((row) => Object.keys(row).length > 0);
-  };
-
-  const payload: CvRenderData = {
-    templateId: asText(detail.templateId ?? detail.TemplateId, 'modern'),
-    tenFile: asText(detail.tenFile ?? detail.TenFile, `CV #${asNumber(detail.id ?? detail.Id)}`),
-    thongTinLienHe: {
-      hoTen: text(contact.hoTen ?? contact.HoTen),
-      email: text(contact.email ?? contact.Email),
-      sdt: text(contact.sdt ?? contact.SDT ?? contact.Sdt),
-      diaChi: text(contact.diaChi ?? contact.DiaChi),
-      github: text(contact.github ?? contact.gitHub ?? contact.GitHub),
-      linkedIn: text(contact.linkedIn ?? contact.LinkedIn),
-      portfolio: text(contact.portfolio ?? contact.Portfolio),
-      gioiTinh: text(contact.gioiTinh ?? contact.GioiTinh),
-      ngaySinh: toVnDate(contact.ngaySinh ?? contact.NgaySinh),
-      viTriUngTuyen: text(contact.viTriUngTuyen ?? contact.ViTriUngTuyen),
-      mucLuongMongMuon: toVndInput(contact.mucLuongMongMuon ?? contact.MucLuongMongMuon),
-      gioiThieuBanThan: text(contact.gioiThieuBanThan ?? contact.GioiThieuBanThan),
-      anhDaiDienUrl: text(contact.anhDaiDienUrl ?? contact.AnhDaiDienUrl),
-    },
-    hocVan: withId(rowsOf('hocVan'), (row) => ({
-      truong: text(row.truong ?? row.Truong),
-      chuyenNganh: text(row.chuyenNganh ?? row.ChuyenNganh),
-      bangCap: text(row.bangCap ?? row.BangCap),
-      tuNgay: toMonthYear(row.tuNgay ?? row.TuNgay),
-      denNgay: toMonthYear(row.denNgay ?? row.DenNgay),
-      isHienTai: Boolean(row.isHienTai ?? row.IsHienTai),
-      moTa: text(row.moTa ?? row.MoTa),
-    })),
-    kinhNghiemLamViec: withId(rowsOf('kinhNghiemLamViec'), (row) => ({
-      congTy: text(row.congTy ?? row.tenCongTy ?? row.TenCongTy),
-      chucDanh: text(row.chucDanh ?? row.ChucDanh),
-      diaChi: text(row.diaChi ?? row.DiaChi),
-      tuNgay: toMonthYear(row.tuNgay ?? row.TuNgay),
-      denNgay: toMonthYear(row.denNgay ?? row.DenNgay),
-      isHienTai: Boolean(row.isHienTai ?? row.IsHienTai),
-      moTa: text(row.moTa ?? row.MoTa),
-      kyNangSuDung: skillNameList(row.kyNangSuDung ?? row.KyNangSuDung),
-    })),
-    duAn: withId(rowsOf('duAn'), (row) => ({
-      tenDuAn: text(row.tenDuAn ?? row.TenDuAn),
-      vaiTro: text(row.vaiTro ?? row.VaiTro),
-      congNghe: skillNameList(row.congNghe ?? row.CongNghe),
-      link: text(row.link ?? row.Link),
-      moTa: text(row.moTa ?? row.MoTa),
-      tuNgay: toMonthYear(row.tuNgay ?? row.TuNgay),
-      denNgay: toMonthYear(row.denNgay ?? row.DenNgay),
-      isHienTai: Boolean(row.isHienTai ?? row.IsHienTai),
-    })),
-    kyNang: withId(rowsOf('kyNang'), (row) => ({
-      tenKyNang: text(row.tenKyNang ?? row.TenKyNang),
-      mucDoThanhThao: toSkillLevel(row.mucDoThanhThao ?? row.MucDoThanhThao),
-      soNamKinhNghiem: text(row.soNamKinhNghiem ?? row.SoNamKinhNghiem),
-    })),
-    chungChi: withId(rowsOf('chungChi'), (row) => ({
-      tenChungChi: text(row.tenChungChi ?? row.TenChungChi),
-      donViCap: text(row.donViCap ?? row.DonViCap),
-      ngayCap: toVnDate(row.ngayCap ?? row.NgayCap),
-      ngayHetHan: toVnDate(row.ngayHetHan ?? row.NgayHetHan),
-      maXacMinh: text(row.maXacMinh ?? row.MaXacMinh),
-      credentialUrl: text(row.credentialUrl ?? row.CredentialUrl),
-    })),
-  };
-
-  const giaoDien = content.giaoDien ?? content.GiaoDien;
-  if (giaoDien && typeof giaoDien === 'object' && !Array.isArray(giaoDien)) {
-    payload.giaoDien = giaoDien as CvRenderData['giaoDien'];
-  }
-  return payload;
-}
-
-function skillNameList(value: unknown): Record<string, unknown>[] {
-  return (Array.isArray(value) ? value : [])
-    .map((row) => asRecord(row) ?? {})
-    .map((row) => ({ tenKyNang: asText(row.tenKyNang ?? row.TenKyNang) }))
-    .filter((row) => row.tenKyNang);
-}
-
 /** Origin của Web (bỏ hậu tố /api/dotnet) — nơi đặt route /cv-render. */
 export function webOrigin(): string {
   const base = getApiBaseUrl();
@@ -512,7 +388,14 @@ export const hrCvApi = {
 
     const raw = asRecord(detail);
     if (!raw) throw new Error('Không tải được CV (có thể bạn không có quyền xem).');
-    const data = normalizeCvPayload(raw);
+    // Snapshot khi ứng tuyển có cấu trúc CvDetailVm (noiDung); dùng chung
+    // mapper với form CV để giữ nguyên dữ liệu nộp từ web hoặc mobile.
+    const detailVm = normalizeCvDetail(raw);
+    const form = manualCvDetailToForm(detailVm, cloneCvData(defaultCvData));
+    const data: CvRenderData = {
+      ...form,
+      giaoDien: form.giaoDien,
+    };
     const templateId = data.templateId ?? 'modern';
     const url = `${webOrigin()}/cv-render?d=${encodeURIComponent(JSON.stringify(data))}&t=${encodeURIComponent(templateId)}`;
     return {
@@ -657,7 +540,7 @@ function normalizeCompany(value: unknown): CompanyMine | null {
     tenDoanhNghiep: asText(raw.tenDoanhNghiep ?? raw.TenDoanhNghiep),
     moTa: asText(raw.moTa ?? raw.MoTa),
     website: asText(raw.website ?? raw.Website),
-    diaChi: asText(raw.diaChi ?? raw.DiaChi),
+    diaChi: normalizeAddressProvince(asText(raw.diaChi ?? raw.DiaChi)),
     logoUrl: asText(raw.logoUrl ?? raw.LogoUrl),
     maSoThue: asText(raw.maSoThue ?? raw.MaSoThue),
     linhVucHoatDong: asText(raw.linhVucHoatDong ?? raw.LinhVucHoatDong),

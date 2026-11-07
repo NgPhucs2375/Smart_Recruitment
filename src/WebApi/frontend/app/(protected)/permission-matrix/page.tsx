@@ -307,7 +307,7 @@ export default function PermissionMatrixPage() {
 
         {/* ── 2. Matrix header (fixed, outside scroll) ── */}
         <div className="grid grid-cols-[220px_repeat(4,minmax(270px,1fr))] border-b border-border bg-popover text-popover-foreground shadow-sm shrink-0">
-          <div className="px-4 py-3 font-medium text-xs text-muted-foreground border-r border-border">
+          <div className="sticky left-0 z-30 bg-popover px-4 py-3 font-medium text-xs text-muted-foreground border-r border-border">
             Resource
           </div>
           {data.roles.map((r) => (
@@ -356,7 +356,7 @@ export default function PermissionMatrixPage() {
                 key={resource}
                 className={`grid grid-cols-[220px_repeat(4,minmax(270px,1fr))] border-b border-border transition-colors hover:bg-muted/50 ${idx % 2 === 1 ? "bg-muted/20" : ""}`}
               >
-                <div className="px-4 py-3 font-medium text-xs text-foreground border-r border-border flex items-start">
+                <div className="sticky left-0 z-20 bg-background px-4 py-3 font-medium text-xs text-foreground border-r border-border flex items-start">
                   {resource}
                 </div>
                 {data.roles.map((role) => {

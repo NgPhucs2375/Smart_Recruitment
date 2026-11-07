@@ -189,7 +189,6 @@ export default function KyNangTinTuyenDungPage() {
       <AdminPageHeader
         icon={Briefcase}
         title="Kỹ năng tin tuyển dụng"
-        description="Quản lý kỹ năng yêu cầu cho từng tin tuyển dụng."
       />
 
       {successMsg && <div role="status" className="rounded-xl border border-border bg-card px-4 py-3 text-sm text-foreground shadow-sm">{successMsg}</div>}
@@ -215,9 +214,6 @@ export default function KyNangTinTuyenDungPage() {
               <div className="mb-5 flex items-center justify-between">
                 <div>
                   <h2 className="font-medium text-foreground">{editing ? "Chỉnh sửa kỹ năng" : "Thêm kỹ năng yêu cầu"}</h2>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    {editing ? "Cập nhật mức độ yêu cầu." : `Thêm kỹ năng cho "${selectedJobTitle}"`}
-                  </p>
                 </div>
                 <Button type="button" variant="ghost" size="icon" onClick={resetForm}><X className="size-4" /></Button>
               </div>

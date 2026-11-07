@@ -1,4 +1,5 @@
 import { PAGE_SIZE, SORT_PARAMS } from '@/features/jobs/constants';
+import { normalizeAddressProvince } from '@/features/location/vietnam-provinces';
 import { formatSalary } from '@/features/jobs/format';
 import { getMockFilterOptions, getMockJobById, queryMockJobs } from '@/features/jobs/mock-jobs';
 import type {
@@ -37,7 +38,7 @@ export function normalizeJob(value: unknown): Job | null {
     id,
     title,
     company: asText(raw.tenDoanhNghiep ?? raw.TenDoanhNghiep, 'Doanh nghiệp tuyển dụng'),
-    location: asText(raw.diaDiemLamViec ?? raw.DiaDiemLamViec, 'Chưa cập nhật địa điểm'),
+    location: normalizeAddressProvince(asText(raw.diaDiemLamViec ?? raw.DiaDiemLamViec, 'Chưa cập nhật địa điểm')),
     salary: formatSalary(salaryMin, salaryMax),
     salaryMin,
     salaryMax,

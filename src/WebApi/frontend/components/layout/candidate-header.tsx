@@ -81,7 +81,7 @@ export function CandidateHeader() {
   }, []);
 
   return (
-    <header className="sticky top-0 z-40 border-b border-workspace-border/70 bg-workspace-topbar/90 backdrop-blur-xl">
+    <header className="sticky top-0 z-40 border-b border-workspace-border/70 bg-workspace-topbar backdrop-blur-xl">
       <div className="mx-auto flex h-16 max-w-[1600px] items-center gap-5 px-4 md:px-8">
         <BrandLogo href="/dashboard" variant="workspace" size="md" />
 

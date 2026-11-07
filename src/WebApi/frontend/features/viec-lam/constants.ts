@@ -1,12 +1,6 @@
-export const locations = [
-  "Hà Nội",
-  "Hồ Chí Minh",
-  "Đà Nẵng",
-  "Hải Phòng",
-  "Cần Thơ",
-  "Bình Dương",
-  "Đồng Nai",
-] as const;
+import { vietnamProvinces } from "@/features/location/vietnam-provinces";
+
+export const locations = vietnamProvinces;
 
 export const jobLevels = [
   "Intern",

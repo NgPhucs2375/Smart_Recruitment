@@ -1,6 +1,9 @@
 import { useState, type ReactNode } from 'react';
+import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
+import { CalendarDays } from 'lucide-react-native';
 import {
   Pressable,
+  Platform,
   StyleSheet,
   TextInput,
   View,
@@ -12,6 +15,7 @@ import {
 
 import { ThemedText } from '@/components/themed-text';
 import { Button } from '@/components/ui/button';
+import { DatePickerField as NativeDatePickerField } from '@/components/ui/date-picker-field';
 import { font, Radius } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
@@ -19,7 +23,6 @@ import {
   compareCvPartialDates,
   isValidCvPartialDate,
   isValidVnDate,
-  maskDateVn,
   maskMonthYear,
   maskYearOnly,
   parseCvPartialDate,
@@ -139,7 +142,7 @@ export function DateField({
   disabled?: boolean;
   style?: StyleProp<ViewStyle>;
 }) {
-  const badFormat = !isValidVnDate(value);
+  const badFormat = value.trim() !== '' && !isValidVnDate(value);
   const future = !badFormat && value.trim() !== '' && isFutureVnDate(value);
   const error = badFormat
     ? 'Ngày không hợp lệ (dd/mm/yyyy)'
@@ -147,18 +150,7 @@ export function DateField({
       ? MSG_DOB_FUTURE
       : null;
 
-  return (
-    <CvInput
-      label={label}
-      value={value}
-      onChangeText={(next) => onChange(maskDateVn(next))}
-      placeholder="dd/mm/yyyy"
-      keyboardType="number-pad"
-      disabled={disabled}
-      error={error}
-      style={style}
-    />
-  );
+  return <NativeDatePickerField label={label} value={value} valueFormat="vn" onChange={onChange} disabled={disabled} error={error ?? undefined} style={style} />;
 }
 
 export function PartialDateField({
@@ -176,22 +168,48 @@ export function PartialDateField({
   disabled?: boolean;
   style?: StyleProp<ViewStyle>;
 }) {
+  const theme = useTheme();
+  const [pickerOpen, setPickerOpen] = useState(false);
   const invalid = !isValidCvPartialDate(value, precision);
   const hint = precision === 'year_only' ? 'YYYY' : 'MM/YYYY';
+  const match = precision === 'year_only' ? /^(\d{4})$/.exec(value) : /^(\d{2})\/(\d{4})$/.exec(value);
+  const pickerDate = precision === 'year_only'
+    ? new Date(Number(match?.[1] ?? new Date().getFullYear()), 0, 1, 12)
+    : new Date(Number(match?.[2] ?? new Date().getFullYear()), Number(match?.[1] ?? 1) - 1, 1, 12);
+  const handlePickerChange = (event: DateTimePickerEvent, date?: Date) => {
+    if (Platform.OS !== 'ios') setPickerOpen(false);
+    if (event.type !== 'set' || !date) return;
+    onChange(precision === 'year_only'
+      ? String(date.getFullYear())
+      : `${String(date.getMonth() + 1).padStart(2, '0')}/${date.getFullYear()}`);
+  };
 
   return (
-    <CvInput
-      label={label}
-      value={value}
-      onChangeText={(next) =>
-        onChange(precision === 'year_only' ? maskYearOnly(next) : maskMonthYear(next))
-      }
-      placeholder={hint}
-      keyboardType="number-pad"
-      disabled={disabled}
-      error={invalid ? `Ngày không hợp lệ (${hint})` : null}
-      style={style}
-    />
+    <View style={[styles.group, style]}>
+      <FieldLabel label={label} />
+      <View style={styles.partialDateRow}>
+        <View style={styles.partialDateInput}>
+          <CvInput
+            value={value}
+            onChangeText={(next) => onChange(precision === 'year_only' ? maskYearOnly(next) : maskMonthYear(next))}
+            placeholder={hint}
+            keyboardType="number-pad"
+            disabled={disabled}
+            error={invalid ? `Ngày không hợp lệ (${hint})` : null}
+          />
+        </View>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Chọn ${label} từ lịch`}
+          disabled={disabled}
+          onPress={() => setPickerOpen(true)}
+          style={({ pressed }) => [styles.partialDateButton, { opacity: disabled ? 0.5 : pressed ? 0.75 : 1 }]}
+        >
+          <CalendarDays size={18} color={theme.primary} />
+        </Pressable>
+      </View>
+      {pickerOpen ? <DateTimePicker value={pickerDate} mode="date" display={Platform.OS === 'ios' ? 'compact' : 'default'} onChange={handlePickerChange} /> : null}
+    </View>
   );
 }
 
@@ -408,6 +426,17 @@ const styles = StyleSheet.create({
   error: { fontSize: 11 },
   precisionGroup: { gap: 8 },
   precisionRow: { flexDirection: 'row', gap: 6 },
+  partialDateRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  partialDateInput: { flex: 1 },
+  partialDateButton: {
+    width: 42,
+    height: 42,
+    borderWidth: 1,
+    borderColor: '#94A3B8',
+    borderRadius: Radius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   tips: {
     borderWidth: 1,
     borderStyle: 'dashed',

@@ -787,7 +787,6 @@ function RecruiterControlCenter() {
       <AdminPageHeader
         icon={LayoutDashboard}
         title="Tổng quan tuyển dụng"
-        description="Trung tâm điều hành tuyển dụng hằng ngày của bạn."
         actions={
           <>
             <Link href="/tin-tuyen-dung" className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition hover:opacity-90">

@@ -20,6 +20,7 @@ import { Card } from '@/components/ui/card';
 import { Radius } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { FormSelect } from '@/features/hr/components/form-field';
+import { ProvinceAddressFields } from '@/features/location/province-address-fields';
 
 import type {
   CvDatePrecision,
@@ -434,9 +435,10 @@ export function ManualCvForm({
           label="Số điện thoại"
           required
           value={lh.sdt}
-          onChangeText={(next) => setLienHe('sdt', next)}
-          placeholder="090 123 4567"
-          keyboardType="phone-pad"
+           onChangeText={(next) => setLienHe('sdt', next.replace(/\D/g, '').slice(0, 10))}
+           placeholder="0901234567"
+           keyboardType="phone-pad"
+           maxLength={10}
           error={phoneErr}
         />
       </Row>
@@ -455,11 +457,9 @@ export function ManualCvForm({
           style={styles.flex1}
         />
       </Row>
-      <CvInput
-        label="Địa chỉ"
+      <ProvinceAddressFields
         value={lh.diaChi}
-        onChangeText={(next) => setLienHe('diaChi', next)}
-        placeholder="Hà Nội, Việt Nam"
+        onChange={(next) => setLienHe('diaChi', next)}
       />
       <Row>
         <CvInput

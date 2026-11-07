@@ -9,7 +9,6 @@ import {
   Briefcase,
   CalendarDays,
   CircleDollarSign,
-  MapPin,
   Phone,
   UserRound,
 } from 'lucide-react-native';
@@ -51,6 +50,7 @@ import {
   vnToIsoDate,
 } from '@/features/profile/format';
 import type { AvatarUpload, CandidateProfile, CandidateProfileInput } from '@/features/profile/types';
+import { ProvinceAddressFields } from '@/features/location/province-address-fields';
 import { useTheme } from '@/hooks/use-theme';
 
 type FormState = {
@@ -95,7 +95,7 @@ function emptyForm(name: string): FormState {
 function formFromProfile(profile: CandidateProfile, fallbackName: string): FormState {
   return {
     fullName: profile.fullName || fallbackName,
-    phone: profile.phone,
+    phone: profile.phone.replace(/\D/g, '').slice(0, 10),
     birthDate: isoToVnDate(profile.birthDate),
     gender: profile.gender || 'Nam',
     location: profile.location,
@@ -457,8 +457,8 @@ export default function ProfileEditScreen() {
               icon={<Phone size={16} color={theme.primary} />}
               keyboardType="phone-pad"
               label="Số điện thoại"
-              maxLength={20}
-              onChangeText={(value) => patch('phone', value)}
+               maxLength={10}
+               onChangeText={(value) => patch('phone', value.replace(/\D/g, '').slice(0, 10))}
               placeholder="0912345678"
               value={form.phone}
               error={errors.phone}
@@ -509,15 +509,11 @@ export default function ProfileEditScreen() {
               options={GENDER_OPTIONS}
               value={form.gender}
             />
-            <ProfileField
-              autoCapitalize="sentences"
-              icon={<MapPin size={16} color={theme.primary} />}
-              label="Địa chỉ"
-              maxLength={500}
-              onChangeText={(value) => patch('location', value)}
-              placeholder="TP. Hồ Chí Minh"
+            <ProvinceAddressFields
               value={form.location}
-              error={errors.location}
+              onChange={(value) => patch('location', value)}
+              invalid={Boolean(errors.location)}
+              errorText={errors.location}
             />
 
             <ThemedText style={[styles.sectionTitle, { color: theme.textSecondary }]}>

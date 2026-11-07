@@ -19,8 +19,10 @@ export function AppSidebarV2() {
   const identity = useStoredIdentity();
   const isAdministrator = resolveWorkspace(identity?.roles) === "admin";
   const workspaceItems = getWorkspaceNavigation(identity?.roles);
+  const chatRole = identity?.roles?.some((role) => ["NGUOI_DAI_DIEN", "NHAN_SU"].includes(role.trim().toUpperCase())) ?? false;
   const visibleItems = workspaceItems.filter((item) =>
     !item.permission ||
+    (item.href === "/tin-nhan" && chatRole) ||
     (identity && hasPermission(identity.permissions, item.permission.resource, item.permission.action)),
   );
 

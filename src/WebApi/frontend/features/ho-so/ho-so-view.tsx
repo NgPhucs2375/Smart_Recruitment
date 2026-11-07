@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { ProvinceAddressFields } from "@/components/ui/province-address-fields";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -805,10 +806,10 @@ export function HoSoView() {
                         id="ho-so-sdt"
                         placeholder="0912345678"
                         value={sdt}
-                        onChange={(e) => setSdt(e.target.value)}
+                        onChange={(e) => setSdt(e.target.value.replace(/\D/g, "").slice(0, 10))}
                         type="tel"
                         inputMode="tel"
-                        maxLength={20}
+                        maxLength={10}
                         aria-invalid={sdt.trim() !== "" && !isValidVnPhone(sdt)}
                         className="h-10 rounded-xl border-input bg-card pl-10 text-sm"
                       />
@@ -886,19 +887,13 @@ export function HoSoView() {
                   </div>
                 </div>
 
-                <div className="space-y-1.5">
-                  <label htmlFor="ho-so-dia-chi" className="text-xs font-medium text-foreground">Địa chỉ hiện tại</label>
-                  <div className="relative">
-                    <MapPin className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input
-                      id="ho-so-dia-chi"
-                      placeholder="Quận 1, TP. Hồ Chí Minh"
-                      value={diaChi}
-                      onChange={(e) => setDiaChi(e.target.value)}
-                      className="h-10 rounded-xl border-input bg-card pl-10 text-sm"
-                    />
-                  </div>
-                </div>
+                <ProvinceAddressFields
+                  id="ho-so-dia-chi"
+                  label="Tỉnh/thành phố hiện tại"
+                  detailLabel="Địa chỉ chi tiết (không bắt buộc)"
+                  value={diaChi}
+                  onChange={setDiaChi}
+                />
               </div>
 
               {/* Vị trí & Định hướng */}

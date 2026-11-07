@@ -2,6 +2,7 @@ import { useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  Image,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -168,12 +169,16 @@ export default function CompanyDetailScreen() {
           <View style={[styles.hero, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
             <View style={styles.heroBanner} />
             <View style={styles.heroBody}>
-              <View style={[styles.avatarWrap, { backgroundColor: theme.backgroundElement }]}>
-                <Monogram label={companyInitials(company.name)} size={80} radius={Radius['2xl']} fontSize={26} />
+              <View style={[styles.avatarWrap, { backgroundColor: theme.backgroundElement, borderColor: theme.backgroundElement }]}>
+                {company.logoUrl ? (
+                  <Image source={{ uri: company.logoUrl }} resizeMode="contain" style={styles.companyLogo} accessibilityLabel={`Logo ${company.name}`} />
+                ) : (
+                  <Monogram label={companyInitials(company.name)} size={72} radius={Radius['2xl']} fontSize={24} />
+                )}
               </View>
               <View style={styles.heroTitleBlock}>
-                <ThemedText style={styles.heroLabel}>Doanh nghiệp</ThemedText>
-                <ThemedText style={[styles.heroName, { color: theme.text }]} numberOfLines={3}>
+                <ThemedText style={styles.heroLabel} numberOfLines={1}>Doanh nghiệp</ThemedText>
+                <ThemedText style={[styles.heroName, { color: theme.text }]}>
                   {company.name}
                 </ThemedText>
               </View>
@@ -181,7 +186,7 @@ export default function CompanyDetailScreen() {
 
             <View style={styles.tagRow}>
               {company.industry ? (
-                <View style={[styles.tag, { backgroundColor: theme.muted, borderColor: theme.border }]}>
+                <View style={[styles.tag, { backgroundColor: theme.backgroundSelected, borderColor: 'transparent' }]}>
                   <Building2 size={12} color={Palette.sage} />
                   <ThemedText numberOfLines={1} style={[styles.tagText, { color: theme.textSecondary }]}>
                     {company.industry}
@@ -189,7 +194,7 @@ export default function CompanyDetailScreen() {
                 </View>
               ) : null}
               {company.address ? (
-                <View style={[styles.tag, { backgroundColor: theme.muted, borderColor: theme.border }]}>
+                <View style={[styles.tag, { backgroundColor: theme.backgroundSelected, borderColor: 'transparent' }]}>
                   <MapPin size={12} color={Palette.sage} />
                   <ThemedText numberOfLines={2} style={[styles.tagText, { color: theme.textSecondary }]}>
                     {company.address}
@@ -197,7 +202,7 @@ export default function CompanyDetailScreen() {
                 </View>
               ) : null}
               {company.size ? (
-                <View style={[styles.tag, { backgroundColor: theme.muted, borderColor: theme.border }]}>
+                <View style={[styles.tag, { backgroundColor: theme.backgroundSelected, borderColor: 'transparent' }]}>
                   <Users size={12} color={Palette.sage} />
                   <ThemedText numberOfLines={1} style={[styles.tagText, { color: theme.textSecondary }]}>
                     {company.size}
@@ -205,7 +210,7 @@ export default function CompanyDetailScreen() {
                 </View>
               ) : null}
               {company.website ? (
-                <View style={[styles.tag, { backgroundColor: theme.muted, borderColor: theme.border }]}>
+                <View style={[styles.tag, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
                   <Globe size={12} color={Palette.sage} />
                   <ThemedText numberOfLines={1} style={[styles.tagText, { color: theme.textSecondary }]}>
                     Website
@@ -324,10 +329,11 @@ const styles = StyleSheet.create({
   errorBody: { fontFamily: font('regular'), fontSize: 13, textAlign: 'center' },
   content: { padding: 16, paddingBottom: 32, gap: 16 },
   hero: { borderRadius: Radius['3xl'], borderWidth: 1, overflow: 'hidden' },
-  heroBanner: { height: 72, backgroundColor: Palette.navy },
-  heroBody: { flexDirection: 'row', alignItems: 'flex-end', gap: 14, paddingHorizontal: 20, marginTop: -36 },
-  avatarWrap: { borderRadius: Radius['2xl'], borderWidth: 4, padding: 0 },
-  heroTitleBlock: { flex: 1, minWidth: 0, paddingBottom: 4, gap: 3 },
+  heroBanner: { height: 88, backgroundColor: Palette.navy },
+  heroBody: { flexDirection: 'column', alignItems: 'flex-start', paddingHorizontal: 18, marginTop: -42 },
+  avatarWrap: { width: 80, height: 80, borderRadius: Radius['2xl'], borderWidth: 4, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  companyLogo: { width: '100%', height: '100%', borderRadius: Radius.xl },
+  heroTitleBlock: { width: '100%', minWidth: 0, paddingBottom: 2, paddingTop: 4, gap: 3 },
   heroLabel: {
     fontFamily: font('semibold'),
     fontSize: 11,
@@ -335,14 +341,14 @@ const styles = StyleSheet.create({
     letterSpacing: 1.2,
     textTransform: 'uppercase',
   },
-  heroName: { fontFamily: font('semibold'), fontSize: 22, lineHeight: 28, letterSpacing: -0.4 },
+  heroName: { fontFamily: font('semibold'), fontSize: 22, lineHeight: 28, letterSpacing: -0.35, flexShrink: 1 },
   tagRow: {
     flexDirection: 'row',
     alignItems: 'center',
     flexWrap: 'wrap',
     gap: 8,
-    paddingHorizontal: 20,
-    marginTop: 14,
+    paddingHorizontal: 18,
+    marginTop: 12,
   },
   tag: {
     flexDirection: 'row',

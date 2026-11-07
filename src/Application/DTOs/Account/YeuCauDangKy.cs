@@ -11,6 +11,7 @@ namespace Application.DTOs.Account
 
         [Required]
         [EmailAddress]
+        [MaxLength(100)]
         [JsonPropertyName("email")]
         public string Email { get; set; }
   
@@ -29,6 +30,7 @@ namespace Application.DTOs.Account
         [Required]
         [Phone]
         [RegularExpression(@"^0(3|5|7|8|9)\d{8}$", ErrorMessage = "Số điện thoại di động VN không hợp lệ.")]
+        [MaxLength(10)]
         [JsonPropertyName("soDienThoai")]
         public string SoDienThoai { get; set; }
 

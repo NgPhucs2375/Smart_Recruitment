@@ -23,8 +23,10 @@ import {
   ProfileEmptyState,
   ProfileSkeletonRows,
 } from '@/features/profile/components/profile-sections';
-import { isoToMonthYear, isoToVnDate, maskDateVn, vnToIsoDate } from '@/features/profile/format-date';
+import { isoToMonthYear, isoToVnDate, vnToIsoDate } from '@/features/profile/format-date';
 import { useTheme } from '@/hooks/use-theme';
+import { ProvinceAddressFields } from '@/features/location/province-address-fields';
+import { DatePickerField } from '@/components/ui/date-picker-field';
 
 type Notice = { type: 'success' | 'error'; message: string } | null;
 
@@ -323,53 +325,28 @@ export function ExperienceSection() {
             />
           </Field>
 
-          <Field label="ĐỊA CHỈ">
-            <TextInputBox
-              editable={!saving}
-              onChangeText={(text) => setForm((prev) => ({ ...prev, diaChi: text }))}
-              placeholder="VD: Hà Nội"
-              value={form.diaChi}
-            />
-          </Field>
+          <ProvinceAddressFields
+            value={form.diaChi}
+            onChange={(value) => setForm((prev) => ({ ...prev, diaChi: value }))}
+            disabled={saving}
+          />
 
-          <View style={styles.fieldRow}>
-            <View style={styles.fieldHalf}>
-              <Field label="TỪ NGÀY">
-                <TextInputBox
-                  editable={!saving}
-                  keyboardType="number-pad"
-                  onChangeText={(text) =>
-                    setForm((prev) => ({ ...prev, tuNgay: maskDateVn(text) }))
-                  }
-                  placeholder="dd/mm/yyyy"
-                  value={form.tuNgay}
-                />
-                {tuNgayInvalid ? (
-                  <ThemedText style={[styles.fieldError, { color: theme.destructive }]}>
-                    Ngày không hợp lệ
-                  </ThemedText>
-                ) : null}
-              </Field>
-            </View>
-            <View style={styles.fieldHalf}>
-              <Field label="ĐẾN NGÀY">
-                <TextInputBox
-                  editable={!saving && !form.isHienTai}
-                  keyboardType="number-pad"
-                  onChangeText={(text) =>
-                    setForm((prev) => ({ ...prev, denNgay: maskDateVn(text) }))
-                  }
-                  placeholder={form.isHienTai ? 'Đang làm tại đây' : 'dd/mm/yyyy'}
-                  value={form.isHienTai ? '' : form.denNgay}
-                />
-                {denNgayInvalid ? (
-                  <ThemedText style={[styles.fieldError, { color: theme.destructive }]}>
-                    Ngày không hợp lệ
-                  </ThemedText>
-                ) : null}
-              </Field>
-            </View>
-          </View>
+          <DatePickerField
+            label="Từ ngày"
+            value={form.tuNgay}
+            valueFormat="vn"
+            onChange={(value) => setForm((prev) => ({ ...prev, tuNgay: value }))}
+            disabled={saving}
+            error={tuNgayInvalid ? 'Ngày không hợp lệ (dd/MM/yyyy).' : undefined}
+          />
+          <DatePickerField
+            label="Đến ngày"
+            value={form.isHienTai ? '' : form.denNgay}
+            valueFormat="vn"
+            onChange={(value) => setForm((prev) => ({ ...prev, denNgay: value }))}
+            disabled={saving || form.isHienTai}
+            error={denNgayInvalid ? 'Ngày không hợp lệ (dd/MM/yyyy).' : undefined}
+          />
 
           <Pressable
             accessibilityRole="checkbox"
@@ -904,8 +881,6 @@ const styles = StyleSheet.create({
     letterSpacing: 0.8,
   },
   fieldError: { fontFamily: font('medium'), fontSize: 11 },
-  fieldRow: { flexDirection: 'row', gap: 10 },
-  fieldHalf: { flex: 1 },
   inputWrap: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -14,6 +14,9 @@ import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { AdminPageLayout, AdminCard, AdminEmptyState, AdminLoadingState } from "@/components/admin/admin-page-layout";
 import { Badge } from "@/components/ui/badge";
 import { getValidToken } from "@/lib/auth-provider";
+import { ProvinceSelect } from "@/components/ui/province-select";
+import { canonicalProvince } from "@/features/location/vietnam-provinces";
+import { DatePickerField } from "@/components/ui/date-picker-field";
 
 type TinTuyenDung = {
   id: number;
@@ -92,6 +95,8 @@ const EMPTY_FORM = {
   ngayHetHan: "",
   kyNangs: [] as JobSkill[],
 };
+
+const WORK_MODE_LABELS = ["Onsite", "Remote", "Hybrid", "Flexible"];
 
 function fmtDate(d: string) {
   if (!d) return "—";
@@ -207,7 +212,7 @@ export default function TinTuyenDungPage() {
           kinhNghiemYeuCau: `${r.kinhNghiemYeuCau ?? r.KinhNghiemYeuCau ?? ""}`,
           yeuCauCongViec: `${r.yeuCauCongViec ?? r.YeuCauCongViec ?? ""}`,
           quyenLoi: `${r.quyenLoi ?? r.QuyenLoi ?? ""}`,
-          diaDiemLamViec: `${r.diaDiemLamViec ?? r.DiaDiemLamViec ?? ""}`,
+          diaDiemLamViec: canonicalProvince(`${r.diaDiemLamViec ?? r.DiaDiemLamViec ?? ""}`) || `${r.diaDiemLamViec ?? r.DiaDiemLamViec ?? ""}`,
           phuongThucLamViec: parseWorkMode(r.phuongThucLamViec ?? r.PhuongThucLamViec ?? r.workMode ?? r.WorkMode),
           luongToiThieu: Number(r.luongToiThieu ?? r.LuongToiThieu ?? 0),
           luongToiDa: Number(r.luongToiDa ?? r.LuongToiDa ?? 0),
@@ -325,7 +330,7 @@ export default function TinTuyenDungPage() {
       kinhNghiemYeuCau: item.kinhNghiemYeuCau,
       yeuCauCongViec: item.yeuCauCongViec,
       quyenLoi: item.quyenLoi,
-      diaDiemLamViec: item.diaDiemLamViec,
+      diaDiemLamViec: canonicalProvince(item.diaDiemLamViec) || item.diaDiemLamViec,
       phuongThucLamViec: item.phuongThucLamViec,
       luongToiThieu: item.luongToiThieu,
       luongToiDa: item.luongToiDa,
@@ -360,7 +365,7 @@ export default function TinTuyenDungPage() {
     if (form.kyNangs.some(k => k.kyNangId === skill.id)) return;
     setForm(f => ({ ...f, kyNangs: [...f.kyNangs, { kyNangId: skill.id, tenKyNang: skill.name, mucDoYeuCau: 2 }] }));
     setSkillQuery("");
-    setSkillOpen(false);
+    setSkillOpen(true);
     setSkillError("");
   }
 
@@ -497,6 +502,7 @@ export default function TinTuyenDungPage() {
   }
 
   const filtered = items.filter(i => !search.trim() || i.tieuDe.toLowerCase().includes(search.toLowerCase()));
+  const selectedCategoryLabel = danhMucs.find(d => d.id === form.danhMucNgheId)?.tenNghe;
 
   return (
     <AdminPageLayout>
@@ -531,7 +537,6 @@ export default function TinTuyenDungPage() {
           <div className="flex items-center justify-between">
             <div>
               <h2 className="font-medium text-foreground">{editing ? "Chỉnh sửa tin tuyển dụng" : "Tạo tin tuyển dụng mới"}</h2>
-              <p className="mt-1 text-sm text-muted-foreground">Tin Nhân sự cần Người đại diện đồng ý trước khi hệ thống lọc. Tin Người đại diện đi thẳng đến bộ lọc. OK thì công khai; vi phạm/nghi vấn thì Admin quyết định.</p>
             </div>
             <Button type="button" variant="ghost" size="icon" onClick={resetForm}><X className="size-4" /></Button>
           </div>
@@ -550,7 +555,7 @@ export default function TinTuyenDungPage() {
               <div className="space-y-2">
                 <Label htmlFor="ttd-danh-muc">Danh mục nghề *</Label>
                 <Select value={form.danhMucNgheId > 0 ? String(form.danhMucNgheId) : ""} onValueChange={value => setForm(f => ({ ...f, danhMucNgheId: Number(value) }))}>
-                  <SelectTrigger id="ttd-danh-muc" aria-invalid={errField === "danhMucNgheId"} className="h-10 w-full"><SelectValue placeholder="-- Chọn danh mục --" /></SelectTrigger>
+                   <SelectTrigger id="ttd-danh-muc" aria-invalid={errField === "danhMucNgheId"} className="h-10 w-full"><SelectValue placeholder="-- Chọn danh mục --">{selectedCategoryLabel}</SelectValue></SelectTrigger>
                   <SelectContent>
                     {danhMucs.map(d => <SelectItem key={d.id} value={String(d.id)}>{d.tenNghe}</SelectItem>)}
                   </SelectContent>
@@ -559,7 +564,7 @@ export default function TinTuyenDungPage() {
               <div className="space-y-2">
                 <Label htmlFor="ttd-phuong-thuc">Phương thức làm việc *</Label>
                 <Select value={form.phuongThucLamViec >= 0 ? String(form.phuongThucLamViec) : ""} onValueChange={value => setForm(f => ({ ...f, phuongThucLamViec: Number(value) }))}>
-                  <SelectTrigger id="ttd-phuong-thuc" aria-invalid={errField === "phuongThucLamViec"} className="h-10 w-full"><SelectValue placeholder="-- Chọn phương thức --" /></SelectTrigger>
+                   <SelectTrigger id="ttd-phuong-thuc" aria-invalid={errField === "phuongThucLamViec"} className="h-10 w-full"><SelectValue placeholder="-- Chọn phương thức --">{WORK_MODE_LABELS[form.phuongThucLamViec]}</SelectValue></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="0">Onsite</SelectItem>
                     <SelectItem value="1">Remote</SelectItem>
@@ -570,7 +575,7 @@ export default function TinTuyenDungPage() {
               </div>
               <div className="space-y-2 md:col-span-2">
                 <Label htmlFor="ttd-dia-diem">Địa điểm *</Label>
-                 <Input id="ttd-dia-diem" aria-invalid={errField === "diaDiemLamViec"} value={form.diaDiemLamViec} maxLength={255} onChange={e => setForm(f => ({ ...f, diaDiemLamViec: e.target.value }))} required placeholder="VD: Hà Nội, TP. Hồ Chí Minh" />
+                  <ProvinceSelect id="ttd-dia-diem" invalid={errField === "diaDiemLamViec"} value={form.diaDiemLamViec} onValueChange={province => setForm(f => ({ ...f, diaDiemLamViec: province }))} />
               </div>
             </div>
           </section>
@@ -582,21 +587,14 @@ export default function TinTuyenDungPage() {
             </h3>
             <div className="grid gap-4 md:grid-cols-3">
               <div className="space-y-2">
-                <Label htmlFor="ttd-het-han">Ngày hết hạn</Label>
-                <Input
+                <DatePickerField
                   id="ttd-het-han"
-                  aria-invalid={errField === "ngayHetHan"}
-                  inputMode="numeric"
-                  maxLength={10}
+                  label="Ngày hết hạn"
                   value={form.ngayHetHan}
-                  onChange={e => {
-                    const digits = e.target.value.replace(/\D/g, "").slice(0, 8);
-                    const parts = [digits.slice(0, 2), digits.slice(2, 4), digits.slice(4, 8)].filter(Boolean);
-                    setForm(f => ({ ...f, ngayHetHan: parts.join("/") }));
-                  }}
-                  placeholder="DD/MM/YYYY"
+                  min={isoToday()}
+                  onChange={value => setForm(f => ({ ...f, ngayHetHan: value }))}
                 />
-                <p className="text-xs text-muted-foreground">Không chọn ngày quá khứ. Nhận hồ sơ đến hết ngày đã chọn theo giờ Việt Nam.</p>
+                 {errField === "ngayHetHan" && <p role="alert" className="text-xs text-destructive">{err}</p>}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="ttd-luong-min">Lương tối thiểu (VND)</Label>
@@ -703,7 +701,7 @@ export default function TinTuyenDungPage() {
                   {form.kyNangs.map(skill => <div key={skill.kyNangId} className="flex flex-wrap items-center gap-3 rounded-lg border border-border p-3">
                     <span className="flex-1 text-sm">{skill.tenKyNang || skills.find(s => s.id === skill.kyNangId)?.name}</span>
                     <Select value={String(skill.mucDoYeuCau)} onValueChange={value => setForm(f => ({ ...f, kyNangs: f.kyNangs.map(k => k.kyNangId === skill.kyNangId ? { ...k, mucDoYeuCau: Number(value) } : k) }))}>
-                      <SelectTrigger aria-label={`Mức độ yêu cầu ${skill.tenKyNang}`} className="w-44"><SelectValue /></SelectTrigger>
+                       <SelectTrigger aria-label={`Mức độ yêu cầu ${skill.tenKyNang}`} className="w-44"><SelectValue>{SKILL_LEVELS[skill.mucDoYeuCau] ?? SKILL_LEVELS[0]}</SelectValue></SelectTrigger>
                       <SelectContent>{SKILL_LEVELS.map((label, i) => <SelectItem key={i} value={String(i)}>{label}</SelectItem>)}</SelectContent>
                     </Select>
                     <Button type="button" variant="ghost" aria-label={`Bỏ kỹ năng ${skill.tenKyNang}`} onClick={() => setForm(f => ({ ...f, kyNangs: f.kyNangs.filter(k => k.kyNangId !== skill.kyNangId) }))}><X className="size-4" /></Button>

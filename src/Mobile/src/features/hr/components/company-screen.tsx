@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { font, Radius } from '@/constants/theme';
 import { hrCompanyApi } from '@/features/hr/api/hr-api';
 import { FormField, FormSection } from '@/features/hr/components/form-field';
+import { ProvinceAddressFields } from '@/features/location/province-address-fields';
 import {
   HrErrorState,
   HrLoadingState,
@@ -244,14 +245,10 @@ export function CompanyScreen() {
               keyboardType="url"
               editable={isNdd}
             />
-            <FormField
-              label="Địa chỉ"
-              multiline
+            <ProvinceAddressFields
               value={company.diaChi}
-              onChangeText={(value) => patch({ diaChi: value })}
-              maxLength={MAX.address}
-              placeholder="Số 1, Đường ABC, Quận 1, TP. Hồ Chí Minh"
-              editable={isNdd}
+              onChange={(value) => patch({ diaChi: value })}
+              disabled={!isNdd}
             />
             <FormField
               label="Logo (URL)"

@@ -17,6 +17,7 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTr
 import { Slider } from "@/components/ui/slider";
 import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { locations } from "../constants";
+import { provinceDisplayName } from "@/features/location/vietnam-provinces";
 import { jobsApi } from "@/lib/api/jobs-api";
 
 
@@ -201,7 +202,7 @@ export function JobFiltersBar({ filters, onFilterChange, totalJobs }: JobFilters
             <div className="space-y-7 px-4 pb-6">
               <div><div className="mb-3 flex items-center justify-between"><label className="text-sm font-semibold">Khoảng lương mong muốn</label><span className="text-sm font-semibold text-primary">{filters.salaryMin ? `${filters.salaryMin / 1_000_000}tr` : "0"} - {filters.salaryMax ? `${filters.salaryMax / 1_000_000}tr` : "200tr+"}</span></div><Slider min={0} max={200_000_000} step={5_000_000} value={[filters.salaryMin ?? 0, filters.salaryMax ?? 200_000_000]} onValueChange={([salaryMin, salaryMax]) => onFilterChange({ ...filters, salaryMin: salaryMin || undefined, salaryMax: salaryMax === 200_000_000 ? undefined : salaryMax })} /></div>
               <div><label className="mb-3 block text-sm font-semibold">Kỹ năng</label><div className="flex flex-wrap gap-2">{options.skills.slice(0, 20).map(skill => <Button key={skill.id} variant={filters.skillIds?.includes(skill.id) ? "default" : "outline"} size="sm" className="rounded-full" onClick={() => onFilterChange({ ...filters, skillIds: filters.skillIds?.includes(skill.id) ? filters.skillIds.filter(id => id !== skill.id) : [...(filters.skillIds ?? []), skill.id] })}><Sparkles className="mr-1.5 size-3.5" />{skill.name}</Button>)}</div></div>
-              <div><label className="mb-3 block text-sm font-semibold">Địa điểm</label><div className="grid grid-cols-2 gap-2">{locations.map((location) => <Button key={location} variant={filters.location === location ? "default" : "outline"} size="sm" className="justify-start rounded-xl" onClick={() => updateFilter("location", filters.location === location ? "" : location)}>{location}</Button>)}</div></div>
+              <div><label className="mb-3 block text-sm font-semibold">Địa điểm</label><div className="grid grid-cols-2 gap-2">{locations.map((location) => <Button key={location} variant={filters.location === location ? "default" : "outline"} size="sm" className="justify-start rounded-xl" onClick={() => updateFilter("location", filters.location === location ? "" : location)}>{provinceDisplayName(location)}</Button>)}</div></div>
               <Button className="w-full rounded-xl" onClick={() => setAdvancedOpen(false)}>Áp dụng bộ lọc</Button>
             </div>
           </SheetContent>

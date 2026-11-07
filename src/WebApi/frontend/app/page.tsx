@@ -88,7 +88,7 @@ const popularTechTags = [".NET Core", "React", "Python", "AWS", "Node.js", "Next
 // Landing search subsets — derived from the single shared dataset in
 // `@/features/viec-lam/constants` (no separate location/level dataset here).
 const landingLocations = locations.filter(
-  (l) => l === "Hà Nội" || l === "Hồ Chí Minh" || l === "Đà Nẵng"
+  (l) => l === "Thành phố Hà Nội" || l === "Thành phố Hồ Chí Minh" || l === "Thành phố Đà Nẵng"
 );
 const landingLevels = jobLevels.filter((l) => l !== "Intern");
 

@@ -107,7 +107,7 @@ export function useChatConversations(enabled: boolean) {
       };
 
       let hub: signalR.HubConnection | null = null;
-      const hubUrl = getSignalRHubUrl('chat');
+      const hubUrl = getSignalRHubUrl('chat', process.env.EXPO_PUBLIC_CHAT_SIGNALR_URL);
       if (!USE_MOCK_JOBS && hubUrl) {
         hub = new signalR.HubConnectionBuilder()
           .withUrl(hubUrl, {

@@ -41,6 +41,11 @@ Check((await search.Handle(new() { KyNangIds = new() { 1, 2 }, MatchAllSkills = 
 Check((await search.Handle(new() { KyNangIds = new() { 1, 2 } }, default)).Data.Count == 2, "Any-skills filter allows a matching skill");
 Check((await search.Handle(new() { _filter = "senior backend", Location = "HA NOI", SalaryMin = 15_000_000, Level = "Senior", EmploymentType = "Full-time" }, default)).Data.Single().Id == 1, "Keyword/location are case insensitive and combine with salary and level");
 Check((await search.Handle(new() { _start = 0, _end = 1 }, default)).Data.Count == 1, "Database paging limits returned rows");
+var legacyCityJob = MakeJob(3, 1, "Legacy city location", 10_000_000, 20_000_000);
+legacyCityJob.DiaDiemLamViec = "Quận 1, TP. HCM";
+db.TinTuyenDungs.Add(legacyCityJob);
+await db.SaveChangesAsync();
+Check((await search.Handle(new() { Location = "Thành phố Hồ Chí Minh" }, default)).Data.Single().Id == 3, "Current province filter matches legacy HCM aliases");
 Check(!(await submit.Handle(new() { TinTuyenDungId = 1, CVUngVienId = 99 }, default)).Succeeded, "Invalid CV cannot apply");
 var applicationId = (await submit.Handle(new() { TinTuyenDungId = 1, CVUngVienId = 1 }, default)).Data;
 Check(applicationId > 0 && transport.Deliveries >= 2 && transport.Emails == 2 && transport.Persisted, "Submission persists candidate/recruiter notifications and sends email after save");

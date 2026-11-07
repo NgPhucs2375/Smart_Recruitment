@@ -17,7 +17,7 @@ namespace Application.DTOs.HoSoUngVien
 
         [Phone(ErrorMessage = "Số điện thoại không hợp lệ.")]
         [RegularExpression(@"^0(3|5|7|8|9)\d{8}$", ErrorMessage = "Số điện thoại di động VN không hợp lệ.")]
-        [MaxLength(20)]
+        [MaxLength(10)]
         public string SDT { get; set; }
 
         public DateTime? NgaySinh { get; set; }

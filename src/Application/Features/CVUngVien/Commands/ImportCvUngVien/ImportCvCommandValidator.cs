@@ -1,4 +1,5 @@
 using Application.DTOs.CV;
+using Application.Validation;
 using FluentValidation;
 
 namespace Application.Features.CVUngVien.Commands.ImportCvUngVien;
@@ -58,13 +59,13 @@ public class ImportCvCommandValidator : AbstractValidator<ImportCvCommand>
                 .NotEmpty().WithMessage("Họ tên không được để trống.")
                 .MaximumLength(255).WithMessage("Họ tên không được vượt quá 255 ký tự.");
             RuleFor(x => x.Email)
-                .EmailAddress().When(x => !string.IsNullOrWhiteSpace(x.Email))
+                .Must(InputValidation.IsEmail).When(x => !string.IsNullOrWhiteSpace(x.Email))
                 .WithMessage("Email không hợp lệ.")
-                .MaximumLength(256).WithMessage("Email không được vượt quá 256 ký tự.");
+                .MaximumLength(100).WithMessage("Email không được vượt quá 100 ký tự.");
             RuleFor(x => x.SDT)
-                .Matches(@"^\+?[0-9]{8,15}$").When(x => !string.IsNullOrWhiteSpace(x.SDT))
-                .WithMessage("Số điện thoại chỉ gồm 8-15 chữ số và có thể bắt đầu bằng dấu +.")
-                .MaximumLength(20).WithMessage("Số điện thoại không được vượt quá 20 ký tự.");
+                .Must(InputValidation.IsVietnameseMobilePhone).When(x => !string.IsNullOrWhiteSpace(x.SDT))
+                .WithMessage("Số điện thoại phải gồm đúng 10 chữ số, bắt đầu bằng 03/05/07/08/09.")
+                .MaximumLength(10).WithMessage("Số điện thoại phải gồm đúng 10 chữ số.");
             RuleFor(x => x.DiaChi).MaximumLength(500);
             RuleFor(x => x.GitHub).MaximumLength(500);
             RuleFor(x => x.LinkedIn).MaximumLength(500);
