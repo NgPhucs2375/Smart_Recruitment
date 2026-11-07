@@ -26,6 +26,7 @@ import {
   WORK_MODES,
   type SalaryRange,
 } from '@/features/jobs/constants';
+import { provinceDisplayName } from '@/features/location/vietnam-provinces';
 import {
   cloneFilters,
   countActiveFilters,
@@ -207,7 +208,7 @@ export function JobFiltersSheet({
                 {LOCATIONS.map((location) => (
                   <FilterChip
                     key={location}
-                    label={location}
+                    label={provinceDisplayName(location)}
                     selected={draft.location === location}
                     onPress={() => patch({ location })}
                   />

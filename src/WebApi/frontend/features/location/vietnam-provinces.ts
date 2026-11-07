@@ -13,6 +13,11 @@ export const vietnamProvinces = [
 
 export type VietnamProvince = (typeof vietnamProvinces)[number];
 
+/** Tên địa danh gọn để hiển thị; giá trị chuẩn vẫn giữ nguyên cho API. */
+export function provinceDisplayName(province: string): string {
+  return province.replace(/^(?:Tỉnh|Thành phố)\s+/i, "");
+}
+
 function key(value: string): string {
   return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "")
     .replace(/đ/g, "d").replace(/Đ/g, "D").toLowerCase()

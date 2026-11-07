@@ -24,7 +24,7 @@ import type { FilterOption, HrJob, JobFormInput } from '@/features/hr/types';
 import { useTheme } from '@/hooks/use-theme';
 import { safeBack } from '@/utils/navigation';
 import { DatePickerField } from '@/components/ui/date-picker-field';
-import { canonicalProvince, vietnamProvinces } from '@/features/location/vietnam-provinces';
+import { canonicalProvince, provinceDisplayName, vietnamProvinces } from '@/features/location/vietnam-provinces';
 
 type FormState = JobFormInput;
 
@@ -44,14 +44,24 @@ const EMPTY_FORM: FormState = {
 };
 
 function todayIso(): string {
-  return new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' });
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Ho_Chi_Minh', year: 'numeric', month: '2-digit', day: '2-digit',
+  }).formatToParts(new Date());
+  const part = (type: Intl.DateTimeFormatPartTypes) => parts.find((item) => item.type === type)?.value ?? '';
+  return `${part('year')}-${part('month')}-${part('day')}`;
 }
 
 function deadlineDate(value: string): string {
   if (!value) return '';
+  const iso = value.slice(0, 10);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) return iso;
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value.slice(0, 10);
-  return date.toLocaleDateString('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' });
+  if (Number.isNaN(date.getTime())) return '';
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Ho_Chi_Minh', year: 'numeric', month: '2-digit', day: '2-digit',
+  }).formatToParts(date);
+  const part = (type: Intl.DateTimeFormatPartTypes) => parts.find((item) => item.type === type)?.value ?? '';
+  return `${part('year')}-${part('month')}-${part('day')}`;
 }
 
 export function JobFormScreen() {
@@ -287,7 +297,7 @@ export function JobFormScreen() {
               required
               value={form.diaDiemLamViec}
               placeholder="Chọn tỉnh/thành phố"
-              options={vietnamProvinces.map((province) => ({ value: province, label: province }))}
+              options={vietnamProvinces.map((province) => ({ value: province, label: provinceDisplayName(province) }))}
               onSelect={(value) => patch({ diaDiemLamViec: value })}
               invalid={fieldError === 'diaDiemLamViec'}
             />

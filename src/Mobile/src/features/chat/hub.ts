@@ -9,11 +9,11 @@ import { getAccessToken } from '@/services/api/client';
 import { getSignalRHubUrl } from '@/services/api/signalr';
 
 /**
- * Hub chat nội bộ: `{origin}/api/hubs/chat`, dùng đúng base API hiện tại
- * (đã bỏ `/api` hoặc `/api/dotnet` trước khi ghép đường dẫn hub).
+ * Mobile thường gọi REST qua Next proxy nhưng SignalR hub phải đi thẳng backend;
+ * cho phép cấu hình URL hub riêng, nếu không sẽ suy ra từ API base như trước.
  */
 export function createChatHub(): HubConnection {
-  const hubUrl = getSignalRHubUrl('chat');
+  const hubUrl = getSignalRHubUrl('chat', process.env.EXPO_PUBLIC_CHAT_SIGNALR_URL);
   if (!hubUrl) {
     throw new Error('Chưa cấu hình địa chỉ API để kết nối chat.');
   }

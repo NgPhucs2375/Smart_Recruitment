@@ -67,7 +67,7 @@ export default function HRAccountScreen() {
           setProfile(nextProfile);
           setForm({
             hoTen: nextProfile?.hoTen ?? '',
-            sdt: nextProfile?.sdt ?? '',
+            sdt: (nextProfile?.sdt ?? '').replace(/\D/g, '').slice(0, 10),
             chucVu: nextProfile?.chucVu ?? '',
           });
           setLoadError('');
@@ -103,12 +103,12 @@ export default function HRAccountScreen() {
   const openEdit = () => {
     if (!profile) return;
     setNotice(null);
-    setForm({ hoTen: profile.hoTen, sdt: profile.sdt, chucVu: profile.chucVu });
+    setForm({ hoTen: profile.hoTen, sdt: profile.sdt.replace(/\D/g, '').slice(0, 10), chucVu: profile.chucVu });
     setEditing(true);
   };
 
   const cancelEdit = () => {
-    if (profile) setForm({ hoTen: profile.hoTen, sdt: profile.sdt, chucVu: profile.chucVu });
+    if (profile) setForm({ hoTen: profile.hoTen, sdt: profile.sdt.replace(/\D/g, '').slice(0, 10), chucVu: profile.chucVu });
     setEditing(false);
     setNotice(null);
   };

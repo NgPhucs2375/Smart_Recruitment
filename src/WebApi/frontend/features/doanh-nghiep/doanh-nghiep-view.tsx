@@ -13,7 +13,7 @@ import { CompanyList } from "@/components/company/company-list";
 import { CompanySearch } from "@/components/company/company-search";
 import { useFollowedCompanies } from "@/hooks/use-followed-companies";
 import { doanhNghiepApi, type DoanhNghiepVm } from "./doanh-nghiep-api";
-import { provinceFromAddress } from "@/features/location/vietnam-provinces";
+import { provinceDisplayName, provinceFromAddress, vietnamProvinces } from "@/features/location/vietnam-provinces";
 
 const PAGE_SIZE = 8;
 
@@ -26,7 +26,7 @@ function sectorOf(value: string): string {
   return value.trim().replace(/\s+/g, " ");
 }
 
-/** Rút tỉnh/thành (mảnh cuối sau dấu phẩy) từ địa chỉ tự do. */
+/** Rút tỉnh/thành hiện hành từ địa chỉ; giữ fallback cho địa chỉ chưa chuẩn hóa. */
 function cityOf(diaChi: string): string {
   return provinceFromAddress(diaChi) || diaChi.split(",").map((part) => part.trim()).filter(Boolean).at(-1) || "";
 }
@@ -65,12 +65,18 @@ export function DoanhNghiepView() {
   }, [reloadTick]);
 
   const fields = useMemo(() => distinct(companies.map((company) => sectorOf(company.linhVucHoatDong))).map((value) => ({ value, label: value })), [companies]);
-  const locations = useMemo(() => distinct(companies.map((company) => cityOf(company.diaChi))).map((value) => ({ value, label: value })), [companies]);
+  // Luôn hiển thị danh mục tỉnh/thành mới, kể cả nơi chưa có doanh nghiệp.
+  const locations = useMemo(() => [
+    ...vietnamProvinces.map((value) => ({ value: provinceDisplayName(value), label: provinceDisplayName(value) })),
+    ...distinct(companies.map((company) => cityOf(company.diaChi)))
+      .filter((value) => !vietnamProvinces.some((province) => provinceDisplayName(province) === provinceDisplayName(value)))
+      .map((value) => ({ value, label: value })),
+  ], [companies]);
   const visible = useMemo(() => {
     const normalized = deferredKeyword.trim().toLowerCase();
     return companies.filter((company) => {
       if (field !== "all" && sectorOf(company.linhVucHoatDong) !== field) return false;
-      if (location !== "all" && cityOf(company.diaChi) !== location) return false;
+      if (location !== "all" && provinceDisplayName(cityOf(company.diaChi)) !== location) return false;
       return !normalized || `${company.tenDoanhNghiep} ${company.linhVucHoatDong} ${company.diaChi} ${company.moTa}`.toLowerCase().includes(normalized);
     }).sort((a, b) => (jobCounts[b.id] ?? 0) - (jobCounts[a.id] ?? 0) || a.tenDoanhNghiep.localeCompare(b.tenDoanhNghiep, "vi"));
   }, [companies, deferredKeyword, field, jobCounts, location]);

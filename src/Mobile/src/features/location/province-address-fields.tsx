@@ -1,5 +1,5 @@
 import { FormField, FormSelect } from '@/features/hr/components/form-field';
-import { composeAddress, provinceFromAddress, addressDetail, vietnamProvinces } from '@/features/location/vietnam-provinces';
+import { composeAddress, provinceDisplayName, provinceFromAddress, addressDetail, vietnamProvinces } from '@/features/location/vietnam-provinces';
 
 export function ProvinceAddressFields({
   value,
@@ -16,7 +16,7 @@ export function ProvinceAddressFields({
 }) {
   const province = provinceFromAddress(value);
   const detail = addressDetail(value, province);
-  const options = vietnamProvinces.map((name) => ({ value: name, label: name }));
+  const options = vietnamProvinces.map((name) => ({ value: name, label: provinceDisplayName(name) }));
   return (
     <>
       <FormSelect

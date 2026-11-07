@@ -95,7 +95,7 @@ function emptyForm(name: string): FormState {
 function formFromProfile(profile: CandidateProfile, fallbackName: string): FormState {
   return {
     fullName: profile.fullName || fallbackName,
-    phone: profile.phone,
+    phone: profile.phone.replace(/\D/g, '').slice(0, 10),
     birthDate: isoToVnDate(profile.birthDate),
     gender: profile.gender || 'Nam',
     location: profile.location,

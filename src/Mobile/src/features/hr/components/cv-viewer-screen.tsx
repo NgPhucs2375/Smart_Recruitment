@@ -151,13 +151,15 @@ export function CvViewerScreen() {
                 Từ chối
               </ThemedText>
             </Button>
-            <Button
-              size="sm"
-              disabled={acting}
-              onPress={() => void handleApprove()}
-              icon={<CheckCheck size={14} color={theme.primaryForeground} />}>
-              Duyệt phù hợp
-            </Button>
+            {applicationStatus === 3 ? (
+              <Button
+                size="sm"
+                disabled={acting}
+                onPress={() => void handleApprove()}
+                icon={<CheckCheck size={14} color={theme.primaryForeground} />}>
+                Duyệt phù hợp
+              </Button>
+            ) : null}
           </View>
         ) : donId && applicationStatus === 5 ? (
           <ThemedText style={{ color: theme.primary }} type="smallBold">

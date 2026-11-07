@@ -57,6 +57,8 @@ Có thể gọi backend trực tiếp bằng prefix `/api` nếu backend đượ
 
 Hub realtime mặc định suy ra URL từ `EXPO_PUBLIC_API_URL` (`.../api` hoặc `.../api/dotnet` → `.../api/hubs/{notifications|chat}`). Nếu proxy/backend dùng URL khác cho hub thông báo, đặt `EXPO_PUBLIC_SIGNALR_URL`; để trống nếu không cần override.
 
+Với chat realtime qua Android emulator khi REST API đang dùng Next proxy ở cổng `3001`, đặt thêm `EXPO_PUBLIC_CHAT_SIGNALR_URL=http://10.0.2.2:8000/api/hubs/chat`. Next proxy không chuyển tiếp SignalR; URL chat phải trỏ trực tiếp tới backend. Thay đổi `.env` cần khởi động lại Expo.
+
 Khởi chạy Expo trong `src/Mobile`:
 
 ```powershell

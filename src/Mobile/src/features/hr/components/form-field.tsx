@@ -159,7 +159,11 @@ export function FormSelect({
 }) {
   const theme = useTheme();
   const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState('');
   const selected = options.find((option) => option.value === value);
+  const filteredOptions = options.filter((option) =>
+    option.label.toLocaleLowerCase('vi').includes(search.trim().toLocaleLowerCase('vi')),
+  );
 
   return (
     <View style={styles.group}>
@@ -167,7 +171,7 @@ export function FormSelect({
       <Pressable
         accessibilityRole="button"
         disabled={disabled}
-        onPress={() => setOpen(true)}
+        onPress={() => { setSearch(''); setOpen(true); }}
         style={({ pressed }) => [
           fieldContainer(theme, invalid),
           styles.select,
@@ -194,8 +198,16 @@ export function FormSelect({
             <ThemedText style={[styles.modalTitle, { color: theme.text }]} type="smallBold">
               {label}
             </ThemedText>
+            <TextInput
+              value={search}
+              onChangeText={setSearch}
+              placeholder="Tìm kiếm..."
+              placeholderTextColor={theme.textSecondary}
+              autoCapitalize="none"
+              style={[styles.searchInput, { color: theme.text, borderColor: theme.input }]}
+            />
             <ScrollView style={styles.modalList} bounces={false}>
-              {options.map((option) => {
+              {filteredOptions.map((option) => {
                 const active = option.value === value;
                 return (
                   <Pressable
@@ -219,6 +231,7 @@ export function FormSelect({
                   </Pressable>
                 );
               })}
+              {filteredOptions.length === 0 ? <ThemedText style={{ color: theme.textSecondary, padding: 12 }} type="small">Không tìm thấy lựa chọn phù hợp.</ThemedText> : null}
             </ScrollView>
             <Pressable onPress={() => setOpen(false)} style={styles.modalClose}>
               <ThemedText style={{ color: theme.textSecondary, fontFamily: font('medium') }} type="small">
@@ -264,6 +277,7 @@ const styles = StyleSheet.create({
   modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'center', paddingHorizontal: 24 },
   modalCard: { borderRadius: Radius.xl, borderWidth: 1, padding: 16, maxHeight: '75%' },
   modalTitle: { marginBottom: 8 },
+  searchInput: { minHeight: 42, borderWidth: 1, borderRadius: Radius.md, paddingHorizontal: 12, marginTop: 8 },
   modalList: { flexGrow: 0 },
   modalItem: { paddingHorizontal: 10, paddingVertical: 12, borderRadius: Radius.md },
   modalClose: { alignItems: 'center', paddingVertical: 12, marginTop: 4 },
