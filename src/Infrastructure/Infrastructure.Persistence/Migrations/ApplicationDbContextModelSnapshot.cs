@@ -2401,6 +2401,29 @@ namespace Infrastructure.Persistence.Migrations
                     b.Property<string>("CreatedBy")
                         .HasColumnType("text");
 
+                    b.Property<bool>("DaDanhGiaBangAi")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<DateTime?>("DanhGiaLuc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DiemManh")
+                        .HasColumnType("text");
+
+                    b.Property<float?>("DiemPhuHop")
+                        .HasColumnType("real");
+
+                    b.Property<int?>("DiemTongQuan")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("DiemYeu")
+                        .HasColumnType("text");
+
+                    b.Property<string>("GoiY")
+                        .HasColumnType("text");
+
                     b.Property<string>("HocVanTrichXuat")
                         .HasColumnType("text");
 
@@ -2416,15 +2439,27 @@ namespace Infrastructure.Persistence.Migrations
                     b.Property<string>("LastModifiedBy")
                         .HasColumnType("text");
 
+                    b.Property<string>("MatchingVersion")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<string>("NhanXet")
+                        .HasColumnType("text");
+
                     b.Property<string>("NoiDungTrichXuat")
                         .HasColumnType("text");
 
                     b.Property<int>("PhanTich")
                         .HasColumnType("integer");
 
+                    b.Property<int?>("TinTuyenDungId")
+                        .HasColumnType("integer");
+
                     b.HasKey("Id");
 
                     b.HasIndex("CVUngVienId");
+
+                    b.HasIndex("TinTuyenDungId");
 
                     b.ToTable("KetQuaPhanTichCv", (string)null);
                 });
@@ -3694,7 +3729,14 @@ namespace Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("Domain.Entities.TinTuyenDung", "TinTuyenDung")
+                        .WithMany()
+                        .HasForeignKey("TinTuyenDungId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.Navigation("CVUngVien");
+
+                    b.Navigation("TinTuyenDung");
                 });
 
             modelBuilder.Entity("Domain.Entities.KetQuaPhuHop", b =>

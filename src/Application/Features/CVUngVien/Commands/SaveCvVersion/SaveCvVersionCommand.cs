@@ -344,6 +344,7 @@ public class SaveCvVersionCommandHandler(
         CancellationToken cancellationToken)
     {
         var trichXuat = await context.KetQuaPhanTichCvs
+            .AsTracking()
             .FirstOrDefaultAsync(x => x.CVUngVienId == cv.Id && cv.Id != 0, cancellationToken);
 
         var kyNang = string.Join("; ", noiDung.KyNang
@@ -391,6 +392,8 @@ public class SaveCvVersionCommandHandler(
         trichXuat.KyNangTrichXuat = string.IsNullOrWhiteSpace(kyNang) ? null : kyNang;
         trichXuat.KinhNghiemTrichXuat = string.IsNullOrWhiteSpace(kinhNghiem) ? null : kinhNghiem;
         trichXuat.HocVanTrichXuat = string.IsNullOrWhiteSpace(hocVan) ? null : hocVan;
-        trichXuat.PhanTich = TrangThaiPhanTichAgent.HoanThanh;
+        // Đã có kết quả đánh giá thì lưu CV không được xoá trạng thái đánh giá.
+        if (trichXuat.DanhGiaLuc == null)
+            trichXuat.PhanTich = TrangThaiPhanTichAgent.HoanThanh;
     }
 }
