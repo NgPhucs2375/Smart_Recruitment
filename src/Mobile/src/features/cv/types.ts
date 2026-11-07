@@ -284,6 +284,17 @@ export type KetQuaPhanTichCv = {
   kinhNghiemTrichXuat: string;
   hocVanTrichXuat: string;
   phanTich: string;
+  /** Đánh giá của agent (chỉ đọc — mobile không chạy đánh giá). */
+  diemTongQuan?: number | null;
+  diemPhuHop?: number | null;
+  matchingVersion?: string;
+  tinTuyenDungId?: number | null;
+  nhanXet?: string;
+  diemManh?: string;
+  diemYeu?: string;
+  goiY?: string;
+  danhGiaLuc?: string | null;
+  daDanhGiaBangAi?: boolean;
 };
 
 /* ============== JSON Resume adapter types ============== */

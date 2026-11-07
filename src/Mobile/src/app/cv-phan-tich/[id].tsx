@@ -7,8 +7,11 @@ import {
   Award,
   BookOpen,
   Briefcase,
+  CheckCircle2,
   CircleAlert,
+  Compass,
   FileText,
+  Lightbulb,
   Sparkles,
   Wrench,
 } from 'lucide-react-native';
@@ -20,7 +23,7 @@ import { font, Radius } from '@/constants/theme';
 import { USE_MOCK_JOBS } from '@/features/jobs/api/jobs-api';
 import type { KetQuaPhanTichCv } from '@/features/cv/types';
 import { apiRequest } from '@/services/api/client';
-import { asNumber, asRecord, asText, unwrapList } from '@/services/api/parse';
+import { asBoolean, asNumber, asRecord, asText, unwrapList } from '@/services/api/parse';
 import { useTheme } from '@/hooks/use-theme';
 
 /** Kết quả demo ở chế độ dữ liệu minh họa để màn hình vẫn kiểm thử được. */
@@ -36,7 +39,53 @@ const DEMO_ANALYSIS: KetQuaPhanTichCv = {
   hocVanTrichXuat:
     'Đại học Công nghệ thông tin — Kỹ thuật phần mềm (2019–2023).\nGPA 3.4/4.0, tốt nghiệp loại khá.',
   phanTich: 'HoanThanh',
+  diemTongQuan: 78,
+  diemPhuHop: 0.72,
+  matchingVersion: 'cbf-v7-idf',
+  tinTuyenDungId: 1,
+  nhanXet:
+    'CV trình bày rõ kinh nghiệm frontend và có dự án kèm số liệu. Ứng viên khớp phần lớn kỹ năng bắt buộc của tin, chỉ còn thiếu kiến thức kiểm thử tự động nâng cao.',
+  diemManh: 'Kinh nghiệm React/TypeScript gắn với dự án thật.\nCó số liệu đo lường kết quả công việc.',
+  diemYeu: 'Chưa nêu rõ mục tiêu nghề nghiệp.\nThiếu bằng chứng về unit test và CI/CD.',
+  goiY: 'ky-nang|Bổ sung ví dụ viết unit test cho một component.\nkinh-nghiem|Thêm kết quả định lượng cho từng dự án.\ntong-the|Nêu mục tiêu nghề nghiệp trong phần tóm tắt.',
+  danhGiaLuc: null,
+  daDanhGiaBangAi: true,
 };
+
+const SECTION_LABEL: Record<string, string> = {
+  'ky-nang': 'Kỹ năng',
+  'kinh-nghiem': 'Kinh nghiệm',
+  'hoc-van': 'Học vấn',
+  'du-an': 'Dự án',
+  'tong-the': 'Tổng thể',
+};
+
+const numOrNull = (value: unknown): number | null => {
+  if (value === undefined || value === null || value === '') return null;
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+};
+
+/** Gợi ý lưu dạng "phan|viec" mỗi dòng — hiển thị nhãn phần cho dễ đọc. */
+function formatGoiY(text: string): string {
+  return text
+    .split(/\n+/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const [part, ...rest] = line.split('|');
+      const label = SECTION_LABEL[part.trim()] ?? SECTION_LABEL['tong-the'];
+      const viec = rest.join('|').trim() || part.trim();
+      return `• ${label}: ${viec}`;
+    })
+    .join('\n');
+}
+
+function matchLabel(score: number): string {
+  if (score >= 66) return 'Phù hợp cao';
+  if (score >= 33) return 'Phù hợp trung bình';
+  return 'Phù hợp thấp';
+}
 
 async function fetchPhanTich(cvId: string): Promise<KetQuaPhanTichCv | null> {
   if (USE_MOCK_JOBS) {
@@ -60,6 +109,16 @@ async function fetchPhanTich(cvId: string): Promise<KetQuaPhanTichCv | null> {
     kinhNghiemTrichXuat: asText(raw.kinhNghiemTrichXuat ?? raw.KinhNghiemTrichXuat),
     hocVanTrichXuat: asText(raw.hocVanTrichXuat ?? raw.HocVanTrichXuat),
     phanTich: asText(raw.phanTich ?? raw.PhanTich),
+    diemTongQuan: numOrNull(raw.diemTongQuan ?? raw.DiemTongQuan),
+    diemPhuHop: numOrNull(raw.diemPhuHop ?? raw.DiemPhuHop),
+    matchingVersion: asText(raw.matchingVersion ?? raw.MatchingVersion),
+    tinTuyenDungId: numOrNull(raw.tinTuyenDungId ?? raw.TinTuyenDungId),
+    nhanXet: asText(raw.nhanXet ?? raw.NhanXet),
+    diemManh: asText(raw.diemManh ?? raw.DiemManh),
+    diemYeu: asText(raw.diemYeu ?? raw.DiemYeu),
+    goiY: asText(raw.goiY ?? raw.GoiY),
+    danhGiaLuc: asText(raw.danhGiaLuc ?? raw.DanhGiaLuc) || null,
+    daDanhGiaBangAi: asBoolean(raw.daDanhGiaBangAi ?? raw.DaDanhGiaBangAi),
   };
 }
 
@@ -119,6 +178,8 @@ export default function CvPhanTichScreen() {
   }, [load]);
 
   const hoanThanh = result != null && (result.phanTich === 'HoanThanh' || result.phanTich === '1');
+  const diemTongQuan = result?.diemTongQuan ?? null;
+  const matchPercent = result?.diemPhuHop != null ? Math.round(result.diemPhuHop * 100) : null;
 
   return (
     <SafeAreaView edges={['top']} style={[styles.root, { backgroundColor: theme.background }]}>
@@ -197,6 +258,81 @@ export default function CvPhanTichScreen() {
                   Phân tích chưa hoàn tất — hãy lưu lại CV để làm mới kết quả.
                 </ThemedText>
               </View>
+            ) : null}
+
+            {diemTongQuan != null ? (
+              <>
+                <View style={styles.reviewRow}>
+                  <View style={[styles.scoreCard, { backgroundColor: theme.primary }]}>
+                    <ThemedText style={{ color: theme.primaryForeground, opacity: 0.75 }} type="code">
+                      ĐIỂM CHẤT LƯỢNG CV
+                    </ThemedText>
+                    <ThemedText style={{ color: theme.primaryForeground }} type="title">
+                      {`${diemTongQuan}/100`}
+                    </ThemedText>
+                  </View>
+                  <View
+                    style={[
+                      styles.matchCard,
+                      { borderColor: theme.border, backgroundColor: theme.backgroundElement },
+                    ]}>
+                    <ThemedText style={{ color: theme.textSecondary }} type="code">
+                      MỨC PHÙ HỢP
+                    </ThemedText>
+                    <ThemedText style={{ color: theme.text }} type="title">
+                      {matchPercent != null ? `${matchPercent}%` : '—'}
+                    </ThemedText>
+                    {matchPercent != null ? (
+                      <ThemedText style={{ color: theme.textSecondary }} type="code">
+                        {matchLabel(matchPercent)}
+                      </ThemedText>
+                    ) : null}
+                  </View>
+                </View>
+
+                {result.daDanhGiaBangAi === false ? (
+                  <View style={[styles.notice, { borderColor: theme.border }]}>
+                    <CircleAlert size={15} color={theme.textSecondary} />
+                    <ThemedText style={{ color: theme.textSecondary, flex: 1 }} type="code">
+                      Đánh giá nhanh: AI chưa phản hồi nên hệ thống dùng bộ chấm tất định. Mở bản web
+                      để chạy lại đánh giá đầy đủ.
+                    </ThemedText>
+                  </View>
+                ) : null}
+
+                <Section
+                  icon={<Compass size={15} color={theme.primary} />}
+                  title="Nhận xét của AI"
+                  body={result.nhanXet ?? ''}
+                />
+                <Section
+                  icon={<CheckCircle2 size={15} color={theme.primary} />}
+                  title="Điểm mạnh"
+                  body={result.diemManh ?? ''}
+                />
+                <Section
+                  icon={<Wrench size={15} color={theme.primary} />}
+                  title="Điểm cần cải thiện"
+                  body={result.diemYeu ?? ''}
+                />
+                <Section
+                  icon={<Lightbulb size={15} color={theme.primary} />}
+                  title="Gợi ý cải thiện"
+                  body={formatGoiY(result.goiY ?? '')}
+                />
+
+                <ThemedText style={{ color: theme.textSecondary, opacity: 0.8 }} type="code">
+                  {[
+                    result.tinTuyenDungId ? `Tin #${result.tinTuyenDungId}` : '',
+                    result.danhGiaLuc
+                      ? `Đánh giá lúc ${new Date(result.danhGiaLuc).toLocaleString('vi-VN')}`
+                      : '',
+                    result.matchingVersion ? `Bộ chấm ${result.matchingVersion}` : '',
+                  ]
+                    .filter(Boolean)
+                    .join(' • ')}
+                </ThemedText>
+              </>
             ) : null}
 
             <Section
@@ -294,6 +430,20 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   sectionHead: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  reviewRow: { flexDirection: 'row', gap: 12 },
+  scoreCard: {
+    flex: 1,
+    borderRadius: Radius['2xl'],
+    padding: 16,
+    gap: 6,
+  },
+  matchCard: {
+    flex: 1,
+    borderWidth: 1,
+    borderRadius: Radius['2xl'],
+    padding: 16,
+    gap: 6,
+  },
   footerCard: {
     borderWidth: 1,
     borderRadius: Radius['2xl'],
