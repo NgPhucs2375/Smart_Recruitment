@@ -32,14 +32,14 @@ const serif = Merriweather({
 
 export const metadata: Metadata = {
   title: {
-    default: "HIREAI — Việc làm IT & AI matching",
+    default: "HIREAI — Việc làm IT & AI",
     template: "%s | HIREAI",
   },
   description:
     "Nền tảng tuyển dụng chuyên sâu cho ngành công nghệ — kết nối đúng kỹ năng, đúng đội ngũ và đúng cơ hội phát triển bằng AI matching.",
   metadataBase: new URL("https://hireai.vn"),
   openGraph: {
-    title: "HIREAI — Đúng người. Đúng việc. Đúng thời điểm.",
+    title: "HIREAI — Việc làm IT & AI",
     description:
       "1.200+ việc làm IT đang mở. Tạo CV, nhận gợi ý công việc từ AI, ứng tuyển và theo dõi trạng thái.",
     type: "website",
@@ -47,15 +47,12 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "HIREAI — Việc làm IT & AI matching",
+    title: "HIREAI — Việc làm IT & AI",
     description:
       "Nền tảng tuyển dụng chuyên sâu cho ngành IT với AI matching theo kỹ năng và seniority.",
   },
   icons: {
-    icon: [
-      { url: "/favicon.svg", type: "image/svg+xml" },
-      { url: "/favicon.ico" },
-    ],
+    icon: [{ url: "/favicon.svg", type: "image/svg+xml" }],
   },
 };
 
