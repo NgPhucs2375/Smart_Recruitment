@@ -1,4 +1,5 @@
 import { apiRequest, getApiBaseUrl } from '@/services/api/client';
+import { USE_MOCK_JOBS } from '@/features/jobs/api/jobs-api';
 import { normalizeAddressProvince } from '@/features/location/vietnam-provinces';
 import { normalizeCvDetail } from '@/features/cv/api/cv-api';
 import { cloneCvData, defaultCvData } from '@/features/cv/manual/default-cv-data';
@@ -690,7 +691,8 @@ export async function getDashboard(isManager: boolean): Promise<DashboardData> {
       }
     }
     return { jobs, dons, team, source: 'api' };
-  } catch {
+  } catch (reason) {
+    if (!USE_MOCK_JOBS) throw reason;
     return { jobs: DEMO_JOBS, dons: demoDons(), team: isManager ? DEMO_TEAM : [], source: 'demo' };
   }
 }
@@ -763,7 +765,8 @@ export async function getBaoCao(ky: number): Promise<BaoCao> {
       TopTin: pick<TopTinFallback>('TopTin', []) as BaoCao['TopTin'],
       DuyetTin: pick<BaoCao['DuyetTin']>('DuyetTin', { DaDuyet: 0, ChoDuyet: 0, TuChoi: 0, Nhap: 0, TyLeDuyet: null }),
     };
-  } catch {
+  } catch (reason) {
+    if (!USE_MOCK_JOBS) throw reason;
     return demoBaoCao(ky);
   }
 }

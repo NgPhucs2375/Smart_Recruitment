@@ -198,7 +198,8 @@ export const companiesApi = {
         pageSize: asNumber(envelope?.PageSize ?? envelope?.pageSize, pageSize),
         hasNext,
       };
-    } catch {
+    } catch (reason) {
+      if (!USE_MOCK_JOBS) throw reason;
       const filtered = filterDemoCompanies(params.keyword);
       const start = (page - 1) * pageSize;
       const companies = filtered.slice(start, start + pageSize);
@@ -228,7 +229,8 @@ export const companiesApi = {
       return unwrapList(payload)
         .map(normalizeCompany)
         .find((item): item is Company => item !== null) ?? null;
-    } catch {
+    } catch (reason) {
+      if (!USE_MOCK_JOBS) throw reason;
       return DEMO_COMPANIES.find((company) => company.id === id) ?? null;
     }
   },
@@ -247,7 +249,8 @@ export const companiesApi = {
       return unwrapList(payload)
         .map(normalizeJob)
         .filter((job): job is Job => job !== null);
-    } catch {
+    } catch (reason) {
+      if (!USE_MOCK_JOBS) throw reason;
       const company = DEMO_COMPANIES.find((item) => item.id === companyId);
       return company ? demoJobsForCompany(company) : [];
     }
