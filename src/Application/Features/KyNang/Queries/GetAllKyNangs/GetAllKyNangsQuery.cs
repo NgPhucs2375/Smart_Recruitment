@@ -13,7 +13,7 @@ using System.Threading.Tasks;
 
 namespace Application.Features.KyNang.Queries.GetAllKyNangs
 {
-    public class GetAllKyNangsQuery : IRequest<Response<List<GetAllKyNangsViewModel>>>
+    public class GetAllKyNangsQuery : IRequest<PagedResponse<List<GetAllKyNangsViewModel>>>
     {
         public int _start { get; set; }
         public int _end { get; set; }
@@ -26,9 +26,9 @@ namespace Application.Features.KyNang.Queries.GetAllKyNangs
         IApplicationDbContext context,
         IMapper mapper,
         IDistributedCache cache)
-        : IRequestHandler<GetAllKyNangsQuery, Response<List<GetAllKyNangsViewModel>>>
+        : IRequestHandler<GetAllKyNangsQuery, PagedResponse<List<GetAllKyNangsViewModel>>>
     {
-        public async Task<Response<List<GetAllKyNangsViewModel>>> Handle(
+        public async Task<PagedResponse<List<GetAllKyNangsViewModel>>> Handle(
             GetAllKyNangsQuery request,
             CancellationToken cancellationToken)
         {
@@ -53,7 +53,7 @@ namespace Application.Features.KyNang.Queries.GetAllKyNangs
                 try
                 {
                     var cachedResponse = JsonSerializer.Deserialize<
-                        Response<List<GetAllKyNangsViewModel>>>(cached);
+                        PagedResponse<List<GetAllKyNangsViewModel>>>(cached);
 
                     if (cachedResponse != null)
                         return cachedResponse;
@@ -79,6 +79,8 @@ namespace Application.Features.KyNang.Queries.GetAllKyNangs
                 _ => query.OrderBy(x => x.Id)
             };
 
+            var totalCount = await query.CountAsync(cancellationToken);
+
             if (skip > 0)
             {
                 query = query.Skip(skip);
@@ -94,7 +96,18 @@ namespace Application.Features.KyNang.Queries.GetAllKyNangs
 
             var result = mapper.Map<List<GetAllKyNangsViewModel>>(items);
 
-            var response = new Response<List<GetAllKyNangsViewModel>>(result);
+            var pageSize = take > 0 ? take : items.Count;
+            var pageNumber = take > 0 ? (skip / take) + 1 : 1;
+            var totalPages = pageSize > 0
+                ? (int)System.Math.Ceiling(totalCount / (double)pageSize)
+                : 0;
+
+            var response = new PagedResponse<List<GetAllKyNangsViewModel>>(
+                result,
+                pageNumber,
+                pageSize,
+                totalCount,
+                totalPages);
 
             await cache.SetStringAsync(
                 cacheKey,

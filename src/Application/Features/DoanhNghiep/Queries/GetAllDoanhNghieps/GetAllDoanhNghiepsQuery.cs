@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using System.Linq;
 
 namespace Application.Features.DoanhNghiep.Queries.GetAllDoanhNghieps;
-public class GetAllDoanhNghiepsQuery : IRequest<Response<List<GetAllDoanhNghiepsViewModel>>>
+public class GetAllDoanhNghiepsQuery : IRequest<PagedResponse<List<GetAllDoanhNghiepsViewModel>>>
 {
     public int _start { get; set; }
 
@@ -22,9 +22,9 @@ public class GetAllDoanhNghiepsQuery : IRequest<Response<List<GetAllDoanhNghieps
 public class GetAllDoanhNghiepsQueryHandler(
     IApplicationDbContext context,
     IMapper mapper)
-    : IRequestHandler<GetAllDoanhNghiepsQuery, Response<List<GetAllDoanhNghiepsViewModel>>>
+    : IRequestHandler<GetAllDoanhNghiepsQuery, PagedResponse<List<GetAllDoanhNghiepsViewModel>>>
 {
-    public async Task<Response<List<GetAllDoanhNghiepsViewModel>>> Handle(
+    public async Task<PagedResponse<List<GetAllDoanhNghiepsViewModel>>> Handle(
         GetAllDoanhNghiepsQuery request,
         CancellationToken cancellationToken)
     {
@@ -47,6 +47,8 @@ public class GetAllDoanhNghiepsQueryHandler(
         var skip = request._start < 0 ? 0 : request._start;
         var take = request._end - skip;
 
+        var totalCount = await query.CountAsync(cancellationToken);
+
         if (skip > 0)
         {
             query = query.Skip(skip);
@@ -60,7 +62,17 @@ public class GetAllDoanhNghiepsQueryHandler(
         var items = await query.ToListAsync(
             cancellationToken);
 
-        return new Response<List<GetAllDoanhNghiepsViewModel>>(
-            mapper.Map<List<GetAllDoanhNghiepsViewModel>>(items));
+        var pageSize = take > 0 ? take : items.Count;
+        var pageNumber = take > 0 ? (skip / take) + 1 : 1;
+        var totalPages = pageSize > 0
+            ? (int)System.Math.Ceiling(totalCount / (double)pageSize)
+            : 0;
+
+        return new PagedResponse<List<GetAllDoanhNghiepsViewModel>>(
+            mapper.Map<List<GetAllDoanhNghiepsViewModel>>(items),
+            pageNumber,
+            pageSize,
+            totalCount,
+            totalPages);
     }
 }

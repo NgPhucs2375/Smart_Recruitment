@@ -2,7 +2,7 @@ namespace Application.Features.KyNang.Cache;
 
 public static class KyNangCache
 {
-    public const string VersionKey = "cache:kynang:v1:version";
+    public const string VersionKey = "cache:kynang:v2:version";
 
     public static string BuildKey(
         string version,
@@ -15,6 +15,6 @@ public static class KyNangCache
         static string Normalize(string value) =>
             Uri.EscapeDataString((value ?? string.Empty).Trim().ToLowerInvariant());
 
-        return $"cache:kynang:v1:{version}:start:{start}:end:{end}:filter:{Normalize(filter)}:sort:{Normalize(sort)}:order:{Normalize(order)}";
+        return $"cache:kynang:v2:{version}:start:{start}:end:{end}:filter:{Normalize(filter)}:sort:{Normalize(sort)}:order:{Normalize(order)}";
     }
 }
