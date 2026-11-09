@@ -24,6 +24,8 @@ public class CvReadMapper : ICvReadMapper
 
             PhuongThucTao = cv.PhuongThucTao,
 
+            NgayUpload = cv.LastModified ?? cv.Created,
+
             NoiDung = new ParsedCvDto
             {
                 GiaoDien = ParseGiaoDien(cv.CauHinhJson),
@@ -124,6 +126,9 @@ public class CvReadMapper : ICvReadMapper
             ChuyenNganh =
                 source.ChuyenNganh,
 
+            BangCap =
+                source.BangCap,
+
             TuNgay =
                 FormatMonthYear(
                     source.TuThang,
@@ -155,6 +160,9 @@ public class CvReadMapper : ICvReadMapper
 
             ChucDanh =
                 source.ChucDanh,
+
+            DiaChi =
+                source.DiaChi,
 
             TuNgay =
                 FormatMonthYear(

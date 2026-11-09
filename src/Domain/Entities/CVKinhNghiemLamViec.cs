@@ -9,6 +9,8 @@ public class CVKinhNghiemLamViec : AuditableBaseEntity
     public string CongTy { get; set; }
     public string ChucDanh { get; set; }
 
+    public string? DiaChi { get; set; }
+
     public int? TuThang { get; set; }
     public int? TuNam { get; set; }
 

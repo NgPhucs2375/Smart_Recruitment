@@ -11,6 +11,7 @@ public class CVHocVanConfiguration : IEntityTypeConfiguration<CVHocVan>
         builder.HasKey(x => x.Id);
         builder.Property(x => x.Truong).IsRequired().HasMaxLength(255);
         builder.Property(x => x.ChuyenNganh).HasMaxLength(255);
+        builder.Property(x => x.BangCap).HasMaxLength(255);
         builder.Property(x => x.MoTa).HasColumnType("text");
         builder.HasIndex(x => new { x.CVUngVienId, x.ThuTu });
         builder.HasOne(x => x.CVUngVien)

@@ -192,6 +192,10 @@ namespace Infrastructure.Persistence.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("BangCap")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
                     b.Property<int>("CVUngVienId")
                         .HasColumnType("integer");
 
@@ -316,6 +320,10 @@ namespace Infrastructure.Persistence.Migrations
 
                     b.Property<int?>("DenThang")
                         .HasColumnType("integer");
+
+                    b.Property<string>("DiaChi")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
 
                     b.Property<bool>("IsHienTai")
                         .HasColumnType("boolean");

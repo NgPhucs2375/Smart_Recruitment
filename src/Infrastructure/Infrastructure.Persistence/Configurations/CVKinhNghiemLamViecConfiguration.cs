@@ -11,6 +11,7 @@ public class CVKinhNghiemLamViecConfiguration : IEntityTypeConfiguration<CVKinhN
         builder.HasKey(x => x.Id);
         builder.Property(x => x.CongTy).IsRequired().HasMaxLength(255);
         builder.Property(x => x.ChucDanh).IsRequired().HasMaxLength(255);
+        builder.Property(x => x.DiaChi).HasMaxLength(500);
         builder.Property(x => x.MoTa).HasColumnType("text");
         builder.HasIndex(x => new { x.CVUngVienId, x.ThuTu });
         builder.HasOne(x => x.CVUngVien)

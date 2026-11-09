@@ -9,6 +9,8 @@ public class CVHocVan : AuditableBaseEntity
 
     public string? ChuyenNganh { get; set; }
 
+    public string? BangCap { get; set; }
+
     // YYYY-MM
     public short? TuThang { get; set; }
     public short? TuNam { get; set; }

@@ -38,6 +38,7 @@ internal static class CvEntityMapper
             {
                 Truong = item.Truong!,
                 ChuyenNganh = item.ChuyenNganh,
+                BangCap = item.BangCap,
                 TuThang = fromMonth,
                 TuNam = fromYear,
                 DenThang = toMonth,
@@ -57,6 +58,7 @@ internal static class CvEntityMapper
             {
                 CongTy = item.TenCongTy!,
                 ChucDanh = item.ChucDanh!,
+                DiaChi = item.DiaChi,
                 TuThang = fromMonth,
                 TuNam = fromYear,
                 DenThang = toMonth,
@@ -158,6 +160,7 @@ internal static class CvEntityMapper
         {
             Truong = x.Truong,
             ChuyenNganh = x.ChuyenNganh,
+            BangCap = x.BangCap,
             TuNgay = FormatMonthYear(x.TuThang, x.TuNam),
             DenNgay = FormatMonthYear(x.DenThang, x.DenNam),
             IsHienTai = x.IsHienTai,
@@ -168,6 +171,7 @@ internal static class CvEntityMapper
         {
             TenCongTy = x.CongTy,
             ChucDanh = x.ChucDanh,
+            DiaChi = x.DiaChi,
             TuNgay = FormatMonthYear(x.TuThang, x.TuNam),
             DenNgay = FormatMonthYear(x.DenThang, x.DenNam),
             IsHienTai = x.IsHienTai,
