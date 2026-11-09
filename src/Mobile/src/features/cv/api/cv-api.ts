@@ -1265,7 +1265,7 @@ export const cvApi = {
           duAn: input.content.projects.map((item, thuTu) => ({
             tenDuAn: item.name,
             vaiTro: item.role,
-            congNghe: item.technologies.map((name) => ({ tenCongNghe: name })),
+            congNghe: item.technologies.map((name) => ({ tenKyNang: name })),
             link: item.link,
             moTa: item.description,
             tuNgay: item.startDate || null,
