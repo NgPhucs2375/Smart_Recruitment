@@ -300,7 +300,7 @@ export default function UngVienTheoTinPage() {
 
   // Quyền fire theo state machine: XemDon từ Chờ xử lý, Phù hợp từ Đã xem, Từ chối ở các bước HR.
   const canPhuHop = (s: number) => s === 3;
-  const canTuChoi = (s: number) => s === 2 || s === 3;
+  const canTuChoi = (s: number) => s === 2 || s === 3 || s === 5;
   // Đánh giá & Kết luận là bước END — chỉ khi đơn đã Phù hợp và chưa có đánh giá.
   const canDanhGia = (item: DonUngTuyen) => item.trangThai === 5 && !danhGias[item.id];
 

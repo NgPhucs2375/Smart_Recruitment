@@ -126,7 +126,7 @@ export default function DuyetTinNhanSuPage() {
       <AdminCard>
         <AdminCardHeader title="Hàng chờ phê duyệt" description={`${items.length} tin cần xử lý`} />
         {loading ? <AdminLoadingState /> : items.length === 0 ? (
-          <AdminEmptyState icon={ClipboardCheck} title="Không có tin chờ duyệt" description="Tin do Nhân sự gửi sẽ xuất hiện tại đây sau khi vượt qua kiểm duyệt tự động." />
+          <AdminEmptyState icon={ClipboardCheck} title="Không có tin chờ duyệt" description="Tin do Nhân sự gửi sẽ xuất hiện tại đây để bạn duyệt trước khi chuyển sang bộ lọc hệ thống." />
         ) : (
           <div className="divide-y divide-border">
             {items.map((item) => (
@@ -134,7 +134,7 @@ export default function DuyetTinNhanSuPage() {
                 <div className="min-w-0 space-y-2">
                   <div className="flex flex-wrap items-center gap-2">
                     <h2 className="font-semibold text-foreground">{item.tieuDe}</h2>
-                    <Badge variant="outline">Đã qua hệ thống</Badge>
+                    <Badge variant="outline">Nhân sự gửi — chờ bạn duyệt</Badge>
                   </div>
                   <p className="line-clamp-2 text-sm leading-6 text-muted-foreground">{item.moTaCongViec}</p>
                   <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">

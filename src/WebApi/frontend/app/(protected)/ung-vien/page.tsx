@@ -362,12 +362,13 @@ export default function UngVienPage() {
                         <Button variant="outline" size="sm" disabled={busy} onClick={() => void handleViewCv(item)}>
                           <Eye className="size-4" /> Xem CV
                         </Button>
-                        {(item.trangThai === 2 || item.trangThai === 3) && (
+                        {/* DanhGiaPhuHop chỉ fire được từ Đã xem; Từ chối được ở cả Phù hợp. */}
+                        {item.trangThai === 3 && (
                           <Button size="sm" disabled={busy} onClick={() => void handleAction(item, TRIGGER.DanhGiaPhuHop, "duyệt phù hợp")}>
                             <CheckCheck className="size-4" /> Duyệt phù hợp
                           </Button>
                         )}
-                        {(item.trangThai === 2 || item.trangThai === 3) && (
+                        {(item.trangThai === 2 || item.trangThai === 3 || item.trangThai === 5) && (
                           <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" disabled={busy} onClick={() => void handleAction(item, TRIGGER.TuChoi, "từ chối")}>
                             <UserX className="size-4" /> Từ chối
                           </Button>
