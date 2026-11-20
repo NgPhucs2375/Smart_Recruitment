@@ -426,7 +426,7 @@ function CandidateDashboard() {
                 </div>
               ))
             : [
-          { label: "CV của bạn", value: cvCount ?? "—", note: "Quản lý CV", icon: FileText, href: "/CV" },
+          { label: "CV của bạn", value: cvCount ?? "—", note: "Quản lý CV", icon: FileText, href: "/ho-so" },
           { label: "Sẵn sàng ứng tuyển", value: appliedCount, note: "Theo dõi trạng thái", icon: Send, href: "/viec-lam/da-ung-tuyen" },
           { label: "Việc phù hợp với bạn", value: matchCount, note: "Gợi ý AI phù hợp", icon: TrendingUp, href: "/viec-lam/phu-hop" },
           { label: "Việc bạn đã lưu", value: savedCount, note: "Cơ hội bạn quan tâm", icon: Bookmark, href: "/viec-lam/da-luu" },

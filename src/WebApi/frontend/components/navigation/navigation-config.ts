@@ -22,6 +22,7 @@ export interface NavigationItem {
   icon: typeof LayoutDashboard;
   permission?: { resource: string; action: string };
   roles?: string[];
+  disabled?: boolean;
 }
 
 export const recruiterNavigation: NavigationItem[] = [
@@ -43,7 +44,7 @@ export const adminNavigation: NavigationItem[] = [
   { title: "Duyệt tin tuyển dụng", href: "/admin/tin-tuyen-dung", icon: ShieldCheck, permission: { resource: "tintuyendungs", action: "list" } },
   { title: "Rule kiểm duyệt", href: "/admin/quy-tac-kiem-duyet", icon: ListChecks, permission: { resource: "quytackiemduyettins", action: "list" } },
   { title: "Quản lý danh mục", href: "/admin/danh-muc", icon: Tags, permission: { resource: "danhmucnghes", action: "list" } },
-  { title: "Banner marketing", href: "/admin/banner", icon: ImagePlus },
+  { title: "Banner marketing · Chưa phát triển", href: "/admin/banner", icon: ImagePlus, disabled: true },
   { title: "Quản lý CV/mẫu CV", href: "/admin/cv", icon: FileCheck, permission: { resource: "cvthemes", action: "list" } },
   { title: "Theme Studio", href: "/tao-theme-cv", icon: Palette, permission: { resource: "cvthemes", action: "list" } },
   { title: "Báo cáo và thống kê", href: "/reports", icon: BarChart3 },

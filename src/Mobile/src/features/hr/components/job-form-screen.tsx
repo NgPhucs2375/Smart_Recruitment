@@ -173,6 +173,8 @@ export function JobFormScreen() {
         return { field: 'moTaCongViec', message: 'Mô tả và yêu cầu công việc tối đa 5000 ký tự' };
       if (form.kinhNghiemYeuCau.length > 2000 || form.quyenLoi.length > 2000)
         return { field: 'kinhNghiemYeuCau', message: 'Kinh nghiệm và quyền lợi tối đa 2000 ký tự' };
+      if (!form.ngayHetHan.trim())
+        return { field: 'ngayHetHan', message: 'Vui lòng chọn ngày hết hạn' };
       if (
         submit &&
         form.ngayHetHan &&
@@ -309,11 +311,11 @@ export function JobFormScreen() {
               onSelect={(value) => patch({ phuongThucLamViec: Number(value) })}
             />
             <DatePickerField
-              label="Ngày hết hạn"
+              label="Ngày hết hạn *"
               value={form.ngayHetHan}
               onChange={(value) => patch({ ngayHetHan: value })}
               valueFormat="iso"
-              error={fieldError === 'ngayHetHan' ? 'Ngày hết hạn phải từ hôm nay trở đi' : undefined}
+              error={fieldError === 'ngayHetHan' ? error : undefined}
             />
             <View style={styles.moneyRow}>
               <View style={styles.moneyCell}>

@@ -351,6 +351,7 @@ export default function TinTuyenDungPage() {
     if (form.kinhNghiemYeuCau.length > 2000 || form.quyenLoi.length > 2000) return { field: "kinhNghiemYeuCau", message: "Kinh nghiệm và quyền lợi tối đa 2000 ký tự" };
     if (form.moTaCongViec.length > 5000 || form.yeuCauCongViec.length > 5000) return { field: "moTaCongViec", message: "Mô tả và yêu cầu công việc tối đa 5000 ký tự" };
     // Client-side date guard: chặn ngày quá khứ ngay khi lưu (cả nháp lẫn gửi duyệt).
+    if (!form.ngayHetHan.trim()) return { field: "ngayHetHan", message: "Vui lòng chọn ngày hết hạn" };
     if (form.ngayHetHan) {
       const iso = parseDdMmYyyy(form.ngayHetHan);
       if (!iso) return { field: "ngayHetHan", message: "Ngày hết hạn không hợp lệ (định dạng dd/MM/yyyy)" };
@@ -589,7 +590,7 @@ export default function TinTuyenDungPage() {
               <div className="space-y-2">
                 <DatePickerField
                   id="ttd-het-han"
-                  label="Ngày hết hạn"
+                  label="Ngày hết hạn *"
                   value={form.ngayHetHan}
                   min={isoToday()}
                   onChange={value => setForm(f => ({ ...f, ngayHetHan: value }))}

@@ -94,8 +94,7 @@ namespace WebApp.Server.Controllers.v1
             return Ok(await _accountService.AcceptInviteAsync(request.Token));
         }
 
-        // POST: api/nhansus/invite/reject — người được mời từ chối qua token (anonymous)
-        [AllowAnonymous]
+        // POST: api/nhansus/invite/reject — người nhận đăng nhập từ chối lời mời
         [HttpPost("invite/reject")]
         public async Task<IActionResult> Reject(YeuCauChapNhanLoiMoi request)
         {

@@ -120,9 +120,14 @@ export async function cancelLoiMoi(id: number): Promise<string> {
 }
 
 export async function rejectLoiMoi(token: string): Promise<string> {
+  const accessToken = await getValidToken();
+  if (!accessToken) throw new Error("Bạn cần đăng nhập bằng tài khoản nhận lời mời để từ chối.");
   const response = await fetch("/api/dotnet/nhansus/invite/reject", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${accessToken}`,
+    },
     body: JSON.stringify({ Token: token }),
   });
   const body = (await response.json().catch(() => null)) as ApiResponse<unknown> | null;

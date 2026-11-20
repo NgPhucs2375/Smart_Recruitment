@@ -3,6 +3,7 @@ using Application.Interfaces;
 using Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 using System.Threading.Tasks;
+using Infrastructure.Identity.Contexts;
 
 namespace WebApp.Server.Services
 {
@@ -10,11 +11,13 @@ namespace WebApp.Server.Services
     {
         private readonly IAuthenticatedUserService _auth;
         private readonly IApplicationDbContext _context;
+        private readonly IdentityContext _identity;
 
-        public CurrentNguoiDungService(IAuthenticatedUserService auth, IApplicationDbContext context)
+        public CurrentNguoiDungService(IAuthenticatedUserService auth, IApplicationDbContext context, IdentityContext identity)
         {
             _auth = auth;
             _context = context;
+            _identity = identity;
         }
 
         public async Task<CurrentNguoiDungContext> ResolveAsync()
@@ -43,7 +46,11 @@ namespace WebApp.Server.Services
             {
                 Id = nd.Id,
                 DoanhNghiepId = doanhNghiepId,
-                VaiTro = nd.VaiTro
+                VaiTro = nd.VaiTro,
+                Email = await _identity.Users.AsNoTracking()
+                    .Where(u => u.Id == _auth.UserId)
+                    .Select(u => u.Email)
+                    .FirstOrDefaultAsync()
             };
         }
     }

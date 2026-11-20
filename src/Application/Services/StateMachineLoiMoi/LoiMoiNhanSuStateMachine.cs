@@ -82,8 +82,8 @@ namespace Application.Services.StateMachineLoiMoi
         }
 
         /// <summary>
-        /// Fire trigger bằng token link (ChapNhan/TuChoi), không kiểm tra đăng nhập.
-        /// Token chính là credential; khớp email do caller kiểm tra (AcceptInvite, RejectInvite).
+        /// Fire trigger cho người nhận đã đăng nhập. Email tài khoản đã xác thực phải
+        /// khớp email người nhận; invite token chỉ định lời mời, không cấp quyền tự thân.
         /// Nếu lời mời đã quá hạn: tự persist HetHan (kèm side-effect) rồi throw.
         /// Caller phải <c>SaveChangesAsync</c> cả trong catch để lưu HetHan.
         /// </summary>
@@ -96,6 +96,8 @@ namespace Application.Services.StateMachineLoiMoi
             {
                 throw new ApiException($"Lời mời đã được xử lý (trạng thái '{_entity.LoiMoi}').");
             }
+
+            await ValidateRecipientAsync();
 
             if (await DanhDauHetHanNeuQuaHanAsync(ct))
                 throw new ApiException("Lời mời đã hết hạn.");
@@ -138,6 +140,18 @@ namespace Application.Services.StateMachineLoiMoi
 
         public static bool LaTriggerHeThong(TriggerLoiMoi trigger)
             => trigger == TriggerLoiMoi.DanhDauHetHan;
+
+        private async Task ValidateRecipientAsync()
+        {
+            var ctx = await _current.ResolveAsync();
+            if (ctx.VaiTro is not (VaiTroNguoiDung.UNG_VIEN or VaiTroNguoiDung.NHAN_SU))
+                throw new ApiException("Chỉ người nhận lời mời mới được xử lý lời mời.", 403);
+
+            var email = ctx.Email;
+            if (string.IsNullOrWhiteSpace(email)
+                || !string.Equals(email.Trim(), _entity.Email?.Trim(), StringComparison.OrdinalIgnoreCase))
+                throw new ApiException("Tài khoản hiện tại không khớp với email nhận lời mời.", 403);
+        }
 
         /// <summary>
         /// Hết hạn lười: lời mời còn ChoXacNhan mà quá NgayHetHan thì chuyển HetHan ngay

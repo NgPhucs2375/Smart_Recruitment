@@ -8,6 +8,7 @@ namespace Application.Interfaces
         public int Id { get; set; }
         public int? DoanhNghiepId { get; set; }
         public VaiTroNguoiDung VaiTro { get; set; }
+        public string Email { get; set; }
     }
 
     public interface ICurrentNguoiDungService

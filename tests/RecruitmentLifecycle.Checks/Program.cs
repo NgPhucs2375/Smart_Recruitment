@@ -43,8 +43,20 @@ CreateTinTuyenDungCommand Complete(string title) => new()
     YeuCauCongViec = new string('b', 200), LuongToiThieu = 10_000_000, LuongToiDa = 20_000_000,
     NgayHetHan = RecruitmentDeadline.Today.AddDays(2)
 };
-var draft = new CreateTinTuyenDungCommand { DanhMucNgheId = 1, TieuDe = "Developer" };
-Check((await new CreateTinTuyenDungCommandValidator().ValidateAsync(draft)).IsValid, "Partial draft is valid");
+var missingDeadline = new CreateTinTuyenDungCommand { DanhMucNgheId = 1, TieuDe = "Developer" };
+Check(!(await new CreateTinTuyenDungCommandValidator().ValidateAsync(missingDeadline)).IsValid, "Missing deadline is invalid for draft");
+var missingDeadlineUpdate = await new UpdateTinTuyenDungCommandValidator().ValidateAsync(new UpdateTinTuyenDungCommand
+{
+    Id = 1, DanhMucNgheId = 1, TieuDe = "Developer", DiaDiemLamViec = "Ha Noi",
+    MoTaCongViec = "Mô tả", YeuCauCongViec = "Yêu cầu", LuongToiThieu = 0, LuongToiDa = 0
+});
+Check(missingDeadlineUpdate.Errors.Any(x => x.PropertyName == nameof(UpdateTinTuyenDungCommand.NgayHetHan)), "Missing deadline is invalid for update");
+var missingDeadlineRejected = false;
+try { await create.Handle(missingDeadline, default); }
+catch (ApiException ex) when (ex.Message.Contains("Ngày hết hạn")) { missingDeadlineRejected = true; }
+Check(missingDeadlineRejected && !await db.TinTuyenDungs.AnyAsync(), "Backend handler refuses a draft without deadline");
+var draft = new CreateTinTuyenDungCommand { DanhMucNgheId = 1, TieuDe = "Developer", NgayHetHan = RecruitmentDeadline.Today.AddDays(2) };
+Check((await new CreateTinTuyenDungCommandValidator().ValidateAsync(draft)).IsValid, "Partial draft with deadline is valid");
 var id = (await create.Handle(draft, default)).Data;
 Check((await Job(id)).TrangThai == TrangThaiTinTuyenDung.Nhap && funnel.Calls == 0 && delivery.PushCount == 0, "Draft does not filter, publish or notify");
 Check(!await Trigger(id, TriggerTinTuyenDung.GuiDuyet), "Incomplete draft cannot submit");
@@ -154,6 +166,44 @@ Check(await NotifyCount() == 1 && inviteDelivery.PushCount == 1, "Invitation exp
 Check(await LoiMoiHetHanSweeper.QuetAsync(db, inviteWorkflow, current, NullLogger.Instance) == 0
     && await NotifyCount() == 1 && inviteDelivery.PushCount == 1,
     "Re-running the sweep neither re-transitions nor duplicates the notification");
+db.LoiMoiNhanSus.AddRange(
+    new LoiMoiNhanSu { Id = 902, DoanhNghiepId = 77, NguoiDaiDienId = 2, Email = "hr@acme.test", HoTen = "HR", Token = "token-902", LoiMoi = TrangThaiLoiMoi.ChoXacNhan, NgayHetHan = DateTime.UtcNow.AddDays(1) },
+    new LoiMoiNhanSu { Id = 903, DoanhNghiepId = 77, NguoiDaiDienId = 2, Email = "hr@acme.test", HoTen = "HR", Token = "token-903", LoiMoi = TrangThaiLoiMoi.ChoXacNhan, NgayHetHan = DateTime.UtcNow.AddDays(1) });
+await db.SaveChangesAsync();
+var rejectInvite = new Application.Features.NhanSu.Commands.RejectLoiMoi.RejectLoiMoiCommandHandler(db, current, inviteWorkflow);
+current.Set(2, VaiTroNguoiDung.NGUOI_DAI_DIEN, 77, "owner@acme.test");
+Check(!(await rejectInvite.Handle(new() { Token = "token-902" }, default)).Succeeded
+    && (await db.LoiMoiNhanSus.AsNoTracking().SingleAsync(x => x.Id == 902)).LoiMoi == TrangThaiLoiMoi.ChoXacNhan,
+    "Inviter cannot reject recipient invitation");
+current.Set(9, VaiTroNguoiDung.QUAN_TRI_VIEN, 77, "other@acme.test");
+Check(!(await rejectInvite.Handle(new() { Token = "token-902" }, default)).Succeeded
+    && (await db.LoiMoiNhanSus.AsNoTracking().SingleAsync(x => x.Id == 902)).LoiMoi == TrangThaiLoiMoi.ChoXacNhan,
+    "Unrelated account cannot reject recipient invitation");
+current.Set(1, VaiTroNguoiDung.NHAN_SU, 77, "hr@acme.test");
+Check((await rejectInvite.Handle(new() { Token = "token-902" }, default)).Succeeded
+    && (await db.LoiMoiNhanSus.AsNoTracking().SingleAsync(x => x.Id == 902)).LoiMoi == TrangThaiLoiMoi.DaTuChoi,
+    "Only matching recipient account can reject invitation");
+Check(!(await rejectInvite.Handle(new() { Token = "token-902" }, default)).Succeeded
+    && (await db.LoiMoiNhanSus.AsNoTracking().SingleAsync(x => x.Id == 902)).LoiMoi == TrangThaiLoiMoi.DaTuChoi,
+    "Completed invitation cannot be rejected again");
+var acceptInvite = await db.LoiMoiNhanSus.SingleAsync(x => x.Id == 903);
+var acceptMachine = new LoiMoiNhanSuStateMachine(inviteWorkflow, current, acceptInvite);
+current.Set(2, VaiTroNguoiDung.NGUOI_DAI_DIEN, 77, "owner@acme.test");
+var inviterAcceptDenied = false;
+try { await acceptMachine.FireByTokenAsync(TriggerLoiMoi.ChapNhan); }
+catch (ApiException ex) when (ex.StatusCode == 403) { inviterAcceptDenied = true; }
+Check(inviterAcceptDenied && acceptInvite.LoiMoi == TrangThaiLoiMoi.ChoXacNhan,
+    "Inviter cannot accept on behalf of recipient");
+current.Set(9, VaiTroNguoiDung.QUAN_TRI_VIEN, 77, "other@acme.test");
+var unrelatedAcceptDenied = false;
+try { await acceptMachine.FireByTokenAsync(TriggerLoiMoi.ChapNhan); }
+catch (ApiException ex) when (ex.StatusCode == 403) { unrelatedAcceptDenied = true; }
+Check(unrelatedAcceptDenied && acceptInvite.LoiMoi == TrangThaiLoiMoi.ChoXacNhan,
+    "Unrelated account cannot accept recipient invitation");
+current.Set(1, VaiTroNguoiDung.NHAN_SU, 77, "hr@acme.test");
+await acceptMachine.FireByTokenAsync(TriggerLoiMoi.ChapNhan);
+Check(acceptInvite.LoiMoi == TrangThaiLoiMoi.DaChapNhan,
+    "Matching recipient account can accept invitation");
 Console.WriteLine("Recruitment lifecycle checks completed.");
 
 sealed class CountingFilter(ITinTuyenDungFunnelService inner) : ITinTuyenDungFunnelService
@@ -169,8 +219,8 @@ sealed class Clock : IDateTimeService { public DateTime NowUtc => DateTime.UtcNo
 sealed class Auth : IAuthenticatedUserService { public string UserId => "lifecycle-check"; }
 sealed class CurrentUser : ICurrentNguoiDungService
 {
-    private CurrentNguoiDungContext _user = new() { Id = 1, VaiTro = VaiTroNguoiDung.NHAN_SU, DoanhNghiepId = 10 };
-    public void Set(int id, VaiTroNguoiDung role, int company) => _user = new() { Id = id, VaiTro = role, DoanhNghiepId = company };
+    private CurrentNguoiDungContext _user = new() { Id = 1, VaiTro = VaiTroNguoiDung.NHAN_SU, DoanhNghiepId = 10, Email = "hr@acme.test" };
+    public void Set(int id, VaiTroNguoiDung role, int company, string email = "hr@acme.test") => _user = new() { Id = id, VaiTro = role, DoanhNghiepId = company, Email = email };
     public Task<CurrentNguoiDungContext> ResolveAsync() => Task.FromResult(_user);
 }
 sealed class Delivery(ApplicationDbContext db) : IEmailService, IUserEmailResolver, INotificationPushService

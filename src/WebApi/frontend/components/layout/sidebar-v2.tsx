@@ -54,8 +54,24 @@ export function AppSidebarV2() {
         <nav className="space-y-1" aria-label="Điều hướng chính">
           <p className={cn("mb-2 px-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-workspace-muted", !open && "sr-only")}>Workspace</p>
           {visibleItems.map((item) => {
-            const active = pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href));
+            const active = !item.disabled && (pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href)));
             const Icon = item.icon;
+            if (item.disabled) {
+              return (
+                <div
+                  key={item.title}
+                  title={!open ? item.title : undefined}
+                  aria-disabled="true"
+                  className={cn(
+                    "group flex h-10 cursor-not-allowed items-center gap-3 rounded-xl px-3 text-sm font-medium text-workspace-muted/70",
+                    !open && "justify-center px-0",
+                  )}
+                >
+                  <Icon className="size-4.5 shrink-0" />
+                  {open && <span className="truncate">{item.title}</span>}
+                </div>
+              );
+            }
             return (
               <Link
                 key={item.title}

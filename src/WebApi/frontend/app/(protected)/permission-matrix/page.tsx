@@ -305,8 +305,10 @@ export default function PermissionMatrixPage() {
           </div>
         </div>
 
-        {/* ── 2. Matrix header (fixed, outside scroll) ── */}
-        <div className="grid grid-cols-[220px_repeat(4,minmax(270px,1fr))] border-b border-border bg-popover text-popover-foreground shadow-sm shrink-0">
+        {/* Header and rows share one horizontal scroll area so resource labels stay aligned. */}
+        <div className="overflow-auto max-h-[calc(100vh-22rem)] overscroll-contain">
+        <div className="min-w-[1300px]">
+        <div className="sticky top-0 z-30 grid grid-cols-[220px_repeat(4,minmax(270px,1fr))] border-b border-border bg-popover text-popover-foreground shadow-sm">
           <div className="sticky left-0 z-30 bg-popover px-4 py-3 font-medium text-xs text-muted-foreground border-r border-border">
             Resource
           </div>
@@ -348,9 +350,6 @@ export default function PermissionMatrixPage() {
           ))}
         </div>
 
-        {/* ── 3. Matrix body (only this scrolls) ── */}
-        <div className="overflow-auto max-h-[calc(100vh-22rem)]">
-          <div className="min-w-[1300px]">
             {resourcesSorted.map((resource, idx) => (
               <div
                 key={resource}
@@ -380,7 +379,7 @@ export default function PermissionMatrixPage() {
                 })}
               </div>
             ))}
-          </div>
+        </div>
         </div>
       </AdminCard>
 

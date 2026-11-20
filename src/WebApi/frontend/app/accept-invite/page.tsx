@@ -61,17 +61,8 @@ function InvitationContent() {
           {status === "ready" && pending && !loggedIn && (
             <div className="space-y-3">
               <p className="text-sm text-muted-foreground">Đăng nhập bằng đúng email nhận lời mời để tiếp tục.</p>
-              <Link href={loginHref} className={buttonVariants({ className: "w-full" })}>Đăng nhập để chấp nhận</Link>
-              <div className="flex justify-center">
-                <button
-                  type="button"
-                  disabled={rejecting}
-                  className="text-xs text-muted-foreground underline underline-offset-4 hover:text-foreground disabled:opacity-50"
-                  onClick={() => void reject()}
-                >
-                  {rejecting ? "Đang từ chối..." : "Từ chối lời mời này"}
-                </button>
-              </div>
+              <Link href={loginHref} className={buttonVariants({ className: "w-full" })}>Đăng nhập để xử lý lời mời</Link>
+              <p className="text-center text-xs text-muted-foreground">Đăng nhập bằng email nhận lời mời để chấp nhận hoặc từ chối.</p>
               <p className="text-center text-xs text-muted-foreground">
                 Chưa có tài khoản?{" "}
                 <Link href={registerHref} className="font-semibold text-foreground underline underline-offset-4">

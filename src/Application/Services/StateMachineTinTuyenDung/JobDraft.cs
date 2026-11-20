@@ -45,6 +45,7 @@ public class JobDraftValidator<T> : AbstractValidator<T> where T : JobDraftInput
         RuleFor(x => x.PhuongThucLamViec).IsInEnum();
         RuleFor(x => x.LuongToiThieu).GreaterThanOrEqualTo(0);
         RuleFor(x => x.LuongToiDa).GreaterThanOrEqualTo(x => x.LuongToiThieu);
+        RuleFor(x => x.NgayHetHan).NotNull().WithMessage("Ngày hết hạn là bắt buộc.");
         RuleForEach(x => x.KyNangs).ChildRules(skill =>
         {
             skill.RuleFor(x => x.KyNangId).GreaterThan(0);
@@ -93,6 +94,8 @@ public static class JobDraft
 
     public static async Task ApplyAsync(IApplicationDbContext context, TinTuyenDung job, JobDraftInput input, CancellationToken ct)
     {
+        if (!input.NgayHetHan.HasValue)
+            throw new ApiException("Ngày hết hạn là bắt buộc.");
         if (!await context.DanhMucNghes.AnyAsync(x => x.Id == input.DanhMucNgheId, ct))
             throw new ApiException("Không tìm thấy danh mục nghề.");
         if (input.KyNangs != null)
