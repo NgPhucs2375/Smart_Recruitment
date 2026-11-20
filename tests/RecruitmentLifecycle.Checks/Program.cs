@@ -154,6 +154,15 @@ Check(await NotifyCount() == 1 && inviteDelivery.PushCount == 1, "Invitation exp
 Check(await LoiMoiHetHanSweeper.QuetAsync(db, inviteWorkflow, current, NullLogger.Instance) == 0
     && await NotifyCount() == 1 && inviteDelivery.PushCount == 1,
     "Re-running the sweep neither re-transitions nor duplicates the notification");
+// Regression: PagedResponse phải sống sót round-trip System.Text.Json — GetAllKyNangs
+// serialize vào Redis rồi Deserialize lại; class có 2 constructor nên thiếu
+// [JsonConstructor] là ném NotSupportedException → 500 ở GET /kynangs.
+var paged = new Application.Wrappers.PagedResponse<List<string>>(new List<string> { "C#" }, 1, 100, 1, 1);
+var pagedJson = System.Text.Json.JsonSerializer.Serialize(paged);
+var pagedBack = System.Text.Json.JsonSerializer.Deserialize<Application.Wrappers.PagedResponse<List<string>>>(pagedJson);
+Check(pagedBack != null && pagedBack.Succeeded && pagedBack.TotalCount == 1 && pagedBack.Data?.Count == 1,
+    "PagedResponse survives JSON round-trip (skill dictionary cache)");
+
 Console.WriteLine("Recruitment lifecycle checks completed.");
 
 sealed class CountingFilter(ITinTuyenDungFunnelService inner) : ITinTuyenDungFunnelService
