@@ -39,6 +39,13 @@ public class SuggestedJobViewModel
     public decimal LuongToiDa { get; set; }
     public float DiemPhuHop { get; set; }
     public string PhanLoai { get; set; } = string.Empty;
+    /// <summary>Điểm thành phần kỹ năng 0..1 (đã gồm trọng số MucDoYC, IDF và trình độ).</summary>
+    public float DiemKyNang { get; set; }
+    public float BonusViTri { get; set; }
+    public float BonusLuong { get; set; }
+    public float BonusDiaDiem { get; set; }
+    /// <summary>Có thể âm: thiếu số năm yêu cầu bị trừ tối đa 0.05.</summary>
+    public float BonusKinhNghiem { get; set; }
     /// <summary>Lý do gợi ý do DeepSeek viết; null khi rerank tắt hoặc mô hình lỗi.</summary>
     public string? LyDoGoiY { get; set; }
     public List<string> KyNangThoa { get; set; } = new();
@@ -168,7 +175,7 @@ public class GetSuggestedJobsForCvQueryHandler(
                 t.TieuDe, t.LuongToiThieu, t.LuongToiDa, t.DiaDiemLamViec, t.KinhNghiemYeuCau), corpus);
             if (match.Score <= 0f)
                 continue;
-            var vm = ToVm(t, match.Score);
+            var vm = ToVm(t, match);
             vm.KyNangThoa = match.MatchedSkills.ToList();
             vm.KyNangThieu = match.MissingSkills.ToList();
             vm.KyNangBatBuocThieu = match.MissingMandatory.ToList();
@@ -206,7 +213,7 @@ public class GetSuggestedJobsForCvQueryHandler(
             responseData, message);
     }
 
-    private static SuggestedJobViewModel ToVm(JobMatchPosting t, float diem) => new()
+    private static SuggestedJobViewModel ToVm(JobMatchPosting t, ContentMatchResult match) => new()
     {
         TinTuyenDungId = t.Id,
         TieuDe = t.TieuDe,
@@ -214,8 +221,13 @@ public class GetSuggestedJobsForCvQueryHandler(
         DiaDiemLamViec = t.DiaDiemLamViec ?? string.Empty,
         LuongToiThieu = t.LuongToiThieu,
         LuongToiDa = t.LuongToiDa,
-        DiemPhuHop = diem,
-        PhanLoai = ContentBasedMatcher.PhanLoaiCua(diem).ToString(),
+        DiemPhuHop = match.Score,
+        PhanLoai = ContentBasedMatcher.PhanLoaiCua(match.Score).ToString(),
+        DiemKyNang = match.SkillScore,
+        BonusViTri = match.PositionBonus,
+        BonusLuong = match.SalaryBonus,
+        BonusDiaDiem = match.LocationBonus,
+        BonusKinhNghiem = match.ExperienceBonus,
         NgayHetHan = t.NgayHetHan,
     };
 

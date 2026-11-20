@@ -9,13 +9,11 @@
     <ProjectReference Include="..\..\Application\Application.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="MailKit" Version="4.16.0" />
-    <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="10.0.3" />
-    <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.3" />
-    <PackageReference Include="MimeKit" Version="4.16.0" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.3" />
-    <PackageReference Include="Minio" Version="7.0.0" />
-    <PackageReference Include="UglyToad.PdfPig" Version="1.7.0-custom-5" />
-    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.0" />
+    <PackageReference Include="MailKit" />
+    <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" />
+    <PackageReference Include="Microsoft.Extensions.Http" />
+    <PackageReference Include="MimeKit" />    <PackageReference Include="Minio" />
+    <PackageReference Include="UglyToad.PdfPig" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
   </ItemGroup>
 </Project>

@@ -35,6 +35,9 @@ for (const [slug, item] of Object.entries(manifest)) {
   assert.equal(item.version, TEMPLATE_REGISTRY[slug].version);
   assert.equal(item.columns, TEMPLATE_REGISTRY[slug].columns);
 }
+const backendManifest = JSON.parse(fs.readFileSync(path.resolve(__dirname, "../../src/Application/Resources/template-manifest.json"), "utf8"));
+assert.deepEqual(backendManifest, manifest);
+console.log("PASS Application embedded manifest copy in sync with frontend manifest");
 console.log("PASS backend manifest matches every actual frontend renderer, version and layout");
 const { parseThemeResult, ensureActiveTemplate } = projectRequire("./features/ai-cv/theme-recommendations.ts");
 const payload = { Succeeded: true, Data: [{ Slug: "ats-classic", Ten: "ATS Classic", Diem: .8, LyDo: "Backend junior", CanhBao: ["ATS metadata"], SoCot: 2 }, { Slug: "fake", Diem: 1 }] };

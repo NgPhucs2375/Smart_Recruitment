@@ -1,0 +1,142 @@
+{
+  "academic-cv": {
+    "columns": 1,
+    "version": "1.0"
+  },
+  "archi-portfolio": {
+    "columns": 2,
+    "version": "1.0"
+  },
+  "ats-classic": {
+    "columns": 1,
+    "version": "1.0"
+  },
+  "beige-editorial": {
+    "columns": 1,
+    "version": "1.0"
+  },
+  "bento-grid": {
+    "columns": 2,
+    "version": "1.0"
+  },
+  "canva-blue-gold-designer": {
+    "columns": 2,
+    "version": "1.0"
+  },
+  "canva-clean-slate": {
+    "columns": 2,
+    "version": "1.0"
+  },
+  "canva-corporate-navy": {
+    "columns": 2,
+    "version": "1.0"
+  },
+  "canva-darkroom-creative": {
+    "columns": 2,
+    "version": "1.0"
+  },
+  "canva-editorial-classic": {
+    "columns": 1,
+    "version": "1.0"
+  },
+  "canva-executive-banner": {
+    "columns": 2,
+    "version": "1.0"
+  },
+  "canva-minimal-monochrome": {
+    "columns": 1,
+    "version": "1.0"
+  },
+  "care-plus": {
+    "columns": 1,
+    "version": "1.0"
+  },
+  "clean-corporate": {
+    "columns": 1,
+    "version": "1.0"
+  },
+  "compact-developer": {
+    "columns": 1,
+    "version": "1.0"
+  },
+  "creative-portfolio": {
+    "columns": 1,
+    "version": "1.0"
+  },
+  "culinary-signature": {
+    "columns": 1,
+    "version": "1.1"
+  },
+  "data-specialist": {
+    "columns": 1,
+    "version": "1.0"
+  },
+  "den-moody": {
+    "columns": 1,
+    "version": "1.0"
+  },
+  "do-hoa-lime": {
+    "columns": 1,
+    "version": "1.0"
+  },
+  "editorial-magazine": {
+    "columns": 2,
+    "version": "1.0"
+  },
+  "forest-fresh": {
+    "columns": 1,
+    "version": "1.0"
+  },
+  "kem-minimal": {
+    "columns": 1,
+    "version": "1.0"
+  },
+  "legal-prestige": {
+    "columns": 1,
+    "version": "1.0"
+  },
+  "mentor-class": {
+    "columns": 1,
+    "version": "1.1"
+  },
+  "minimal-ats": {
+    "columns": 1,
+    "version": "1.0"
+  },
+  "mono-portfolio": {
+    "columns": 1,
+    "version": "1.0"
+  },
+  "nhan-su-royal": {
+    "columns": 1,
+    "version": "1.0"
+  },
+  "ocean-wave": {
+    "columns": 2,
+    "version": "1.0"
+  },
+  "research-scholar": {
+    "columns": 2,
+    "version": "1.0"
+  },
+  "snapshot-pro": {
+    "columns": 2,
+    "version": "1.0"
+  },
+  "startup-modern": {
+    "columns": 1,
+    "version": "1.0"
+  },
+  "tech-modern": {
+    "columns": 2,
+    "version": "1.0"
+  },
+  "vault-finance": {
+    "columns": 1,
+    "version": "1.0"
+  },
+  "zen-minimal": {
+    "columns": 1,
+    "version": "1.0"
+  }
+}

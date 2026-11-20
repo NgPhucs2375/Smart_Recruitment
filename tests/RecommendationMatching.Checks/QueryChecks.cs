@@ -1,4 +1,5 @@
 using Application.Features.KetQuaPhuHop.Matching;
+using Application.Features.KetQuaPhuHop.Queries.GetCvJobMatch;
 using Application.Features.KetQuaPhuHop.Queries.SuggestCandidatesForJob;
 using Application.Features.KetQuaPhuHop.Queries.SuggestJobsForCv;
 using Application.Interfaces;
@@ -88,6 +89,27 @@ public static class QueryChecks
         current.Set(1, VaiTroNguoiDung.UNG_VIEN, null);
         check(!(await candidates.Handle(new GetSuggestedCandidatesForJobQuery { TinTuyenDungId = 1 }, default)).Succeeded,
             "Candidate role cannot use recruiter recommendations");
+
+        // Điểm thành phần: fixture không có vị trí/lương/địa điểm/số năm nên Score = DiemKyNang.
+        var vm = result.Data[0];
+        check(Math.Abs(vm.DiemKyNang - vm.DiemPhuHop) < .00001f &&
+            vm.BonusViTri == 0 && vm.BonusLuong == 0 && vm.BonusDiaDiem == 0 && vm.BonusKinhNghiem == 0,
+            "Recommendation response exposes score components consistent with the final score");
+
+        var pair = new GetCvJobMatchQueryHandler(db, current);
+        var explicitMatch = await pair.Handle(new GetCvJobMatchQuery(1, 1), default);
+        check(explicitMatch.Succeeded && explicitMatch.Data!.CvUngVienId == 1 &&
+            Math.Abs(explicitMatch.Data.DiemKyNang - vm.DiemKyNang) < .00001f &&
+            Math.Abs(explicitMatch.Data.DiemPhuHop - vm.DiemPhuHop) < .00001f &&
+            explicitMatch.Data.MatchingVersion == ContentBasedMatcher.Version,
+            "Single-pair match returns the same components as the recommendation list");
+        check(await db.KetQuaPhuHops.CountAsync() == 1,
+            "Single-pair match is read-only and does not persist KetQuaPhuHop");
+        var defaultCvMatch = await pair.Handle(new GetCvJobMatchQuery(null, 1), default);
+        check(defaultCvMatch.Succeeded && defaultCvMatch.Data!.CvUngVienId == 1,
+            "Single-pair match falls back to the default CV when cvId is omitted");
+        check(!(await pair.Handle(new GetCvJobMatchQuery(2, 1), default)).Succeeded,
+            "Single-pair match rejects another candidate's CV");
     }
 }
 

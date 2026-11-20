@@ -1,0 +1,1342 @@
+{
+  "summary": {
+    "scorer": "cbf-v7-idf (production API, rule order = DiemPhuHop desc, Id desc)",
+    "candidates": 15,
+    "MACRO_rule_P5": 0.5999999999999999,
+    "MACRO_rule_HitRate5": 1,
+    "MACRO_rule_Recall5": 1,
+    "MACRO_api_P5": 0.5999999999999999,
+    "MACRO_api_HitRate5": 1,
+    "MACRO_NDCG_bo5": 1,
+    "MACRO_P_bo5": 0.5999999999999999,
+    "rerankActiveCount": 15,
+    "caveats": [
+      "Nhãn dương được thiết kế khớp trước (circular by construction) — đo recall của cặp thiết kế, không phải chất lượng tuyệt đối.",
+      "NDCG chỉ tính trong bộ 5 tin có nhãn tường minh (3 dương + 2 nhiễu); tin ngoài bộ không gán nhãn.",
+      "Tin vắng mặt khỏi top-10 bị coi như điểm 0 khi xếp trong bộ (conservative).",
+      "rule order = sắp theo DiemPhuHop; api order = thứ tự trả về thực tế (có thể đã qua DeepSeek rerank)."
+    ]
+  },
+  "results": [
+    {
+      "number": 1,
+      "email": "gt.ungvien01@seed.local",
+      "returned": 10,
+      "rule": {
+        "precisionAt5": 0.6,
+        "hitAt5": 1,
+        "recallAt5": 1
+      },
+      "api": {
+        "precisionAt5": 0.6,
+        "hitAt5": 1,
+        "recallAt5": 1
+      },
+      "ndcgBo5": 1,
+      "precisionBo5": 0.6,
+      "boPresent": 3,
+      "reranked": true,
+      "top5Rule": [
+        {
+          "id": 135,
+          "t": "[GT] Frontend Developer - bộ 11.4",
+          "s": 0.906,
+          "label": null
+        },
+        {
+          "id": 131,
+          "t": "[GT] Frontend Developer - bộ 10.5",
+          "s": 0.906,
+          "label": null
+        },
+        {
+          "id": 84,
+          "t": "[GT] Frontend Developer - bộ 01.3",
+          "s": 0.906,
+          "label": 1
+        },
+        {
+          "id": 83,
+          "t": "[GT] Frontend Developer - bộ 01.2",
+          "s": 0.906,
+          "label": 1
+        },
+        {
+          "id": 82,
+          "t": "[GT] Frontend Developer - bộ 01.1",
+          "s": 0.906,
+          "label": 1
+        }
+      ],
+      "boItems": [
+        {
+          "variant": 3,
+          "label": 1,
+          "score": 0.9060472,
+          "id": 84,
+          "present": true
+        },
+        {
+          "variant": 2,
+          "label": 1,
+          "score": 0.9060472,
+          "id": 83,
+          "present": true
+        },
+        {
+          "variant": 1,
+          "label": 1,
+          "score": 0.9060472,
+          "id": 82,
+          "present": true
+        },
+        {
+          "variant": 4,
+          "label": 0,
+          "score": 0,
+          "id": -4,
+          "present": false
+        },
+        {
+          "variant": 5,
+          "label": 0,
+          "score": 0,
+          "id": -5,
+          "present": false
+        }
+      ]
+    },
+    {
+      "number": 2,
+      "email": "gt.ungvien02@seed.local",
+      "returned": 10,
+      "rule": {
+        "precisionAt5": 0.6,
+        "hitAt5": 1,
+        "recallAt5": 1
+      },
+      "api": {
+        "precisionAt5": 0.6,
+        "hitAt5": 1,
+        "recallAt5": 1
+      },
+      "ndcgBo5": 1,
+      "precisionBo5": 0.6,
+      "boPresent": 3,
+      "reranked": true,
+      "top5Rule": [
+        {
+          "id": 140,
+          "t": "[GT] Backend Developer .NET - bộ 12.4",
+          "s": 0.9794,
+          "label": null
+        },
+        {
+          "id": 136,
+          "t": "[GT] Backend Developer .NET - bộ 11.5",
+          "s": 0.9794,
+          "label": null
+        },
+        {
+          "id": 89,
+          "t": "[GT] Backend Developer .NET - bộ 02.3",
+          "s": 0.9794,
+          "label": 1
+        },
+        {
+          "id": 88,
+          "t": "[GT] Backend Developer .NET - bộ 02.2",
+          "s": 0.9794,
+          "label": 1
+        },
+        {
+          "id": 87,
+          "t": "[GT] Backend Developer .NET - bộ 02.1",
+          "s": 0.9794,
+          "label": 1
+        }
+      ],
+      "boItems": [
+        {
+          "variant": 3,
+          "label": 1,
+          "score": 0.97943115,
+          "id": 89,
+          "present": true
+        },
+        {
+          "variant": 2,
+          "label": 1,
+          "score": 0.97943115,
+          "id": 88,
+          "present": true
+        },
+        {
+          "variant": 1,
+          "label": 1,
+          "score": 0.97943115,
+          "id": 87,
+          "present": true
+        },
+        {
+          "variant": 4,
+          "label": 0,
+          "score": 0,
+          "id": -4,
+          "present": false
+        },
+        {
+          "variant": 5,
+          "label": 0,
+          "score": 0,
+          "id": -5,
+          "present": false
+        }
+      ]
+    },
+    {
+      "number": 3,
+      "email": "gt.ungvien03@seed.local",
+      "returned": 10,
+      "rule": {
+        "precisionAt5": 0.6,
+        "hitAt5": 1,
+        "recallAt5": 1
+      },
+      "api": {
+        "precisionAt5": 0.6,
+        "hitAt5": 1,
+        "recallAt5": 1
+      },
+      "ndcgBo5": 1,
+      "precisionBo5": 0.6,
+      "boPresent": 3,
+      "reranked": true,
+      "top5Rule": [
+        {
+          "id": 145,
+          "t": "[GT] Data Analyst - bộ 13.4",
+          "s": 0.834,
+          "label": null
+        },
+        {
+          "id": 141,
+          "t": "[GT] Data Analyst - bộ 12.5",
+          "s": 0.834,
+          "label": null
+        },
+        {
+          "id": 94,
+          "t": "[GT] Data Analyst - bộ 03.3",
+          "s": 0.834,
+          "label": 1
+        },
+        {
+          "id": 93,
+          "t": "[GT] Data Analyst - bộ 03.2",
+          "s": 0.834,
+          "label": 1
+        },
+        {
+          "id": 92,
+          "t": "[GT] Data Analyst - bộ 03.1",
+          "s": 0.834,
+          "label": 1
+        }
+      ],
+      "boItems": [
+        {
+          "variant": 3,
+          "label": 1,
+          "score": 0.8339533,
+          "id": 94,
+          "present": true
+        },
+        {
+          "variant": 2,
+          "label": 1,
+          "score": 0.8339533,
+          "id": 93,
+          "present": true
+        },
+        {
+          "variant": 1,
+          "label": 1,
+          "score": 0.8339533,
+          "id": 92,
+          "present": true
+        },
+        {
+          "variant": 4,
+          "label": 0,
+          "score": 0,
+          "id": -4,
+          "present": false
+        },
+        {
+          "variant": 5,
+          "label": 0,
+          "score": 0,
+          "id": -5,
+          "present": false
+        }
+      ]
+    },
+    {
+      "number": 4,
+      "email": "gt.ungvien04@seed.local",
+      "returned": 10,
+      "rule": {
+        "precisionAt5": 0.6,
+        "hitAt5": 1,
+        "recallAt5": 1
+      },
+      "api": {
+        "precisionAt5": 0.6,
+        "hitAt5": 1,
+        "recallAt5": 1
+      },
+      "ndcgBo5": 1,
+      "precisionBo5": 0.6,
+      "boPresent": 3,
+      "reranked": true,
+      "top5Rule": [
+        {
+          "id": 150,
+          "t": "[GT] QA Tester - bộ 14.4",
+          "s": 0.8764,
+          "label": null
+        },
+        {
+          "id": 146,
+          "t": "[GT] QA Tester - bộ 13.5",
+          "s": 0.8764,
+          "label": null
+        },
+        {
+          "id": 99,
+          "t": "[GT] QA Tester - bộ 04.3",
+          "s": 0.8764,
+          "label": 1
+        },
+        {
+          "id": 98,
+          "t": "[GT] QA Tester - bộ 04.2",
+          "s": 0.8764,
+          "label": 1
+        },
+        {
+          "id": 97,
+          "t": "[GT] QA Tester - bộ 04.1",
+          "s": 0.8764,
+          "label": 1
+        }
+      ],
+      "boItems": [
+        {
+          "variant": 3,
+          "label": 1,
+          "score": 0.87636536,
+          "id": 99,
+          "present": true
+        },
+        {
+          "variant": 2,
+          "label": 1,
+          "score": 0.87636536,
+          "id": 98,
+          "present": true
+        },
+        {
+          "variant": 1,
+          "label": 1,
+          "score": 0.87636536,
+          "id": 97,
+          "present": true
+        },
+        {
+          "variant": 4,
+          "label": 0,
+          "score": 0,
+          "id": -4,
+          "present": false
+        },
+        {
+          "variant": 5,
+          "label": 0,
+          "score": 0,
+          "id": -5,
+          "present": false
+        }
+      ]
+    },
+    {
+      "number": 5,
+      "email": "gt.ungvien05@seed.local",
+      "returned": 10,
+      "rule": {
+        "precisionAt5": 0.6,
+        "hitAt5": 1,
+        "recallAt5": 1
+      },
+      "api": {
+        "precisionAt5": 0.6,
+        "hitAt5": 1,
+        "recallAt5": 1
+      },
+      "ndcgBo5": 1,
+      "precisionBo5": 0.6,
+      "boPresent": 3,
+      "reranked": true,
+      "top5Rule": [
+        {
+          "id": 155,
+          "t": "[GT] UI UX Designer - bộ 15.4",
+          "s": 1,
+          "label": null
+        },
+        {
+          "id": 151,
+          "t": "[GT] UI UX Designer - bộ 14.5",
+          "s": 1,
+          "label": null
+        },
+        {
+          "id": 104,
+          "t": "[GT] UI UX Designer - bộ 05.3",
+          "s": 1,
+          "label": 1
+        },
+        {
+          "id": 103,
+          "t": "[GT] UI UX Designer - bộ 05.2",
+          "s": 1,
+          "label": 1
+        },
+        {
+          "id": 102,
+          "t": "[GT] UI UX Designer - bộ 05.1",
+          "s": 1,
+          "label": 1
+        }
+      ],
+      "boItems": [
+        {
+          "variant": 3,
+          "label": 1,
+          "score": 1,
+          "id": 104,
+          "present": true
+        },
+        {
+          "variant": 2,
+          "label": 1,
+          "score": 1,
+          "id": 103,
+          "present": true
+        },
+        {
+          "variant": 1,
+          "label": 1,
+          "score": 1,
+          "id": 102,
+          "present": true
+        },
+        {
+          "variant": 4,
+          "label": 0,
+          "score": 0,
+          "id": -4,
+          "present": false
+        },
+        {
+          "variant": 5,
+          "label": 0,
+          "score": 0,
+          "id": -5,
+          "present": false
+        }
+      ]
+    },
+    {
+      "number": 6,
+      "email": "gt.ungvien06@seed.local",
+      "returned": 10,
+      "rule": {
+        "precisionAt5": 0.6,
+        "hitAt5": 1,
+        "recallAt5": 1
+      },
+      "api": {
+        "precisionAt5": 0.6,
+        "hitAt5": 1,
+        "recallAt5": 1
+      },
+      "ndcgBo5": 1,
+      "precisionBo5": 0.6,
+      "boPresent": 3,
+      "reranked": true,
+      "top5Rule": [
+        {
+          "id": 156,
+          "t": "[GT] DevOps Engineer - bộ 15.5",
+          "s": 1,
+          "label": null
+        },
+        {
+          "id": 109,
+          "t": "[GT] DevOps Engineer - bộ 06.3",
+          "s": 1,
+          "label": 1
+        },
+        {
+          "id": 108,
+          "t": "[GT] DevOps Engineer - bộ 06.2",
+          "s": 1,
+          "label": 1
+        },
+        {
+          "id": 107,
+          "t": "[GT] DevOps Engineer - bộ 06.1",
+          "s": 1,
+          "label": 1
+        },
+        {
+          "id": 85,
+          "t": "[GT] DevOps Engineer - bộ 01.4",
+          "s": 1,
+          "label": null
+        }
+      ],
+      "boItems": [
+        {
+          "variant": 3,
+          "label": 1,
+          "score": 1,
+          "id": 109,
+          "present": true
+        },
+        {
+          "variant": 2,
+          "label": 1,
+          "score": 1,
+          "id": 108,
+          "present": true
+        },
+        {
+          "variant": 1,
+          "label": 1,
+          "score": 1,
+          "id": 107,
+          "present": true
+        },
+        {
+          "variant": 4,
+          "label": 0,
+          "score": 0,
+          "id": -4,
+          "present": false
+        },
+        {
+          "variant": 5,
+          "label": 0,
+          "score": 0,
+          "id": -5,
+          "present": false
+        }
+      ]
+    },
+    {
+      "number": 7,
+      "email": "gt.ungvien07@seed.local",
+      "returned": 10,
+      "rule": {
+        "precisionAt5": 0.6,
+        "hitAt5": 1,
+        "recallAt5": 1
+      },
+      "api": {
+        "precisionAt5": 0.6,
+        "hitAt5": 1,
+        "recallAt5": 1
+      },
+      "ndcgBo5": 1,
+      "precisionBo5": 0.6,
+      "boPresent": 3,
+      "reranked": true,
+      "top5Rule": [
+        {
+          "id": 114,
+          "t": "[GT] Digital Marketing Specialist - bộ 07.3",
+          "s": 1,
+          "label": 1
+        },
+        {
+          "id": 113,
+          "t": "[GT] Digital Marketing Specialist - bộ 07.2",
+          "s": 1,
+          "label": 1
+        },
+        {
+          "id": 112,
+          "t": "[GT] Digital Marketing Specialist - bộ 07.1",
+          "s": 1,
+          "label": 1
+        },
+        {
+          "id": 90,
+          "t": "[GT] Digital Marketing Specialist - bộ 02.4",
+          "s": 1,
+          "label": null
+        },
+        {
+          "id": 86,
+          "t": "[GT] Digital Marketing Specialist - bộ 01.5",
+          "s": 1,
+          "label": null
+        }
+      ],
+      "boItems": [
+        {
+          "variant": 3,
+          "label": 1,
+          "score": 1,
+          "id": 114,
+          "present": true
+        },
+        {
+          "variant": 2,
+          "label": 1,
+          "score": 1,
+          "id": 113,
+          "present": true
+        },
+        {
+          "variant": 1,
+          "label": 1,
+          "score": 1,
+          "id": 112,
+          "present": true
+        },
+        {
+          "variant": 4,
+          "label": 0,
+          "score": 0,
+          "id": -4,
+          "present": false
+        },
+        {
+          "variant": 5,
+          "label": 0,
+          "score": 0,
+          "id": -5,
+          "present": false
+        }
+      ]
+    },
+    {
+      "number": 8,
+      "email": "gt.ungvien08@seed.local",
+      "returned": 10,
+      "rule": {
+        "precisionAt5": 0.6,
+        "hitAt5": 1,
+        "recallAt5": 1
+      },
+      "api": {
+        "precisionAt5": 0.6,
+        "hitAt5": 1,
+        "recallAt5": 1
+      },
+      "ndcgBo5": 1,
+      "precisionBo5": 0.6,
+      "boPresent": 3,
+      "reranked": true,
+      "top5Rule": [
+        {
+          "id": 119,
+          "t": "[GT] Kế toán tổng hợp - bộ 08.3",
+          "s": 1,
+          "label": 1
+        },
+        {
+          "id": 118,
+          "t": "[GT] Kế toán tổng hợp - bộ 08.2",
+          "s": 1,
+          "label": 1
+        },
+        {
+          "id": 117,
+          "t": "[GT] Kế toán tổng hợp - bộ 08.1",
+          "s": 1,
+          "label": 1
+        },
+        {
+          "id": 95,
+          "t": "[GT] Kế toán tổng hợp - bộ 03.4",
+          "s": 1,
+          "label": null
+        },
+        {
+          "id": 91,
+          "t": "[GT] Kế toán tổng hợp - bộ 02.5",
+          "s": 1,
+          "label": null
+        }
+      ],
+      "boItems": [
+        {
+          "variant": 3,
+          "label": 1,
+          "score": 1,
+          "id": 119,
+          "present": true
+        },
+        {
+          "variant": 2,
+          "label": 1,
+          "score": 1,
+          "id": 118,
+          "present": true
+        },
+        {
+          "variant": 1,
+          "label": 1,
+          "score": 1,
+          "id": 117,
+          "present": true
+        },
+        {
+          "variant": 4,
+          "label": 0,
+          "score": 0,
+          "id": -4,
+          "present": false
+        },
+        {
+          "variant": 5,
+          "label": 0,
+          "score": 0,
+          "id": -5,
+          "present": false
+        }
+      ]
+    },
+    {
+      "number": 9,
+      "email": "gt.ungvien09@seed.local",
+      "returned": 10,
+      "rule": {
+        "precisionAt5": 0.6,
+        "hitAt5": 1,
+        "recallAt5": 1
+      },
+      "api": {
+        "precisionAt5": 0.6,
+        "hitAt5": 1,
+        "recallAt5": 1
+      },
+      "ndcgBo5": 1,
+      "precisionBo5": 0.6,
+      "boPresent": 3,
+      "reranked": true,
+      "top5Rule": [
+        {
+          "id": 124,
+          "t": "[GT] Chuyên viên tuyển dụng - bộ 09.3",
+          "s": 1,
+          "label": 1
+        },
+        {
+          "id": 123,
+          "t": "[GT] Chuyên viên tuyển dụng - bộ 09.2",
+          "s": 1,
+          "label": 1
+        },
+        {
+          "id": 122,
+          "t": "[GT] Chuyên viên tuyển dụng - bộ 09.1",
+          "s": 1,
+          "label": 1
+        },
+        {
+          "id": 100,
+          "t": "[GT] Chuyên viên tuyển dụng - bộ 04.4",
+          "s": 1,
+          "label": null
+        },
+        {
+          "id": 96,
+          "t": "[GT] Chuyên viên tuyển dụng - bộ 03.5",
+          "s": 1,
+          "label": null
+        }
+      ],
+      "boItems": [
+        {
+          "variant": 3,
+          "label": 1,
+          "score": 1,
+          "id": 124,
+          "present": true
+        },
+        {
+          "variant": 2,
+          "label": 1,
+          "score": 1,
+          "id": 123,
+          "present": true
+        },
+        {
+          "variant": 1,
+          "label": 1,
+          "score": 1,
+          "id": 122,
+          "present": true
+        },
+        {
+          "variant": 4,
+          "label": 0,
+          "score": 0,
+          "id": -4,
+          "present": false
+        },
+        {
+          "variant": 5,
+          "label": 0,
+          "score": 0,
+          "id": -5,
+          "present": false
+        }
+      ]
+    },
+    {
+      "number": 10,
+      "email": "gt.ungvien10@seed.local",
+      "returned": 10,
+      "rule": {
+        "precisionAt5": 0.6,
+        "hitAt5": 1,
+        "recallAt5": 1
+      },
+      "api": {
+        "precisionAt5": 0.6,
+        "hitAt5": 1,
+        "recallAt5": 1
+      },
+      "ndcgBo5": 1,
+      "precisionBo5": 0.6,
+      "boPresent": 3,
+      "reranked": true,
+      "top5Rule": [
+        {
+          "id": 129,
+          "t": "[GT] Nhân viên kinh doanh - bộ 10.3",
+          "s": 0.8103,
+          "label": 1
+        },
+        {
+          "id": 128,
+          "t": "[GT] Nhân viên kinh doanh - bộ 10.2",
+          "s": 0.8103,
+          "label": 1
+        },
+        {
+          "id": 127,
+          "t": "[GT] Nhân viên kinh doanh - bộ 10.1",
+          "s": 0.8103,
+          "label": 1
+        },
+        {
+          "id": 105,
+          "t": "[GT] Nhân viên kinh doanh - bộ 05.4",
+          "s": 0.8103,
+          "label": null
+        },
+        {
+          "id": 101,
+          "t": "[GT] Nhân viên kinh doanh - bộ 04.5",
+          "s": 0.8103,
+          "label": null
+        }
+      ],
+      "boItems": [
+        {
+          "variant": 3,
+          "label": 1,
+          "score": 0.8103491,
+          "id": 129,
+          "present": true
+        },
+        {
+          "variant": 2,
+          "label": 1,
+          "score": 0.8103491,
+          "id": 128,
+          "present": true
+        },
+        {
+          "variant": 1,
+          "label": 1,
+          "score": 0.8103491,
+          "id": 127,
+          "present": true
+        },
+        {
+          "variant": 4,
+          "label": 0,
+          "score": 0,
+          "id": -4,
+          "present": false
+        },
+        {
+          "variant": 5,
+          "label": 0,
+          "score": 0,
+          "id": -5,
+          "present": false
+        }
+      ]
+    },
+    {
+      "number": 11,
+      "email": "gt.ungvien11@seed.local",
+      "returned": 10,
+      "rule": {
+        "precisionAt5": 0.6,
+        "hitAt5": 1,
+        "recallAt5": 1
+      },
+      "api": {
+        "precisionAt5": 0.6,
+        "hitAt5": 1,
+        "recallAt5": 1
+      },
+      "ndcgBo5": 1,
+      "precisionBo5": 0.6,
+      "boPresent": 3,
+      "reranked": true,
+      "top5Rule": [
+        {
+          "id": 134,
+          "t": "[GT] Business Analyst - bộ 11.3",
+          "s": 1,
+          "label": 1
+        },
+        {
+          "id": 133,
+          "t": "[GT] Business Analyst - bộ 11.2",
+          "s": 1,
+          "label": 1
+        },
+        {
+          "id": 132,
+          "t": "[GT] Business Analyst - bộ 11.1",
+          "s": 1,
+          "label": 1
+        },
+        {
+          "id": 110,
+          "t": "[GT] Business Analyst - bộ 06.4",
+          "s": 1,
+          "label": null
+        },
+        {
+          "id": 106,
+          "t": "[GT] Business Analyst - bộ 05.5",
+          "s": 1,
+          "label": null
+        }
+      ],
+      "boItems": [
+        {
+          "variant": 3,
+          "label": 1,
+          "score": 1,
+          "id": 134,
+          "present": true
+        },
+        {
+          "variant": 2,
+          "label": 1,
+          "score": 1,
+          "id": 133,
+          "present": true
+        },
+        {
+          "variant": 1,
+          "label": 1,
+          "score": 1,
+          "id": 132,
+          "present": true
+        },
+        {
+          "variant": 4,
+          "label": 0,
+          "score": 0,
+          "id": -4,
+          "present": false
+        },
+        {
+          "variant": 5,
+          "label": 0,
+          "score": 0,
+          "id": -5,
+          "present": false
+        }
+      ]
+    },
+    {
+      "number": 12,
+      "email": "gt.ungvien12@seed.local",
+      "returned": 10,
+      "rule": {
+        "precisionAt5": 0.6,
+        "hitAt5": 1,
+        "recallAt5": 1
+      },
+      "api": {
+        "precisionAt5": 0.6,
+        "hitAt5": 1,
+        "recallAt5": 1
+      },
+      "ndcgBo5": 1,
+      "precisionBo5": 0.6,
+      "boPresent": 3,
+      "reranked": true,
+      "top5Rule": [
+        {
+          "id": 139,
+          "t": "[GT] Mobile Developer - bộ 12.3",
+          "s": 0.8993,
+          "label": 1
+        },
+        {
+          "id": 138,
+          "t": "[GT] Mobile Developer - bộ 12.2",
+          "s": 0.8993,
+          "label": 1
+        },
+        {
+          "id": 137,
+          "t": "[GT] Mobile Developer - bộ 12.1",
+          "s": 0.8993,
+          "label": 1
+        },
+        {
+          "id": 115,
+          "t": "[GT] Mobile Developer - bộ 07.4",
+          "s": 0.8993,
+          "label": null
+        },
+        {
+          "id": 111,
+          "t": "[GT] Mobile Developer - bộ 06.5",
+          "s": 0.8993,
+          "label": null
+        }
+      ],
+      "boItems": [
+        {
+          "variant": 3,
+          "label": 1,
+          "score": 0.8993282,
+          "id": 139,
+          "present": true
+        },
+        {
+          "variant": 2,
+          "label": 1,
+          "score": 0.8993282,
+          "id": 138,
+          "present": true
+        },
+        {
+          "variant": 1,
+          "label": 1,
+          "score": 0.8993282,
+          "id": 137,
+          "present": true
+        },
+        {
+          "variant": 4,
+          "label": 0,
+          "score": 0,
+          "id": -4,
+          "present": false
+        },
+        {
+          "variant": 5,
+          "label": 0,
+          "score": 0,
+          "id": -5,
+          "present": false
+        }
+      ]
+    },
+    {
+      "number": 13,
+      "email": "gt.ungvien13@seed.local",
+      "returned": 10,
+      "rule": {
+        "precisionAt5": 0.6,
+        "hitAt5": 1,
+        "recallAt5": 1
+      },
+      "api": {
+        "precisionAt5": 0.6,
+        "hitAt5": 1,
+        "recallAt5": 1
+      },
+      "ndcgBo5": 1,
+      "precisionBo5": 0.6,
+      "boPresent": 3,
+      "reranked": true,
+      "top5Rule": [
+        {
+          "id": 144,
+          "t": "[GT] Logistics Coordinator - bộ 13.3",
+          "s": 1,
+          "label": 1
+        },
+        {
+          "id": 143,
+          "t": "[GT] Logistics Coordinator - bộ 13.2",
+          "s": 1,
+          "label": 1
+        },
+        {
+          "id": 142,
+          "t": "[GT] Logistics Coordinator - bộ 13.1",
+          "s": 1,
+          "label": 1
+        },
+        {
+          "id": 120,
+          "t": "[GT] Logistics Coordinator - bộ 08.4",
+          "s": 1,
+          "label": null
+        },
+        {
+          "id": 116,
+          "t": "[GT] Logistics Coordinator - bộ 07.5",
+          "s": 1,
+          "label": null
+        }
+      ],
+      "boItems": [
+        {
+          "variant": 3,
+          "label": 1,
+          "score": 1,
+          "id": 144,
+          "present": true
+        },
+        {
+          "variant": 2,
+          "label": 1,
+          "score": 1,
+          "id": 143,
+          "present": true
+        },
+        {
+          "variant": 1,
+          "label": 1,
+          "score": 1,
+          "id": 142,
+          "present": true
+        },
+        {
+          "variant": 4,
+          "label": 0,
+          "score": 0,
+          "id": -4,
+          "present": false
+        },
+        {
+          "variant": 5,
+          "label": 0,
+          "score": 0,
+          "id": -5,
+          "present": false
+        }
+      ]
+    },
+    {
+      "number": 14,
+      "email": "gt.ungvien14@seed.local",
+      "returned": 10,
+      "rule": {
+        "precisionAt5": 0.6,
+        "hitAt5": 1,
+        "recallAt5": 1
+      },
+      "api": {
+        "precisionAt5": 0.6,
+        "hitAt5": 1,
+        "recallAt5": 1
+      },
+      "ndcgBo5": 1,
+      "precisionBo5": 0.6,
+      "boPresent": 3,
+      "reranked": true,
+      "top5Rule": [
+        {
+          "id": 149,
+          "t": "[GT] Customer Support Specialist - bộ 14.3",
+          "s": 0.836,
+          "label": 1
+        },
+        {
+          "id": 148,
+          "t": "[GT] Customer Support Specialist - bộ 14.2",
+          "s": 0.836,
+          "label": 1
+        },
+        {
+          "id": 147,
+          "t": "[GT] Customer Support Specialist - bộ 14.1",
+          "s": 0.836,
+          "label": 1
+        },
+        {
+          "id": 125,
+          "t": "[GT] Customer Support Specialist - bộ 09.4",
+          "s": 0.836,
+          "label": null
+        },
+        {
+          "id": 121,
+          "t": "[GT] Customer Support Specialist - bộ 08.5",
+          "s": 0.836,
+          "label": null
+        }
+      ],
+      "boItems": [
+        {
+          "variant": 3,
+          "label": 1,
+          "score": 0.8360141,
+          "id": 149,
+          "present": true
+        },
+        {
+          "variant": 2,
+          "label": 1,
+          "score": 0.8360141,
+          "id": 148,
+          "present": true
+        },
+        {
+          "variant": 1,
+          "label": 1,
+          "score": 0.8360141,
+          "id": 147,
+          "present": true
+        },
+        {
+          "variant": 4,
+          "label": 0,
+          "score": 0,
+          "id": -4,
+          "present": false
+        },
+        {
+          "variant": 5,
+          "label": 0,
+          "score": 0,
+          "id": -5,
+          "present": false
+        }
+      ]
+    },
+    {
+      "number": 15,
+      "email": "gt.ungvien15@seed.local",
+      "returned": 10,
+      "rule": {
+        "precisionAt5": 0.6,
+        "hitAt5": 1,
+        "recallAt5": 1
+      },
+      "api": {
+        "precisionAt5": 0.6,
+        "hitAt5": 1,
+        "recallAt5": 1
+      },
+      "ndcgBo5": 1,
+      "precisionBo5": 0.6,
+      "boPresent": 3,
+      "reranked": true,
+      "top5Rule": [
+        {
+          "id": 154,
+          "t": "[GT] Machine Learning Engineer - bộ 15.3",
+          "s": 0.9823,
+          "label": 1
+        },
+        {
+          "id": 153,
+          "t": "[GT] Machine Learning Engineer - bộ 15.2",
+          "s": 0.9823,
+          "label": 1
+        },
+        {
+          "id": 152,
+          "t": "[GT] Machine Learning Engineer - bộ 15.1",
+          "s": 0.9823,
+          "label": 1
+        },
+        {
+          "id": 130,
+          "t": "[GT] Machine Learning Engineer - bộ 10.4",
+          "s": 0.9823,
+          "label": null
+        },
+        {
+          "id": 126,
+          "t": "[GT] Machine Learning Engineer - bộ 09.5",
+          "s": 0.9823,
+          "label": null
+        }
+      ],
+      "boItems": [
+        {
+          "variant": 3,
+          "label": 1,
+          "score": 0.98225266,
+          "id": 154,
+          "present": true
+        },
+        {
+          "variant": 2,
+          "label": 1,
+          "score": 0.98225266,
+          "id": 153,
+          "present": true
+        },
+        {
+          "variant": 1,
+          "label": 1,
+          "score": 0.98225266,
+          "id": 152,
+          "present": true
+        },
+        {
+          "variant": 4,
+          "label": 0,
+          "score": 0,
+          "id": -4,
+          "present": false
+        },
+        {
+          "variant": 5,
+          "label": 0,
+          "score": 0,
+          "id": -5,
+          "present": false
+        }
+      ]
+    }
+  ]
+}

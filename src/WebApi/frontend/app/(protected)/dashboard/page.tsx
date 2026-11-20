@@ -421,7 +421,7 @@ function CandidateDashboard() {
             ? Array.from({ length: 4 }, (_, index) => (
                 <div key={index} className="rounded-2xl border border-border/80 bg-card p-4 shadow-sm">
                   <Skeleton className="h-3 w-24" />
-                  <Skeleton className="mt-4 h-9 w-16" />
+                  <Skeleton className="mx-auto mt-4 h-9 w-16" />
                   <Skeleton className="mt-2 h-3 w-28" />
                 </div>
               ))
@@ -442,7 +442,7 @@ function CandidateDashboard() {
                 <item.icon className="size-4" />
               </span>
             </div>
-            <p className="mt-3 text-3xl font-semibold tracking-tight tabular-nums">{item.value}</p>
+            <p className="text-center mt-3 text-3xl font-semibold tracking-tight tabular-nums">{item.value}</p>
             <p className="mt-1 text-xs text-muted-foreground">{item.note}</p>
           </Link>
         ))}

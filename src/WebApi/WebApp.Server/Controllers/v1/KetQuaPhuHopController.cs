@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Mvc;
 using Application.DTOs.DanhMucNghe;
 using Application.Features.KetQuaPhuHop.Queries.SuggestJobsForCv;
 using Application.Features.KetQuaPhuHop.Queries.SuggestCandidatesForJob;
+using Application.Features.KetQuaPhuHop.Queries.GetCvJobMatch;
 
 namespace WebApp.Server.Controllers.v1
 {
@@ -59,6 +60,16 @@ namespace WebApp.Server.Controllers.v1
                 {
                     TopN = Math.Clamp(topN, 3, 10)
                 })));
+        }
+
+        /// <summary>Chấm một cặp (CV, tin) kèm điểm thành phần; không rerank, không ghi DB.</summary>
+        [HttpGet("match")]
+        public async Task<IActionResult> Match([FromQuery] int tinTuyenDungId, [FromQuery] int? cvUngVienId = null)
+        {
+            return await EnforcePermissionAndExecute(
+                "ketquaphuhops",
+                "show",
+                async () => Ok(await Mediator.Send(new GetCvJobMatchQuery(cvUngVienId, tinTuyenDungId))));
         }
 
         [HttpGet("candidates")]

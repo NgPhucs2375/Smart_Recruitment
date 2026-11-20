@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useStoredIdentity } from "@/hooks/use-stored-identity";
 import { getValidToken, refreshSession } from "@/lib/auth-provider";
+import { MatchBreakdown } from "@/components/jobs/match-breakdown";
 
 type KetQuaPhuHop = {
   id: number;
@@ -29,6 +30,11 @@ type Recommendation = {
   luongToiDa: number;
   diemPhuHop: number;
   phanLoai: string;
+  diemKyNang?: number;
+  bonusViTri?: number;
+  bonusLuong?: number;
+  bonusDiaDiem?: number;
+  bonusKinhNghiem?: number;
   kyNangThoa: string[];
   kyNangThieu: string[];
   kyNangBatBuocThieu: string[];
@@ -49,6 +55,11 @@ const ok = (r: ApiResponse<unknown>): boolean => r.Succeeded ?? r.succeeded ?? t
 const msg = (r: ApiResponse<unknown>): string => r.Message ?? r.message ?? "";
 const extractData = <T,>(r: ApiResponse<T>): T | undefined => r.Data ?? r.data;
 const asText = (value: unknown): string => `${value ?? ""}`.trim();
+const numOrUndefined = (value: unknown): number | undefined => {
+  if (value === undefined || value === null || value === "") return undefined;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : undefined;
+};
 
 async function apiFetch(url: string, opts?: RequestInit) {
   let token = await getValidToken();
@@ -109,6 +120,11 @@ function CandidatePhuHop() {
           luongToiDa: Number(r.luongToiDa ?? r.LuongToiDa ?? 0),
           diemPhuHop: score,
           phanLoai: `${r.phanLoai ?? r.PhanLoai ?? ""}`,
+          diemKyNang: numOrUndefined(r.diemKyNang ?? r.DiemKyNang),
+          bonusViTri: numOrUndefined(r.bonusViTri ?? r.BonusViTri),
+          bonusLuong: numOrUndefined(r.bonusLuong ?? r.BonusLuong),
+          bonusDiaDiem: numOrUndefined(r.bonusDiaDiem ?? r.BonusDiaDiem),
+          bonusKinhNghiem: numOrUndefined(r.bonusKinhNghiem ?? r.BonusKinhNghiem),
           kyNangThoa: Array.isArray(r.kyNangThoa ?? r.KyNangThoa) ? (r.kyNangThoa ?? r.KyNangThoa) as string[] : [],
           kyNangThieu: Array.isArray(r.kyNangThieu ?? r.KyNangThieu) ? (r.kyNangThieu ?? r.KyNangThieu) as string[] : [],
           kyNangBatBuocThieu: Array.isArray(r.kyNangBatBuocThieu ?? r.KyNangBatBuocThieu) ? (r.kyNangBatBuocThieu ?? r.KyNangBatBuocThieu) as string[] : [],
@@ -204,6 +220,7 @@ function CandidatePhuHop() {
                         <Sparkles className="mt-0.5 size-3.5 shrink-0 text-primary" /> {item.lyDoGoiY}
                       </p>
                     )}
+                    <MatchBreakdown data={item} />
                   </div>
                   <div className="flex shrink-0 items-center gap-3">
                     <span className="text-2xl font-semibold tabular-nums text-foreground">{pct}%</span>

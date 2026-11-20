@@ -3,9 +3,7 @@ using Application.Interfaces;
 using Domain.Entities;
 using Domain.Enums;
 using Stateless;
-using System;
-using System.Threading;
-using System.Threading.Tasks;
+
 
 namespace Application.Services.StateMachineTinTuyenDung
 {

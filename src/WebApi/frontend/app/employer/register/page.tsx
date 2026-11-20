@@ -54,6 +54,12 @@ const STEPS = ["Liên hệ", "Công ty", "Tuyển dụng"] as const;
 const STEP1_FIELDS = ["hoTen", "soDienThoai", "email", "password", "confirmPassword"] as const;
 const STEP2_FIELDS = ["tenDoanhNghiep", "diaChiDoanhNghiep", "chucVu", "website", "maSoThue"] as const;
 
+const EMPLOYER_POSITIONS = ["Người đại diện", "Nhân sự"] as const;
+
+function RequiredMark() {
+  return <span aria-hidden className="ml-0.5 text-red-500">*</span>;
+}
+
 export default function EmployerRegisterPage() {
   const router = useRouter();
   const [step, setStep] = useState(0);
@@ -96,6 +102,7 @@ export default function EmployerRegisterPage() {
   // eslint-disable-next-line react-hooks/incompatible-library -- RHF watch chuẩn React Hook Form
   const linhVuc = watch("linhVucHoatDong") ?? "";
   const quyMo = watch("quyMoNhanSu") ?? "";
+  const chucVu = watch("chucVu") ?? "";
 
   async function handleNext() {
     setSubmitError(null);
@@ -221,7 +228,7 @@ export default function EmployerRegisterPage() {
           <>
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-1">
-                <Label htmlFor="emp-ho-ten" className="text-xs font-medium text-gray-700">Họ và tên</Label>
+                <Label htmlFor="emp-ho-ten" className="text-xs font-medium text-gray-700">Họ và tên<RequiredMark /></Label>
                 <div className="relative">
                   <User className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
                   <Input id="emp-ho-ten" autoComplete="name" {...register("hoTen")} aria-invalid={!!errors.hoTen} aria-describedby="emp-ho-ten-error" disabled={isPending} placeholder="Nguyễn Văn A" className="h-10 rounded-xl border-input bg-white pl-10 text-sm" />
@@ -229,7 +236,7 @@ export default function EmployerRegisterPage() {
                 {errors.hoTen && <p id="emp-ho-ten-error" role="alert" className="text-xs text-red-500">{errors.hoTen.message}</p>}
               </div>
               <div className="space-y-1">
-                <Label htmlFor="emp-so-dien-thoai" className="text-xs font-medium text-gray-700">Điện thoại</Label>
+                <Label htmlFor="emp-so-dien-thoai" className="text-xs font-medium text-gray-700">Điện thoại<RequiredMark /></Label>
                 <div className="relative">
                   <Phone className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
                   <Input id="emp-so-dien-thoai" type="tel" inputMode="numeric" maxLength={10} pattern="[0-9]{10}" autoComplete="tel" onInput={(e) => { e.currentTarget.value = e.currentTarget.value.replace(/\D/g, "").slice(0, 10); }} {...register("soDienThoai")} aria-invalid={!!errors.soDienThoai} aria-describedby="emp-so-dien-thoai-error" disabled={isPending} placeholder="0901234567" className="h-10 rounded-xl border-input bg-white pl-10 text-sm" />
@@ -239,7 +246,7 @@ export default function EmployerRegisterPage() {
             </div>
 
             <div className="space-y-1">
-              <Label htmlFor="emp-email" className="text-xs font-medium text-gray-700">Email</Label>
+              <Label htmlFor="emp-email" className="text-xs font-medium text-gray-700">Email<RequiredMark /></Label>
               <div className="relative">
                 <Mail className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
                 <Input id="emp-email" type="email" maxLength={100} autoComplete="email" {...register("email")} aria-invalid={!!errors.email} aria-describedby="emp-email-error" disabled={isPending} placeholder="hr@company.com" className="h-10 rounded-xl border-input bg-white pl-10 text-sm" />
@@ -249,7 +256,7 @@ export default function EmployerRegisterPage() {
 
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-1">
-                <Label htmlFor="emp-password" className="text-xs font-medium text-gray-700">Mật khẩu</Label>
+                <Label htmlFor="emp-password" className="text-xs font-medium text-gray-700">Mật khẩu<RequiredMark /></Label>
                 <div className="relative">
                   <Lock className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
                   <Input
@@ -277,7 +284,7 @@ export default function EmployerRegisterPage() {
                 {errors.password && <p id="emp-password-error" role="alert" className="text-xs text-red-500">{errors.password.message}</p>}
               </div>
               <div className="space-y-1">
-                <Label htmlFor="emp-confirm-password" className="text-xs font-medium text-gray-700">Nhập lại mật khẩu</Label>
+                <Label htmlFor="emp-confirm-password" className="text-xs font-medium text-gray-700">Nhập lại mật khẩu<RequiredMark /></Label>
                 <div className="relative">
                   <Lock className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
                   <Input
@@ -302,7 +309,7 @@ export default function EmployerRegisterPage() {
         {step === 1 && (
           <>
             <div className="space-y-1">
-              <Label htmlFor="emp-ten-doanh-nghiep" className="text-xs font-medium text-gray-700">Tên doanh nghiệp</Label>
+              <Label htmlFor="emp-ten-doanh-nghiep" className="text-xs font-medium text-gray-700">Tên doanh nghiệp<RequiredMark /></Label>
               <div className="relative">
                 <Building2 className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
                 <Input id="emp-ten-doanh-nghiep" autoComplete="organization" {...register("tenDoanhNghiep")} aria-invalid={!!errors.tenDoanhNghiep} aria-describedby="emp-ten-doanh-nghiep-error" disabled={isPending} placeholder="Công ty Công nghệ..." className="h-10 rounded-xl border-input bg-white pl-10 text-sm" />
@@ -314,8 +321,10 @@ export default function EmployerRegisterPage() {
               <div className="space-y-1">
                 <ProvinceAddressFields
                   id="emp-dia-chi-doanh-nghiep"
-                  label="Tỉnh/thành phố doanh nghiệp"
+                  label="Tỉnh/thành phố"
                   detailLabel="Địa chỉ chi tiết"
+                  required
+                  fieldClassName="h-10 rounded-xl border-input bg-white text-sm"
                   value={watch("diaChiDoanhNghiep") ?? ""}
                   disabled={isPending}
                   onChange={(value) => setValue("diaChiDoanhNghiep", value, { shouldValidate: true })}
@@ -324,23 +333,37 @@ export default function EmployerRegisterPage() {
                 {errors.diaChiDoanhNghiep && <p id="emp-dia-chi-doanh-nghiep-error" role="alert" className="text-xs text-red-500">{errors.diaChiDoanhNghiep.message}</p>}
               </div>
               <div className="space-y-1">
-                <Label htmlFor="emp-chuc-vu" className="text-xs font-medium text-gray-700">Chức vụ của bạn</Label>
-                <div className="relative">
-                  <Briefcase className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
-                  <Input id="emp-chuc-vu" {...register("chucVu")} aria-invalid={!!errors.chucVu} aria-describedby="emp-chuc-vu-error" disabled={isPending} placeholder="VD: HR Manager" className="h-10 rounded-xl border-input bg-white pl-10 text-sm" />
-                </div>
+                <Label htmlFor="emp-chuc-vu" className="text-xs font-medium text-gray-700">Chức vụ<RequiredMark /></Label>
+                <Select value={chucVu} onValueChange={(v) => setValue("chucVu", v ?? "", { shouldValidate: true })}>
+                  <SelectTrigger
+                    id="emp-chuc-vu"
+                    aria-label="Chức vụ"
+                    aria-invalid={!!errors.chucVu}
+                    aria-describedby="emp-chuc-vu-error"
+                    disabled={isPending}
+                    className="h-10 w-full rounded-xl border-input bg-white text-sm"
+                  >
+                    <Briefcase className="size-4 text-gray-400" />
+                    <SelectValue placeholder="Chọn chức vụ" />
+                  </SelectTrigger>
+                  <SelectContent alignItemWithTrigger={false}>
+                    {EMPLOYER_POSITIONS.map((position) => (
+                      <SelectItem key={position} value={position}>{position}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 {errors.chucVu && <p id="emp-chuc-vu-error" role="alert" className="text-xs text-red-500">{errors.chucVu.message}</p>}
               </div>
             </div>
 
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-1">
-                <Label className="text-xs font-medium text-gray-700">Chuyên môn tuyển dụng chính</Label>
+                <Label className="text-xs font-medium text-gray-700">Chuyên môn</Label>
                 <Select value={linhVuc} onValueChange={(v) => setValue("linhVucHoatDong", v ?? "", { shouldValidate: false })}>
-                  <SelectTrigger className="h-10 w-full rounded-xl border-input bg-white text-sm" aria-label="Chuyên môn tuyển dụng chính">
+                  <SelectTrigger className="h-10 w-full rounded-xl border-input bg-white text-sm" aria-label="Chuyên môn">
                     <SelectValue placeholder="Chọn nhóm vị trí IT" />
                   </SelectTrigger>
-                  <SelectContent className="max-w-[280px]">
+                  <SelectContent alignItemWithTrigger={false} className="max-w-[280px]">
                     {IT_SPECIALTIES.map((s) => (
                       <SelectItem key={s} value={s}>
                         <span className="block max-w-[240px] truncate">{s}</span>
@@ -355,7 +378,7 @@ export default function EmployerRegisterPage() {
                   <SelectTrigger className="h-10 w-full rounded-xl border-input bg-white text-sm" aria-label="Quy mô nhân sự">
                     <SelectValue placeholder="Chọn quy mô" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent alignItemWithTrigger={false}>
                     {COMPANY_SIZES.map((s) => (
                       <SelectItem key={s} value={s}>{s}</SelectItem>
                     ))}
@@ -366,12 +389,12 @@ export default function EmployerRegisterPage() {
 
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-1">
-                <Label htmlFor="emp-website" className="text-xs font-medium text-gray-700">Website (không bắt buộc)</Label>
+                <Label htmlFor="emp-website" className="text-xs font-medium text-gray-700">Website</Label>
                 <Input id="emp-website" {...register("website")} aria-invalid={!!errors.website} aria-describedby="emp-website-error" disabled={isPending} placeholder="https://company.com" className="h-10 rounded-xl border-input bg-white text-sm" />
                 {errors.website && <p id="emp-website-error" role="alert" className="text-xs text-red-500">{errors.website.message}</p>}
               </div>
               <div className="space-y-1">
-                <Label htmlFor="emp-ma-so-thue" className="text-xs font-medium text-gray-700">Mã số thuế (không bắt buộc)</Label>
+                <Label htmlFor="emp-ma-so-thue" className="text-xs font-medium text-gray-700">Mã số thuế</Label>
                 <Input id="emp-ma-so-thue" {...register("maSoThue")} aria-invalid={!!errors.maSoThue} aria-describedby="emp-ma-so-thue-error" disabled={isPending} placeholder="0312345678" className="h-10 rounded-xl border-input bg-white text-sm" />
                 {errors.maSoThue && <p id="emp-ma-so-thue-error" role="alert" className="text-xs text-red-500">{errors.maSoThue.message}</p>}
               </div>
@@ -392,7 +415,7 @@ export default function EmployerRegisterPage() {
                   <SelectTrigger className="h-10 w-full rounded-xl border-input bg-white text-sm" aria-label="Nhóm vị trí cần tuyển">
                     <SelectValue placeholder="Chọn nhóm vị trí" />
                   </SelectTrigger>
-                  <SelectContent className="max-w-[280px]">
+                  <SelectContent alignItemWithTrigger={false} className="max-w-[280px]">
                     {IT_SPECIALTIES.map((s) => (
                       <SelectItem key={s} value={s}>
                         <span className="block max-w-[240px] truncate">{s}</span>
@@ -407,7 +430,7 @@ export default function EmployerRegisterPage() {
                   <SelectTrigger className="h-10 w-full rounded-xl border-input bg-white text-sm" aria-label="Cấp bậc mục tiêu">
                     <SelectValue placeholder="Chọn cấp bậc" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent alignItemWithTrigger={false}>
                     {SENIORITIES.map((s) => (
                       <SelectItem key={s} value={s}>{s}</SelectItem>
                     ))}
