@@ -1,6 +1,9 @@
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 COPY ["RecruitmentSmart.sln", "./"]
+# Central package management (ManagePackageVersionsCentrally) — csproj không còn
+# ghi Version, thiếu file này thì `dotnet restore` báo NU1015.
+COPY ["Directory.Packages.props", "./"]
 COPY ["src/WebApi/WebApp.Server/WebApp.Server.csproj", "src/WebApi/WebApp.Server/"]
 COPY ["src/Application/Application.csproj", "src/Application/"]
 COPY ["src/Domain/Domain.csproj", "src/Domain/"]
