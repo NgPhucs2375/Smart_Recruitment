@@ -159,15 +159,23 @@ export function SuggestedCandidatesPanel({
 }) {
   const [jobs, setJobs] = useState<JobOption[]>([]);
   const [selectedJobId, setSelectedJobId] = useState(initialJobId);
+  const [trackedInitialJobId, setTrackedInitialJobId] = useState(initialJobId);
   const [candidates, setCandidates] = useState<SuggestedCandidate[]>([]);
   const [loadingJobs, setLoadingJobs] = useState(true);
-  const [loadingCandidates, setLoadingCandidates] = useState(false);
+  const [loadingCandidates, setLoadingCandidates] = useState(Boolean(initialJobId));
   const [error, setError] = useState("");
+
+  // Prop đổi (URL ?suggestedJobId=) thì đồng bộ state ngay trong render thay vì effect.
+  if (initialJobId !== trackedInitialJobId) {
+    setTrackedInitialJobId(initialJobId);
+    setSelectedJobId(initialJobId);
+    setCandidates([]);
+    setError("");
+    setLoadingCandidates(Boolean(initialJobId));
+  }
 
   const loadJobs = useCallback(async (signal: AbortSignal) => {
     try {
-      setLoadingJobs(true);
-      setError("");
       const response = await authorizedFetch("/api/dotnet/tintuyendungs?_start=0&_end=100&TrangThai=3", signal) as ApiResponse<unknown>;
       const activeJobs = parseRows(responseData(response))
         .map(normalizeJob)
@@ -185,27 +193,18 @@ export function SuggestedCandidatesPanel({
 
   useEffect(() => {
     const controller = new AbortController();
+    // Rule báo nhầm: loadJobs chỉ setState sau await, không có setState đồng bộ.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadJobs(controller.signal);
     return () => controller.abort();
   }, [loadJobs]);
 
   useEffect(() => {
-    setSelectedJobId(initialJobId);
-  }, [initialJobId]);
-
-  useEffect(() => {
-    if (!selectedJobId) {
-      setCandidates([]);
-      setLoadingCandidates(false);
-      return;
-    }
+    if (!selectedJobId) return;
 
     const controller = new AbortController();
-    const loadCandidates = async () => {
+    void (async () => {
       try {
-        setCandidates([]);
-        setLoadingCandidates(true);
-        setError("");
         const response = await authorizedFetch(
           `/api/dotnet/ketquaphuhops/candidates?tinTuyenDungId=${encodeURIComponent(selectedJobId)}&topN=20`,
           controller.signal,
@@ -219,11 +218,19 @@ export function SuggestedCandidatesPanel({
       } finally {
         if (!controller.signal.aborted) setLoadingCandidates(false);
       }
-    };
+    })();
 
-    void loadCandidates();
     return () => controller.abort();
   }, [selectedJobId]);
+
+  const handleSelectJob = (value: string | null) => {
+    const nextJobId = value ?? "";
+    setSelectedJobId(nextJobId);
+    setCandidates([]);
+    setError("");
+    setLoadingCandidates(Boolean(nextJobId));
+    onJobChange?.(nextJobId);
+  };
 
   const selectedJob = jobs.find((job) => String(job.id) === selectedJobId);
 
@@ -244,11 +251,7 @@ export function SuggestedCandidatesPanel({
           ) : jobs.length === 0 ? (
             <p className="mt-2 text-sm text-muted-foreground">Bạn chưa có tin tuyển dụng đang mở để tìm ứng viên phù hợp.</p>
           ) : (
-            <Select value={selectedJobId} onValueChange={(value) => {
-              const nextJobId = value ?? "";
-              setSelectedJobId(nextJobId);
-              onJobChange?.(nextJobId);
-            }}>
+            <Select value={selectedJobId} onValueChange={handleSelectJob}>
               <SelectTrigger id="suggested-candidate-job" className="mt-2 w-full sm:max-w-xl">
                 <SelectValue placeholder="Chọn tin tuyển dụng" />
               </SelectTrigger>

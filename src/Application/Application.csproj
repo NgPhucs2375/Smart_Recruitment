@@ -7,26 +7,23 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="AutoMapper" Version="15.1.3" />
-    <PackageReference Include="Stateless" Version="5.20.1" />
-	  <PackageReference Include="FluentValidation" Version="10.3.6" />
-	  <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="10.3.6" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="10.0.0" />
-    <PackageReference Include="MediatR" Version="12.4.1" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.0" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.0" />
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
-    <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="10.0.0" />
-    <PackageReference Include="NEST" Version="7.17.5" />
-    <PackageReference Include="Polly" Version="8.4.0" />
-    <PackageReference Include="StackExchange.Redis" Version="2.7.27" />
-    <PackageReference Include="StackExchange.Redis.Extensions.AspNetCore" Version="10.2.0" />
-    <PackageReference Include="StackExchange.Redis.Extensions.Core" Version="10.2.0" />
-    <PackageReference Include="StackExchange.Redis.Extensions.Newtonsoft" Version="10.2.0" />
+    <PackageReference Include="AutoMapper" />
+    <PackageReference Include="Stateless" />
+	  <PackageReference Include="FluentValidation" />
+	  <PackageReference Include="FluentValidation.DependencyInjectionExtensions" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" />
+    <PackageReference Include="MediatR" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" />
+    <PackageReference Include="Newtonsoft.Json" />
+    <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" />    <PackageReference Include="StackExchange.Redis" />
+    <PackageReference Include="StackExchange.Redis.Extensions.AspNetCore" />
+    <PackageReference Include="StackExchange.Redis.Extensions.Core" />
+    <PackageReference Include="StackExchange.Redis.Extensions.Newtonsoft" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Domain\Domain.csproj" />
-    <EmbeddedResource Include="../WebApi/frontend/features/tao-cv/template-manifest.json" LogicalName="Application.CvTemplateManifest.json" />
+    <EmbeddedResource Include="Resources/template-manifest.json" LogicalName="Application.CvTemplateManifest.json" />
   </ItemGroup>
 
 </Project>

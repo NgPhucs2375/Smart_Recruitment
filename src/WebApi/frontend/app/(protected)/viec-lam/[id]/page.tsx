@@ -33,7 +33,9 @@ import {
 import { cvApi } from "@/lib/api/cv-api";
 import type { CvDetailVm, CvVm } from "@/lib/types";
 import { useBookmarks } from "@/hooks/use-bookmarks";
+import { useStoredIdentity } from "@/hooks/use-stored-identity";
 import { getValidToken, refreshSession } from "@/lib/auth-provider";
+import { MatchBreakdown, type MatchBreakdownData } from "@/components/jobs/match-breakdown";
 import { ADAM_APPLY_EVENT, takeApplyIntent } from "@/features/ung-tuyen/adam-apply-intent";
 
 type TinChiTiet = {
@@ -118,6 +120,9 @@ export default function ViecLamChiTietPage() {
   const [loadError, setLoadError] = useState("");
   const [daUngTuyen, setDaUngTuyen] = useState(false);
   const { isBookmarked, toggle: toggleBookmark } = useBookmarks();
+  const identity = useStoredIdentity();
+  const isCandidate = identity?.roles.some((r) => r.trim().toUpperCase() === "UNG_VIEN") ?? false;
+  const [match, setMatch] = useState<MatchBreakdownData | null>(null);
 
   const [pickerOpen, setPickerOpen] = useState(false);
   const [cvs, setCvs] = useState<CvVm[]>([]);
@@ -216,6 +221,34 @@ export default function ViecLamChiTietPage() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void load();
   }, [load]);
+
+  useEffect(() => {
+    if (!isCandidate || !Number.isFinite(tinId) || tinId <= 0) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await apiFetch(`/api/dotnet/ketquaphuhops/match?tinTuyenDungId=${tinId}`);
+        if (!res || !ok(res)) return;
+        const d = (extractData(res) ?? {}) as Record<string, unknown>;
+        const num = (v: unknown) => { const n = Number(v); return Number.isFinite(n) ? n : 0; };
+        const list = (v: unknown) => Array.isArray(v) ? v.map(String) : [];
+        if (!cancelled) setMatch({
+          diemPhuHop: num(d.diemPhuHop ?? d.DiemPhuHop),
+          diemKyNang: num(d.diemKyNang ?? d.DiemKyNang),
+          bonusViTri: num(d.bonusViTri ?? d.BonusViTri),
+          bonusLuong: num(d.bonusLuong ?? d.BonusLuong),
+          bonusDiaDiem: num(d.bonusDiaDiem ?? d.BonusDiaDiem),
+          bonusKinhNghiem: num(d.bonusKinhNghiem ?? d.BonusKinhNghiem),
+          kyNangThoa: list(d.kyNangThoa ?? d.KyNangThoa),
+          kyNangThieu: list(d.kyNangThieu ?? d.KyNangThieu),
+          kyNangBatBuocThieu: list(d.kyNangBatBuocThieu ?? d.KyNangBatBuocThieu),
+        });
+      } catch {
+        // Chưa có CV hoặc không đủ quyền: ẩn panel, không chặn trang.
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [apiFetch, isCandidate, tinId]);
 
   const openPicker = useCallback(async (preferCvId?: number | null) => {
     setPickerOpen(true);
@@ -446,6 +479,15 @@ export default function ViecLamChiTietPage() {
             </div>
 
             <aside className="lg:col-span-4 space-y-6">
+              {match && (
+                <section className="rounded-3xl border border-primary/20 bg-primary/5 p-5 shadow-sm">
+                  <div className="flex items-center justify-between gap-3">
+                    <h2 className="text-sm font-semibold uppercase tracking-[0.12em] text-muted-foreground">Phù hợp với CV của bạn</h2>
+                    <span className="text-2xl font-semibold tabular-nums text-primary">{Math.round(match.diemPhuHop * 100)}%</span>
+                  </div>
+                  <MatchBreakdown data={match} defaultOpen />
+                </section>
+              )}
               <section className="rounded-3xl border border-border bg-card p-5 shadow-sm">
                 <h2 className="text-sm font-semibold uppercase tracking-[0.12em] text-muted-foreground">Tổng quan</h2>
                 <div className="mt-4 divide-y divide-border">

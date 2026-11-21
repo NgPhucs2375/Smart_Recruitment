@@ -29,6 +29,7 @@ p, NGUOI_DAI_DIEN, hosoungviens, list
 p, NGUOI_DAI_DIEN, hosoungviens, show
 p, NGUOI_DAI_DIEN, ketquaphuhops, list
 p, NGUOI_DAI_DIEN, ketquaphuhops, show
+p, NGUOI_DAI_DIEN, kynangs, create
 p, NGUOI_DAI_DIEN, kynangs, list
 p, NGUOI_DAI_DIEN, kynangs, show
 p, NGUOI_DAI_DIEN, kynangtintuyendungs, create
@@ -72,6 +73,7 @@ p, NHAN_SU, hosoungviens, list
 p, NHAN_SU, hosoungviens, show
 p, NHAN_SU, ketquaphuhops, list
 p, NHAN_SU, ketquaphuhops, show
+p, NHAN_SU, kynangs, create
 p, NHAN_SU, kynangs, list
 p, NHAN_SU, kynangs, show
 p, NHAN_SU, kynangtintuyendungs, create

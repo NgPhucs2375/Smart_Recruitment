@@ -72,6 +72,14 @@ const TRANG_THAI: Record<string, { label: string; variant: "default" | "secondar
   "9": { label: "Chờ Người đại diện duyệt", variant: "outline" },
 };
 
+// Bộ lọc trạng thái dạng chip: hiện đủ nhãn tiếng Việt, không phải mở dropdown 10 mục.
+const STATUS_FILTERS: { key: string; label: string }[] = [
+  { key: "all", label: "Tất cả" },
+  ...Object.entries(TRANG_THAI)
+    .filter(([key]) => !/^\d+$/.test(key))
+    .map(([key, state]) => ({ key, label: state.label })),
+];
+
 // Trigger enum số của backend (Domain/Enums/TriggerTinTuyenDung.cs)
 const TRIGGER = { GuiDuyet: 0, TamDungTin: 6, MoLaiTin: 7, DongTin: 9, NguoiDaiDienDuyet: 13, NguoiDaiDienTuChoi: 14 } as const;
 
@@ -89,6 +97,7 @@ const EMPTY_FORM = {
   yeuCauCongViec: "",
   quyenLoi: "",
   diaDiemLamViec: "",
+  diaChiChiTiet: "",
   phuongThucLamViec: -1, // -1 = chưa chọn (placeholder), 0..3 = Onsite/Remote/Hybrid/Flexible
   luongToiThieu: 0,
   luongToiDa: 0,
@@ -115,6 +124,20 @@ function fmtMoneyInput(n: number) {
 function parseMoney(s: string): number {
   const digits = s.replace(/[^\d]/g, "");
   return digits ? Number(digits) : 0;
+}
+
+// Người dùng nhập địa chỉ 1 ô? Không — form tách 2 ô: chi tiết + tỉnh/thành.
+// Ghép khi lưu: "Tầng 5, 123 Lê Lợi, Quận 1, Hồ Chí Minh" để ứng viên đọc đủ ý.
+function splitAddress(raw: string): { province: string; detail: string } {
+  const parts = raw.split(/[,;|]/).map(part => part.trim()).filter(Boolean);
+  for (let i = parts.length - 1; i >= 0; i--) {
+    const province = canonicalProvince(parts[i]);
+    if (province) return { province, detail: parts.slice(0, i).join(", ") };
+  }
+  return { province: "", detail: raw.trim() };
+}
+function joinAddress(detail: string, province: string): string {
+  return [detail.trim(), province.trim()].filter(Boolean).join(", ");
 }
 
 function parseWorkMode(value: unknown): number {
@@ -252,6 +275,12 @@ export default function TinTuyenDungPage() {
 
   useEffect(() => { const timer = setTimeout(() => void load(), 250); return () => clearTimeout(timer); }, [load]);
 
+  useEffect(() => {
+    // Nút "Đăng tin tuyển dụng" ở dashboard trỏ tới ?tao=1 → mở form luôn,
+    // không bắt người dùng bấm thêm lần nữa trên danh sách trống.
+    if (new URLSearchParams(window.location.search).has("tao")) openCreate();
+  }, []);
+
   const loadNhanSu = useCallback(async () => {
     try {
       const res: ApiResponse<unknown> = await apiFetch("/api/dotnet/nhansus");
@@ -323,6 +352,7 @@ export default function TinTuyenDungPage() {
   function openCreate() { setSuccessMsg(""); setErr(""); setErrField(null); setEditing(null); setForm({ ...EMPTY_FORM }); setSkillQuery(""); setSkillOpen(false); setSkillError(""); setShowForm(true); }
   function openEdit(item: TinTuyenDung) {
     setSuccessMsg(""); setErr(""); setErrField(null); setSkillQuery(""); setSkillOpen(false); setSkillError(""); setEditing(item);
+    const address = splitAddress(item.diaDiemLamViec);
     setForm({
       danhMucNgheId: item.danhMucNgheId,
       tieuDe: item.tieuDe,
@@ -330,7 +360,8 @@ export default function TinTuyenDungPage() {
       kinhNghiemYeuCau: item.kinhNghiemYeuCau,
       yeuCauCongViec: item.yeuCauCongViec,
       quyenLoi: item.quyenLoi,
-      diaDiemLamViec: canonicalProvince(item.diaDiemLamViec) || item.diaDiemLamViec,
+      diaDiemLamViec: address.province,
+      diaChiChiTiet: address.detail,
       phuongThucLamViec: item.phuongThucLamViec,
       luongToiThieu: item.luongToiThieu,
       luongToiDa: item.luongToiDa,
@@ -346,8 +377,9 @@ export default function TinTuyenDungPage() {
     if (form.phuongThucLamViec < 0) return { field: "phuongThucLamViec", message: "Vui lòng chọn phương thức làm việc" };
     if (submit && !form.moTaCongViec.trim()) return { field: "moTaCongViec", message: "Cần mô tả công việc trước khi gửi duyệt" };
     if (submit && !form.yeuCauCongViec.trim()) return { field: "yeuCauCongViec", message: "Cần yêu cầu công việc trước khi gửi duyệt" };
-    if (submit && !form.diaDiemLamViec.trim()) return { field: "diaDiemLamViec", message: "Cần địa điểm trước khi gửi duyệt" };
-    if (form.tieuDe.length > 255 || form.diaDiemLamViec.length > 255) return { field: "tieuDe", message: "Tiêu đề và địa điểm tối đa 255 ký tự" };
+    if (submit && !form.diaDiemLamViec.trim()) return { field: "diaDiemLamViec", message: "Cần chọn tỉnh/thành phố trước khi gửi duyệt" };
+    if (form.tieuDe.length > 255) return { field: "tieuDe", message: "Tiêu đề tối đa 255 ký tự" };
+    if (joinAddress(form.diaChiChiTiet, form.diaDiemLamViec).length > 255) return { field: "diaDiemLamViec", message: "Địa điểm (chi tiết + tỉnh/thành) tối đa 255 ký tự" };
     if (form.kinhNghiemYeuCau.length > 2000 || form.quyenLoi.length > 2000) return { field: "kinhNghiemYeuCau", message: "Kinh nghiệm và quyền lợi tối đa 2000 ký tự" };
     if (form.moTaCongViec.length > 5000 || form.yeuCauCongViec.length > 5000) return { field: "moTaCongViec", message: "Mô tả và yêu cầu công việc tối đa 5000 ký tự" };
     // Client-side date guard: chặn ngày quá khứ ngay khi lưu (cả nháp lẫn gửi duyệt).
@@ -419,7 +451,7 @@ export default function TinTuyenDungPage() {
             kinhNghiemYeuCau: form.kinhNghiemYeuCau.trim(),
             yeuCauCongViec: form.yeuCauCongViec.trim(),
             quyenLoi: form.quyenLoi.trim(),
-            diaDiemLamViec: form.diaDiemLamViec.trim(),
+            diaDiemLamViec: joinAddress(form.diaChiChiTiet, form.diaDiemLamViec),
             phuongThucLamViec: Number(form.phuongThucLamViec),
             luongToiThieu: Number(form.luongToiThieu),
             luongToiDa: Number(form.luongToiDa),
@@ -432,7 +464,7 @@ export default function TinTuyenDungPage() {
             kinhNghiemYeuCau: form.kinhNghiemYeuCau.trim(),
             yeuCauCongViec: form.yeuCauCongViec.trim(),
             quyenLoi: form.quyenLoi.trim(),
-            diaDiemLamViec: form.diaDiemLamViec.trim(),
+            diaDiemLamViec: joinAddress(form.diaChiChiTiet, form.diaDiemLamViec),
             phuongThucLamViec: Number(form.phuongThucLamViec),
             luongToiThieu: Number(form.luongToiThieu),
             luongToiDa: Number(form.luongToiDa),
@@ -516,14 +548,24 @@ export default function TinTuyenDungPage() {
         )}
       </div>
       <div className="flex flex-wrap items-center gap-2">
-        <span className="text-sm text-muted-foreground">Trạng thái:</span>
-        <Select value={statusFilter} onValueChange={value => { setStatusFilter(value ?? "all"); setPage(1); }}>
-          <SelectTrigger aria-label="Lọc trạng thái" className="h-9 w-auto rounded-full px-4 text-sm"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Tất cả ({items.length})</SelectItem>
-            {Object.entries(TRANG_THAI).filter(([key]) => !/^\d+$/.test(key)).map(([key, state]) => <SelectItem key={key} value={key}>{state.label}</SelectItem>)}
-          </SelectContent>
-        </Select>
+        <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Lọc trạng thái tin">
+          {STATUS_FILTERS.map(({ key, label }) => {
+            const active = statusFilter === key;
+            return (
+              <Button
+                key={key}
+                type="button"
+                size="sm"
+                variant={active ? "default" : "outline"}
+                aria-pressed={active}
+                className={`rounded-full ${active ? "" : "text-muted-foreground"}`}
+                onClick={() => { setStatusFilter(key); setPage(1); }}
+              >
+                {label}
+              </Button>
+            );
+          })}
+        </div>
         <div className="relative ml-auto w-full sm:w-64">
           <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input aria-label="Tìm tin tuyển dụng" value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} placeholder="Tìm tin..." className="h-9 rounded-xl pl-9" />
@@ -576,7 +618,21 @@ export default function TinTuyenDungPage() {
               </div>
               <div className="space-y-2 md:col-span-2">
                 <Label htmlFor="ttd-dia-diem">Địa điểm *</Label>
+                <div className="grid gap-3 md:grid-cols-2">
                   <ProvinceSelect id="ttd-dia-diem" invalid={errField === "diaDiemLamViec"} value={form.diaDiemLamViec} onValueChange={province => setForm(f => ({ ...f, diaDiemLamViec: province }))} />
+                  <Input
+                    id="ttd-dia-chi"
+                    aria-label="Địa chỉ chi tiết"
+                    aria-invalid={errField === "diaDiemLamViec" && !form.diaDiemLamViec}
+                    value={form.diaChiChiTiet}
+                    maxLength={200}
+                    onChange={e => setForm(f => ({ ...f, diaChiChiTiet: e.target.value }))}
+                    placeholder="Số nhà, đường, quận/huyện (không bắt buộc)"
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Ứng viên sẽ thấy đầy đủ: &quot;{joinAddress(form.diaChiChiTiet, form.diaDiemLamViec) || "Số nhà, đường, quận/huyện, Tỉnh/Thành phố"}&quot;.
+                </p>
               </div>
             </div>
           </section>
@@ -714,7 +770,7 @@ export default function TinTuyenDungPage() {
 
           <div className="flex flex-wrap justify-end gap-2">
             <Button type="button" variant="outline" onClick={resetForm} disabled={saving}>Hủy</Button>
-            <Button type="button" variant="outline" onClick={() => { setReviewing(null); setPreview(form); }} disabled={saving}><Eye className="size-4" /> Xem trước</Button>
+            <Button type="button" variant="outline" onClick={() => { setReviewing(null); setPreview({ ...form, diaDiemLamViec: joinAddress(form.diaChiChiTiet, form.diaDiemLamViec) }); }} disabled={saving}><Eye className="size-4" /> Xem trước</Button>
             <Button type="submit" variant="outline" disabled={saving}>{saving ? "Đang xử lý..." : "Lưu nháp"}</Button>
             <Button type="button" disabled={saving} onClick={() => void handleSubmit(undefined, true)}><Send className="size-4" /> Lưu và gửi duyệt</Button>
           </div>

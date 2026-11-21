@@ -10,8 +10,9 @@ namespace Application.Features.KetQuaPhuHop.Queries.GetCvJobMatch;
 /// <summary>
 /// Chấm đúng một cặp (CV, tin) bằng scorer tất định của luồng gợi ý việc,
 /// không rerank và không ghi KetQuaPhuHop — luồng đọc phải giữ nguyên.
+/// CvUngVienId null = dùng CV mặc định của ứng viên hiện tại.
 /// </summary>
-public sealed record GetCvJobMatchQuery(int CvUngVienId, int TinTuyenDungId)
+public sealed record GetCvJobMatchQuery(int? CvUngVienId, int TinTuyenDungId)
     : IRequest<Response<CvJobMatchViewModel>>;
 
 public sealed class CvJobMatchViewModel
@@ -24,6 +25,13 @@ public sealed class CvJobMatchViewModel
     /// <summary>Điểm khớp 0..1 do ContentBasedMatcher tính.</summary>
     public float DiemPhuHop { get; set; }
     public string PhanLoai { get; set; } = string.Empty;
+    /// <summary>Điểm thành phần kỹ năng 0..1 (đã gồm trọng số MucDoYC, IDF và trình độ).</summary>
+    public float DiemKyNang { get; set; }
+    public float BonusViTri { get; set; }
+    public float BonusLuong { get; set; }
+    public float BonusDiaDiem { get; set; }
+    /// <summary>Có thể âm: thiếu số năm yêu cầu bị trừ tối đa 0.05.</summary>
+    public float BonusKinhNghiem { get; set; }
     public List<string> KyNangThoa { get; set; } = new();
     public List<string> KyNangThieu { get; set; } = new();
     public List<string> KyNangBatBuocThieu { get; set; } = new();
@@ -46,12 +54,18 @@ public sealed class GetCvJobMatchQueryHandler(
         if (hoSo == null)
             return new Response<CvJobMatchViewModel>("Bạn chưa có hồ sơ ứng viên.");
 
-        var cv = await context.CVUngViens.AsNoTracking()
-            .Include(x => x.ThongTinLienHe)
-            .Include(x => x.KyNangs)
-            .FirstOrDefaultAsync(x => x.Id == request.CvUngVienId &&
-                                      x.HoSoUngVienId == hoSo.Id && !x.IsDaXoa,
-                cancellationToken);
+        var cv = request.CvUngVienId.HasValue
+            ? await context.CVUngViens.AsNoTracking()
+                .Include(x => x.ThongTinLienHe)
+                .Include(x => x.KyNangs)
+                .FirstOrDefaultAsync(x => x.Id == request.CvUngVienId.Value &&
+                                          x.HoSoUngVienId == hoSo.Id && !x.IsDaXoa,
+                    cancellationToken)
+            : await context.CVUngViens.AsNoTracking()
+                .Include(x => x.ThongTinLienHe)
+                .Include(x => x.KyNangs)
+                .FirstOrDefaultAsync(x => x.HoSoUngVienId == hoSo.Id &&
+                                          x.IsDefault && !x.IsDaXoa, cancellationToken);
         if (cv == null)
             return new Response<CvJobMatchViewModel>("Không tìm thấy CV của bạn.");
 
@@ -103,6 +117,11 @@ public sealed class GetCvJobMatchQueryHandler(
             DiaDiemLamViec = job.DiaDiemLamViec ?? string.Empty,
             DiemPhuHop = match.Score,
             PhanLoai = ContentBasedMatcher.PhanLoaiCua(match.Score).ToString(),
+            DiemKyNang = match.SkillScore,
+            BonusViTri = match.PositionBonus,
+            BonusLuong = match.SalaryBonus,
+            BonusDiaDiem = match.LocationBonus,
+            BonusKinhNghiem = match.ExperienceBonus,
             KyNangThoa = match.MatchedSkills.ToList(),
             KyNangThieu = match.MissingSkills.ToList(),
             KyNangBatBuocThieu = match.MissingMandatory.ToList(),

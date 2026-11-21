@@ -44,3 +44,41 @@ Hit Rate@5 = số CV có ít nhất một gợi ý đúng trong top 5 / 15
 ```
 
 `DiemPhuHop` là điểm xếp hạng. `ground-truth.csv` là đáp án độc lập dùng để chứng minh thứ hạng đó có hiệu quả hay không.
+
+## Kết quả chấm lần đầu (2026-11-18, cbf-v7-idf, DB local)
+
+Chấm qua đúng đường production: đăng nhập 15 tài khoản GT, gọi
+`GET /api/ketquaphuhops/recommendations?topN=10` (handler `GetSuggestedJobsForCvQuery`,
+chấm lại toàn bộ tin đang tuyển bằng scorer hiện hành, không đọc cache cũ).
+Nhãn suy từ tiêu đề `bộ NN.variant`: variant 1–3 = dương, 4–5 = nhiễu của đúng ứng viên NN;
+tin ngoài bộ không gán nhãn. Script: `tmp/gt-benchmark.mjs`, kết quả đầy đủ:
+`tmp/gt-benchmark-result.json`. Dòng `KetQuaPhuHop` của CV GT đã snapshot và khôi phục
+nguyên trạng sau khi chấm (1825 dòng trước = sau).
+
+```text
+MACRO (15 ứng viên)   P@5=0.60   HitRate@5=1.00   Recall@5=1.00   NDCG@5-trong-bộ=1.0000
+Rerank DeepSeek bật 15/15 nhưng không đổi P@5 so với thứ tự luật (DiemPhuHop desc, Id desc)
+```
+
+| Chỉ số | Giá trị | Diễn giải |
+|---|---|---|
+| Recall@5 | 1.00 (15/15) | Cả 3 tin thiết kế khớp đều nằm trong top-5 của mọi ứng viên |
+| HitRate@5 | 1.00 | Mọi ứng viên có ít nhất 1 gợi ý đúng trong top-5 |
+| P@5 | 0.60 | 2/5 slot còn lại là tin **không gán nhãn**, không phải tin sai (xem dưới) |
+| NDCG@5 trong bộ | 1.0000 | 3 tin dương luôn trên 2 tin nhiễu: dương trong top-5, nhiễu ngoài top-10 |
+
+Hai phát hiện phải nói rõ khi trích số:
+
+1. **P@5 = 0.60 không phải lỗi xếp hạng.** Ví dụ ứng viên #03 (Data Analyst): top-5 gồm
+   3 tin dương của bộ 03 (điểm 0.834) cộng 2 tin `bộ 13.4` và `bộ 12.5` — vốn là tin
+   *nhiễu của ứng viên khác* nhưng được dựng từ đúng profile Data Analyst, nên nội dung
+   giống hệt và cùng điểm 0.834. Hòa điểm thì tie-break `Id desc` đẩy tin ID lớn hơn lên
+   trước. Tức scorer chấm đúng (nội dung giống → điểm giống), còn "nhiễu" của bộ này là
+   "phù hợp thật" của ứng viên cùng vai trò — giới hạn circular của thiết kế GT.
+2. **NDCG trong bộ = 1.0000 là đo thật, không phải artifact của giả định "vắng = 0":**
+   cả 3 dương hiện diện trong top-5 còn cả 2 nhiễu vắng khỏi top-10, nên thứ tự
+   dương > nhiễu được xác nhận trực tiếp, không phụ thuộc giả định.
+
+Hạn chế giữ nguyên như mục "Relation tới benchmark database": nhãn dương thiết kế trước
+(circular), một người gán nhãn, tập chỉ đo recall cặp thiết kế + thứ tự trong bộ 5 tin,
+không đo chất lượng tuyệt đối trên tin thật chưa gán nhãn.

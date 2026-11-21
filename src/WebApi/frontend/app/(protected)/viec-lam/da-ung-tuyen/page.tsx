@@ -141,8 +141,6 @@ export default function DaUngTuyenPage() {
 
   const load = useCallback(async () => {
     try {
-      setLoading(true);
-      setErr("");
       const params = new URLSearchParams();
       params.set("_start", String((page - 1) * PAGE_SIZE));
       params.set("_end", String(page * PAGE_SIZE));
@@ -152,6 +150,7 @@ export default function DaUngTuyenPage() {
       const res: ApiResponse<unknown> = await apiFetch(
         `${API}?${params.toString()}`,
       );
+      setErr("");
       if (!ok(res)) throw new Error(msg(res) || "Không thể tải danh sách");
       const d = extractData(res);
       const rawItems: unknown[] = Array.isArray(d) ? d : [];
@@ -249,8 +248,9 @@ export default function DaUngTuyenPage() {
     }
   }, [apiFetch, page, statusFilter]);
 
-  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => {
+    // Rule báo nhầm: load chỉ setState sau await, không có setState đồng bộ.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void load();
   }, [load]);
 
@@ -343,6 +343,7 @@ export default function DaUngTuyenPage() {
         <Select
           value={statusFilter}
           onValueChange={(v) => {
+            setLoading(true);
             setStatusFilter(v ?? "all");
             setPage(1);
           }}
@@ -492,7 +493,10 @@ export default function DaUngTuyenPage() {
             size="sm"
             className="rounded-full"
             disabled={page <= 1 || loading}
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            onClick={() => {
+              setLoading(true);
+              setPage((p) => Math.max(1, p - 1));
+            }}
           >
             <ChevronLeft className="size-4" /> Trước
           </Button>
@@ -504,7 +508,10 @@ export default function DaUngTuyenPage() {
             size="sm"
             className="rounded-full"
             disabled={page >= totalPages || loading}
-            onClick={() => setPage((p) => p + 1)}
+            onClick={() => {
+              setLoading(true);
+              setPage((p) => p + 1);
+            }}
           >
             Sau <ChevronRight className="size-4" />
           </Button>

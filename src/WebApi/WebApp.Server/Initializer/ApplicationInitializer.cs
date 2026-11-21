@@ -23,7 +23,7 @@ namespace WebApp.Server.Initializer
         {
             // Dùng IConfiguration của host (gồm appsettings + env vars), không tự dựng
             // ConfigurationBuilder riêng để tránh lệch cấu hình production.
-            // Logging dùng ILogger lifecycle của host (Serilog đã wire qua builder.Host).
+            // Logging dùng ILogger mặc định của host (console).
             var configuration = _serviceProvider.GetRequiredService<IConfiguration>();
             var env = _serviceProvider.GetRequiredService<IWebHostEnvironment>();
             var logger = _serviceProvider.GetRequiredService<ILogger<ApplicationInitializer>>();

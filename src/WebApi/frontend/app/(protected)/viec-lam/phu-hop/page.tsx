@@ -1,13 +1,18 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { Target, TrendingUp, ArrowRight, Sparkles } from "lucide-react";
+import { ArrowRight, FileText, Loader2, Target, TrendingUp } from "lucide-react";
 import { AdminPageLayout, AdminPageHeader, AdminCard, AdminCardHeader, AdminEmptyState, AdminLoadingState } from "@/components/admin/admin-page-layout";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useStoredIdentity } from "@/hooks/use-stored-identity";
 import { getValidToken, refreshSession } from "@/lib/auth-provider";
+import { cvApi, hoSoApi } from "@/lib/api/cv-api";
+import type { CvVm } from "@/lib/types";
+import { MatchedJobCard, type RecommendationItem } from "@/features/recommendations/matched-job-card";
 
 type KetQuaPhuHop = {
   id: number;
@@ -20,22 +25,6 @@ type KetQuaPhuHop = {
   tieuDeTinTuyenDung?: string;
 };
 
-type Recommendation = {
-  tinTuyenDungId: number;
-  tieuDe: string;
-  tenDoanhNghiep: string;
-  diaDiemLamViec: string;
-  luongToiThieu: number;
-  luongToiDa: number;
-  diemPhuHop: number;
-  phanLoai: string;
-  kyNangThoa: string[];
-  kyNangThieu: string[];
-  kyNangBatBuocThieu: string[];
-  ngayHetHan?: string;
-  lyDoGoiY?: string;
-};
-
 type ApiResponse<T> = { Succeeded?: boolean; succeeded?: boolean; Message?: string; message?: string; Data?: T; data?: T };
 
 const PHAN_LOAI: Record<number, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
@@ -45,10 +34,22 @@ const PHAN_LOAI: Record<number, { label: string; variant: "default" | "secondary
 };
 
 const API = "/api/dotnet/ketquaphuhops";
+// Ngưỡng này phải khớp ContentBasedMatcher.PhanLoaiCua (Cao >= 0.66, Trung bình >= 0.33).
+const HIGH_SCORE = 0.66;
+const MEDIUM_SCORE = 0.33;
+const PAGE_STEP = 10;
+const MAX_TOP_N = 30;
+
 const ok = (r: ApiResponse<unknown>): boolean => r.Succeeded ?? r.succeeded ?? true;
 const msg = (r: ApiResponse<unknown>): string => r.Message ?? r.message ?? "";
 const extractData = <T,>(r: ApiResponse<T>): T | undefined => r.Data ?? r.data;
 const asText = (value: unknown): string => `${value ?? ""}`.trim();
+const asList = (value: unknown): string[] => (Array.isArray(value) ? value.map((v) => `${v}`).filter(Boolean) : []);
+const numOrUndefined = (value: unknown): number | undefined => {
+  if (value === undefined || value === null || value === "") return undefined;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : undefined;
+};
 
 async function apiFetch(url: string, opts?: RequestInit) {
   let token = await getValidToken();
@@ -71,6 +72,35 @@ async function apiFetch(url: string, opts?: RequestInit) {
   return body;
 }
 
+function normalizeRecommendation(value: unknown): RecommendationItem {
+  const r = (value ?? {}) as Record<string, unknown>;
+  return {
+    tinTuyenDungId: Number(r.tinTuyenDungId ?? r.TinTuyenDungId ?? 0),
+    tieuDe: asText(r.tieuDe ?? r.TieuDe) || "Tin tuyển dụng",
+    tenDoanhNghiep: asText(r.tenDoanhNghiep ?? r.TenDoanhNghiep),
+    diaDiemLamViec: asText(r.diaDiemLamViec ?? r.DiaDiemLamViec),
+    luongToiThieu: Number(r.luongToiThieu ?? r.LuongToiThieu ?? 0),
+    luongToiDa: Number(r.luongToiDa ?? r.LuongToiDa ?? 0),
+    diemPhuHop: Number(r.diemPhuHop ?? r.DiemPhuHop ?? 0),
+    diemKyNang: numOrUndefined(r.diemKyNang ?? r.DiemKyNang),
+    bonusViTri: numOrUndefined(r.bonusViTri ?? r.BonusViTri),
+    bonusLuong: numOrUndefined(r.bonusLuong ?? r.BonusLuong),
+    bonusDiaDiem: numOrUndefined(r.bonusDiaDiem ?? r.BonusDiaDiem),
+    bonusKinhNghiem: numOrUndefined(r.bonusKinhNghiem ?? r.BonusKinhNghiem),
+    kyNangThoa: asList(r.kyNangThoa ?? r.KyNangThoa),
+    kyNangThieu: asList(r.kyNangThieu ?? r.KyNangThieu),
+    kyNangBatBuocThieu: asList(r.kyNangBatBuocThieu ?? r.KyNangBatBuocThieu),
+    workMode: asText(r.workMode ?? r.WorkMode),
+    level: asText(r.level ?? r.Level),
+    employmentType: asText(r.employmentType ?? r.EmploymentType),
+    created: asText(r.created ?? r.Created),
+    soLuongUngVien: Number(r.soLuongUngVien ?? r.SoLuongUngVien ?? 0),
+    kyNangs: asList(r.kyNangs ?? r.KyNangs),
+    ngayHetHan: asText(r.ngayHetHan ?? r.NgayHetHan),
+    lyDoGoiY: asText(r.lyDoGoiY ?? r.LyDoGoiY),
+  };
+}
+
 function fmtDate(d: string) {
   if (!d) return "—";
   try { return new Date(d).toLocaleDateString("vi-VN"); } catch { return d; }
@@ -83,93 +113,237 @@ export default function PhuHopPage() {
   return isCandidate ? <CandidatePhuHop /> : <RecruiterPhuHop />;
 }
 
+type CategoryFilter = "all" | "high" | "medium" | "low";
+type WorkModeFilter = "all" | "Onsite" | "Remote" | "Hybrid" | "Flexible";
+type SalaryFilter = "all" | "10" | "15" | "20" | "30";
+type SortMode = "ai" | "score" | "title";
+
+// SelectValue của base-ui không tự lấy nhãn từ item đang chọn, nên trigger cần
+// nhận đúng chuỗi tiếng Việt thay vì giá trị thô ("all", "ai"…).
+const CATEGORY_LABEL: Record<CategoryFilter, string> = {
+  all: "Tất cả mức độ",
+  high: "Cao từ 66%",
+  medium: "Trung bình 33–65%",
+  low: "Thấp dưới 33%",
+};
+const WORK_MODE_LABEL: Record<WorkModeFilter, string> = {
+  all: "Mọi hình thức",
+  Onsite: "Tại văn phòng",
+  Remote: "Remote",
+  Hybrid: "Hybrid",
+  Flexible: "Linh hoạt",
+};
+const SALARY_LABEL: Record<SalaryFilter, string> = {
+  all: "Mọi mức lương",
+  "10": "Từ 10 triệu",
+  "15": "Từ 15 triệu",
+  "20": "Từ 20 triệu",
+  "30": "Từ 30 triệu",
+};
+const SORT_LABEL: Record<SortMode, string> = {
+  ai: "Adam xếp hạng",
+  score: "Điểm cao nhất",
+  title: "Tên công việc",
+};
+
 function CandidatePhuHop() {
-  const [items, setItems] = useState<Recommendation[]>([]);
+  const [items, setItems] = useState<RecommendationItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [err, setErr] = useState("");
-  const [sort, setSort] = useState<"ai" | "score" | "title">("ai");
-  const [category, setCategory] = useState<"all" | "high" | "medium" | "low">("all");
+  const [notice, setNotice] = useState("");
+  const [needsCv, setNeedsCv] = useState(false);
+  const [topN, setTopN] = useState(PAGE_STEP);
+  const [cvs, setCvs] = useState<CvVm[]>([]);
+  const [selectedCvId, setSelectedCvId] = useState<number | null>(null);
+  // Lần tải đầu hiện spinner toàn khung; các lần "Xem thêm" chỉ quay nút,
+  // không thay danh sách đang đọc bằng trạng thái loading.
+  const hasDataRef = useRef(false);
+
+  const [category, setCategory] = useState<CategoryFilter>("all");
+  const [workMode, setWorkMode] = useState<WorkModeFilter>("all");
+  const [salaryMin, setSalaryMin] = useState<SalaryFilter>("all");
+  const [locationQuery, setLocationQuery] = useState("");
+  const [onlyMandatoryReady, setOnlyMandatoryReady] = useState(false);
+  const [sort, setSort] = useState<SortMode>("ai");
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const hoSo = await hoSoApi.getMyHoSo();
+        const list = await cvApi.listCvs(hoSo.id);
+        if (!cancelled) setCvs(list.filter((cv) => cv.id > 0));
+      } catch {
+        // Chưa có hồ sơ: API gợi ý sẽ trả thông báo riêng, không cần báo lỗi kép.
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   const load = useCallback(async () => {
     try {
-      setLoading(true); setErr("");
-      const res: ApiResponse<unknown> = await apiFetch(`${API}/recommendations?topN=10`);
-      if (!ok(res)) throw new Error(msg(res) || "Không thể tải dữ liệu");
+      if (hasDataRef.current) setLoadingMore(true);
+      setErr("");
+      const query = new URLSearchParams({ topN: String(topN) });
+      if (selectedCvId) query.set("cvUngVienId", String(selectedCvId));
+      const res: ApiResponse<unknown> = await apiFetch(`${API}/recommendations?${query.toString()}`);
+      const succeeded = ok(res);
+      setNotice(msg(res));
+      setNeedsCv(!succeeded);
       const d = extractData(res);
-      const rawItems = Array.isArray(d) ? d : [];
-      setItems(rawItems.map((v: unknown) => {
-        const r = v as Record<string, unknown>;
-        const score = Number(r.diemPhuHop ?? r.DiemPhuHop ?? 0);
-        return {
-          tinTuyenDungId: Number(r.tinTuyenDungId ?? r.TinTuyenDungId ?? 0),
-          tieuDe: `${r.tieuDe ?? r.TieuDe ?? "Tin tuyển dụng"}`,
-          tenDoanhNghiep: `${r.tenDoanhNghiep ?? r.TenDoanhNghiep ?? ""}`,
-          diaDiemLamViec: `${r.diaDiemLamViec ?? r.DiaDiemLamViec ?? ""}`,
-          luongToiThieu: Number(r.luongToiThieu ?? r.LuongToiThieu ?? 0),
-          luongToiDa: Number(r.luongToiDa ?? r.LuongToiDa ?? 0),
-          diemPhuHop: score,
-          phanLoai: `${r.phanLoai ?? r.PhanLoai ?? ""}`,
-          kyNangThoa: Array.isArray(r.kyNangThoa ?? r.KyNangThoa) ? (r.kyNangThoa ?? r.KyNangThoa) as string[] : [],
-          kyNangThieu: Array.isArray(r.kyNangThieu ?? r.KyNangThieu) ? (r.kyNangThieu ?? r.KyNangThieu) as string[] : [],
-          kyNangBatBuocThieu: Array.isArray(r.kyNangBatBuocThieu ?? r.KyNangBatBuocThieu) ? (r.kyNangBatBuocThieu ?? r.KyNangBatBuocThieu) as string[] : [],
-          ngayHetHan: `${r.ngayHetHan ?? r.NgayHetHan ?? ""}`,
-          lyDoGoiY: asText(r.lyDoGoiY ?? r.LyDoGoiY),
-        };
-      }));
+      const rawItems = succeeded && Array.isArray(d) ? d : [];
+      const mapped = rawItems.map(normalizeRecommendation);
+      setItems(mapped);
+      hasDataRef.current = mapped.length > 0;
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Lỗi tải dữ liệu");
     } finally {
-      setLoading(false);
+      setLoading(false); setLoadingMore(false);
     }
-  }, []);
+  }, [topN, selectedCvId]);
 
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { void load(); }, [load]);
 
-  const visibleItems = items
-    .filter((item) => category === "all" || (category === "high" ? item.diemPhuHop >= 0.7 : category === "medium" ? item.diemPhuHop >= 0.4 : item.diemPhuHop < 0.4));
-  // "ai" giữ nguyên thứ tự API trả về vì đó đã là thứ tự DeepSeek sắp xếp lại.
-  if (sort !== "ai") {
-    visibleItems.sort((a, b) => sort === "score" ? b.diemPhuHop - a.diemPhuHop : a.tieuDe.localeCompare(b.tieuDe, "vi"));
-  }
-  const aiReasonCount = visibleItems.filter((item) => item.lyDoGoiY).length;
+  const visibleItems = useMemo(() => {
+    const minSalary = salaryMin === "all" ? 0 : Number(salaryMin) * 1_000_000;
+    const location = locationQuery.trim().toLowerCase();
+    const filtered = items.filter((item) => {
+      if (category === "high" && item.diemPhuHop < HIGH_SCORE) return false;
+      if (category === "medium" && (item.diemPhuHop < MEDIUM_SCORE || item.diemPhuHop >= HIGH_SCORE)) return false;
+      if (category === "low" && item.diemPhuHop >= MEDIUM_SCORE) return false;
+      if (workMode !== "all" && item.workMode !== workMode) return false;
+      if (minSalary > 0 && item.luongToiDa < minSalary) return false;
+      if (location && !item.diaDiemLamViec.toLowerCase().includes(location)) return false;
+      if (onlyMandatoryReady && item.kyNangBatBuocThieu.length > 0) return false;
+      return true;
+    });
+    // "ai" giữ nguyên thứ tự API trả về vì đó đã là thứ tự DeepSeek sắp xếp lại.
+    if (sort === "score") filtered.sort((a, b) => b.diemPhuHop - a.diemPhuHop);
+    if (sort === "title") filtered.sort((a, b) => a.tieuDe.localeCompare(b.tieuDe, "vi"));
+    return filtered;
+  }, [items, category, workMode, salaryMin, locationQuery, onlyMandatoryReady, sort]);
 
-  const money = (value: number) => value > 0 ? `${Math.round(value).toLocaleString("vi-VN")} đ` : "Thỏa thuận";
   const total = items.length;
-  const highCount = items.filter((i) => i.diemPhuHop >= 0.7).length;
-  const midPlusCount = items.filter((i) => i.diemPhuHop >= 0.5).length;
+  const highCount = items.filter((i) => i.diemPhuHop >= HIGH_SCORE).length;
+  const mandatoryReadyCount = items.filter((i) => i.kyNangBatBuocThieu.length === 0).length;
+  const aiReasonCount = visibleItems.filter((item) => item.lyDoGoiY).length;
+  const canLoadMore = !loading && !needsCv && items.length > 0 && items.length >= topN && topN < MAX_TOP_N;
+
+  function handleCvChange(value: string | null) {
+    const next = value === null || value === "default" ? null : Number(value);
+    if (next === selectedCvId) return;
+    hasDataRef.current = false;
+    setLoading(true);
+    setTopN(PAGE_STEP);
+    setSelectedCvId(next);
+  }
+
+  const selectedCv = selectedCvId ? cvs.find((cv) => cv.id === selectedCvId) : undefined;
+  const cvTriggerLabel = selectedCv
+    ? (selectedCv.viTriUngTuyen || selectedCv.tenFile || `CV #${selectedCv.id}`)
+    : "CV mặc định";
 
   return (
     <AdminPageLayout>
-      <AdminPageHeader icon={Target} title="Việc làm phù hợp" description="Các tin đang tuyển được xếp hạng theo kỹ năng, vị trí, lương và địa điểm trong CV của bạn." />
+      <AdminPageHeader
+        icon={Target}
+        title="Việc làm phù hợp"
+        description="Các tin đang tuyển được xếp hạng theo kỹ năng, vị trí, lương và địa điểm trong CV của bạn."
+        actions={cvs.length > 1 ? (
+          <Select value={selectedCvId ? String(selectedCvId) : "default"} onValueChange={handleCvChange}>
+            <SelectTrigger className="h-9 w-52 rounded-lg px-3 text-sm" aria-label="Chọn CV để phân tích">
+              <SelectValue placeholder="Chọn CV">{cvTriggerLabel}</SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="default">CV mặc định</SelectItem>
+              {cvs.map((cv) => (
+                <SelectItem key={cv.id} value={String(cv.id)}>
+                  {(cv.viTriUngTuyen || cv.tenFile || `CV #${cv.id}`) + (cv.isDefault ? " · mặc định" : "")}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        ) : undefined}
+      />
 
       {err && <div className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">{err}</div>}
 
       <AdminCard>
         <div className="border-b border-border p-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <AdminCardHeader title="Dành cho bạn" description={aiReasonCount > 0 ? `${visibleItems.length}/${items.length} tin đang hiển thị · ${aiReasonCount} tin có lý do AI` : `${visibleItems.length}/${items.length} tin đang hiển thị`} />
+            <div>
+              <h2 className="font-medium text-foreground">Dành cho bạn</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {aiReasonCount > 0
+                  ? `${visibleItems.length}/${total} tin đang hiển thị · ${aiReasonCount} tin có lý do AI`
+                  : `${visibleItems.length}/${total} tin đang hiển thị`}
+              </p>
+            </div>
             <Link href="/viec-lam" className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-primary hover:border-primary/50">
               Tìm thêm việc <ArrowRight className="size-3.5" />
             </Link>
           </div>
+
           <div className="mt-4 grid gap-2 sm:grid-cols-3">
-            <div className="rounded-xl bg-primary/5 px-3 py-2"><p className="text-xs text-muted-foreground">Tổng gợi ý</p><p className="text-xl font-semibold text-foreground">{total}</p></div>
-            <div className="rounded-xl bg-emerald-500/10 px-3 py-2"><p className="text-xs text-muted-foreground">Phù hợp cao</p><p className="text-xl font-semibold text-emerald-700">{highCount}</p></div>
-            <div className="rounded-xl bg-amber-500/10 px-3 py-2"><p className="text-xs text-muted-foreground">Từ 50% trở lên</p><p className="text-xl font-semibold text-amber-700">{midPlusCount}</p></div>
+            <div className="rounded-xl bg-primary/5 px-3 py-2">
+              <p className="text-xs text-muted-foreground">Tổng gợi ý</p>
+              <p className="text-xl font-semibold text-foreground">{total}</p>
+            </div>
+            <div className="rounded-xl bg-emerald-500/10 px-3 py-2">
+              <p className="text-xs text-muted-foreground">Phù hợp cao (≥66%)</p>
+              <p className="text-xl font-semibold text-emerald-700">{highCount}</p>
+            </div>
+            <div className="rounded-xl bg-sky-500/10 px-3 py-2">
+              <p className="text-xs text-muted-foreground">Đủ kỹ năng bắt buộc</p>
+              <p className="text-xl font-semibold text-sky-700">{mandatoryReadyCount}</p>
+            </div>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <Select value={category} onValueChange={(value) => setCategory(value as typeof category)}>
-              <SelectTrigger className="h-9 w-44 rounded-lg px-3 text-sm"><SelectValue /></SelectTrigger>
+
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            <Select value={category} onValueChange={(value) => setCategory(value as CategoryFilter)}>
+              <SelectTrigger className="h-9 w-44 rounded-lg px-3 text-sm"><SelectValue placeholder="Mức độ">{CATEGORY_LABEL[category]}</SelectValue></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Tất cả mức độ</SelectItem>
                 <SelectItem value="high">Cao từ 66%</SelectItem>
-                <SelectItem value="medium">Trung bình 50–65%</SelectItem>
-                <SelectItem value="low">Thấp dưới 50%</SelectItem>
+                <SelectItem value="medium">Trung bình 33–65%</SelectItem>
+                <SelectItem value="low">Thấp dưới 33%</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={sort} onValueChange={(value) => setSort(value as typeof sort)}>
-              <SelectTrigger className="h-9 w-40 rounded-lg px-3 text-sm"><SelectValue /></SelectTrigger>
+            <Select value={workMode} onValueChange={(value) => setWorkMode(value as WorkModeFilter)}>
+              <SelectTrigger className="h-9 w-40 rounded-lg px-3 text-sm"><SelectValue placeholder="Hình thức">{WORK_MODE_LABEL[workMode]}</SelectValue></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Mọi hình thức</SelectItem>
+                <SelectItem value="Onsite">Tại văn phòng</SelectItem>
+                <SelectItem value="Remote">Remote</SelectItem>
+                <SelectItem value="Hybrid">Hybrid</SelectItem>
+                <SelectItem value="Flexible">Linh hoạt</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={salaryMin} onValueChange={(value) => setSalaryMin(value as SalaryFilter)}>
+              <SelectTrigger className="h-9 w-36 rounded-lg px-3 text-sm"><SelectValue placeholder="Mức lương">{SALARY_LABEL[salaryMin]}</SelectValue></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Mọi mức lương</SelectItem>
+                <SelectItem value="10">Từ 10 triệu</SelectItem>
+                <SelectItem value="15">Từ 15 triệu</SelectItem>
+                <SelectItem value="20">Từ 20 triệu</SelectItem>
+                <SelectItem value="30">Từ 30 triệu</SelectItem>
+              </SelectContent>
+            </Select>
+            <Input
+              value={locationQuery}
+              onChange={(event) => setLocationQuery(event.target.value)}
+              placeholder="Lọc theo địa điểm…"
+              className="w-48 rounded-lg text-sm"
+              aria-label="Lọc theo địa điểm"
+            />
+            <label className="flex h-9 items-center gap-2 rounded-lg border border-border px-3 text-sm text-muted-foreground">
+              <Switch checked={onlyMandatoryReady} onCheckedChange={setOnlyMandatoryReady} aria-label="Chỉ tin đủ kỹ năng bắt buộc" />
+              Đủ kỹ năng bắt buộc
+            </label>
+            <Select value={sort} onValueChange={(value) => setSort(value as SortMode)}>
+              <SelectTrigger className="h-9 w-40 rounded-lg px-3 text-sm"><SelectValue placeholder="Sắp xếp">{SORT_LABEL[sort]}</SelectValue></SelectTrigger>
               <SelectContent>
                 <SelectItem value="ai">Adam xếp hạng</SelectItem>
                 <SelectItem value="score">Điểm cao nhất</SelectItem>
@@ -178,45 +352,50 @@ function CandidatePhuHop() {
             </Select>
           </div>
         </div>
-        {loading ? <AdminLoadingState /> : visibleItems.length === 0 ? (
-          <AdminEmptyState icon={Target} title="Chưa có kết quả phù hợp" description="Hệ thống sẽ phân tích và gợi ý việc làm phù hợp khi có dữ liệu." />
+
+        {loading ? (
+          <AdminLoadingState />
+        ) : needsCv ? (
+          <AdminEmptyState
+            icon={FileText}
+            title="Adam cần CV để gợi ý việc làm"
+            description={notice || "Hoàn thiện hoặc chọn CV mặc định để Adam phân tích và đề xuất những cơ hội phù hợp hơn."}
+            action={
+              <Link href="/CV" className="inline-flex items-center gap-1.5 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90">
+                Hoàn thiện CV <ArrowRight className="size-4" />
+              </Link>
+            }
+          />
+        ) : items.length === 0 ? (
+          <AdminEmptyState
+            icon={Target}
+            title="Chưa có kết quả phù hợp"
+            description={notice || "Chưa có tin tuyển dụng nào đủ điểm khớp với kỹ năng trong CV của bạn."}
+          />
+        ) : visibleItems.length === 0 ? (
+          <AdminEmptyState
+            icon={Target}
+            title="Bộ lọc chưa khớp tin nào"
+            description="Thử bỏ bớt điều kiện lọc (mức độ, hình thức, lương, địa điểm) để xem lại toàn bộ gợi ý."
+          />
         ) : (
-          <div className="space-y-3 p-5">
-            {visibleItems.map(item => {
-              const pct = Math.round(item.diemPhuHop * 100);
-              return (
-                <div key={item.tinTuyenDungId} className="flex flex-col justify-between gap-4 rounded-2xl border border-border bg-card p-4 shadow-sm transition-all hover:border-primary/30 hover:shadow-md sm:flex-row sm:items-center">
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="truncate text-sm font-medium text-foreground">{item.tieuDe}</span>
-                      <span className={`shrink-0 rounded-full bg-gradient-to-r px-2.5 py-0.5 text-xs font-semibold text-white ${pct >= 66 ? "from-[#355C8C] to-emerald-300" : "from-[#355C8C] to-sky-300"}`}>{pct}% match</span>
-                    </div>
-                    <div className="mt-1 text-sm text-muted-foreground">
-                      {item.tenDoanhNghiep || "Doanh nghiệp chưa cập nhật"} · {item.diaDiemLamViec || "Linh hoạt"} · {money(item.luongToiThieu)} - {money(item.luongToiDa)}
-                    </div>
-                    <div className="mt-2 flex flex-wrap gap-1.5">
-                      {item.kyNangThoa.slice(0, 4).map((skill: string) => <span key={skill} className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs text-emerald-700">{skill}</span>)}
-                      {item.kyNangBatBuocThieu.length > 0 && <span className="rounded-full bg-red-500/10 px-2 py-0.5 text-xs font-medium text-red-700" title={`Chưa có: ${item.kyNangBatBuocThieu.join(", ")}`}>Thiếu {item.kyNangBatBuocThieu.length} kỹ năng bắt buộc</span>}
-                      {item.kyNangThieu.length > 0 && <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-xs text-amber-700">Thiếu: {item.kyNangThieu.slice(0, 3).join(", ")}</span>}
-                    </div>
-                    {item.lyDoGoiY && (
-                      <p className="mt-2 flex items-start gap-1.5 text-xs text-muted-foreground">
-                        <Sparkles className="mt-0.5 size-3.5 shrink-0 text-primary" /> {item.lyDoGoiY}
-                      </p>
-                    )}
-                  </div>
-                  <div className="flex shrink-0 items-center gap-3">
-                    <span className="text-2xl font-semibold tabular-nums text-foreground">{pct}%</span>
-                    <Link
-                      href={`/viec-lam/${item.tinTuyenDungId}`}
-                      className="inline-flex items-center gap-1 rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-primary transition hover:border-primary/50"
-                    >
-                      Xem & ứng tuyển <ArrowRight className="size-3.5" />
-                    </Link>
-                  </div>
-                </div>
-              );
-            })}
+          <div className="space-y-4 p-5">
+            <div className="grid gap-4 lg:grid-cols-2">
+              {visibleItems.map((item) => <MatchedJobCard key={item.tinTuyenDungId} item={item} />)}
+            </div>
+            {canLoadMore && (
+              <div className="flex justify-center pt-1">
+                <button
+                  type="button"
+                  disabled={loadingMore}
+                  onClick={() => { setLoadingMore(true); setTopN(Math.min(MAX_TOP_N, topN + PAGE_STEP)); }}
+                  className="inline-flex items-center gap-2 rounded-full border border-border px-5 py-2 text-sm font-semibold text-primary transition hover:border-primary/50 disabled:opacity-60"
+                >
+                  {loadingMore && <Loader2 className="size-4 animate-spin" />}
+                  Xem thêm việc phù hợp
+                </button>
+              </div>
+            )}
           </div>
         )}
       </AdminCard>

@@ -8,7 +8,6 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
 using Newtonsoft.Json;
-using Application.Behaviours;
 using Application.Interfaces;
 using Application.Wrappers;
 using Domain.Settings;
@@ -235,8 +234,8 @@ namespace Infrastructure.Identity
             services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblies(Assembly.GetExecutingAssembly()));
             services.AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
             services.AddAutoMapper(cfg => cfg.AddMaps(Assembly.GetExecutingAssembly()));
-            services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
-
+            // ValidationBehavior đã đăng ký global ở AddApplicationLayer — đăng ký thêm ở đây
+            // khiến pipeline MediatR chạy validation 2 lần cho mỗi request.
         }
     }
 }

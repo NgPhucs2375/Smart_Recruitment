@@ -1,12 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { ClipboardCheck, CheckCircle2, XCircle, RefreshCw, UserRound } from "lucide-react";
+import Link from "next/link";
+import { ClipboardCheck, Eye, RefreshCw, UserRound } from "lucide-react";
 import { toast } from "sonner";
 import { AdminPageLayout, AdminPageHeader, AdminCard, AdminCardHeader, AdminEmptyState, AdminLoadingState } from "@/components/admin/admin-page-layout";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { useConfirmDialog } from "@/components/ui/confirm-dialog";
+import { cn } from "@/lib/utils";
 import { getValidToken } from "@/lib/auth-provider";
 
 type TinChoDuyet = {
@@ -18,11 +19,9 @@ type TinChoDuyet = {
   luongToiDa: number;
   nguoiDangTinId: number;
   trangThai: string;
-  lastModified?: string;
 };
 
 const API = "/api/dotnet/tintuyendungs";
-const TRIGGER = { NguoiDaiDienDuyet: 13, NguoiDaiDienTuChoi: 14 } as const;
 
 function value(row: Record<string, unknown>, camel: string, pascal: string) {
   return row[camel] ?? row[pascal];
@@ -31,10 +30,8 @@ function value(row: Record<string, unknown>, camel: string, pascal: string) {
 export default function DuyetTinNhanSuPage() {
   const [items, setItems] = useState<TinChoDuyet[]>([]);
   const [loading, setLoading] = useState(true);
-  const [busyId, setBusyId] = useState<number | null>(null);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const { confirm, prompt } = useConfirmDialog();
 
   const request = useCallback(async (url: string, init?: RequestInit) => {
     const token = await getValidToken();
@@ -69,7 +66,6 @@ export default function DuyetTinNhanSuPage() {
           luongToiDa: Number(value(row, "luongToiDa", "LuongToiDa") ?? 0),
           nguoiDangTinId: Number(value(row, "nguoiDangTinId", "NguoiDangTinId") ?? 0),
           trangThai: String(value(row, "trangThai", "TrangThai") ?? ""),
-          lastModified: value(row, "lastModified", "LastModified") as string | undefined,
         };
       }).filter((item) => item.trangThai === "ChoNguoiDaiDienDuyet" || item.trangThai === "9"));
     } catch (error) {
@@ -82,44 +78,12 @@ export default function DuyetTinNhanSuPage() {
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { void load(); }, [load]);
 
-  async function decide(item: TinChoDuyet, approve: boolean) {
-    const action = approve ? "Duyệt" : "Từ chối";
-    const reason = approve ? "Người đại diện đồng ý, chuyển sang bộ lọc hệ thống" : await prompt({ title: "Lý do từ chối tin", description: "Nêu nội dung cần Nhân sự sửa.", confirmLabel: "Từ chối" });
-    if (!reason?.trim()) return;
-    const confirmed = await confirm({
-      title: `${action} tin?`,
-      description: `Bạn chắc chắn muốn ${action.toLowerCase()} tin "${item.tieuDe}"?`,
-      confirmLabel: action,
-      destructive: !approve,
-    });
-    if (!confirmed) return;
-    setBusyId(item.id);
-    try {
-      const result = await request(`${API}/${item.id}/fire`, {
-        method: "POST",
-        body: JSON.stringify({
-          id: item.id,
-          trigger: approve ? TRIGGER.NguoiDaiDienDuyet : TRIGGER.NguoiDaiDienTuChoi,
-          ghiChu: reason,
-          expectedLastModified: item.lastModified,
-        }),
-      });
-      setItems((current) => current.filter((row) => row.id !== item.id));
-      toast.success(String(result?.Message ?? result?.message ?? (approve ? "Đã chuyển sang bộ lọc hệ thống" : "Đã từ chối tin")));
-      await load();
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Không thể cập nhật tin");
-    } finally {
-      setBusyId(null);
-    }
-  }
-
   return (
     <AdminPageLayout>
       <AdminPageHeader
         icon={ClipboardCheck}
         title="Duyệt tin của Nhân sự"
-        description="Nhân sự gửi tin → Người đại diện đồng ý → hệ thống lọc: OK thì công khai, vi phạm thì Admin duyệt tay."
+        description="Mở từng tin để đọc đầy đủ nội dung, rồi quyết định duyệt hoặc từ chối. Duyệt xong hệ thống mới lọc: OK thì công khai, vi phạm thì chuyển Admin."
         actions={<Button variant="outline" onClick={() => void load()}><RefreshCw className="size-4" /> Tải lại</Button>}
       />
 
@@ -133,7 +97,7 @@ export default function DuyetTinNhanSuPage() {
               <article key={item.id} className="grid gap-4 p-5 lg:grid-cols-[1fr_auto] lg:items-center">
                 <div className="min-w-0 space-y-2">
                   <div className="flex flex-wrap items-center gap-2">
-                    <h2 className="font-semibold text-foreground">{item.tieuDe}</h2>
+                    <Link href={`/duyet-tin-nhan-su/${item.id}`} className="font-semibold text-foreground hover:underline">{item.tieuDe}</Link>
                     <Badge variant="outline">Nhân sự gửi — chờ bạn duyệt</Badge>
                   </div>
                   <p className="line-clamp-2 text-sm leading-6 text-muted-foreground">{item.moTaCongViec}</p>
@@ -143,14 +107,9 @@ export default function DuyetTinNhanSuPage() {
                     <span>{new Intl.NumberFormat("vi-VN").format(item.luongToiThieu)} - {new Intl.NumberFormat("vi-VN").format(item.luongToiDa)} đ</span>
                   </div>
                 </div>
-                <div className="flex gap-2">
-                  <Button variant="outline" disabled={busyId === item.id} onClick={() => void decide(item, false)}>
-                    <XCircle className="size-4" /> Từ chối
-                  </Button>
-                  <Button disabled={busyId === item.id} onClick={() => void decide(item, true)}>
-                    <CheckCircle2 className="size-4" /> Đồng ý và chạy bộ lọc
-                  </Button>
-                </div>
+                <Link href={`/duyet-tin-nhan-su/${item.id}`} className={cn(buttonVariants({ variant: "outline", size: "sm" }), "gap-2")}>
+                  <Eye className="size-4" /> Xem tin
+                </Link>
               </article>
             ))}
           </div>

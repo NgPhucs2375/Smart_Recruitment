@@ -51,6 +51,12 @@ for (const slug of Object.keys(TEMPLATE_REGISTRY).sort()) {
   };
 }
 
+const json = `${JSON.stringify(manifest, null, 2)}\n`;
 const outPath = path.join(frontend, "features/tao-cv/template-manifest.json");
-fs.writeFileSync(outPath, `${JSON.stringify(manifest, null, 2)}\n`);
-console.log(`Da sinh ${outPath} (${Object.keys(manifest).length} templates)`);
+fs.writeFileSync(outPath, json);
+// Application embed bản sao cục bộ (Resources/) để không reference ngược sang WebApi;
+// tests/CvThemeMatching.Frontend assert 2 bản đồng bộ.
+const backendCopy = path.join(frontend, "../../Application/Resources/template-manifest.json");
+fs.mkdirSync(path.dirname(backendCopy), { recursive: true });
+fs.writeFileSync(backendCopy, json);
+console.log(`Da sinh ${outPath} va ${backendCopy} (${Object.keys(manifest).length} templates)`);

@@ -143,6 +143,9 @@ services:
       DeepSeek__Endpoint: "${DEEPSEEK_ENDPOINT:-https://api.deepseek.com/v1}"
       DeepSeek__Model: "${DEEPSEEK_MODEL:-deepseek-flash}"
 
+      # Hạn mức agent: mặc định trùng mã nguồn (15 chat, 10 chấm CV/ngày).
+      Agent__DailyChatLimit: "${AGENT_DAILY_CHAT_LIMIT:-15}"
+      Agent__DailyCvReviewLimit: "${AGENT_DAILY_CV_REVIEW_LIMIT:-10}"
 
       MailSettings__SmtpHost: "${MAIL_SMTP_HOST:-}"
 
