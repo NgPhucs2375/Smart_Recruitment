@@ -965,9 +965,8 @@ namespace Infrastructure.Identity.Services
             }
             catch (InvalidJwtException jwtEx)
             {
-                // Log kèm serverUtc và hint sync clock
-                _logger.LogWarning(jwtEx, "Google JWT validation failed: {Message} aud expected={Aud} serverUtc={Utc} tokenSnippet={Snippet} -> Gợi ý: chạy w32tm /resync hoặc Settings > Time > Sync now", jwtEx.Message, configuredClientId, DateTime.UtcNow, request.IdToken.Substring(0, Math.Min(60, request.IdToken.Length)));
-                throw new ApiException($"Xác thực bên ngoài không thành công. Token không hợp lệ: {jwtEx.Message} (serverUtc={DateTime.UtcNow:O}, hãy đồng bộ đồng hồ BE: w32tm /resync)");
+                _logger.LogWarning(jwtEx, "Google JWT validation failed: {Message} aud expected={Aud} serverUtc={Utc} tokenSnippet={Snippet}. Check that the Google Web Client ID used by the frontend matches GoogleSettings:ClientId on the backend.", jwtEx.Message, configuredClientId, DateTime.UtcNow, request.IdToken.Substring(0, Math.Min(60, request.IdToken.Length)));
+                throw new ApiException($"Xác thực Google thất bại: {jwtEx.Message}. Hãy kiểm tra Client ID của frontend có trùng GoogleSettings:ClientId phía backend không.");
             }
             catch (Exception ex)
             {
