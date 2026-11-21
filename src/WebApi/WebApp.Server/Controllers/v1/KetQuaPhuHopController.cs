@@ -51,14 +51,17 @@ namespace WebApp.Server.Controllers.v1
         }
 
         [HttpGet("recommendations")]
-        public async Task<IActionResult> Recommendations([FromQuery] int topN = 10)
+        public async Task<IActionResult> Recommendations(
+            [FromQuery] int topN = 10,
+            [FromQuery] int? cvUngVienId = null)
         {
             return await EnforcePermissionAndExecute(
                 "ketquaphuhops",
                 "list",
                 async () => Ok(await Mediator.Send(new GetSuggestedJobsForCvQuery
                 {
-                    TopN = Math.Clamp(topN, 3, 10)
+                    TopN = Math.Clamp(topN, 3, 30),
+                    CvUngVienId = cvUngVienId
                 })));
         }
 

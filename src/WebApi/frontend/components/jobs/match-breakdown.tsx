@@ -26,7 +26,7 @@ export function hasBreakdown(d: MatchBreakdownData): boolean {
   return d.diemKyNang !== undefined;
 }
 
-export function MatchBreakdown({ data, defaultOpen = false }: { data: MatchBreakdownData; defaultOpen?: boolean }) {
+export function MatchBreakdown({ data, defaultOpen = false, showSkills = true }: { data: MatchBreakdownData; defaultOpen?: boolean; showSkills?: boolean }) {
   const [open, setOpen] = useState(defaultOpen);
   if (!hasBreakdown(data)) return null;
 
@@ -65,7 +65,7 @@ export function MatchBreakdown({ data, defaultOpen = false }: { data: MatchBreak
               </span>
             </div>
           ))}
-          {(data.kyNangThoa?.length || data.kyNangThieu?.length) ? (
+          {showSkills && (data.kyNangThoa?.length || data.kyNangThieu?.length) ? (
             <div className="flex flex-wrap gap-1.5 pt-1">
               {data.kyNangThoa?.map((s) => <span key={s} className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs text-emerald-700">{s}</span>)}
               {data.kyNangBatBuocThieu?.map((s) => <span key={s} className="rounded-full bg-red-500/10 px-2 py-0.5 text-xs font-medium text-red-700">Thiếu bắt buộc: {s}</span>)}

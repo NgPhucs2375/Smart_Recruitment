@@ -54,6 +54,15 @@ public class SuggestedJobViewModel
     /// Diem khong bi no siet — day la nhan screening de nguoi dung tu quyet dinh.</summary>
     public List<string> KyNangBatBuocThieu { get; set; } = new();
     public DateTime? NgayHetHan { get; set; }
+    // Cac truong duoi day giu cung ngon ngu du lieu voi tim kiem /viec-lam de FE
+    // render card giong nhau, khong suy luan lai WorkMode/Level/EmploymentType.
+    public string WorkMode { get; set; } = string.Empty;
+    public string Level { get; set; } = string.Empty;
+    public string EmploymentType { get; set; } = string.Empty;
+    public DateTime Created { get; set; }
+    public int SoLuongUngVien { get; set; }
+    /// <summary>Ten ky nang tin yeu cau (theo thu tu khai bao trong tin).</summary>
+    public List<string> KyNangs { get; set; } = new();
 }
 
 public class GetSuggestedJobsForCvQueryHandler(
@@ -100,7 +109,9 @@ public class GetSuggestedJobsForCvQueryHandler(
             cache,
             RecommendationCache.JobsVersionKey,
             cancellationToken);
-        var pageSize = Math.Clamp(request.PageSize > 0 ? request.PageSize : request.TopN, 1, 20);
+        // Trần 30 để trang gợi ý tải một lần cả danh sách (rerank cùng một cửa sổ,
+        // không trộn hai cửa sổ top-N khi bấm "Xem thêm").
+        var pageSize = Math.Clamp(request.PageSize > 0 ? request.PageSize : request.TopN, 1, 30);
         // FE chỉ lật vài trang đầu: chặn pageNumber để không cache/score
         // tới 20.000 bản ghi khi client spam page lớn (1000 trang x 20).
         var pageNumber = Math.Clamp(request.PageNumber, 1, 50);
@@ -150,6 +161,11 @@ public class GetSuggestedJobsForCvQueryHandler(
                 LuongToiThieu = t.LuongToiThieu,
                 LuongToiDa = t.LuongToiDa,
                 KinhNghiemYeuCau = t.KinhNghiemYeuCau,
+                YeuCauCongViec = t.YeuCauCongViec,
+                MoTaCongViec = t.MoTaCongViec,
+                PhuongThucLamViec = t.PhuongThucLamViec,
+                Created = t.Created,
+                SoLuongUngVien = t.DonUngTuyens.Count,
                 NgayHetHan = t.NgayHetHan,
                 Skills = t.KyNangTinTuyenDungs
                     .Where(k => k.DanhMucKyNang != null)
@@ -229,7 +245,41 @@ public class GetSuggestedJobsForCvQueryHandler(
         BonusDiaDiem = match.LocationBonus,
         BonusKinhNghiem = match.ExperienceBonus,
         NgayHetHan = t.NgayHetHan,
+        WorkMode = t.PhuongThucLamViec.ToString(),
+        Level = InferLevel(t.TieuDe, t.KinhNghiemYeuCau),
+        EmploymentType = InferEmploymentType(t.YeuCauCongViec, t.MoTaCongViec),
+        Created = t.Created,
+        SoLuongUngVien = t.SoLuongUngVien,
+        KyNangs = t.Skills
+            .Select(s => s.TenKyNang)
+            .Where(n => !string.IsNullOrWhiteSpace(n))
+            .Select(n => n!)
+            .Distinct()
+            .ToList(),
     };
+
+    // Cung quy tac suy luan voi GetAllTinTuyenDungs/GetTinTuyenDungById de card
+    // gợi ý và card tìm kiếm hiển thị cùng một Level/EmploymentType.
+    private static string InferLevel(string title, string experience)
+    {
+        var t = $"{title} {experience}".ToLowerInvariant();
+        if (t.Contains("intern") || t.Contains("thực tập")) return "Intern";
+        if (t.Contains("fresher") || t.Contains("mới tốt nghiệp")) return "Fresher";
+        if (t.Contains("junior")) return "Junior";
+        if (t.Contains("lead") || t.Contains("trưởng nhóm")) return "Lead";
+        if (t.Contains("manager") || t.Contains("quản lý")) return "Manager";
+        if (t.Contains("senior") || t.Contains("cao cấp")) return "Senior";
+        return "Mid";
+    }
+
+    private static string InferEmploymentType(string requirements, string description)
+    {
+        var t = $"{requirements} {description}".ToLowerInvariant();
+        if (t.Contains("part-time") || t.Contains("bán thời gian") || t.Contains("part time")) return "Part-time";
+        if (t.Contains("freelance") || t.Contains("tự do")) return "Freelance";
+        if (t.Contains("contract") || t.Contains("hợp đồng")) return "Contract";
+        return "Full-time";
+    }
 
     // DeepSeek chỉ sắp lại cửa sổ top-N và ghi lý do hiển thị; điểm DiemPhuHop và
     // bản ghi KetQuaPhuHop ở trên vẫn nguyên của ContentBasedMatcher.
@@ -281,6 +331,11 @@ public class GetSuggestedJobsForCvQueryHandler(
         public decimal LuongToiThieu { get; set; }
         public decimal LuongToiDa { get; set; }
         public string? KinhNghiemYeuCau { get; set; }
+        public string? YeuCauCongViec { get; set; }
+        public string? MoTaCongViec { get; set; }
+        public PhuongThucLamViec PhuongThucLamViec { get; set; }
+        public DateTime Created { get; set; }
+        public int SoLuongUngVien { get; set; }
         public DateTime? NgayHetHan { get; set; }
         public List<JobMatchSkill> Skills { get; set; } = [];
     }
