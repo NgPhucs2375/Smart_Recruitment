@@ -10,6 +10,8 @@ export type MatchBreakdownData = {
   bonusLuong?: number;
   bonusDiaDiem?: number;
   bonusKinhNghiem?: number;
+  /** Số điểm đã bị hạ vì thiếu kỹ năng bắt buộc; đã nằm trong diemPhuHop. */
+  phatBatBuoc?: number;
   kyNangThoa?: string[];
   kyNangThieu?: string[];
   kyNangBatBuocThieu?: string[];
@@ -37,6 +39,9 @@ export function MatchBreakdown({ data, defaultOpen = false, showSkills = true }:
     { label: "Địa điểm", hint: "cùng quận 5% · cùng thành phố 2.5%", value: data.bonusDiaDiem ?? 0 },
     { label: "Kinh nghiệm", hint: "đủ số năm +5% · thiếu bị trừ tối đa 5%", value: data.bonusKinhNghiem ?? 0 },
   ];
+  // Chỉ hiện khi thực sự bị phạt: CV đủ mọi kỹ năng bắt buộc thì dòng này vô nghĩa.
+  if (data.phatBatBuoc && data.phatBatBuoc > 0)
+    rows.push({ label: "Thiếu bắt buộc", hint: "trần 60% rồi trừ 5% mỗi kỹ năng bắt buộc chưa có bằng chứng", value: -data.phatBatBuoc });
 
   return (
     <div className="mt-2">
@@ -73,7 +78,7 @@ export function MatchBreakdown({ data, defaultOpen = false, showSkills = true }:
             </div>
           ) : null}
           <p className="pt-1 text-[11px] leading-relaxed text-muted-foreground">
-            Tổng = điểm kỹ năng + các ưu đãi (trần 100%). Thiếu kỹ năng bắt buộc không trừ điểm — đó là nhãn sàng lọc để bạn tự quyết định.
+            Tổng = điểm kỹ năng + các ưu đãi (trần 100%). Thiếu kỹ năng bắt buộc thì điểm bị chặn trần 60% và trừ 5% mỗi kỹ năng, nên tin chưa đủ yêu cầu không bao giờ xếp mức Cao.
           </p>
         </div>
       )}
