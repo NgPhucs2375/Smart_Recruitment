@@ -36,7 +36,7 @@ public sealed record ContentMatchResult(
 public static class ContentBasedMatcher
 {
     public const string BaselineVersion = "cbf-v1";
-    public const string Version = "cbf-v8-idf";
+    public const string Version = "cbf-v9-idf";
 
     /// <summary>
     /// Tin còn thiếu kỹ năng bắt buộc bị chặn trần dưới ngưỡng Cao (0.66) rồi trừ thêm
@@ -109,7 +109,10 @@ public static class ContentBasedMatcher
             var key = SkillKey(requirement.Name);
             var evidence = candidate.Skills
                 .Where(x => requirement.Id.HasValue && x.Id == requirement.Id.Value ||
-                            key.Length > 0 && SkillKey(x.Name) == key)
+                            key.Length > 0 && SkillKey(x.Name) == key ||
+                            // SQL Server phủ yêu cầu SQL, GitHub phủ Git — một chiều.
+                            normalized && key.Length > 0 &&
+                            MatchingTextNormalizer.SkillCovers(key, SkillKey(x.Name)))
                 .OrderByDescending(Membership)
                 .FirstOrDefault();
             if (evidence != null)

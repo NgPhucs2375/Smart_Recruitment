@@ -137,7 +137,12 @@ public class GetSuggestedCandidatesForJobQueryHandler(
             });
         }
 
-        var top = results.OrderByDescending(x => x.DiemPhuHop)
+        // "Gần đủ nhất" lên trước: hồ sơ còn thiếu kỹ năng bắt buộc bị xếp sau hồ sơ đã có
+        // bằng chứng cho mọi yêu cầu cứng, kể cả khi điểm thô của nó cao hơn. Trong cùng
+        // một mức thiếu (hoặc cùng đủ), điểm phụ thuộc quyết định thứ tự.
+        var top = results
+            .OrderBy(x => x.KyNangBatBuocThieu.Count)
+            .ThenByDescending(x => x.DiemPhuHop)
             .ThenBy(x => x.HoTen)
             .Take(Math.Clamp(request.TopN, 1, 20))
             .ToList();

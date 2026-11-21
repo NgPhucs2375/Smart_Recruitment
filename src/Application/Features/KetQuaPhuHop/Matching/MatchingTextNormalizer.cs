@@ -67,6 +67,24 @@ public static class MatchingTextNormalizer
         .ToDictionary(g => g.Key, g => g.Select(x => x.Key).ToArray(), StringComparer.Ordinal);
 
     /// <summary>
+    /// Kỹ năng cụ thể bao hàm kỹ năng chung (key của yêu cầu → các key làm bằng chứng).
+    /// Kinh nghiệm SQL Server là bằng chứng cho yêu cầu "SQL", nhưng tag "SQL" không
+    /// chứng minh kinh nghiệm vận hành SQL Server nên chỉ phủ một chiều. PostgreSQL
+    /// không có trong bảng: nó là sản phẩm khác, không phải cách viết khác. Key vẫn
+    /// giữ nguyên nên IDF, gộp yêu cầu trùng và cache không đổi nghĩa.
+    /// </summary>
+    private static readonly Dictionary<string, string[]> SkillCoverage = new(StringComparer.Ordinal)
+    {
+        ["sql"] = ["sql server"],
+        ["git"] = ["github"],
+    };
+
+    /// <summary>Bằng chứng <paramref name="evidenceKey"/> có phủ được yêu cầu <paramref name="requirementKey"/>?</summary>
+    public static bool SkillCovers(string requirementKey, string evidenceKey) =>
+        SkillCoverage.TryGetValue(requirementKey, out var evidenceKeys) &&
+        evidenceKeys.Contains(evidenceKey, StringComparer.Ordinal);
+
+    /// <summary>
     /// Tìm kỹ năng trong chữ tự do (mô tả kinh nghiệm/dự án). So theo ranh giới từ để
     /// "Go" không khớp "Google" và "Java" không nuốt "JavaScript"; chấp nhận alias
     /// (ML = machine learning, dotnet = .NET) vì đó là biến thể đã gặp trong dữ liệu CV.
@@ -77,8 +95,14 @@ public static class MatchingTextNormalizer
         var key = SkillKey(skillName);
         if (key.Length == 0) return false;
         if (ContainsWholePhrase(textKey, key)) return true;
-        return AliasVariants.TryGetValue(key, out var variants) &&
-               variants.Any(variant => ContainsWholePhrase(textKey, variant));
+        if (AliasVariants.TryGetValue(key, out var variants) &&
+            variants.Any(variant => ContainsWholePhrase(textKey, variant)))
+            return true;
+        // "Dự án dùng SQL Server 2019" là bằng chứng cho yêu cầu "SQL"; "GitHub Actions" cho "Git".
+        return SkillCoverage.TryGetValue(key, out var covering) &&
+               covering.Any(evidence => ContainsWholePhrase(textKey, evidence) ||
+                   AliasVariants.TryGetValue(evidence, out var evidenceVariants) &&
+                   evidenceVariants.Any(variant => ContainsWholePhrase(textKey, variant)));
     }
 
     private static bool ContainsWholePhrase(string text, string phrase)

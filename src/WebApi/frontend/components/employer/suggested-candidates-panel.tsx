@@ -308,7 +308,14 @@ export function SuggestedCandidatesPanel({
                           <h3 className="font-medium text-foreground">{candidate.hoTen}</h3>
                           <p className="mt-0.5 text-sm text-muted-foreground">{candidate.viTriUngTuyen}</p>
                         </div>
-                        <Badge className="shrink-0 border-0 bg-primary/10 text-primary">{score}% phù hợp</Badge>
+                        <div className="flex shrink-0 items-center gap-1.5">
+                          {candidate.kyNangBatBuocThieu.length > 0 && (
+                            <Badge variant="outline" className="border-red-500/40 bg-red-500/10 text-red-700 dark:text-red-300">
+                              Thiếu {candidate.kyNangBatBuocThieu.length} bắt buộc
+                            </Badge>
+                          )}
+                          <Badge className="border-0 bg-primary/10 text-primary">{score}% phù hợp</Badge>
+                        </div>
                       </div>
                       <p className="mt-2 text-xs text-muted-foreground">
                         {candidate.soNamKinhNghiem > 0 ? `${candidate.soNamKinhNghiem} năm kinh nghiệm` : "Chưa có dữ liệu kinh nghiệm"}

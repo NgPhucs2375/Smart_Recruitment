@@ -370,6 +370,44 @@ CV thật mô tả các kỹ năng đó trong mục kinh nghiệm; fixture viế
 vẫn bị đo theo đường cũ. Muốn NDCG phản ánh đúng hành vi mới thì phải thêm `evidenceText` thật
 cho các ca dựng tay — chưa làm, và không suy diễn thêm dữ liệu.
 
+## Bước #9 — kỹ năng cụ thể phủ kỹ năng chung (cbf-v9-idf)
+
+Dữ liệu đang chạy có những cặp chữ chỉ là quan hệ bao hàm, không phải hai kỹ năng rời nhau:
+CV gắn tag `SQL Server` vẫn bị tính thiếu yêu cầu `SQL`, CV gắn `GitHub` vẫn bị tính thiếu `Git`.
+Đo trên DB dev: **25 cặp** đã lưu ghi `SQL` vào `KyNangThieu` dù CV có `SQL Server`, và **5 cặp**
+tương tự với `Git`/`GitHub`.
+
+Quy tắc mới — **một chiều**, chạy trong `ContentBasedMatcher` khi so bằng chứng có tag
+(và trong `ContainsSkill` cho bằng chứng dạng chữ):
+
+| Yêu cầu | Bằng chứng được chấp nhận | Ngược lại |
+|---|---|---|
+| `SQL` | `SQL Server`, `MSSQL`, `Microsoft SQL Server` (qua alias) | Không: tag `SQL` không chứng minh kinh nghiệm vận hành SQL Server |
+| `Git` | `GitHub` | Không: tag `Git` không chứng minh kinh nghiệm GitHub |
+
+`.NET` ↔ `.NET Core` và `CI/CD` ↔ `CI CD` đã được gom thành một `SkillKey` từ bảng alias cũ,
+nên không cần bảng phủ; các check chỉ giữ lại để chống hồi quy. `PostgreSQL` là sản phẩm khác,
+**không** phủ và không được phủ bởi `SQL`/`SQL Server`.
+
+Vì sao không gộp key: `SkillKey` còn nuôi IDF, phép gộp yêu cầu trùng và khoá cache. Bảng phủ
+chỉ mở rộng phép so bằng chứng nên tần suất, IDF và ý nghĩa ngưỡng `PhanLoai` giữ nguyên.
+`EvaluateBaseline` (cbf-v1) không dùng bảng phủ và vẫn tái lập đúng lỗi cũ.
+
+Kết quả fixtures: `MACRO cbf-v9-idf` 0.9295, `GATE positive=58 thieuBatBuoc=14` — không đổi so
+với v8 vì fixtures dựng tay không có cặp SQL Server/SQL; các ca mới nằm ở đầu `Program.cs`.
+
+## Bước #10 — dùng "thiếu bắt buộc" ngoài màn hình điểm
+
+1. **Danh sách ứng viên cho tin xếp "gần đủ nhất" lên trước**: sắp theo
+   `KyNangBatBuocThieu.Count` tăng dần, rồi mới theo `DiemPhuHop` giảm dần. Hồ sơ phủ đủ mọi
+   kỹ năng bắt buộc đứng trên hồ sơ thiếu 1 kỹ năng, kể cả khi điểm thô của hồ sơ thiếu cao hơn
+   (điểm thô của hồ sơ thiếu bị chặn trần 0.60 nhưng có thể cao hơn hồ sơ đủ-yêu-cầu-nhưng-mỏng).
+   Chiều gợi ý tin cho ứng viên giữ nguyên thứ tự điểm — thay đổi này phục vụ người sàng CV.
+2. **Thẻ ứng viên phía HR** thêm chip đỏ `Thiếu N bắt buộc` cạnh `% phù hợp`, ngoài danh sách
+   kỹ năng đỏ đã có.
+3. **Thông báo fan-out**: gợi ý cho ứng viên ghi `Còn thiếu N kỹ năng bắt buộc: ...`; digest cho
+   HR ghi thêm `trong đó X hồ sơ đã có bằng chứng cho mọi kỹ năng bắt buộc`.
+
 ## Relation tới benchmark database
 
 `ground-truth.csv` + `test-goi-y/Ground-truth` là benchmark chạy trên DB thật, nhưng

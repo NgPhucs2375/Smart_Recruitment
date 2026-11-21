@@ -114,6 +114,58 @@ public static class QueryChecks
             "Single-pair match falls back to the default CV when cvId is omitted");
         check(!(await pair.Handle(new GetCvJobMatchQuery(2, 1), default)).Succeeded,
             "Single-pair match rejects another candidate's CV");
+
+        // "Gần đủ nhất": hồ sơ đã có bằng chứng cho mọi kỹ năng bắt buộc xếp trên hồ sơ
+        // thiếu 1 kỹ năng bắt buộc, kể cả khi hồ sơ thiếu có điểm thô cao hơn. Dựng DB
+        // riêng để corpus IDF rỗng (một tin đang tuyển => idf 0 => trọng số 1), giữ phép
+        // so sánh thuần luật.
+        var sortOptions = new DbContextOptionsBuilder<ApplicationDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString(), x => x.EnableNullChecks(false)).Options;
+        await using var sortDb = new MatchingContext(sortOptions);
+        var sortCompany = new DoanhNghiep { Id = 40, TenDoanhNghiep = "Sort check" };
+        var sortJavaScript = new DanhMucKyNang { Id = 40, TenKyNang = "JavaScript" };
+        var sortDocker = new DanhMucKyNang { Id = 41, TenKyNang = "Docker" };
+        var preferred = new[] { "Kubernetes", "AWS", "GCP", "Terraform", "Figma", "Photoshop" }
+            .Select((name, i) => new DanhMucKyNang { Id = 42 + i, TenKyNang = name }).ToList();
+        CVUngVien SortCv(int id, params string[] skills) => new()
+        {
+            Id = id, TenFile = $"CV-{id}", IsDefault = true,
+            HoSoUngVien = new HoSoUngVien
+            {
+                Id = id, NguoiDungId = id, HoTen = $"Candidate-{id}", IsTimViec = true,
+                KinhNghiemLamViecs = new List<KinhNghiemLamViec>()
+            },
+            ThongTinLienHe = new CVThongTinLienHe { HoTen = $"Candidate-{id}" },
+            KyNangs = skills.Select(x => new CVKyNang { TenKyNang = x }).ToList()
+        };
+        sortDb.TinTuyenDungs.Add(new TinTuyenDung
+        {
+            Id = 10, TieuDe = "Backend Developer", DoanhNghiep = sortCompany,
+            TrangThai = TrangThaiTinTuyenDung.DangTuyen,
+            KyNangTinTuyenDungs = [
+                new() { DanhMucKyNang = sortJavaScript, MucDoYeuCau = MucDoYC.BatBuc },
+                new() { DanhMucKyNang = sortDocker, MucDoYeuCau = MucDoYC.BatBuc },
+                .. preferred.Select(x => new KyNangTinTuyenDung
+                {
+                    DanhMucKyNang = x, MucDoYeuCau = MucDoYC.UuTien
+                })]
+        });
+        sortDb.CVUngViens.AddRange(
+            // Đủ 2 kỹ năng bắt buộc nhưng trượt hết 6 kỹ năng ưu tiên: 8/23.
+            SortCv(8, "JS", "Docker"),
+            // Phủ cả 6 kỹ năng ưu tiên nhưng thiếu Docker: 0.60 - 0.05 = 0.55.
+            SortCv(9, ["JS", .. preferred.Select(x => x.TenKyNang)]));
+        await sortDb.SaveChangesAsync();
+        sortDb.ChangeTracker.Clear();
+        current.Set(40, VaiTroNguoiDung.NHAN_SU, 40);
+        var sortHandler = new GetSuggestedCandidatesForJobQueryHandler(sortDb, current,
+            new StubReranker(null), new MemoryDistributedCache(Options.Create(new MemoryDistributedCacheOptions())));
+        var nearby = await sortHandler.Handle(new GetSuggestedCandidatesForJobQuery { TinTuyenDungId = 10 }, default);
+        check(nearby.Succeeded && nearby.Data.Count == 2 &&
+              nearby.Data[0].HoSoUngVienId == 8 && nearby.Data[0].KyNangBatBuocThieu.Count == 0 &&
+              nearby.Data[1].HoSoUngVienId == 9 && nearby.Data[1].KyNangBatBuocThieu.SequenceEqual(["Docker"]) &&
+              nearby.Data[1].DiemPhuHop > nearby.Data[0].DiemPhuHop,
+            "Candidates covering every mandatory skill rank first even with a lower raw score");
     }
 }
 

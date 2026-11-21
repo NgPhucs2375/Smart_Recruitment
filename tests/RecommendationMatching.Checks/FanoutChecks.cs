@@ -136,6 +136,35 @@ public static class FanoutChecks
             "High minimum score returns an empty suggestion page");
         check(await db.KetQuaPhuHops.CountAsync() == 9,
             "Browsing suggestions does not delete stored matches, including fan-out rows");
+
+        // Tin 8 chỉ đòi Rust + Kafka: hồ sơ 6 có Rust nhưng thiếu Kafka, nên thông báo
+        // phải nói thẳng "thiếu 1 kỹ năng bắt buộc" và digest HR phải tách số hồ sơ đã đủ.
+        var kafka = new DanhMucKyNang { Id = 30, TenKyNang = "Kafka" };
+        var trackedRust = await db.KyNangs.AsTracking().SingleAsync(x => x.Id == rust.Id);
+        var trackedCompany = await db.DoanhNghieps.AsTracking().SingleAsync(x => x.Id == company.Id);
+        db.KyNangs.Add(kafka);
+        db.TinTuyenDungs.Add(new TinTuyenDung
+        {
+            Id = 8, TieuDe = "Kafka Engineer", DoanhNghiep = trackedCompany, NguoiDangTinId = 101,
+            TrangThai = TrangThaiTinTuyenDung.DangTuyen,
+            KyNangTinTuyenDungs = [
+                new() { DanhMucKyNang = trackedRust, MucDoYeuCau = MucDoYC.BatBuc },
+                new() { DanhMucKyNang = kafka, MucDoYeuCau = MucDoYC.BatBuc }]
+        });
+        await db.SaveChangesAsync();
+        db.ChangeTracker.Clear();
+        await fanout.RunAsync(8, budget);
+
+        var gatedNotice = recorder.Sent.Single(x => x.ReferenceType == "GoiYViecLamPhuHop" &&
+                                                   x.ReferenceId == 8);
+        check(gatedNotice.NoiDung.Contains("Còn thiếu 1 kỹ năng bắt buộc: Kafka"),
+            "Candidate digest names the missing mandatory skill and its count");
+        var digest8 = recorder.Sent.Single(x => x.ReferenceType == "UngVienPhuHop" && x.ReferenceId == 8);
+        check(digest8.NoiDung.Contains("trong đó 0 hồ sơ đã có bằng chứng cho mọi kỹ năng bắt buộc"),
+            "Recruiter digest states how many candidates cover every mandatory skill");
+        var digest1 = recorder.Sent.Single(x => x.ReferenceType == "UngVienPhuHop" && x.ReferenceId == 1);
+        check(digest1.NoiDung.Contains("trong đó 2 hồ sơ đã có bằng chứng cho mọi kỹ năng bắt buộc"),
+            "Recruiter digest counts fully qualified candidates");
     }
 
     private static int SentTo(RecordingNotifications recorder, string referenceType,
