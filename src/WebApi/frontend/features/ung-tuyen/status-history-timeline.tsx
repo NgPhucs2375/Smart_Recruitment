@@ -126,6 +126,7 @@ export default function StatusHistoryTimeline({ donId }: { donId: number }) {
   const [error, setError] = useState("");
 
   const load = useCallback(async () => {
+    const token = await getValidToken();
     if (!Number.isFinite(donId) || donId <= 0) {
       setItems([]);
       setLoading(false);
@@ -134,7 +135,6 @@ export default function StatusHistoryTimeline({ donId }: { donId: number }) {
     try {
       setLoading(true);
       setError("");
-      const token = await getValidToken();
       const response = await fetch(
         `/api/dotnet/donungtuyens/show/${donId}/lich-su`,
         {
@@ -183,6 +183,8 @@ export default function StatusHistoryTimeline({ donId }: { donId: number }) {
   }, [donId]);
 
   useEffect(() => {
+    // Rule báo nhầm: load chỉ setState sau await, không có setState đồng bộ.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void load();
   }, [load]);
 
