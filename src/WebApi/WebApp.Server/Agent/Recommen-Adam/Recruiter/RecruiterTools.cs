@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using Application.DTOs.Recruiter;
+using Application.Features.KetQuaPhuHop.Queries.GetCandidateJobMatch;
 using Application.Features.KetQuaPhuHop.Queries.SuggestCandidatesForJob;
 using Application.Features.Recruiter.Queries.GetCompanyMembers;
 using Application.Features.Recruiter.Queries.GetCompanyRecruitmentStats;
@@ -93,8 +94,13 @@ internal sealed class RecruiterTools
         CancellationToken cancellationToken = default)
     {
         await _permissions.RequireAsync("tintuyendungs", "list", cancellationToken);
-        var jobs = await _sender.Send(
-            new GetRecruiterJobsQuery { Mode = RecruiterJobListMode.ActiveWithSkills },
+        // Danh sách tin là phần tốn query nhất; route đọc trực tiếp từ header
+        // nên vẫn mới dù danh sách lấy từ cache.
+        var jobs = await _toolCache.GetOrCreateAsync(
+            "get_current_recruitment_context_jobs", null,
+            () => _sender.Send(
+                new GetRecruiterJobsQuery { Mode = RecruiterJobListMode.ActiveWithSkills },
+                cancellationToken),
             cancellationToken);
 
         if (!jobs.Succeeded)
@@ -125,12 +131,6 @@ internal sealed class RecruiterTools
             new GetRecruiterJobDetailQuery { TinTuyenDungId = tinTuyenDungId },
             cancellationToken);
     }
-
-    [Description("Lấy chi tiết một tin tuyển dụng thuộc phạm vi doanh nghiệp hiện tại.")]
-    public Task<Response<RecruitmentJobDetail>> GetJobPostDetailAsync(
-        [Description("ID tin tuyển dụng cần xem.")] int tinTuyenDungId,
-        CancellationToken cancellationToken = default)
-        => GetRecruitmentJobDetailAsync(tinTuyenDungId, cancellationToken);
 
     [Description("Phân tích chất lượng JD của một tin thuộc doanh nghiệp hiện tại dựa trên các trường dữ liệu thật. Không tự sửa tin.")]
     public Task<Response<JobPostAnalysis>> AnalyzeJobPostAsync(
@@ -166,23 +166,24 @@ internal sealed class RecruiterTools
         });
     }
 
-    [Description("Đề xuất cải thiện JD của một tin thuộc doanh nghiệp hiện tại. Chỉ trả đề xuất, không tự sửa tin.")]
-    public Task<Response<JobPostAnalysis>> SuggestJobPostImprovementAsync(
-        [Description("ID tin tuyển dụng cần cải thiện.")] int tinTuyenDungId,
-        CancellationToken cancellationToken = default)
-        => AnalyzeJobPostAsync(tinTuyenDungId, cancellationToken);
-
-    [Description("Giải thích dữ liệu match thật của một ứng viên với một tin thuộc doanh nghiệp hiện tại.")]
-    public async Task<Response<SuggestedCandidateViewModel>> ExplainCandidateMatchAsync(
+    [Description("Giải thích dữ liệu match thật của một ứng viên với một tin thuộc doanh nghiệp hiện tại. Chấm đúng cặp ứng viên–tin, không phụ thuộc việc ứng viên có nằm trong top gợi ý hay không.")]
+    public Task<Response<SuggestedCandidateViewModel>> ExplainCandidateMatchAsync(
         [Description("ID tin tuyển dụng.")] int tinTuyenDungId,
         [Description("ID hồ sơ ứng viên.")] int hoSoUngVienId,
         CancellationToken cancellationToken = default)
+        => _toolCache.GetOrCreateAsync(
+            "explain_candidate_match", new { tinTuyenDungId, hoSoUngVienId },
+            () => GetCandidateMatchCoreAsync(tinTuyenDungId, hoSoUngVienId, cancellationToken),
+            cancellationToken);
+
+    private async Task<Response<SuggestedCandidateViewModel>> GetCandidateMatchCoreAsync(
+        int tinTuyenDungId, int hoSoUngVienId,
+        CancellationToken cancellationToken)
     {
-        var matches = await GetCandidateRecommendationsForJobAsync(tinTuyenDungId, 20, cancellationToken);
-        var candidate = matches.Data?.FirstOrDefault(x => x.HoSoUngVienId == hoSoUngVienId);
-        return candidate == null
-            ? new Response<SuggestedCandidateViewModel>("Chưa có kết quả phù hợp cho ứng viên này trong tin tuyển dụng đã chọn.")
-            : new Response<SuggestedCandidateViewModel>(candidate);
+        await _permissions.RequireAsync("ketquaphuhops", "show", cancellationToken);
+        return await _sender.Send(
+            new GetCandidateJobMatchQuery(tinTuyenDungId, hoSoUngVienId),
+            cancellationToken);
     }
 
     [Description("So sánh từ hai đến ba ứng viên theo kết quả match thật của cùng một tin tuyển dụng thuộc doanh nghiệp hiện tại.")]
@@ -191,10 +192,19 @@ internal sealed class RecruiterTools
         [Description("Danh sách 2 đến 3 ID hồ sơ ứng viên.")] List<int> hoSoUngVienIds,
         CancellationToken cancellationToken = default)
     {
-        var ids = hoSoUngVienIds.Distinct().Take(3).ToHashSet();
+        var ids = hoSoUngVienIds.Distinct().Take(3).ToList();
         if (ids.Count < 2) return new Response<List<SuggestedCandidateViewModel>>("Hãy cung cấp từ hai đến ba ứng viên để so sánh.");
-        var matches = await GetCandidateRecommendationsForJobAsync(tinTuyenDungId, 20, cancellationToken);
-        return new Response<List<SuggestedCandidateViewModel>>(matches.Data?.Where(x => ids.Contains(x.HoSoUngVienId)).ToList() ?? []);
+
+        var results = new List<SuggestedCandidateViewModel>();
+        foreach (var id in ids)
+        {
+            var match = await ExplainCandidateMatchAsync(tinTuyenDungId, id, cancellationToken);
+            if (match.Succeeded && match.Data != null) results.Add(match.Data);
+        }
+
+        return results.Count == 0
+            ? new Response<List<SuggestedCandidateViewModel>>("Chưa chấm được mức phù hợp của các ứng viên này.")
+            : new Response<List<SuggestedCandidateViewModel>>(results);
     }
 
     [Description("Đọc bản tóm tắt CV của ứng viên chỉ khi CV đó đã được dùng trong đơn ứng tuyển thuộc doanh nghiệp hiện tại.")]

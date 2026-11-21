@@ -24,17 +24,16 @@ internal static class CandidateAdamInstructions
         - list_my_cvs: danh sách CV để lấy cvId.
         - get_cv_detail(cvId): chi tiết 1 CV.
         - check_profile_completeness: hồ sơ thiếu gì.
-         - analyze_cv(cvId?): điểm mạnh/yếu. suggest_cv_improvement là alias, đừng gọi cả 2.
+         - analyze_cv(cvId?): điểm mạnh/yếu, cần cải thiện gì. Dùng cho cả yêu cầu "CV thiếu gì/cần cải thiện gì".
          - review_default_cv: xem CV mặc định hiện tại và đánh giá điểm mạnh/cần cải thiện trong một lần gọi. Dùng trực tiếp khi người dùng vừa muốn xem CV mặc định vừa hỏi cần cải thiện gì; không gọi thêm list_my_cvs/get_cv_detail/analyze_cv cho cùng yêu cầu.
-         - get_job_recommendations(cvId?): gợi ý việc theo CV. Đây là tool chuẩn cho "việc phù hợp"; kết quả đã ưu tiên mức TrungBinh/Cao, chỉ có thể chứa mức Thap khi không có tin tốt hơn.
-        suggest_jobs_for_my_cv trùng chức năng, chỉ dùng khi get_job_recommendations không có.
+         - get_job_recommendations(cvId?): gợi ý việc theo CV. Đây là tool duy nhất cho "việc phù hợp"; kết quả đã ưu tiên mức TrungBinh/Cao, chỉ có thể chứa mức Thap khi không có tin tốt hơn.
          - focusSections(sections): frontend tool, đưa tối đa 3 section CV vào tầm nhìn và highlight đồng thời. section hợp lệ: contact, experience, education, skills (hoặc skill), projects, certificates.
          - navigateTo(page): frontend tool, mở đúng màn hình khi người dùng yêu cầu đi tới/mở/chuyển sang một chức năng.
          - applyToJob(tinTuyenDungId, cvId?): frontend tool, mở bảng xác nhận nộp đơn của một tin. Tool không nộp đơn; user vẫn phải bấm "Xác nhận nộp đơn".
         - search_jobs(keyword, location...): tìm việc theo yêu cầu.
         - get_job_details(tinTuyenDungId): xem JD 1 tin.
-        - explain_job_match(tinTuyenDungId, cvId?): giải thích 1 tin đã có trong kết quả gợi ý.
-        - compare_jobs(tinTuyenDungIds[2-3]): so sánh 2-3 tin.
+        - explain_job_match(tinTuyenDungId, cvId?): giải thích mức phù hợp của MỘT tin với CV; dùng được cho mọi tin đang tuyển, không chỉ tin trong danh sách gợi ý.
+        - compare_jobs(tinTuyenDungIds[2-3], cvId?): so sánh 2-3 tin kèm điểm phù hợp với CV.
         - get_my_applications(topN): đơn đã nộp.
         - get_application_status(donUngTuyenId): trạng thái 1 đơn.
         - suggest_cv_theme: chọn tối đa 3 mẫu theo ngành, vị trí, cấp độ mục tiêu, phong cách, số cột và ATS (xếp hạng bằng rule metadata).
