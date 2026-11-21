@@ -34,6 +34,33 @@ Check(MatchingTextNormalizer.SkillKey(".NET Framework") != MatchingTextNormalize
 Check(MatchingTextNormalizer.SkillKey("CI/CD") == MatchingTextNormalizer.SkillKey("CI CD"), "Slash and space spell the same catalogue row");
 Check(MatchingTextNormalizer.SkillKey("React Native") != MatchingTextNormalizer.SkillKey("React"), "React Native is not a substring match for React");
 
+// Kỹ năng cụ thể bao hàm kỹ năng chung, không phải đồng nghĩa: kinh nghiệm SQL Server là
+// bằng chứng cho yêu cầu "SQL" (và GitHub cho "Git"), nhưng tag "SQL" không chứng minh
+// kinh nghiệm vận hành SQL Server. Vì vậy key vẫn khác nhau (dòng trên) và chỉ phủ một chiều.
+Check(ContentBasedMatcher.Evaluate(Candidate("SQL Server"), Job("SQL")).MatchedSkills.Count == 1,
+    "SQL Server tag satisfies a generic SQL requirement");
+Check(ContentBasedMatcher.Evaluate(Candidate("SQL Server"), Job("SQL")).MeetsMandatory,
+    "Specific database experience clears the mandatory gate for SQL");
+Check(Near(ContentBasedMatcher.Evaluate(Candidate("SQL Server"), Job("SQL")).MandatoryPenalty, 0f),
+    "Specific database experience earns no fake mandatory penalty");
+Check(ContentBasedMatcher.Evaluate(Candidate("MSSQL"), Job("SQL")).MatchedSkills.Count == 1,
+    "Alias variants of SQL Server also satisfy SQL");
+Check(Near(ContentBasedMatcher.Evaluate(Candidate("SQL"), Job("SQL Server")).Score, 0),
+    "Generic SQL does not claim SQL Server experience");
+Check(Near(ContentBasedMatcher.Evaluate(Candidate("PostgreSQL"), Job("SQL")).Score, 0),
+    "PostgreSQL stays a different product, not a SQL Server spelling");
+Check(ContentBasedMatcher.Evaluate(Candidate("GitHub"), Job("Git")).MatchedSkills.Count == 1,
+    "GitHub tag satisfies a Git requirement");
+Check(Near(ContentBasedMatcher.Evaluate(Candidate("Git"), Job("GitHub")).Score, 0),
+    "Git does not claim GitHub-specific experience");
+Check(ContentBasedMatcher.Evaluate(Candidate(".NET"), Job(".NET Core")).MatchedSkills.Count == 1 &&
+    ContentBasedMatcher.Evaluate(Candidate(".NET Core"), Job(".NET")).MatchedSkills.Count == 1,
+    "NET and NET Core are evidence for each other in both directions");
+Check(ContentBasedMatcher.Evaluate(Candidate("CI/CD"), Job("CI CD")).MatchedSkills.Count == 1,
+    "CI/CD tag matches its spaced catalogue row");
+Check(ContentBasedMatcher.EvaluateBaseline(Candidate("SQL Server"), Job("SQL")).MatchedSkills.Count == 0,
+    "Baseline keeps the original SQL Server miss");
+
 // Bằng chứng trong chữ CV: kỹ năng không gắn tag nhưng nằm trong mô tả dự án/kinh nghiệm
 // vẫn được tính; khớp theo ranh giới từ và chấp nhận biến thể alias.
 CandidateMatchInput Text(string text) => new([], EvidenceText: text);
@@ -49,6 +76,12 @@ Check(Near(ContentBasedMatcher.Evaluate(Text("Phát triển JavaScript"), Job("J
     "A longer word in prose does not satisfy a shorter skill");
 Check(ContentBasedMatcher.Evaluate(new([new(null, "JS")], EvidenceText: "Tối ưu bundle JS"),
     Job("JavaScript")).MatchedSkills.Count == 1, "Tag and prose evidence do not double count");
+Check(ContentBasedMatcher.Evaluate(Text("Dự án dùng SQL Server 2019"), Job("SQL")).MatchedSkills.Count == 1,
+    "Prose mentioning SQL Server is evidence for a SQL requirement");
+Check(Near(ContentBasedMatcher.Evaluate(Text("Kinh nghiệm GitHub Actions"), Job("Git")).Score, .625f),
+    "Prose mentioning GitHub is evidence for a Git requirement");
+Check(Near(ContentBasedMatcher.Evaluate(Text("Kinh nghiệm PostgreSQL"), Job("SQL")).Score, 0),
+    "Prose mentioning PostgreSQL is not evidence for SQL Server");
 
 
 // IDF. Excel 32 / SQL 31 / Kubernetes 5 la df do duoc tren 90 tin hieu luc; hai ky nang mem

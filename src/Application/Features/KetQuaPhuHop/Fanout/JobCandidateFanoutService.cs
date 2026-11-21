@@ -103,7 +103,7 @@ public sealed class JobCandidateFanoutService(
         await context.SaveChangesAsync(ct);
 
         var notified = await NotifyCandidatesAsync(job, ranked, today, now, options, ct);
-        var recruiterDigestSent = await NotifyRecruiterAsync(job, ranked.Count, today, ct);
+        var recruiterDigestSent = await NotifyRecruiterAsync(job, ranked, today, ct);
 
         // Đóng dấu sau cùng: nếu crash ở bước thông báo thì dấu vẫn null
         // và lượt sau quét lại; chống trùng nằm ở unique index + kiểm tra Notification.
@@ -197,8 +197,12 @@ public sealed class JobCandidateFanoutService(
     }
 
     private async Task<bool> NotifyRecruiterAsync(
-        Domain.Entities.TinTuyenDung job, int soUngVien, DateTime today, CancellationToken ct)
+        Domain.Entities.TinTuyenDung job,
+        List<(PoolUngVien Candidate, ContentMatchResult Match)> ranked,
+        DateTime today,
+        CancellationToken ct)
     {
+        var soUngVien = ranked.Count;
         if (soUngVien <= 0 || job.NguoiDangTinId <= 0)
             return false;
 
@@ -208,12 +212,16 @@ public sealed class JobCandidateFanoutService(
         if (daGuiHomNay)
             return false;
 
+        // Tách số hồ sơ đã đủ mọi yêu cầu cứng để HR biết trong danh sách có ai "gần đủ" ngay,
+        // không phải mở từng CV đếm kỹ năng bắt buộc còn thiếu.
+        var duBatBuoc = ranked.Count(x => x.Match.MeetsMandatory);
         try
         {
             await notifications.SendToUserAsync(job.NguoiDangTinId, new ThongBaoDTO
             {
                 TieuDe = $"{job.TieuDe} — {soUngVien} ứng viên khớp nhất",
-                NoiDung = $"Hệ thống tìm thấy {soUngVien} hồ sơ đang tìm việc khớp với tin này. " +
+                NoiDung = $"Hệ thống tìm thấy {soUngVien} hồ sơ đang tìm việc khớp với tin này, " +
+                          $"trong đó {duBatBuoc} hồ sơ đã có bằng chứng cho mọi kỹ năng bắt buộc. " +
                           "Mở danh sách ứng viên để xem ai khớp ở điểm nào.",
                 LoaiThongBao = LoaiThongBao.DonUngTuyen,
                 ReferenceType = ReferenceLoUngVienPhuHop,
@@ -233,7 +241,12 @@ public sealed class JobCandidateFanoutService(
         var parts = new List<string>();
         if (match.MatchedSkills.Count > 0)
             parts.Add($"Kỹ năng khớp: {string.Join(", ", match.MatchedSkills.Take(3))}.");
-        if (match.MissingSkills.Count > 0)
+        // Kỹ năng bắt buộc còn thiếu phải nói thẳng con số: đó là lý do điểm bị hạ trần,
+        // và ứng viên cần biết bổ sung gì trước khi nộp.
+        if (match.MissingMandatory.Count > 0)
+            parts.Add($"Còn thiếu {match.MissingMandatory.Count} kỹ năng bắt buộc: " +
+                      $"{string.Join(", ", match.MissingMandatory.Take(3))}.");
+        else if (match.MissingSkills.Count > 0)
             parts.Add($"Còn thiếu: {string.Join(", ", match.MissingSkills.Take(3))}.");
         parts.Add($"Mức lương: {(job.LuongToiDa > 0 ? $"{job.LuongToiThieu:N0} - {job.LuongToiDa:N0}" : "thỏa thuận")}.");
         if (!string.IsNullOrWhiteSpace(job.DiaDiemLamViec))
