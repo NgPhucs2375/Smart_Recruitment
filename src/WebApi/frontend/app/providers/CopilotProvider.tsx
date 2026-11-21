@@ -232,7 +232,6 @@ function ToolActivityMount() {
         analyze_cv: "Đang phân tích CV",
         review_default_cv: "Đang phân tích CV",
         get_job_recommendations: "Đang tìm việc phù hợp với CV",
-        suggest_jobs_for_my_cv: "Đang tìm việc phù hợp với CV",
         search_jobs: "Đang tìm kiếm tin tuyển dụng",
         get_my_recruitment_jobs: "Đang tải danh sách tin tuyển dụng",
         get_candidate_recommendations_for_job: "Đang tìm ứng viên phù hợp",

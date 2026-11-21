@@ -158,12 +158,6 @@ internal sealed class CandidateTools
         });
     }
 
-    [Description("Gợi ý các bước cải thiện CV dựa trên CV thực tế của ứng viên. Không tự sửa CV.")]
-    public async Task<Response<CandidateCvAnalysis>> SuggestCvImprovementAsync(
-        [Description("ID CV cần đánh giá, bỏ trống để dùng CV mặc định.")] int? cvId = null,
-        CancellationToken cancellationToken = default)
-        => await AnalyzeCvAsync(cvId, cancellationToken);
-
     [Description("Tìm việc làm công khai theo từ khóa, địa điểm, lương hoặc hình thức làm việc. Chỉ trả tin đang tuyển. Kết quả được phân trang; khi người dùng yêu cầu xem thêm, tăng pageNumber và giữ nguyên các bộ lọc.")]
     public Task<PagedResponse<List<GetAllTinTuyenDungsViewModel>>> SearchJobsAsync(
         [Description("Từ khóa chức danh, kỹ năng hoặc doanh nghiệp.")] string? keyword = null,
@@ -279,32 +273,60 @@ internal sealed class CandidateTools
         }
     }
 
-    [Description("Giải thích vì sao CV phù hợp với một tin tuyển dụng. Chỉ trả dữ liệu match thật của tin đó.")]    public async Task<Response<SuggestedJobViewModel>> ExplainJobMatchAsync(
+    [Description(
+        "Giải thích mức phù hợp giữa một tin tuyển dụng và CV bằng scorer tất định: điểm 0..1, kỹ năng khớp, " +
+        "kỹ năng còn thiếu, kỹ năng bắt buộc còn thiếu. Dùng được cho mọi tin đang tuyển, không chỉ tin nằm trong danh sách gợi ý.")]
+    public Task<Response<CvJobMatchViewModel>> ExplainJobMatchAsync(
         [Description("ID tin tuyển dụng cần giải thích mức độ phù hợp.")] int tinTuyenDungId,
         [Description("ID CV cần so khớp, bỏ trống để dùng CV mặc định.")] int? cvId = null,
         CancellationToken cancellationToken = default)
+        => _toolCache.GetOrCreateAsync(
+            "explain_job_match", new { tinTuyenDungId, cvId },
+            () => ExplainJobMatchCoreAsync(tinTuyenDungId, cvId, cancellationToken),
+            cancellationToken);
+
+    private async Task<Response<CvJobMatchViewModel>> ExplainJobMatchCoreAsync(
+        int tinTuyenDungId, int? cvId,
+        CancellationToken cancellationToken)
     {
-        var matches = await GetJobRecommendationsAsync(cvId, cancellationToken: cancellationToken);
-        var match = matches.Data?.FirstOrDefault(x => x.TinTuyenDungId == tinTuyenDungId);
-        return match == null
-            ? new Response<SuggestedJobViewModel>("Chưa có kết quả match cho tin tuyển dụng này.")
-            : new Response<SuggestedJobViewModel>(match);
+        await _permissions.RequireAsync("ketquaphuhops", "show", cancellationToken);
+        try
+        {
+            return await _sender.Send(new GetCvJobMatchQuery(cvId, tinTuyenDungId), cancellationToken);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception)
+        {
+            return new Response<CvJobMatchViewModel>("Không chấm được mức phù hợp CV với tin.");
+        }
     }
 
-    [Description("So sánh tối đa ba việc làm công khai theo JD, lương, địa điểm, kỹ năng và mức độ phù hợp với CV.")]
-    public async Task<Response<List<GetAllTinTuyenDungsViewModel>>> CompareJobsAsync(
+    [Description("So sánh 2-3 tin tuyển dụng công khai theo JD, lương, địa điểm, kỹ năng kèm điểm phù hợp với CV.")]
+    public async Task<Response<CompareJobsResult>> CompareJobsAsync(
         [Description("Danh sách 2 đến 3 ID tin tuyển dụng cần so sánh.")] List<int> tinTuyenDungIds,
+        [Description("ID CV cần so khớp, bỏ trống để dùng CV mặc định.")] int? cvId = null,
         CancellationToken cancellationToken = default)
     {
         var ids = tinTuyenDungIds.Distinct().Take(3).ToList();
-        if (ids.Count < 2) return new Response<List<GetAllTinTuyenDungsViewModel>>("Hãy cung cấp ít nhất hai tin tuyển dụng để so sánh.");
+        if (ids.Count < 2) return new Response<CompareJobsResult>("Hãy cung cấp ít nhất hai tin tuyển dụng để so sánh.");
 
         var results = await Task.WhenAll(ids.Select(id => GetJobDetailsInNewScopeAsync(id, cancellationToken)));
         var jobs = results
             .Where(result => result.Succeeded && result.Data != null)
             .Select(result => result.Data!)
             .ToList();
-        return new Response<List<GetAllTinTuyenDungsViewModel>>(jobs);
+
+        var matches = new List<CvJobMatchViewModel>();
+        foreach (var id in ids)
+        {
+            var match = await ExplainJobMatchAsync(id, cvId, cancellationToken);
+            if (match.Succeeded && match.Data != null) matches.Add(match.Data);
+        }
+
+        return new Response<CompareJobsResult>(new CompareJobsResult { Jobs = jobs, Matches = matches });
     }
 
     private async Task<Response<GetAllTinTuyenDungsViewModel>> GetJobDetailsInNewScopeAsync(
@@ -413,4 +435,10 @@ public sealed class CandidateCvReview
 {
     public CvDetailDto Cv { get; set; } = new();
     public CandidateCvAnalysis Analysis { get; set; } = new();
+}
+
+public sealed class CompareJobsResult
+{
+    public List<GetAllTinTuyenDungsViewModel> Jobs { get; set; } = new();
+    public List<CvJobMatchViewModel> Matches { get; set; } = new();
 }

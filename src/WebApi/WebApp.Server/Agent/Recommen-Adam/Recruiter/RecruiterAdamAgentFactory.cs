@@ -24,9 +24,7 @@ internal sealed class RecruiterAdamAgentFactory
             AIFunctionFactory.Create(_tools.GetMyRecruitmentJobsAsync, new AIFunctionFactoryOptions { Name = "get_my_recruitment_jobs" }),
             AIFunctionFactory.Create(_tools.GetCurrentRecruitmentContextAsync, new AIFunctionFactoryOptions { Name = "get_current_recruitment_context" }),
             AIFunctionFactory.Create(_tools.GetRecruitmentJobDetailAsync, new AIFunctionFactoryOptions { Name = "get_recruitment_job_detail" }),
-            AIFunctionFactory.Create(_tools.GetJobPostDetailAsync, new AIFunctionFactoryOptions { Name = "get_job_post_detail" }),
             AIFunctionFactory.Create(_tools.AnalyzeJobPostAsync, new AIFunctionFactoryOptions { Name = "analyze_job_post" }),
-            AIFunctionFactory.Create(_tools.SuggestJobPostImprovementAsync, new AIFunctionFactoryOptions { Name = "suggest_job_post_improvement" }),
             AIFunctionFactory.Create(_tools.ExplainCandidateMatchAsync, new AIFunctionFactoryOptions { Name = "explain_candidate_match" }),
             AIFunctionFactory.Create(_tools.CompareCandidatesAsync, new AIFunctionFactoryOptions { Name = "compare_candidates" }),
             AIFunctionFactory.Create(_tools.GetCandidateCVAsync, new AIFunctionFactoryOptions { Name = "get_candidate_cv" }),
@@ -52,6 +50,9 @@ internal sealed class RecruiterAdamAgentFactory
                     Instructions = RecruiterAdamInstructions.SystemPrompt,
                     Temperature = 0.1f,
                     MaxOutputTokens = 4096,
+                    // Cho phép chuỗi 2 bước (context -> chi tiết/ứng viên) trong cùng lượt;
+                    // số tool mỗi lượt vẫn bị giới hạn bằng quy tắc trong RecruiterAdamInstructions.
+                    AllowMultipleToolCalls = true,
                     Reasoning = new ReasoningOptions
                     {
                         Effort = ReasoningEffort.None,

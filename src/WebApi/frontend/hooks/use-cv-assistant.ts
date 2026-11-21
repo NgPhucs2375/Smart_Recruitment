@@ -336,7 +336,7 @@ export function useCvAssistant({
   useFrontendTool(
     {
       name: "setCvTemplate",
-      description: "Đổi mẫu CV hiển thị. Khi cần gợi ý, gọi backend tool suggest_cv_theme trước rồi áp dụng slug được đề xuất.",
+      description: "Đổi mẫu CV hiển thị. Trong editor, gọi suggestCvThemeForDraft trước rồi áp dụng slug được đề xuất; ngoài editor dùng backend tool suggest_cv_theme.",
       parameters: templateSchema,
       available: enabled,
       handler: async ({ templateId }) => {

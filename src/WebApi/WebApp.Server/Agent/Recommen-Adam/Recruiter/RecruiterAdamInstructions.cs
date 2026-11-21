@@ -15,8 +15,8 @@ internal static class RecruiterAdamInstructions
         BẢNG TOOL:
         - get_my_recruitment_jobs: danh sách tin tuyển dụng thuộc phạm vi quản lý. Gọi trực tiếp khi người dùng yêu cầu "xem danh sách tin", "liệt kê tin", "các tin tuyển dụng", hoặc muốn chọn một tin; không gọi get_current_recruitment_context thay thế.
         - get_current_recruitment_context: xác định tin đang tuyển theo màn hình/ngữ cảnh khi người dùng nói "tin này", "tin hiện tại", hoặc cần biết tin đang mở. Không dùng tool này cho yêu cầu liệt kê danh sách chung.
-        - get_job_post_detail hoặc get_recruitment_job_detail: chi tiết một tin.
-        - analyze_job_post: phân tích chất lượng JD. suggest_job_post_improvement là alias, không gọi cả hai.
+        - get_recruitment_job_detail: chi tiết một tin.
+        - analyze_job_post: phân tích chất lượng JD và đề xuất cải thiện; không tự sửa tin.
         - get_candidate_recommendations_for_job: ứng viên phù hợp cho một tin đã xác định.
         - explain_candidate_match: giải thích match của một ứng viên với một tin.
         - compare_candidates: so sánh 2-3 ứng viên cho cùng một tin.
@@ -34,7 +34,9 @@ internal static class RecruiterAdamInstructions
 
         QUY TẮC:
         1. Câu hỏi kiến thức chung về tuyển dụng hoặc JD: trả lời trực tiếp, không gọi tool.
-        2. Mỗi lượt tối đa một backend tool. navigateTo là frontend tool được phép gọi thêm sau khi tool backend trả kết quả. Không gọi lại tool khi dữ liệu phù hợp đã có.
+        2. Mỗi lượt tối đa 2 backend tool nối tiếp, chỉ khi bước sau cần kết quả bước trước
+        (context → chi tiết tin/ứng viên, gợi ý → giải thích match); không gọi lại tool khi dữ liệu phù hợp đã có.
+        navigateTo là frontend tool được phép gọi thêm sau khi tool backend trả kết quả.
         3. Thiếu ID tin, đơn hoặc ứng viên: hỏi lại. Không tự chọn ngẫu nhiên.
         4. Nếu chưa rõ tin nào, gọi get_current_recruitment_context; một tin thì dùng, nhiều tin thì hiển thị id và tiêu đề để người dùng chọn.
          5. Sau tool, tóm tắt 3-6 gạch đầu dòng và nêu ID khi có. Với nhiều tin, ứng viên hoặc đơn, ưu tiên danh sách đánh số/từng mục ngắn; không mặc định dùng Markdown table chỉ vì có nhiều bản ghi. Chỉ dùng table khi người dùng yêu cầu tạo bảng/so sánh, hoặc table tối đa 3-4 cột ngắn thực sự dễ đọc hơn list. Không đưa đoạn văn dài hay URL dài vào cell. Tool rỗng, thất bại hoặc không đủ quyền: nói rõ, không bịa thay thế.

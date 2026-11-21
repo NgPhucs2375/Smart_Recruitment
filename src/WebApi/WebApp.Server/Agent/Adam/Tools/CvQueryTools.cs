@@ -8,7 +8,6 @@ using Application.Features.CvTheme.Queries.PickCvThemes;
 using Application.Features.CvTheme.Queries.SuggestCvThemes;
 using Application.Features.HoSoUngVien.Queries.GetAllHoSoUngViens;
 using Application.Features.HoSoUngVien.Queries.GetMyHoSoUngVien;
-using Application.Features.KetQuaPhuHop.Queries.SuggestJobsForCv;
 using Application.Wrappers;
 using MediatR;
 using Microsoft.Extensions.Logging;
@@ -135,44 +134,6 @@ internal sealed class CvQueryTools
         {
             _logger.LogError(ex, "Adam tool list_my_cvs thất bại.");
             return new Response<List<GetAllCVUngViensViewModel>>("Không thể lấy danh sách CV.");
-        }
-    }
-
-    [Description(
-        "Gợi ý các tin tuyển dụng đang tuyển phù hợp với CV của ứng viên (ưu tiên CV mặc định). " +
-        "Trả về top tin kèm điểm phù hợp, kỹ năng đã khớp và kỹ năng còn thiếu. " +
-        "Dùng khi người dùng hỏi 'gợi ý việc làm', 'tôi phù hợp với công việc nào'.")]
-    public Task<Response<List<SuggestedJobViewModel>>> SuggestJobsForMyCvAsync(
-        [Description("ID CV cụ thể cần so khớp; bỏ trống để dùng CV mặc định")] int? cvId,
-        CancellationToken cancellationToken = default)
-        => _toolCache.GetOrCreateAsync(
-            "suggest_jobs_for_my_cv", new { cvId },
-            () => SuggestJobsForMyCvCoreAsync(cvId, cancellationToken),
-            cancellationToken);
-
-    private async Task<Response<List<SuggestedJobViewModel>>> SuggestJobsForMyCvCoreAsync(
-        int? cvId,
-        CancellationToken cancellationToken)
-    {
-        await _permissions.RequireAsync("ketquaphuhops", "list", cancellationToken);
-        try
-        {
-            var response = await _sender.Send(
-                new GetSuggestedJobsForCvQuery { CvUngVienId = cvId, TopN = 10 },
-                cancellationToken);
-
-            if (response.Succeeded && response.Data is not null)
-            {
-                _sharedState.Set("jobRecommendations", response.Data);
-                _sharedState.Set("lastAction", "jobRecommendationsLoaded");
-            }
-
-            return response;
-        }
-        catch (Exception ex) when (ex is not OperationCanceledException)
-        {
-            _logger.LogError(ex, "Adam tool suggest_jobs_for_my_cv thất bại. CvId={CvId}", cvId);
-            return new Response<List<SuggestedJobViewModel>>("Không thể lấy việc làm phù hợp.");
         }
     }
 

@@ -39,21 +39,21 @@ All backend tools are **read-only**: one permission check (`IPermissionService`)
 plus one MediatR query each, cached for 120s per user (`AgentToolCache`).
 Stable snake_case names; prompts refer to those names.
 
-Candidate agent (18 backend tools, see `CandidateAdamAgentFactory`):
+Candidate agent (16 backend tools, see `CandidateAdamAgentFactory`):
 
 | Group | Tools |
 |---|---|
-| Profile / CV | `get_my_profile`, `list_my_cvs`, `get_cv_detail`, `check_profile_completeness`, `analyze_cv`, `review_default_cv`, `suggest_cv_improvement` (alias of `analyze_cv`) |
-| Jobs | `search_jobs`, `get_job_details`, `get_job_recommendations`, `suggest_jobs_for_my_cv`, `explain_job_match`, `compare_jobs` |
+| Profile / CV | `get_my_profile`, `list_my_cvs`, `get_cv_detail`, `check_profile_completeness`, `analyze_cv`, `review_default_cv` |
+| Jobs | `search_jobs`, `get_job_details`, `get_job_recommendations`, `explain_job_match`, `compare_jobs` (scorer tất định cho một cặp CV–tin, không phụ thuộc top gợi ý) |
 | Applications | `get_my_applications`, `get_application_status` |
 | CV themes | `suggest_cv_theme`, `get_cv_theme_workspace` → `pick_cv_themes` (server validates slugs) |
 
-Recruiter agent (19 backend tools, see `RecruiterAdamAgentFactory`):
+Recruiter agent (17 backend tools, see `RecruiterAdamAgentFactory`):
 
 | Group | Tools |
 |---|---|
-| Job postings | `get_my_recruitment_jobs`, `get_current_recruitment_context`, `get_recruitment_job_detail`, `get_job_post_detail`, `analyze_job_post`, `suggest_job_post_improvement` |
-| Candidates | `get_candidate_recommendations_for_job`, `explain_candidate_match`, `compare_candidates`, `get_candidate_cv`, `summarize_candidate` |
+| Job postings | `get_my_recruitment_jobs`, `get_current_recruitment_context`, `get_recruitment_job_detail`, `analyze_job_post` |
+| Candidates | `get_candidate_recommendations_for_job`, `explain_candidate_match`, `compare_candidates` (chấm đúng cặp ứng viên–tin, không quét cả pool), `get_candidate_cv`, `summarize_candidate` |
 | Applications | `get_applications`, `get_application_detail`, `get_application_pipeline`, `find_stale_applications`, `get_recruitment_overview` |
 | Company (representative only, enforced by permissions) | `get_company_recruitment_stats`, `get_company_members`, `get_recruiter_activity` |
 
@@ -103,7 +103,7 @@ review, saved with `DaDanhGiaBangAi = false` — never a 500.
   (200 messages, 50 runs, 168h TTL, index of 100 threads).
 - Streaming deadline: `Ai:MaxStreamingRunTimeSeconds` (default 60s, clamped
   10–300s). Internal errors are logged, never returned to the user.
-- Prompts cap backend tool calls per turn (candidate ≤3 chained; recruiter 1)
+- Prompts cap backend tool calls per turn (candidate ≤3 chained; recruiter ≤2)
   and forbid inventing data, IDs, scores or application statuses.
 
 ## Dependency direction
