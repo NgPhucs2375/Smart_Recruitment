@@ -60,7 +60,6 @@ jobs:
           host: ${{ secrets.GCP_VM_HOST }}
           username: ${{ secrets.GCP_VM_USER }}
           key: ${{ secrets.GCP_SSH_PRIVATE_KEY }}
-          script_stop: true
           script: |
             set -e
             APP_DIR=/home/${{ secrets.GCP_VM_USER }}/hireai
@@ -77,8 +76,21 @@ jobs:
             fi
             docker compose --env-file .env.prod -f docker-compose.prod.yml pull || true
             docker compose --env-file .env.prod -f docker-compose.prod.yml up -d --build --remove-orphans
-            sleep 15
             docker compose --env-file .env.prod -f docker-compose.prod.yml ps
-            curl -fsS http://localhost/health/live || curl -fsS http://localhost:3000/ -o /dev/null
+            # Frontend Next.js can take longer than 15 seconds to accept requests
+            # after its container starts. Probe through the local Nginx HTTPS route
+            # (frontend:3000 is internal to the Docker network, not host-published).
+            for attempt in $(seq 1 30); do
+              if curl -fsS --resolve hireais.dev:443:127.0.0.1 https://hireais.dev/ -o /dev/null 2>&1; then
+                echo "Frontend health check OK"
+                break
+              fi
+              if [ "$attempt" -eq 30 ]; then
+                echo "Frontend did not become healthy after 150 seconds" >&2
+                docker compose --env-file .env.prod -f docker-compose.prod.yml ps
+                exit 1
+              fi
+              sleep 5
+            done
             docker system prune -f
             echo "DEPLOY OK: $(git rev-parse --short HEAD)"
