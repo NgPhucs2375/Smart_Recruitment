@@ -34,6 +34,13 @@ const LazyCopilotPopup = dynamic(
   { ssr: false },
 );
 
+// Bảng xác nhận nộp đơn toàn cục — mount một lần cho ứng viên, mở bằng tool
+// `applyToJob` qua registry trong adam-apply-intent.
+const ApplyConfirmModal = dynamic(
+  () => import("@/features/ung-tuyen/apply-confirm-modal").then((m) => m.ApplyConfirmModal),
+  { ssr: false },
+);
+
 const CANDIDATE_SUGGESTIONS = [
   { title: "Chọn mẫu CV", message: "Gợi ý mẫu CV phù hợp với ngành và cấp độ công việc mục tiêu của tôi; cho xem trước và giải thích lựa chọn." },
   { title: "Tạo CV từ đầu", message: "Hãy giúp tôi tạo một CV mới. Hỏi tôi các thông tin còn thiếu theo từng bước." },
@@ -519,6 +526,7 @@ export function CopilotProvider({ children }: { children: React.ReactNode }) {
           <InitialPopupState />
           <ThreadIdPersistor userId={userId} />
           <GlobalCvAssistantMount role={adamRole} />
+          {adamRole === "candidate" && <ApplyConfirmModal />}
           <ToolActivityMount />
           <SharedStateMount />
           <DeferredCopilotPopup
