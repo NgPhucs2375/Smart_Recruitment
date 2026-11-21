@@ -336,6 +336,40 @@ ngoài danh mục. Bảng df trong ca `live-df-generic-vs-niche` lưu theo *từ
 DISTINCT theo từng tin nên cho hợp nhất đúng (8): hai con số lệch nhau ở duy nhất key `.NET`,
 không ảnh hưởng xếp hạng của ca đó vì `.NET` không nằm trong tập kỹ năng khớp.
 
+## Bước #7–#8 — bằng chứng văn bản CV + phạt thiếu bắt buộc (cbf-v8-idf)
+
+Hai thay đổi trong `ContentBasedMatcher`, cùng một `Version`:
+
+1. **Quét chữ tự do trong CV.** `CandidateMatchInput.EvidenceText` nhận giới thiệu bản thân,
+   chức danh/mô tả kinh nghiệm và tên/vai trò/mô tả dự án (ghép bởi `CandidateEvidenceText`,
+   dùng chung cho cả ba đường: ứng viên xem tin, HR xem ứng viên, fan-out). `MatchingTextNormalizer.ContainsSkill`
+   so khớp theo ranh giới từ và cả biến thể alias, nên `"Java"` không khớp trong `"JavaScript"`,
+   `"Go"` không khớp trong `"Google"`, nhưng `"ML"`/`"Node"`/`"k8s"` vẫn khớp. Bằng chứng dạng chữ
+   được tính ngang một kỹ năng khai không kèm trình độ (hệ số trung tính) và không cộng dồn nếu
+   kỹ năng đã khai trong mục kỹ năng. `EvaluateBaseline` không dùng — cbf-v1 giữ nguyên để tái lập.
+2. **Thiếu kỹ năng bắt buộc thì hạ điểm.** Điểm bị chặn trần **0.60** (dưới ngưỡng `Cao` 0.66)
+   rồi trừ **0.05 mỗi kỹ năng `BatBuc` chưa có bằng chứng**; sàn 0.05 giữ bất biến "khớp ít nhất
+   một yêu cầu thì điểm > 0" mà bộ lọc API và fan-out đang dựa vào. Hệ quả có chủ đích: cặp chỉ
+   khớp phần thưởng (ví dụ cùng địa điểm) mà không khớp kỹ năng nào giờ về 0 và không còn được lưu/gợi ý.
+   Khoản đã trừ được trả về ở `ContentMatchResult.MandatoryPenalty` → `PhatBatBuoc` để UI giải thích.
+
+Số đo lại trên cùng 25 ca fixtures (không ca nào khai `evidenceText`, nên chênh lệch dưới đây
+**chỉ do khoản phạt**):
+
+```
+MACRO cbf-v1        queries=25 P=0.7800 R=0.8400 NDCG=0.7781
+MACRO cbf-v8-idf    queries=25 P=0.8800 R=0.9400 NDCG=0.9295
+GATE cbf-v8-idf     positive=58 thieuBatBuoc=14
+```
+
+NDCG giảm 0.0144 so với cbf-v7 (0.9439), tập trung ở `live-df-generic-vs-niche`: ca đó gán nhãn 3
+cho tin "Senior .NET Developer" nhưng `candidate.skills` của fixture chỉ khai SQL/Excel/Entity
+Framework Core/Clean Architecture — **thiếu cả 3 kỹ năng bắt buộc** (ASP.NET Core, C#, .NET Core),
+nên bị phạt 0.15 và rơi khỏi top. Đây chính là ca mà bước #7 sinh ra để chữa trên dữ liệu thật:
+CV thật mô tả các kỹ năng đó trong mục kinh nghiệm; fixture viết tay không chép lại phần chữ nên
+vẫn bị đo theo đường cũ. Muốn NDCG phản ánh đúng hành vi mới thì phải thêm `evidenceText` thật
+cho các ca dựng tay — chưa làm, và không suy diễn thêm dữ liệu.
+
 ## Relation tới benchmark database
 
 `ground-truth.csv` + `test-goi-y/Ground-truth` là benchmark chạy trên DB thật, nhưng

@@ -64,6 +64,8 @@ public sealed class JobCandidateFanoutService(
             .AsSplitQuery()
             .Include(x => x.ThongTinLienHe)
             .Include(x => x.KyNangs)
+            .Include(x => x.KinhNghiems)
+            .Include(x => x.DuAns)
             .Include(x => x.HoSoUngVien)
             .Where(x => x.IsDefault && !x.IsDaXoa && x.HoSoUngVien.IsTimViec)
             .ToListAsync(ct))
@@ -79,6 +81,7 @@ public sealed class JobCandidateFanoutService(
                 DiaChi = !string.IsNullOrWhiteSpace(cv.ThongTinLienHe?.DiaChi)
                     ? cv.ThongTinLienHe!.DiaChi : cv.HoSoUngVien.DiaChi,
                 KyNangs = cv.KyNangs.Select(k => new MatchSkill(k.KyNangId, k.TenKyNang, k.MucDoThanhThao, k.SoNamKinhNghiem)).ToList(),
+                EvidenceText = CandidateEvidenceText.From(cv),
             })
             .ToList();
 
@@ -86,7 +89,7 @@ public sealed class JobCandidateFanoutService(
         var ranked = pool
             .Select(c => (Candidate: c, Match: ContentBasedMatcher.Evaluate(new CandidateMatchInput(
                 c.KyNangs, c.ViTriUngTuyen,
-                c.MucLuongMongMuon ?? 0, c.DiaChi), jobInput, corpus)))
+                c.MucLuongMongMuon ?? 0, c.DiaChi, c.EvidenceText), jobInput, corpus)))
             .Where(x => x.Match.Score > 0f)
             .OrderByDescending(x => x.Match.Score)
             .ThenBy(x => x.Candidate.HoTen)
@@ -248,5 +251,6 @@ public sealed class JobCandidateFanoutService(
         public decimal? MucLuongMongMuon { get; set; }
         public string DiaChi { get; set; }
         public List<MatchSkill> KyNangs { get; set; } = [];
+        public string EvidenceText { get; set; } = string.Empty;
     }
 }

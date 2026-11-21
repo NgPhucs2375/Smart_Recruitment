@@ -87,6 +87,7 @@ function normalizeRecommendation(value: unknown): RecommendationItem {
     bonusLuong: numOrUndefined(r.bonusLuong ?? r.BonusLuong),
     bonusDiaDiem: numOrUndefined(r.bonusDiaDiem ?? r.BonusDiaDiem),
     bonusKinhNghiem: numOrUndefined(r.bonusKinhNghiem ?? r.BonusKinhNghiem),
+    phatBatBuoc: numOrUndefined(r.phatBatBuoc ?? r.PhatBatBuoc),
     kyNangThoa: asList(r.kyNangThoa ?? r.KyNangThoa),
     kyNangThieu: asList(r.kyNangThieu ?? r.KyNangThieu),
     kyNangBatBuocThieu: asList(r.kyNangBatBuocThieu ?? r.KyNangBatBuocThieu),

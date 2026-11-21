@@ -27,7 +27,8 @@ public class SuggestedCandidateViewModel
     public string? LyDoGoiY { get; set; }
     public List<string> KyNangThoa { get; set; } = new();
     public List<string> KyNangThieu { get; set; } = new();
-    /// <summary>Yeu cau BatBuc cua tin ma ho so chua co bang chung. Khong doi diem — chi la nhan.</summary>
+    /// <summary>Yeu cau BatBuc cua tin ma ho so chua co bang chung. Moi ky nang thieu
+    /// ha DiemPhuHop xuong toi da 0.60 roi tru 0.05 — day vua la nhan vua la tin hieu xep hang.</summary>
     public List<string> KyNangBatBuocThieu { get; set; } = new();
     public int SoNamKinhNghiem { get; set; }
 }
@@ -92,12 +93,14 @@ public class GetSuggestedCandidatesForJobQueryHandler(
         var jobInput = new JobMatchInput(requirements, job.TieuDe,
             job.LuongToiThieu, job.LuongToiDa, job.DiaDiemLamViec, job.KinhNghiemYeuCau);
         var now = DateTime.UtcNow;
-        // 4 Include trên cùng query sinh cartesian explosion: tách thành
+        // Nhiều Include trên cùng query sinh cartesian explosion: tách thành
         // nhiều query (cùng kết quả, không đổi semantics scoring).
         var cvs = await context.CVUngViens.AsNoTracking()
             .AsSplitQuery()
             .Include(x => x.ThongTinLienHe)
             .Include(x => x.KyNangs)
+            .Include(x => x.KinhNghiems)
+            .Include(x => x.DuAns)
             .Include(x => x.HoSoUngVien)
                 .ThenInclude(x => x.KinhNghiemLamViecs)
             .Where(x => x.IsDefault && !x.IsDaXoa && x.HoSoUngVien.IsTimViec)
@@ -113,7 +116,8 @@ public class GetSuggestedCandidatesForJobQueryHandler(
                     ? cv.ThongTinLienHe.ViTriUngTuyen : cv.HoSoUngVien.ViTriUngTuyen,
                 cv.ThongTinLienHe?.MucLuongMongMuon ?? (decimal)cv.HoSoUngVien.MucLuongMongMuon,
                 !string.IsNullOrWhiteSpace(cv.ThongTinLienHe?.DiaChi)
-                    ? cv.ThongTinLienHe.DiaChi : cv.HoSoUngVien.DiaChi), jobInput, corpus);
+                    ? cv.ThongTinLienHe.DiaChi : cv.HoSoUngVien.DiaChi,
+                CandidateEvidenceText.From(cv)), jobInput, corpus);
             if (match.Score <= 0f) continue;
 
             results.Add(new SuggestedCandidateViewModel

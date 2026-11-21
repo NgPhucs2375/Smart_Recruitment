@@ -32,6 +32,8 @@ public sealed class CvJobMatchViewModel
     public float BonusDiaDiem { get; set; }
     /// <summary>Có thể âm: thiếu số năm yêu cầu bị trừ tối đa 0.05.</summary>
     public float BonusKinhNghiem { get; set; }
+    /// <summary>Số điểm đã bị hạ vì thiếu kỹ năng bắt buộc (trần 0.60, trừ 0.05 mỗi kỹ năng).</summary>
+    public float PhatBatBuoc { get; set; }
     public List<string> KyNangThoa { get; set; } = new();
     public List<string> KyNangThieu { get; set; } = new();
     public List<string> KyNangBatBuocThieu { get; set; } = new();
@@ -58,12 +60,16 @@ public sealed class GetCvJobMatchQueryHandler(
             ? await context.CVUngViens.AsNoTracking()
                 .Include(x => x.ThongTinLienHe)
                 .Include(x => x.KyNangs)
+                .Include(x => x.KinhNghiems)
+                .Include(x => x.DuAns)
                 .FirstOrDefaultAsync(x => x.Id == request.CvUngVienId.Value &&
                                           x.HoSoUngVienId == hoSo.Id && !x.IsDaXoa,
                     cancellationToken)
             : await context.CVUngViens.AsNoTracking()
                 .Include(x => x.ThongTinLienHe)
                 .Include(x => x.KyNangs)
+                .Include(x => x.KinhNghiems)
+                .Include(x => x.DuAns)
                 .FirstOrDefaultAsync(x => x.HoSoUngVienId == hoSo.Id &&
                                           x.IsDefault && !x.IsDaXoa, cancellationToken);
         if (cv == null)
@@ -101,7 +107,8 @@ public sealed class GetCvJobMatchQueryHandler(
                 ? cv.ThongTinLienHe.ViTriUngTuyen : hoSo.ViTriUngTuyen,
             cv.ThongTinLienHe?.MucLuongMongMuon ?? (decimal)hoSo.MucLuongMongMuon,
             !string.IsNullOrWhiteSpace(cv.ThongTinLienHe?.DiaChi)
-                ? cv.ThongTinLienHe.DiaChi : hoSo.DiaChi);
+                ? cv.ThongTinLienHe.DiaChi : hoSo.DiaChi,
+            CandidateEvidenceText.From(cv));
 
         var corpus = await SkillCorpusLoader.LoadAsync(context, DateTime.UtcNow, cancellationToken);
         var match = ContentBasedMatcher.Evaluate(candidate, new JobMatchInput(
@@ -122,6 +129,7 @@ public sealed class GetCvJobMatchQueryHandler(
             BonusLuong = match.SalaryBonus,
             BonusDiaDiem = match.LocationBonus,
             BonusKinhNghiem = match.ExperienceBonus,
+            PhatBatBuoc = match.MandatoryPenalty,
             KyNangThoa = match.MatchedSkills.ToList(),
             KyNangThieu = match.MissingSkills.ToList(),
             KyNangBatBuocThieu = match.MissingMandatory.ToList(),
