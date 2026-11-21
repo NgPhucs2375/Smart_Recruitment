@@ -8,6 +8,7 @@ using Application.Features.DonUngTuyen.Queries.GetLichSuDonUngTuyen;
 using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 
 namespace WebApp.Server.Controllers.v1
 {
@@ -16,13 +17,16 @@ namespace WebApp.Server.Controllers.v1
     public class DonUngTuyenController : BaseApiController
     {
         private readonly IMapper _mapper;
+        private readonly ILogger<DonUngTuyenController> _logger;
 
         public DonUngTuyenController(
             Microsoft.AspNetCore.Hosting.IWebHostEnvironment hostingEnvironment,
-            IMapper mapper)
+            IMapper mapper,
+            ILogger<DonUngTuyenController> logger)
             : base(hostingEnvironment)
         {
             _mapper = mapper;
+            _logger = logger;
         }
 
         // GET: api/donungtuyens
@@ -93,7 +97,23 @@ namespace WebApp.Server.Controllers.v1
                     var command =
                         _mapper.Map<CreateDonUngTuyenCommand>(dto);
 
-                    return Ok(await Mediator.Send(command));
+                    var result = await Mediator.Send(command);
+
+                    // Audit nguồn: modal xác nhận của Adam gửi X-Nguon: adam.
+                    if (string.Equals(
+                        Request.Headers["X-Nguon"].ToString(),
+                        "adam",
+                        StringComparison.OrdinalIgnoreCase))
+                    {
+                        _logger.LogInformation(
+                            "Đơn ứng tuyển tạo qua Adam: userId={UserId}, tinTuyenDungId={TinTuyenDungId}, cvUngVienId={CvUngVienId}, donUngTuyenId={DonUngTuyenId}",
+                            User.FindFirst("uid")?.Value,
+                            dto.TinTuyenDungId,
+                            dto.CVUngVienId,
+                            result?.Data);
+                    }
+
+                    return Ok(result);
                 });
         }
 

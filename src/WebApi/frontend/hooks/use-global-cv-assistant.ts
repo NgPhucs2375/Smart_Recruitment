@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, usePathname } from "next/navigation";
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useAgentContext, useFrontendTool } from "@copilotkit/react-core/v2";
 import { z } from "zod";
 import { toast } from "sonner";
@@ -29,7 +29,13 @@ import {
   cvContactPatchSchema,
   cvSectionCreateSchema,
 } from "@/features/ai-cv/cv-tool-schemas";
-import { saveApplyIntent } from "@/features/ung-tuyen/adam-apply-intent";
+import {
+  ADAM_APPLIED_EVENT,
+  openApplyModal,
+  readLastApplication,
+  saveApplyIntent,
+  type AdamAppliedDetail,
+} from "@/features/ung-tuyen/adam-apply-intent";
 
 /**
  * Global Adam bridge: mount MỘT lần trong CopilotProvider (protected layout).
@@ -128,6 +134,20 @@ export function useGlobalCvAssistant({
   // chạm rate limit 429). Ghi timestamp lần navigate cuối, chặn trong 30s.
   const lastNavigateAt = useRef(0);
 
+  // Cooldown theo từng tin cho modal nộp đơn — agent lặp cùng tin thì không
+  // mở lại bảng xác nhận, nhưng tin khác vẫn mở được ngay.
+  const applyModalAt = useRef<Record<number, number>>({});
+
+  const [lastApplication, setLastApplication] = useState<AdamAppliedDetail | null>(() =>
+    typeof window === "undefined" ? null : readLastApplication(),
+  );
+
+  useEffect(() => {
+    const onApplied = () => setLastApplication(readLastApplication());
+    window.addEventListener(ADAM_APPLIED_EVENT, onApplied);
+    return () => window.removeEventListener(ADAM_APPLIED_EVENT, onApplied);
+  }, []);
+
   // Warm the editor chunk while the user is still chatting. This removes the
   // compile/fetch gap when navigateToCvEditor is called by a frontend tool.
   useEffect(() => {
@@ -138,7 +158,7 @@ export function useGlobalCvAssistant({
     if (!enabled || role === "blocked") {
       return {
         description: "Tài khoản hiện tại không thuộc phạm vi hỗ trợ của Adam.",
-        value: { role, pathname: pathname ?? "", isEditor: false },
+        value: { role, pathname: pathname ?? "", isEditor: false, lastApplication: null },
       };
     }
 
@@ -149,7 +169,7 @@ export function useGlobalCvAssistant({
           "Nếu isEditor=false thì KHÔNG có form CV trực tiếp để ghi — " +
           "muốn điền CV phải gọi navigateToCvEditor (tự lưu nháp + nhảy vào /CV). " +
           "Nếu isEditor=true thì điền trực tiếp bằng updateCvContact/updateCvMeta/upsertCvSectionItem.",
-        value: { role, pathname: pathname ?? "", isEditor },
+        value: { role, pathname: pathname ?? "", isEditor, lastApplication },
       };
     }
 
@@ -157,9 +177,9 @@ export function useGlobalCvAssistant({
       description:
         "Vị trí trang hiện tại của nhà tuyển dụng. " +
         "Chỉ dùng tool nghiệp vụ tuyển dụng; không có form CV để điền.",
-      value: { role, pathname: pathname ?? "", isEditor: false },
+      value: { role, pathname: pathname ?? "", isEditor: false, lastApplication: null },
     };
-  }, [enabled, isCandidate, isEditor, pathname, role]);
+  }, [enabled, isCandidate, isEditor, lastApplication, pathname, role]);
 
   useAgentContext(agentContext);
 
@@ -240,11 +260,20 @@ export function useGlobalCvAssistant({
       parameters: applyToJobSchema,
       available: enabled && isCandidate,
       handler: async ({ tinTuyenDungId, cvId }) => {
+        const now = Date.now();
+        if (now - (applyModalAt.current[tinTuyenDungId] ?? 0) < 30_000) {
+          return `Bảng xác nhận cho tin ${tinTuyenDungId} vừa mở. Đơn CHƯA được nộp; chờ user bấm "Xác nhận nộp đơn".`;
+        }
+
+        const intent = { tinTuyenDungId, ...(typeof cvId === "number" && cvId > 0 ? { cvId } : {}) };
+        if (openApplyModal(intent)) {
+          applyModalAt.current[tinTuyenDungId] = now;
+          return `Đã mở bảng xác nhận cho tin ${tinTuyenDungId} ngay trong trang hiện tại. Đơn CHƯA được nộp; chờ user bấm "Xác nhận nộp đơn".`;
+        }
+
+        // Fallback khi modal chưa mount: giữ luồng cũ qua trang tin.
         const target = `/viec-lam/${tinTuyenDungId}`;
-        saveApplyIntent({
-          tinTuyenDungId,
-          ...(typeof cvId === "number" && cvId > 0 ? { cvId } : {}),
-        });
+        saveApplyIntent(intent);
 
         if (pathname !== target) {
           await router.prefetch(target);

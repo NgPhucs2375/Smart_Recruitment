@@ -8,11 +8,9 @@ import {
   ArrowLeft,
   BadgeCheck,
   Bookmark,
-  Briefcase,
   Building2,
   CalendarClock,
   CircleAlert,
-  Eye,
   FileText,
   Home,
   Laptop,
@@ -31,12 +29,13 @@ import {
   AdminLoadingState,
 } from "@/components/admin/admin-page-layout";
 import { cvApi } from "@/lib/api/cv-api";
-import type { CvDetailVm, CvVm } from "@/lib/types";
+import type { CvVm } from "@/lib/types";
 import { useBookmarks } from "@/hooks/use-bookmarks";
 import { useStoredIdentity } from "@/hooks/use-stored-identity";
 import { getValidToken, refreshSession } from "@/lib/auth-provider";
 import { MatchBreakdown, type MatchBreakdownData } from "@/components/jobs/match-breakdown";
-import { ADAM_APPLY_EVENT, takeApplyIntent } from "@/features/ung-tuyen/adam-apply-intent";
+import { ADAM_APPLIED_EVENT, takeApplyIntent } from "@/features/ung-tuyen/adam-apply-intent";
+import { CvPicker } from "@/features/ung-tuyen/cv-picker";
 
 type TinChiTiet = {
   id: number;
@@ -130,9 +129,6 @@ export default function ViecLamChiTietPage() {
   const [cvError, setCvError] = useState("");
   const [selectedCvId, setSelectedCvId] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [previewCvId, setPreviewCvId] = useState<number | null>(null);
-  const [previewDetail, setPreviewDetail] = useState<CvDetailVm | null>(null);
-  const [loadingPreview, setLoadingPreview] = useState(false);
 
   const apiFetch = useCallback(async (url: string, opts?: RequestInit) => {
     let token = await getValidToken();
@@ -239,6 +235,7 @@ export default function ViecLamChiTietPage() {
           bonusLuong: num(d.bonusLuong ?? d.BonusLuong),
           bonusDiaDiem: num(d.bonusDiaDiem ?? d.BonusDiaDiem),
           bonusKinhNghiem: num(d.bonusKinhNghiem ?? d.BonusKinhNghiem),
+          phatBatBuoc: num(d.phatBatBuoc ?? d.PhatBatBuoc),
           kyNangThoa: list(d.kyNangThoa ?? d.KyNangThoa),
           kyNangThieu: list(d.kyNangThieu ?? d.KyNangThieu),
           kyNangBatBuocThieu: list(d.kyNangBatBuocThieu ?? d.KyNangBatBuocThieu),
@@ -253,8 +250,6 @@ export default function ViecLamChiTietPage() {
   const openPicker = useCallback(async (preferCvId?: number | null) => {
     setPickerOpen(true);
     setSelectedCvId(null);
-    setPreviewCvId(null);
-    setPreviewDetail(null);
     setCvError("");
     try {
       setLoadingCvs(true);
@@ -269,25 +264,6 @@ export default function ViecLamChiTietPage() {
       setLoadingCvs(false);
     }
   }, []);
-
-  const togglePreview = async (cv: CvVm) => {
-    if (previewCvId === cv.id) {
-      setPreviewCvId(null);
-      return;
-    }
-    setPreviewCvId(cv.id);
-    setPreviewDetail(null);
-    try {
-      setLoadingPreview(true);
-      const detail = await cvApi.getById(cv.id);
-      setPreviewDetail(detail);
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Không tải được preview CV.");
-      setPreviewCvId(null);
-    } finally {
-      setLoadingPreview(false);
-    }
-  };
 
   const handleApply = async () => {
     if (!tin || !selectedCvId || submitting) return;
@@ -309,7 +285,7 @@ export default function ViecLamChiTietPage() {
   };
 
 
-  // Adam xin nộp đơn: mở lại đúng bảng xác nhận này, user vẫn phải bấm "Xác nhận nộp đơn".
+  // Fallback deep-link cũ: intent do agent lưu trước khi modal toàn cục mount.
   useEffect(() => {
     if (!tin || daUngTuyen) return;
     const consume = () => {
@@ -317,9 +293,17 @@ export default function ViecLamChiTietPage() {
       if (intent) void openPicker(intent.cvId ?? null);
     };
     consume();
-    window.addEventListener(ADAM_APPLY_EVENT, consume);
-    return () => window.removeEventListener(ADAM_APPLY_EVENT, consume);
   }, [tin, daUngTuyen, tinId, openPicker]);
+
+  // Modal toàn cục vừa nộp đơn cho tin này → cập nhật badge tại chỗ.
+  useEffect(() => {
+    const onApplied = (event: Event) => {
+      const detail = (event as CustomEvent<{ tinTuyenDungId?: number }>).detail;
+      if (Number(detail?.tinTuyenDungId) === tinId) setDaUngTuyen(true);
+    };
+    window.addEventListener(ADAM_APPLIED_EVENT, onApplied);
+    return () => window.removeEventListener(ADAM_APPLIED_EVENT, onApplied);
+  }, [tinId]);
   const hetHan = tin ? isExpired(tin.ngayHetHan) : false;
   const conNhanHoSo = !!tin && (tin.trangThai === "DangTuyen" || tin.trangThai === "3") && !hetHan;
   const daDong = tin?.trangThai === "DaDong" || tin?.trangThai === "6";
@@ -556,127 +540,16 @@ export default function ViecLamChiTietPage() {
                 Đơn sẽ đính kèm bản mới nhất của CV bạn chọn. Mỗi hồ sơ chỉ nộp 1 đơn cho mỗi tin.
               </DialogPrimitive.Description>
 
-              <div className="mt-4 space-y-2">
-                {loadingCvs ? (
-                  <p className="flex items-center gap-2 py-4 text-sm text-muted-foreground">
-                    <Loader2 className="size-4 animate-spin" /> Đang tải danh sách CV...
-                  </p>
-                ) : cvError ? (
-                  <div className="rounded-2xl border border-destructive/30 bg-destructive/5 px-4 py-5 text-center">
-                    <p className="text-sm font-medium text-foreground">Không tải được danh sách CV</p>
-                    <p className="mt-1 text-xs text-muted-foreground">{cvError}</p>
-                    <Button type="button" variant="outline" size="sm" className="mt-3 rounded-full" onClick={() => void openPicker()}>
-                      <RefreshCw className="mr-1.5 size-3.5" /> Thử lại
-                    </Button>
-                  </div>
-                ) : cvs.length === 0 ? (
-                  <div className="rounded-2xl border border-dashed border-border px-4 py-6 text-center">
-                    <Briefcase className="mx-auto size-6 text-muted-foreground" />
-                    <p className="mt-2 text-sm font-medium text-foreground">Bạn chưa có CV nào</p>
-                    <p className="mt-1 text-xs text-muted-foreground">Tạo CV trước rồi quay lại nộp đơn.</p>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="mt-3 rounded-full"
-                      onClick={() => router.push("/tao-cv")}
-                    >
-                      Tạo CV ngay
-                    </Button>
-                  </div>
-                ) : (
-                  cvs.map((c) => (
-                    <div
-                      key={c.id}
-                      className={`rounded-2xl border transition ${
-                        selectedCvId === c.id
-                          ? "border-primary bg-primary/5"
-                          : "border-border hover:border-primary/50"
-                      }`}
-                    >
-                      <div className="flex w-full items-center gap-3 p-3">
-                        <button
-                          type="button"
-                          onClick={() => setSelectedCvId(c.id)}
-                          aria-pressed={selectedCvId === c.id}
-                          className="flex min-w-0 flex-1 items-center gap-3 text-left"
-                        >
-                          <FileText className="size-4 shrink-0 text-primary" />
-                          <span className="min-w-0 flex-1">
-                            <span className="block truncate text-sm font-semibold text-foreground">
-                              {c.tenFile || `CV #${c.id}`}
-                            </span>
-                            {c.viTriUngTuyen && (
-                              <span className="block truncate text-xs text-muted-foreground">{c.viTriUngTuyen}</span>
-                            )}
-                          </span>
-                          {c.isDefault && (
-                            <span className="shrink-0 rounded-full bg-navy px-2 py-0.5 text-[10px] font-semibold text-white">
-                              Mặc định
-                            </span>
-                          )}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => void togglePreview(c)}
-                          aria-expanded={previewCvId === c.id}
-                          aria-label={previewCvId === c.id ? "Ẩn preview" : "Xem trước CV"}
-                          className="flex size-8 shrink-0 items-center justify-center rounded-full border border-border text-muted-foreground transition hover:border-primary/50 hover:text-primary"
-                        >
-                          {loadingPreview && previewCvId === c.id ? (
-                            <Loader2 className="size-4 animate-spin" />
-                          ) : (
-                            <Eye className="size-4" />
-                          )}
-                        </button>
-                      </div>
-                      {previewCvId === c.id && (
-                        <div className="border-t border-border px-4 py-3">
-                          {loadingPreview && !previewDetail ? (
-                            <p className="flex items-center gap-2 text-xs text-muted-foreground">
-                              <Loader2 className="size-3.5 animate-spin" /> Đang tải preview...
-                            </p>
-                          ) : previewDetail ? (
-                            <div className="space-y-2 text-xs leading-5">
-                              <p className="font-semibold text-foreground">
-                                {previewDetail.noiDung.thongTinLienHe.hoTen || c.hoTen || c.tenFile}
-                                {previewDetail.noiDung.thongTinLienHe.viTriUngTuyen && (
-                                  <span className="ml-2 font-normal text-muted-foreground">
-                                    • {previewDetail.noiDung.thongTinLienHe.viTriUngTuyen}
-                                  </span>
-                                )}
-                              </p>
-                              {previewDetail.noiDung.thongTinLienHe.gioiThieuBanThan && (
-                                <p className="text-muted-foreground line-clamp-2">
-                                  {previewDetail.noiDung.thongTinLienHe.gioiThieuBanThan}
-                                </p>
-                              )}
-                              <div className="flex flex-wrap gap-x-4 gap-y-1 text-muted-foreground">
-                                <span>Kinh nghiệm: {previewDetail.noiDung.kinhNghiemLamViec.length}</span>
-                                <span>Kỹ năng: {previewDetail.noiDung.kyNang.length}</span>
-                                <span>Dự án: {previewDetail.noiDung.duAn.length}</span>
-                              </div>
-                              {previewDetail.noiDung.kyNang.length > 0 && (
-                                <div className="flex flex-wrap gap-1.5 pt-1">
-                                  {previewDetail.noiDung.kyNang.slice(0, 6).map((k) => (
-                                    <span
-                                      key={k.tenKyNang}
-                                      className="rounded-full bg-muted px-2 py-0.5 font-medium text-muted-foreground"
-                                    >
-                                      {k.tenKyNang}
-                                    </span>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                          ) : (
-                            <p className="text-xs text-muted-foreground">Không tải được preview.</p>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  ))
-                )}
+              <div className="mt-4">
+                <CvPicker
+                  cvs={cvs}
+                  loading={loadingCvs}
+                  error={cvError}
+                  selectedCvId={selectedCvId}
+                  onSelect={setSelectedCvId}
+                  onRetry={() => void openPicker()}
+                  onCreateCv={() => router.push("/tao-cv")}
+                />
               </div>
 
               <div className="mt-5 flex justify-end gap-2">
