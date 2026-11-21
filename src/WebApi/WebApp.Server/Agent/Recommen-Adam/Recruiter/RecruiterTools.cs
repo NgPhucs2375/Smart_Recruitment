@@ -1,7 +1,6 @@
 using System.ComponentModel;
 using Application.DTOs.Recruiter;
 using Application.Features.KetQuaPhuHop.Queries.SuggestCandidatesForJob;
-using Application.Features.KetQuaPhuHop.Queries.SuggestJobsForCv;
 using Application.Features.Recruiter.Queries.GetCompanyMembers;
 using Application.Features.Recruiter.Queries.GetCompanyRecruitmentStats;
 using Application.Features.Recruiter.Queries.GetRecruiterActivity;
@@ -40,34 +39,6 @@ internal sealed class RecruiterTools
         _permissions = permissions;
         _toolCache = toolCache;
     }
-
-    [Description("Lấy top công việc đang tuyển phù hợp nhất với CV mặc định của ứng viên hiện tại. Kết quả gồm điểm phù hợp, kỹ năng khớp, kỹ năng thiếu, doanh nghiệp, địa điểm và lương. Luôn gọi tool này khi user hỏi việc phù hợp hoặc việc nên ứng tuyển.")]
-    public Task<Application.Wrappers.Response<List<SuggestedJobViewModel>>> GetJobRecommendationsAsync(
-        [Description("Số lượng công việc muốn lấy, từ 3 đến 10. Mặc định 10.")] int topN = 10,
-        CancellationToken cancellationToken = default)
-        => _toolCache.GetOrCreateAsync(
-            "recruiter_get_job_recommendations", new { topN },
-            () => GetJobRecommendationsCoreAsync(topN, cancellationToken),
-            cancellationToken);
-
-    private async Task<Application.Wrappers.Response<List<SuggestedJobViewModel>>> GetJobRecommendationsCoreAsync(
-        int topN,
-        CancellationToken cancellationToken)
-    {
-        await _permissions.RequireAsync("ketquaphuhops", "list", cancellationToken);
-        var response = await _sender.Send(new GetSuggestedJobsForCvQuery
-        {
-            TopN = Math.Clamp(topN, 3, 10),
-        }, cancellationToken);
-
-        if (response.Succeeded && response.Data is not null)
-        {
-            _sharedState.Set("jobRecommendations", response.Data);
-            _sharedState.Set("lastAction", "jobRecommendationsLoaded");
-        }
-
-        return response;
-    }   
 
     [Description("Tìm top ứng viên phù hợp nhất cho đúng một tin tuyển dụng thuộc doanh nghiệp hiện tại. Chỉ dùng khi người dùng là nhân sự hoặc người đại diện và đã xác định TinTuyenDungId.")]
     public Task<Application.Wrappers.Response<List<SuggestedCandidateViewModel>>> GetCandidateRecommendationsForJobAsync(

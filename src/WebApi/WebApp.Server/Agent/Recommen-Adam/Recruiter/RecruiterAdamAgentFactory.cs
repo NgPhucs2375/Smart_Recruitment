@@ -16,12 +16,10 @@ internal sealed class RecruiterAdamAgentFactory
         _chatClient = chatClient;
     }
 
-    public AIAgent CreateAgent() => new ChatClientAgent(
-        _chatClient,
-        instructions: RecruiterAdamInstructions.SystemPrompt,
-        name: RecruiterAdamInstructions.AgentName,
-        tools:
-        [
+    public AIAgent CreateAgent()
+    {
+        var tools = new List<AITool>
+        {
             AIFunctionFactory.Create(_tools.GetCandidateRecommendationsForJobAsync, new AIFunctionFactoryOptions { Name = "get_candidate_recommendations_for_job" }),
             AIFunctionFactory.Create(_tools.GetMyRecruitmentJobsAsync, new AIFunctionFactoryOptions { Name = "get_my_recruitment_jobs" }),
             AIFunctionFactory.Create(_tools.GetCurrentRecruitmentContextAsync, new AIFunctionFactoryOptions { Name = "get_current_recruitment_context" }),
@@ -41,5 +39,28 @@ internal sealed class RecruiterAdamAgentFactory
             AIFunctionFactory.Create(_tools.GetCompanyRecruitmentStatsAsync, new AIFunctionFactoryOptions { Name = "get_company_recruitment_stats" }),
             AIFunctionFactory.Create(_tools.GetCompanyMembersAsync, new AIFunctionFactoryOptions { Name = "get_company_members" }),
             AIFunctionFactory.Create(_tools.GetRecruiterActivityAsync, new AIFunctionFactoryOptions { Name = "get_recruiter_activity" }),
-        ]);
+        };
+
+        return new ChatClientAgent(
+            _chatClient,
+            new ChatClientAgentOptions
+            {
+                Name = RecruiterAdamInstructions.AgentName,
+                Description = "Trợ lý tuyển dụng cho nhân sự và người đại diện doanh nghiệp.",
+                ChatOptions = new ChatOptions
+                {
+                    Instructions = RecruiterAdamInstructions.SystemPrompt,
+                    Temperature = 0.1f,
+                    MaxOutputTokens = 4096,
+                    Reasoning = new ReasoningOptions
+                    {
+                        Effort = ReasoningEffort.None,
+                        Output = ReasoningOutput.None
+                    },
+                    Tools = tools
+                }
+            },
+            loggerFactory: null,
+            services: null);
+    }
 }
