@@ -1,5 +1,6 @@
 # HireAI PRODUCTION — GCP VM (Docker Compose).
-# Chạy: docker compose -f docker-compose.prod.yml up -d --build
+# Local/manual: docker compose --env-file .env.prod -f docker-compose.prod.yml up -d --build
+# CI deploy: pull immutable GHCR images and run with --no-build.
 # Secrets 100% qua environment (.env.prod, KHÔNG commit). Mẫu xem deploy/README.md.
 #
 # Lưu ý kiến trúc:
@@ -108,6 +109,7 @@ services:
       - hireai_network
 
   backend:
+    image: ghcr.io/ngphucs2375/hireai-backend:${IMAGE_TAG:-latest}
     build:
       context: .
       dockerfile: src/WebApi/WebApp.Server/Dockerfile
@@ -185,6 +187,7 @@ services:
       - hireai_network
 
   frontend:
+    image: ghcr.io/ngphucs2375/hireai-frontend:${IMAGE_TAG:-latest}
     build:
       context: ./src/WebApi/frontend
       dockerfile: Dockerfile

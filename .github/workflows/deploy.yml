@@ -48,21 +48,91 @@ jobs:
       - run: dotnet build RecruitmentSmart.sln -c Release --nologo -v minimal
         working-directory: .
 
-  # ---------- Stage 2: SSH deploy to GCP VM (chỉ nhánh main) ----------
-  deploy-prod:
-    name: Deploy to GCP VM
+  # ---------- Stage 2: Build and publish immutable images on GitHub ----------
+  build-images:
+    name: Build and push Docker images
     needs: [frontend-ci, backend-ci]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate frontend build variables
+        env:
+          HIREAI_GOOGLE_CLIENT_ID: ${{ vars.HIREAI_GOOGLE_CLIENT_ID }}
+          HIREAI_GITHUB_CLIENT_ID: ${{ vars.HIREAI_GITHUB_CLIENT_ID }}
+        run: |
+          test -n "$HIREAI_GOOGLE_CLIENT_ID" || { echo "Missing Actions variable HIREAI_GOOGLE_CLIENT_ID" >&2; exit 1; }
+          test -n "$HIREAI_GITHUB_CLIENT_ID" || { echo "Missing Actions variable HIREAI_GITHUB_CLIENT_ID" >&2; exit 1; }
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push backend image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: src/WebApi/WebApp.Server/Dockerfile
+          push: true
+          tags: ghcr.io/ngphucs2375/hireai-backend:${{ github.sha }}
+          labels: org.opencontainers.image.source=https://github.com/${{ github.repository }}
+          cache-from: type=gha,scope=hireai-backend
+          cache-to: type=gha,scope=hireai-backend,mode=max
+
+      - name: Build and push frontend image
+        uses: docker/build-push-action@v6
+        with:
+          context: src/WebApi/frontend
+          file: src/WebApi/frontend/Dockerfile
+          push: true
+          tags: ghcr.io/ngphucs2375/hireai-frontend:${{ github.sha }}
+          labels: org.opencontainers.image.source=https://github.com/${{ github.repository }}
+          build-args: |
+            NEXT_PUBLIC_GOOGLE_CLIENT_ID=${{ vars.HIREAI_GOOGLE_CLIENT_ID }}
+            NEXT_PUBLIC_GITHUB_CLIENT_ID=${{ vars.HIREAI_GITHUB_CLIENT_ID }}
+            NEXT_PUBLIC_COPILOTKIT_THREADS_ENABLED=${{ vars.HIREAI_COPILOTKIT_THREADS_ENABLED }}
+          cache-from: type=gha,scope=hireai-frontend
+          cache-to: type=gha,scope=hireai-frontend,mode=max
+
+  # ---------- Stage 3: Pull images and deploy on GCP VM ----------
+  deploy-prod:
+    name: Deploy to GCP VM
+    needs: [build-images]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
     steps:
       - uses: appleboy/ssh-action@v1.2.2
+        env:
+          IMAGE_TAG: ${{ github.sha }}
+          GHCR_USERNAME: ${{ github.actor }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           host: ${{ secrets.GCP_VM_HOST }}
           username: ${{ secrets.GCP_VM_USER }}
           key: ${{ secrets.GCP_SSH_PRIVATE_KEY }}
+          envs: IMAGE_TAG,GHCR_USERNAME,GHCR_TOKEN
           command_timeout: 30m
           script: |
             set -e
+            : "${IMAGE_TAG:?Missing image tag}"
+            : "${GHCR_TOKEN:?Missing GHCR token}"
+            export IMAGE_TAG
+            cleanup_registry_login() { docker logout ghcr.io >/dev/null 2>&1 || true; }
+            trap cleanup_registry_login EXIT
+            printf '%s' "$GHCR_TOKEN" | docker login ghcr.io --username "$GHCR_USERNAME" --password-stdin
+
             APP_DIR=/home/${{ secrets.GCP_VM_USER }}/hireai
             if [ ! -d "$APP_DIR/.git" ]; then
               # Dùng GITHUB_TOKEN nên clone được cả repo private.
@@ -75,8 +145,10 @@ jobs:
               echo "THIEU .env.prod tren VM (xem deploy/README.md muc 3). Abort."
               exit 1
             fi
-            docker compose --env-file .env.prod -f docker-compose.prod.yml pull || true
-            docker compose --env-file .env.prod -f docker-compose.prod.yml up -d --build --remove-orphans
+            docker compose --env-file .env.prod -f docker-compose.prod.yml pull backend frontend
+            docker logout ghcr.io >/dev/null 2>&1 || true
+            trap - EXIT
+            docker compose --env-file .env.prod -f docker-compose.prod.yml up -d --no-build --remove-orphans
             docker compose --env-file .env.prod -f docker-compose.prod.yml ps
             # Frontend Next.js can take longer than 15 seconds to accept requests
             # after its container starts. Probe through the local Nginx HTTPS route
