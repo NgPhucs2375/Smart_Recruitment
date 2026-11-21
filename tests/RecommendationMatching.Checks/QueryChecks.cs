@@ -61,7 +61,9 @@ public static class QueryChecks
             "Job query excludes closed/expired postings");
         check(result.Data[0].KyNangThoa.SequenceEqual(["JavaScript"]) &&
             result.Data[0].KyNangThieu.SequenceEqual(["Docker"]), "Job response contains matched and missing skills");
-        check(Math.Abs(result.Data[0].DiemPhuHop - .45454545f) < .00001f, "Job query uses normalized shared scorer");
+        // 5/11 điểm kỹ năng (Bayes) trừ 0.05 vì thiếu Docker BatBuc.
+        check(Math.Abs(result.Data[0].DiemPhuHop - .40454545f) < .00001f,
+            "Job query uses normalized shared scorer with mandatory-skill penalty");
         check(result.Data[0].KyNangBatBuocThieu.SequenceEqual(["Docker"]), "Job query names the mandatory skill the CV lacks");
         var stored = await db.KetQuaPhuHops.SingleAsync();
         check(stored.MatchingVersion == ContentBasedMatcher.Version && stored.KyNangThoa == "JavaScript",
@@ -90,9 +92,11 @@ public static class QueryChecks
         check(!(await candidates.Handle(new GetSuggestedCandidatesForJobQuery { TinTuyenDungId = 1 }, default)).Succeeded,
             "Candidate role cannot use recruiter recommendations");
 
-        // Điểm thành phần: fixture không có vị trí/lương/địa điểm/số năm nên Score = DiemKyNang.
+        // Điểm thành phần: fixture không có vị trí/lương/địa điểm/số năm nên
+        // DiemPhuHop = DiemKyNang - PhatBatBuoc (thiếu Docker BatBuc).
         var vm = result.Data[0];
-        check(Math.Abs(vm.DiemKyNang - vm.DiemPhuHop) < .00001f &&
+        check(Math.Abs(vm.DiemKyNang - (vm.DiemPhuHop + vm.PhatBatBuoc)) < .00001f &&
+            Math.Abs(vm.PhatBatBuoc - .05f) < .00001f &&
             vm.BonusViTri == 0 && vm.BonusLuong == 0 && vm.BonusDiaDiem == 0 && vm.BonusKinhNghiem == 0,
             "Recommendation response exposes score components consistent with the final score");
 

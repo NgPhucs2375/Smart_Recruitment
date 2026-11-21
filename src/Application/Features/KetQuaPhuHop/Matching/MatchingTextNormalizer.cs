@@ -61,6 +61,46 @@ public static class MatchingTextNormalizer
         return SkillAliases.GetValueOrDefault(key, key);
     }
 
+    /// <summary>Biến thể viết thật của một kỹ năng: key chuẩn cộng mọi alias trỏ về nó.</summary>
+    private static readonly Dictionary<string, string[]> AliasVariants = SkillAliases
+        .GroupBy(x => x.Value, StringComparer.Ordinal)
+        .ToDictionary(g => g.Key, g => g.Select(x => x.Key).ToArray(), StringComparer.Ordinal);
+
+    /// <summary>
+    /// Tìm kỹ năng trong chữ tự do (mô tả kinh nghiệm/dự án). So theo ranh giới từ để
+    /// "Go" không khớp "Google" và "Java" không nuốt "JavaScript"; chấp nhận alias
+    /// (ML = machine learning, dotnet = .NET) vì đó là biến thể đã gặp trong dữ liệu CV.
+    /// </summary>
+    public static bool ContainsSkill(string textKey, string? skillName)
+    {
+        if (textKey.Length == 0 || string.IsNullOrWhiteSpace(skillName)) return false;
+        var key = SkillKey(skillName);
+        if (key.Length == 0) return false;
+        if (ContainsWholePhrase(textKey, key)) return true;
+        return AliasVariants.TryGetValue(key, out var variants) &&
+               variants.Any(variant => ContainsWholePhrase(textKey, variant));
+    }
+
+    private static bool ContainsWholePhrase(string text, string phrase)
+    {
+        var start = 0;
+        while (true)
+        {
+            var index = text.IndexOf(phrase, start, StringComparison.Ordinal);
+            if (index < 0) return false;
+            // Cạnh của phrase là ký hiệu (".net", "c#") thì không đòi ranh giới ở phía đó,
+            // để "ASP.NET" vẫn là bằng chứng cho ".NET".
+            var leftOk = index == 0 || !char.IsLetterOrDigit(phrase[0]) ||
+                         !char.IsLetterOrDigit(text[index - 1]);
+            var end = index + phrase.Length;
+            var rightOk = end >= text.Length || !char.IsLetterOrDigit(phrase[^1]) ||
+                          !char.IsLetterOrDigit(text[end]);
+            if (leftOk && rightOk) return true;
+            start = index + 1;
+        }
+    }
+
+
     /// <summary>
     /// Key so địa chỉ: dấu câu không phải tín hiệu phân biệt nên "TP. Hồ Chí Minh"
     /// và "TP Hồ Chí Minh" phải quy về một. Chỉ dùng cho phần địa điểm — kỹ năng

@@ -46,12 +46,15 @@ public class SuggestedJobViewModel
     public float BonusDiaDiem { get; set; }
     /// <summary>Có thể âm: thiếu số năm yêu cầu bị trừ tối đa 0.05.</summary>
     public float BonusKinhNghiem { get; set; }
+    /// <summary>Số điểm đã bị hạ vì thiếu kỹ năng bắt buộc (trần 0.60, trừ 0.05 mỗi kỹ năng);
+    /// 0 khi CV có bằng chứng cho mọi yêu cầu BatBuc. DiemPhuHop đã bao gồm khoản này.</summary>
+    public float PhatBatBuoc { get; set; }
     /// <summary>Lý do gợi ý do DeepSeek viết; null khi rerank tắt hoặc mô hình lỗi.</summary>
     public string? LyDoGoiY { get; set; }
     public List<string> KyNangThoa { get; set; } = new();
     public List<string> KyNangThieu { get; set; } = new();
     /// <summary>Yeu cau BatBuc ma CV chua co bang chung; rong khi ung vien dat het moi thu.
-    /// Diem khong bi no siet — day la nhan screening de nguoi dung tu quyet dinh.</summary>
+    /// Moi ky nang thieu ha DiemPhuHop xuong toi da 0.60 roi tru 0.05 (xem PhatBatBuoc).</summary>
     public List<string> KyNangBatBuocThieu { get; set; } = new();
     public DateTime? NgayHetHan { get; set; }
     // Cac truong duoi day giu cung ngon ngu du lieu voi tim kiem /viec-lam de FE
@@ -88,12 +91,16 @@ public class GetSuggestedJobsForCvQueryHandler(
             ? await context.CVUngViens.AsNoTracking()
                 .Include(x => x.ThongTinLienHe)
                 .Include(x => x.KyNangs)
+                .Include(x => x.KinhNghiems)
+                .Include(x => x.DuAns)
                 .FirstOrDefaultAsync(x => x.Id == request.CvUngVienId.Value &&
                                           x.HoSoUngVienId == hoSo.Id && !x.IsDaXoa,
                     cancellationToken)
             : await context.CVUngViens.AsNoTracking()
                 .Include(x => x.ThongTinLienHe)
                 .Include(x => x.KyNangs)
+                .Include(x => x.KinhNghiems)
+                .Include(x => x.DuAns)
                 .FirstOrDefaultAsync(x => x.HoSoUngVienId == hoSo.Id &&
                                           x.IsDefault && !x.IsDaXoa, cancellationToken);
 
@@ -146,7 +153,8 @@ public class GetSuggestedJobsForCvQueryHandler(
                 ? cv.ThongTinLienHe.ViTriUngTuyen : hoSo.ViTriUngTuyen,
             cv.ThongTinLienHe?.MucLuongMongMuon ?? (decimal)hoSo.MucLuongMongMuon,
             !string.IsNullOrWhiteSpace(cv.ThongTinLienHe?.DiaChi)
-                ? cv.ThongTinLienHe.DiaChi : hoSo.DiaChi);
+                ? cv.ThongTinLienHe.DiaChi : hoSo.DiaChi,
+            CandidateEvidenceText.From(cv));
 
         var now = DateTime.UtcNow;
         var postings = await context.TinTuyenDungs.AsNoTracking()
@@ -244,6 +252,7 @@ public class GetSuggestedJobsForCvQueryHandler(
         BonusLuong = match.SalaryBonus,
         BonusDiaDiem = match.LocationBonus,
         BonusKinhNghiem = match.ExperienceBonus,
+        PhatBatBuoc = match.MandatoryPenalty,
         NgayHetHan = t.NgayHetHan,
         WorkMode = t.PhuongThucLamViec.ToString(),
         Level = InferLevel(t.TieuDe, t.KinhNghiemYeuCau),

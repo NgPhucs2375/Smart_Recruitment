@@ -8,21 +8,23 @@ public sealed record MatchSkill(int? Id, string? Name, MucDo? Level = null, floa
 public sealed record MatchRequirement(int? Id, string? Name, MucDoYC Level);
 public sealed record CandidateMatchInput(
     IReadOnlyList<MatchSkill> Skills, string? Position = null,
-    decimal DesiredSalary = 0, string? Address = null);
+    decimal DesiredSalary = 0, string? Address = null,
+    // Chữ tự do trong CV (kinh nghiệm, dự án, giới thiệu) để tìm bằng chứng kỹ năng.
+    string? EvidenceText = null);
 public sealed record JobMatchInput(
     IReadOnlyList<MatchRequirement> Requirements, string? Title = null,
     decimal SalaryMin = 0, decimal SalaryMax = 0, string? Location = null,
     string? ExperienceRequired = null);
 public sealed record ContentMatchResult(
     float Score, float SkillScore, float PositionBonus, float SalaryBonus, float LocationBonus,
-    float ExperienceBonus,
+    float ExperienceBonus, float MandatoryPenalty,
     IReadOnlyList<string> MatchedSkills, IReadOnlyList<string> MissingSkills,
     IReadOnlyList<string>? MissingMandatory = null)
 {
     /// <summary>
-    /// Kỹ năng bắt buộc chưa có bằng chứng. Điểm <c>Score</c> không đổi vì cổng này: màn hình
-    /// Gợi ý việc làm chấm trên chính nó, nên siết điểm sẽ đổi luôn thứ tự đang chạy thật.
-    /// Nó là nhãn screening — người dùng tự quyết định có ứng tuyển khi thiếu một kỹ năng hay không.
+    /// Kỹ năng bắt buộc chưa có bằng chứng. Từ cbf-v8 nó vừa là nhãn screening vừa hạ điểm:
+    /// trần 0.60 rồi trừ mỗi kỹ năng thiếu, để tin thiếu bắt buộc không còn hiện "Cao"
+    /// dù phần kỹ năng khớp nhiều.
     /// </summary>
     public IReadOnlyList<string> MissingMandatory { get; init; } = MissingMandatory ?? [];
 
@@ -34,7 +36,16 @@ public sealed record ContentMatchResult(
 public static class ContentBasedMatcher
 {
     public const string BaselineVersion = "cbf-v1";
-    public const string Version = "cbf-v7-idf";
+    public const string Version = "cbf-v8-idf";
+
+    /// <summary>
+    /// Tin còn thiếu kỹ năng bắt buộc bị chặn trần dưới ngưỡng Cao (0.66) rồi trừ thêm
+    /// mỗi kỹ năng thiếu, để tin thiếu 1 vẫn xếp trên tin thiếu 3. Sàn 0.05 giữ bất biến
+    /// "khớp ít nhất một yêu cầu thì score > 0" mà bộ lọc API và fan-out đang dựa vào.
+    /// </summary>
+    private const float GatedScoreCap = .60f;
+    private const float GatedPenaltyStep = .05f;
+    private const float GatedScoreFloor = .05f;
 
     /// <summary>
     /// π = mức phủ kỹ năng kỳ vọng trước khi có bằng chứng, p = trọng số ảo theo thang Weight().
@@ -85,6 +96,9 @@ public static class ContentBasedMatcher
                 .Select(g => g.OrderByDescending(DedupWeight).First()).ToList();
         }
 
+        // Chữ CV chỉ dùng làm bằng chứng cho yêu cầu của chính tin đang chấm; khớp theo
+        // ranh giới từ và cả biến thể alias (ML, dotnet, k8s...) để không khớp "Go" trong "Google".
+        var evidenceText = normalized ? MatchingTextNormalizer.TextKey(candidate.EvidenceText) : string.Empty;
         var matched = new List<string>();
         var missing = new List<string>();
         var missingMandatory = new List<string>();
@@ -101,6 +115,12 @@ public static class ContentBasedMatcher
             if (evidence != null)
             {
                 matchedWeight += EvidenceWeight(requirement) * Membership(evidence);
+                matched.Add(requirement.Name!.Trim());
+            }
+            else if (evidenceText.Length > 0 && MatchingTextNormalizer.ContainsSkill(evidenceText, requirement.Name))
+            {
+                // Nhắc tới trong mô tả = bằng chứng ngang kỹ năng khai không kèm trình độ (trung tính).
+                matchedWeight += EvidenceWeight(requirement);
                 matched.Add(requirement.Name!.Trim());
             }
             else
@@ -153,10 +173,24 @@ public static class ContentBasedMatcher
                     (2f * Math.Min(1f, actual.Value / required.Value) - 1f);
         }
 
+        var mandatoryPenalty = 0f;
+        var score = Math.Min(1, skillScore + positionBonus + salaryBonus + locationBonus + experienceBonus);
+        if (normalized && missingMandatory.Count > 0)
+        {
+            var gated = Math.Min(score, GatedScoreCap) - GatedPenaltyStep * missingMandatory.Count;
+            // Sàn chỉ để không xoá tin/cv còn khớp ít nhất một yêu cầu khỏi bộ lọc "score > 0";
+            // không nâng điểm của một cặp vốn đã thấp hơn sàn.
+            var settled = skillScore > 0f ? Math.Min(score, Math.Max(GatedScoreFloor, gated)) : Math.Max(0f, gated);
+            mandatoryPenalty = score - settled;
+            score = settled;
+        }
+
         return new ContentMatchResult(
-            Math.Min(1, skillScore + positionBonus + salaryBonus + locationBonus + experienceBonus),
+            score,
             skillScore, positionBonus, salaryBonus, locationBonus, experienceBonus,
+            mandatoryPenalty,
             matched, missing, missingMandatory);
+
     }
 
     /// <summary>

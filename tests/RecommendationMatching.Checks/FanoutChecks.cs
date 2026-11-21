@@ -27,6 +27,17 @@ public static class FanoutChecks
         var company = new DoanhNghiep { Id = 10, TenDoanhNghiep = "Fanout check" };
         var javascript = new DanhMucKyNang { Id = 10, TenKyNang = "JavaScript" };
         var docker = new DanhMucKyNang { Id = 11, TenKyNang = "Docker" };
+        var rust = new DanhMucKyNang { Id = 12, TenKyNang = "Rust" };
+        // Kỹ năng ưu tiên không trùng ai trong pool: đủ nhiều để điểm tin 5 nằm dưới
+        // mức TrungBinh bất kể corpus có áp IDF hay không (InMemory có thể không thấy
+        // navigation, còn SQL thật thì có).
+        var optional = new[]
+            {
+                "Kubernetes", "AWS", "GCP", "Terraform", "Figma", "Photoshop",
+                "Kafka", "Elasticsearch"
+            }
+            .Select((name, i) => new DanhMucKyNang { Id = 13 + i, TenKyNang = name })
+            .ToList();
 
         CVUngVien Cv(int id, int userId, params string[] skills) => new()
         {
@@ -43,22 +54,31 @@ public static class FanoutChecks
         {
             Id = id, TieuDe = $"Frontend Developer {id}", DoanhNghiep = company, NguoiDangTinId = 100,
             TrangThai = TrangThaiTinTuyenDung.DangTuyen,
-            // Tin 4 trùng địa điểm với hồ sơ 7 nhưng không trùng kỹ năng nào:
-            // điểm chỉ còn phần thưởng địa điểm, đủ để kiểm chứng cách viết tiêu đề.
+            // Tin 4 trùng địa điểm với hồ sơ 7 nhưng không trùng kỹ năng nào. Từ cbf-v8
+            // thiếu 2 kỹ năng bắt buộc kéo điểm về 0, nên địa điểm không đủ cứu cặp
+            // không có bằng chứng kỹ năng — hồ sơ 7 không còn được lưu.
             DiaDiemLamViec = id == 4 ? "Hà Nội" : null,
-            KyNangTinTuyenDungs = [
-                new() { DanhMucKyNang = javascript, MucDoYeuCau = MucDoYC.BatBuc },
-                new() { DanhMucKyNang = docker, MucDoYeuCau = MucDoYC.BatBuc }]
+            KyNangTinTuyenDungs = id == 5
+                ? [new() { DanhMucKyNang = rust, MucDoYeuCau = MucDoYC.BatBuc },
+                    .. optional.Select(x => new KyNangTinTuyenDung
+                    {
+                        DanhMucKyNang = x, MucDoYeuCau = MucDoYC.UuTien
+                    })]
+                : [new() { DanhMucKyNang = javascript, MucDoYeuCau = MucDoYC.BatBuc },
+                    new() { DanhMucKyNang = docker, MucDoYeuCau = MucDoYC.BatBuc }]
         };
 
         var chiHaNoi = Cv(7, 25, "Nursing");
         chiHaNoi.ThongTinLienHe.DiaChi = "Hà Nội";
         db.CVUngViens.AddRange(
-            Cv(1, 1, "JS"),
+            // Hồ sơ 1 khớp trọn 2 kỹ năng bắt buộc của tin 1-4, giữ mốc "%" ổn định
+            // dù corpus có áp IDF hay không; vẫn dùng alias "JS" để phủ đường chuẩn hóa.
+            Cv(1, 1, "JS", "Docker"),
             Cv(4, 22, "JavaScript", "Docker"),
             Cv(5, 23, "Vẽ kỹ thuật"),
+            Cv(6, 26, "Rust"),
             chiHaNoi);
-        db.TinTuyenDungs.AddRange(Job(1), Job(2), Job(3), Job(4));
+        db.TinTuyenDungs.AddRange(Job(1), Job(2), Job(3), Job(4), Job(5));
         await db.SaveChangesAsync();
         db.ChangeTracker.Clear();
 
@@ -68,27 +88,29 @@ public static class FanoutChecks
         {
             TopKPerJob = 20, TopJobsPerCandidate = 3, DailyNotifyBudgetPerCandidate = 3
         };
-        foreach (var jobId in new[] { 1, 2, 3, 4 })
+        foreach (var jobId in new[] { 1, 2, 3, 4, 5 })
             await fanout.RunAsync(jobId, budget);
 
         check(await db.KetQuaPhuHops.CountAsync() == 9,
             "Fan-out scores the whole looking pool for every live job");
         check(await db.KetQuaPhuHops.AnyAsync(k => k.CVUngVienId == 4),
             "Candidate who never opened the suggestion page already has a stored score");
-        check(!await db.KetQuaPhuHops.AnyAsync(k => k.CVUngVienId == 5),
-            "Zero-score candidate is not stored");
+        check(!await db.KetQuaPhuHops.AnyAsync(k => k.CVUngVienId == 5) &&
+              !await db.KetQuaPhuHops.AnyAsync(k => k.CVUngVienId == 7),
+            "Zero-score candidates are not stored (a location bonus alone cannot survive the mandatory gate)");
         check(await db.TinTuyenDungs.Where(x => x.NguoiDangTinId == 100)
                   .AllAsync(x => x.QuatUngVienLucCuoi != null),
             "Every swept job carries the sweep marker");
 
-        // Top-3 mỗi ứng viên + ngân sách 3 bản tin/ngày: 4 tin khớp nhau hoàn toàn
-        // nên tin thứ 4 bị chặn bởi cả hai luật, trên cả hai ứng viên.
+        // Top-3 mỗi ứng viên + ngân sách 3 bản tin/ngày: 4 tin đầu khớp nhau hoàn toàn
+        // nên tin thứ 4 bị chặn bởi cả hai luật, trên cả hai ứng viên (3 + 3).
+        // Hồ sơ 6 chỉ khớp tin 5 qua 1/9 yêu cầu (dưới ngưỡng TrungBinh) nên nhận đúng 1 tin.
         check(SentTo(recorder, "GoiYViecLamPhuHop") == 7,
             "Candidate notifications respect top jobs and the daily budget");
-        check(SentTo(recorder, "UngVienPhuHop") == 4,
+        check(SentTo(recorder, "UngVienPhuHop") == 5,
             "One aggregated recruiter digest per live job per day");
         // 5% nghe như lỗi hiển thị chứ không phải gợi ý: điểm dưới mức TrungBinh
-        // phải diễn đạt bằng xếp hạng, điểm thật mới dán con số %.
+        // phải diễn đạt bằng xếp hạng, điểm thật mới dán con số %. Hồ sơ 6 là ca thử.
         check(SentTo(recorder, "GoiYViecLamPhuHop", x => x.TieuDe.Contains('%')) == 6 &&
             SentTo(recorder, "GoiYViecLamPhuHop", x => !x.TieuDe.Contains('%')) == 1,
             "Low-score notification uses ranking wording instead of a misleading percentage");
@@ -96,7 +118,7 @@ public static class FanoutChecks
             "Fan-out never writes the moderation reference type that HR reads as GhiChuKiemDuyet");
 
         var before = (await db.KetQuaPhuHops.CountAsync(), recorder.Sent.Count);
-        foreach (var jobId in new[] { 1, 2, 3, 4 })
+        foreach (var jobId in new[] { 1, 2, 3, 4, 5 })
             await fanout.RunAsync(jobId, budget);
         check(before == (await db.KetQuaPhuHops.CountAsync(), recorder.Sent.Count),
             "Re-running the sweep duplicates neither scores nor notifications");

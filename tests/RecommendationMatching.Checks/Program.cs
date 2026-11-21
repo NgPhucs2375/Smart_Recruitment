@@ -34,6 +34,23 @@ Check(MatchingTextNormalizer.SkillKey(".NET Framework") != MatchingTextNormalize
 Check(MatchingTextNormalizer.SkillKey("CI/CD") == MatchingTextNormalizer.SkillKey("CI CD"), "Slash and space spell the same catalogue row");
 Check(MatchingTextNormalizer.SkillKey("React Native") != MatchingTextNormalizer.SkillKey("React"), "React Native is not a substring match for React");
 
+// Bằng chứng trong chữ CV: kỹ năng không gắn tag nhưng nằm trong mô tả dự án/kinh nghiệm
+// vẫn được tính; khớp theo ranh giới từ và chấp nhận biến thể alias.
+CandidateMatchInput Text(string text) => new([], EvidenceText: text);
+Check(ContentBasedMatcher.Evaluate(Text("Thiết kế hệ thống theo Clean Architecture và DDD"),
+    Job("Clean Architecture")).MatchedSkills.Count == 1, "Skill found in CV prose counts as evidence");
+Check(Near(ContentBasedMatcher.Evaluate(Text("Thiết kế hệ thống theo Clean Architecture"),
+    Job("Clean Architecture")).Score, 0.625f), "Prose evidence weighs like a declared skill");
+Check(ContentBasedMatcher.Evaluate(Text("Dùng ASP.NET Core và .NET 8"), Job(".NET")).MatchedSkills.Count == 1,
+    "Punctuation-led skill still matches inside a compound word");
+Check(Near(ContentBasedMatcher.Evaluate(Text("Làm việc tại Google Cloud"), Job("Go")).Score, 0),
+    "Prose match respects word boundaries");
+Check(Near(ContentBasedMatcher.Evaluate(Text("Phát triển JavaScript"), Job("Java")).Score, 0),
+    "A longer word in prose does not satisfy a shorter skill");
+Check(ContentBasedMatcher.Evaluate(new([new(null, "JS")], EvidenceText: "Tối ưu bundle JS"),
+    Job("JavaScript")).MatchedSkills.Count == 1, "Tag and prose evidence do not double count");
+
+
 // IDF. Excel 32 / SQL 31 / Kubernetes 5 la df do duoc tren 90 tin hieu luc; hai ky nang mem
 // 40/38 la gia dinh cua ca toan: trong DB that "Communication" chi co 13/90 va "Teamwork" 1/90
 // dong yeu cau co cau truc, nen tren duong dat IDC chua co tac dung nay (xem README buoc #5).
@@ -100,7 +117,10 @@ var duplicateRequirements = new JobMatchInput([
     new(null, "JS", MucDoYC.KhongBatBuoc), new(null, "JavaScript", MucDoYC.BatBuc),
     new(null, "Docker", MucDoYC.BatBuc)]);
 var dedup = ContentBasedMatcher.Evaluate(Candidate("JS"), duplicateRequirements);
-Check(Near(dedup.Score, .45454545f) && dedup.MatchedSkills.SequenceEqual(["JavaScript"]), "Duplicate JD aliases retain strongest requirement");
+// So với bản không lặp alias (cùng bị khoản phạt thiếu Docker) để kiểm đúng phép gộp.
+var dedupReference = ContentBasedMatcher.Evaluate(Candidate("JS"), new JobMatchInput([
+    new(null, "JavaScript", MucDoYC.BatBuc), new(null, "Docker", MucDoYC.BatBuc)]));
+Check(Near(dedup.Score, dedupReference.Score) && dedup.MatchedSkills.SequenceEqual(["JavaScript"]), "Duplicate JD aliases retain strongest requirement");
 Check(Near(ContentBasedMatcher.Evaluate(new([new(7, "")]), new([new(7, "Docker", MucDoYC.BatBuc)])).Score, 0.625f), "Catalog ID can match without CV skill text");
 Check(Near(ContentBasedMatcher.Evaluate(Candidate(""), Job(" ")).Score, 0), "Blank requirements do not score");
 
@@ -114,13 +134,31 @@ Check(Near(ContentBasedMatcher.Evaluate(new([new(null, "Docker")], "Backend", 20
     new([new(null, "Docker", MucDoYC.BatBuc)], "Backend", 15, 25, "Hà Nội")).Score, 0.8f), "Calibrated score plus all bonuses");
 Check(Near(ContentBasedMatcher.Evaluate(new([], DesiredSalary: 20), new([], SalaryMax: 0)).Score, 0), "Unknown salary does not earn salary bonus");
 
-// Cổng bắt buộc là nhãn screening: nó liệt kê thiếu gì nhưng không được sửa Score,
-// vì màn gợi ý việc làm chấm điểm trên chính Score và đang chạy thật.
+// Thiếu kỹ năng bắt buộc không còn là nhãn suông: điểm bị chặn trần 0.60 (dưới ngưỡng Cao)
+// rồi trừ 0.05 mỗi kỹ năng bắt buộc thiếu, sàn 0.05 để tin còn khớp ít nhất một yêu cầu
+// vẫn lọt bộ lọc "score > 0" của API và fan-out.
 var gated = ContentBasedMatcher.Evaluate(Candidate("JS"), new JobMatchInput([
     new(null, "JavaScript", MucDoYC.BatBuc), new(null, "Docker", MucDoYC.BatBuc),
     new(null, "Figma", MucDoYC.UuTien)]));
 Check(gated.MissingMandatory.SequenceEqual(["Docker"]) && !gated.MeetsMandatory, "Gate names only uncovered BatBuc skills");
-Check(Near(gated.Score, .3846154f), "Gate leaves the score untouched");
+Check(Near(gated.MandatoryPenalty, .05f), "Penalty counts only missing BatBuc skills");
+Check(Near(gated.Score, .3346154f), "Penalty subtracts 5% per missing mandatory skill");
+var covered = ContentBasedMatcher.Evaluate(Candidate("JS", "Docker", "Figma"), new JobMatchInput([
+    new(null, "JavaScript", MucDoYC.BatBuc), new(null, "Docker", MucDoYC.BatBuc),
+    new(null, "Figma", MucDoYC.UuTien)]));
+Check(Near(covered.MandatoryPenalty, 0f) && Near(covered.Score, .7692308f), "Solving every mandatory skill removes the penalty");
+var cappedGap = ContentBasedMatcher.Evaluate(Candidate("JS", "Docker", "Figma"), new JobMatchInput([
+    new(null, "JavaScript", MucDoYC.BatBuc), new(null, "Docker", MucDoYC.BatBuc),
+    new(null, "Figma", MucDoYC.BatBuc), new(null, "SQL", MucDoYC.BatBuc)]));
+Check(Near(cappedGap.Score, .55f), "Any missing mandatory skill caps the score below the Cao threshold");
+Check(ContentBasedMatcher.PhanLoaiCua(cappedGap.Score) == PhanLoaiKetQua.TrungBinh, "A gated job never shows as Cao");
+Check(ContentBasedMatcher.Evaluate(Candidate("JS"), new JobMatchInput([
+    new(null, "JavaScript", MucDoYC.BatBuc), new(null, "Docker", MucDoYC.BatBuc),
+    new(null, "Figma", MucDoYC.BatBuc), new(null, "SQL", MucDoYC.BatBuc),
+    new(null, "React", MucDoYC.BatBuc), new(null, "Node", MucDoYC.BatBuc),
+    new(null, "Git", MucDoYC.BatBuc), new(null, "Docker Compose", MucDoYC.BatBuc),
+    new(null, "Kubernetes", MucDoYC.BatBuc)])).Score > 0, "Penalty floor keeps a one-skill match above zero");
+
 Check(ContentBasedMatcher.Evaluate(Candidate("JS", "Docker"), new JobMatchInput([
     new(null, "JavaScript", MucDoYC.BatBuc), new(null, "Docker", MucDoYC.BatBuc)])).MeetsMandatory, "Covering every mandatory skill passes the gate");
 Check(ContentBasedMatcher.Evaluate(new([], "Backend"), new([], "Backend Developer", 15, 25, "Hà Nội")).MeetsMandatory, "JD without mandatory skills passes");
