@@ -1019,6 +1019,11 @@ html {
   line-height: 1.45;
 }
 
+/* CopilotKit popup uses z-index 1200; keep error toasts above it as a fallback. */
+[data-sonner-toaster] {
+  z-index: 1300 !important;
+}
+
 .adam-chat-header__inner [data-testid="copilot-header-title"] {
   min-width: 0;
   flex: 1 1 auto;

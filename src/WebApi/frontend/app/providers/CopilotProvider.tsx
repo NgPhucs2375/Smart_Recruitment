@@ -465,23 +465,22 @@ function ThreadIdPersistor({ userId }: { userId: string | null }) {
   return null;
 }
 
-const ADAM_QUOTA_EVENT = "adam:quota-exhausted";
+function showAdamQuotaNotice(message: string) {
+  const popup = document.querySelector<HTMLElement>('[data-testid="copilot-popup"]');
+  const chat = popup?.querySelector<HTMLElement>('[data-popup-chat]');
+  if (!popup || !chat) return;
 
-// CopilotKit memoizes the popup header slot. Keep the notice's state inside
-// that slot so an error does not depend on the outer provider re-rendering it.
-function AdamQuotaNotice() {
-  const [message, setMessage] = useState<string | null>(null);
-
-  useEffect(() => {
-    const onQuota = (event: Event) => {
-      setMessage((event as CustomEvent<string>).detail);
-    };
-    window.addEventListener(ADAM_QUOTA_EVENT, onQuota);
-    return () => window.removeEventListener(ADAM_QUOTA_EVENT, onQuota);
-  }, []);
-
-  if (!message) return null;
-  return <div className="adam-chat-quota-notice" role="alert">{message}</div>;
+  // The popup is rendered by CopilotKit. Insert the quota response at its DOM
+  // boundary so an SDK error cannot leave the notice behind a memoized slot.
+  let notice = popup.querySelector<HTMLElement>('[data-adam-quota-notice]');
+  if (!notice) {
+    notice = document.createElement("div");
+    notice.className = "adam-chat-quota-notice";
+    notice.dataset.adamQuotaNotice = "true";
+    notice.setAttribute("role", "alert");
+    popup.insertBefore(notice, chat);
+  }
+  notice.textContent = message;
 }
 
 export function CopilotProvider({ children }: { children: React.ReactNode }) {
@@ -536,7 +535,7 @@ export function CopilotProvider({ children }: { children: React.ReactNode }) {
       onError={(event) => {
         console.error(`[CopilotKit ${event.type}]`, event.error, event.context);
         const message = getAdamRateLimitMessage(event);
-        if (message) window.dispatchEvent(new CustomEvent(ADAM_QUOTA_EVENT, { detail: message }));
+        if (message) showAdamQuotaNotice(message);
         notifyAdamError(event);
       }}
     >
@@ -591,7 +590,6 @@ function DeferredCopilotPopup({
               <NewChatButton userId={userId} />
               {closeButton}
             </div>
-            <AdamQuotaNotice />
           </div>
         ),
       }}
