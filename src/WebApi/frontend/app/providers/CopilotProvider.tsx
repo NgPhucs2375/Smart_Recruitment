@@ -8,6 +8,7 @@ import {
   useAgent,
   useConfigureSuggestions,
   useCopilotChatConfiguration,
+  useCopilotKit,
 } from "@copilotkit/react-core/v2";
 import "@copilotkit/react-core/v2/styles.css";
 import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
@@ -516,11 +517,12 @@ export function CopilotProvider({ children }: { children: React.ReactNode }) {
         "X-Adam-Route": pathname ?? "",
       }}
       onError={(event) => {
-        console.error(`[CopilotKit ${event.type}]`, event.error, event.context);
+        console.error(`[CopilotKit ${event.code}]`, event.error, event.context);
         const message = getAdamRateLimitMessage(event);
         if (message) setQuotaMessage(message);
       }}
     >
+      <AdamQuotaErrorSubscriber onQuotaError={setQuotaMessage} />
       {children}
       {adamEnabled && (
         <>
@@ -544,6 +546,31 @@ export function CopilotProvider({ children }: { children: React.ReactNode }) {
       </div>
     )}
   </>;
+}
+
+/**
+ * Subscribe directly to CopilotKit's core error stream as a fallback to its
+ * provider prop. This makes quota notices independent of the UI callback path.
+ */
+function AdamQuotaErrorSubscriber({
+  onQuotaError,
+}: {
+  onQuotaError: (message: string) => void;
+}) {
+  const { copilotkit } = useCopilotKit();
+
+  useEffect(() => {
+    const subscription = copilotkit.subscribe({
+      onError: (event) => {
+        const message = getAdamRateLimitMessage(event);
+        if (message) onQuotaError(message);
+      },
+    });
+
+    return () => subscription.unsubscribe();
+  }, [copilotkit, onQuotaError]);
+
+  return null;
 }
 
 /**
