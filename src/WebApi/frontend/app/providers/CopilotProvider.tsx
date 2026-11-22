@@ -517,7 +517,7 @@ export function CopilotProvider({ children }: { children: React.ReactNode }) {
         "X-Adam-Route": pathname ?? "",
       }}
       onError={(event) => {
-        console.error(`[CopilotKit ${event.code}]`, event.error, event.context);
+        console.error(`[CopilotKit ${event.type}]`, event.error, event.context);
         const message = getAdamRateLimitMessage(event);
         if (message) setQuotaMessage(message);
       }}
