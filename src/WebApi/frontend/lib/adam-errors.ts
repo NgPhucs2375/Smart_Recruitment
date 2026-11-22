@@ -4,6 +4,8 @@ type AdamErrorEvent = {
   error?: unknown;
 };
 
+const ADAM_CHAT_QUOTA_ERROR_CODE = "AGENT_CHAT_QUOTA_EXCEEDED";
+
 function hasRateLimitStatus(error: unknown): boolean {
   if (!error || typeof error !== "object") return false;
   const record = error as Record<string, unknown>;
@@ -25,14 +27,24 @@ function errorText(error: unknown): string {
 
 export function getAdamRateLimitMessage(event: AdamErrorEvent): string | null {
   const message = errorText(event.error);
-  if (!hasRateLimitStatus(event.error) && !/429|too many|rate.?limit|hết.*lượt|hạn mức|quota/i.test(message)) return null;
+  const hasQuotaTrigger = message.includes(ADAM_CHAT_QUOTA_ERROR_CODE);
+  if (
+    !hasQuotaTrigger &&
+    !hasRateLimitStatus(event.error) &&
+    !/429|too many|rate.?limit|hết.*lượt|hạn mức|quota/i.test(message)
+  ) {
+    return null;
+  }
 
   // CopilotKit wraps the backend JSON in an Error message: "HTTP 429: {...}".
   // Only use the backend's quota message; never show raw HTTP errors in the UI.
   const payload = message.slice(message.indexOf("{"));
   if (message.includes("{")) {
     try {
-      const parsed = JSON.parse(payload) as { message?: unknown };
+      const parsed = JSON.parse(payload) as { code?: unknown; message?: unknown };
+      if (parsed.code === ADAM_CHAT_QUOTA_ERROR_CODE && typeof parsed.message === "string") {
+        return parsed.message;
+      }
       if (typeof parsed.message === "string" && /hết.*lượt|hạn mức|quota/i.test(parsed.message)) {
         return parsed.message;
       }

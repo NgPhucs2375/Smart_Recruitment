@@ -58,6 +58,7 @@ internal sealed class AgentChatRateLimitMiddleware : IMiddleware
         context.Response.ContentType = "application/json; charset=utf-8";
         await context.Response.WriteAsync(JsonSerializer.Serialize(new
         {
+            code = "AGENT_CHAT_QUOTA_EXCEEDED",
             message = $"Bạn đã dùng hết {quota.Limit} lượt chat Adam hôm nay. Vui lòng quay lại sau.",
             used = quota.Used,
             limit = quota.Limit,
