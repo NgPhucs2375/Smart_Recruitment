@@ -1011,12 +1011,34 @@ html {
 }
 
 .adam-chat-quota-notice {
-  padding: 0.7rem 1rem;
-  border-bottom: 1px solid color-mix(in srgb, var(--destructive) 30%, var(--border));
+  position: fixed;
+  z-index: 2000;
+  top: 1rem;
+  left: 50%;
+  display: flex;
+  width: min(90vw, 36rem);
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  transform: translateX(-50%);
+  padding: 0.85rem 1rem;
+  border: 1px solid color-mix(in srgb, var(--destructive) 40%, var(--border));
+  border-radius: 0.75rem;
   background: color-mix(in srgb, var(--destructive) 9%, var(--card));
   color: var(--foreground);
+  box-shadow: 0 12px 32px rgb(0 0 0 / 0.16);
   font-size: 0.85rem;
   line-height: 1.45;
+}
+
+.adam-chat-quota-notice button {
+  flex: 0 0 auto;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font-size: 1.2rem;
+  line-height: 1;
 }
 
 /* CopilotKit popup uses z-index 1200; keep error toasts above it as a fallback. */

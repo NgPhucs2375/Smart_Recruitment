@@ -20,7 +20,7 @@ import { useGlobalCvAssistant } from "@/hooks/use-global-cv-assistant";
 import { useStoredIdentity } from "@/hooks/use-stored-identity";
 import { resolveAdamRole, type AdamRole } from "@/lib/adam-role";
 import { adamMessageView } from "@/components/ai/adam-markdown";
-import { getAdamRateLimitMessage, notifyAdamError } from "@/lib/adam-errors";
+import { getAdamRateLimitMessage } from "@/lib/adam-errors";
 import {
   getCvFocusSectionLabel,
   requestCvSectionsFocus,
@@ -465,28 +465,11 @@ function ThreadIdPersistor({ userId }: { userId: string | null }) {
   return null;
 }
 
-function showAdamQuotaNotice(message: string) {
-  const popup = document.querySelector<HTMLElement>('[data-testid="copilot-popup"]');
-  const chat = popup?.querySelector<HTMLElement>('[data-popup-chat]');
-  if (!popup || !chat) return;
-
-  // The popup is rendered by CopilotKit. Insert the quota response at its DOM
-  // boundary so an SDK error cannot leave the notice behind a memoized slot.
-  let notice = popup.querySelector<HTMLElement>('[data-adam-quota-notice]');
-  if (!notice) {
-    notice = document.createElement("div");
-    notice.className = "adam-chat-quota-notice";
-    notice.dataset.adamQuotaNotice = "true";
-    notice.setAttribute("role", "alert");
-    popup.insertBefore(notice, chat);
-  }
-  notice.textContent = message;
-}
-
 export function CopilotProvider({ children }: { children: React.ReactNode }) {
   // Key chuẩn của app là "access_token" (auth-provider.ts TOKEN_KEY) —
   // đọc sai key trước đây khiến header Authorization luôn rỗng.
   const [token, setToken] = useState<string | null>(() => getAuthToken());
+  const [quotaMessage, setQuotaMessage] = useState<string | null>(null);
   const pathname = usePathname();
   const identity = useStoredIdentity();
   const adamRole = resolveAdamRole(identity?.roles);
@@ -523,7 +506,7 @@ export function CopilotProvider({ children }: { children: React.ReactNode }) {
   // Đi qua Next proxy cùng origin để giữ SSE streaming, sanitize event hỏng
   // và không phụ thuộc browser -> BE direct (hết CORS/localhost staging).
   const runtimeUrl = "/api/copilotkit";
-  return (
+  return <>
     <CopilotKit
       runtimeUrl={runtimeUrl}
       useSingleEndpoint={false}
@@ -535,8 +518,7 @@ export function CopilotProvider({ children }: { children: React.ReactNode }) {
       onError={(event) => {
         console.error(`[CopilotKit ${event.type}]`, event.error, event.context);
         const message = getAdamRateLimitMessage(event);
-        if (message) showAdamQuotaNotice(message);
-        notifyAdamError(event);
+        if (message) setQuotaMessage(message);
       }}
     >
       {children}
@@ -555,7 +537,13 @@ export function CopilotProvider({ children }: { children: React.ReactNode }) {
         </>
       )}
     </CopilotKit>
-  );
+    {adamEnabled && quotaMessage && (
+      <div className="adam-chat-quota-notice" data-adam-quota-notice="true" role="alert">
+        <span>{quotaMessage}</span>
+        <button type="button" onClick={() => setQuotaMessage(null)} aria-label="Đóng thông báo hạn mức Adam">×</button>
+      </div>
+    )}
+  </>;
 }
 
 /**

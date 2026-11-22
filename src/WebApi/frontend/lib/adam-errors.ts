@@ -18,7 +18,9 @@ function errorText(error: unknown): string {
     if (typeof record.message === "string") return record.message;
     if (typeof record.error === "string") return record.error;
   }
-  return "";
+  // Some runtime errors originate from another JS realm: instanceof Error
+  // may fail although DevTools displays "Error: HTTP 429: ...".
+  return error == null ? "" : String(error);
 }
 
 export function getAdamRateLimitMessage(event: AdamErrorEvent): string | null {
