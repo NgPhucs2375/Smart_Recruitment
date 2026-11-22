@@ -13,6 +13,7 @@ import {
 } from "@copilotkit/react-core/v2";
 import "@copilotkit/react-core/v2/styles.css";
 import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { CircleAlert } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { getAuthToken, getValidToken } from "@/lib/auth-provider";
 import { loadThreadId, saveThreadId, clearThreadId } from "@/lib/adam-thread";
@@ -604,7 +605,13 @@ function DeferredCopilotPopup({
             )}
             {quotaMessage && (
               <div className="adam-chat-quota-message" data-adam-quota-message="true" role="alert">
-                <span>{quotaMessage}</span>
+                <span className="adam-chat-quota-message__icon" aria-hidden="true">
+                  <CircleAlert size={18} strokeWidth={1.8} />
+                </span>
+                <div className="adam-chat-quota-message__content">
+                  <span className="adam-chat-quota-message__label">Giới hạn lượt chat</span>
+                  <p>{quotaMessage}</p>
+                </div>
                 <button type="button" onClick={onDismissQuota} aria-label="Đóng thông báo hạn mức Adam">×</button>
               </div>
             )}
