@@ -1010,28 +1010,23 @@ html {
   flex: 0 0 auto;
 }
 
-.adam-chat-quota-notice {
-  position: fixed;
-  z-index: 2000;
-  top: 1rem;
-  left: 50%;
+.adam-chat-quota-message {
   display: flex;
-  width: min(90vw, 36rem);
+  align-self: flex-start;
+  max-width: 92%;
   align-items: flex-start;
-  justify-content: space-between;
   gap: 1rem;
-  transform: translateX(-50%);
-  padding: 0.85rem 1rem;
+  margin: 0.5rem 1rem 1rem;
+  padding: 0.75rem 0.9rem;
   border: 1px solid color-mix(in srgb, var(--destructive) 40%, var(--border));
-  border-radius: 0.75rem;
+  border-radius: 0.9rem;
   background: color-mix(in srgb, var(--destructive) 9%, var(--card));
   color: var(--foreground);
-  box-shadow: 0 12px 32px rgb(0 0 0 / 0.16);
   font-size: 0.85rem;
   line-height: 1.45;
 }
 
-.adam-chat-quota-notice button {
+.adam-chat-quota-message button {
   flex: 0 0 auto;
   border: 0;
   background: transparent;

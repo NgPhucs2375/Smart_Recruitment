@@ -4,6 +4,7 @@
 import { suppressFlushSyncWarning } from "@/lib/suppress-flushsync-warning";
 import {
   CopilotKit,
+  CopilotChatMessageView,
   useDefaultRenderTool,
   useAgent,
   useConfigureSuggestions,
@@ -535,16 +536,12 @@ export function CopilotProvider({ children }: { children: React.ReactNode }) {
           <DeferredCopilotPopup
             adamMessageView={adamMessageView}
             userId={userId}
+            quotaMessage={quotaMessage}
+            onDismissQuota={() => setQuotaMessage(null)}
           />
         </>
       )}
     </CopilotKit>
-    {adamEnabled && quotaMessage && (
-      <div className="adam-chat-quota-notice" data-adam-quota-notice="true" role="alert">
-        <span>{quotaMessage}</span>
-        <button type="button" onClick={() => setQuotaMessage(null)} aria-label="Đóng thông báo hạn mức Adam">×</button>
-      </div>
-    )}
   </>;
 }
 
@@ -581,9 +578,13 @@ function AdamQuotaErrorSubscriber({
 function DeferredCopilotPopup({
   adamMessageView,
   userId,
+  quotaMessage,
+  onDismissQuota,
 }: {
   adamMessageView: typeof import("@/components/ai/adam-markdown").adamMessageView;
   userId: string | null;
+  quotaMessage: string | null;
+  onDismissQuota: () => void;
 }) {
   // LazyCopilotPopup đã ssr:false — mount sau khi client hydrate xong,
   // không cần setTimeout thêm.
@@ -592,7 +593,24 @@ function DeferredCopilotPopup({
       defaultOpen={false}
       width="min(92vw, 650px)"
       height="min(88vh, 1100px)"
-      messageView={adamMessageView}
+      messageView={{
+        ...adamMessageView,
+        children: ({ isRunning, messages, messageElements, interruptElement }) => (
+          <div data-copilotkit data-testid="copilot-message-list" className="copilotKitMessages cpk:flex cpk:flex-col">
+            {messageElements}
+            {interruptElement}
+            {isRunning && messages[messages.length - 1]?.role !== "reasoning" && (
+              <CopilotChatMessageView.Cursor className="cpk:mt-2" />
+            )}
+            {quotaMessage && (
+              <div className="adam-chat-quota-message" data-adam-quota-message="true" role="alert">
+                <span>{quotaMessage}</span>
+                <button type="button" onClick={onDismissQuota} aria-label="Đóng thông báo hạn mức Adam">×</button>
+              </div>
+            )}
+          </div>
+        ),
+      }}
       clickOutsideToClose
       toggleButton={{
         className: "adam-chat-toggle",
