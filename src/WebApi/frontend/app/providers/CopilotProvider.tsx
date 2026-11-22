@@ -465,11 +465,29 @@ function ThreadIdPersistor({ userId }: { userId: string | null }) {
   return null;
 }
 
+const ADAM_QUOTA_EVENT = "adam:quota-exhausted";
+
+// CopilotKit memoizes the popup header slot. Keep the notice's state inside
+// that slot so an error does not depend on the outer provider re-rendering it.
+function AdamQuotaNotice() {
+  const [message, setMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    const onQuota = (event: Event) => {
+      setMessage((event as CustomEvent<string>).detail);
+    };
+    window.addEventListener(ADAM_QUOTA_EVENT, onQuota);
+    return () => window.removeEventListener(ADAM_QUOTA_EVENT, onQuota);
+  }, []);
+
+  if (!message) return null;
+  return <div className="adam-chat-quota-notice" role="alert">{message}</div>;
+}
+
 export function CopilotProvider({ children }: { children: React.ReactNode }) {
   // Key chuẩn của app là "access_token" (auth-provider.ts TOKEN_KEY) —
   // đọc sai key trước đây khiến header Authorization luôn rỗng.
   const [token, setToken] = useState<string | null>(() => getAuthToken());
-  const [quotaMessage, setQuotaMessage] = useState<string | null>(null);
   const pathname = usePathname();
   const identity = useStoredIdentity();
   const adamRole = resolveAdamRole(identity?.roles);
@@ -518,7 +536,7 @@ export function CopilotProvider({ children }: { children: React.ReactNode }) {
       onError={(event) => {
         console.error(`[CopilotKit ${event.type}]`, event.error, event.context);
         const message = getAdamRateLimitMessage(event);
-        if (message) setQuotaMessage(message);
+        if (message) window.dispatchEvent(new CustomEvent(ADAM_QUOTA_EVENT, { detail: message }));
         notifyAdamError(event);
       }}
     >
@@ -534,7 +552,6 @@ export function CopilotProvider({ children }: { children: React.ReactNode }) {
           <DeferredCopilotPopup
             adamMessageView={adamMessageView}
             userId={userId}
-            quotaMessage={quotaMessage}
           />
         </>
       )}
@@ -550,11 +567,9 @@ export function CopilotProvider({ children }: { children: React.ReactNode }) {
 function DeferredCopilotPopup({
   adamMessageView,
   userId,
-  quotaMessage,
 }: {
   adamMessageView: typeof import("@/components/ai/adam-markdown").adamMessageView;
   userId: string | null;
-  quotaMessage: string | null;
 }) {
   // LazyCopilotPopup đã ssr:false — mount sau khi client hydrate xong,
   // không cần setTimeout thêm.
@@ -576,11 +591,7 @@ function DeferredCopilotPopup({
               <NewChatButton userId={userId} />
               {closeButton}
             </div>
-            {quotaMessage && (
-              <div className="adam-chat-quota-notice" role="alert" aria-live="assertive">
-                {quotaMessage}
-              </div>
-            )}
+            <AdamQuotaNotice />
           </div>
         ),
       }}
