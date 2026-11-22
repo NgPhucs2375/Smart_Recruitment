@@ -20,7 +20,7 @@ import { useGlobalCvAssistant } from "@/hooks/use-global-cv-assistant";
 import { useStoredIdentity } from "@/hooks/use-stored-identity";
 import { resolveAdamRole, type AdamRole } from "@/lib/adam-role";
 import { adamMessageView } from "@/components/ai/adam-markdown";
-import { notifyAdamError } from "@/lib/adam-errors";
+import { getAdamRateLimitMessage, notifyAdamError } from "@/lib/adam-errors";
 import {
   getCvFocusSectionLabel,
   requestCvSectionsFocus,
@@ -469,6 +469,7 @@ export function CopilotProvider({ children }: { children: React.ReactNode }) {
   // Key chuẩn của app là "access_token" (auth-provider.ts TOKEN_KEY) —
   // đọc sai key trước đây khiến header Authorization luôn rỗng.
   const [token, setToken] = useState<string | null>(() => getAuthToken());
+  const [quotaMessage, setQuotaMessage] = useState<string | null>(null);
   const pathname = usePathname();
   const identity = useStoredIdentity();
   const adamRole = resolveAdamRole(identity?.roles);
@@ -516,6 +517,8 @@ export function CopilotProvider({ children }: { children: React.ReactNode }) {
       }}
       onError={(event) => {
         console.error(`[CopilotKit ${event.type}]`, event.error, event.context);
+        const message = getAdamRateLimitMessage(event);
+        if (message) setQuotaMessage(message);
         notifyAdamError(event);
       }}
     >
@@ -531,6 +534,7 @@ export function CopilotProvider({ children }: { children: React.ReactNode }) {
           <DeferredCopilotPopup
             adamMessageView={adamMessageView}
             userId={userId}
+            quotaMessage={quotaMessage}
           />
         </>
       )}
@@ -546,9 +550,11 @@ export function CopilotProvider({ children }: { children: React.ReactNode }) {
 function DeferredCopilotPopup({
   adamMessageView,
   userId,
+  quotaMessage,
 }: {
   adamMessageView: typeof import("@/components/ai/adam-markdown").adamMessageView;
   userId: string | null;
+  quotaMessage: string | null;
 }) {
   // LazyCopilotPopup đã ssr:false — mount sau khi client hydrate xong,
   // không cần setTimeout thêm.
@@ -564,10 +570,17 @@ function DeferredCopilotPopup({
       }}
       header={{
         children: ({ titleContent, closeButton }) => (
-          <div className="adam-chat-header__inner">
-            {titleContent}
-            <NewChatButton userId={userId} />
-            {closeButton}
+          <div className="adam-chat-header">
+            <div className="adam-chat-header__inner">
+              {titleContent}
+              <NewChatButton userId={userId} />
+              {closeButton}
+            </div>
+            {quotaMessage && (
+              <div className="adam-chat-quota-notice" role="alert" aria-live="assertive">
+                {quotaMessage}
+              </div>
+            )}
           </div>
         ),
       }}

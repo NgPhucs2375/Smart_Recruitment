@@ -1005,6 +1005,20 @@ html {
   background: var(--card);
 }
 
+.adam-chat-header {
+  width: 100%;
+  flex: 0 0 auto;
+}
+
+.adam-chat-quota-notice {
+  padding: 0.7rem 1rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--destructive) 30%, var(--border));
+  background: color-mix(in srgb, var(--destructive) 9%, var(--card));
+  color: var(--foreground);
+  font-size: 0.85rem;
+  line-height: 1.45;
+}
+
 .adam-chat-header__inner [data-testid="copilot-header-title"] {
   min-width: 0;
   flex: 1 1 auto;

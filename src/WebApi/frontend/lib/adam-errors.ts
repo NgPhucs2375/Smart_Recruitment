@@ -21,11 +21,29 @@ function errorText(error: unknown): string {
   return "";
 }
 
-export function notifyAdamError(event: AdamErrorEvent) {
+export function getAdamRateLimitMessage(event: AdamErrorEvent): string | null {
   const message = errorText(event.error);
-  if (!hasRateLimitStatus(event.error) && !/429|too many|rate.?limit|hết.*lượt|hạn mức|quota/i.test(message)) return;
+  if (!hasRateLimitStatus(event.error) && !/429|too many|rate.?limit|hết.*lượt|hạn mức|quota/i.test(message)) return null;
 
-  toast.error("Bạn đã dùng hết lượt chat Adam hôm nay.", {
-    description: "Vui lòng quay lại sau để tiếp tục trò chuyện.",
-  });
+  // CopilotKit wraps the backend JSON in an Error message: "HTTP 429: {...}".
+  // Only use the backend's quota message; never show raw HTTP errors in the UI.
+  const payload = message.slice(message.indexOf("{"));
+  if (message.includes("{")) {
+    try {
+      const parsed = JSON.parse(payload) as { message?: unknown };
+      if (typeof parsed.message === "string" && /hết.*lượt|hạn mức|quota/i.test(parsed.message)) {
+        return parsed.message;
+      }
+    } catch {
+      // The generic message below still explains the 429 response.
+    }
+  }
+  return "Bạn đã dùng hết lượt chat Adam hôm nay. Vui lòng quay lại sau.";
+}
+
+export function notifyAdamError(event: AdamErrorEvent) {
+  const message = getAdamRateLimitMessage(event);
+  if (!message) return;
+
+  toast.error(message);
 }
