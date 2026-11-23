@@ -1,6 +1,7 @@
 using Application.DTOs.Email;
 using Application.DTOs.ThongBao;
 using Application.Interfaces;
+using Application.Services.Email;
 using Domain.Entities;
 using Domain.Enums;
 using Microsoft.EntityFrameworkCore;
@@ -39,9 +40,9 @@ public class DonUngTuyenWorkflowService(IApplicationDbContext context, IEmailSer
         if (!recruiterAction && job?.NguoiDangTinId > 0)
             AddNotification(job.NguoiDangTinId, trigger == TriggerDonUngTuyen.RutDon ? "Ứng viên đã rút đơn" : "Cập nhật hồ sơ ứng tuyển", body, application);
         if (candidate > 0 && trigger is TriggerDonUngTuyen.XuLyHoSoThanhCong or TriggerDonUngTuyen.DanhGiaPhuHop or TriggerDonUngTuyen.TuChoi or TriggerDonUngTuyen.RutDon or TriggerDonUngTuyen.DongBoiTinTuyenDung)
-            QueueEmail(candidate, subject, body);
+            QueueEmail(candidate, subject, EmailTemplates.ApplicationStatus(trigger, title, note));
         if (trigger == TriggerDonUngTuyen.XuLyHoSoThanhCong && job?.NguoiDangTinId > 0)
-            QueueEmail(job.NguoiDangTinId, "Đơn ứng tuyển mới", $"Tin {title} vừa nhận hồ sơ ứng tuyển mới.");
+            QueueEmail(job.NguoiDangTinId, "Đơn ứng tuyển mới", EmailTemplates.NewApplication(title));
     }
 
     private void AddNotification(int recipient, string subject, string body, DonUngTuyen application)
@@ -67,7 +68,7 @@ public class DonUngTuyenWorkflowService(IApplicationDbContext context, IEmailSer
         });
     }
 
-    private void QueueEmail(int recipient, string subject, string body)
+    private void QueueEmail(int recipient, string subject, EmailLayoutModel layout)
     {
         context.EnqueueAfterSave(async token =>
         {
@@ -75,7 +76,7 @@ public class DonUngTuyenWorkflowService(IApplicationDbContext context, IEmailSer
             {
                 var address = await resolver.GetEmailByNguoiDungIdAsync(recipient, token);
                 if (!string.IsNullOrWhiteSpace(address)) await email.SendAsync(new EmailRequest
-                { To = address, Subject = subject, Body = System.Net.WebUtility.HtmlEncode(body).Replace("\n", "<br />") });
+                { To = address, Subject = subject, Body = EmailLayout.Render(layout) });
             }
             catch (Exception ex) { logger.LogWarning(ex, "Không gửi được email ứng tuyển cho {UserId}", recipient); }
         });
