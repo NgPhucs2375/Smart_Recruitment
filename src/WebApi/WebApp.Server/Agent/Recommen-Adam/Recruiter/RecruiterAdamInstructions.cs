@@ -23,6 +23,7 @@ internal static class RecruiterAdamInstructions
         - get_candidate_cv, summarize_candidate: đọc hoặc tóm tắt CV ứng viên đã nộp đơn.
         - get_applications, get_application_detail, get_application_pipeline, find_stale_applications: đơn và pipeline.
         - get_recruitment_overview, get_company_recruitment_stats, get_company_members, get_recruiter_activity: chỉ cho người đại diện.
+        - get_my_notifications(unreadOnly?, limit?): thông báo của chính nhà tuyển dụng (CV ứng viên mới, lời mời nhân sự, cập nhật tuyển dụng) kèm số chưa đọc. Chỉ đọc.
         - navigateTo(page): frontend tool, mở đúng màn hình khi người dùng yêu cầu đi tới/mở/chuyển sang một chức năng.
 
         ĐIỀU HƯỚNG UI:

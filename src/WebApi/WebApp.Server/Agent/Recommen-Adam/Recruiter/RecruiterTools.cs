@@ -15,7 +15,9 @@ using Application.Wrappers;
 using Domain.Enums;
 using MediatR;
 using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
 using WebApp.Server.Agent.Cache;
+using WebApp.Server.Agent.Notifications;
 using WebApp.Server.Agent.SharedState;
 
 namespace WebApp.Server.Agent.RecommenAdam.Recruiter.Tools;
@@ -27,18 +29,24 @@ internal sealed class RecruiterTools
     private readonly SharedStateStore _sharedState;
     private readonly IPermissionService _permissions;
     private readonly AgentToolCache _toolCache;
+    private readonly IApplicationDbContext _context;
+    private readonly ICurrentNguoiDungService _current;
 
     public RecruiterTools(
         ISender sender,
         IHttpContextAccessor httpContextAccessor,
         SharedStateStore sharedState, IPermissionService permissions,
-        AgentToolCache toolCache)
+        AgentToolCache toolCache,
+        IApplicationDbContext context,
+        ICurrentNguoiDungService current)
     {
         _sender = sender;
         _httpContextAccessor = httpContextAccessor;
         _sharedState = sharedState;
         _permissions = permissions;
         _toolCache = toolCache;
+        _context = context;
+        _current = current;
     }
 
     [Description("Tìm top ứng viên phù hợp nhất cho đúng một tin tuyển dụng thuộc doanh nghiệp hiện tại. Chỉ dùng khi người dùng là nhân sự hoặc người đại diện và đã xác định TinTuyenDungId.")]
@@ -428,6 +436,63 @@ internal sealed class RecruiterTools
         return await _sender.Send(
             new GetRecruiterActivityQuery { NguoiDungId = nguoiDungId },
             cancellationToken);
+    }
+
+    [Description(
+        "Xem thông báo của nhà tuyển dụng đang đăng nhập (CV ứng viên mới, lời mời nhân sự, cập nhật tuyển dụng) " +
+        "kèm số chưa đọc. Chỉ đọc; không đánh dấu đã đọc và không gửi thông báo.")]
+    public async Task<Response<AgentNotificationsResult>> GetMyNotificationsAsync(
+        [Description("Chỉ lấy thông báo chưa đọc. Bỏ trống để xem cả thông báo đã đọc.")] bool unreadOnly = false,
+        [Description("Số thông báo muốn lấy, từ 1 đến 50.")] int limit = 10,
+        CancellationToken cancellationToken = default)
+    {
+        // Không cache: trạng thái đã đọc đổi liên tục nên UnreadCount phải đọc tươi.
+        var current = await _current.ResolveAsync();
+        var take = Math.Clamp(limit, 1, 50);
+
+        var query = _context.NotificationRecipients
+            .AsNoTracking()
+            .Where(r => r.NguoiDungId == current.Id);
+
+        var unreadCount = await _context.NotificationRecipients
+            .AsNoTracking()
+            .CountAsync(r => r.NguoiDungId == current.Id && !r.IsRead, cancellationToken);
+
+        if (unreadOnly) query = query.Where(r => !r.IsRead);
+
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        var items = await query
+            .OrderByDescending(r => r.Notification.Created)
+            .Take(take)
+            .Select(r => new AgentNotificationItem
+            {
+                Id = r.NotificationId,
+                TieuDe = r.Notification.TieuDe,
+                NoiDung = r.Notification.NoiDung,
+                Loai = r.Notification.LoaiThongBao == LoaiThongBao.LichPhongVan ? "Lịch phỏng vấn"
+                    : r.Notification.LoaiThongBao == LoaiThongBao.DonUngTuyen ? "Đơn ứng tuyển"
+                    : r.Notification.LoaiThongBao == LoaiThongBao.ViecLamMoi ? "Việc làm mới"
+                    : r.Notification.LoaiThongBao == LoaiThongBao.CVUngVien ? "CV ứng viên"
+                    : "Lời mời nhân sự",
+                DaDoc = r.IsRead,
+                TaoLuc = r.Notification.Created,
+                ReferenceType = r.Notification.ReferenceType,
+                ReferenceId = r.Notification.ReferenceId,
+                TinTuyenDungId = r.Notification.ReferenceType == "DonUngTuyen"
+                    ? _context.DonUngTuyens.Where(d => d.Id == r.Notification.ReferenceId)
+                        .Select(d => (int?)d.TinTuyenDungId).FirstOrDefault()
+                    : null,
+            })
+            .ToListAsync(cancellationToken);
+
+        return new Response<AgentNotificationsResult>(new AgentNotificationsResult
+        {
+            UnreadCount = unreadCount,
+            TotalCount = totalCount,
+            UnreadOnly = unreadOnly,
+            Items = items,
+        });
     }
 
 }

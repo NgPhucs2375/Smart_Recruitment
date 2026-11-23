@@ -12,9 +12,12 @@ using Application.Features.KetQuaPhuHop.Queries.SuggestJobsForCv;
 using Application.Features.TinTuyenDung.Queries.GetAllTinTuyenDungs;
 using Application.Features.TinTuyenDung.Queries.GetTinTuyenDungById;
 using Application.Wrappers;
+using Domain.Enums;
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using WebApp.Server.Agent.Cache;
+using WebApp.Server.Agent.Notifications;
 using WebApp.Server.Agent.SharedState;
 
 namespace WebApp.Server.Agent.RecommenAdam.Candidate;
@@ -26,19 +29,25 @@ internal sealed class CandidateTools
 	private readonly IPermissionService _permissions;
 	private readonly AgentToolCache _toolCache;
 	private readonly IServiceScopeFactory _scopeFactory;
+	private readonly IApplicationDbContext _context;
+	private readonly ICurrentNguoiDungService _current;
 
 	public CandidateTools(
 		ISender sender,
 		SharedStateStore sharedState,
 		IPermissionService permissions,
 		AgentToolCache toolCache,
-		IServiceScopeFactory scopeFactory)
+		IServiceScopeFactory scopeFactory,
+		IApplicationDbContext context,
+		ICurrentNguoiDungService current)
 	{
 		_sender = sender;
 		_sharedState = sharedState;
 		_permissions = permissions;
 		_toolCache = toolCache;
 		_scopeFactory = scopeFactory;
+		_context = context;
+		_current = current;
     }
 
     [Description("Chỉ kiểm tra các trường thông tin cá nhân trong HoSoUngVien của ứng viên hiện tại. Không đọc, không phân tích và không kiểm tra CVUngVien. Dùng khi ứng viên hỏi: hồ sơ của tôi còn thiếu gì.")]
@@ -375,6 +384,115 @@ internal sealed class CandidateTools
         return await _sender.Send(new GetDonUngTuyenByIdQuery { Id = donUngTuyenId }, cancellationToken);
     }
 
+    [Description(
+        "Xem thông báo của ứng viên đang đăng nhập: việc làm mới, lịch phỏng vấn, cập nhật đơn ứng tuyển. " +
+        "Chỉ đọc; không đánh dấu đã đọc và không tạo thông báo mới.")]
+    public async Task<Response<AgentNotificationsResult>> GetMyNotificationsAsync(
+        [Description("Chỉ lấy thông báo chưa đọc. Bỏ trống để xem cả thông báo đã đọc.")] bool unreadOnly = false,
+        [Description("Số thông báo muốn lấy, từ 1 đến 50.")] int limit = 10,
+        CancellationToken cancellationToken = default)
+    {
+        // Không dùng AgentToolCache: trạng thái đã đọc thay đổi liên tục,
+        // cache 120 giây sẽ trả UnreadCount sai ngay sau khi người dùng đọc thông báo.
+        var current = await _current.ResolveAsync();
+        var take = Math.Clamp(limit, 1, 50);
+
+        var query = _context.NotificationRecipients
+            .AsNoTracking()
+            .Where(r => r.NguoiDungId == current.Id);
+
+        var unreadCount = await _context.NotificationRecipients
+            .AsNoTracking()
+            .CountAsync(r => r.NguoiDungId == current.Id && !r.IsRead, cancellationToken);
+
+        if (unreadOnly) query = query.Where(r => !r.IsRead);
+
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        var items = await query
+            .OrderByDescending(r => r.Notification.Created)
+            .Take(take)
+            .Select(r => new AgentNotificationItem
+            {
+                Id = r.NotificationId,
+                TieuDe = r.Notification.TieuDe,
+                NoiDung = r.Notification.NoiDung,
+                Loai = r.Notification.LoaiThongBao == LoaiThongBao.LichPhongVan ? "Lịch phỏng vấn"
+                    : r.Notification.LoaiThongBao == LoaiThongBao.DonUngTuyen ? "Đơn ứng tuyển"
+                    : r.Notification.LoaiThongBao == LoaiThongBao.ViecLamMoi ? "Việc làm mới"
+                    : r.Notification.LoaiThongBao == LoaiThongBao.CVUngVien ? "CV ứng viên"
+                    : "Lời mời nhân sự",
+                DaDoc = r.IsRead,
+                TaoLuc = r.Notification.Created,
+                ReferenceType = r.Notification.ReferenceType,
+                ReferenceId = r.Notification.ReferenceId,
+                TinTuyenDungId = r.Notification.ReferenceType == "DonUngTuyen"
+                    ? _context.DonUngTuyens.Where(d => d.Id == r.Notification.ReferenceId)
+                        .Select(d => (int?)d.TinTuyenDungId).FirstOrDefault()
+                    : null,
+            })
+            .ToListAsync(cancellationToken);
+
+        return new Response<AgentNotificationsResult>(new AgentNotificationsResult
+        {
+            UnreadCount = unreadCount,
+            TotalCount = totalCount,
+            UnreadOnly = unreadOnly,
+            Items = items,
+        });
+    }
+
+    [Description(
+        "Lịch sử trạng thái của một đơn ứng tuyển thuộc ứng viên hiện tại: từng lần chuyển trạng thái, " +
+        "thời điểm, tác nhân (người hoặc hệ thống) và ghi chú. Dùng khi người dùng hỏi đơn đã đi qua những bước nào.")]
+    public Task<Response<ApplicationTimelineResult>> GetApplicationTimelineAsync(
+        [Description("ID đơn ứng tuyển cần xem lịch sử.")] int donUngTuyenId,
+        CancellationToken cancellationToken = default)
+        => _toolCache.GetOrCreateAsync(
+            "get_application_timeline", new { donUngTuyenId },
+            () => GetApplicationTimelineCoreAsync(donUngTuyenId, cancellationToken),
+            cancellationToken);
+
+    private async Task<Response<ApplicationTimelineResult>> GetApplicationTimelineCoreAsync(
+        int donUngTuyenId,
+        CancellationToken cancellationToken)
+    {
+        // Đi qua query chi tiết để dùng chung kiểm tra quyền + phạm vi chủ sở hữu.
+        var don = await GetApplicationStatusCoreAsync(donUngTuyenId, cancellationToken);
+        if (!don.Succeeded || don.Data == null)
+            return new Response<ApplicationTimelineResult>(don.Message ?? "Không tìm thấy đơn ứng tuyển.");
+
+        var rows = await _context.LichSuTrangThaiDonUngTuyens
+            .AsNoTracking()
+            .Where(x => x.DonUngTuyenId == donUngTuyenId)
+            .OrderBy(x => x.Created)
+            .Select(x => new
+            {
+                x.TrangThaiTruoc,
+                x.TrangThaiSau,
+                x.Trigger,
+                x.NguoiThucHienId,
+                x.GhiChu,
+                x.Created,
+            })
+            .ToListAsync(cancellationToken);
+
+        return new Response<ApplicationTimelineResult>(new ApplicationTimelineResult
+        {
+            DonUngTuyenId = donUngTuyenId,
+            TrangThaiHienTai = don.Data.TrangThai.ToString(),
+            Entries = rows.Select(x => new ApplicationTimelineEntry
+            {
+                TrangThaiTruoc = x.TrangThaiTruoc.ToString(),
+                TrangThaiSau = x.TrangThaiSau.ToString(),
+                Trigger = x.Trigger?.ToString(),
+                NguoiThucHienId = x.NguoiThucHienId,
+                GhiChu = x.GhiChu,
+                ThoiDiem = x.Created,
+            }).ToList(),
+        });
+    }
+
     private async Task<Response<CvDetailDto>> GetCvAsync(int? cvId, CancellationToken cancellationToken)
     {
         await _permissions.RequireAsync("cvungviens", "show", cancellationToken);
@@ -441,4 +559,21 @@ public sealed class CompareJobsResult
 {
     public List<GetAllTinTuyenDungsViewModel> Jobs { get; set; } = new();
     public List<CvJobMatchViewModel> Matches { get; set; } = new();
+}
+
+public sealed class ApplicationTimelineResult
+{
+    public int DonUngTuyenId { get; set; }
+    public string TrangThaiHienTai { get; set; } = "";
+    public List<ApplicationTimelineEntry> Entries { get; set; } = new();
+}
+
+public sealed class ApplicationTimelineEntry
+{
+    public string TrangThaiTruoc { get; set; } = "";
+    public string TrangThaiSau { get; set; } = "";
+    public string? Trigger { get; set; }
+    public int? NguoiThucHienId { get; set; }
+    public string? GhiChu { get; set; }
+    public DateTime ThoiDiem { get; set; }
 }

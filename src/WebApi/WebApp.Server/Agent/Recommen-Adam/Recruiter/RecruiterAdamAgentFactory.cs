@@ -37,6 +37,7 @@ internal sealed class RecruiterAdamAgentFactory
             AIFunctionFactory.Create(_tools.GetCompanyRecruitmentStatsAsync, new AIFunctionFactoryOptions { Name = "get_company_recruitment_stats" }),
             AIFunctionFactory.Create(_tools.GetCompanyMembersAsync, new AIFunctionFactoryOptions { Name = "get_company_members" }),
             AIFunctionFactory.Create(_tools.GetRecruiterActivityAsync, new AIFunctionFactoryOptions { Name = "get_recruiter_activity" }),
+            AIFunctionFactory.Create(_tools.GetMyNotificationsAsync, new AIFunctionFactoryOptions { Name = "get_my_notifications" }),
         };
 
         return new ChatClientAgent(
