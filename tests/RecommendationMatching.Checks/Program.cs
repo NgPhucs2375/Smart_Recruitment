@@ -228,6 +228,17 @@ Check(Near(Experience(3f, "Tối thiểu 3 năm kinh nghiệm phát triển .NET
 Check(Near(Experience(null, "5 năm"), 0), "CV without any years is not guessed as inexperienced");
 Check(Near(Experience(1f, "Không yêu cầu kinh nghiệm"), 0), "JD without a requirement cannot move the score");
 Check(Near(Experience(1f, "0 - 1 năm (chấp nhận sinh viên năm cuối)"), 0), "Zero lower bound is read as no requirement");
+// Tin dành cho sinh viên/thực tập: chữ số trong "năm 3", "năm 4" là năm học, không phải số năm kinh nghiệm.
+Check(Near(Experience(1f, "Sinh viên năm 3, năm 4 hoặc mới tốt nghiệp ngành CNTT"), 0),
+    "Student-year wording is not mistaken for required experience years");
+Check(Near(Experience(1f, "Thực tập sinh Java, hỗ trợ đào tạo"), 0),
+    "Internship wording cannot demand years of experience");
+Check(Near(Experience(1f, "Mới tốt nghiệp, chưa có kinh nghiệm"), 0),
+    "Fresh-graduate wording is read as no requirement");
+var yearsExposed = ContentBasedMatcher.Evaluate(Graded(Skill(null, "JavaScript", null, 2f)),
+    new JobMatchInput([new(null, "JavaScript", MucDoYC.BatBuc)], ExperienceRequired: "4 năm"));
+Check(Near(yearsExposed.JobRequiredYears ?? -1, 4) && Near(yearsExposed.CandidateYears ?? -1, 2),
+    "Experience years are exposed so the UI can explain the bonus");
 Check(Near(ContentBasedMatcher.EvaluateBaseline(Graded(Skill(null, "JavaScript", null, 1f)),
     new JobMatchInput([new(null, "JavaScript", MucDoYC.BatBuc)], ExperienceRequired: "5 năm")).ExperienceBonus, 0),
     "Baseline ignores the experience requirement");

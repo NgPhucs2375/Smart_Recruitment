@@ -38,7 +38,22 @@ public sealed class CvJobMatchViewModel
     public List<string> KyNangThieu { get; set; } = new();
     public List<string> KyNangBatBuocThieu { get; set; } = new();
     public bool MeetsMandatory { get; set; }
+    /// <summary>
+    /// Bốn ưu đãi phụ kèm trạng thái thật, để UI phân biệt "không khớp" với
+    /// "không áp dụng" / "CV chưa khai" thay vì hiển thị 0% như một tiêu chí trượt.
+    /// TrangThai: dat | khongKhop | biTru | thieuDuLieu | khongApDung.
+    /// </summary>
+    public List<MatchComponentVm> ThanhPhan { get; set; } = new();
     public string MatchingVersion { get; set; } = ContentBasedMatcher.Version;
+}
+
+public sealed class MatchComponentVm
+{
+    public string Key { get; set; } = string.Empty;
+    public string Nhan { get; set; } = string.Empty;
+    public float Diem { get; set; }
+    public string TrangThai { get; set; } = string.Empty;
+    public string GhiChu { get; set; } = string.Empty;
 }
 
 public sealed class GetCvJobMatchQueryHandler(
@@ -134,7 +149,83 @@ public sealed class GetCvJobMatchQueryHandler(
             KyNangThieu = match.MissingSkills.ToList(),
             KyNangBatBuocThieu = match.MissingMandatory.ToList(),
             MeetsMandatory = match.MeetsMandatory,
+            ThanhPhan = BuildComponents(match, candidate, job),
         });
+    }
+
+    /// <summary>
+    /// Mô tả từng ưu đãi phụ bằng dữ liệu thật của hai bên: 0 điểm chỉ được gọi là
+    /// "không khớp" khi cả hai bên đều có dữ liệu so sánh; còn lại là "không áp dụng"
+    /// hoặc "CV/tin chưa khai".
+    /// </summary>
+    private static List<MatchComponentVm> BuildComponents(
+        ContentMatchResult match, CandidateMatchInput candidate, JobMatchPosting job)
+    {
+        static string So(float value) => value.ToString("0.#");
+
+        var components = new List<MatchComponentVm>
+        {
+            new()
+            {
+                Key = "viTri",
+                Nhan = "Vị trí",
+                Diem = match.PositionBonus,
+                TrangThai = string.IsNullOrWhiteSpace(candidate.Position) ? "thieuDuLieu"
+                    : string.IsNullOrWhiteSpace(job.TieuDe) ? "khongApDung"
+                    : match.PositionBonus > 0 ? "dat" : "khongKhop",
+                GhiChu = string.IsNullOrWhiteSpace(candidate.Position)
+                    ? "CV chưa khai vị trí ứng tuyển."
+                    : string.IsNullOrWhiteSpace(job.TieuDe) ? "Tin không có tiêu đề để so khớp."
+                    : match.PositionBonus > 0 ? "Tên tin trùng vị trí ứng tuyển trong CV."
+                    : "Vị trí trong CV không trùng tên tin nên không có ưu đãi.",
+            },
+            new()
+            {
+                Key = "luong",
+                Nhan = "Lương",
+                Diem = match.SalaryBonus,
+                TrangThai = job.LuongToiDa <= 0 ? "khongApDung"
+                    : candidate.DesiredSalary <= 0 ? "thieuDuLieu"
+                    : match.SalaryBonus > 0 ? "dat" : "khongKhop",
+                GhiChu = job.LuongToiDa <= 0 ? "Tin không công bố dải lương."
+                    : candidate.DesiredSalary <= 0 ? "CV chưa khai mức lương mong muốn."
+                    : match.SalaryBonus > 0 ? "Mức lương mong muốn nằm trong dải của tin."
+                    : "Mức lương mong muốn nằm ngoài dải của tin.",
+            },
+            new()
+            {
+                Key = "diaDiem",
+                Nhan = "Địa điểm",
+                Diem = match.LocationBonus,
+                TrangThai = string.IsNullOrWhiteSpace(job.DiaDiemLamViec) ? "khongApDung"
+                    : string.IsNullOrWhiteSpace(candidate.Address) ? "thieuDuLieu"
+                    : match.LocationBonus > 0 ? "dat" : "khongKhop",
+                GhiChu = string.IsNullOrWhiteSpace(job.DiaDiemLamViec) ? "Tin không ghi địa điểm làm việc."
+                    : string.IsNullOrWhiteSpace(candidate.Address) ? "CV chưa khai địa chỉ."
+                    : match.LocationBonus >= .05f ? "Cùng quận/huyện và tỉnh/thành với tin."
+                    : match.LocationBonus > 0 ? "Cùng tỉnh/thành, khác quận/huyện."
+                    : "Khác tỉnh/thành với nơi làm việc của tin.",
+            },
+            new()
+            {
+                Key = "kinhNghiem",
+                Nhan = "Kinh nghiệm",
+                Diem = match.ExperienceBonus,
+                TrangThai = match.JobRequiredYears is null or <= 0 ? "khongApDung"
+                    : match.CandidateYears is null ? "thieuDuLieu"
+                    : match.ExperienceBonus > 0 ? "dat"
+                    : match.ExperienceBonus < 0 ? "biTru" : "khongKhop",
+                GhiChu = match.JobRequiredYears is null ? "Tin không ghi số năm kinh nghiệm."
+                    : match.JobRequiredYears <= 0 ? "Tin không yêu cầu kinh nghiệm."
+                    : match.CandidateYears is null ? "CV chưa khai số năm cho kỹ năng nào."
+                    : match.ExperienceBonus > 0
+                        ? $"CV có {So(match.CandidateYears.Value)} năm, đáp ứng mức {So(match.JobRequiredYears.Value)} năm."
+                    : match.ExperienceBonus < 0
+                        ? $"CV có {So(match.CandidateYears.Value)} năm, thiếu so với {So(match.JobRequiredYears.Value)} năm yêu cầu."
+                    : $"CV có {So(match.CandidateYears.Value)} năm, chưa đạt nửa mức {So(match.JobRequiredYears.Value)} năm nên chưa có ưu đãi.",
+            },
+        };
+        return components;
     }
 
     private sealed class JobMatchPosting
