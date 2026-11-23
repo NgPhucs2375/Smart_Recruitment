@@ -2,7 +2,7 @@
 
 HIREAI là nền tảng kết nối ứng viên với nhà tuyển dụng, hỗ trợ cả hai phía trong suốt quá trình tìm việc và tuyển người. Thay vì chỉ đăng tin và tìm kiếm theo từ khóa, hệ thống khai thác thông tin từ CV và tin tuyển dụng để giúp người dùng đánh giá mức độ phù hợp và đưa ra quyết định dễ dàng hơn.
 
-**Trải nghiệm website:** [hireais.dev](https://hireais.dev) · Tên miền đang dùng gói miễn phí đến hết tháng 12/2026, nên đường dẫn có thể thay đổi sau thời điểm đó.
+# **Trải nghiệm website:** [hireais.dev](https://hireais.dev) 
 
 ## HIREAI làm được gì?
 
