@@ -165,7 +165,246 @@ public class GetBaoCaoTuyenDungQueryHandler(
                 : Math.Round(daDuyet * 100d / (daDuyet + tuChoi), 1)
         };
 
+        var phe = await NapPheBuocVaThoiGianAsync(vm, donKyNay, cancellationToken);
+        await NapChatLuongGoiYAsync(vm, laAdmin, ctx.DoanhNghiepId, tuNgay, cancellationToken);
+        await NapHieuSuatNhanSuAsync(vm, laAdmin, ctx.DoanhNghiepId, phe, cancellationToken);
+
         return new Response<BaoCaoTuyenDungVm>(vm);
+    }
+
+    private sealed class DonXuLyRow
+    {
+        public int Id { get; set; }
+        public TrangThaiDonUngTuyen TrangThai { get; set; }
+        public int NguoiXuLyId { get; set; }
+        public DateTime NhanLuc { get; set; }
+    }
+
+    private sealed class LichSuRow
+    {
+        public int DonUngTuyenId { get; set; }
+        public TrangThaiDonUngTuyen TrangThaiSau { get; set; }
+        public DateTime Created { get; set; }
+    }
+
+    private sealed record PheDuLieu(
+        List<DonXuLyRow> DonRows,
+        Dictionary<int, List<LichSuRow>> LichSuTheoDon);
+
+    /// <summary>
+    /// Phễu chuyển bước + thời gian xử lý đọc từ vệt LichSuTrangThaiDonUngTuyen.
+    /// Chỉ tính các lần đổi trạng thái thật (TrangThaiTruoc != TrangThaiSau);
+    /// dòng mốc sinh khi nâng cấp dữ liệu bị loại để không làm sai thời gian.
+    /// </summary>
+    private async Task<PheDuLieu> NapPheBuocVaThoiGianAsync(
+        BaoCaoTuyenDungVm vm,
+        IQueryable<Domain.Entities.DonUngTuyen> donKyNay,
+        CancellationToken cancellationToken)
+    {
+        var donRows = await donKyNay
+            .Select(d => new DonXuLyRow
+            {
+                Id = d.Id,
+                TrangThai = d.TrangThai,
+                NguoiXuLyId = d.NguoiXuLyId,
+                NhanLuc = d.NgayUngTuyen ?? d.Created
+            })
+            .ToListAsync(cancellationToken);
+        var donIds = donRows.Select(x => x.Id).ToList();
+
+        var lichSu = donIds.Count == 0
+            ? new List<LichSuRow>()
+            : await context.LichSuTrangThaiDonUngTuyens.AsNoTracking()
+                .Where(l => donIds.Contains(l.DonUngTuyenId)
+                            && l.TrangThaiTruoc != l.TrangThaiSau)
+                .Select(l => new LichSuRow
+                {
+                    DonUngTuyenId = l.DonUngTuyenId,
+                    TrangThaiSau = l.TrangThaiSau,
+                    Created = l.Created
+                })
+                .ToListAsync(cancellationToken);
+        var lichSuTheoDon = lichSu
+            .GroupBy(l => l.DonUngTuyenId)
+            .ToDictionary(g => g.Key, g => g.OrderBy(x => x.Created).ToList());
+
+        // Đơn đã kết thúc nhưng chỉ có dòng mốc (dữ liệu cũ) vẫn cần mốc quyết định:
+        // dùng lần ghi lịch sử gần nhất thay vì bỏ trống.
+        var mocLichSuCuoi = (await context.LichSuTrangThaiDonUngTuyens.AsNoTracking()
+                .Where(l => donIds.Contains(l.DonUngTuyenId))
+                .GroupBy(l => l.DonUngTuyenId)
+                .Select(g => new { DonUngTuyenId = g.Key, Created = g.Max(x => x.Created) })
+                .ToListAsync(cancellationToken))
+            .ToDictionary(x => x.DonUngTuyenId, x => x.Created);
+
+        var chamDaXem = 0;
+        var chamPhuHop = 0;
+        var chamTuChoi = 0;
+        var phanHoi = new List<double>();
+        var quyetDinh = new List<double>();
+        var treo = 0;
+        var bayGio = DateTime.UtcNow;
+
+        foreach (var d in donRows)
+        {
+            lichSuTheoDon.TryGetValue(d.Id, out var su);
+
+            bool Cham(TrangThaiDonUngTuyen trangThai) =>
+                d.TrangThai == trangThai || (su is not null && su.Any(x => x.TrangThaiSau == trangThai));
+
+            var daPhuHop = Cham(TrangThaiDonUngTuyen.PhuHop);
+            var daTuChoi = Cham(TrangThaiDonUngTuyen.TuChoi);
+            if (daPhuHop) chamPhuHop++;
+            if (daTuChoi) chamTuChoi++;
+            if (daPhuHop || daTuChoi || Cham(TrangThaiDonUngTuyen.DaXem)) chamDaXem++;
+
+            if (su is { Count: > 0 })
+                phanHoi.Add(Math.Max(0, (su[0].Created - d.NhanLuc).TotalDays));
+
+            var quyetDinhDau = su?.FirstOrDefault(x =>
+                x.TrangThaiSau is TrangThaiDonUngTuyen.PhuHop or TrangThaiDonUngTuyen.TuChoi);
+            var mocQuyetDinh = quyetDinhDau?.Created;
+            if (mocQuyetDinh is null
+                && d.TrangThai is TrangThaiDonUngTuyen.PhuHop or TrangThaiDonUngTuyen.TuChoi
+                && mocLichSuCuoi.TryGetValue(d.Id, out var mocCu))
+                mocQuyetDinh = mocCu;
+            if (mocQuyetDinh is not null)
+                quyetDinh.Add(Math.Max(0, (mocQuyetDinh.Value - d.NhanLuc).TotalDays));
+
+            var laDonMo = d.TrangThai is TrangThaiDonUngTuyen.KhoiTao
+                or TrangThaiDonUngTuyen.LoiXuLyHoSo
+                or TrangThaiDonUngTuyen.ChoXuLy
+                or TrangThaiDonUngTuyen.DaXem;
+            if (laDonMo)
+            {
+                var lanCuoi = su is { Count: > 0 } ? su[^1].Created : d.NhanLuc;
+                if ((bayGio - lanCuoi).TotalDays > 7) treo++;
+            }
+        }
+
+        var tongNop = vm.LuotNop;
+        double TyLe(int soDon) => tongNop == 0 ? 0 : Math.Round(soDon * 100d / tongNop, 1);
+        vm.PheBuoc =
+        [
+            new PheBuocVm
+            {
+                TrangThaiId = (int)TrangThaiDonUngTuyen.ChoXuLy,
+                TrangThai = "Đã tiếp nhận",
+                SoDon = tongNop,
+                TyLe = TyLe(tongNop)
+            },
+            new PheBuocVm
+            {
+                TrangThaiId = (int)TrangThaiDonUngTuyen.DaXem,
+                TrangThai = "Đã xem hồ sơ",
+                SoDon = chamDaXem,
+                TyLe = TyLe(chamDaXem)
+            },
+            new PheBuocVm
+            {
+                TrangThaiId = (int)TrangThaiDonUngTuyen.PhuHop,
+                TrangThai = "Đánh giá phù hợp",
+                SoDon = chamPhuHop,
+                TyLe = TyLe(chamPhuHop)
+            },
+            new PheBuocVm
+            {
+                TrangThaiId = (int)TrangThaiDonUngTuyen.TuChoi,
+                TrangThai = "Từ chối",
+                SoDon = chamTuChoi,
+                TyLe = TyLe(chamTuChoi)
+            }
+        ];
+        vm.ThoiGianXuLy = new ThoiGianXuLyVm
+        {
+            DonCoLichSu = donRows.Count(d => lichSuTheoDon.ContainsKey(d.Id)),
+            TgPhanHoiDauTbNgay = phanHoi.Count == 0 ? null : Math.Round(phanHoi.Average(), 1),
+            TgQuyetDinhTbNgay = quyetDinh.Count == 0 ? null : Math.Round(quyetDinh.Average(), 1),
+            DonTreoQua7Ngay = treo
+        };
+
+        return new PheDuLieu(donRows, lichSuTheoDon);
+    }
+
+    private async Task NapChatLuongGoiYAsync(
+        BaoCaoTuyenDungVm vm,
+        bool laAdmin,
+        int? doanhNghiepId,
+        DateTime? tuNgay,
+        CancellationToken cancellationToken)
+    {
+        var kq = context.KetQuaPhuHops.AsNoTracking();
+        if (!laAdmin) kq = kq.Where(x => x.TinTuyenDung.DoanhNghiepId == doanhNghiepId);
+        if (tuNgay.HasValue) kq = kq.Where(x => x.EvaluateAt >= tuNgay.Value);
+
+        var tong = await kq.CountAsync(cancellationToken);
+        vm.ChatLuongGoiY.TongKetQua = tong;
+        if (tong == 0) return;
+
+        var diem = await kq.Select(x => x.DiemPhuHop).ToListAsync(cancellationToken);
+        vm.ChatLuongGoiY.DiemTrungBinh = Math.Round(diem.Average(x => (double)x) * 100, 1);
+        vm.ChatLuongGoiY.TyLeCao = Math.Round(diem.Count(x => x >= 0.7f) * 100d / diem.Count, 1);
+
+        var thieu = await kq
+            .Where(x => x.KyNangThieu != null && x.KyNangThieu != "")
+            .Select(x => x.KyNangThieu)
+            .ToListAsync(cancellationToken);
+        vm.ChatLuongGoiY.TopKyNangThieu = thieu
+            .SelectMany(s => s.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+            .GroupBy(s => s, StringComparer.OrdinalIgnoreCase)
+            .Select(g => new KyNangThieuVm { Ten = g.Key, SoLuot = g.Count() })
+            .OrderByDescending(x => x.SoLuot)
+            .ThenBy(x => x.Ten)
+            .Take(5)
+            .ToList();
+    }
+
+    private async Task NapHieuSuatNhanSuAsync(
+        BaoCaoTuyenDungVm vm,
+        bool laAdmin,
+        int? doanhNghiepId,
+        PheDuLieu phe,
+        CancellationToken cancellationToken)
+    {
+        var theoNguoi = phe.DonRows.Where(d => d.NguoiXuLyId != 0)
+            .GroupBy(d => d.NguoiXuLyId)
+            .ToList();
+        if (theoNguoi.Count == 0) return;
+
+        var ids = theoNguoi.Select(g => g.Key).ToList();
+        var hoSoQuery = context.HoSoNhaTuyenDungs.AsNoTracking().Where(h => ids.Contains(h.NguoiDungId));
+        if (!laAdmin) hoSoQuery = hoSoQuery.Where(h => h.DoanhNghiepId == doanhNghiepId);
+        var tenTheoId = (await hoSoQuery
+                .Select(h => new { h.NguoiDungId, h.HoTen })
+                .ToListAsync(cancellationToken))
+            .GroupBy(h => h.NguoiDungId)
+            .ToDictionary(g => g.Key, g => g.First().HoTen);
+
+        vm.HieuSuatNhanSu = theoNguoi
+            .Select(g =>
+            {
+                var ds = g.ToList();
+                var tg = ds
+                    .Select(d => phe.LichSuTheoDon.TryGetValue(d.Id, out var su) && su.Count > 0
+                        ? (double?)Math.Max(0, (su[^1].Created - d.NhanLuc).TotalDays)
+                        : null)
+                    .Where(x => x.HasValue)
+                    .Select(x => x!.Value)
+                    .ToList();
+                return new HieuSuatNhanSuVm
+                {
+                    NguoiDungId = g.Key,
+                    HoTen = tenTheoId.TryGetValue(g.Key, out var ten) ? ten : $"Người dùng #{g.Key}",
+                    DonDaXuLy = ds.Count,
+                    DonPhuHop = ds.Count(d => d.TrangThai == TrangThaiDonUngTuyen.PhuHop),
+                    DonTuChoi = ds.Count(d => d.TrangThai == TrangThaiDonUngTuyen.TuChoi),
+                    TgXuLyTbNgay = tg.Count == 0 ? null : Math.Round(tg.Average(), 1)
+                };
+            })
+            .OrderByDescending(x => x.DonDaXuLy)
+            .ThenBy(x => x.HoTen)
+            .Take(10)
+            .ToList();
     }
 
     private static double? TinhTyLe(int hienTai, int kyTruoc)

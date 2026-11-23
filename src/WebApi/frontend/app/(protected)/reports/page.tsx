@@ -66,6 +66,11 @@ type KetQuaItem = { TrangThaiId: number; TrangThai: string; SoLuong: number };
 type XuHuongItem = { Ngay: string; SoLuong: number };
 type TopTinItem = { Id: number; TieuDe: string; TrangThaiId: number; TrangThai: string; SoLuong: number };
 type DuyetTin = { DaDuyet: number; ChoDuyet: number; TuChoi: number; Nhap: number; TyLeDuyet: number | null };
+type PheBuocItem = { TrangThaiId: number; TrangThai: string; SoDon: number; TyLe: number };
+type ThoiGianXuLy = { DonCoLichSu: number; TgPhanHoiDauTbNgay: number | null; TgQuyetDinhTbNgay: number | null; DonTreoQua7Ngay: number };
+type KyNangThieuItem = { Ten: string; SoLuot: number };
+type ChatLuongGoiY = { TongKetQua: number; DiemTrungBinh: number | null; TyLeCao: number | null; TopKyNangThieu: KyNangThieuItem[] };
+type HieuSuatNhanSuItem = { NguoiDungId: number; HoTen: string; DonDaXuLy: number; DonPhuHop: number; DonTuChoi: number; TgXuLyTbNgay: number | null };
 
 /** Khớp 1-1 với BaoCaoTuyenDungVm trả từ GET /api/baocao (JSON PascalCase). */
 type Report = {
@@ -83,6 +88,10 @@ type Report = {
   XuHuong: XuHuongItem[];
   TopTin: TopTinItem[];
   DuyetTin: DuyetTin;
+  PheBuoc: PheBuocItem[];
+  ThoiGianXuLy: ThoiGianXuLy;
+  ChatLuongGoiY: ChatLuongGoiY;
+  HieuSuatNhanSu: HieuSuatNhanSuItem[];
 };
 
 const fmt = (n: number) => n.toLocaleString("vi-VN");
@@ -185,6 +194,15 @@ export default function ReportsPage() {
   const duyet = report?.DuyetTin;
   const maxDuyet = Math.max(1, duyet?.DaDuyet ?? 0, duyet?.ChoDuyet ?? 0, duyet?.TuChoi ?? 0);
   const maxTop = report && report.TopTin.length ? Math.max(...report.TopTin.map(t => t.SoLuong)) : 1;
+  const pheBuoc = report?.PheBuoc ?? [];
+  const maxPhe = Math.max(1, ...pheBuoc.map(p => p.SoDon));
+  const thoiGian = report?.ThoiGianXuLy;
+  const goiY = report?.ChatLuongGoiY;
+  const hieuSuat = report?.HieuSuatNhanSu ?? [];
+  const soNgay = (value: number | null | undefined) =>
+    value === null || value === undefined ? "—" : `${value.toLocaleString("vi-VN")} ngày`;
+  const soMotChuSo = (value: number | null | undefined) =>
+    value === null || value === undefined ? "—" : value.toLocaleString("vi-VN", { maximumFractionDigits: 1 });
   return <AdminPageLayout>
     <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
       <h1 className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Báo cáo &amp; thống kê</h1>
@@ -241,6 +259,128 @@ export default function ReportsPage() {
             )}
           </CardContent>
         </Card>
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Phễu tuyển dụng &amp; thời gian xử lý</h2>
+        <div className="grid gap-6 lg:grid-cols-2">
+          <Card className="rounded-2xl">
+            <CardHeader>
+              <CardTitle>Phễu chuyển bước</CardTitle>
+              <CardDescription>Số đơn đã từng đi qua từng bước, tính trên đơn nộp trong kỳ báo cáo.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {pheBuoc.length === 0 && <p className="text-sm text-muted-foreground">Chưa có đơn ứng tuyển nào trong kỳ.</p>}
+              {pheBuoc.map(buoc => (
+                <div key={buoc.TrangThaiId}>
+                  <p className="flex items-center justify-between gap-3 text-sm">
+                    <span className="font-medium">{buoc.TrangThai}</span>
+                    <span className="tabular-nums text-muted-foreground">{fmt(buoc.SoDon)} đơn · {soMotChuSo(buoc.TyLe)}%</span>
+                  </p>
+                  <Progress className="mt-2" value={Math.max(0, buoc.SoDon / maxPhe * 100)} />
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+          <Card className="rounded-2xl">
+            <CardHeader>
+              <CardTitle>Thời gian xử lý</CardTitle>
+              <CardDescription>Tính từ lúc ứng viên nộp đến lần phản hồi / quyết định đầu tiên, dựa trên lịch sử trạng thái đơn.</CardDescription>
+            </CardHeader>
+            <CardContent className="grid grid-cols-2 gap-4">
+              <div className="rounded-xl border border-border bg-muted/30 p-4">
+                <p className="text-xs text-muted-foreground">Đơn có lịch sử chuyển trạng thái</p>
+                <p className="mt-2 text-2xl font-bold tabular-nums">{fmt(thoiGian?.DonCoLichSu ?? 0)}</p>
+              </div>
+              <div className="rounded-xl border border-border bg-muted/30 p-4">
+                <p className="text-xs text-muted-foreground">Đơn treo quá 7 ngày</p>
+                <p className="mt-2 text-2xl font-bold tabular-nums">{fmt(thoiGian?.DonTreoQua7Ngay ?? 0)}</p>
+              </div>
+              <div className="rounded-xl border border-border bg-muted/30 p-4">
+                <p className="text-xs text-muted-foreground">TB ngày phản hồi đầu tiên</p>
+                <p className="mt-2 text-2xl font-bold tabular-nums">{soNgay(thoiGian?.TgPhanHoiDauTbNgay)}</p>
+              </div>
+              <div className="rounded-xl border border-border bg-muted/30 p-4">
+                <p className="text-xs text-muted-foreground">TB ngày ra quyết định</p>
+                <p className="mt-2 text-2xl font-bold tabular-nums">{soNgay(thoiGian?.TgQuyetDinhTbNgay)}</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Chất lượng gợi ý &amp; hiệu suất nhân sự</h2>
+        <div className="grid gap-6 lg:grid-cols-2">
+          <Card className="rounded-2xl">
+            <CardHeader>
+              <CardTitle>Chất lượng gợi ý AI</CardTitle>
+              <CardDescription>Điểm so khớp CV–tin do hệ thống gợi ý tạo trong kỳ (thang 100).</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {(goiY?.TongKetQua ?? 0) === 0 ? (
+                <p className="text-sm text-muted-foreground">Chưa có kết quả so khớp nào trong kỳ.</p>
+              ) : <>
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="rounded-xl border border-border bg-muted/30 p-4">
+                    <p className="text-xs text-muted-foreground">Kết quả</p>
+                    <p className="mt-2 text-xl font-bold tabular-nums">{fmt(goiY?.TongKetQua ?? 0)}</p>
+                  </div>
+                  <div className="rounded-xl border border-border bg-muted/30 p-4">
+                    <p className="text-xs text-muted-foreground">Điểm TB</p>
+                    <p className="mt-2 text-xl font-bold tabular-nums">{soMotChuSo(goiY?.DiemTrungBinh)}</p>
+                  </div>
+                  <div className="rounded-xl border border-border bg-muted/30 p-4">
+                    <p className="text-xs text-muted-foreground">Tỷ lệ ≥ 70 điểm</p>
+                    <p className="mt-2 text-xl font-bold tabular-nums">{goiY?.TyLeCao === null || goiY?.TyLeCao === undefined ? "—" : `${soMotChuSo(goiY.TyLeCao)}%`}</p>
+                  </div>
+                </div>
+                {goiY && goiY.TopKyNangThieu.length > 0 && <div>
+                  <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Kỹ năng ứng viên còn thiếu nhiều nhất</p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {goiY.TopKyNangThieu.map(kyNang => <Badge key={kyNang.Ten} variant="secondary">{kyNang.Ten} · {fmt(kyNang.SoLuot)}</Badge>)}
+                  </div>
+                </div>}
+              </>}
+            </CardContent>
+          </Card>
+          <Card className="rounded-2xl">
+            <CardHeader>
+              <CardTitle>Hiệu suất nhân sự</CardTitle>
+              <CardDescription>Đơn từng được giao cho từng thành viên xử lý trong kỳ báo cáo.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {hieuSuat.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Chưa có đơn nào được giao cho nhân sự trong kỳ.</p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-border text-left text-xs uppercase tracking-wider text-muted-foreground">
+                        <th className="pb-2 pr-3 font-medium">Nhân sự</th>
+                        <th className="pb-2 pr-3 text-right font-medium">Đơn xử lý</th>
+                        <th className="pb-2 pr-3 text-right font-medium">Phù hợp</th>
+                        <th className="pb-2 pr-3 text-right font-medium">Từ chối</th>
+                        <th className="pb-2 text-right font-medium">TB ngày</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {hieuSuat.map(nhanSu => (
+                        <tr key={nhanSu.NguoiDungId}>
+                          <td className="py-2 pr-3 font-medium">{nhanSu.HoTen}</td>
+                          <td className="py-2 pr-3 text-right tabular-nums">{fmt(nhanSu.DonDaXuLy)}</td>
+                          <td className="py-2 pr-3 text-right tabular-nums">{fmt(nhanSu.DonPhuHop)}</td>
+                          <td className="py-2 pr-3 text-right tabular-nums">{fmt(nhanSu.DonTuChoi)}</td>
+                          <td className="py-2 text-right tabular-nums">{soMotChuSo(nhanSu.TgXuLyTbNgay)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       </section>
 
       <div className="grid gap-6 lg:grid-cols-2">
