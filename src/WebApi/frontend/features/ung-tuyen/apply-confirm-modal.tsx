@@ -51,6 +51,26 @@ function isExpired(ngayHetHan: string) {
   return !Number.isNaN(t) && t < Date.now();
 }
 
+/** "HTTP 400" trần = tầng edge trả lỗi không có body dùng được (vd. ngay sau redeploy);
+ *  không phải nghiệp vụ — mọi lỗi nghiệp vụ đều kèm Message tiếng Việt. */
+const OPAQUE_HTTP_ERROR = /^HTTP \d{3}$/;
+
+function isTransientLoadError(message: string) {
+  return OPAQUE_HTTP_ERROR.test(message) || /failed to fetch|fetch failed|network|load failed/i.test(message);
+}
+
+function jobLoadMessage(message: string) {
+  return isTransientLoadError(message)
+    ? "Không tải được tin tuyển dụng do lỗi kết nối tạm thời. Bấm “Thử lại” để tiếp tục."
+    : message;
+}
+
+function submitMessage(message: string) {
+  return OPAQUE_HTTP_ERROR.test(message)
+    ? "Nộp đơn chưa thành công do lỗi kết nối tạm thời. Bấm “Xác nhận nộp đơn” để thử lại."
+    : message;
+}
+
 /**
  * Bảng xác nhận nộp đơn toàn cục: Adam mở đúng tin/CV, user bấm
  * "Xác nhận nộp đơn" — đây là đường ghi duy nhất của luồng agent.
@@ -91,9 +111,23 @@ export function ApplyConfirmModal() {
     setLoadingCvs(true);
 
     try {
-      const res = await backendFetch(`/api/dotnet/tintuyendungs/show/${tinId}`);
-      if (!backendSucceeded(res)) throw new Error(backendMessage(res) || "Không tải được tin tuyển dụng.");
-      setJob(normalizeJob((backendData<Record<string, unknown>>(res) ?? {}) as Record<string, unknown>, tinId));
+      const fetchJob = async (): Promise<JobSummary> => {
+        for (let attempt = 0; ; attempt++) {
+          try {
+            const res = await backendFetch(`/api/dotnet/tintuyendungs/show/${tinId}`);
+            if (!backendSucceeded(res)) throw new Error(backendMessage(res) || "Không tải được tin tuyển dụng.");
+            return normalizeJob((backendData<Record<string, unknown>>(res) ?? {}) as Record<string, unknown>, tinId);
+          } catch (e) {
+            const message = e instanceof Error ? e.message : "Không tải được tin tuyển dụng.";
+            if (attempt === 0 && isTransientLoadError(message)) {
+              await new Promise((resolve) => setTimeout(resolve, 600));
+              continue;
+            }
+            throw new Error(jobLoadMessage(message));
+          }
+        }
+      };
+      setJob(await fetchJob());
     } catch (e) {
       setJobError(e instanceof Error ? e.message : "Không tải được tin tuyển dụng.");
     } finally {
@@ -165,7 +199,7 @@ export function ApplyConfirmModal() {
       toast.success(backendMessage(res) || "Nộp đơn ứng tuyển thành công.");
       setOpen(false);
     } catch (e) {
-      setSubmitError(e instanceof Error ? e.message : "Nộp đơn không thành công.");
+      setSubmitError(submitMessage(e instanceof Error ? e.message : "Nộp đơn không thành công."));
     } finally {
       setSubmitting(false);
     }
@@ -194,7 +228,7 @@ export function ApplyConfirmModal() {
                   <CircleAlert className="size-4 shrink-0 text-destructive" /> {jobError}
                 </span>
                 <Button type="button" variant="outline" size="sm" className="shrink-0 rounded-full" onClick={() => void load()}>
-                  <RefreshCw className="size-3.5" />
+                  <RefreshCw className="mr-1.5 size-3.5" /> Thử lại
                 </Button>
               </div>
             ) : job ? (
