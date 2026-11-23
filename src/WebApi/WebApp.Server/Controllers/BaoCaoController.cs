@@ -127,6 +127,40 @@ public class BaoCaoController(
         rows.Add(Array.Empty<string>());
         rows.Add(new[] { "Top tin nhiều đơn nhất", "Trạng thái", "Số đơn" });
         rows.AddRange(vm.TopTin.Select(t => new[] { t.TieuDe, t.TrangThai, t.SoDon.ToString() }));
+        rows.Add(Array.Empty<string>());
+        rows.Add(new[] { "Phễu chuyển bước", "Số đơn", "Tỷ lệ (%)" });
+        rows.AddRange(vm.PheBuoc.Select(p => new[]
+        {
+            p.TrangThai,
+            p.SoDon.ToString(),
+            p.TyLe.ToString("0.0")
+        }));
+        rows.Add(Array.Empty<string>());
+        rows.Add(new[] { "Chỉ số thời gian xử lý", "Giá trị" });
+        rows.Add(new[] { "Đơn có lịch sử chuyển trạng thái", vm.ThoiGianXuLy.DonCoLichSu.ToString() });
+        rows.Add(new[] { "TB ngày phản hồi đầu tiên", vm.ThoiGianXuLy.TgPhanHoiDauTbNgay?.ToString("0.0") ?? "—" });
+        rows.Add(new[] { "TB ngày ra quyết định", vm.ThoiGianXuLy.TgQuyetDinhTbNgay?.ToString("0.0") ?? "—" });
+        rows.Add(new[] { "Đơn treo quá 7 ngày", vm.ThoiGianXuLy.DonTreoQua7Ngay.ToString() });
+        rows.Add(Array.Empty<string>());
+        rows.Add(new[] { "Chất lượng gợi ý", "Giá trị" });
+        rows.Add(new[] { "Tổng kết quả phù hợp", vm.ChatLuongGoiY.TongKetQua.ToString() });
+        rows.Add(new[] { "Điểm phù hợp TB (thang 100)", vm.ChatLuongGoiY.DiemTrungBinh?.ToString("0.0") ?? "—" });
+        rows.Add(new[] { "Tỷ lệ điểm >= 70 (%)", vm.ChatLuongGoiY.TyLeCao?.ToString("0.0") ?? "—" });
+        rows.Add(new[] { "Kỹ năng thiếu", "Số lượt" });
+        rows.AddRange(vm.ChatLuongGoiY.TopKyNangThieu.Select(k => new[] { k.Ten, k.SoLuot.ToString() }));
+        if (vm.HieuSuatNhanSu.Count > 0)
+        {
+            rows.Add(Array.Empty<string>());
+            rows.Add(new[] { "Nhân sự", "Đơn xử lý", "Phù hợp", "Từ chối", "TB ngày xử lý" });
+            rows.AddRange(vm.HieuSuatNhanSu.Select(h => new[]
+            {
+                h.HoTen,
+                h.DonDaXuLy.ToString(),
+                h.DonPhuHop.ToString(),
+                h.DonTuChoi.ToString(),
+                h.TgXuLyTbNgay?.ToString("0.0") ?? "—"
+            }));
+        }
 
         return string.Join("\r\n", rows.Select(r =>
             string.Join(",", r.Select(o => $"\"{o.Replace("\"", "\"\"")}\""))));
