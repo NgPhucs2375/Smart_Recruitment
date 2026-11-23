@@ -114,6 +114,10 @@ public static class QueryChecks
             "Single-pair match falls back to the default CV when cvId is omitted");
         check(!(await pair.Handle(new GetCvJobMatchQuery(2, 1), default)).Succeeded,
             "Single-pair match rejects another candidate's CV");
+        check(explicitMatch.Data.ThanhPhan.Count == 4 &&
+            explicitMatch.Data.ThanhPhan.All(x => x.TrangThai is "thieuDuLieu" or "khongApDung") &&
+            explicitMatch.Data.ThanhPhan.All(x => !string.IsNullOrWhiteSpace(x.GhiChu)),
+            "Match components explain missing data instead of reporting a failed zero");
 
         // "Gần đủ nhất": hồ sơ đã có bằng chứng cho mọi kỹ năng bắt buộc xếp trên hồ sơ
         // thiếu 1 kỹ năng bắt buộc, kể cả khi hồ sơ thiếu có điểm thô cao hơn. Dựng DB

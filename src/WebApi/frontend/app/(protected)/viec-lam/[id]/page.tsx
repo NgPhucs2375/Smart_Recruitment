@@ -239,6 +239,20 @@ export default function ViecLamChiTietPage() {
           kyNangThoa: list(d.kyNangThoa ?? d.KyNangThoa),
           kyNangThieu: list(d.kyNangThieu ?? d.KyNangThieu),
           kyNangBatBuocThieu: list(d.kyNangBatBuocThieu ?? d.KyNangBatBuocThieu),
+          thanhPhan: ((): MatchBreakdownData["thanhPhan"] => {
+            const components = d.thanhPhan ?? d.ThanhPhan;
+            if (!Array.isArray(components)) return undefined;
+            return components.map((raw) => {
+              const c = (raw ?? {}) as Record<string, unknown>;
+              return {
+                key: `${c.key ?? c.Key ?? ""}`,
+                nhan: `${c.nhan ?? c.Nhan ?? ""}`,
+                diem: num(c.diem ?? c.Diem),
+                trangThai: `${c.trangThai ?? c.TrangThai ?? ""}`,
+                ghiChu: `${c.ghiChu ?? c.GhiChu ?? ""}`,
+              };
+            });
+          })(),
         });
       } catch {
         // Chưa có CV hoặc không đủ quyền: ẩn panel, không chặn trang.

@@ -1,6 +1,7 @@
 using Application.DTOs.Email;
 using Application.DTOs.ThongBao;
 using Application.Interfaces;
+using Application.Services.Email;
 using Domain.Entities;
 using Domain.Enums;
 using Microsoft.Extensions.Logging;
@@ -113,7 +114,9 @@ namespace Application.Services.StateMachineLoiMoi
                         {
                             To = emailNdd,
                             Subject = TieuDeThongBao(trigger),
-                            Body = NoiDungThongBao(trigger, tenDn, nguoiDuocMoi)
+                            Body = EmailLayout.Render(EmailTemplates.StaffInviteResponse(
+                                trigger, tenDn, nguoiDuocMoi, TieuDeThongBao(trigger),
+                                NoiDungThongBao(trigger, tenDn, nguoiDuocMoi), note))
                         });
                     }
                 }
@@ -132,7 +135,7 @@ namespace Application.Services.StateMachineLoiMoi
                     {
                         To = entity.Email,
                         Subject = "Lời mời tham gia doanh nghiệp đã bị thu hồi",
-                        Body = $"Lời mời bạn tham gia {tenDn} đã bị người đại diện thu hồi."
+                        Body = EmailLayout.Render(EmailTemplates.StaffInviteRevoked(tenDn))
                     });
                 }
             }

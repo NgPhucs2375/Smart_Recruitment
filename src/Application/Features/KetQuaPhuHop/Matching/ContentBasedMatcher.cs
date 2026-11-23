@@ -28,6 +28,12 @@ public sealed record ContentMatchResult(
     /// </summary>
     public IReadOnlyList<string> MissingMandatory { get; init; } = MissingMandatory ?? [];
 
+    /// <summary>Số năm tin yêu cầu (null = tin không ghi/không yêu cầu); UI dùng để giải thích dòng "Kinh nghiệm".</summary>
+    public float? JobRequiredYears { get; init; }
+
+    /// <summary>Số năm lớn nhất khai trong kỹ năng CV (null = CV không khai năm nào).</summary>
+    public float? CandidateYears { get; init; }
+
     /// <summary>Cổng giao thoa (conjunctive screening): mọi yêu cầu BatBuc phải có bằng chứng, không bù trừ.</summary>
     public bool MeetsMandatory => MissingMandatory.Count == 0;
 }
@@ -166,14 +172,15 @@ public static class ContentBasedMatcher
             : LocationUtility(address, candidate.Address, location, job.Location);
         // So nam cua ung vien lay tu bang chung ky nang dau tien (MatchSkill.Years) —
         // du lieu da co san trong CV nen khong can them query nao cho luot cham diem.
+        float? requiredYears = null, candidateYears = null;
         var experienceBonus = 0f;
         if (normalized)
         {
-            var required = RequiredYears(job.ExperienceRequired);
-            var actual = candidate.Skills.Where(x => x.Years.HasValue).Select(x => x.Years).Max();
-            if (required is > 0 && actual.HasValue)
+            requiredYears = RequiredYears(job.ExperienceRequired);
+            candidateYears = candidate.Skills.Where(x => x.Years.HasValue).Select(x => x.Years).Max();
+            if (requiredYears is > 0 && candidateYears.HasValue)
                 experienceBonus = ExperienceUtilityFactor *
-                    (2f * Math.Min(1f, actual.Value / required.Value) - 1f);
+                    (2f * Math.Min(1f, candidateYears.Value / requiredYears.Value) - 1f);
         }
 
         var mandatoryPenalty = 0f;
@@ -192,7 +199,11 @@ public static class ContentBasedMatcher
             score,
             skillScore, positionBonus, salaryBonus, locationBonus, experienceBonus,
             mandatoryPenalty,
-            matched, missing, missingMandatory);
+            matched, missing, missingMandatory)
+        {
+            JobRequiredYears = requiredYears,
+            CandidateYears = candidateYears,
+        };
 
     }
 
@@ -237,6 +248,8 @@ public static class ContentBasedMatcher
     /// Doc "KinhNghiemYeuCau" (text tu do): so dau tien la can duoi cua dai yeu cau,
     /// nen "1-3 nam" doi 1 nam va "Toi thieu 3 nam ... .NET" doi 3 nam.
     /// "Khong yeu cau" hoac khong co so -> null: thieu du lieu khong bi tinh la 0 nam.
+    /// Tin dành cho sinh viên/thực tập ("Sinh viên năm 3, năm 4…") không phải yêu cầu
+    /// kinh nghiệm — số "3" ở đây là năm học, nên bắt buộc trả 0 trước khi quét chữ số.
     /// </summary>
     private static float? RequiredYears(string? text)
     {
@@ -244,7 +257,9 @@ public static class ContentBasedMatcher
         if (key.Length == 0) return null;
         if (key.Contains("không yêu cầu", StringComparison.Ordinal) ||
             key.Contains("chưa có kinh nghiệm", StringComparison.Ordinal) ||
-            key.Contains("sinh viên mới ra trường", StringComparison.Ordinal))
+            key.Contains("sinh viên", StringComparison.Ordinal) ||
+            key.Contains("mới tốt nghiệp", StringComparison.Ordinal) ||
+            key.Contains("thực tập", StringComparison.Ordinal))
             return 0;
         var digits = 0;
         var start = -1;

@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Application.DTOs.Email;
 using Application.Exceptions;
 using Application.Interfaces;
+using Application.Services.Email;
 using Application.Wrappers;
 using Domain.Entities;
 using Domain.Enums;
@@ -104,7 +105,7 @@ namespace Application.Features.NhanSu.Commands.InviteNhanSu
                 {
                     To = emailMoi,
                     Subject = "Lời mời tham gia doanh nghiệp",
-                    Body = $"Bạn được mời trở thành nhân sự của doanh nghiệp. Nhấn vào liên kết sau để chấp nhận: {link}"
+                    Body = EmailLayout.Render(EmailTemplates.StaffInvite(hoTen, chucVu, link))
                 });
             }
             catch (Exception ex)

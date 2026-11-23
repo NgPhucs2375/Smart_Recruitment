@@ -1,6 +1,7 @@
 using Application.DTOs.Email;
 using Application.DTOs.ThongBao;
 using Application.Interfaces;
+using Application.Services.Email;
 using Domain.Entities;
 using Domain.Enums;
 using Microsoft.EntityFrameworkCore;
@@ -139,7 +140,8 @@ namespace Application.Services.StateMachineTinTuyenDung
                         {
                             To = emailHr,
                             Subject = TieuDeThongBao(trigger),
-                            Body = NoiDungThongBao(trigger, tieuDe)
+                            Body = EmailLayout.Render(EmailTemplates.JobModeration(
+                                trigger, tieuDe, TieuDeThongBao(trigger), NoiDungThongBao(trigger, tieuDe), note))
                         });
                     }
                 }

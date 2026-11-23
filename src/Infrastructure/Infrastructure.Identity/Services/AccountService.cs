@@ -8,6 +8,7 @@ using Application.DTOs.Account;
 using Application.DTOs.Email;
 using Application.Exceptions;
 using Application.Interfaces;
+using Application.Services.Email;
 using Application.Wrappers;
 using Domain.Settings;
 using Infrastructure.Identity.Contexts;
@@ -273,7 +274,7 @@ namespace Infrastructure.Identity.Services
                 {
                     From = null,
                     To = user.Email,
-                    Body = $"Vui lòng xác nhận tài khoản của bạn bằng cách nhấn vào liên kết: {verificationUri}",
+                    Body = EmailLayout.Render(EmailTemplates.VerifyAccount(verificationUri)),
                     Subject = "Xác nhận Đăng ký Tài khoản"
                 }).ConfigureAwait(false);
                 _logger.LogInformation(
@@ -688,7 +689,7 @@ namespace Infrastructure.Identity.Services
 
             var emailRequest = new EmailRequest()
             {
-                Body = $"<p>Bạn vừa yêu cầu đặt lại mật khẩu HIREAI.</p><p><a href=\"{resetUri}\">Đặt lại mật khẩu</a></p><p>Liên kết có hiệu lực trong 30 phút. Nếu bạn không yêu cầu, hãy bỏ qua email này.</p>",
+                Body = EmailLayout.Render(EmailTemplates.ResetPassword(resetUri)),
                 To = model.Email,
                 Subject = "Đặt lại Mật khẩu",
             };
@@ -781,7 +782,7 @@ namespace Infrastructure.Identity.Services
             await _emailService.SendAsync(new EmailRequest { 
                 From = null,
                 To = user.Email, 
-                Body = $"Vui lòng xác nhận tài khoản của bạn: {verificationUri}", 
+                Body = EmailLayout.Render(EmailTemplates.VerifyAccount(verificationUri, resend: true)), 
                 Subject = "Xác nhận Đăng ký" 
             });
         }
@@ -1413,7 +1414,7 @@ namespace Infrastructure.Identity.Services
             {
                 To = email,
                 Subject = "Liên kết đăng nhập",
-                Body = $"Nhấn <a href='{link}'>đăng nhập</a> (hết hạn trong 15 phút)"
+                Body = EmailLayout.Render(EmailTemplates.MagicLogin(link))
             });
 
             // 7. Response chuẩn (Luôn trả về 200 để tránh rò rỉ thông tin tài khoản)
