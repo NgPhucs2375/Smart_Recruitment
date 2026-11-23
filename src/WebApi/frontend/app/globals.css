@@ -1375,6 +1375,14 @@ html {
   animation: none;
 }
 
+/* Thẻ kết thúc không có kết quả (tool call mồ côi): dừng quay, đổi màu cảnh báo. */
+.adam-tool-activity__icon.is-stalled {
+  background: #b45309;
+  box-shadow: 0 0 0 0.25rem rgba(180, 83, 9, 0.14);
+  animation: none;
+}
+.adam-tool-activity--stalled .adam-tool-activity__label strong { font-weight: 650; }
+
 .adam-tool-activity__label {
   min-width: 0;
   flex: 1;
