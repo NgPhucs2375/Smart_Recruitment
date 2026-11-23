@@ -161,7 +161,7 @@ html {
    giữa khung thay vì dính sát đỉnh (CopilotKit render suggestion vào đầu danh
    sách tin nhắn khi thread đã có id nhưng chưa có tin nào). */
 [data-copilot-popup="true"] .adam-suggestions { margin-top: 0; }
-[data-copilot-popup="true"] .adam-suggestions__label { margin-bottom: 0.5rem; }
+[data-copilot-popup="true"] .adam-suggestions__head { margin-bottom: 0.6rem; }
 [data-copilot-popup="true"] div:has(> [data-testid="copilot-scroll-content"]):has([data-testid="copilot-message-list"]:empty) {
   flex: 1 1 auto;
   display: flex;
@@ -2701,8 +2701,53 @@ html {
 .adam-welcome__copy h2 { color: var(--foreground); font-size: 1rem; font-weight: 680; letter-spacing: -0.015em; }
 .adam-welcome__copy p { max-width: 29rem; margin-top: 0.35rem; color: var(--muted-foreground); font-size: 0.78rem; line-height: 1.55; }
 
-.adam-suggestions { width: 100%; margin-top: 1.15rem; }
-.adam-suggestions__list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.55rem; }
+.adam-suggestions { width: 100%; min-width: 0; max-width: 100%; margin-top: 1.15rem; }
+.adam-suggestions__head { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; margin-bottom: 0.45rem; }
+.adam-suggestions__toggle {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 0.15rem;
+  border-radius: 0.5rem;
+  padding: 0.15rem 0.4rem;
+  color: var(--muted-foreground);
+  font-size: 0.65rem;
+  font-weight: 600;
+  transition: background-color 160ms ease, color 160ms ease;
+}
+.adam-suggestions__toggle:hover { background: color-mix(in srgb, var(--primary) 8%, transparent); color: var(--foreground); }
+.adam-suggestions__toggle:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+.adam-suggestions__rail { position: relative; min-width: 0; max-width: 100%; }
+.adam-suggestions__list {
+  display: flex;
+  gap: 0.55rem;
+  overflow-x: auto;
+  padding: 0.1rem 0.1rem 0.35rem;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+}
+.adam-suggestions__list::-webkit-scrollbar { display: none; }
+.adam-suggestions__arrow {
+  position: absolute;
+  top: 50%;
+  z-index: 2;
+  display: grid;
+  width: 1.7rem;
+  height: 1.7rem;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: 9999px;
+  background: var(--card);
+  color: var(--foreground);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.14);
+  transform: translateY(-50%);
+  transition: background-color 160ms ease;
+}
+.adam-suggestions__arrow:hover { background: color-mix(in srgb, var(--primary) 8%, var(--card)); }
+.adam-suggestions__arrow:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+.adam-suggestions__arrow--prev { left: 0.1rem; }
+.adam-suggestions__arrow--next { right: 0.1rem; }
 
 .adam-starter-action,
 .adam-context-action {
@@ -2719,7 +2764,7 @@ html {
   transition: border-color 180ms ease, background-color 180ms ease, transform 180ms ease;
 }
 
-.adam-starter-action { padding: 0.7rem 0.75rem; }
+.adam-starter-action { flex: 0 0 auto; width: 14.5rem; max-width: 82%; padding: 0.7rem 0.75rem; scroll-snap-align: start; }
 .adam-starter-action:hover,
 .adam-context-action:hover { border-color: color-mix(in srgb, var(--primary) 38%, var(--border)); background: color-mix(in srgb, var(--primary) 5%, var(--card)); }
 .adam-starter-action:active,
@@ -2748,10 +2793,8 @@ html {
   margin: 0;
   padding: 0 1rem 0.45rem;
 }
-.adam-suggestions__label { display: block; margin-bottom: 0.4rem; color: var(--muted-foreground); font-size: 0.65rem; font-weight: 600; }
-.adam-suggestions--context .adam-suggestions__list { display: flex; gap: 0.4rem; overflow-x: auto; padding: 0.1rem 0.1rem 0.2rem; scrollbar-width: none; }
-.adam-suggestions--context .adam-suggestions__list::-webkit-scrollbar { display: none; }
-.adam-context-action { min-height: 2.5rem; flex: 0 0 auto; padding: 0.45rem 0.65rem; border-radius: 0.65rem; }
+.adam-suggestions__label { display: block; color: var(--muted-foreground); font-size: 0.65rem; font-weight: 600; }
+.adam-context-action { min-height: 2.5rem; flex: 0 0 auto; padding: 0.45rem 0.65rem; border-radius: 0.65rem; scroll-snap-align: start; }
 .adam-context-action .adam-suggestion__icon { width: 1.5rem; height: 1.5rem; background: transparent; color: var(--muted-foreground); }
 .adam-context-action .adam-suggestion__copy strong { font-size: 0.7rem; }
 
@@ -3013,8 +3056,7 @@ html {
 
 @media (max-width: 520px) {
   .adam-welcome { padding-inline: 0.75rem; }
-  .adam-suggestions__list { grid-template-columns: 1fr; }
-  .adam-starter-action { min-height: 3.25rem; }
+  .adam-starter-action { width: 12.5rem; min-height: 3.25rem; }
   .adam-suggestions--context { padding-inline: 0.75rem; }
   .adam-tool-activity { flex-wrap: wrap; }
   .adam-tool-activity__action { min-height: 2.5rem; margin-left: auto; }
