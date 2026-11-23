@@ -1,11 +1,9 @@
 "use client";
 
-import { Bell, BellOff, Globe, MapPin, Users } from "lucide-react";
+import { Bell, BellOff } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { companyInitials, type DoanhNghiepVm } from "@/features/doanh-nghiep/doanh-nghiep-api";
-import { safeHref } from "@/features/tao-cv/validation";
 
 export function CompanyHeader({ company, followed, onToggleFollow }: { company: DoanhNghiepVm; followed: boolean; onToggleFollow: () => void }) {
   return <header className="overflow-hidden rounded-3xl border border-border bg-card">
@@ -19,16 +17,11 @@ export function CompanyHeader({ company, followed, onToggleFollow }: { company: 
         <div className="min-w-0 flex-1">
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">Doanh nghiệp</p>
           <h1 className="mt-1 break-words text-xl font-semibold leading-tight tracking-tight sm:text-2xl lg:text-3xl">{company.tenDoanhNghiep}</h1>
+          <p className="mt-1 text-sm text-muted-foreground">{company.linhVucHoatDong || "Đang cập nhật lĩnh vực"}</p>
         </div>
         <Button className="shrink-0" variant={followed ? "secondary" : "default"} onClick={onToggleFollow}>
           {followed ? <BellOff className="size-4" /> : <Bell className="size-4" />}{followed ? "Đang theo dõi" : "Theo dõi"}
         </Button>
-      </div>
-      <div className="mt-5 flex flex-wrap gap-2">
-        {company.linhVucHoatDong && <Badge variant="secondary">{company.linhVucHoatDong}</Badge>}
-        {company.diaChi && <Badge variant="secondary" className="gap-1.5"><MapPin className="size-3" />{company.diaChi}</Badge>}
-        {company.quyMoNhanSu && <Badge variant="secondary" className="gap-1.5"><Users className="size-3" />{company.quyMoNhanSu}</Badge>}
-        {company.website && (() => { const safeWebsite = safeHref(company.website); return safeWebsite ? <a href={safeWebsite} target="_blank" rel="noreferrer"><Badge variant="outline" className="gap-1.5 hover:border-primary"><Globe className="size-3" />Website</Badge></a> : null; })()}
       </div>
     </div>
   </header>;
