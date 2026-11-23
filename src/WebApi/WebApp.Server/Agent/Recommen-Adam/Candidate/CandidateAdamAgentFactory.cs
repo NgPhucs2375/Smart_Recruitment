@@ -40,6 +40,8 @@ internal sealed class CandidateAdamAgentFactory
             AIFunctionFactory.Create(_candidateTools.CompareJobsAsync, new AIFunctionFactoryOptions { Name = "compare_jobs" }),
             AIFunctionFactory.Create(_candidateTools.GetMyApplicationsAsync, new AIFunctionFactoryOptions { Name = "get_my_applications" }),
             AIFunctionFactory.Create(_candidateTools.GetApplicationStatusAsync, new AIFunctionFactoryOptions { Name = "get_application_status" }),
+            AIFunctionFactory.Create(_candidateTools.GetApplicationTimelineAsync, new AIFunctionFactoryOptions { Name = "get_application_timeline" }),
+            AIFunctionFactory.Create(_candidateTools.GetMyNotificationsAsync, new AIFunctionFactoryOptions { Name = "get_my_notifications" }),
         };
 
         return new ChatClientAgent(

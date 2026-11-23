@@ -248,6 +248,9 @@ namespace Infrastructure.Identity.Seeds
             foreach (var row in retiredRows)
             {
                 row.IsActive = false;
+                // DbContext mặc định NoTracking: không Update() thì thay đổi này
+                // không bao giờ được ghi, mẫu mồ côi vẫn active sau restart.
+                appContext.CvThemes.Update(row);
             }
             // 16 row metadata đẹp nhưng chưa từng có component render. Thay vì
             // ẩn như nhóm retired ở trên, cấp cho chúng CauHinhJson ThemeCanvas

@@ -1,14 +1,10 @@
 using System.Security.Claims;
-using Application.DTOs.ThongBao;
-using Application.Features.KetQuaPhuHop.Queries.SuggestCandidatesForJob;
-using Application.Features.KetQuaPhuHop.Queries.SuggestJobsForCv;
 using Application.Interfaces;
-using Application.Interfaces.Repositories;
 using Domain.Enums;
-using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using WebApp.Server.Services;
 
 namespace WebApp.Server.Controllers
 {
@@ -19,25 +15,16 @@ namespace WebApp.Server.Controllers
     {
         private readonly IApplicationDbContext _context;
         private readonly IAuthenticatedUserService _auth;
-        private readonly ICurrentNguoiDungService _current;
-        private readonly ISender _sender;
-        private readonly INotificationService _notifications;
-        private readonly ILogger<NotificationsController> _logger;
+        private readonly RecommendationDigestRunner _digests;
 
         public NotificationsController(
             IApplicationDbContext context,
             IAuthenticatedUserService auth,
-            ICurrentNguoiDungService current,
-            ISender sender,
-            INotificationService notifications,
-            ILogger<NotificationsController> logger)
+            RecommendationDigestRunner digests)
         {
             _context = context;
             _auth = auth;
-            _current = current;
-            _sender = sender;
-            _notifications = notifications;
-            _logger = logger;
+            _digests = digests;
         }
 
         [HttpGet]
@@ -64,9 +51,10 @@ namespace WebApp.Server.Controllers
                 });
 
             // HR notifications should not wait for the expensive candidate-matching digest.
-            // The digest is only relevant to candidate accounts.
+            // The digest is only relevant to candidate accounts, and runs in the background
+            // so opening the bell is never blocked by matching.
             if (nd.VaiTro == VaiTroNguoiDung.UNG_VIEN)
-                await EnsureRecommendationDigestAsync(nd.Id);
+                _digests.Trigger(nd.Id);
 
             var query = _context.NotificationRecipients
                 .Where(r => r.NguoiDungId == nd.Id)
@@ -98,6 +86,8 @@ namespace WebApp.Server.Controllers
                 {
                     Id = r.NotificationId,
                     Message = r.Notification.TieuDe + (string.IsNullOrEmpty(r.Notification.NoiDung) ? "" : " - " + r.Notification.NoiDung),
+                    TieuDe = r.Notification.TieuDe,
+                    NoiDung = r.Notification.NoiDung,
                     Type = r.Notification.LoaiThongBao == LoaiThongBao.LichPhongVan ? 1
                         : r.Notification.LoaiThongBao == LoaiThongBao.DonUngTuyen ? 3 : 0,
                     IsRead = r.IsRead,
@@ -126,116 +116,6 @@ namespace WebApp.Server.Controllers
                 TotalCount = totalCount,
                 PageNumber = pageNumber,
                 PageSize = pageSize,
-            });
-        }
-
-        // Khóa theo user để 2 GET song song không cùng vượt qua bước kiểm tra
-        // "đã gửi hôm nay" rồi gửi trùng digest (dedupe hiện là check-then-insert).
-        private static readonly System.Collections.Concurrent.ConcurrentDictionary<int, SemaphoreSlim> DigestGates = new();
-
-        private async Task EnsureRecommendationDigestAsync(int userId)
-        {
-            var gate = DigestGates.GetOrAdd(userId, _ => new SemaphoreSlim(1, 1));
-            await gate.WaitAsync(HttpContext.RequestAborted);
-            try
-            {
-                // Digest gợi ý chỉ là tiện ích: lỗi cache/matching không được
-                // làm hỏng danh sách thông báo của người dùng.
-                await EnsureRecommendationDigestCoreAsync(userId);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Không tạo được digest gợi ý cho người dùng {UserId}.", userId);
-            }
-            finally
-            {
-                gate.Release();
-            }
-        }
-
-        private async Task EnsureRecommendationDigestCoreAsync(int userId)
-        {
-            var today = DateTime.UtcNow.Date;
-            var alreadySent = await _context.Notifications
-                .AnyAsync(n => n.ReferenceType == "RecommendationDigest"
-                    && n.ReferenceId == userId
-                    && n.Created >= today
-                    && n.Recipients.Any(r => r.NguoiDungId == userId));
-            if (alreadySent) return;
-
-            var current = await _current.ResolveAsync();
-            if (current.VaiTro == VaiTroNguoiDung.UNG_VIEN)
-            {
-                // Quét pool ứng viên đã báo từng tin khớp nhất trong hôm nay thì
-                // không xếp thêm bản tin ngày trùng nội dung.
-                var daDuocBanTinHomNay = await _context.Notifications
-                    .AnyAsync(n => n.ReferenceType == "GoiYViecLamPhuHop"
-                        && n.Created >= today
-                        && n.Recipients.Any(r => r.NguoiDungId == userId));
-                if (daDuocBanTinHomNay) return;
-
-                var response = await _sender.Send(new GetSuggestedJobsForCvQuery
-                {
-                    TopN = 10,
-                    PageNumber = 1,
-                    PageSize = 10,
-                    MinimumScore = 0.50f,
-                });
-                var jobs = response.Data ?? new List<SuggestedJobViewModel>();
-                if (jobs.Count == 0) return;
-
-                var names = string.Join(", ", jobs.Take(5).Select(x => x.TieuDe));
-                await _notifications.SendToUserAsync(userId, new ThongBaoDTO
-                {
-                    TieuDe = $"Có {jobs.Count} việc làm phù hợp với CV của bạn",
-                    NoiDung = $"Gợi ý: {names}{(jobs.Count > 5 ? " và các tin khác" : ".")}",
-                    LoaiThongBao = LoaiThongBao.ViecLamMoi,
-                    ReferenceType = "RecommendationDigest",
-                    ReferenceId = userId,
-                    NguoiDungId = userId,
-                });
-                return;
-            }
-
-            if (current.VaiTro is not (VaiTroNguoiDung.NHAN_SU or VaiTroNguoiDung.NGUOI_DAI_DIEN)
-                || !current.DoanhNghiepId.HasValue)
-                return;
-
-            var jobsForCompany = await _context.TinTuyenDungs
-                .AsNoTracking()
-                .Where(x => x.DoanhNghiepId == current.DoanhNghiepId.Value
-                    && x.TrangThai == TrangThaiTinTuyenDung.DangTuyen
-                    && (x.NgayHetHan == null || x.NgayHetHan > DateTime.UtcNow))
-                .OrderByDescending(x => x.Id)
-                .Take(3)
-                .Select(x => new { x.Id, x.TieuDe })
-                .ToListAsync();
-
-            var parts = new List<string>();
-            var totalCandidates = 0;
-            foreach (var job in jobsForCompany)
-            {
-                var response = await _sender.Send(new GetSuggestedCandidatesForJobQuery
-                {
-                    TinTuyenDungId = job.Id,
-                    TopN = 5,
-                });
-                var count = response.Data?.Count ?? 0;
-                if (count == 0) continue;
-                totalCandidates += count;
-                parts.Add($"{job.TieuDe}: {count} ứng viên");
-            }
-
-            if (totalCandidates == 0) return;
-            await _notifications.SendToUserAsync(userId, new ThongBaoDTO
-            {
-                TieuDe = $"Có {totalCandidates} ứng viên phù hợp với tin tuyển dụng",
-                NoiDung = string.Join("; ", parts),
-                LoaiThongBao = LoaiThongBao.CVUngVien,
-                ReferenceType = "RecommendationDigest",
-                ReferenceId = userId,
-                NguoiDungId = userId,
-                DoanhNghiepId = current.DoanhNghiepId,
             });
         }
 
@@ -310,7 +190,10 @@ namespace WebApp.Server.Controllers
     public class NotificationDto
     {
         public int Id { get; set; }
+        // Giữ Message cho client cũ (mobile/dashboard); FE mới dùng TieuDe/NoiDung riêng.
         public string Message { get; set; } = "";
+        public string TieuDe { get; set; } = "";
+        public string? NoiDung { get; set; }
         public int Type { get; set; }
         public bool IsRead { get; set; }
         public int? InvoiceId { get; set; }

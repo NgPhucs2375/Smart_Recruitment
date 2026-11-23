@@ -21,6 +21,12 @@ public class GetSuggestedJobsForCvQuery : IRequest<Response<List<SuggestedJobVie
     /// <summary>Bỏ trống để dùng CV mặc định (IsDefault) của ứng viên hiện tại.</summary>
     public int? CvUngVienId { get; set; }
 
+    /// <summary>
+    /// Chỉ dùng cho job nền không có HttpContext (digest thông báo): thay cho
+    /// user đăng nhập. Luồng HTTP phải bỏ trống để luôn dùng người gọi thật.
+    /// </summary>
+    public int? NguoiDungIdOverride { get; set; }
+
     /// <summary>Số tin trả về sau khi sắp xếp theo điểm giảm dần.</summary>
     public int TopN { get; set; } = 10;
 
@@ -81,7 +87,9 @@ public class GetSuggestedJobsForCvQueryHandler(
         CancellationToken cancellationToken)
     {
         var timer = Stopwatch.StartNew();
-        var currentUser = await currentNguoiDungService.ResolveAsync();
+        var currentUser = request.NguoiDungIdOverride.HasValue
+            ? new CurrentNguoiDungContext { Id = request.NguoiDungIdOverride.Value }
+            : await currentNguoiDungService.ResolveAsync();
         var hoSo = await context.HoSoUngViens.AsNoTracking()
             .FirstOrDefaultAsync(x => x.NguoiDungId == currentUser.Id, cancellationToken);
         if (hoSo == null)

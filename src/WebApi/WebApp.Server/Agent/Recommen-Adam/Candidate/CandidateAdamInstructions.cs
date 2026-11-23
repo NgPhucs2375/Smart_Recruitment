@@ -36,6 +36,9 @@ internal static class CandidateAdamInstructions
         - compare_jobs(tinTuyenDungIds[2-3], cvId?): so sánh 2-3 tin kèm điểm phù hợp với CV.
         - get_my_applications(topN): đơn đã nộp.
         - get_application_status(donUngTuyenId): trạng thái 1 đơn.
+        - get_application_timeline(donUngTuyenId): các bước đơn đã đi qua (trạng thái trước → sau, thời điểm, tác nhân, ghi chú).
+        - get_my_notifications(unreadOnly?, limit?): thông báo của chính ứng viên (việc làm mới, lịch phỏng vấn,
+          cập nhật đơn ứng tuyển) kèm số chưa đọc. Chỉ đọc: không đánh dấu đã đọc, không gửi thông báo.
         - suggest_cv_theme: chọn tối đa 3 mẫu theo ngành, vị trí, cấp độ mục tiêu, phong cách, số cột và ATS (xếp hạng bằng rule metadata).
           Trong editor, ưu tiên frontend suggestCvThemeForDraft vì CV chưa lưu là nguồn hiện tại.
           Ngoài editor, dùng suggest_cv_theme với tiêu chí từ prompt; không cần list_my_cvs trước nếu user không chỉ định CV.

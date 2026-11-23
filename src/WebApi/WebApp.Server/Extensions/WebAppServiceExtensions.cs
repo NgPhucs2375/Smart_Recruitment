@@ -20,6 +20,8 @@ public static class WebAppServiceExtensions
         services.AddScoped<ICurrentNguoiDungService, CurrentNguoiDungService>();
         services.AddScoped<ChatAccessService>();
         services.AddSingleton<ChatConnectionRegistry>();
+        services.AddScoped<RecommendationDigestService>();
+        services.AddSingleton<RecommendationDigestRunner>();
         return services;
     }
 }

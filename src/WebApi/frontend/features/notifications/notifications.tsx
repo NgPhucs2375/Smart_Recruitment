@@ -12,6 +12,8 @@ import {
 export interface NotificationDto {
   id: number;
   message: string;
+  tieuDe?: string;
+  noiDung?: string | null;
   type: number; // 0=Chung 1=Lịch phỏng vấn 3=Đơn ứng tuyển (BE map từ LoaiThongBao)
   isRead: boolean;
   invoiceId?: number | null;
@@ -66,6 +68,8 @@ export function normalizeNotification(raw: unknown): NotificationDto {
   return {
     id: Number(r.id ?? r.Id ?? 0),
     message: `${r.message ?? r.Message ?? ""}`,
+    tieuDe: `${r.tieuDe ?? r.TieuDe ?? ""}`,
+    noiDung: (r.noiDung ?? r.NoiDung ?? null) as string | null,
     type: Number(r.type ?? r.Type ?? 0),
     isRead: Boolean(r.isRead ?? r.IsRead ?? false),
     invoiceId: (r.invoiceId ?? r.InvoiceId ?? null) as number | null,
@@ -76,6 +80,19 @@ export function normalizeNotification(raw: unknown): NotificationDto {
     jobId: (r.tinTuyenDungId ?? r.TinTuyenDungId ?? null) as number | null,
     inviteToken: (r.inviteToken ?? r.InviteToken ?? null) as string | null,
   };
+}
+
+// BE mới trả TieuDe/NoiDung riêng; dữ liệu cũ chỉ có Message ghép "TieuDe - NoiDung".
+export function notificationTitle(n: NotificationDto): string {
+  if (n.tieuDe?.trim()) return n.tieuDe;
+  const cut = n.message.indexOf(" - ");
+  return cut > 0 ? n.message.slice(0, cut) : n.message;
+}
+
+export function notificationBody(n: NotificationDto): string {
+  if (n.noiDung?.trim()) return n.noiDung;
+  const cut = n.message.indexOf(" - ");
+  return cut > 0 ? n.message.slice(cut + 3) : "";
 }
 
 export function normalizeNotificationsVm(raw: unknown): NotificationsVm {
