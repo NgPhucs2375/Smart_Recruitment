@@ -269,7 +269,7 @@ export function ApplyConfirmModal() {
                 onRetry={() => void load()}
                 onCreateCv={() => {
                   setOpen(false);
-                  router.push("/CV");
+                  router.push("/tao-cv");
                 }}
               />
             </div>

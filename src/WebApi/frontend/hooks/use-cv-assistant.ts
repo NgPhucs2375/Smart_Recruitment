@@ -351,7 +351,7 @@ export function useCvAssistant({
     {
       name: "getCvFormSnapshot",
       description:
-        "Đọc toàn bộ trạng thái CV NHÁP hiện đang mở trong /CV. " +
+        "Đọc toàn bộ trạng thái CV NHÁP hiện đang mở trong trình soạn CV. " +
         "Đây là nguồn chính xác nhất để review hoặc chỉnh CV chưa lưu. " +
         "Bao gồm thông tin liên hệ, section, item, field, template và field còn thiếu. " +
         "Không đọc CV đã lưu trong database.",
@@ -387,7 +387,7 @@ export function useCvAssistant({
     {
       name: "loadCvFromBackend",
       description:
-        "Mở MỘT CV đã lưu vào workspace /CV để chỉnh tiếp (thay toàn bộ form hiện tại). " +
+        "Mở MỘT CV đã lưu vào trình soạn CV để chỉnh tiếp (thay toàn bộ form hiện tại). " +
         "cvId lấy từ backend tool list_my_cvs. Nếu form đang có thay đổi chưa lưu, nhắc user trước khi gọi. " +
         "Sau khi mở, đọc lại trạng thái form bằng getCvFormSnapshot trước khi sửa.",
       parameters: loadCvSchema,
@@ -401,8 +401,8 @@ export function useCvAssistant({
           }
           return `Không tải được CV ${cvId}. Báo người dùng thử lại hoặc mở thủ công từ hồ sơ.`;
         }
-        router.push(`/CV?cv=${cvId}`);
-        return `Đang chuyển sang /CV để mở CV ${cvId}. Workspace sẽ tự load CV khi đến nơi.`;
+        router.push(`/tao-cv?cv=${cvId}`);
+        return `Đang chuyển sang /tao-cv để mở CV ${cvId}. Trình soạn sẽ tự load CV khi đến nơi.`;
       },
     },
     [enabled],
