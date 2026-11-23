@@ -1,0 +1,30 @@
+{
+  "cli": {
+    "version": ">= 16.0.0",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "preview": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://hireais.dev/api/dotnet",
+        "EXPO_PUBLIC_USE_MOCK_DATA": "false",
+        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "890881920860-udk3l8h4vi2v1l0h9gh74cv85u2vq2ac.apps.googleusercontent.com"
+      }
+    },
+    "production": {
+      "autoIncrement": true,
+      "android": {
+        "buildType": "app-bundle"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://hireais.dev/api/dotnet",
+        "EXPO_PUBLIC_USE_MOCK_DATA": "false",
+        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "890881920860-udk3l8h4vi2v1l0h9gh74cv85u2vq2ac.apps.googleusercontent.com"
+      }
+    }
+  }
+}
