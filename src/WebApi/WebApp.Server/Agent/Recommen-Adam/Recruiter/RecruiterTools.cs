@@ -388,7 +388,7 @@ internal sealed class RecruiterTools
         return await _sender.Send(new GetRecruiterOverviewQuery(), cancellationToken);
     }
 
-    [Description("Lấy thống kê tuyển dụng toàn doanh nghiệp. Chỉ người đại diện được dùng.")]
+    [Description("Lấy thống kê tuyển dụng toàn doanh nghiệp trong 30 ngày: tin tạo mới, đơn nhận, đơn phù hợp/từ chối, và chất lượng gợi ý (tổng kết quả so khớp, điểm trung bình thang 100, tỷ lệ điểm cao). Chỉ người đại diện được dùng.")]
     public Task<Response<CompanyRecruitmentStats>> GetCompanyRecruitmentStatsAsync(CancellationToken cancellationToken = default)
         => _toolCache.GetOrCreateAsync(
             "get_company_recruitment_stats", null,

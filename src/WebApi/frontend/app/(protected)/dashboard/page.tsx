@@ -560,6 +560,18 @@ function RecruiterAdminDashboard() {
 type TinLite = { id: number; tieuDe: string; trangThai: number; ngayHetHan: string; diaDiemLamViec: string; nguoiDangTinId: number };
 type DonLite = { id: number; tinTuyenDungId: number; hoSoUngVienId: number; trangThai: number; ngayUngTuyen: string };
 type NhanSuLite = { nguoiDungId: number; hoTen: string; email: string; vaiTro: string; chucVu: string };
+type RecruiterStats = {
+  TongTin: number;
+  TinDangTuyen: number;
+  TongDon: number;
+  UngVienDuyNhat: number;
+  DonChuaXem: number;
+  DonPhuHop: number;
+  TinSapHetHan7Ngay: number;
+  XuHuong7Ngay: { Ngay: string; SoLuong: number }[];
+  DonTheoTrangThai: { TrangThaiId: number; TrangThai: string; SoLuong: number }[];
+  ThanhVien: { NguoiDungId: number; HoTen: string; ChucVu: string; SoTin: number; SoDon: number }[];
+};
 
 // Display-only stage grouping, derived from Domain.Enums.TrangThaiDonUngTuyen
 // (KhoiTao=0, LoiXuLyHoSo=1, ChoXuLy=2, DaXem=3, PhuHop=4, TuChoi=5, ...).
@@ -590,6 +602,7 @@ function RecruiterControlCenter() {
   const [jobs, setJobs] = useState<TinLite[]>([]);
   const [dons, setDons] = useState<DonLite[]>([]);
   const [team, setTeam] = useState<NhanSuLite[]>([]);
+  const [stats, setStats] = useState<RecruiterStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
   const [selectedCalendarDate, setSelectedCalendarDate] = useState<Date | undefined>();
@@ -601,10 +614,15 @@ function RecruiterControlCenter() {
     if (!silent) setLoading(true);
     setErr("");
     try {
-      const [jobRes, donRes] = await Promise.all([
+      const [jobRes, donRes, statsRes] = await Promise.all([
         apiFetch("/api/dotnet/tintuyendungs?_start=0&_end=100"),
         apiFetch("/api/dotnet/donungtuyens?_start=0&_end=100"),
+        apiFetch("/api/dotnet/recruiter/stats"),
       ]);
+      if (statsRes && ok(statsRes)) {
+        const data = extractData(statsRes);
+        if (data && typeof data === "object" && !Array.isArray(data)) setStats(data as RecruiterStats);
+      }
       if (jobRes && ok(jobRes)) {
         setJobs(
           extractArray(jobRes).map((v: unknown) => {
@@ -688,7 +706,16 @@ function RecruiterControlCenter() {
     const d = daysUntil(j.ngayHetHan);
     return d !== null && d >= 0 && d <= 7;
   });
-  const attentionCount = unviewed.length + expiringJobs.length;
+  // Số liệu tổng hợp lấy từ server (toàn bộ DB); danh sách tải về chỉ dùng cho bảng chi tiết.
+  const tongTin = stats?.TongTin ?? jobs.length;
+  const soTinDangTuyen = stats?.TinDangTuyen ?? activeJobs.length;
+  const tongDon = stats?.TongDon ?? dons.length;
+  const soUngVien = stats?.UngVienDuyNhat ?? new Set(dons.map((don) => don.hoSoUngVienId)).size;
+  const soDonChuaXem = stats?.DonChuaXem ?? unviewed.length;
+  const soDonPhuHop = stats?.DonPhuHop ?? 0;
+  const soTinSapHetHan = stats?.TinSapHetHan7Ngay ?? expiringJobs.length;
+  const soThanhVien = stats?.ThanhVien.length ?? team.length;
+  const attentionCount = soDonChuaXem + soTinSapHetHan;
   const [pipelineJobId, setPipelineJobId] = useState("all");
   const [pipelineStatus, setPipelineStatus] = useState("all");
   const filteredPipelineDons = dons.filter((don) => {
@@ -698,15 +725,23 @@ function RecruiterControlCenter() {
   });
   const stageNew = filteredPipelineDons.filter((d) => STAGE_NEW.includes(d.trangThai)).length;
 
-  const activityByMember = team.map((member) => {
-    const memberJobs = jobs.filter((job) => job.nguoiDangTinId === Number((member as NhanSuLite & { nguoiDungId?: number }).nguoiDungId ?? 0));
-    const memberJobIds = new Set(memberJobs.map((job) => job.id));
-    return {
-      ...member,
-      jobCount: memberJobs.length,
-      applicantCount: dons.filter((don) => memberJobIds.has(don.tinTuyenDungId)).length,
-    };
-  });
+  const activityByMember = stats && stats.ThanhVien.length > 0
+    ? stats.ThanhVien.map((member) => ({
+        hoTen: member.HoTen,
+        email: "",
+        chucVu: member.ChucVu,
+        jobCount: member.SoTin,
+        applicantCount: member.SoDon,
+      }))
+    : team.map((member) => {
+        const memberJobs = jobs.filter((job) => job.nguoiDangTinId === Number((member as NhanSuLite & { nguoiDungId?: number }).nguoiDungId ?? 0));
+        const memberJobIds = new Set(memberJobs.map((job) => job.id));
+        return {
+          ...member,
+          jobCount: memberJobs.length,
+          applicantCount: dons.filter((don) => memberJobIds.has(don.tinTuyenDungId)).length,
+        };
+      });
 
   if (loading) {
     return (
@@ -726,16 +761,16 @@ function RecruiterControlCenter() {
 
   const kpis = isManager
     ? [
-        { icon: Briefcase, label: "Tin đang tuyển", value: `${activeJobs.length}`, sub: `${jobs.length} tin trong doanh nghiệp`, href: "/tin-tuyen-dung" },
-        { icon: Users, label: "Ứng viên", value: `${new Set(dons.map((don) => don.hoSoUngVienId)).size}`, sub: `${dons.length} lượt ứng tuyển`, href: "/ung-vien" },
-        { icon: UserPlus, label: "Nhân sự", value: `${team.length}`, sub: "thành viên trong đội ngũ", href: "/nhan-su" },
-        { icon: Eye, label: "Đơn mới chờ xem", value: `${unviewed.length}`, sub: "cần được xử lý", href: "/ung-vien?status=2" },
-        { icon: ListTodo, label: "Việc cần xử lý", value: `${attentionCount}`, sub: `${unviewed.length} đơn • ${expiringJobs.length} tin sắp hết hạn`, href: "/ung-vien?status=2" },
+        { icon: Briefcase, label: "Tin đang tuyển", value: `${soTinDangTuyen}`, sub: `${tongTin} tin trong doanh nghiệp`, href: "/tin-tuyen-dung" },
+        { icon: Users, label: "Ứng viên", value: `${soUngVien}`, sub: `${tongDon} lượt ứng tuyển`, href: "/ung-vien" },
+        { icon: UserPlus, label: "Nhân sự", value: `${soThanhVien}`, sub: "thành viên trong đội ngũ", href: "/nhan-su" },
+        { icon: Eye, label: "Đơn mới chờ xem", value: `${soDonChuaXem}`, sub: "cần được xử lý", href: "/ung-vien?status=2" },
+        { icon: ListTodo, label: "Việc cần xử lý", value: `${attentionCount}`, sub: `${soDonChuaXem} đơn • ${soTinSapHetHan} tin sắp hết hạn`, href: "/ung-vien?status=2" },
       ]
     : [
-        { icon: Briefcase, label: "Tin đang đăng", value: `${jobs.length}`, sub: `${activeJobs.length} tin đang tuyển`, href: "/tin-tuyen-dung" },
-        { icon: Users, label: "Đơn ứng tuyển", value: `${dons.length}`, sub: "thuộc các tin bạn phụ trách", href: "/ung-vien" },
-        { icon: Clock, label: "Chờ xử lý", value: `${unviewed.length}`, sub: "đơn chưa xem", href: "/ung-vien?status=2" },
+        { icon: Briefcase, label: "Tin đang đăng", value: `${tongTin}`, sub: `${soTinDangTuyen} tin đang tuyển`, href: "/tin-tuyen-dung" },
+        { icon: Users, label: "Đơn ứng tuyển", value: `${tongDon}`, sub: "thuộc các tin bạn phụ trách", href: "/ung-vien" },
+        { icon: Clock, label: "Chờ xử lý", value: `${soDonChuaXem}`, sub: "đơn chưa xem", href: "/ung-vien?status=2" },
       ];
 
   // Only stages backed by real TrangThaiDonUngTuyen values. The system has
@@ -747,23 +782,28 @@ function RecruiterControlCenter() {
     { label: "Kết thúc", count: filteredPipelineDons.filter((d) => [4, 6, 7, 8, 9].includes(d.trangThai)).length, note: "Từ chối / rút / đóng" },
   ];
 
-  const trend = Array.from({ length: 7 }, (_, index) => {
-    const date = new Date();
-    date.setHours(0, 0, 0, 0);
-    date.setDate(date.getDate() - (6 - index));
-    const next = new Date(date);
-    next.setDate(next.getDate() + 1);
-    return {
-      label: shortDay(date),
-      date,
-      count: dons.filter((don) => {
-        const applied = new Date(don.ngayUngTuyen);
-        return applied >= date && applied < next;
-      }).length,
-    };
-  });
+  const trend = stats && stats.XuHuong7Ngay.length === 7
+    ? stats.XuHuong7Ngay.map((point) => ({
+        key: point.Ngay,
+        label: shortDay(new Date(`${point.Ngay}T12:00:00`)),
+        count: point.SoLuong,
+      }))
+    : Array.from({ length: 7 }, (_, index) => {
+        const date = new Date();
+        date.setHours(0, 0, 0, 0);
+        date.setDate(date.getDate() - (6 - index));
+        const next = new Date(date);
+        next.setDate(next.getDate() + 1);
+        return {
+          key: date.toISOString(),
+          label: shortDay(date),
+          count: dons.filter((don) => {
+            const applied = new Date(don.ngayUngTuyen);
+            return applied >= date && applied < next;
+          }).length,
+        };
+      });
   const trendMax = Math.max(1, ...trend.map((point) => point.count));
-  const highFit = dons.filter((don) => don.trangThai === 5);
   const calendarMarkedDates = [
     ...dons.map((don) => new Date(don.ngayUngTuyen)).filter((date) => !Number.isNaN(date.getTime())),
     ...expiringJobs.map((job) => new Date(job.ngayHetHan)).filter((date) => !Number.isNaN(date.getTime())),
@@ -827,11 +867,11 @@ function RecruiterControlCenter() {
               <h2 className="flex items-center gap-2 text-base font-medium tracking-tight"><BarChart3 className="size-4 text-primary" /> Application trend</h2>
               <p className="mt-1 text-xs text-muted-foreground">Số lượt ứng tuyển trong 7 ngày gần nhất</p>
             </div>
-            <span className="text-xs text-muted-foreground">Tổng: {dons.length} lượt</span>
+            <span className="text-xs text-muted-foreground">Tổng: {tongDon} lượt</span>
           </div>
           <div className="mt-4 space-y-3">
             {trend.map((point) => (
-              <div key={point.date.toISOString()}>
+              <div key={point.key}>
                 <p className="flex items-center justify-between text-xs">
                   <span className="font-medium capitalize text-foreground">{point.label}</span>
                   <span className="font-semibold tabular-nums text-muted-foreground">{point.count} lượt</span>
@@ -852,7 +892,7 @@ function RecruiterControlCenter() {
                 <div className="flex items-center gap-2"><AlertTriangle className="size-4 text-primary" /><h3 className="text-sm font-medium">Đơn mới chưa xem</h3></div>
                 <Link href="/ung-vien?status=2" className="text-xs font-medium text-primary hover:underline">Xem ngay</Link>
               </div>
-              <p className="mt-4 text-3xl font-semibold">{unviewed.length}</p>
+              <p className="mt-4 text-3xl font-semibold">{soDonChuaXem}</p>
                 <p className="mt-1 text-xs text-muted-foreground">đơn đang chờ bạn mở hồ sơ</p>
             </div>
             <div className="p-5">
@@ -860,7 +900,7 @@ function RecruiterControlCenter() {
                 <div className="flex items-center gap-2"><Clock className="size-4 text-primary" /><h3 className="text-sm font-medium">Tin sắp hết hạn</h3></div>
                 <Link href="/tin-tuyen-dung" className="text-xs font-medium text-primary hover:underline">Xem tất cả</Link>
               </div>
-              <p className="mt-4 text-3xl font-semibold">{expiringJobs.length}</p>
+              <p className="mt-4 text-3xl font-semibold">{soTinSapHetHan}</p>
               <p className="mt-1 text-xs text-muted-foreground">trong 7 ngày tới</p>
             </div>
             <div className="p-5">
@@ -868,7 +908,7 @@ function RecruiterControlCenter() {
                 <div className="flex items-center gap-2"><TrendingUp className="size-4 text-primary" /><h3 className="text-sm font-medium">Ứng viên phù hợp</h3></div>
                 <Link href="/ung-vien?status=4" className="text-xs font-medium text-primary hover:underline">Xem ngay</Link>
               </div>
-              <p className="mt-4 text-3xl font-semibold">{highFit.length}</p>
+              <p className="mt-4 text-3xl font-semibold">{soDonPhuHop}</p>
               <p className="mt-1 text-xs text-muted-foreground">đã phù hợp nhưng chưa xử lý tiếp</p>
             </div>
           </div>
@@ -941,7 +981,7 @@ function RecruiterControlCenter() {
         <AdminCard className="lg:col-span-3">
           <AdminCardHeader
             title="Tin đang tuyển"
-            description={`${activeJobs.length} tin đang hiển thị`}
+            description={`${soTinDangTuyen} tin đang hiển thị`}
             action={
               <Link href="/tin-tuyen-dung" className="inline-flex items-center gap-1 text-xs font-medium text-foreground underline underline-offset-4 hover:opacity-70">
                 Xem tất cả <ArrowRight className="size-3.5" />
@@ -1025,12 +1065,12 @@ function RecruiterControlCenter() {
           <div className="flex items-center gap-3 px-5 py-6"><span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-muted"><CheckCircle2 className="size-4 text-muted-foreground" /></span><p className="text-sm text-muted-foreground">Mọi thứ đã được xử lý.</p></div>
         ) : (
           <ul className="divide-y divide-border">
-            {unviewed.length > 0 && (
+            {soDonChuaXem > 0 && (
               <li className="flex items-center gap-3 px-5 py-3.5 text-sm">
                 <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-sandsoft">
                   <FileText className="size-4 text-foreground" />
                 </span>
-                <p className="flex-1"><span className="font-semibold">{unviewed.length}</span> đơn mới chưa xem</p>
+                <p className="flex-1"><span className="font-semibold">{soDonChuaXem}</span> đơn mới chưa xem</p>
                 <Link href="/ung-vien?status=2" className="inline-flex items-center gap-1 text-xs font-medium text-foreground underline underline-offset-4 hover:opacity-70">
                   Xem ngay <ArrowRight className="size-3.5" />
                 </Link>
@@ -1059,9 +1099,9 @@ function RecruiterControlCenter() {
               <Users className="size-5 text-primary" />
             </span>
             <div className="min-w-0 flex-1">
-              <h3 className="text-base font-medium tracking-tight">HR overview • {team.length} thành viên</h3>
+              <h3 className="text-base font-medium tracking-tight">HR overview • {soThanhVien} thành viên</h3>
               <p className="mt-1 text-xs text-muted-foreground">
-                {team.length > 0 ? `${activeJobs.length} tin đang tuyển • ${dons.length} lượt ứng tuyển • ${unviewed.length} đơn cần review` : "Chưa có dữ liệu phân vai"}
+                {soThanhVien > 0 ? `${soTinDangTuyen} tin đang tuyển • ${tongDon} lượt ứng tuyển • ${soDonChuaXem} đơn cần review` : "Chưa có dữ liệu phân vai"}
               </p>
             </div>
             <div className="flex shrink-0 items-center gap-2">
