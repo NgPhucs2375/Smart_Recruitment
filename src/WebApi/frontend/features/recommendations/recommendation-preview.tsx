@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowUpRight, Sparkles } from "lucide-react";
-import { useEffect, useState } from "react";
+import { ArrowUpRight, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Sparkles } from "lucide-react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { getValidToken, refreshSession } from "@/lib/auth-provider";
 
 type Recommendation = {
@@ -61,6 +61,40 @@ export function RecommendationPreview({ count = 5 }: { count?: number }) {
   // câu sẽ nói sai (báo "chọn CV mặc định" khi người dùng đã có CV mặc định).
   const [notice, setNotice] = useState("");
   const [needsCv, setNeedsCv] = useState(false);
+  const railId = useId();
+  const trackRef = useRef<HTMLDivElement | null>(null);
+  const [collapsed, setCollapsed] = useState(false);
+  const [edges, setEdges] = useState({ left: false, right: false });
+
+  const updateEdges = useCallback(() => {
+    const el = trackRef.current;
+    if (!el) return;
+    const maxScroll = el.scrollWidth - el.clientWidth;
+    const next = { left: el.scrollLeft > 4, right: maxScroll - el.scrollLeft > 4 };
+    setEdges((prev) => (prev.left === next.left && prev.right === next.right ? prev : next));
+  }, []);
+
+  useEffect(() => {
+    const el = trackRef.current;
+    if (!el || collapsed) return;
+    // rAF/ResizeObserver đều bất đồng bộ nên không setState đồng bộ trong effect.
+    // Thêm timeout vì rAF có thể bị hoãn ở tab nền/headless, khi đó nút ‹ › mất.
+    const frame = window.requestAnimationFrame(updateEdges);
+    const settle = window.setTimeout(updateEdges, 60);
+    const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(updateEdges);
+    observer?.observe(el);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.clearTimeout(settle);
+      observer?.disconnect();
+    };
+  }, [updateEdges, collapsed, items.length]);
+
+  const scrollByPage = (direction: 1 | -1) => {
+    const el = trackRef.current;
+    if (!el) return;
+    el.scrollBy({ left: direction * Math.max(el.clientWidth * 0.8, 220), behavior: "smooth" });
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -109,13 +143,25 @@ export function RecommendationPreview({ count = 5 }: { count?: number }) {
           <h2 className="mt-2 text-xl font-semibold tracking-tight">Việc làm phù hợp với cv của bạn</h2>
           {/* <p className="mt-1 text-sm text-muted-foreground">Dựa trên CV mặc định và kỹ năng của bạn.</p> */}
         </div>
-        <Link href="/viec-lam/phu-hop" className="group flex items-center gap-1 text-sm font-medium text-workspace-ai transition-colors hover:text-workspace-ai/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-workspace-ai">
-          Xem thêm việc phù hợp <ArrowUpRight className="size-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-        </Link>
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            className="inline-flex items-center gap-0.5 rounded-lg px-1.5 py-1 text-[0.65rem] font-semibold text-muted-foreground transition-colors hover:bg-workspace-ai/10 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-workspace-ai"
+            aria-expanded={!collapsed}
+            aria-controls={railId}
+            onClick={() => setCollapsed((value) => !value)}
+          >
+            {collapsed ? <ChevronDown className="size-3.5" aria-hidden="true" /> : <ChevronUp className="size-3.5" aria-hidden="true" />}
+            {collapsed ? "Mở rộng" : "Thu gọn"}
+          </button>
+          <Link href="/viec-lam/phu-hop" className="group flex items-center gap-1 text-sm font-medium text-workspace-ai transition-colors hover:text-workspace-ai/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-workspace-ai">
+            Xem thêm việc phù hợp <ArrowUpRight className="size-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+          </Link>
+        </div>
       </div>
       {loading ? (
-        <div className="mt-5 grid gap-3 md:grid-cols-2">
-          {Array.from({ length: Math.min(count, 5) }).map((_, index) => <div key={index} className="h-24 animate-pulse rounded-2xl border border-border bg-card/70" />)}
+        <div className="mt-5 flex gap-3 overflow-hidden">
+          {Array.from({ length: Math.min(count, 5) }).map((_, index) => <div key={index} className="h-24 w-[17.5rem] max-w-[85%] shrink-0 animate-pulse rounded-2xl border border-border bg-card/70" />)}
         </div>
       ) : error ? (
         <p className="mt-5 rounded-2xl border border-destructive/20 bg-card px-4 py-4 text-sm text-muted-foreground">{error}</p>
@@ -129,22 +175,39 @@ export function RecommendationPreview({ count = 5 }: { count?: number }) {
           </p>
           {needsCv && <Link href="/CV" className="mt-3 inline-flex text-sm font-medium text-primary underline underline-offset-4">Hoàn thiện CV</Link>}
         </div>
-      ) : (
-        <div className="mt-5 grid gap-3 md:grid-cols-2">
-          {items.slice(0, count).map((item) => (
-           <Link key={item.tinTuyenDungId} href={`/viec-lam/${item.tinTuyenDungId}`} className="rounded-2xl border border-border bg-card p-4 transition hover:border-workspace-ai/50">
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <h3 className="truncate font-medium">{item.tieuDe}</h3>
-                <p className="mt-1 truncate text-xs text-muted-foreground">{item.tenDoanhNghiep} · {item.diaDiemLamViec || "Linh hoạt"}</p>
+      ) : !collapsed && (
+        <div className="relative mt-5">
+          {edges.left && (
+            <button type="button" aria-label="Gợi ý trước" onClick={() => scrollByPage(-1)} className="absolute left-1 top-1/2 z-10 grid size-8 -translate-y-1/2 place-items-center rounded-full border border-border bg-card text-foreground shadow-md transition-colors hover:bg-workspace-ai/10">
+              <ChevronLeft className="size-4" aria-hidden="true" />
+            </button>
+          )}
+          <div
+            id={railId}
+            ref={trackRef}
+            onScroll={updateEdges}
+            className="flex snap-x snap-proximity gap-3 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          >
+            {items.slice(0, count).map((item) => (
+             <Link key={item.tinTuyenDungId} href={`/viec-lam/${item.tinTuyenDungId}`} className="w-[17.5rem] max-w-[85%] shrink-0 snap-start rounded-2xl border border-border bg-card p-4 transition hover:border-workspace-ai/50">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <h3 className="truncate font-medium">{item.tieuDe}</h3>
+                  <p className="mt-1 truncate text-xs text-muted-foreground">{item.tenDoanhNghiep} · {item.diaDiemLamViec || "Linh hoạt"}</p>
+                </div>
+                 <span className="shrink-0 rounded-full bg-workspace-ai-soft px-2 py-1 text-xs font-semibold text-workspace-ai">{Math.round(item.diemPhuHop)}%</span>
               </div>
-               <span className="shrink-0 rounded-full bg-workspace-ai-soft px-2 py-1 text-xs font-semibold text-workspace-ai">{Math.round(item.diemPhuHop)}%</span>
-            </div>
-            <p className="mt-3 text-xs text-muted-foreground">{money(item.luongToiThieu)} - {money(item.luongToiDa)}</p>
-            {item.kyNangThieu?.length > 0 && <p className="mt-2 truncate text-xs text-workspace-warning">Còn thiếu: {item.kyNangThieu.slice(0, 3).join(", ")}</p>}
-            {item.lyDoGoiY && <p className="mt-2 line-clamp-2 text-xs text-workspace-ai">{item.lyDoGoiY}</p>}
-          </Link>
-          ))}
+              <p className="mt-3 text-xs text-muted-foreground">{money(item.luongToiThieu)} - {money(item.luongToiDa)}</p>
+              {item.kyNangThieu?.length > 0 && <p className="mt-2 truncate text-xs text-workspace-warning">Còn thiếu: {item.kyNangThieu.slice(0, 3).join(", ")}</p>}
+              {item.lyDoGoiY && <p className="mt-2 line-clamp-2 text-xs text-workspace-ai">{item.lyDoGoiY}</p>}
+            </Link>
+            ))}
+          </div>
+          {edges.right && (
+            <button type="button" aria-label="Gợi ý sau" onClick={() => scrollByPage(1)} className="absolute right-1 top-1/2 z-10 grid size-8 -translate-y-1/2 place-items-center rounded-full border border-border bg-card text-foreground shadow-md transition-colors hover:bg-workspace-ai/10">
+              <ChevronRight className="size-4" aria-hidden="true" />
+            </button>
+          )}
         </div>
       )}
     </section>
