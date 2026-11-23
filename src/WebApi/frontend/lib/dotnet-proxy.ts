@@ -55,6 +55,9 @@ export async function proxyDotnet(
   if (authorization) headers["Authorization"] = authorization;
   const origin = req.headers.get("Origin");
   if (origin) headers["Origin"] = origin;
+  // Audit nguồn tạo đơn của agent (modal Adam gửi X-Nguon: adam) — backend chỉ ghi log.
+  const nguon = req.headers.get("X-Nguon");
+  if (nguon) headers["X-Nguon"] = nguon;
 
   let requestBody: BodyInit | undefined;
   if (opts.rawBody) {

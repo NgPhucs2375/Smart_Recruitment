@@ -48,8 +48,8 @@ import {
  * Hook này luôn sẵn sàng ở mọi trang protected:
  * - expose `route` context để agent biết user đang ở đâu,
  * - expose `navigateTo` để điều hướng tới page hợp lệ,
- * - expose `navigateToCvEditor` để agent lưu nháp + nhảy vào /CV.
- * Khi đã ở /CV, useCvAssistant lo điền trực tiếp; tool này chỉ là fallback.
+ * - expose `navigateToCvEditor` để agent lưu nháp + nhảy vào /tao-cv.
+ * Khi đã ở trình soạn CV, useCvAssistant lo điền trực tiếp; tool này chỉ là fallback.
  */
 
 const navigateSchema = z.object({
@@ -151,7 +151,7 @@ export function useGlobalCvAssistant({
   // Warm the editor chunk while the user is still chatting. This removes the
   // compile/fetch gap when navigateToCvEditor is called by a frontend tool.
   useEffect(() => {
-    if (enabled && isCandidate && !isEditor) void router.prefetch("/CV");
+    if (enabled && isCandidate && !isEditor) void router.prefetch("/tao-cv");
   }, [enabled, isCandidate, isEditor, router]);
 
   const agentContext = useMemo(() => {
@@ -167,7 +167,7 @@ export function useGlobalCvAssistant({
         description:
           "Vị trí trang hiện tại của ứng viên. " +
           "Nếu isEditor=false thì KHÔNG có form CV trực tiếp để ghi — " +
-          "muốn điền CV phải gọi navigateToCvEditor (tự lưu nháp + nhảy vào /CV). " +
+          "muốn điền CV phải gọi navigateToCvEditor (tự lưu nháp + nhảy vào /tao-cv). " +
           "Nếu isEditor=true thì điền trực tiếp bằng updateCvContact/updateCvMeta/upsertCvSectionItem.",
         value: { role, pathname: pathname ?? "", isEditor, lastApplication },
       };
@@ -211,8 +211,8 @@ export function useGlobalCvAssistant({
           return `Vừa điều hướng gần đây, bỏ qua để tránh loop. User đang ở ${pathname}.`;
         }
 
-        if (destination.href === "/CV" && isEditor) {
-          return "User đã đang ở workspace CV, không cần điều hướng.";
+        if (destination.href === "/tao-cv" && isEditor) {
+          return "User đã đang ở trình soạn CV, không cần điều hướng.";
         }
 
         lastNavigateAt.current = Date.now();
@@ -291,7 +291,7 @@ export function useGlobalCvAssistant({
     {
       name: "navigateToCvEditor",
       description:
-        "Lưu nháp CV rồi mở workspace /CV. " +
+        "Lưu nháp CV rồi mở trình soạn CV /tao-cv. " +
         "BẮT BUỘC gọi khi user nói 'tạo CV / CV mới / tạo CV với tên là X' mà isEditor=false. " +
         "Sau khi gọi, báo user đang mở trình soạn và liệt kê đã lưu gì.",
       agentId: "default",
@@ -375,7 +375,7 @@ export function useGlobalCvAssistant({
           );
           // Let the tool result finish before unmounting CopilotChat; otherwise
           // navigation can interrupt the final AG-UI tool response.
-          window.setTimeout(() => router.push("/CV"), 0);
+          window.setTimeout(() => router.push("/tao-cv"), 0);
         } else if (!isEditor && cooldownActive) {
           // Đang cooldown: chỉ lưu patch, không navigate — tránh loop.
           toast.success(
@@ -392,10 +392,10 @@ export function useGlobalCvAssistant({
           );
         }
         return isEditor
-          ? "Đã lưu nháp. Workspace /CV đang mở sẽ tự đổ patch vào."
+          ? "Đã lưu nháp. Trình soạn CV đang mở sẽ tự đổ patch vào."
           : cooldownActive
             ? "Đã lưu nháp. Bỏ qua điều hướng vì vừa mở trang gần đây — tránh loop."
-            : "Đã lưu nháp và điều hướng tới /CV. Workspace sẽ tự đổ patch khi load xong.";
+            : "Đã lưu nháp và điều hướng tới /tao-cv. Trình soạn sẽ tự đổ patch khi load xong.";
       },
     },
     [enabled, isCandidate, isEditor, pathname],

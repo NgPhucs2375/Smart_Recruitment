@@ -9,7 +9,7 @@ export const NAVIGABLE_ROUTES = {
   "matching-jobs": { href: "/viec-lam/phu-hop", label: "Việc làm phù hợp" },
   "job-messages": { href: "/tin-nhan", label: "Tin nhắn" },
   "my-profile": { href: "/ho-so", label: "Hồ sơ cá nhân" },
-  "cv-editor": { href: "/CV", label: "Soạn CV" },
+  "cv-editor": { href: "/tao-cv", label: "Soạn CV" },
   "cv-import": { href: "/CV/import", label: "Import CV" },
   "cv-templates": { href: "/mau-cv", label: "Mẫu CV" },
   candidates: { href: "/ung-vien", label: "Ứng viên" },

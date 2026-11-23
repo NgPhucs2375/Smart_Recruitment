@@ -35,7 +35,7 @@ export default function CvThemeRecommendations({ items, message }: { items: Them
         await ensureActiveTemplate(slug);
         const pending = loadPendingCvPatch();
         savePendingCvPatch({ contact: pending?.contact, sections: pending?.sections, tenFile: pending?.tenFile, templateId: slug });
-        router.push("/CV");
+        router.push("/tao-cv");
         toast.success("Đang mở mẫu trong bản nháp; chưa lưu CV.");
       }
       setPreview(null);

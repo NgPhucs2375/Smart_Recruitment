@@ -182,10 +182,32 @@ function GlobalCvAssistantMount({ role }: { role: Exclude<AdamRole, "blocked"> }
 }
 
 function ToolActivityMount() {
-  useDefaultRenderTool({
-    render: ({ name, status, result, parameters }) => {
+  const { agent } = useAgent({ agentId: "default" });
+  // Thẻ tool chỉ "complete" khi có ToolMessage khớp tool_call_id. Nếu run đã
+  // kết thúc mà vẫn thiếu kết quả — tool call mồ côi (core bỏ qua gắn kết quả
+  // khi message cha biến mất, hoặc thread restore thiếu tool result) — thẻ sẽ
+  // quay vô hạn trong khi chat đã rảnh. Sau một khoảng lặng ngắn, chốt trạng
+  // thái "không hoàn tất" để không còn spinner treo.
+  const [idleSettled, setIdleSettled] = useState(false);
+  useEffect(() => {
+    if (agent.isRunning) {
+      // Hạ cờ ở nhịp sau (không setState đồng bộ trong effect).
+      const reset = window.setTimeout(() => setIdleSettled(false), 0);
+      return () => window.clearTimeout(reset);
+    }
+    const timer = window.setTimeout(() => setIdleSettled(true), 1500);
+    return () => window.clearTimeout(timer);
+  }, [agent.isRunning]);
+
+  useDefaultRenderTool(
+    {
+      render: ({ name, status, result, parameters }) => {
       const labels: Record<string, string> = {
         getCvFormSnapshot: "Đang đọc nội dung CV",
+        reviewCurrentUnsavedCv: "Đang kiểm tra CV nháp",
+        focusSections: "Đang đánh dấu phần CV cần xem",
+        loadCvFromBackend: "Đang mở CV đã lưu",
+        removeCvSectionItem: "Đang xóa một mục CV",
         updateCvContact: "Đang cập nhật thông tin liên hệ",
         updateCvContactBulk: "Đang cập nhật thông tin liên hệ",
         upsertCvSectionItem: "Đang cập nhật nội dung CV",
@@ -204,6 +226,24 @@ function ToolActivityMount() {
         get_job_details: "Đang tải chi tiết tin tuyển dụng",
         get_my_notifications: "Đang đọc thông báo của bạn",
         get_application_timeline: "Đang đọc lịch sử đơn ứng tuyển",
+        get_my_profile: "Đang đọc hồ sơ cá nhân",
+        get_my_applications: "Đang tải danh sách đơn ứng tuyển",
+        get_application_status: "Đang kiểm tra trạng thái đơn ứng tuyển",
+        check_profile_completeness: "Đang kiểm tra mức hoàn thiện hồ sơ",
+        list_my_cvs: "Đang liệt kê CV của bạn",
+        get_cv_detail: "Đang đọc chi tiết CV",
+        get_cv_job_match: "Đang đối chiếu CV với tin tuyển dụng",
+        get_current_recruitment_context: "Đang đọc bối cảnh tuyển dụng",
+        get_recruitment_job_detail: "Đang đọc chi tiết tin tuyển dụng",
+        analyze_job_post: "Đang phân tích tin tuyển dụng",
+        get_candidate_cv: "Đang đọc CV ứng viên",
+        get_applications: "Đang tải đơn ứng tuyển",
+        get_application_detail: "Đang đọc chi tiết đơn ứng tuyển",
+        get_application_pipeline: "Đang đọc quy trình tuyển dụng",
+        get_recruitment_overview: "Đang tổng hợp tình hình tuyển dụng",
+        get_company_recruitment_stats: "Đang tổng hợp số liệu tuyển dụng",
+        get_company_members: "Đang đọc danh sách thành viên công ty",
+        get_recruiter_activity: "Đang đọc hoạt động tuyển dụng",
       };
       const label = labels[name] ?? "Đang xử lý yêu cầu";
       const complete = status === "complete";
@@ -221,6 +261,9 @@ function ToolActivityMount() {
       // Nhãn nguồn là "Đang <động từ> …" → khi xong chỉ đổi "Đang" thành "Đã",
       // tránh câu lai "Đang … xong" cạnh chip "Đã xong".
       const doneLabel = label.startsWith("Đang ") ? `Đã ${label.slice(5)}` : label;
+      // Run đã dừng hẳn mà thẻ chưa "complete" → tool call mồ côi, không bao giờ
+      // có kết quả nữa. Chốt trạng thái thay vì quay spinner mãi.
+      const stalled = !complete && !agent.isRunning && idleSettled;
 
       if (candidates.length > 0) {
         return (
@@ -285,6 +328,19 @@ function ToolActivityMount() {
         );
       }
 
+      if (stalled) {
+        const purpose = activityLabel.startsWith("Đang ") ? activityLabel.slice(5) : activityLabel;
+        return (
+          <div className="adam-tool-activity adam-tool-activity--stalled" role="status" aria-live="polite">
+            <span className="adam-tool-activity__icon is-stalled" aria-hidden="true" />
+            <span className="adam-tool-activity__label">
+              Không hoàn tất: <strong>{purpose}</strong>
+            </span>
+            <span className="adam-tool-activity__status">Thử gửi lại</span>
+          </div>
+        );
+      }
+
       return (
         <div className={`adam-tool-activity${section ? " adam-tool-activity--change" : ""}`} role="status" aria-live="polite">
           <span className={`adam-tool-activity__icon${complete ? " is-complete" : ""}`} aria-hidden="true" />
@@ -299,8 +355,10 @@ function ToolActivityMount() {
           {!complete && <span className="adam-tool-activity__status">Đang xử lý</span>}
         </div>
       );
+      },
     },
-  });
+    [agent.isRunning, idleSettled],
+  );
   return null;
 }
 

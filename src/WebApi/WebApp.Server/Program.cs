@@ -179,6 +179,17 @@ using (var scope = app.Services.CreateScope())
     await initializer.InitializeAsync();
 }
 
+// Chế độ nạp dữ liệu demo một lần: chạy xong là thoát, không mở web host
+// (hosted jobs chỉ khởi động trong app.RunAsync nên sẽ không chạy ở nhánh này).
+var demoSeedOptions = WebApp.Server.DemoSeed.DemoSeedOptions.Parse(args);
+if (demoSeedOptions.Requested)
+{
+    using var demoSeedScope = app.Services.CreateScope();
+    await WebApp.Server.DemoSeed.DemoSeedRunner.RunAsync(
+        demoSeedScope.ServiceProvider, demoSeedOptions, app.Logger);
+    return;
+}
+
 if (_env.IsDevelopment())
 {
     app.UseDeveloperExceptionPage();
