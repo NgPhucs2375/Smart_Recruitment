@@ -12,6 +12,7 @@ using Application.DTOs.DanhMucNghe;
 using Application.Features.KetQuaPhuHop.Queries.SuggestJobsForCv;
 using Application.Features.KetQuaPhuHop.Queries.SuggestCandidatesForJob;
 using Application.Features.KetQuaPhuHop.Queries.GetCvJobMatch;
+using Application.Features.KetQuaPhuHop.Queries.GetCandidateJobMatch;
 
 namespace WebApp.Server.Controllers.v1
 {
@@ -73,6 +74,20 @@ namespace WebApp.Server.Controllers.v1
                 "ketquaphuhops",
                 "show",
                 async () => Ok(await Mediator.Send(new GetCvJobMatchQuery(cvUngVienId, tinTuyenDungId))));
+        }
+
+        /// <summary>Chấm một cặp (hồ sơ/CV, tin) cho nhân sự/người đại diện — dùng ở trang xem CV của HR.</summary>
+        [HttpGet("candidate-match")]
+        public async Task<IActionResult> CandidateMatch(
+            [FromQuery] int tinTuyenDungId,
+            [FromQuery] int? hoSoUngVienId = null,
+            [FromQuery] int? cvUngVienId = null)
+        {
+            return await EnforcePermissionAndExecute(
+                "ketquaphuhops",
+                "list",
+                async () => Ok(await Mediator.Send(
+                    new GetCandidateJobMatchQuery(tinTuyenDungId, hoSoUngVienId, cvUngVienId))));
         }
 
         [HttpGet("candidates")]

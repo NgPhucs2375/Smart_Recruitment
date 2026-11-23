@@ -10,8 +10,10 @@ import {
   FileText,
   History,
   Loader2,
+  Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   AdminPageLayout,
   AdminEmptyState,
@@ -36,6 +38,24 @@ type ApplicationResponse = {
 };
 
 const APPLICATION_STATUS = { ChoXuLy: 2, DaXem: 3, PhuHop: 5 } as const;
+
+type MatchInfo = {
+  diemPhuHop: number;
+  phanLoai: string;
+  viTriUngTuyen: string;
+  soNamKinhNghiem: number;
+  kyNangThoa: string[];
+  kyNangThieu: string[];
+  kyNangBatBuocThieu: string[];
+};
+
+const asText = (value: unknown) => `${value ?? ""}`.trim();
+const asList = (value: unknown): string[] => {
+  if (Array.isArray(value)) return value.map(asText).filter(Boolean);
+  if (typeof value === "string")
+    return value.split(",").map((item) => item.trim()).filter(Boolean);
+  return [];
+};
 
 function normalizeApplicationStatus(value: unknown): number | null {
   if (typeof value === "number") return value;
@@ -73,6 +93,47 @@ export default function HrXemCvPage() {
   const [applicationStatus, setApplicationStatus] = useState<number | null>(
     null,
   );
+  const [matchInfo, setMatchInfo] = useState<MatchInfo | null>(null);
+
+  // Điểm phù hợp AI cho đúng cặp (CV đã nộp, tin). Lỗi quyền/không chấm được
+  // thì ẩn panel, không chặn việc xem CV.
+  useEffect(() => {
+    if (!Number.isFinite(tinId) || tinId <= 0 || !Number.isFinite(cvId) || cvId <= 0)
+      return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const token = await getValidToken();
+        const response = await fetch(
+          `/api/dotnet/ketquaphuhops/candidate-match?tinTuyenDungId=${tinId}&cvUngVienId=${cvId}`,
+          {
+            cache: "no-store",
+            headers: { Authorization: `Bearer ${token ?? ""}` },
+          },
+        );
+        const body = (await response.json().catch(() => null)) as ApplicationResponse | null;
+        if (cancelled) return;
+        if (!response.ok || !(body?.Succeeded ?? body?.succeeded ?? true)) return;
+        const d = (body?.Data ?? body?.data ?? {}) as Record<string, unknown>;
+        const score = Number(d.diemPhuHop ?? d.DiemPhuHop);
+        if (!Number.isFinite(score)) return;
+        setMatchInfo({
+          diemPhuHop: score,
+          phanLoai: asText(d.phanLoai ?? d.PhanLoai),
+          viTriUngTuyen: asText(d.viTriUngTuyen ?? d.ViTriUngTuyen),
+          soNamKinhNghiem: Number(d.soNamKinhNghiem ?? d.SoNamKinhNghiem ?? 0) || 0,
+          kyNangThoa: asList(d.kyNangThoa ?? d.KyNangThoa),
+          kyNangThieu: asList(d.kyNangThieu ?? d.KyNangThieu),
+          kyNangBatBuocThieu: asList(d.kyNangBatBuocThieu ?? d.KyNangBatBuocThieu),
+        });
+      } catch {
+        // ẩn panel
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [cvId, tinId]);
 
   const markApplicationViewed = useCallback(async (): Promise<
     number | null
@@ -291,6 +352,53 @@ export default function HrXemCvPage() {
               <p className="mt-3 text-sm text-destructive">{actionError}</p>
             )}
           </div>
+          {matchInfo && (
+            <div className="rounded-[2rem] border border-primary/20 bg-primary/5 p-6 shadow-sm sm:p-8">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <p className="inline-flex items-center gap-2 text-xs text-muted-foreground">
+                    <Sparkles className="size-3.5 text-primary" /> Độ phù hợp AI với tin này
+                  </p>
+                  <p className="mt-1.5 text-xs text-muted-foreground">
+                    {matchInfo.viTriUngTuyen || "Chưa có vị trí ứng tuyển"}
+                    {matchInfo.soNamKinhNghiem > 0 && ` • ${matchInfo.soNamKinhNghiem} năm kinh nghiệm`}
+                    {matchInfo.phanLoai && ` • ${matchInfo.phanLoai}`}
+                  </p>
+                </div>
+                <div className="flex shrink-0 items-center gap-2">
+                  {matchInfo.kyNangBatBuocThieu.length > 0 && (
+                    <Badge variant="outline" className="border-red-500/40 bg-red-500/10 text-red-700 dark:text-red-300">
+                      Thiếu {matchInfo.kyNangBatBuocThieu.length} bắt buộc
+                    </Badge>
+                  )}
+                  <span className="text-3xl font-semibold tabular-nums text-primary">
+                    {Math.round(matchInfo.diemPhuHop * 100)}%
+                  </span>
+                </div>
+              </div>
+              {(matchInfo.kyNangThoa.length > 0 || matchInfo.kyNangThieu.length > 0) && (
+                <div className="mt-4 flex flex-wrap gap-1.5">
+                  {matchInfo.kyNangThoa.map((skill) => (
+                    <Badge key={skill} variant="outline" className="border-emerald-500/25 bg-emerald-500/5 text-emerald-700 dark:text-emerald-300">{skill}</Badge>
+                  ))}
+                  {matchInfo.kyNangThieu.map((skill) => (
+                    <Badge
+                      key={skill}
+                      variant="outline"
+                      className={matchInfo.kyNangBatBuocThieu.includes(skill)
+                        ? "border-red-500/30 bg-red-500/5 text-red-700 dark:text-red-300"
+                        : "border-amber-500/25 bg-amber-500/5 text-amber-700 dark:text-amber-300"}
+                    >
+                      {matchInfo.kyNangBatBuocThieu.includes(skill) ? "Thiếu bắt buộc: " : "Thiếu: "}{skill}
+                    </Badge>
+                  ))}
+                </div>
+              )}
+              <p className="mt-3 text-[11px] leading-relaxed text-muted-foreground">
+                Điểm chấm tất định từ CV đã nộp và yêu cầu của tin. Thiếu kỹ năng bắt buộc thì điểm bị chặn trần 60%.
+              </p>
+            </div>
+          )}
           {Number.isFinite(donId) && donId > 0 && (
             <div className="rounded-[2rem] border border-border bg-card p-6 shadow-sm sm:p-8">
               <p className="inline-flex items-center gap-2 text-xs text-muted-foreground">

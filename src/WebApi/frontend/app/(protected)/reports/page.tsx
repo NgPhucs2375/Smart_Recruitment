@@ -413,7 +413,7 @@ export default function ReportsPage() {
           <CardHeader><CardTitle>Top tin nhiều đơn nhất</CardTitle><CardDescription>Các tin nhận nhiều hồ sơ nhất trong kỳ báo cáo.</CardDescription></CardHeader>
           <CardContent className="space-y-4">
             {report.TopTin.length === 0 && <p className="text-sm text-muted-foreground">Chưa có đơn ứng tuyển nào trong kỳ.</p>}
-            {report.TopTin.map(tin => <div key={tin.Id}><p className="flex items-center justify-between gap-3 text-sm"><Link href={`/tin-tuyen-dung/${tin.Id}`} className="truncate font-medium text-foreground hover:underline">{tin.TieuDe}</Link><span className="shrink-0 tabular-nums">{tin.SoLuong} đơn</span></p><Progress className="mt-2" value={Math.max(0, tin.SoLuong / maxTop * 100)} /></div>)}
+            {report.TopTin.map(tin => <div key={tin.Id}><p className="flex items-center justify-between gap-3 text-sm"><Link href={`/tin-tuyen-dung/${tin.Id}/ung-vien`} className="truncate font-medium text-foreground hover:underline">{tin.TieuDe}</Link><span className="shrink-0 tabular-nums">{tin.SoLuong} đơn</span></p><Progress className="mt-2" value={Math.max(0, tin.SoLuong / maxTop * 100)} /></div>)}
           </CardContent>
         </Card>
       </div>
