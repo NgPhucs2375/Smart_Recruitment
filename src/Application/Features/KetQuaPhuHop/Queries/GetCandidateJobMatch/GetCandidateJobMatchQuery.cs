@@ -13,8 +13,12 @@ namespace Application.Features.KetQuaPhuHop.Queries.GetCandidateJobMatch;
 /// Dùng cùng scorer tất định với luồng gợi ý ứng viên nhưng không xếp hạng
 /// toàn bộ pool và không rerank — phục vụ giải thích/so sánh một ứng viên cụ thể
 /// mà không bị giới hạn trong top-N gợi ý.
+/// CvUngVienId ưu tiên CV cụ thể (CV đã nộp); null = CV mặc định của hồ sơ.
 /// </summary>
-public sealed record GetCandidateJobMatchQuery(int TinTuyenDungId, int HoSoUngVienId)
+public sealed record GetCandidateJobMatchQuery(
+    int TinTuyenDungId,
+    int? HoSoUngVienId = null,
+    int? CvUngVienId = null)
     : IRequest<Response<SuggestedCandidateViewModel>>;
 
 public sealed class GetCandidateJobMatchQueryHandler(
@@ -31,6 +35,8 @@ public sealed class GetCandidateJobMatchQueryHandler(
             return new Response<SuggestedCandidateViewModel>("Chức năng này chỉ dành cho nhân sự hoặc người đại diện.");
         if (!current.DoanhNghiepId.HasValue)
             return new Response<SuggestedCandidateViewModel>("Tài khoản chưa thuộc doanh nghiệp nào.");
+        if (request.HoSoUngVienId is null && request.CvUngVienId is null)
+            return new Response<SuggestedCandidateViewModel>("Cần chỉ định hồ sơ hoặc CV ứng viên.");
 
         var job = await context.TinTuyenDungs.AsNoTracking()
             .Include(x => x.KyNangTinTuyenDungs)
@@ -49,11 +55,16 @@ public sealed class GetCandidateJobMatchQueryHandler(
             .Include(x => x.DuAns)
             .Include(x => x.HoSoUngVien)
                 .ThenInclude(x => x.KinhNghiemLamViecs)
-            .FirstOrDefaultAsync(x => x.HoSoUngVienId == request.HoSoUngVienId &&
-                                      x.IsDefault && !x.IsDaXoa,
+            .FirstOrDefaultAsync(x => !x.IsDaXoa &&
+                                      (request.CvUngVienId.HasValue
+                                          ? x.Id == request.CvUngVienId.Value
+                                          : x.HoSoUngVienId == request.HoSoUngVienId && x.IsDefault) &&
+                                      (!request.HoSoUngVienId.HasValue || x.HoSoUngVienId == request.HoSoUngVienId.Value),
                 cancellationToken);
         if (cv == null)
-            return new Response<SuggestedCandidateViewModel>("Ứng viên chưa có CV mặc định để chấm điểm.");
+            return new Response<SuggestedCandidateViewModel>(request.CvUngVienId.HasValue
+                ? "Không tìm thấy CV ứng viên để chấm điểm."
+                : "Ứng viên chưa có CV mặc định để chấm điểm.");
 
         var requirements = job.KyNangTinTuyenDungs
             .Where(x => x.DanhMucKyNang != null && !string.IsNullOrWhiteSpace(x.DanhMucKyNang.TenKyNang))
