@@ -165,3 +165,70 @@ assert(/intent === "register" \? "\/ho-so"/.test(verifyHook), "Freshly registere
 assert(/sessionStorage\.removeItem\("hireai\.magic\.intent"\)/.test(verifyHook), "The register intent is cleared once it has been used");
 assert(/useMagicLink\("Login", \{ portal: "employer"/.test(employerLoginPage) && /<MagicLinkForm/.test(employerLoginPage), "Employer login offers the magic-link tab");
 console.log("PASS magic-link forms ask only what MagicLinkToken can carry, and both portals can request a link");
+
+// Adam chat: chỉ tool gợi ý việc làm mới được render thẻ "việc làm cho bạn".
+// get_applications trả RecruitmentApplication (có tinTuyenDungId, không có tieuDe/diemPhuHop)
+// nên trước đây bị parse thành các thẻ 0% "Tin tuyển dụng" ngay dưới câu hỏi đơn ứng tuyển.
+const { parseJobRecommendations } = await load("features/ai-cv/job-recommendations.ts");
+const applicationsPayload = JSON.stringify({ succeeded: true, data: [
+  { donUngTuyenId: 7, tinTuyenDungId: 3 },
+  { donUngTuyenId: 2, tinTuyenDungId: 3 },
+  { donUngTuyenId: 4, tinTuyenDungId: 11 },
+] });
+assert.deepEqual(parseJobRecommendations("get_applications", applicationsPayload), []);
+const jobsPayload = JSON.stringify({ succeeded: true, data: [
+  { tinTuyenDungId: 12, tieuDe: "Backend .NET", tenDoanhNghiep: "ACME", diaDiemLamViec: "Hà Nội", luongToiThieu: 1000, luongToiDa: 2000, diemPhuHop: 0.87 },
+  { TinTuyenDungId: 12, TieuDe: "Backend .NET (trùng)", DiemPhuHop: 0.87 },
+  { ThiThoai: true },
+] });
+const jobs = parseJobRecommendations("get_job_recommendations", jobsPayload);
+assert.equal(jobs.length, 1);
+assert.deepEqual(jobs[0], { tinTuyenDungId: 12, tieuDe: "Backend .NET", tenDoanhNghiep: "ACME", diaDiemLamViec: "Hà Nội", luongToiThieu: 1000, luongToiDa: 2000, diemPhuHop: 0.87 });
+assert.deepEqual(parseJobRecommendations("get_job_recommendations", "not json"), []);
+console.log("PASS only get_job_recommendations renders job cards; applications/dedupe/malformed payloads are ignored");
+
+// Adam chat connect: replay event thô làm @ag-ui cộng TEXT_MESSAGE_CONTENT vào
+// message cùng id đã có sẵn (lặp chữ khi stream). Restore phải phát MESSAGES_SNAPSHOT
+// để hợp nhất theo id, giữ đúng bookend RUN_STARTED/RUN_FINISHED của verifyEvents.
+const { buildRestoreEvents, findActiveRun, mergeMessagesById, reconstructMessages, sanitizeMessages } =
+  await load("app/api/copilotkit/thread-restore.ts");
+const replay = [
+  { type: "RUN_STARTED", threadId: "t1", runId: "r1" },
+  { type: "TEXT_MESSAGE_START", messageId: "m1" },
+  { type: "TEXT_MESSAGE_CONTENT", messageId: "m1", delta: "Mình đã chọn được mẫu phù hợp nhất." },
+  { type: "TEXT_MESSAGE_END", messageId: "m1" },
+  { type: "TOOL_CALL_START", toolCallId: "call-1", toolCallName: "pick_cv_themes" },
+  { type: "TOOL_CALL_ARGS", toolCallId: "call-1", delta: '{"themes":["a"]}' },
+  { type: "TOOL_CALL_END", toolCallId: "call-1" },
+  { type: "TOOL_CALL_RESULT", messageId: "call-1-result", toolCallId: "call-1", content: "ok" },
+  { type: "RUN_FINISHED", threadId: "t1", runId: "r1" },
+];
+const rebuilt = reconstructMessages(replay);
+assert.deepEqual(rebuilt.map(message => [message.id, message.role]), [["m1", "assistant"], ["call-1", "assistant"], ["call-1-result", "tool"]]);
+assert.equal(rebuilt[0].content, "Mình đã chọn được mẫu phù hợp nhất.");
+assert.equal(rebuilt[1].toolCalls[0].function.arguments, '{"themes":["a"]}');
+assert.equal(rebuilt[2].content, "ok");
+const clientAlreadyHas = [{ id: "m1", role: "assistant", content: "Mình đã chọn được mẫu phù hợp nhất." }];
+const merged = mergeMessagesById(clientAlreadyHas, rebuilt);
+assert.equal(merged.filter(message => message.id === "m1").length, 1);
+assert.equal(merged[0].content, "Mình đã chọn được mẫu phù hợp nhất.");
+assert.deepEqual(reconstructMessages([
+  { type: "TOOL_CALL_START", toolCallId: "call-2", toolCallName: "navigateTo" },
+  { type: "TOOL_CALL_RESULT", toolCallId: "call-2", content: "done" },
+]).map(message => [message.id, message.role]), [["call-2", "assistant"], ["call-2-result", "tool"]]);
+assert.deepEqual(sanitizeMessages([
+  { id: "r", role: "reasoning", content: "think" },
+  { id: "e", role: "assistant", content: "" },
+  { id: "a", role: "assistant", content: "ok" },
+  { id: "", role: "user", content: "x" },
+]).map(message => message.id), ["a"]);
+const idleRestore = buildRestoreEvents({ threadId: "t1", runId: "restore-1", state: { recruitmentJobs: [] }, messages: rebuilt });
+assert.deepEqual(idleRestore.map(event => event.type), ["RUN_STARTED", "STATE_SNAPSHOT", "MESSAGES_SNAPSHOT", "RUN_FINISHED"]);
+assert.deepEqual(idleRestore[0], { type: "RUN_STARTED", threadId: "t1", runId: "restore-1" });
+assert.deepEqual(buildRestoreEvents({ threadId: "t1", runId: "r1", active: true, messages: rebuilt }).map(event => event.type), ["RUN_STARTED", "MESSAGES_SNAPSHOT"]);
+assert.deepEqual(buildRestoreEvents({ threadId: "t1", runId: "x" }).map(event => event.type), ["RUN_STARTED", "RUN_FINISHED"]);
+assert.deepEqual(findActiveRun(replay.slice(0, 4)), { active: true, runId: "r1" });
+assert.equal(findActiveRun(replay).active, false);
+assert.equal(findActiveRun([]).active, false);
+console.log("PASS connect restore is idempotent via MESSAGES_SNAPSHOT with valid RUN bookends (no duplicated streaming text)");
+

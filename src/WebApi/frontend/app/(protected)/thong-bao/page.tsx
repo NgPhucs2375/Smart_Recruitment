@@ -29,6 +29,8 @@ import { notificationTarget } from "@/features/notifications/notification-target
 import {
   formatNotificationTime,
   groupNotificationsByDate,
+  notificationBody,
+  notificationTitle,
   typeMeta,
   type NotificationDto,
 } from "@/features/notifications/notifications";
@@ -260,6 +262,8 @@ export default function ThongBaoPage() {
                 <ul className="divide-y">
                   {group.items.map((n) => {
                     const meta = typeMeta(n.type);
+                    const title = notificationTitle(n);
+                    const body = notificationBody(n);
                     const busy = busyId === n.id;
                     return (
                       <li
@@ -272,11 +276,16 @@ export default function ThongBaoPage() {
                             type="button"
                             onClick={() => void openNotification(n)}
                             className="w-full text-left"
-                            aria-label={`Mở thông báo: ${n.message}`}
+                            aria-label={`Mở thông báo: ${title}`}
                           >
                             <p className={cn("text-sm leading-snug break-words hover:underline", !n.isRead && "font-medium")}>
-                              {n.message}
+                              {title}
                             </p>
+                            {body && (
+                              <p className="mt-0.5 line-clamp-2 text-xs leading-snug text-muted-foreground break-words">
+                                {body}
+                              </p>
+                            )}
                           </button>
                           <div className="mt-1.5 flex flex-wrap items-center gap-2">
                             <span className="text-xs text-muted-foreground">{formatNotificationTime(n.created)}</span>
@@ -297,7 +306,7 @@ export default function ThongBaoPage() {
                               size="icon-sm"
                               disabled={busy}
                               onClick={() => void handleMarkRead(n)}
-                              aria-label={`Đánh dấu đã đọc: ${n.message}`}
+                              aria-label={`Đánh dấu đã đọc: ${title}`}
                               title="Đánh dấu đã đọc"
                             >
                               <Check className="size-4" />
@@ -308,7 +317,7 @@ export default function ThongBaoPage() {
                             size="icon-sm"
                             disabled={busy}
                             onClick={() => void handleDelete(n)}
-                            aria-label={`Xóa thông báo: ${n.message}`}
+                            aria-label={`Xóa thông báo: ${title}`}
                             title="Xóa"
                             className="text-muted-foreground hover:text-destructive"
                           >

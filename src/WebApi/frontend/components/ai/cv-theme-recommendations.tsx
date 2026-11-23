@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { Dialog as DialogPrimitive } from "@base-ui/react/dialog";
+import { Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
@@ -43,16 +44,22 @@ export default function CvThemeRecommendations({ items, message }: { items: Them
   };
   const supported = items.filter(item => TEMPLATE_REGISTRY[item.slug]);
   return <section className="space-y-3 rounded-xl border border-border bg-card p-3" aria-label="Mẫu CV được đề xuất">
-    <h3 className="text-sm font-semibold">{supported.length ? `${supported.length} mẫu theo mục tiêu của bạn` : "Chưa có mẫu khớp yêu cầu"}</h3>
+    <div className="flex items-center gap-1.5">
+      <h3 className="text-sm font-semibold">{supported.length ? `${supported.length} mẫu theo mục tiêu của bạn` : "Chưa có mẫu khớp yêu cầu"}</h3>
+      <span role="img" aria-label="Giải thích điểm mẫu" title="Điểm xếp hạng mẫu, không phải xác suất được tuyển. Nhãn ATS dựa trên metadata. Áp dụng chỉ đổi bố cục bản nháp." className="inline-flex text-muted-foreground">
+        <Info className="size-3.5" aria-hidden="true" />
+      </span>
+    </div>
     {!supported.length && <p role="status" className="text-sm text-muted-foreground">{message || (registryReady ? "Thử cung cấp ngành, cấp độ hoặc nới điều kiện bố cục." : "Đang nạp danh sách mẫu từ máy chủ…")}</p>}
     {supported.map((item, index) => <article key={item.slug} className="space-y-2 border-t border-border pt-3">
       <div className="flex items-start justify-between gap-2"><strong className="text-sm">{index + 1}. {item.name}</strong><Badge variant="secondary">{Math.round(item.score * 100)} điểm</Badge></div>
-      <p className="text-sm">{item.reason || item.description}</p>
-      <div className="flex flex-wrap gap-1"><Badge variant="outline">{item.columns} cột</Badge>{item.level && <Badge variant="outline">{item.level}</Badge>}{item.ats && <Badge variant="outline">Nhãn ATS</Badge>}</div>
+      <p className="line-clamp-2 text-sm" title={item.reason || item.description}>{item.reason || item.description}</p>
+      {(item.columns || item.level || item.ats) && (
+        <p className="text-xs text-muted-foreground">{[`${item.columns} cột`, item.level, item.ats ? "Nhãn ATS" : null].filter(Boolean).join(" · ")}</p>
+      )}
       {item.warnings.length > 0 && <details className="text-xs text-muted-foreground"><summary className="cursor-pointer">Điểm cần cân nhắc</summary><ul className="mt-1 list-disc space-y-1 pl-4">{item.warnings.map((warning, i) => <li key={i}>{warning}</li>)}</ul></details>}
       <div className="flex gap-2"><Button variant="outline" size="sm" onClick={() => setPreview(item.slug)}>Xem trước</Button><Button size="sm" disabled={busy !== null} onClick={() => void apply(item.slug)}>{busy === item.slug ? "Đang áp dụng..." : "Dùng mẫu"}</Button></div>
     </article>)}
-    <p className="text-xs text-muted-foreground">Điểm xếp hạng mẫu, không phải xác suất được tuyển. Nhãn ATS dựa trên metadata. Áp dụng chỉ đổi bố cục bản nháp.</p>
     <DialogPrimitive.Root open={template !== null} onOpenChange={open => { if (!open) setPreview(null); }}>
       <DialogPrimitive.Portal><DialogPrimitive.Backdrop className="fixed inset-0 z-[10000] bg-black/50" /><div className="fixed inset-0 z-[10000] flex items-center justify-center p-4">
       <DialogPrimitive.Popup className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-xl border border-border bg-card p-5 shadow-xl">

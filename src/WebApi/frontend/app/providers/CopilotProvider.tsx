@@ -12,14 +12,17 @@ import {
 import "@copilotkit/react-core/v2/styles.css";
 import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
+import { Sparkles } from "lucide-react";
 import { getAuthToken, getValidToken } from "@/lib/auth-provider";
 import { loadThreadId, saveThreadId, clearThreadId } from "@/lib/adam-thread";
 import dynamic from "next/dynamic";
 import { parseThemeResult } from "@/features/ai-cv/theme-recommendations";
+import { parseJobRecommendations } from "@/features/ai-cv/job-recommendations";
 import { useGlobalCvAssistant } from "@/hooks/use-global-cv-assistant";
 import { useStoredIdentity } from "@/hooks/use-stored-identity";
 import { resolveAdamRole, type AdamRole } from "@/lib/adam-role";
 import { adamMessageView } from "@/components/ai/adam-markdown";
+import { AgentSuggestionView } from "@/components/ai/adam-suggestion-view";
 import { notifyAdamError } from "@/lib/adam-errors";
 import {
   getCvFocusSectionLabel,
@@ -93,16 +96,6 @@ type SharedAgentState = {
   lastAction?: string;
 };
 
-type JobRecommendation = {
-  tinTuyenDungId: number;
-  tieuDe: string;
-  tenDoanhNghiep: string;
-  diaDiemLamViec: string;
-  luongToiThieu: number;
-  luongToiDa: number;
-  diemPhuHop: number;
-};
-
 type CandidateRecommendation = {
   hoSoUngVienId: number;
   cvUngVienId: number;
@@ -121,36 +114,6 @@ function formatSalary(min: number, max: number) {
   if (!min) return `Tối đa ${formatter.format(max)}đ`;
   if (!max) return `Từ ${formatter.format(min)}đ`;
   return `${formatter.format(min)}đ - ${formatter.format(max)}đ`;
-}
-
-function parseJobRecommendations(result: string | undefined): JobRecommendation[] {
-  if (!result) return [];
-  try {
-    const parsed = JSON.parse(result) as { data?: unknown; Data?: unknown };
-    const data = parsed.data ?? parsed.Data;
-    if (!Array.isArray(data)) return [];
-
-    const seenIds = new Set<number>();
-    return data.flatMap((value): JobRecommendation[] => {
-      if (!value || typeof value !== "object") return [];
-      const item = value as Record<string, unknown>;
-      const tinTuyenDungId = Number(item.tinTuyenDungId ?? item.TinTuyenDungId);
-      if (!Number.isInteger(tinTuyenDungId) || tinTuyenDungId <= 0 || seenIds.has(tinTuyenDungId)) return [];
-
-      seenIds.add(tinTuyenDungId);
-      return [{
-        tinTuyenDungId,
-        tieuDe: String(item.tieuDe ?? item.TieuDe ?? "Tin tuyển dụng"),
-        tenDoanhNghiep: String(item.tenDoanhNghiep ?? item.TenDoanhNghiep ?? "Doanh nghiệp chưa cập nhật"),
-        diaDiemLamViec: String(item.diaDiemLamViec ?? item.DiaDiemLamViec ?? ""),
-        luongToiThieu: Number(item.luongToiThieu ?? item.LuongToiThieu ?? 0) || 0,
-        luongToiDa: Number(item.luongToiDa ?? item.LuongToiDa ?? 0) || 0,
-        diemPhuHop: Number(item.diemPhuHop ?? item.DiemPhuHop ?? 0) || 0,
-      }];
-    });
-  } catch {
-    return [];
-  }
 }
 
 function asStringArray(value: unknown): string[] {
@@ -236,20 +199,25 @@ function ToolActivityMount() {
         get_my_recruitment_jobs: "Đang tải danh sách tin tuyển dụng",
         get_candidate_recommendations_for_job: "Đang tìm ứng viên phù hợp",
         get_job_details: "Đang tải chi tiết tin tuyển dụng",
+        get_my_notifications: "Đang đọc thông báo của bạn",
+        get_application_timeline: "Đang đọc lịch sử đơn ứng tuyển",
       };
-      const label = labels[name] ?? "Adam đang xử lý yêu cầu";
+      const label = labels[name] ?? "Đang xử lý yêu cầu";
       const complete = status === "complete";
       if (complete && (name === "suggest_cv_theme" || name === "suggestCvThemeForDraft" || name === "pick_cv_themes")) {
         const themes = parseThemeResult(result);
         return <CvThemeRecommendations items={themes.items} message={themes.message} />;
       }
-      const jobs = complete ? parseJobRecommendations(result) : [];
+      const jobs = complete ? parseJobRecommendations(name, result) : [];
       const candidates = complete && name === "get_candidate_recommendations_for_job"
         ? parseCandidateRecommendations(result)
         : [];
       const section = cvToolSection(name, parameters);
       const sectionLabel = section ? getCvFocusSectionLabel(section) : undefined;
       const activityLabel = !complete && sectionLabel ? `Đang cập nhật ${sectionLabel}` : label;
+      // Nhãn nguồn là "Đang <động từ> …" → khi xong chỉ đổi "Đang" thành "Đã",
+      // tránh câu lai "Đang … xong" cạnh chip "Đã xong".
+      const doneLabel = label.startsWith("Đang ") ? `Đã ${label.slice(5)}` : label;
 
       if (candidates.length > 0) {
         return (
@@ -318,14 +286,14 @@ function ToolActivityMount() {
         <div className={`adam-tool-activity${section ? " adam-tool-activity--change" : ""}`} role="status" aria-live="polite">
           <span className={`adam-tool-activity__icon${complete ? " is-complete" : ""}`} aria-hidden="true" />
           <span className="adam-tool-activity__label">
-            {complete && sectionLabel ? <>Đã cập nhật <strong>{sectionLabel}</strong></> : complete ? `${label} xong` : activityLabel}
+            {complete && sectionLabel ? <>Đã cập nhật <strong>{sectionLabel}</strong></> : complete ? doneLabel : activityLabel}
           </span>
           {complete && section && (
             <button type="button" className="adam-tool-activity__action" onClick={() => requestCvSectionsFocus([section])}>
               Xem thay đổi
             </button>
           )}
-          <span className="adam-tool-activity__status">{complete ? "Đã xong" : "Đang xử lý"}</span>
+          {!complete && <span className="adam-tool-activity__status">Đang xử lý</span>}
         </div>
       );
     },
@@ -558,6 +526,7 @@ function DeferredCopilotPopup({
       width="min(92vw, 650px)"
       height="min(88vh, 1100px)"
       messageView={adamMessageView}
+      suggestionView={AgentSuggestionView}
       clickOutsideToClose
       toggleButton={{
         className: "adam-chat-toggle",
@@ -565,6 +534,9 @@ function DeferredCopilotPopup({
       header={{
         children: ({ titleContent, closeButton }) => (
           <div className="adam-chat-header__inner">
+            <span className="adam-chat-avatar" aria-hidden="true">
+              <Sparkles className="size-4" />
+            </span>
             {titleContent}
             <NewChatButton userId={userId} />
             {closeButton}
@@ -577,6 +549,7 @@ function DeferredCopilotPopup({
         chatToggleCloseLabel: "Tạm biệt Adam",
         welcomeMessageText: "Xin chào, tôi là Adam. Tôi có thể giúp gì cho bạn?",
         chatInputPlaceholder: "Nhắn cho Adam...",
+        chatDisclaimerText: "Adam có thể mắc lỗi. Hãy kiểm tra thông tin quan trọng.",
       }}
     />
   );

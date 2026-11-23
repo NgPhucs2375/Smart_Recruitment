@@ -20,6 +20,8 @@ import { notificationTarget } from "@/features/notifications/notification-target
 import {
   formatNotificationTime,
   normalizeNotification,
+  notificationBody,
+  notificationTitle,
   notificationToastText,
   typeMeta,
   type NotificationDto,
@@ -207,7 +209,7 @@ function NotificationBellInner({
         )}
       </DropdownMenuTrigger>
 
-      <DropdownMenuContent align="end" className="w-80 p-0" sideOffset={8}>
+      <DropdownMenuContent align="end" className="w-[min(92vw,24rem)] p-0" sideOffset={8}>
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b">
           <span className="text-sm font-semibold">Thông báo</span>
@@ -231,12 +233,14 @@ function NotificationBellInner({
           ) : (
             notifications.map((n) => {
               const meta = typeMeta(n.type);
+              const title = notificationTitle(n);
+              const body = notificationBody(n);
               return (
                 <div
                   key={n.id}
                   role="button"
                   tabIndex={0}
-                  aria-label={`Mở thông báo: ${n.message}`}
+                  aria-label={`Mở thông báo: ${title}`}
                   onClick={() => openNotification(n)}
                   onKeyDown={(event) => {
                     if (event.key === "Enter" || event.key === " ") {
@@ -245,16 +249,21 @@ function NotificationBellInner({
                     }
                   }}
                   className={cn(
-                    "flex gap-3 px-4 py-3 border-b last:border-b-0 text-sm transition-colors",
+                    "flex gap-3 px-3.5 py-3 border-b last:border-b-0 text-sm transition-colors",
                     !n.isRead && "bg-muted/50",
                     !n.isRead && "cursor-pointer hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary",
                   )}
                 >
                   <span className={cn("mt-0.5 shrink-0", meta.color)}>{meta.icon}</span>
                   <div className="flex-1 min-w-0">
-                    <p className={cn("leading-snug break-words", !n.isRead && "font-medium")}>
-                      {n.message}
+                    <p className={cn("leading-snug line-clamp-2 break-words", !n.isRead && "font-medium")}>
+                      {title}
                     </p>
+                    {body && (
+                      <p className="mt-0.5 line-clamp-2 text-xs leading-snug text-muted-foreground break-words">
+                        {body}
+                      </p>
+                    )}
                     <div className="flex items-center gap-2 mt-1">
                       <span className="text-xs text-muted-foreground">{formatNotificationTime(n.created)}</span>
                       {n.approverGroup && (

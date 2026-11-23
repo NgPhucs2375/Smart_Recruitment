@@ -151,6 +151,23 @@ html {
 .cv-chat__copilot [data-copilotkit] form { order: 2; }
 .cv-chat__copilot p, .cv-chat__copilot pre, .cv-chat__copilot code, .cv-chat__copilot textarea { max-width: 100%; overflow-wrap: anywhere; word-break: break-word; }
 .cv-chat__copilot textarea[data-testid="copilot-chat-textarea"] { max-height: 8rem !important; overflow-y: auto !important; resize: none; }
+/* Cột chat hẹp: nút cuộn xuống mặc định của CopilotKit nổi đè lên chữ.
+   autoScroll="pin-to-send" đã giữ đáy khi gửi nên ẩn nút này trong workspace CV. */
+.cv-chat__copilot [data-testid="copilot-scroll-to-bottom"] { display: none !important; }
+/* Popup tự pin đáy khi gửi, nút cuộn nổi chỉ đè lên thẻ kết quả ở giữa khung. */
+[data-copilot-popup="true"] [data-testid="copilot-scroll-to-bottom"] { display: none !important; }
+
+/* Popup dùng thẻ gợi ý giống workspace; khi hội thoại trống thì đặt khối gợi ý
+   giữa khung thay vì dính sát đỉnh (CopilotKit render suggestion vào đầu danh
+   sách tin nhắn khi thread đã có id nhưng chưa có tin nào). */
+[data-copilot-popup="true"] .adam-suggestions { margin-top: 0; }
+[data-copilot-popup="true"] .adam-suggestions__label { margin-bottom: 0.5rem; }
+[data-copilot-popup="true"] div:has(> [data-testid="copilot-scroll-content"]):has([data-testid="copilot-message-list"]:empty) {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
 
 .cv-preview { display: flex; min-width: 0; min-height: 0; flex-direction: column; background: var(--workspace-surface-soft, var(--muted)); }
 .cv-preview__bar { display: flex; min-height: 3.3rem; flex-wrap: wrap; align-items: center; gap: 0.5rem; border-bottom: 1px solid var(--workspace-border, var(--border)); background: var(--background); padding: 0.55rem 1rem; }
@@ -1217,6 +1234,35 @@ html {
 [data-copilotkit] [data-copilot-popup="true"] strong {
   color: var(--foreground);
   font-weight: 700;
+}
+
+/* Popup Adam: panel rộng nhưng tin nhắn trần + chữ trải hết khung nên trông
+   trống. Popup chỉ thêm bề mặt cho câu trả lời và bong bóng cho tin người
+   dùng; workspace CV giữ kiểu phẳng vì đã có thanh identity riêng. */
+[data-copilot-popup="true"] .adam-message--assistant > div:first-child:not(:empty) {
+  border: 1px solid color-mix(in srgb, var(--border) 72%, transparent);
+  border-radius: 0.85rem;
+  background: color-mix(in srgb, var(--muted) 42%, var(--card));
+  padding: 0.7rem 0.9rem;
+}
+
+[data-copilot-popup="true"] .adam-message--user > div:first-child {
+  border-color: color-mix(in srgb, var(--primary) 22%, transparent);
+  background: color-mix(in srgb, var(--primary) 9%, var(--card)) !important;
+  color: var(--foreground);
+}
+
+/* Avatar Adam trong header popup: cùng chất liệu với .cv-avatar của workspace. */
+.adam-chat-avatar {
+  display: inline-flex;
+  width: 2rem;
+  height: 2rem;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.6rem;
+  background: var(--workspace-primary-soft, var(--accent));
+  color: var(--workspace-primary, var(--primary));
 }
 
 .adam-tool-activity {
