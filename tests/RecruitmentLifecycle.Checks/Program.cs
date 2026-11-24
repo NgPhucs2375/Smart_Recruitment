@@ -131,7 +131,7 @@ Check(await Trigger(ownerId, TriggerTinTuyenDung.DongTin) && (await db.DonUngTuy
 Check(delivery.AllPersisted, "Notifications are committed before realtime delivery");
 var delete = new DeleteTinTuyenDungCommandHandler(db, current, cache);
 Check(!(await delete.Handle(new() { Id = ownerId }, default)).Succeeded, "Closed job and applications cannot be deleted");
-var disposableId = (await create.Handle(new() { DanhMucNgheId = 1, TieuDe = "Disposable draft", KyNangs = new() { new() { KyNangId = 1 } } }, default)).Data;
+var disposableId = (await create.Handle(new() { DanhMucNgheId = 1, TieuDe = "Disposable draft", NgayHetHan = RecruitmentDeadline.Today.AddDays(2), KyNangs = new() { new() { KyNangId = 1 } } }, default)).Data;
 Check((await delete.Handle(new() { Id = disposableId }, default)).Succeeded && !await db.KyNangTinTuyenDungs.AnyAsync(x => x.TinTuyenDungId == disposableId), "Deleting draft removes its skills");
 var expired = await db.TinTuyenDungs.AsTracking().SingleAsync(x => x.Id == ownerId);
 expired.TrangThai = TrangThaiTinTuyenDung.TamDung; expired.NgayHetHan = DateTime.UtcNow.AddSeconds(-1);
@@ -170,6 +170,7 @@ db.LoiMoiNhanSus.AddRange(
     new LoiMoiNhanSu { Id = 902, DoanhNghiepId = 77, NguoiDaiDienId = 2, Email = "hr@acme.test", HoTen = "HR", Token = "token-902", LoiMoi = TrangThaiLoiMoi.ChoXacNhan, NgayHetHan = DateTime.UtcNow.AddDays(1) },
     new LoiMoiNhanSu { Id = 903, DoanhNghiepId = 77, NguoiDaiDienId = 2, Email = "hr@acme.test", HoTen = "HR", Token = "token-903", LoiMoi = TrangThaiLoiMoi.ChoXacNhan, NgayHetHan = DateTime.UtcNow.AddDays(1) });
 await db.SaveChangesAsync();
+db.ChangeTracker.Clear();
 var rejectInvite = new Application.Features.NhanSu.Commands.RejectLoiMoi.RejectLoiMoiCommandHandler(db, current, inviteWorkflow);
 current.Set(2, VaiTroNguoiDung.NGUOI_DAI_DIEN, 77, "owner@acme.test");
 Check(!(await rejectInvite.Handle(new() { Token = "token-902" }, default)).Succeeded

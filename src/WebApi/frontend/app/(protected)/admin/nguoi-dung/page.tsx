@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -11,29 +12,24 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { Users, Pencil, Trash2, Lock, LockOpen, Plus, RotateCcw } from "lucide-react";
+import { Users, Pencil, Eye, Plus, RotateCcw } from "lucide-react";
 import { AdminGate } from "@/features/admin/AdminGate";
 import { adminApi, VAI_TRO } from "@/features/admin/api";
+import { normalizeUserRow, type AdminUserRow as NguoiDungRow } from "@/features/admin/user-list";
+import { UserDetailDrawer } from "@/features/admin/user-detail-drawer";
 import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { getValidToken } from "@/lib/auth-provider";
 import { unwrapResponse } from "@/lib/api/response-contract";
-import { matchesSearch, matchesStatus, peoplePage, PEOPLE_ROLES, roleNumber } from "@/features/people/people-list";
+import { matchesSearch, matchesStatus, peoplePage, PEOPLE_ROLES } from "@/features/people/people-list";
 import { PeopleListControls, PeopleListPagination } from "@/features/people/people-list-controls";
 import { isValidEmail, isValidVnPhone } from "@/features/tao-cv/validation";
 
-interface NguoiDungRow {
-  Id: number;
-  Email?: string | null;
-  UserName?: string | null;
-  HoTen?: string | null;
-  PhoneNumber?: string | null;
-  ApplicationUserId: string;
-  VaiTro: number;
-  IsActive: boolean;
-  IsLocked: boolean;
-}
-
 const emptyForm = { ApplicationUserId: "", HoTen: "", Email: "", UserName: "", PhoneNumber: "", VaiTro: "4", IsActive: true };
+const formatDate = (value: string | null) => {
+  if (!value) return "—";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "—" : date.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" });
+};
 type FormErrors = Partial<Record<"HoTen" | "Email" | "UserName" | "PhoneNumber", string>>;
 
 function validateCreateForm(form: typeof emptyForm): FormErrors {
@@ -58,6 +54,7 @@ export default function AdminNguoiDungPage() {
   const [page, setPage] = useState(1);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<NguoiDungRow | null>(null);
+  const [selectedId, setSelectedId] = useState<number | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [formErrors, setFormErrors] = useState<FormErrors>({});
   const [saving, setSaving] = useState(false);
@@ -77,13 +74,7 @@ export default function AdminNguoiDungPage() {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const body = await res.json();
       const data = unwrapResponse<unknown[]>(body);
-      setRows(Array.isArray(data) ? data.map(item => {
-        const r = item as Record<string, unknown>;
-        return { Id: Number(r.Id ?? r.id), ApplicationUserId: String(r.ApplicationUserId ?? r.applicationUserId ?? ""),
-          Email: (r.Email ?? r.email) as string | null, UserName: (r.UserName ?? r.userName) as string | null,
-          HoTen: (r.HoTen ?? r.hoTen) as string | null, PhoneNumber: (r.PhoneNumber ?? r.phoneNumber) as string | null,
-          VaiTro: roleNumber(r.VaiTro ?? r.vaiTro), IsActive: Boolean(r.IsActive ?? r.isActive), IsLocked: Boolean(r.IsLocked ?? r.isLocked) };
-      }) : []);
+      setRows(Array.isArray(data) ? data.map(item => normalizeUserRow(item as Record<string, unknown>)) : []);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Không tải được danh sách");
     } finally {
@@ -166,6 +157,10 @@ export default function AdminNguoiDungPage() {
   };
 
   const handleDelete = async (row: NguoiDungRow) => {
+    if (row.HasRelatedData) {
+      toast.error("Hồ sơ có dữ liệu liên quan. Hãy ngưng hoạt động thay vì xóa.");
+      return;
+    }
     const confirmed = await confirm({
       title: "Xóa người dùng?",
       description: `Xóa "${row.Email ?? row.UserName ?? `#${row.Id}`}"? Tài khoản đăng nhập liên kết cũng sẽ bị xóa.`,
@@ -179,6 +174,28 @@ export default function AdminNguoiDungPage() {
       await fetchRows();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Xóa thất bại");
+    }
+  };
+
+  const handleDeactivate = async (row: NguoiDungRow) => {
+    const confirmed = await confirm({
+      title: "Ngưng hoạt động người dùng?",
+      description: `Ngưng hoạt động "${row.Email ?? row.UserName ?? `#${row.Id}`}"? Dữ liệu tuyển dụng và lịch sử sẽ được giữ lại.`,
+      confirmLabel: "Ngưng hoạt động",
+      destructive: true,
+    });
+    if (!confirmed) return;
+    try {
+      await adminApi.put(`/nguoidungs/${row.Id}`, {
+        id: row.Id,
+        applicationUserId: row.ApplicationUserId,
+        vaiTro: row.VaiTro,
+        isActive: false,
+      });
+      toast.success("Đã ngưng hoạt động người dùng");
+      await fetchRows();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Ngưng hoạt động thất bại");
     }
   };
 
@@ -205,13 +222,14 @@ export default function AdminNguoiDungPage() {
 
   const filtered = useMemo(() => rows.filter(row =>
     (roleFilter === "all" || String(row.VaiTro) === roleFilter) && matchesStatus(row.IsActive, row.IsLocked, statusFilter) &&
-    matchesSearch([row.HoTen, row.Email, row.UserName, row.PhoneNumber, row.ApplicationUserId, row.Id], filter)), [rows, filter, roleFilter, statusFilter]);
+    matchesSearch([row.HoTen, row.Email, row.UserName, row.PhoneNumber, row.TenDoanhNghiep, row.ApplicationUserId, row.Id], filter)), [rows, filter, roleFilter, statusFilter]);
   const paged = peoplePage(filtered, page);
+  const selected = rows.find(row => row.Id === selectedId) ?? null;
   const resetFilters = () => { setFilter(""); setRoleFilter("all"); setStatusFilter("all"); setPage(1); };
 
   return (
     <AdminGate>
-      <div className="p-6 space-y-6">
+      <div className="p-4 space-y-6 sm:p-6">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="flex size-10 items-center justify-center rounded-xl bg-primary text-primary-foreground">
@@ -317,54 +335,56 @@ export default function AdminNguoiDungPage() {
                 <Skeleton className="h-10 w-full" />
               </div>
             ) : (
-              <Table>
+              <Table className="w-full table-fixed md:table-auto">
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-16">Id</TableHead>
-                     <TableHead>Email</TableHead>
-                     <TableHead>Họ tên</TableHead>
-                    <TableHead>Tên đăng nhập</TableHead>
-                    <TableHead>Vai trò</TableHead>
+                    <TableHead className="hidden w-16 sm:table-cell">Id</TableHead>
+                    <TableHead>Tài khoản</TableHead>
+                    <TableHead className="hidden md:table-cell">Họ tên</TableHead>
+                    <TableHead className="hidden xl:table-cell">Số điện thoại</TableHead>
+                    <TableHead className="hidden sm:table-cell">Vai trò</TableHead>
+                    <TableHead className="hidden xl:table-cell">Xác minh email</TableHead>
+                    <TableHead className="hidden lg:table-cell">Doanh nghiệp</TableHead>
+                    <TableHead className="hidden md:table-cell">Ngày tạo</TableHead>
                     <TableHead>Trạng thái</TableHead>
-                    <TableHead className="text-right">Thao tác</TableHead>
+                    <TableHead className="w-24 text-right">Thao tác</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {paged.items.map((row) => (
                     <TableRow key={row.Id}>
-                      <TableCell>{row.Id}</TableCell>
-                       <TableCell className="font-medium">{row.Email ?? "—"}</TableCell>
-                       <TableCell>{row.HoTen || "—"}</TableCell>
-                      <TableCell className="max-w-[180px] truncate text-muted-foreground">
-                        {row.UserName ?? "—"}
-                      </TableCell>
+                      <TableCell className="hidden sm:table-cell">{row.Id}</TableCell>
                       <TableCell>
+                        <button type="button" className="block max-w-[180px] text-left" onClick={() => setSelectedId(row.Id)}>
+                          <span className="block truncate font-medium text-primary underline-offset-4 hover:underline">{row.Email || row.UserName || `#${row.Id}`}</span>
+                          {row.Email && row.UserName && <span className="block truncate text-xs text-muted-foreground">{row.UserName}</span>}
+                        </button>
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell">{row.HoTen || "—"}</TableCell>
+                      <TableCell className="hidden xl:table-cell">{row.PhoneNumber || "—"}</TableCell>
+                      <TableCell className="hidden sm:table-cell">
                         <Badge variant="secondary">{PEOPLE_ROLES.find(r => Number(r.value) === row.VaiTro)?.label ?? row.VaiTro}</Badge>
                       </TableCell>
+                      <TableCell className="hidden xl:table-cell">
+                        <Badge variant={row.EmailConfirmed ? "secondary" : "outline"}>{row.EmailConfirmed ? "Đã xác minh" : "Chưa xác minh"}</Badge>
+                      </TableCell>
+                      <TableCell className="hidden max-w-[220px] truncate lg:table-cell">
+                        {row.DoanhNghiepId ? <Link href={`/doanh-nghiep/${row.DoanhNghiepId}`} className="text-primary hover:underline">{row.TenDoanhNghiep || `#${row.DoanhNghiepId}`}</Link> : "—"}
+                      </TableCell>
+                      <TableCell className="hidden whitespace-nowrap tabular-nums md:table-cell">{formatDate(row.Created)}</TableCell>
                       <TableCell>
-                        <div className="flex gap-1">
-                          <Badge variant={row.IsActive ? "default" : "destructive"}>
-                            {row.IsActive ? "Hoạt động" : "Ngưng"}
-                          </Badge>
+                        <div className="flex flex-wrap gap-1">
+                          <Badge variant={row.IsActive ? "default" : "destructive"}>{row.IsActive ? "Hoạt động" : "Ngưng"}</Badge>
                           {row.IsLocked && <Badge variant="destructive">Bị khóa</Badge>}
                         </div>
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-1">
-                          <Button size="icon" variant="ghost" title="Sửa" onClick={() => openEdit(row)}>
-                            <Pencil className="size-4" />
+                          <Button size="icon" variant="ghost" title="Xem chi tiết" aria-label={`Xem chi tiết người dùng ${row.Id}`} onClick={() => setSelectedId(row.Id)}>
+                            <Eye className="size-4" />
                           </Button>
-                          {!row.IsLocked ? (
-                            <Button size="icon" variant="ghost" title="Khóa tài khoản đăng nhập" onClick={() => void handleLock(row, true)}>
-                              <Lock className="size-4" />
-                            </Button>
-                          ) : (
-                            <Button size="icon" variant="ghost" title="Mở khóa tài khoản" onClick={() => void handleLock(row, false)}>
-                              <LockOpen className="size-4" />
-                            </Button>
-                          )}
-                          <Button size="icon" variant="ghost" title="Xóa" className="text-destructive" onClick={() => void handleDelete(row)}>
-                            <Trash2 className="size-4" />
+                          <Button size="icon" variant="ghost" title="Sửa" aria-label={`Sửa người dùng ${row.Id}`} onClick={() => openEdit(row)}>
+                            <Pencil className="size-4" />
                           </Button>
                         </div>
                       </TableCell>
@@ -372,7 +392,7 @@ export default function AdminNguoiDungPage() {
                   ))}
                   {filtered.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center text-muted-foreground">
+                      <TableCell colSpan={10} className="text-center text-muted-foreground">
                         {rows.length ? "Không có người dùng khớp bộ lọc. Thử tên không dấu hoặc xóa bộ lọc." : "Chưa có người dùng."}
                         {rows.length > 0 && <Button type="button" variant="link" onClick={resetFilters}>Xóa bộ lọc</Button>}
                       </TableCell>
@@ -384,6 +404,15 @@ export default function AdminNguoiDungPage() {
           </CardContent>
           {!loading && <PeopleListPagination page={paged.page} totalPages={paged.totalPages} count={filtered.length} total={rows.length} onPage={setPage} />}
         </Card>
+
+        <UserDetailDrawer
+          user={selected}
+          onClose={() => setSelectedId(null)}
+          onEdit={user => { setSelectedId(null); openEdit(user); }}
+          onToggleLock={user => void handleLock(user, !user.IsLocked)}
+          onDelete={user => void handleDelete(user)}
+          onDeactivate={user => void handleDeactivate(user)}
+        />
       </div>
     </AdminGate>
   );

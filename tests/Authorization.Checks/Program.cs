@@ -62,6 +62,7 @@ Check(PermissionPolicy.AllowedActions("NHAN_SU", "chat").Contains("send") && !Pe
 
 var auth = new Auth { UserId = "candidate-a" };
 using var db = new CheckContext(new DbContextOptionsBuilder<ApplicationDbContext>().UseInMemoryDatabase(Guid.NewGuid().ToString(), o => o.EnableNullChecks(false)).Options, auth);
+using var identityDb = new IdentityContext(new DbContextOptionsBuilder<IdentityContext>().UseInMemoryDatabase(Guid.NewGuid().ToString()).Options);
 var users = new[] {
     new NguoiDung { Id = 1, ApplicationUserId = "candidate-a", VaiTro = VaiTroNguoiDung.UNG_VIEN, IsActive = true },
     new NguoiDung { Id = 2, ApplicationUserId = "candidate-b", VaiTro = VaiTroNguoiDung.UNG_VIEN, IsActive = true },
@@ -105,7 +106,7 @@ await Denied(() => new CreateKetQuaPhanTichCvCommandHandler(db, current).Handle(
 await Denied(() => new UpdateKetQuaPhanTichCvCommandHandler(db, current).Handle(new() { Id = 71, CVUngVienId = 11 }, default), "Foreign analysis cannot be moved onto an owned CV");
 await Denied(() => new DeleteKetQuaPhanTichCvByIdCommandHandler(db, current).Handle(new() { Id = 71 }, default), "Foreign analysis cannot be deleted");
 Check(await db.KetQuaPhanTichCvs.AnyAsync(x => x.Id == 71 && x.CVUngVienId == 12), "Denied writes leave foreign data intact");
-var resolver = new CurrentNguoiDungService(auth, db);
+var resolver = new CurrentNguoiDungService(auth, db, identityDb);
 Check((await resolver.ResolveAsync()).DoanhNghiepId == null, "Candidate ignores stale recruiter membership");
 auth.UserId = "owner";
 Check((await resolver.ResolveAsync()).DoanhNghiepId == 31, "Representative scope derives from ownership, not stale profile");
@@ -217,9 +218,9 @@ var toolCache = Activator.CreateInstance(
     typeof(NullLogger<>).MakeGenericType(toolCacheType).GetField("Instance")!.GetValue(null))!;
 foreach (var spec in new[] {
     ("WebApp.Server.Agent.Adam.Tools.CvQueryTools", "GetCvDetailAsync", 5, 3, 4, new object[] { 11, CancellationToken.None }),
-    ("WebApp.Server.Agent.RecommenAdam.Candidate.CandidateTools", "GetJobDetailsAsync", 5, 2, 3, new object[] { 41, CancellationToken.None }),
-    ("WebApp.Server.Agent.RecommenAdam.Candidate.CandidateTools", "GetMatchBreakdownAsync", 5, 2, 3, new object[] { 11, 41, CancellationToken.None }),
-    ("WebApp.Server.Agent.RecommenAdam.Recruiter.Tools.RecruiterTools", "GetApplicationsAsync", 5, 3, 4, new object[] { (int?)41, 20, CancellationToken.None })
+    ("WebApp.Server.Agent.RecommenAdam.Candidate.CandidateTools", "GetJobDetailsAsync", 7, 2, 3, new object[] { 41, CancellationToken.None }),
+    ("WebApp.Server.Agent.RecommenAdam.Candidate.CandidateTools", "GetMatchBreakdownAsync", 7, 2, 3, new object[] { 11, 41, CancellationToken.None }),
+    ("WebApp.Server.Agent.RecommenAdam.Recruiter.Tools.RecruiterTools", "GetApplicationsAsync", 7, 3, 4, new object[] { (int?)41, 20, CancellationToken.None })
 })
 {
     var type = webAssembly.GetType(spec.Item1)!;

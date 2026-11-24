@@ -33,13 +33,10 @@ namespace Application.Features.NhanSu.Commands.RejectLoiMoi
                 return new Response<int>("Link lời mời thiếu token.");
 
             var entity = await context.LoiMoiNhanSus
+                .AsTracking()
                 .FirstOrDefaultAsync(l => l.Token == token, cancellationToken);
             if (entity == null)
                 return new Response<int>("Lời mời không tồn tại.");
-
-        // DbContext NoTracking toàn cục: Find/FirstOrDefault trả về entity
-        // không track — Attach cùng reference (không throw duplicate-track).
-        context.LoiMoiNhanSus.Attach(entity);
 
             var machine = new LoiMoiNhanSuStateMachine(workflow, current, entity);
             try

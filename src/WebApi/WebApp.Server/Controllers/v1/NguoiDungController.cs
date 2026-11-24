@@ -68,6 +68,7 @@ namespace WebApp.Server.Controllers.v1
             {
                 var result = await Mediator.Send(new GetAllNguoiDungsQuery());
                 var rows = result?.Data ?? new List<GetAllNguoiDungsViewModel>();
+                var profileIds = rows.Select(x => x.Id).ToList();
 
                 var appIds = rows
                     .Select(x => x.ApplicationUserId)
@@ -81,8 +82,30 @@ namespace WebApp.Server.Controllers.v1
                 var users = await identityContext.Users
                     .AsNoTracking()
                     .Where(u => appIds.Contains(u.Id))
-                    .Select(u => new { u.Id, u.Email, u.UserName, u.LockoutEnd, u.FirstName, u.LastName, u.PhoneNumber })
+                    .Select(u => new { u.Id, u.Email, u.UserName, u.LockoutEnd, u.FirstName, u.LastName, u.PhoneNumber, u.EmailConfirmed })
                     .ToDictionaryAsync(u => u.Id);
+
+                var recruiterCompanies = await _applicationContext.HoSoNhaTuyenDungs
+                    .AsNoTracking()
+                    .Where(x => profileIds.Contains(x.NguoiDungId))
+                    .Select(x => new
+                    {
+                        x.NguoiDungId,
+                        x.DoanhNghiepId,
+                        TenDoanhNghiep = x.DoanhNghiep.TenDoanhNghiep,
+                    })
+                    .ToDictionaryAsync(x => x.NguoiDungId);
+
+                var ownedCompanies = await _applicationContext.DoanhNghieps
+                    .AsNoTracking()
+                    .Where(x => x.NguoiDaiDienId.HasValue && profileIds.Contains(x.NguoiDaiDienId.Value))
+                    .Select(x => new
+                    {
+                        NguoiDungId = x.NguoiDaiDienId!.Value,
+                        x.Id,
+                        x.TenDoanhNghiep,
+                    })
+                    .ToDictionaryAsync(x => x.NguoiDungId);
 
                 var kw = search?.Trim().ToLowerInvariant();
 
@@ -90,6 +113,8 @@ namespace WebApp.Server.Controllers.v1
                     .Select(x =>
                     {
                         users.TryGetValue(x.ApplicationUserId ?? string.Empty, out var u);
+                        var recruiterCompany = recruiterCompanies.GetValueOrDefault(x.Id);
+                        var ownedCompany = ownedCompanies.GetValueOrDefault(x.Id);
                         return new AdminNguoiDungDto
                         {
                             Id = x.Id,
@@ -101,14 +126,20 @@ namespace WebApp.Server.Controllers.v1
                             VaiTro = x.VaiTro,
                             IsActive = x.IsActive,
                             IsLocked = u?.LockoutEnd.HasValue == true
-                                && u.LockoutEnd.Value > DateTimeOffset.UtcNow
+                                && u.LockoutEnd.Value > DateTimeOffset.UtcNow,
+                            EmailConfirmed = u?.EmailConfirmed ?? false,
+                            Created = x.Created,
+                            HasRelatedData = x.HasRelatedData,
+                            DoanhNghiepId = ownedCompany?.Id ?? recruiterCompany?.DoanhNghiepId,
+                            TenDoanhNghiep = ownedCompany?.TenDoanhNghiep ?? recruiterCompany?.TenDoanhNghiep,
                         };
                     })
                     .Where(x => string.IsNullOrWhiteSpace(kw)
                         || (x.Email != null && x.Email.ToLowerInvariant().Contains(kw))
                         || (x.UserName != null && x.UserName.ToLowerInvariant().Contains(kw))
                         || (x.HoTen != null && x.HoTen.ToLowerInvariant().Contains(kw))
-                        || (x.PhoneNumber != null && x.PhoneNumber.Contains(kw)))
+                        || (x.PhoneNumber != null && x.PhoneNumber.Contains(kw))
+                        || (x.TenDoanhNghiep != null && x.TenDoanhNghiep.ToLowerInvariant().Contains(kw)))
                     .OrderBy(x => x.Id)
                     .ToList();
 
@@ -243,6 +274,12 @@ namespace WebApp.Server.Controllers.v1
             return await EnforcePermissionAndExecute("nguoidungs", "delete", async () =>
             {
                 var detail = await Mediator.Send(new GetNguoiDungByIdQuery() { Id = id });
+                if (detail?.Data?.HasRelatedData == true)
+                {
+                    return BadRequest(new Response<object>(
+                        "Người dùng có dữ liệu liên quan. Hãy ngưng hoạt động thay vì xóa hồ sơ."));
+                }
+
                 if (detail?.Succeeded == true && !string.IsNullOrWhiteSpace(detail.Data?.ApplicationUserId))
                 {
                     try

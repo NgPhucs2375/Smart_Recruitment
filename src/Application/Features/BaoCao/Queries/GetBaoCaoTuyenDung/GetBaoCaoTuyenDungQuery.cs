@@ -109,16 +109,23 @@ public class GetBaoCaoTuyenDungQueryHandler(
                 SoLuong = x.SoLuong
             }).ToList();
 
-        vm.XuHuong = (await donKyNay
+        var theoNgay = (await donKyNay
             .GroupBy(d => (d.NgayUngTuyen ?? d.Created).Date)
             .Select(g => new { Ngay = g.Key, SoLuong = g.Count() })
-            .OrderBy(x => x.Ngay)
             .ToListAsync(cancellationToken))
-            .Select(x => new DiemXuHuongVm
-            {
-                Ngay = x.Ngay.ToString("yyyy-MM-dd"),
-                SoLuong = x.SoLuong
-            }).ToList();
+            .ToDictionary(x => x.Ngay, x => x.SoLuong);
+        var ngayBatDau = tuNgay ?? (theoNgay.Count == 0 ? null : theoNgay.Keys.Min());
+        if (ngayBatDau.HasValue)
+        {
+            var soNgay = (homNay - ngayBatDau.Value).Days + 1;
+            vm.XuHuong = Enumerable.Range(0, soNgay)
+                .Select(offset => new DiemXuHuongVm
+                {
+                    Ngay = ngayBatDau.Value.AddDays(offset).ToString("yyyy-MM-dd"),
+                    SoLuong = theoNgay.GetValueOrDefault(ngayBatDau.Value.AddDays(offset))
+                })
+                .ToList();
+        }
 
         var top = await donKyNay
             .GroupBy(d => d.TinTuyenDungId)

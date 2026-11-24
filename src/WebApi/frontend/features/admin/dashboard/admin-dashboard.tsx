@@ -67,7 +67,7 @@ export function AdminDashboard() {
       </section>
 
       <section className="grid gap-4 xl:grid-cols-12">
-        <div className="xl:col-span-8"><GrowthChart points={data.Growth} /></div>
+        <div className="min-w-0 xl:col-span-8"><GrowthChart points={data.Growth} periodDays={data.PeriodDays} /></div>
         <AdminCard className="xl:col-span-4">
           <AdminCardHeader title="Cần xử lý" description="Hàng chờ theo trạng thái hiện tại" />
           <div className="p-5"><ModerationPanel moderation={data.Moderation} /></div>
@@ -150,8 +150,11 @@ export function AdminDashboard() {
           <div className="p-5"><ActivityFeed items={data.RecentActivity} /></div>
         </AdminCard>
         <AdminCard>
-          <AdminCardHeader title="Giới hạn dữ liệu" description="Các chỉ số chưa thể tính chính xác" />
-          <div className="space-y-3 p-5">{data.DataLimitations.map((item) => <div key={item} className="flex gap-3 rounded-xl bg-muted/50 p-3 text-sm text-muted-foreground"><AlertCircle className="mt-0.5 size-4 shrink-0 text-amber-500" /><p>{item}</p></div>)}</div>
+          <AdminCardHeader title="Giới hạn số liệu" description="Các chỉ số hệ thống chưa ghi nhận đủ dữ liệu để tính" />
+          <div className="space-y-3 p-5">
+            <p className="text-sm text-muted-foreground">Đây không phải giới hạn lưu trữ hay hạn mức sử dụng. Danh sách này cho biết những chỉ số nào hiện chưa thể đo được vì hệ thống chưa ghi lại sự kiện tương ứng.</p>
+            {data.DataLimitations.map((item) => <div key={item} className="flex gap-3 rounded-xl bg-muted/50 p-3 text-sm text-muted-foreground"><AlertCircle className="mt-0.5 size-4 shrink-0 text-amber-500" /><p>{item}</p></div>)}
+          </div>
         </AdminCard>
       </section>
     </> : null}

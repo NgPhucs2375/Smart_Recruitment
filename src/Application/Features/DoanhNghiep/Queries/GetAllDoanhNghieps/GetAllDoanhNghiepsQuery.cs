@@ -1,6 +1,7 @@
 using Application.Interfaces;
 using Application.Wrappers;
 using AutoMapper;
+using Domain.Enums;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using System.Linq;
@@ -62,6 +63,38 @@ public class GetAllDoanhNghiepsQueryHandler(
         var items = await query.ToListAsync(
             cancellationToken);
 
+        var companyIds = items.Select(x => x.Id).ToList();
+        var aggregates = await context.DoanhNghieps
+            .AsNoTracking()
+            .Where(x => companyIds.Contains(x.Id))
+            .Select(x => new
+            {
+                x.Id,
+                TenNguoiDaiDien = context.HoSoNhaTuyenDungs
+                    .Where(profile => profile.DoanhNghiepId == x.Id && profile.NguoiDungId == x.NguoiDaiDienId)
+                    .Select(profile => profile.HoTen)
+                    .FirstOrDefault(),
+                SoTinDangTuyen = context.TinTuyenDungs.Count(job =>
+                    job.DoanhNghiepId == x.Id && job.TrangThai == TrangThaiTinTuyenDung.DangTuyen),
+                SoTinChoDuyet = context.TinTuyenDungs.Count(job =>
+                    job.DoanhNghiepId == x.Id && (
+                        job.TrangThai == TrangThaiTinTuyenDung.ChoDuyetHeThong ||
+                        job.TrangThai == TrangThaiTinTuyenDung.ChoAdminDuyet ||
+                        job.TrangThai == TrangThaiTinTuyenDung.ChoNguoiDaiDienDuyet)),
+                SoDonUngTuyen = context.DonUngTuyens.Count(application => application.DoanhNghiepId == x.Id),
+            })
+            .ToDictionaryAsync(x => x.Id, cancellationToken);
+
+        var result = mapper.Map<List<GetAllDoanhNghiepsViewModel>>(items);
+        foreach (var item in result)
+        {
+            if (!aggregates.TryGetValue(item.Id, out var aggregate)) continue;
+            item.TenNguoiDaiDien = aggregate.TenNguoiDaiDien;
+            item.SoTinDangTuyen = aggregate.SoTinDangTuyen;
+            item.SoTinChoDuyet = aggregate.SoTinChoDuyet;
+            item.SoDonUngTuyen = aggregate.SoDonUngTuyen;
+        }
+
         var pageSize = take > 0 ? take : items.Count;
         var pageNumber = take > 0 ? (skip / take) + 1 : 1;
         var totalPages = pageSize > 0
@@ -69,7 +102,7 @@ public class GetAllDoanhNghiepsQueryHandler(
             : 0;
 
         return new PagedResponse<List<GetAllDoanhNghiepsViewModel>>(
-            mapper.Map<List<GetAllDoanhNghiepsViewModel>>(items),
+            result,
             pageNumber,
             pageSize,
             totalCount,

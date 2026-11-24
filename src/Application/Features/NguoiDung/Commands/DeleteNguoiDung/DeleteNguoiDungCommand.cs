@@ -28,6 +28,11 @@ namespace Application.Features.NguoiDung.Commands.DeleteNguoiDung
                     "Không tìm thấy người dùng.");
             }
 
+            if ((await NguoiDungRelations.LoadRelatedIdsAsync(context, [request.Id], cancellationToken)).Contains(request.Id))
+            {
+                return new Response<int>("Người dùng có dữ liệu liên quan. Hãy ngưng hoạt động thay vì xóa hồ sơ.");
+            }
+
             context.NguoiDungs.Remove(entity);
 
             await context.SaveChangesAsync(

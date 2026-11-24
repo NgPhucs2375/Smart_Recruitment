@@ -23,5 +23,15 @@ namespace Application.DTOs.NguoiDung
         public bool IsActive { get; set; }
 
         public bool IsLocked { get; set; }
+
+        public bool EmailConfirmed { get; set; }
+
+        public DateTime Created { get; set; }
+
+        public bool HasRelatedData { get; set; }
+
+        public int? DoanhNghiepId { get; set; }
+
+        public string TenDoanhNghiep { get; set; }
     }
 }

@@ -1,2 +1,19 @@
 namespace Application.Features.DoanhNghiep.Queries.GetAllDoanhNghieps;
-public class GetAllDoanhNghiepsViewModel { public int Id { get; set; } public string TenDoanhNghiep { get; set; } public string MoTa { get; set; } public string Website { get; set; } public string DiaChi { get; set; } public string LogoUrl { get; set; } public string MaSoThue { get; set; } public string LinhVucHoatDong { get; set; } public string QuyMoNhanSu { get; set; } public int? NguoiDaiDienId { get; set; } }
+
+public class GetAllDoanhNghiepsViewModel
+{
+    public int Id { get; set; }
+    public string TenDoanhNghiep { get; set; }
+    public string MoTa { get; set; }
+    public string Website { get; set; }
+    public string DiaChi { get; set; }
+    public string LogoUrl { get; set; }
+    public string MaSoThue { get; set; }
+    public string LinhVucHoatDong { get; set; }
+    public string QuyMoNhanSu { get; set; }
+    public int? NguoiDaiDienId { get; set; }
+    public string TenNguoiDaiDien { get; set; }
+    public int SoTinDangTuyen { get; set; }
+    public int SoTinChoDuyet { get; set; }
+    public int SoDonUngTuyen { get; set; }
+}

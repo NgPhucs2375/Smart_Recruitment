@@ -62,6 +62,11 @@ namespace Application.Features.NguoiDung.Queries.GetAllNguoiDungs
                 cancellationToken);
 
             var result = mapper.Map<List<GetAllNguoiDungsViewModel>>(items);
+            var relatedIds = await NguoiDungRelations.LoadRelatedIdsAsync(context, result.Select(x => x.Id), cancellationToken);
+            foreach (var item in result)
+            {
+                item.HasRelatedData = relatedIds.Contains(item.Id);
+            }
 
             return new Response<List<GetAllNguoiDungsViewModel>>(result);
         }

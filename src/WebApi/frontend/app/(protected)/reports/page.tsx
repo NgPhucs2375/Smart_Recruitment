@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useGetIdentity } from "@refinedev/core";
 import { BarChart3, Briefcase, Download, RefreshCw, Send, TrendingDown, TrendingUp, Users } from "lucide-react";
+import { ApplicationTrendChart } from "@/components/admin/application-trend-chart";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -189,8 +190,6 @@ export default function ReportsPage() {
   const ratio = completed > 0 ? Math.round((outcomes[2] / completed) * 100) : 0;
   const maxOutcome = Math.max(1, ...outcomes, khac);
   const trend = report?.XuHuong ?? [];
-  const maxTrend = trend.length ? Math.max(...trend.map(point => point.SoLuong)) : 1;
-  const trendLabel = (date: string) => new Date(`${date}T12:00:00`).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit" });
   const duyet = report?.DuyetTin;
   const maxDuyet = Math.max(1, duyet?.DaDuyet ?? 0, duyet?.ChoDuyet ?? 0, duyet?.TuChoi ?? 0);
   const maxTop = report && report.TopTin.length ? Math.max(...report.TopTin.map(t => t.SoLuong)) : 1;
@@ -236,27 +235,7 @@ export default function ReportsPage() {
         <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Xu hướng ứng tuyển theo thời gian</h2>
         <Card className="rounded-2xl">
           <CardContent className="p-5">
-            {trend.length === 0 ? (
-              <AdminEmptyState
-                icon={TrendingUp}
-                title="Chưa có số liệu thống kê"
-                description="Biểu đồ xu hướng và phân tích hiệu suất sẽ tự động cập nhật ngay khi doanh nghiệp có hoạt động tuyển dụng."
-              />
-            ) : (
-              <div>
-                <div className="flex h-40 items-end gap-1" role="img" aria-label={`Số lượt nộp theo ngày, cao nhất ${maxTrend} lượt`}>
-                  {trend.map(point => (
-                    <div key={point.Ngay} className="flex h-full flex-1 items-end" title={`${trendLabel(point.Ngay)}: ${point.SoLuong} lượt`}>
-                      <div className="w-full rounded-t-md bg-primary/75 transition-colors hover:bg-primary" style={{ height: `${Math.max(6, (point.SoLuong / maxTrend) * 100)}%` }} />
-                    </div>
-                  ))}
-                </div>
-                <div className="mt-2 flex justify-between text-[11px] text-muted-foreground">
-                  <span>{trendLabel(trend[0].Ngay)}</span>
-                  <span>{trendLabel(trend[trend.length - 1].Ngay)}</span>
-                </div>
-              </div>
-            )}
+            <ApplicationTrendChart points={trend} />
           </CardContent>
         </Card>
       </section>

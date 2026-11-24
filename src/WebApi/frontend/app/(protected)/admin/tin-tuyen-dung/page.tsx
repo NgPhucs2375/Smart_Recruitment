@@ -8,26 +8,20 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { Briefcase, Trash2, RotateCcw, Search, CheckCircle2, XCircle, Ban } from "lucide-react";
+import Link from "next/link";
+import { Briefcase, Trash2, RotateCcw, Search, CheckCircle2, XCircle, Ban, MapPin, Users } from "lucide-react";
 import { AdminGate } from "@/features/admin/AdminGate";
 import { adminApi, TRIGGER_TIN } from "@/features/admin/api";
+import { normalizeJobRow, parseJobBoolean, type AdminJobRow as TinRow } from "@/features/admin/job-list";
+import { formatSalaryRangeVN } from "@/features/viec-lam/salary";
 import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { JobPreview, type JobPreviewData } from "@/features/tin-tuyen-dung/job-preview";
 
-interface TinRow {
-  Id: number;
-  TieuDe: string;
-  DiaDiemLamViec?: string | null;
-  LuongToiThieu: number;
-  LuongToiDa: number;
-  TrangThai: string;
-  NgayHetHan?: string | null;
-  NguoiDangTinId: number;
-  DoanhNghiepId: number;
-  LastModified?: string;
-  NguoiDaiDienDaDuyet?: boolean;
-  VaiTroNguoiDang?: string;
-}
+const formatDate = (value: string | null | undefined) => {
+  if (!value) return "—";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "—" : date.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" });
+};
 
 // Display labels + badge variants for the 9 real TrangThaiTinTuyenDung
 // values (0 Nhap … 8 BiKhoa). Backend strings untouched.
@@ -59,15 +53,7 @@ export default function AdminTinTuyenDungPage() {
     setLoading(true);
     try {
       const data = await adminApi.list<Record<string, unknown>>("/tintuyendungs", { _filter: kw, _start: (page - 1) * 20, _end: page * 20, TrangThai: statusFilter });
-      setRows(Array.isArray(data) ? data.map(r => ({
-        Id: Number(r.Id ?? r.id), TieuDe: String(r.TieuDe ?? r.tieuDe ?? ""),
-        TrangThai: String(r.TrangThai ?? r.trangThai ?? ""), DoanhNghiepId: Number(r.DoanhNghiepId ?? r.doanhNghiepId),
-        NguoiDangTinId: Number(r.NguoiDangTinId ?? r.nguoiDangTinId),
-        LuongToiThieu: Number(r.LuongToiThieu ?? r.luongToiThieu), LuongToiDa: Number(r.LuongToiDa ?? r.luongToiDa),
-        LastModified: (r.LastModified ?? r.lastModified) as string | undefined,
-        NguoiDaiDienDaDuyet: Boolean(r.NguoiDaiDienDaDuyet ?? r.nguoiDaiDienDaDuyet),
-        VaiTroNguoiDang: String(r.VaiTroNguoiDang ?? r.vaiTroNguoiDang ?? ""),
-      })) : []);
+      setRows(Array.isArray(data) ? data.map(normalizeJobRow) : []);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Không tải được danh sách");
     } finally {
@@ -85,14 +71,14 @@ export default function AdminTinTuyenDungPage() {
       const r = await adminApi.get<Record<string, unknown>>(`/tintuyendungs/show/${row.Id}`);
       const get = (key: string) => r[key] ?? r[key[0].toUpperCase() + key.slice(1)];
       setReviewing({ ...row, TrangThai: String(get("trangThai") ?? row.TrangThai),
-        LastModified: get("lastModified") as string | undefined,
-        NguoiDaiDienDaDuyet: Boolean(get("nguoiDaiDienDaDuyet")), VaiTroNguoiDang: String(get("vaiTroNguoiDang") ?? "") });
+        LastModified: get("lastModified") as string | null,
+        NguoiDaiDienDaDuyet: parseJobBoolean(get("nguoiDaiDienDaDuyet")), VaiTroNguoiDang: String(get("vaiTroNguoiDang") ?? "") });
       setPreview({ tieuDe: String(get("tieuDe") ?? ""), moTaCongViec: String(get("moTaCongViec") ?? ""),
         yeuCauCongViec: String(get("yeuCauCongViec") ?? ""), kinhNghiemYeuCau: String(get("kinhNghiemYeuCau") ?? ""),
         quyenLoi: String(get("quyenLoi") ?? ""), diaDiemLamViec: String(get("diaDiemLamViec") ?? ""),
         luongToiThieu: Number(get("luongToiThieu") ?? 0), luongToiDa: Number(get("luongToiDa") ?? 0),
         ghiChuKiemDuyet: String(get("ghiChuKiemDuyet") ?? ""),
-        ketQuaSangLoc: String(get("ketQuaSangLoc") ?? ""), nguoiDaiDienDaDuyet: Boolean(get("nguoiDaiDienDaDuyet")),
+        ketQuaSangLoc: String(get("ketQuaSangLoc") ?? ""), nguoiDaiDienDaDuyet: parseJobBoolean(get("nguoiDaiDienDaDuyet")),
         vaiTroNguoiDang: String(get("vaiTroNguoiDang") ?? ""),
         kyNangs: ((get("kyNangYeuCaus") ?? []) as Record<string, unknown>[]).map(k => ({ kyNangId: Number(k.KyNangId ?? k.kyNangId), tenKyNang: String(k.TenKyNang ?? k.tenKyNang), mucDoYeuCau: Number(k.MucDoYeuCau ?? k.mucDoYeuCau) })) });
     } catch (error) { toast.error(error instanceof Error ? error.message : "Không tải được chi tiết tin."); }
@@ -155,7 +141,7 @@ export default function AdminTinTuyenDungPage() {
 
   return (
     <AdminGate>
-      <div className="p-6 space-y-6">
+      <div className="p-4 space-y-6 sm:p-6">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="flex size-10 items-center justify-center rounded-xl bg-primary text-primary-foreground">
@@ -174,13 +160,13 @@ export default function AdminTinTuyenDungPage() {
         <Card>
           <CardContent className="pt-6">
             <form
-              className="flex gap-2"
+              className="flex flex-col gap-2 sm:flex-row"
               onSubmit={(e) => {
                 e.preventDefault();
                 void fetchRows(filter || undefined);
               }}
             >
-              <div className="relative flex-1">
+              <div className="relative min-w-0 flex-1">
                 <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   className="pl-9"
@@ -190,7 +176,7 @@ export default function AdminTinTuyenDungPage() {
                   onChange={(e) => setFilter(e.target.value)}
                 />
               </div>
-              <select aria-label="Lọc trạng thái tin" className="rounded-md border border-input bg-background px-3 text-sm" value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setPage(1); }}><option value="">Tất cả trạng thái</option>{Object.entries(TIN_TRANG_THAI).map(([key, value]) => <option key={key} value={key}>{value.label}</option>)}</select>
+              <select aria-label="Lọc trạng thái tin" className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm sm:w-auto" value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setPage(1); }}><option value="">Tất cả trạng thái</option>{Object.entries(TIN_TRANG_THAI).map(([key, value]) => <option key={key} value={key}>{value.label}</option>)}</select>
               <Button type="submit" variant="secondary">Tìm</Button>
             </form>
           </CardContent>
@@ -205,14 +191,73 @@ export default function AdminTinTuyenDungPage() {
                 <Skeleton className="h-10 w-full" />
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <Table>
+              <>
+                <div className="divide-y divide-border md:hidden">
+                  {rows.map((row) => {
+                    const busy = busyId === row.Id;
+                    const st = TIN_TRANG_THAI[row.TrangThai] ?? { label: row.TrangThai, variant: "secondary" as const };
+                    return (
+                      <article key={row.Id} className="space-y-4 py-4 first:pt-0 last:pb-0">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="text-xs text-muted-foreground">Tin #{row.Id}</p>
+                            <button type="button" className="mt-1 block break-words text-left font-medium text-primary underline-offset-4 hover:underline" onClick={() => void showDetail(row)}>{row.TieuDe}</button>
+                          </div>
+                          <Badge variant={st.variant} className="shrink-0">{st.label}</Badge>
+                        </div>
+                        <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
+                          <div className="col-span-2">
+                            <dt className="text-xs text-muted-foreground">Doanh nghiệp</dt>
+                            <dd className="mt-1 break-words"><Link href={`/doanh-nghiep/${row.DoanhNghiepId}`} className="font-medium text-primary hover:underline">{row.TenDoanhNghiep || `#${row.DoanhNghiepId}`}</Link></dd>
+                          </div>
+                          <div className="col-span-2">
+                            <dt className="text-xs text-muted-foreground">Địa điểm</dt>
+                            <dd className="mt-1 flex items-start gap-1.5 break-words text-muted-foreground"><MapPin className="mt-0.5 size-3.5 shrink-0" />{row.DiaDiemLamViec || "Chưa cập nhật"}</dd>
+                          </div>
+                          <div>
+                            <dt className="text-xs text-muted-foreground">Lương</dt>
+                            <dd className="mt-1 tabular-nums">{formatSalaryRangeVN(row.LuongToiThieu, row.LuongToiDa)}</dd>
+                          </div>
+                          <div>
+                            <dt className="text-xs text-muted-foreground">Hết hạn</dt>
+                            <dd className="mt-1 tabular-nums">{formatDate(row.NgayHetHan)}</dd>
+                          </div>
+                          <div>
+                            <dt className="text-xs text-muted-foreground">Ứng viên</dt>
+                            <dd className="mt-1"><Link href={`/tin-tuyen-dung/${row.Id}/ung-vien`} className="inline-flex items-center gap-1.5 font-medium text-primary hover:underline"><Users className="size-3.5" />{row.SoLuongUngVien}</Link></dd>
+                          </div>
+                          <div>
+                            <dt className="text-xs text-muted-foreground">Ngày tạo</dt>
+                            <dd className="mt-1 tabular-nums">{formatDate(row.Created)}</dd>
+                          </div>
+                        </dl>
+                        <div className="flex flex-wrap items-center gap-2 border-t border-border pt-3">
+                          <Button variant="outline" size="sm" disabled={busy} onClick={() => void showDetail(row)}>{row.TrangThai === "ChoAdminDuyet" ? "Xem và duyệt" : "Chi tiết"}</Button>
+                          <Button size="icon" variant="ghost" title="Cưỡng chế khóa (vi phạm)" aria-label={`Cưỡng chế khóa tin ${row.Id}`} disabled={busy || !["DangTuyen", "TamDung"].includes(row.TrangThai)} className="size-10 text-destructive" onClick={() => void handleFire(row, TRIGGER_TIN.AdminCuongCheKhoa, "Cưỡng chế khóa")}>
+                            <Ban className="size-4" />
+                          </Button>
+                          <Button size="icon" variant="ghost" title="Xóa tin" aria-label={`Xóa tin ${row.Id}`} disabled={busy || !["Nhap", "TuChoi"].includes(row.TrangThai)} className="size-10 text-destructive" onClick={() => void handleDelete(row)}>
+                            <Trash2 className="size-4" />
+                          </Button>
+                        </div>
+                      </article>
+                    );
+                  })}
+                  {rows.length === 0 && <p className="py-6 text-center text-muted-foreground">Không có dữ liệu</p>}
+                </div>
+                <div className="hidden overflow-x-auto md:block">
+                  <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead className="w-16">Id</TableHead>
                       <TableHead>Tiêu đề</TableHead>
-                      <TableHead>Trạng thái</TableHead>
                       <TableHead>Doanh nghiệp</TableHead>
+                      <TableHead>Địa điểm</TableHead>
+                      <TableHead>Lương</TableHead>
+                      <TableHead>Hết hạn</TableHead>
+                      <TableHead className="text-right">Ứng viên</TableHead>
+                      <TableHead>Ngày tạo</TableHead>
+                      <TableHead>Trạng thái</TableHead>
                       <TableHead className="text-right">Thao tác</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -223,20 +268,28 @@ export default function AdminTinTuyenDungPage() {
                       return (
                         <TableRow key={row.Id}>
                           <TableCell>{row.Id}</TableCell>
-                           <TableCell className="max-w-[280px] truncate font-medium"><button type="button" className="text-left text-primary underline-offset-4 hover:underline" onClick={() => void showDetail(row)}>{row.TieuDe}</button></TableCell>
+                          <TableCell className="max-w-[280px] truncate font-medium"><button type="button" className="text-left text-primary underline-offset-4 hover:underline" onClick={() => void showDetail(row)}>{row.TieuDe}</button></TableCell>
                           <TableCell>
-                            <Badge variant={st.variant}>
-                              {st.label}
-                            </Badge>
+                            <Link href={`/doanh-nghiep/${row.DoanhNghiepId}`} className="font-medium text-primary hover:underline">{row.TenDoanhNghiep || `#${row.DoanhNghiepId}`}</Link>
                           </TableCell>
-                          <TableCell>#{row.DoanhNghiepId}</TableCell>
+                          <TableCell><span className="flex items-center gap-1.5 text-muted-foreground"><MapPin className="size-3.5 shrink-0" />{row.DiaDiemLamViec || "Chưa cập nhật"}</span></TableCell>
+                          <TableCell className="whitespace-nowrap tabular-nums">{formatSalaryRangeVN(row.LuongToiThieu, row.LuongToiDa)}</TableCell>
+                          <TableCell className="whitespace-nowrap tabular-nums">{formatDate(row.NgayHetHan)}</TableCell>
                           <TableCell className="text-right">
+                            <Link href={`/tin-tuyen-dung/${row.Id}/ung-vien`} className="inline-flex items-center gap-1.5 font-medium text-primary hover:underline"><Users className="size-3.5" />{row.SoLuongUngVien}</Link>
+                          </TableCell>
+                          <TableCell className="whitespace-nowrap tabular-nums">{formatDate(row.Created)}</TableCell>
+                          <TableCell>
+                            <Badge variant={st.variant}>{st.label}</Badge>
+                          </TableCell>
+                          <TableCell>
                             <div className="flex justify-end gap-1">
                               <Button variant="outline" size="sm" disabled={busy} onClick={() => void showDetail(row)}>{row.TrangThai === "ChoAdminDuyet" ? "Xem và duyệt" : "Chi tiết"}</Button>
                               <Button
                                 size="icon"
                                 variant="ghost"
                                 title="Cưỡng chế khóa (vi phạm)"
+                                aria-label={`Cưỡng chế khóa tin ${row.Id}`}
                                 disabled={busy || !["DangTuyen", "TamDung"].includes(row.TrangThai)}
                                 className="text-destructive"
                                 onClick={() => void handleFire(row, TRIGGER_TIN.AdminCuongCheKhoa, "Cưỡng chế khóa")}
@@ -247,6 +300,7 @@ export default function AdminTinTuyenDungPage() {
                                 size="icon"
                                 variant="ghost"
                                 title="Xóa tin"
+                                aria-label={`Xóa tin ${row.Id}`}
                                 disabled={busy || !["Nhap", "TuChoi"].includes(row.TrangThai)}
                                 className="text-destructive"
                                 onClick={() => void handleDelete(row)}
@@ -260,14 +314,15 @@ export default function AdminTinTuyenDungPage() {
                     })}
                     {rows.length === 0 && (
                       <TableRow>
-                        <TableCell colSpan={5} className="text-center text-muted-foreground">
+                        <TableCell colSpan={10} className="text-center text-muted-foreground">
                           Không có dữ liệu
                         </TableCell>
                       </TableRow>
                     )}
                   </TableBody>
-                </Table>
-              </div>
+                  </Table>
+                </div>
+              </>
             )}
           </CardContent>
         </Card>

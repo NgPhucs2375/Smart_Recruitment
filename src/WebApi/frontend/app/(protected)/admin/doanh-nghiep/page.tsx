@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -9,24 +10,13 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { Building2, Pencil, Trash2, Plus, RotateCcw, Search } from "lucide-react";
+import { Building2, Pencil, Trash2, Plus, RotateCcw, Search, BriefcaseBusiness, Clock3, Users } from "lucide-react";
 import { AdminGate } from "@/features/admin/AdminGate";
 import { adminApi } from "@/features/admin/api";
+import { normalizeCompanyRow, safeCompanyWebsite, type AdminCompanyRow as DoanhNghiepRow } from "@/features/admin/company-list";
 import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { ProvinceAddressFields } from "@/components/ui/province-address-fields";
-
-interface DoanhNghiepRow {
-  Id: number;
-  TenDoanhNghiep: string;
-  MoTa?: string | null;
-  Website?: string | null;
-  DiaChi?: string | null;
-  LogoUrl?: string | null;
-  MaSoThue?: string | null;
-  LinhVucHoatDong?: string | null;
-  QuyMoNhanSu?: string | null;
-  NguoiDaiDienId?: number | null;
-}
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const emptyForm = {
   TenDoanhNghiep: "",
@@ -65,8 +55,8 @@ export default function AdminDoanhNghiepPage() {
   const fetchRows = useCallback(async (kw?: string) => {
     setLoading(true);
     try {
-      const data = await adminApi.list<DoanhNghiepRow>("/doanhnghieps", kw ? { _filter: kw } : undefined);
-      setRows(Array.isArray(data) ? data : []);
+      const data = await adminApi.list<Record<string, unknown>>("/doanhnghieps", kw ? { _filter: kw } : undefined);
+      setRows(Array.isArray(data) ? data.map(normalizeCompanyRow) : []);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Không tải được danh sách");
     } finally {
@@ -167,7 +157,7 @@ export default function AdminDoanhNghiepPage() {
 
   return (
     <AdminGate>
-      <div className="p-6 space-y-6">
+      <div className="p-4 space-y-6 sm:p-6">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="flex size-10 items-center justify-center rounded-xl bg-primary text-primary-foreground">
@@ -274,40 +264,68 @@ export default function AdminDoanhNghiepPage() {
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <Table>
+                <Table className="w-full table-fixed md:table-auto">
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="w-16">Id</TableHead>
-                      <TableHead>Tên doanh nghiệp</TableHead>
-                      <TableHead>Mã số thuế</TableHead>
-                      <TableHead>Lĩnh vực</TableHead>
-                      <TableHead>Quy mô</TableHead>
-                      <TableHead className="text-right">Thao tác</TableHead>
+                      <TableHead className="hidden w-16 sm:table-cell">Id</TableHead>
+                      <TableHead>Doanh nghiệp</TableHead>
+                      <TableHead className="hidden lg:table-cell">Địa chỉ</TableHead>
+                      <TableHead className="hidden xl:table-cell">Website</TableHead>
+                      <TableHead className="hidden lg:table-cell">Người đại diện</TableHead>
+                      <TableHead className="hidden xl:table-cell">Lĩnh vực</TableHead>
+                      <TableHead className="hidden xl:table-cell">Quy mô</TableHead>
+                      <TableHead className="hidden md:table-cell text-right">Đang tuyển</TableHead>
+                      <TableHead className="hidden md:table-cell text-right">Chờ duyệt</TableHead>
+                      <TableHead className="hidden md:table-cell text-right">Ứng tuyển</TableHead>
+                      <TableHead className="w-24 text-right">Thao tác</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {rows.map((row) => (
-                      <TableRow key={row.Id}>
-                        <TableCell>{row.Id}</TableCell>
-                        <TableCell className="font-medium">{row.TenDoanhNghiep}</TableCell>
-                        <TableCell className="font-mono text-xs">{row.MaSoThue ?? "—"}</TableCell>
-                        <TableCell>{row.LinhVucHoatDong ?? "—"}</TableCell>
-                        <TableCell>{row.QuyMoNhanSu ?? "—"}</TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-1">
-                            <Button size="icon" variant="ghost" title="Sửa" onClick={() => openEdit(row)}>
-                              <Pencil className="size-4" />
-                            </Button>
-                            <Button size="icon" variant="ghost" title="Xóa" className="text-destructive" onClick={() => void handleDelete(row)}>
-                              <Trash2 className="size-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                    {rows.map((row) => {
+                      const website = safeCompanyWebsite(row.Website);
+                      return (
+                        <TableRow key={row.Id}>
+                          <TableCell className="hidden sm:table-cell">{row.Id}</TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-3">
+                              <Avatar className="size-10 rounded-lg border border-border bg-background">
+                                <AvatarImage src={row.LogoUrl ?? undefined} alt={`Logo ${row.TenDoanhNghiep}`} className="object-contain p-1" />
+                                <AvatarFallback>{row.TenDoanhNghiep.slice(0, 2).toUpperCase() || "DN"}</AvatarFallback>
+                              </Avatar>
+                              <div className="min-w-0">
+                                <Link href={`/doanh-nghiep/${row.Id}`} className="block max-w-[240px] truncate font-medium text-primary hover:underline">{row.TenDoanhNghiep || `Doanh nghiệp #${row.Id}`}</Link>
+                                {row.MaSoThue && <p className="font-mono text-xs text-muted-foreground">MST {row.MaSoThue}</p>}
+                                <p className="mt-1 break-words text-xs text-muted-foreground lg:hidden">Đại diện: {row.TenNguoiDaiDien || "Chưa cập nhật"}</p>
+                                <p className="mt-1 text-xs text-muted-foreground sm:hidden">{row.SoTinDangTuyen} đang tuyển · {row.SoTinChoDuyet} chờ duyệt · {row.SoDonUngTuyen} đơn</p>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell className="hidden max-w-[220px] lg:table-cell"><span className="line-clamp-2 text-sm text-muted-foreground">{row.DiaChi || "—"}</span></TableCell>
+                          <TableCell className="hidden max-w-[180px] xl:table-cell">
+                            {website ? <a href={website} target="_blank" rel="noreferrer" className="block truncate text-sm text-primary hover:underline">{row.Website}</a> : <span className="text-muted-foreground">—</span>}
+                          </TableCell>
+                          <TableCell className="hidden lg:table-cell">{row.TenNguoiDaiDien || "Chưa cập nhật"}</TableCell>
+                          <TableCell className="hidden xl:table-cell">{row.LinhVucHoatDong || "—"}</TableCell>
+                          <TableCell className="hidden xl:table-cell">{row.QuyMoNhanSu || "—"}</TableCell>
+                          <TableCell className="hidden text-right md:table-cell"><span className="inline-flex items-center gap-1.5 tabular-nums"><BriefcaseBusiness className="size-3.5 text-emerald-600" />{row.SoTinDangTuyen}</span></TableCell>
+                          <TableCell className="hidden text-right md:table-cell"><span className="inline-flex items-center gap-1.5 tabular-nums"><Clock3 className="size-3.5 text-amber-600" />{row.SoTinChoDuyet}</span></TableCell>
+                          <TableCell className="hidden text-right md:table-cell"><span className="inline-flex items-center gap-1.5 tabular-nums"><Users className="size-3.5 text-primary" />{row.SoDonUngTuyen}</span></TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-1">
+                              <Button size="icon" variant="ghost" title="Sửa" aria-label={`Sửa doanh nghiệp ${row.Id}`} onClick={() => openEdit(row)}>
+                                <Pencil className="size-4" />
+                              </Button>
+                              <Button size="icon" variant="ghost" title="Xóa" aria-label={`Xóa doanh nghiệp ${row.Id}`} className="text-destructive" onClick={() => void handleDelete(row)}>
+                                <Trash2 className="size-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
                     {rows.length === 0 && (
                       <TableRow>
-                        <TableCell colSpan={6} className="text-center text-muted-foreground">
+                        <TableCell colSpan={11} className="text-center text-muted-foreground">
                           Không có dữ liệu
                         </TableCell>
                       </TableRow>

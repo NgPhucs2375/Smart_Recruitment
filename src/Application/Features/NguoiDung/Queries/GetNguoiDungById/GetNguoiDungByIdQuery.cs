@@ -32,6 +32,7 @@ namespace Application.Features.NguoiDung.Queries.GetNguoiDungById
 
             var result = mapper.Map<GetAllNguoiDungs.GetAllNguoiDungsViewModel>(
                 entity);
+            result.HasRelatedData = (await NguoiDungRelations.LoadRelatedIdsAsync(context, [request.Id], cancellationToken)).Contains(request.Id);
 
             return new Response<GetAllNguoiDungs.GetAllNguoiDungsViewModel>(
                 result);
