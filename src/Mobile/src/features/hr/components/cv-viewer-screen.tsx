@@ -196,14 +196,14 @@ export function CvViewerScreen() {
           ) : null}
           <WebView
             key={`${cvId}-${reloadKey}`}
-            source={{ uri: info.url }}
+            source={{ html: info.html, baseUrl: info.baseUrl }}
             style={styles.web}
             startInLoadingState={false}
             onLoadStart={() => setPageLoading(true)}
             onLoadEnd={() => setPageLoading(false)}
             onError={() => {
               setPageLoading(false);
-              setError('Không tải được trang CV. Kiểm tra địa chỉ Web (webOrigin) trong .env.');
+              setError('Không tải được trang CV. Kiểm tra EXPO_PUBLIC_WEB_URL hoặc EXPO_PUBLIC_API_URL.');
             }}
           />
         </View>

@@ -338,30 +338,29 @@ export const hrAppApi = {
 };
 
 /* ------------------------------------------------------------------ */
-/* CV xem trước (WebView sang route /cv-render của Web)               */
+/* CV xem trước (POST render HTML rồi nạp vào WebView)                 */
 /* ------------------------------------------------------------------ */
 
-/** Origin của Web (bỏ hậu tố /api/dotnet) — nơi đặt route /cv-render. */
+/** Origin của Web (bỏ hậu tố /api/dotnet hoặc /api). */
 export function webOrigin(): string {
   const base = getApiBaseUrl();
   if (!base) {
     throw new Error('Chưa cấu hình API. Hãy tạo file .env từ .env.example và đặt EXPO_PUBLIC_API_URL.');
   }
-  return base.replace(/\/api\/dotnet\/?$/, '');
+  const configuredWebUrl = process.env.EXPO_PUBLIC_WEB_URL?.trim().replace(/\/+$/, '');
+  return configuredWebUrl || base.replace(/\/api(?:\/dotnet)?\/?$/, '');
 }
 
 export type CvRenderInfo = {
-  url: string;
+  html: string;
+  baseUrl: string;
   tenFile: string;
   hoTen: string;
   applicationStatus: number | null;
 };
 
 export const hrCvApi = {
-  /**
-   * Trả URL render CV cho WebView: /cv-render?d=<CvFormData JSON>&t=<templateId>.
-   * Khi có donId: xác thực CV khớp đơn + tự ghi nhận XemDon (đúng Web).
-   */
+  /** Khi có donId: xác thực CV khớp đơn + tự ghi nhận XemDon (đúng Web). */
   async getCvRenderInfo(cvId: number, donId?: number): Promise<CvRenderInfo> {
     let detail: unknown = null;
     let applicationStatus: number | null = null;
@@ -398,9 +397,29 @@ export const hrCvApi = {
       giaoDien: form.giaoDien,
     };
     const templateId = data.templateId ?? 'modern';
-    const url = `${webOrigin()}/cv-render?d=${encodeURIComponent(JSON.stringify(data))}&t=${encodeURIComponent(templateId)}`;
+    const baseUrl = webOrigin();
+    const response = await fetch(`${baseUrl}/api/cv-render`, {
+      method: 'POST',
+      headers: {
+        Accept: 'text/html',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ data, templateId }),
+    });
+    const html = await response.text();
+    if (!response.ok) {
+      let message = `Không thể render CV (HTTP ${response.status}).`;
+      try {
+        const errorBody = asRecord(JSON.parse(html) as unknown);
+        message = asText(errorBody?.message ?? errorBody?.Message, message);
+      } catch {
+        // Next có thể trả trang lỗi HTML thay vì JSON.
+      }
+      throw new Error(message);
+    }
     return {
-      url,
+      html,
+      baseUrl,
       tenFile: data.tenFile ?? `CV #${cvId}`,
       hoTen: data.thongTinLienHe?.hoTen ?? '',
       applicationStatus,
