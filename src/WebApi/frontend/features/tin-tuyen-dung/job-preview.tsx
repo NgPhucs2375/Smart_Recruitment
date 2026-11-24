@@ -35,12 +35,16 @@ export function JobPreview({ data, onClose, actions }: { data: JobPreviewData | 
   return <Dialog.Root open={data !== null} onOpenChange={(open) => { if (!open) onClose(); }}>
     <Dialog.Portal>
       <Dialog.Backdrop className="fixed inset-0 z-50 bg-black/40" />
-      <Dialog.Popup className="fixed left-1/2 top-1/2 z-50 max-h-[85dvh] w-[calc(100%-2rem)] max-w-3xl -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl border border-border bg-card p-6 shadow-xl">
-        <Dialog.Close aria-label="Đóng xem trước" className="absolute right-3 top-3 flex size-11 items-center justify-center rounded-md hover:bg-muted"><X className="size-5" /></Dialog.Close>
-        <Dialog.Title className="pr-12 text-xl font-semibold">{data?.tieuDe || "Tin chưa có tiêu đề"}</Dialog.Title>
-        <Dialog.Description className="mt-2 text-sm text-muted-foreground">{actions ? data?.vaiTroNguoiDang === "NHAN_SU" && !data.nguoiDaiDienDaDuyet ? "Người đại diện kiểm tra và đồng ý trước. Sau đó hệ thống mới lọc: OK thì công khai, vi phạm thì chuyển Admin." : "Bộ lọc đã gắn cờ tin này. Admin quyết định duyệt tay để công khai hoặc từ chối." : "Xem trước nội dung tin. Thao tác này không lưu hoặc công khai tin."}</Dialog.Description>
-        {data && <JobPreviewBody data={data} />}
-        {actions && <div className="sticky bottom-0 mt-6 flex flex-wrap justify-end gap-3 border-t border-border bg-card py-4">{actions}</div>}
+      <Dialog.Popup className="fixed left-1/2 top-1/2 z-50 flex max-h-[85dvh] w-[calc(100%-2rem)] max-w-3xl -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-2xl border border-border bg-card p-0 shadow-xl">
+        <Dialog.Close aria-label="Đóng xem trước" className="absolute right-3 top-3 z-10 flex size-11 items-center justify-center rounded-md hover:bg-muted"><X className="size-5" /></Dialog.Close>
+        <div className="shrink-0 px-6 pb-4 pt-6">
+          <Dialog.Title className="pr-12 text-xl font-semibold">{data?.tieuDe || "Tin chưa có tiêu đề"}</Dialog.Title>
+          <Dialog.Description className="mt-2 text-sm text-muted-foreground">{actions ? data?.vaiTroNguoiDang === "NHAN_SU" && !data.nguoiDaiDienDaDuyet ? "Người đại diện kiểm tra và đồng ý trước. Sau đó hệ thống mới lọc: OK thì công khai, vi phạm thì chuyển Admin." : "Bộ lọc đã gắn cờ tin này. Admin quyết định duyệt tay để công khai hoặc từ chối." : "Xem trước nội dung tin. Thao tác này không lưu hoặc công khai tin."}</Dialog.Description>
+        </div>
+        <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-6">
+          {data && <JobPreviewBody data={data} />}
+        </div>
+        {actions && <div className="flex shrink-0 flex-wrap justify-end gap-3 border-t border-border bg-card px-6 py-4">{actions}</div>}
       </Dialog.Popup>
     </Dialog.Portal>
   </Dialog.Root>;

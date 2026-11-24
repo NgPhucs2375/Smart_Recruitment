@@ -329,7 +329,7 @@ internal static class DemoSeedRunner
             or TrangThaiTinTuyenDung.DaDong or TrangThaiTinTuyenDung.BiKhoa
             => (true, "Đạt kiểm duyệt tự động."),
         TrangThaiTinTuyenDung.ChoAdminDuyet
-            => (false, "Đạt kiểm duyệt tự động, chờ quản trị viên phê duyệt."),
+            => (true, "Đạt kiểm duyệt tự động, chờ quản trị viên phê duyệt."),
         TrangThaiTinTuyenDung.ChoNguoiDaiDienDuyet
             => (false, "Đạt kiểm duyệt tự động, chờ người đại diện doanh nghiệp duyệt."),
         TrangThaiTinTuyenDung.TuChoi

@@ -13,6 +13,156 @@ const { unwrapResponse, listResponse } = await load("lib/api/response-contract.t
 const { notificationTarget } = await load("features/notifications/notification-target.ts");
 const { hasPermission } = await load("lib/permissions.ts");
 const { matchesSearch, matchesStatus, peoplePage, roleNumber } = await load("features/people/people-list.ts");
+const { barHeightPercent, dateTickIndexes, niceScale, trendSummary, pointerIndexFromPlot, keepPointVisible, tooltipCenter } = await load("features/admin/chart-utils.ts");
+assert.equal(barHeightPercent(0, 10), 0, "a zero-value day must have no visible bar");
+assert.equal(barHeightPercent(5, 10), 50);
+assert.equal(barHeightPercent(-2, 10), 0);
+assert.equal(barHeightPercent(20, 10), 100);
+assert.equal(barHeightPercent(1, 0), 0);
+assert.deepEqual(niceScale([]), { max: 4, ticks: [0, 1, 2, 3, 4] });
+assert.deepEqual(niceScale([0, 0]), { max: 4, ticks: [0, 1, 2, 3, 4] });
+assert.deepEqual(niceScale([9, 3]), { max: 12, ticks: [0, 3, 6, 9, 12] });
+assert.deepEqual(niceScale([17, 3]), { max: 20, ticks: [0, 5, 10, 15, 20] });
+assert.deepEqual(dateTickIndexes(0), []);
+assert.deepEqual(dateTickIndexes(4), [0, 1, 2, 3]);
+assert.deepEqual(dateTickIndexes(30, 6), [0, 6, 12, 17, 23, 29]);
+assert.deepEqual(trendSummary([
+  { Ngay: "2026-11-01", SoLuong: 0 },
+  { Ngay: "2026-11-02", SoLuong: 7 },
+  { Ngay: "2026-11-03", SoLuong: 2 },
+]), { total: 9, average: 3, peak: { date: "2026-11-02", value: 7 } });
+assert.deepEqual(trendSummary([]), { total: 0, average: 0, peak: null });
+assert.deepEqual(trendSummary([
+  { Ngay: "2026-11-01", SoLuong: 0 },
+  { Ngay: "2026-11-02", SoLuong: 7 },
+  { Ngay: "2026-11-03", SoLuong: 0 },
+]), { total: 7, average: 2.3, peak: { date: "2026-11-02", value: 7 } });
+assert.equal(pointerIndexFromPlot(48, 48, 692, 6), 0, "pointer selection starts at the real plot edge");
+assert.equal(pointerIndexFromPlot(48 + 3 * 692 / 5, 48, 692, 6), 3, "line-chart pointer selection uses plot-relative coordinates");
+assert.equal(pointerIndexFromPlot(47, 48, 692, 6), null, "the Y-axis gutter is not a selectable plot point");
+assert.equal(pointerIndexFromPlot(50, 0, 300, 3, "centers"), 0, "bar-chart pointer selection uses the first bar cell");
+assert.equal(pointerIndexFromPlot(149, 0, 300, 3, "centers"), 1, "bar-chart pointer selection uses the middle bar cell");
+assert.equal(pointerIndexFromPlot(299, 0, 300, 3, "centers"), 2, "bar-chart pointer selection includes the final bar cell");
+assert.equal(pointerIndexFromPlot(301, 0, 300, 3, "centers"), null, "pointer selection ignores padding outside the plot");
+assert.equal(keepPointVisible({ pointOffset: 712, viewportWidth: 277, contentWidth: 760, scrollLeft: 0 }), 459,
+  "keyboard End scrolls the final growth point into the mobile viewport");
+assert.equal(keepPointVisible({ pointOffset: 712, viewportWidth: 277, contentWidth: 760, scrollLeft: 459 }), 459,
+  "an already visible point does not jump the scroll position");
+assert.equal(keepPointVisible({ pointOffset: 48, viewportWidth: 900, contentWidth: 760, scrollLeft: 0 }), 0,
+  "charts that fit do not scroll");
+assert.equal(tooltipCenter({ pointOffset: 712, viewportWidth: 277, scrollLeft: 459, tooltipWidth: 224 }), 616,
+  "the growth tooltip stays inside the visible mobile scroll window");
+console.log("PASS chart scales, date ticks, zero-height bars and trend summaries preserve the data");
+console.log("PASS chart pointer geometry, keyboard reveal and tooltip clamping follow the visible plot");
+const dashboardPage = await readFile(new URL("../../src/WebApi/frontend/features/admin/dashboard/admin-dashboard.tsx", import.meta.url), "utf8");
+assert(dashboardPage.includes('<div className="min-w-0 xl:col-span-8"><GrowthChart'),
+  "the scrollable growth chart cannot force the dashboard grid beyond the viewport");
+console.log("PASS the growth chart shrinks its grid cell before scrolling on narrow screens");
+const { normalizeJobRow, parseJobBoolean } = await load("features/admin/job-list.ts");
+assert.deepEqual(normalizeJobRow({
+  id: 12, tieuDe: "Backend .NET", tenDoanhNghiep: "ACME", diaDiemLamViec: "Hà Nội",
+  luongToiThieu: 10000000, luongToiDa: 15000000, soLuongUngVien: 7,
+  ngayHetHan: "2026-12-01T00:00:00", created: "2026-11-01T00:00:00",
+  trangThai: "DangTuyen", doanhNghiepId: 3, nguoiDangTinId: 8,
+}), {
+  Id: 12, TieuDe: "Backend .NET", TenDoanhNghiep: "ACME", DiaDiemLamViec: "Hà Nội",
+  LuongToiThieu: 10000000, LuongToiDa: 15000000, SoLuongUngVien: 7,
+  NgayHetHan: "2026-12-01T00:00:00", Created: "2026-11-01T00:00:00",
+  TrangThai: "DangTuyen", DoanhNghiepId: 3, NguoiDangTinId: 8,
+  LastModified: null, NguoiDaiDienDaDuyet: false, VaiTroNguoiDang: "",
+});
+assert.equal(normalizeJobRow({ soLuongUngVien: "not-a-number" }).SoLuongUngVien, 0);
+assert.equal(normalizeJobRow({ Id: "42" }).Id, 42);
+for (const value of [true, 1, "true", "1", "TRUE"]) assert.equal(parseJobBoolean(value), true);
+for (const value of [false, 0, "false", "0", "", null, undefined, "yes", {}, []]) assert.equal(parseJobBoolean(value), false);
+assert.equal(normalizeJobRow({ nguoiDaiDienDaDuyet: "false" }).NguoiDaiDienDaDuyet, false);
+assert.equal(normalizeJobRow({ NguoiDaiDienDaDuyet: "true" }).NguoiDaiDienDaDuyet, true);
+console.log("PASS Admin job rows retain company, salary, dates and applicant counts from the API");
+console.log("PASS Admin job approval flags reject string false and malformed values");
+const adminJobPage = await readFile(new URL("../../src/WebApi/frontend/app/(protected)/admin/tin-tuyen-dung/page.tsx", import.meta.url), "utf8");
+const jobCompanyCell = adminJobPage.indexOf("href={`/doanh-nghiep/");
+const jobLocationCell = adminJobPage.indexOf("row.DiaDiemLamViec");
+const jobStatusCell = adminJobPage.indexOf("<Badge variant={st.variant}>");
+assert(jobCompanyCell >= 0 && jobCompanyCell < jobLocationCell && jobLocationCell < jobStatusCell,
+  "Admin job cells keep company, location and status under their matching columns");
+assert(adminJobPage.includes('className="divide-y divide-border md:hidden"'),
+  "Admin jobs use stacked cards instead of a wide scrolling table on mobile");
+assert(adminJobPage.includes('<div className="hidden overflow-x-auto md:block">'),
+  "the full Admin job table is reserved for desktop layouts");
+console.log("PASS Admin job table columns stay aligned and mobile jobs use readable cards");
+const jobPreview = await readFile(new URL("../../src/WebApi/frontend/features/tin-tuyen-dung/job-preview.tsx", import.meta.url), "utf8");
+assert.match(jobPreview, /<Dialog\.Popup className="[^"]*flex-col[^"]*overflow-hidden/,
+  "the preview dialog keeps its header and actions outside the scrolling content");
+assert.match(jobPreview, /<div className="min-h-0 flex-1 overflow-y-auto px-6 pb-6">/,
+  "long job content scrolls inside its own bounded region");
+assert(!jobPreview.includes("sticky bottom-0"),
+  "the preview actions must not overlay the final lines of job content");
+console.log("PASS job preview actions stay visible without covering scrollable content");
+const demoSeedRunner = await readFile(new URL("../../src/WebApi/WebApp.Server/DemoSeed/DemoSeedRunner.cs", import.meta.url), "utf8");
+assert.match(demoSeedRunner, /TrangThaiTinTuyenDung\.ChoAdminDuyet\s*=>\s*\(true,\s*"Đạt kiểm duyệt tự động, chờ quản trị viên phê duyệt\."\)/,
+  "demo jobs waiting for Admin must retain representative approval so the Admin action is valid");
+assert(adminJobPage.includes('reviewing.VaiTroNguoiDang !== "NGUOI_DAI_DIEN"'),
+  "the Admin UI must keep the representative-approval guard instead of bypassing the workflow");
+console.log("PASS demo Admin-queue jobs satisfy the representative-approval workflow");
+const queueRepair = await readFile(new URL("../../src/Infrastructure/Infrastructure.Persistence/Migrations/20261124000000_RepairInvalidHrAdminQueue.cs", import.meta.url), "utf8");
+assert.match(queueRepair, /SET "TrangThai" = 'ChoNguoiDaiDienDuyet', "KetQuaSangLoc" = '', "LastModified" = CURRENT_TIMESTAMP/,
+  "invalid HR Admin-queue rows return to representative review and discard premature screening output");
+assert.match(queueRepair, /n\."VaiTro" = 'NHAN_SU'/);
+assert.match(queueRepair, /t\."TrangThai" = 'ChoAdminDuyet'/);
+assert.match(queueRepair, /AND NOT t\."NguoiDaiDienDaDuyet"/,
+  "the repair leaves valid approved HR jobs and representative-owned jobs untouched");
+console.log("PASS invalid HR Admin-queue data is repaired without bypassing representative approval");
+const { normalizeUserRow } = await load("features/admin/user-list.ts");
+assert.deepEqual(normalizeUserRow({
+  id: "7", email: "hr@example.com", userName: "hr", hoTen: "Nguyễn Văn B",
+  phoneNumber: "0912345678", applicationUserId: "identity-7", vaiTro: "NHAN_SU",
+  isActive: true, isLocked: false, emailConfirmed: true, created: "2026-11-01T00:00:00Z",
+  hasRelatedData: true, doanhNghiepId: "12", tenDoanhNghiep: "ACME",
+}), {
+  Id: 7, Email: "hr@example.com", UserName: "hr", HoTen: "Nguyễn Văn B",
+  PhoneNumber: "0912345678", ApplicationUserId: "identity-7", VaiTro: 3,
+  IsActive: true, IsLocked: false, EmailConfirmed: true, Created: "2026-11-01T00:00:00Z",
+  HasRelatedData: true, DoanhNghiepId: 12, TenDoanhNghiep: "ACME",
+});
+assert.deepEqual(normalizeUserRow({ Id: 8, isActive: "false", hasRelatedData: "false" }), {
+  Id: 8, Email: null, UserName: null, HoTen: null, PhoneNumber: null,
+  ApplicationUserId: "", VaiTro: 0, IsActive: false, IsLocked: false,
+  EmailConfirmed: false, Created: null, HasRelatedData: false,
+  DoanhNghiepId: null, TenDoanhNghiep: null,
+});
+console.log("PASS Admin user rows retain verification, company, creation date and safe-delete state");
+const { normalizeCompanyRow } = await load("features/admin/company-list.ts");
+assert.deepEqual(normalizeCompanyRow({
+  id: "12", tenDoanhNghiep: "ACME", website: "https://acme.vn", diaChi: "Hà Nội",
+  nguoiDaiDienId: "7", tenNguoiDaiDien: "Nguyễn Văn B", soTinDangTuyen: "4",
+  soTinChoDuyet: 2, soDonUngTuyen: "19",
+}), {
+  Id: 12, TenDoanhNghiep: "ACME", MoTa: null, Website: "https://acme.vn", DiaChi: "Hà Nội",
+  LogoUrl: null, MaSoThue: null, LinhVucHoatDong: null, QuyMoNhanSu: null,
+  NguoiDaiDienId: 7, TenNguoiDaiDien: "Nguyễn Văn B",
+  SoTinDangTuyen: 4, SoTinChoDuyet: 2, SoDonUngTuyen: 19,
+});
+assert.equal(normalizeCompanyRow({ soDonUngTuyen: "not-a-number" }).SoDonUngTuyen, 0);
+console.log("PASS Admin company rows retain representative and recruitment aggregates");
+const { safeCompanyWebsite } = await load("features/admin/company-list.ts");
+assert.equal(safeCompanyWebsite(" https://acme.vn/path?q=1 "), "https://acme.vn/path?q=1");
+assert.equal(safeCompanyWebsite("HTTP://acme.vn"), "HTTP://acme.vn");
+for (const value of [null, undefined, "", "//acme.vn", "javascript:alert(1)", "data:text/html,test", "ftp://acme.vn", "https://acme.vn/a b", "https://", "not a URL"]) {
+  assert.equal(safeCompanyWebsite(value), null, `unsafe company website rejected: ${String(value)}`);
+}
+console.log("PASS Admin company links accept only valid absolute HTTP(S) URLs");
+const adminUserPage = await readFile(new URL("../../src/WebApi/frontend/app/(protected)/admin/nguoi-dung/page.tsx", import.meta.url), "utf8");
+const adminCompanyPage = await readFile(new URL("../../src/WebApi/frontend/app/(protected)/admin/doanh-nghiep/page.tsx", import.meta.url), "utf8");
+for (const [name, source] of [["user", adminUserPage], ["company", adminCompanyPage]]) {
+  assert(source.includes('<Table className="w-full table-fixed md:table-auto">'),
+    `the Admin ${name} table keeps a fixed mobile layout without horizontal scrolling`);
+  assert(source.includes('<TableHead className="w-24 text-right">Thao tác</TableHead>'),
+    `the Admin ${name} table reserves enough mobile width for its actions`);
+}
+assert(/className="[^"]*lg:hidden[^"]*">Đại diện: \{row\.TenNguoiDaiDien/.test(adminCompanyPage),
+  "the company representative remains reachable when its desktop column is hidden");
+console.log("PASS Admin user and company tables fit their mobile viewport without horizontal scrolling");
+console.log("PASS the company representative remains visible in the mobile company row");
 assert.equal(matchesSearch(["Nguyễn Văn Đạt", "dat@example.com"], "NGUYEN dat"), true);
 assert.equal(matchesSearch(["Nguyễn Văn Đạt"], "nguyen nonexistent"), false);
 assert.equal(matchesSearch(["Nhân sự", "0901234567"], "090123"), true);
