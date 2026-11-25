@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, usePathname } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useAgentContext, useFrontendTool } from "@copilotkit/react-core/v2";
 import { z } from "zod";
 import { toast } from "sonner";
@@ -29,13 +29,6 @@ import {
   cvContactPatchSchema,
   cvSectionCreateSchema,
 } from "@/features/ai-cv/cv-tool-schemas";
-import {
-  ADAM_APPLIED_EVENT,
-  openApplyModal,
-  readLastApplication,
-  saveApplyIntent,
-  type AdamAppliedDetail,
-} from "@/features/ung-tuyen/adam-apply-intent";
 
 /**
  * Global Adam bridge: mount MỘT lần trong CopilotProvider (protected layout).
@@ -100,20 +93,6 @@ const focusSectionsSchema = z.object({
     ),
 });
 
-const applyToJobSchema = z.object({
-  tinTuyenDungId: z
-    .number()
-    .int()
-    .positive()
-    .describe("ID tin tuyển dụng user muốn nộp đơn. Lấy từ search_jobs/get_job_details/kết quả gợi ý; không đoán."),
-  cvId: z
-    .number()
-    .int()
-    .positive()
-    .optional()
-    .describe("ID CV sẽ nộp. Bỏ trống để user tự chọn trong danh sách CV của mình."),
-});
-
 export function useGlobalCvAssistant({
   enabled = true,
   role = "candidate",
@@ -134,20 +113,6 @@ export function useGlobalCvAssistant({
   // chạm rate limit 429). Ghi timestamp lần navigate cuối, chặn trong 30s.
   const lastNavigateAt = useRef(0);
 
-  // Cooldown theo từng tin cho modal nộp đơn — agent lặp cùng tin thì không
-  // mở lại bảng xác nhận, nhưng tin khác vẫn mở được ngay.
-  const applyModalAt = useRef<Record<number, number>>({});
-
-  const [lastApplication, setLastApplication] = useState<AdamAppliedDetail | null>(() =>
-    typeof window === "undefined" ? null : readLastApplication(),
-  );
-
-  useEffect(() => {
-    const onApplied = () => setLastApplication(readLastApplication());
-    window.addEventListener(ADAM_APPLIED_EVENT, onApplied);
-    return () => window.removeEventListener(ADAM_APPLIED_EVENT, onApplied);
-  }, []);
-
   // Warm the editor chunk while the user is still chatting. This removes the
   // compile/fetch gap when navigateToCvEditor is called by a frontend tool.
   useEffect(() => {
@@ -158,7 +123,7 @@ export function useGlobalCvAssistant({
     if (!enabled || role === "blocked") {
       return {
         description: "Tài khoản hiện tại không thuộc phạm vi hỗ trợ của Adam.",
-        value: { role, pathname: pathname ?? "", isEditor: false, lastApplication: null },
+        value: { role, pathname: pathname ?? "", isEditor: false },
       };
     }
 
@@ -169,7 +134,7 @@ export function useGlobalCvAssistant({
           "Nếu isEditor=false thì KHÔNG có form CV trực tiếp để ghi — " +
           "muốn điền CV phải gọi navigateToCvEditor (tự lưu nháp + nhảy vào /tao-cv). " +
           "Nếu isEditor=true thì điền trực tiếp bằng updateCvContact/updateCvMeta/upsertCvSectionItem.",
-        value: { role, pathname: pathname ?? "", isEditor, lastApplication },
+        value: { role, pathname: pathname ?? "", isEditor },
       };
     }
 
@@ -177,9 +142,9 @@ export function useGlobalCvAssistant({
       description:
         "Vị trí trang hiện tại của nhà tuyển dụng. " +
         "Chỉ dùng tool nghiệp vụ tuyển dụng; không có form CV để điền.",
-      value: { role, pathname: pathname ?? "", isEditor: false, lastApplication: null },
+      value: { role, pathname: pathname ?? "", isEditor: false },
     };
-  }, [enabled, isCandidate, isEditor, lastApplication, pathname, role]);
+  }, [enabled, isCandidate, isEditor, pathname, role]);
 
   useAgentContext(agentContext);
 
@@ -246,45 +211,6 @@ export function useGlobalCvAssistant({
       },
     },
     [enabled, isCandidate, isEditor],
-  );
-
-  useFrontendTool(
-    {
-      name: "applyToJob",
-      description:
-        "Mở bảng xác nhận nộp đơn của một tin tuyển dụng để user bấm 'Xác nhận nộp đơn'. " +
-        "BẮT BUỘC chỉ gọi khi user nói rõ muốn nộp/ứng tuyển tin đó; không gọi khi user mới hỏi thông tin. " +
-        "Tool KHÔNG nộp đơn và không ghi DB — user vẫn phải tự xác nhận trên bảng. " +
-        "Sau khi gọi, nói ngắn gọn bảng xác nhận đã mở và nhắc user bấm 'Xác nhận nộp đơn'; đừng nói 'đã nộp'.",
-      agentId: "default",
-      parameters: applyToJobSchema,
-      available: enabled && isCandidate,
-      handler: async ({ tinTuyenDungId, cvId }) => {
-        const now = Date.now();
-        if (now - (applyModalAt.current[tinTuyenDungId] ?? 0) < 30_000) {
-          return `Bảng xác nhận cho tin ${tinTuyenDungId} vừa mở. Đơn CHƯA được nộp; chờ user bấm "Xác nhận nộp đơn".`;
-        }
-
-        const intent = { tinTuyenDungId, ...(typeof cvId === "number" && cvId > 0 ? { cvId } : {}) };
-        if (openApplyModal(intent)) {
-          applyModalAt.current[tinTuyenDungId] = now;
-          return `Đã mở bảng xác nhận cho tin ${tinTuyenDungId} ngay trong trang hiện tại. Đơn CHƯA được nộp; chờ user bấm "Xác nhận nộp đơn".`;
-        }
-
-        // Fallback khi modal chưa mount: giữ luồng cũ qua trang tin.
-        const target = `/viec-lam/${tinTuyenDungId}`;
-        saveApplyIntent(intent);
-
-        if (pathname !== target) {
-          await router.prefetch(target);
-          window.setTimeout(() => router.push(target), 0);
-          return `Đã mở trang tin ${tinTuyenDungId} cùng bảng xác nhận nộp đơn. Đơn CHƯA được nộp; chờ user bấm "Xác nhận nộp đơn".`;
-        }
-
-        return `Đã mở bảng xác nhận nộp đơn cho tin ${tinTuyenDungId}. Đơn CHƯA được nộp; chờ user bấm "Xác nhận nộp đơn".`;
-      },
-    },
-    [enabled, isCandidate, pathname, router],
   );
 
   useFrontendTool(

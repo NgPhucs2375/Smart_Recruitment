@@ -34,7 +34,6 @@ import { useBookmarks } from "@/hooks/use-bookmarks";
 import { useStoredIdentity } from "@/hooks/use-stored-identity";
 import { getValidToken, refreshSession } from "@/lib/auth-provider";
 import { MatchBreakdown, type MatchBreakdownData } from "@/components/jobs/match-breakdown";
-import { ADAM_APPLIED_EVENT, takeApplyIntent } from "@/features/ung-tuyen/adam-apply-intent";
 import { CvPicker } from "@/features/ung-tuyen/cv-picker";
 
 type TinChiTiet = {
@@ -299,25 +298,6 @@ export default function ViecLamChiTietPage() {
   };
 
 
-  // Fallback deep-link cũ: intent do agent lưu trước khi modal toàn cục mount.
-  useEffect(() => {
-    if (!tin || daUngTuyen) return;
-    const consume = () => {
-      const intent = takeApplyIntent(tinId);
-      if (intent) void openPicker(intent.cvId ?? null);
-    };
-    consume();
-  }, [tin, daUngTuyen, tinId, openPicker]);
-
-  // Modal toàn cục vừa nộp đơn cho tin này → cập nhật badge tại chỗ.
-  useEffect(() => {
-    const onApplied = (event: Event) => {
-      const detail = (event as CustomEvent<{ tinTuyenDungId?: number }>).detail;
-      if (Number(detail?.tinTuyenDungId) === tinId) setDaUngTuyen(true);
-    };
-    window.addEventListener(ADAM_APPLIED_EVENT, onApplied);
-    return () => window.removeEventListener(ADAM_APPLIED_EVENT, onApplied);
-  }, [tinId]);
   const hetHan = tin ? isExpired(tin.ngayHetHan) : false;
   const conNhanHoSo = !!tin && (tin.trangThai === "DangTuyen" || tin.trangThai === "3") && !hetHan;
   const daDong = tin?.trangThai === "DaDong" || tin?.trangThai === "6";

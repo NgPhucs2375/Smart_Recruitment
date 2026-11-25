@@ -35,17 +35,19 @@ Everything listens on the single AG-UI endpoint `/api/copilotkit` (mapped in
 
 ## Tools
 
-All backend tools are **read-only**: one permission check (`IPermissionService`)
-plus one MediatR query each, cached for 120s per user (`AgentToolCache`).
-Stable snake_case names; prompts refer to those names.
+Backend tools are read-only **except `apply_to_job`**: read tools do one
+permission check (`IPermissionService`) plus one MediatR query each, cached for
+120s per user (`AgentToolCache`); the write tool is never cached and delegates
+to the same MediatR command as the HTTP endpoint. Stable snake_case names;
+prompts refer to those names.
 
-Candidate agent (16 backend tools, see `CandidateAdamAgentFactory`):
+Candidate agent (19 backend tools, see `CandidateAdamAgentFactory`):
 
 | Group | Tools |
 |---|---|
 | Profile / CV | `get_my_profile`, `list_my_cvs`, `get_cv_detail`, `check_profile_completeness`, `analyze_cv`, `review_default_cv` |
 | Jobs | `search_jobs`, `get_job_details`, `get_job_recommendations`, `explain_job_match`, `compare_jobs` (scorer tất định cho một cặp CV–tin, không phụ thuộc top gợi ý) |
-| Applications | `get_my_applications`, `get_application_status` |
+| Applications | `apply_to_job` (ghi DB qua `CreateDonUngTuyenCommand`, server kiểm quyền/CV/tin/chống trùng), `get_my_applications`, `get_application_status`, `get_application_timeline` |
 | CV themes | `suggest_cv_theme`, `get_cv_theme_workspace` → `pick_cv_themes` (server validates slugs) |
 
 Recruiter agent (17 backend tools, see `RecruiterAdamAgentFactory`):
@@ -60,8 +62,8 @@ Recruiter agent (17 backend tools, see `RecruiterAdamAgentFactory`):
 Frontend tools (CopilotKit v2, `frontend/hooks/use-global-cv-assistant.ts` +
 `frontend/hooks/use-cv-assistant.ts`):
 
-- Everywhere: `navigateTo`, `navigateToCvEditor` (candidate), `applyToJob`
-  (opens the confirm dialog only), `focusSections` (editor only).
+- Everywhere: `navigateTo`, `navigateToCvEditor` (candidate), `focusSections`
+  (editor only).
 - CV editor (`/CV`): `updateCvContact`, `updateCvContactBulk`, `updateCvMeta`,
   `upsertCvSectionItem`, `removeCvSectionItem`, `setCvTemplate`,
   `getCvFormSnapshot`, `loadCvFromBackend`, `suggestCvThemeForDraft`.
@@ -70,9 +72,10 @@ Frontend tools (CopilotKit v2, `frontend/hooks/use-global-cv-assistant.ts` +
 
 Trong lúc soạn, CV chỉ tồn tại dưới dạng React state ở FE — BE không với tới
 được, nên mọi tool ghi là frontend tool, tác động thẳng vào form (preview
-realtime, có undo). BE chỉ expose tool đọc. Đường ghi DUY NHẤT vào DB là nút
-"Lưu CV" ở `/CV` (`cvApi.saveVersion` → `SaveCvVersionCommand`, có versioning qua
-`CVPhienBan`). Agent không tự lưu CV, không tự tạo CV rỗng, không nộp đơn.
+realtime, có undo). CV ghi DB qua nút "Lưu CV" ở `/CV` (`cvApi.saveVersion` →
+`SaveCvVersionCommand`, có versioning qua `CVPhienBan`). Ngoại lệ duy nhất có tool
+ghi DB: `apply_to_job` nộp đơn qua `CreateDonUngTuyenCommand` sau khi permission
+`donungtuyens.create` và toàn bộ validate phía server chạy xong.
 
 Agent "biết" trạng thái form nhờ FE đẩy snapshot qua `useAgentContext` mỗi
 lượt chat (`frontend/features/ai-cv/cv-assistant-state.ts`), không phải nhờ
@@ -131,8 +134,9 @@ In Docker (`docker-compose.prod.yml`) these map to `DeepSeek__*`, `Agent__*`,
 ## Conventions
 
 - Use stable snake_case names for backend tools; prompts refer to those names.
-- Separate read tools from tools with side effects. Backend tools are
-  read-only; all writes go through FE tools / the save button.
+- Separate read tools from tools with side effects. Backend tools stay
+  read-only/cached; a new write tool must be uncached, must re-check permissions
+  and must delegate to an existing MediatR command instead of writing directly.
 - Return typed DTO/response contracts, never EF entities or `object`.
 - Keep model/provider setup in `AgentExtensions`; do not put it in `Program.cs`.
 - Create another feature directory under `Agent/` when adding a new agent.

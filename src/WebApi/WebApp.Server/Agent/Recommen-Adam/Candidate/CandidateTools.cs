@@ -3,6 +3,7 @@ using Application.DTOs.CV;
 using Application.Interfaces;
 using Application.Features.CVUngVien.Queries.GetAllCVUngViens;
 using Application.Features.CVUngVien.Queries.GetCVUngVienById;
+using Application.Features.DonUngTuyen.Commands.CreateDonUngTuyen;
 using Application.Features.DonUngTuyen.Queries.GetAllDonUngTuyens;
 using Application.Features.DonUngTuyen.Queries.GetDonUngTuyenById;
 using Application.Features.HoSoUngVien.Queries.GetMyHoSoUngVien;
@@ -16,6 +17,7 @@ using Domain.Enums;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using WebApp.Server.Agent.Cache;
 using WebApp.Server.Agent.Notifications;
 using WebApp.Server.Agent.SharedState;
@@ -31,6 +33,7 @@ internal sealed class CandidateTools
 	private readonly IServiceScopeFactory _scopeFactory;
 	private readonly IApplicationDbContext _context;
 	private readonly ICurrentNguoiDungService _current;
+	private readonly ILogger<CandidateTools> _logger;
 
 	public CandidateTools(
 		ISender sender,
@@ -39,7 +42,8 @@ internal sealed class CandidateTools
 		AgentToolCache toolCache,
 		IServiceScopeFactory scopeFactory,
 		IApplicationDbContext context,
-		ICurrentNguoiDungService current)
+		ICurrentNguoiDungService current,
+		ILogger<CandidateTools> logger)
 	{
 		_sender = sender;
 		_sharedState = sharedState;
@@ -48,6 +52,7 @@ internal sealed class CandidateTools
 		_scopeFactory = scopeFactory;
 		_context = context;
 		_current = current;
+		_logger = logger;
     }
 
     [Description("Chỉ kiểm tra các trường thông tin cá nhân trong HoSoUngVien của ứng viên hiện tại. Không đọc, không phân tích và không kiểm tra CVUngVien. Dùng khi ứng viên hỏi: hồ sơ của tôi còn thiếu gì.")]
@@ -385,6 +390,63 @@ internal sealed class CandidateTools
     }
 
     [Description(
+        "NỘP ĐƠN THẬT: tạo đơn ứng tuyển của ứng viên hiện tại vào một tin tuyển dụng và ghi DB. " +
+        "Chỉ gọi khi người dùng nói rõ muốn nộp tin đó và đã chốt CV. " +
+        "Server tự kiểm tra quyền, CV thuộc ứng viên, CV sẵn sàng, tin còn nhận hồ sơ và chống nộp trùng; " +
+        "lỗi nghiệp vụ trả message tiếng Việt để báo nguyên văn.")]
+    public async Task<Response<CandidateApplyResult>> ApplyToJobAsync(
+        [Description("ID tin tuyển dụng muốn nộp.")] int tinTuyenDungId,
+        [Description("ID CV sẽ nộp, do người dùng chọn hoặc xác nhận; không tự đoán.")] int cvId,
+        CancellationToken cancellationToken = default)
+    {
+        await _permissions.RequireAsync("donungtuyens", "create", cancellationToken);
+
+        var created = await _sender.Send(new CreateDonUngTuyenCommand
+        {
+            TinTuyenDungId = tinTuyenDungId,
+            CVUngVienId = cvId,
+        }, cancellationToken);
+
+        if (!created.Succeeded || created.Data <= 0)
+            return new Response<CandidateApplyResult>(created.Message ?? "Nộp đơn không thành công.");
+
+        var don = await _context.DonUngTuyens.AsNoTracking()
+            .Where(d => d.Id == created.Data)
+            .Select(d => new
+            {
+                d.Id,
+                d.TinTuyenDungId,
+                d.TinTuyenDung.TieuDe,
+                d.TinTuyenDung.DoanhNghiep.TenDoanhNghiep,
+                d.CVUngVienId,
+                TenCv = d.CVUngVien.TenFile,
+                d.TrangThai,
+                d.NgayUngTuyen,
+            })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (don == null)
+            return new Response<CandidateApplyResult>(
+                $"Đã tạo đơn #{created.Data} nhưng chưa đọc lại được. Kiểm tra tại Việc đã ứng tuyển.");
+
+        _logger.LogInformation(
+            "Đơn ứng tuyển tạo qua Adam tool: tinTuyenDungId={TinTuyenDungId}, cvUngVienId={CvUngVienId}, donUngTuyenId={DonUngTuyenId}",
+            don.TinTuyenDungId, don.CVUngVienId, don.Id);
+
+        return new Response<CandidateApplyResult>(new CandidateApplyResult
+        {
+            DonUngTuyenId = don.Id,
+            TinTuyenDungId = don.TinTuyenDungId,
+            TieuDe = don.TieuDe ?? "",
+            TenDoanhNghiep = don.TenDoanhNghiep ?? "",
+            CVUngVienId = don.CVUngVienId,
+            TenCv = don.TenCv ?? "",
+            TrangThai = don.TrangThai.ToString(),
+            NgayUngTuyen = don.NgayUngTuyen,
+        }, created.Message ?? "Đã nộp hồ sơ.");
+    }
+
+    [Description(
         "Xem thông báo của ứng viên đang đăng nhập: việc làm mới, lịch phỏng vấn, cập nhật đơn ứng tuyển. " +
         "Chỉ đọc; không đánh dấu đã đọc và không tạo thông báo mới.")]
     public async Task<Response<AgentNotificationsResult>> GetMyNotificationsAsync(
@@ -531,6 +593,18 @@ public sealed class CandidateProfileCompleteness
     public int HoSoUngVienId { get; set; }
     public bool DaHoanThien { get; set; }
     public List<string> ThieuThongTin { get; set; } = new();
+}
+
+public sealed class CandidateApplyResult
+{
+    public int DonUngTuyenId { get; set; }
+    public int TinTuyenDungId { get; set; }
+    public string TieuDe { get; set; } = "";
+    public string TenDoanhNghiep { get; set; } = "";
+    public int CVUngVienId { get; set; }
+    public string TenCv { get; set; } = "";
+    public string TrangThai { get; set; } = "";
+    public DateTime? NgayUngTuyen { get; set; }
 }
 
 public sealed class CandidateCvAnalysis
