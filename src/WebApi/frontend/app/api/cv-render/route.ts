@@ -9,6 +9,11 @@ export const dynamic = "force-dynamic";
 
 const MAX_COOKIE_LENGTH = 6_000;
 
+function internalRenderOrigin(): string {
+  const configured = process.env.CV_RENDER_INTERNAL_ORIGIN?.trim().replace(/\/+$/, "");
+  return configured || `http://127.0.0.1:${process.env.PORT || "3000"}`;
+}
+
 export async function POST(request: Request) {
   const payload = await request.json().catch(() => null);
   const body =
@@ -33,8 +38,8 @@ export async function POST(request: Request) {
   }
 
   try {
-    // GET nội bộ dùng lại đúng layout, CSS và font của trang /cv-render.
-    const rendered = await fetch(new URL("/cv-render", request.url), {
+    // Sau Nginx, request.url mang origin HTTPS công khai; container chỉ phục vụ HTTP nội bộ.
+    const rendered = await fetch(`${internalRenderOrigin()}/cv-render`, {
       headers: {
         Accept: "text/html",
         Cookie: `${CV_RENDER_COOKIE}=${packed}`,

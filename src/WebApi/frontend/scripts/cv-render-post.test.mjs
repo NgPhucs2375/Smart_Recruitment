@@ -90,3 +90,22 @@ test('POST /api/cv-render rejects malformed JSON', async () => {
 
   assert.equal(response.status, 400);
 });
+
+test('POST renders through the internal HTTP origin behind an HTTPS proxy', async () => {
+  const data = longCvData();
+  const target = new URL(baseUrl);
+  const response = await fetch(`${baseUrl}/api/cv-render`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Forwarded-Host': target.host,
+      'X-Forwarded-Proto': 'https',
+    },
+    body: JSON.stringify({ data, templateId: 'tech-modern' }),
+  });
+  const html = await response.text();
+
+  assert.equal(response.status, 200, html.slice(0, 500));
+  assert.ok(html.includes(candidateName));
+  assert.ok(html.includes(descriptionMarker));
+});
